@@ -1,0 +1,48 @@
+{
+    "name":  "SELRS-win7",
+    "version":  "1.0.87",
+    "private":  true,
+    "main":  "main.js",
+    "scripts":  {
+                    "start":  "electron .",
+                    "dist":  "electron-builder --win nsis"
+                },
+    "devDependencies":  {
+                            "electron":  "22.3.27",
+                            "electron-builder":  "^23.6.0"
+                        },
+    "build":  {
+                  "appId":  "cc.selrs.electron.win7",
+                  "productName":  "SELRS",
+                  "directories":  {
+                                      "output":  "C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS.cc"
+                                  },
+                  "files":  [
+                                "main.js",
+                                "preload.js",
+                                "assets/**"
+                            ],
+                  "win":  {
+                              "icon":  "assets/app.ico",
+                              "target":  [
+                                             {
+                                                 "target":  "nsis",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             }
+                                         ]
+                          },
+                  "nsis":  {
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  true,
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "SELRS Win7",
+                               "installerIcon":  "assets/app.ico",
+                               "uninstallerIcon":  "assets/app.ico",
+                               "installerHeaderIcon":  "assets/app.ico",
+                               "artifactName":  "SELRS-Electron-Setup-Win7-${version}.${ext}"
+                           }
+              }
+}

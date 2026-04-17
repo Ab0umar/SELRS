@@ -1,0 +1,2554 @@
+import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import PatientPicker from "@/components/PatientPicker";
+import PentacamFilesPanel from "@/components/PentacamFilesPanel";
+import {
+  Users,
+  Calendar,
+  FileText,
+  Eye,
+  ClipboardList,
+  Shield,
+  Settings,
+  User,
+  UserRound,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  X } from "lucide-react";
+import { useLocation } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
+import { OfflinePageState } from "@/components/OfflinePageState";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { getCardUsage, getPanelState, getRecentPatients, pushRecentPatient, setPanelState, trackCardUsage } from "@/lib/dashboardLocalState";
+
+const PATIENT_DATA_EDIT_PERMISSION = "/patient-data/edit";
+
+export default function Dashboard() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
+  const [, setLocation] = useLocation();
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && user?.role !== "admin",
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const todayDateIso = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  })();
+  const [todayPatientsDate, setTodayPatientsDate] = useState(todayDateIso);
+  const [dailyBoardOpen, setDailyBoardOpen] = useState(() => getPanelState("dailyBoardOpen", true));
+  const [activeTopMenu, setActiveTopMenu] = useState<"admin" | null>(null);
+  const topMenuRef = useRef<HTMLDivElement | null>(null);
+  const [todayGroupVisibleCounts, setTodayGroupVisibleCounts] = useState<Record<string, number>>({});
+  const [recentPatients, setRecentPatients] = useState(() => getRecentPatients());
+
+  // Patient medical file accordion state
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [patientFormData, setPatientFormData] = useState({
+    medicalHistory: "",
+    symptoms: [] as number[],
+    measurements: {
+      autoref: { od: { s: "", c: "", axis: "", ucva: "", bcva: "" }, os: { s: "", c: "", axis: "", ucva: "", bcva: "" } },
+      iop: { od: "", os: "" },
+    },
+    glasses: { od: { s: "", c: "", axis: "", pd: "", bcva: "" }, os: { s: "", c: "", axis: "", pd: "", bcva: "" } },
+    pentacam: { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "" } },
+    tests: [] as number[],
+    treatment: [] as number[],
+    diagnosis: "",
+    diseases: [] as number[],
+    recommendations: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [pentacamImagesOpen, setPentacamImagesOpen] = useState(false);
+  const [selectedTestRequestId, setSelectedTestRequestId] = useState<number | null>(null);
+  const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<number | null>(null);
+  const [examinationDate, setExaminationDate] = useState<string>("");
+  const [visitDate, setVisitDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const todayPatientsQuery = trpc.medical.getTodayPatientsBySheet.useQuery(
+    { date: todayPatientsDate || todayDateIso },
+    {
+      enabled: ["doctor", "nurse", "technician", "manager", "admin"].includes(user?.role ?? ""),
+      refetchOnWindowFocus: false,
+      staleTime: 30 * 1000,
+      refetchOnReconnect: false,
+      }
+  );
+
+  // Queries for accordion data - these load global lists that are cached
+  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+
+  // Get selected patient data
+  const selectedPatientQuery = trpc.patient.getPatient.useQuery(
+    selectedPatientId ?? 0,
+    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000 }
+  );
+
+  // Get examinations for selected patient
+  const selectedPatientExaminationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
+    { patientId: selectedPatientId ?? 0 },
+    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false }
+  );
+
+  // Get test requests for selected patient
+  const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery(
+    { patientId: selectedPatientId ?? 0 },
+    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false }
+  );
+
+  // Get prescriptions for selected patient
+  const prescriptionsQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
+    { patientId: selectedPatientId ?? 0 },
+    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false }
+  );
+
+  // Get doctor reports for selected patient
+  const doctorReportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
+    { patientId: selectedPatientId ?? 0 },
+    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false }
+  );
+
+  // Mutation for saving medical visit data
+  const saveMedicalVisitMutation = trpc.medical.saveMedicalVisit.useMutation();
+
+  // Mutation for updating visit date
+  const updateVisitDateMutation = trpc.medical.updateVisitDate.useMutation();
+
+  // Helper function to handle measurement changes
+  const handleMeasurementChange = (
+    section: "autoref" | "iop",
+    eye: "od" | "os",
+    field: string,
+    value: string
+  ) => {
+    setPatientFormData((prev) => {
+      const newData = { ...prev };
+      if (section === "iop") {
+        // IOP has a simple structure: { od: "", os: "" }
+        (newData.measurements.iop as any)[eye] = value;
+      } else if (section === "autoref") {
+        // Autoref has a nested structure: { od: { s: "", c: "", ... }, os: { ... } }
+        (newData.measurements.autoref[eye] as any)[field] = value;
+      }
+      return newData;
+    });
+  };
+
+  // Helper function to toggle checkboxes
+  const toggleCheckbox = (type: "symptoms" | "tests" | "treatment", id: number) => {
+    setPatientFormData((prev) => {
+      const items = prev[type] || [];
+      if (items.includes(id)) {
+        return { ...prev, [type]: items.filter((item) => item !== id) };
+      } else {
+        return { ...prev, [type]: [...items, id] };
+      }
+    });
+  };
+
+  // Load patient data when selected
+  useEffect(() => {
+    if (!selectedPatientQuery.data) return;
+    const patient = selectedPatientQuery.data;
+    const examinations = selectedPatientExaminationsQuery.data ?? [];
+    const latestExam = examinations.length > 0 ? examinations[0] : null;
+    const doctorReports = doctorReportsQuery.data ?? [];
+    const latestReport = doctorReports.length > 0 ? doctorReports[0] : null;
+
+    // Initialize empty state
+    let measurements: any = {
+      autoref: { od: { s: "", c: "", axis: "", ucva: "", bcva: "" }, os: { s: "", c: "", axis: "", ucva: "", bcva: "" } },
+      iop: { od: "", os: "" },
+    };
+    let glasses: any = { od: { s: "", c: "", axis: "", pd: "" }, os: { s: "", c: "", axis: "", pd: "" } };
+    let pentacam: any = { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "" } };
+    let symptoms: number[] = [];
+    let tests: number[] = [];
+    let treatment: number[] = [];
+
+    // Parse tests and treatment from radiologyLabsNotes
+    if (latestExam?.radiologyLabsNotes) {
+      try {
+        const radiologyData = JSON.parse(latestExam.radiologyLabsNotes);
+        tests = Array.isArray(radiologyData?.tests) ? radiologyData.tests : [];
+        treatment = Array.isArray(radiologyData?.treatment) ? radiologyData.treatment : [];
+        symptoms = Array.isArray(radiologyData?.symptoms) ? radiologyData.symptoms : [];
+      } catch {
+        tests = [];
+        treatment = [];
+        symptoms = [];
+      }
+    }
+
+    // Parse diseases from doctor report
+    let diseases: number[] = [];
+    if (latestReport?.diseases) {
+      try {
+        const parsed = JSON.parse(latestReport.diseases);
+        diseases = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        diseases = [];
+      }
+    }
+
+    setPatientFormData({
+      medicalHistory: patient.medicalHistory || "",
+      symptoms: symptoms,
+      measurements: measurements,
+      glasses: glasses,
+      pentacam: pentacam,
+      tests: tests,
+      treatment: treatment,
+      diagnosis: latestReport?.diagnosis || "",
+      diseases: diseases,
+      recommendations: latestReport?.recommendations || "",
+    });
+
+    // Set examination date from latest examination createdAt (read-only - for display only)
+    if (latestExam?.createdAt) {
+      const examDate = new Date(latestExam.createdAt);
+      setExaminationDate(examDate.toISOString().split("T")[0]);
+    }
+
+    // Load visit date - need to get it from visits table via a separate query
+    setVisitDate(new Date().toISOString().split("T")[0]);
+  }, [selectedPatientQuery.data, selectedPatientExaminationsQuery.data, doctorReportsQuery.data]);
+
+  // Auto-save with 800ms debounce
+  useEffect(() => {
+    if (!selectedPatientId) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        await saveMedicalVisitMutation.mutateAsync({
+          patientId: selectedPatientId,
+          // Measurements - split into autoref and iop
+          autoref: patientFormData.measurements?.autoref,
+          iop: patientFormData.measurements?.iop,
+          // Other measurements
+          glasses: patientFormData.glasses,
+          pentacam: patientFormData.pentacam,
+          // Symptoms and clinical notes
+          symptoms: (patientFormData.symptoms || []).length > 0 ? JSON.stringify(patientFormData.symptoms) : undefined,
+          // Tests and treatment
+          tests: (patientFormData.tests || []).length > 0 ? JSON.stringify(patientFormData.tests) : undefined,
+          treatment: (patientFormData.treatment || []).length > 0 ? JSON.stringify(patientFormData.treatment) : undefined,
+          // Diagnosis and recommendations
+          diagnosis: patientFormData.diagnosis || undefined,
+          diseases: (patientFormData.diseases || []).length > 0 ? JSON.stringify(patientFormData.diseases) : undefined,
+          recommendations: patientFormData.recommendations || undefined,
+        });
+        setLastSaveTime(new Date());
+        await selectedPatientExaminationsQuery.refetch();
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [patientFormData, selectedPatientId, saveMedicalVisitMutation, selectedPatientExaminationsQuery]);
+
+  useEffect(() => {
+    setTodayGroupVisibleCounts({});
+  }, [todayPatientsDate]);
+  useEffect(() => {
+    setPanelState("dailyBoardOpen", dailyBoardOpen);
+  }, [dailyBoardOpen]);
+  useEffect(() => {
+    setRecentPatients(getRecentPatients());
+  }, []);
+  useEffect(() => {
+    const onDocDown = (event: MouseEvent) => {
+      if (!topMenuRef.current) return;
+      if (topMenuRef.current.contains(event.target as Node)) return;
+      setActiveTopMenu(null);
+    };
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
+  }, []);
+  const allowedPaths = useMemo(() => {
+    return (permissionsQuery.data ?? []) as string[];
+  }, [permissionsQuery.data]);
+
+  const canAccess = (path: string) => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    if (!allowedPaths.length) return false;
+    return allowedPaths.some((permission) => {
+      if (!permission) return false;
+      if (permission === path) return true;
+      if (permission.includes("/:")) {
+        const base = permission.split("/:")[0];
+        return path.startsWith(`${base}/`);
+      }
+      return false;
+    });
+  };
+  const canOpenPricingRules =
+    user?.role === "admin" ||
+    allowedPaths.includes("/admin/settings/pricing-rules") ||
+    allowedPaths.includes("appointments_pricing_v1");
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-right">
+          <h1 className="text-3xl font-bold text-foreground mb-4">
+            مركز عيون الشروق
+          </h1>
+          <Button onClick={() => setLocation("/")} className="bg-primary">
+            العودة إلى الصفحة الرئيسية
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/");
+  };
+  const prefetchPathData = (path: string) => {
+    if (!path) return;
+    if (path === "/patients") {
+      void utils.medical.getDoctorDirectory.prefetch(undefined);
+      void utils.medical.getServiceDirectory.prefetch(undefined);
+      void utils.medical.getUserPageState.prefetch({ page: "patients" });
+      return;
+    }
+    if (path === "/examination" || path === "/admin/sheets") {
+      void utils.medical.getDoctorDirectory.prefetch(undefined);
+      void utils.medical.getServiceDirectory.prefetch(undefined);
+    }
+  };
+  const prefetchPatientContext = (patientId: number) => {
+    if (!patientId) return;
+    void utils.patient.getPatient.prefetch(patientId);
+    void utils.medical.getPatientPageState.prefetch({ patientId, page: "examination" });
+  };
+  const openTrackedPath = (path: string) => {
+    prefetchPathData(path);
+    trackCardUsage(path);
+    setLocation(path);
+  };
+
+  const getDashboardCards = () => {
+    const cards = [];
+    const adminCards = [];
+
+    if ((user?.role === "admin" || canAccess("/patients")) && (user?.role === "admin" || user)) {
+      cards.push({
+        title: "المرضى",
+        description: "إدارة بيانات المرضى",
+        icon: Users,
+        color: "bg-blue-500",
+        action: () => setLocation("/patients"),
+        path: "/patients",
+      });
+    }
+
+    if ((user?.role === "admin" || canAccess("/patients")) && (user?.role === "admin" || user)) {
+      cards.push({
+        title: "Patient File",
+        description: "فتح ملف المريض الشامل",
+        icon: UserRound,
+        color: "bg-emerald-500",
+        action: () => setLocation("/patient-file"),
+        path: "/patient-file",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/examination")) {
+      cards.push({
+        title: "الفحوصات",
+        description: "إدخال بيانات الفحوصات",
+        icon: Eye,
+        color: "bg-cyan-500",
+        action: () => setLocation("/examination"),
+        path: "/examination",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/sheets/pentacam/:id")) {
+      cards.push({
+        title: "بنتاكام",
+        description: "عرض صور وملفات البنتاكام",
+        icon: Eye,
+        color: "bg-indigo-500",
+        action: () => setLocation("/sheets/pentacam"),
+        path: "/sheets/pentacam",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/appointments")) {
+      cards.push({
+        title: "العمليات",
+        description: "لست العمليات",
+        icon: Calendar,
+        color: "bg-amber-500",
+        action: () => setLocation("/appointments"),
+        path: "/appointments",
+      });
+    }
+
+    if (canOpenPricingRules) {
+      cards.push({
+        title: "تسعير العمليات",
+        description: "عرض وتعديل قواعد الأسعار",
+        icon: Settings,
+        color: "bg-slate-600",
+        action: () => setLocation("/admin/settings/pricing-rules"),
+        path: "/admin/settings/pricing-rules",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/medical-reports")) {
+      cards.push({
+        title: "التقارير",
+        description: "كتابة وعرض التقارير الطبية",
+        icon: FileText,
+        color: "bg-purple-500",
+        action: () => setLocation("/medical-reports"),
+        path: "/medical-reports",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/patient-summary")) {
+      cards.push({
+        title: "التقرير المجمع",
+        description: "تقرير شامل من كل بيانات المريض",
+        icon: FileText,
+        color: "bg-sky-700",
+        action: () => setLocation("/patient-summary"),
+        path: "/patient-summary",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/prescription")) {
+      cards.push({
+        title: "كتابة الروشتة",
+        description: "إنشاء وطباعة روشتات طبية",
+        icon: FileText,
+        color: "bg-orange-500",
+        action: () => setLocation("/prescription"),
+        path: "/prescription",
+      });
+    }
+
+    if (user) {
+      cards.push({
+        title: "مقاس النظاره",
+        description: "فتح وتعديل مقاس النظاره",
+        icon: Eye,
+        color: "bg-emerald-600",
+        action: () => setLocation("/refraction"),
+        path: "/refraction",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/request-tests")) {
+      cards.push({
+        title: "طلب الفحوصات",
+        description: "إنشاء وطباعة طلبات فحوصات",
+        icon: ClipboardList,
+        color: "bg-cyan-600",
+        action: () => setLocation("/request-tests"),
+        path: "/request-tests",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/medications")) {
+      cards.push({
+        title: "الأدوية والفحوصات",
+        description: "إدارة الأدوية والفحوصات والتحاليل",
+        icon: ClipboardList,
+        color: "bg-teal-500",
+        action: () => setLocation("/medications"),
+        path: "/medications",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/visits")) {
+      cards.push({
+        title: "الزيارات",
+        description: "سجل زيارات المريض",
+        icon: Activity,
+        color: "bg-cyan-500",
+        action: () => setLocation("/visits"),
+        path: "/visits",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/followups")) {
+      cards.push({
+        title: "المتابعات",
+        description: "متابعة الحالات والمرضى",
+        icon: Activity,
+        color: "bg-blue-600",
+        action: () => setLocation("/followups"),
+        path: "/followups",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/quick-entry")) {
+      cards.push({
+        title: "إدخال سريع",
+        description: "إدخال سريع بيانات المريض",
+        icon: ClipboardList,
+        color: "bg-green-500",
+        action: () => setLocation("/quick-entry"),
+        path: "/quick-entry",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/new-cases")) {
+      cards.push({
+        title: "الحالات الجديدة",
+        description: "عرض الحالات الجديدة",
+        icon: FileText,
+        color: "bg-rose-500",
+        action: () => setLocation("/new-cases"),
+        path: "/new-cases",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/followup/:id")) {
+      cards.push({
+        title: "نموذج المتابعة",
+        description: "ملء نموذج المتابعة",
+        icon: FileText,
+        color: "bg-amber-500",
+        action: () => setLocation("/followup/0"),
+        path: "/followup/0",
+      });
+    }
+
+    if (user?.role === "admin" || canAccess("/doctor/patient/:id")) {
+      cards.push({
+        title: "رؤية الطبيب",
+        description: "عرض المريض من وجهة نظر الطبيب",
+        icon: Activity,
+        color: "bg-indigo-600",
+        action: () => setLocation("/doctor/patient/0"),
+        path: "/doctor/patient/0",
+      });
+    }
+
+    if (user?.role === "admin") {
+      cards.push({
+        title: "نسخة الشيتات",
+        description: "عرض ومراجعة نسخ الشيتات",
+        icon: FileText,
+        color: "bg-blue-700",
+        action: () => setLocation("/sheet-copies"),
+        path: "/sheet-copies",
+      });
+    }
+    if (["admin"].includes(user?.role || "")) {
+      adminCards.push({
+        title: "Sheets",
+        description: "All Sheets + Sheet Designer",
+        icon: FileText,
+        color: "bg-blue-700",
+        action: () => setLocation("/admin/sheets"),
+        path: "/admin/sheets",
+      });
+    }
+
+    if (["admin"].includes(user?.role || "")) {
+      adminCards.push({
+        title: "User Management",
+        description: "Users + Doctors + Permissions",
+        icon: Shield,
+        color: "bg-indigo-600",
+        action: () => setLocation("/admin/users"),
+        path: "/admin/users",
+      });
+    }
+
+    if (["admin"].includes(user?.role || "")) {
+      adminCards.push({
+        title: "إعدادات النظام",
+        description: "الإعدادات + حالة النظام + APIs + الترحيلات",
+        icon: Settings,
+        color: "bg-slate-700",
+        action: () => setLocation("/admin/settings"),
+        path: "/admin/settings",
+      });
+    }
+
+    return { cards, adminCards };
+  };
+
+  const { cards, adminCards } = getDashboardCards();
+    const isReception = user?.role === "reception";
+    const isAdmin = user?.role === "admin";
+  const showPatientDataPanel = user?.role === "reception";
+  const canEditPatientData =
+    user?.role === "admin" ||
+    (user?.role === "reception" && allowedPaths.includes(PATIENT_DATA_EDIT_PERMISSION));
+  const canSeeTodayPatients = ["doctor", "nurse", "technician", "manager", "admin"].includes(user?.role ?? "");
+  const [todayPatientsExpanded, setTodayPatientsExpanded] = useState(() => getPanelState("todayPatientsExpanded", user?.role !== "admin"));
+  useEffect(() => {
+    setPanelState("todayPatientsExpanded", todayPatientsExpanded);
+  }, [todayPatientsExpanded]);
+  const roleMainOrderMap: Record<string, string[]> = {
+    admin: ["المرضى", "Patient File", "الفحوصات", "بنتاكام", "التقرير المجمع", "التقارير", "كتابة الروشتة", "العمليات", "طلب الفحوصات", "الأدوية والفحوصات", "مقاس النظاره", "نسخة الشيتات"],
+    manager: ["المرضى", "Patient File", "الفحوصات", "التقرير المجمع", "العمليات", "التقارير", "طلب الفحوصات", "الأدوية والفحوصات", "مقاس النظاره", "بنتاكام"],
+    doctor: ["الفحوصات", "المرضى", "Patient File", "التقرير المجمع", "التقارير", "كتابة الروشتة", "بنتاكام", "طلب الفحوصات", "العمليات", "مقاس النظاره"],
+    nurse: ["الفحوصات", "المرضى", "Patient File", "التقرير المجمع", "طلب الفحوصات", "بنتاكام", "مقاس النظاره"],
+    technician: ["الفحوصات", "بنتاكام", "المرضى", "Patient File", "التقرير المجمع", "مقاس النظاره", "طلب الفحوصات"],
+    reception: ["المرضى", "Patient File", "التقرير المجمع", "مقاس النظاره", "التقارير", "طلب الفحوصات", "الفحوصات", "الأدوية والفحوصات", "العمليات", "بنتاكام"],
+  };
+  const mainOrder = roleMainOrderMap[user?.role ?? ""] ?? [
+    "المرضى",
+    "Patient File",
+    "الفحوصات",
+    "بنتاكام",
+    "التقرير المجمع",
+    "العمليات",
+    "التقارير",
+    "كتابة الروشتة",
+    "مقاس النظاره",
+    "طلب الفحوصات",
+    "الأدوية والفحوصات",
+    "نسخة الشيتات",
+  ];
+  const adminOrder = [
+    "Sheets",
+    "User Management",
+    "إعدادات النظام",
+  ];
+  const orderMap = new Map(mainOrder.map((name, idx) => [name, idx]));
+  const adminOrderMap = new Map(adminOrder.map((name, idx) => [name, idx]));
+  const sortedCards = [...cards].sort((a, b) => {
+    const usageDelta = getCardUsage(b.path) - getCardUsage(a.path);
+    if (usageDelta !== 0) return usageDelta;
+    const aIdx = orderMap.get(a.title) ?? Number.MAX_SAFE_INTEGER;
+    const bIdx = orderMap.get(b.title) ?? Number.MAX_SAFE_INTEGER;
+    return aIdx - bIdx;
+  });
+  const sortedAdminCards = [...adminCards].sort((a, b) => {
+    const usageDelta = getCardUsage(b.path) - getCardUsage(a.path);
+    if (usageDelta !== 0) return usageDelta;
+    const aIdx = adminOrderMap.get(a.title) ?? Number.MAX_SAFE_INTEGER;
+    const bIdx = adminOrderMap.get(b.title) ?? Number.MAX_SAFE_INTEGER;
+    return aIdx - bIdx;
+  });
+  const mainCardsWithoutPatients = sortedCards.filter((card) => card.path !== "/examination");
+  const displayMainCards = isReception ? mainCardsWithoutPatients : sortedCards;
+  const roleQuickAccessCards = displayMainCards.slice(0, 3);
+  const todayGroups = (((todayPatientsQuery.data as any)?.groups ?? []) as Array<{
+    serviceType: string;
+    total: number;
+    patients: Array<{ id: number; patientCode: string; fullName: string }>;
+  }>).slice().sort((a, b) => b.total - a.total);
+  const todayTotal = Number((todayPatientsQuery.data as any)?.total ?? 0);
+  const activeTodayGroups = todayGroups.filter((group) => group.total > 0);
+  const sheetLabel = (serviceType: string) => {
+    const key = String(serviceType ?? "").toLowerCase();
+    if (key === "consultant") return "استشاري";
+    if (key === "specialist") return "اخصائي";
+    if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_external" || key === "radiology_center" || key === "radiology_external") return "بنتاكام";
+    if (key === "lasik") return "فحوصات الليزك";
+    if (key === "external") return "خارجي";
+    if (key === "surgery") return "عمليات";
+    return key || "غير محدد";
+  };
+  const sheetPathForPatient = (serviceType: string, patientId: number) => {
+    const key = String(serviceType ?? "").toLowerCase();
+    if (key === "consultant") return `/sheets/consultant/${patientId}`;
+    if (key === "specialist") return `/sheets/specialist/${patientId}`;
+    if (key === "pentacam" || key === "pentacam_center" || key === "radiology_center") return `/sheets/pentacam/${patientId}`;
+    if (key === "pentacam_external" || key === "radiology_external") return `/sheets/external/${patientId}`;
+    if (key === "lasik") return `/sheets/lasik/${patientId}`;
+    if (key === "external") return `/sheets/external/${patientId}`;
+    if (key === "surgery" || key === "surgery_center") return `/sheets/operation/${patientId}`;
+    if (key === "surgery_external") return `/sheets/external/${patientId}`;
+    return `/patients/${patientId}`;
+  };
+  const busiestTodayGroup = activeTodayGroups.reduce<typeof activeTodayGroups[number] | null>(
+    (best, group) => (!best || group.total > best.total ? group : best),
+    null
+  );
+  const todaySummaryStats = [
+    { label: "الدور", value: user?.role || "-" },
+    { label: "حالات اليوم", value: String(todayTotal) },
+    { label: "الأقسام النشطة", value: String(activeTodayGroups.length) },
+    {
+      label: "أكثر خدمة اليوم",
+      value: busiestTodayGroup ? `${sheetLabel(busiestTodayGroup.serviceType)} (${busiestTodayGroup.total})` : "-",
+    },
+  ];
+  const openAdminUsersTab = (tab: "users" | "doctors" | "services" | "permissions" | "patients") => {
+    try {
+      localStorage.setItem("tabs:admin-users", tab);
+    } catch {
+      // ignore
+    }
+    setLocation("/admin/users");
+  };
+  const adminMenuSections = [
+    {
+      title: "إدارة المستخدمين والمرضى",
+      items: [
+        { label: "المستخدمين", desc: "فتح تبويب المستخدمين", onClick: () => openAdminUsersTab("users") },
+        { label: "الصلاحيات", desc: "فتح تبويب الصلاحيات", onClick: () => openAdminUsersTab("permissions") },
+        { label: "الأطباء", desc: "فتح تبويب الأطباء", onClick: () => openAdminUsersTab("doctors") },
+        { label: "الخدمات", desc: "فتح تبويب الخدمات", onClick: () => openAdminUsersTab("services") },
+        { label: "مرضى الإدارة", desc: "فتح تبويب المرضى", onClick: () => openAdminUsersTab("patients") },
+      ],
+    },
+    {
+      title: "إدارة النظام",
+      items: [
+        { label: "إعدادات النظام", desc: "Settings", onClick: () => setLocation("/admin/settings") },
+        { label: "حالة النظام", desc: "System Status", onClick: () => setLocation("/admin/status") },
+      ],
+    },
+    {
+      title: "الأدوات",
+      items: [
+        { label: "الشيتات", desc: "Sheets", onClick: () => setLocation("/admin/sheets") },
+        { label: "Pentacam Failed", desc: "الملفات غير المربوطة", onClick: () => setLocation("/admin/pentacam-failed") },
+        { label: "API Tools", desc: "أدوات API", onClick: () => setLocation("/admin/api-tools") },
+        { label: "Migrations", desc: "الترحيلات", onClick: () => setLocation("/admin/migrations") },
+      ],
+    },
+  ];
+
+  const renderCard = (card: any, index: number, extraClassName = "") => {
+    const Icon = card.icon;
+    return (
+        <Card
+          key={`${card.path}-${index}`}
+          className={`group overflow-hidden border-slate-200/80 bg-white/90 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)] cursor-pointer ${extraClassName}`}
+          onMouseEnter={() => prefetchPathData(card.path)}
+          onClick={() => {
+            trackCardUsage(card.path);
+            card.action();
+        }}
+      >
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between gap-4" dir="auto">
+            <div>
+              <CardTitle className="text-xl text-start text-slate-900">{card.title}</CardTitle>
+              <CardDescription className="mt-2 text-start leading-6 text-slate-600">{card.description}</CardDescription>
+            </div>
+            <div className={`${card.color} rounded-2xl p-3 shadow-lg ring-4 ring-white transition-transform duration-200 group-hover:scale-105`}>
+              <Icon className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Button
+            variant="outline"
+            className="w-full justify-between rounded-xl border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              trackCardUsage(card.path);
+              card.action();
+            }}
+          >
+            فتح
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderTodayPatientsSection = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+        {todayGroups.map((group) => (
+          <Card key={group.serviceType}>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {sheetLabel(group.serviceType)} ({group.total})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {group.patients.length === 0 ? (
+                <div className="text-sm text-muted-foreground">لا توجد حالات</div>
+              ) : (
+                <div className="space-y-2 max-h-[280px] overflow-auto">
+                  {group.patients.slice(0, todayGroupVisibleCounts[group.serviceType] ?? 6).map((p) => (
+                    <div key={p.id} className="rounded border px-2 py-2 space-y-2">
+                      <div className="text-xs text-muted-foreground">{p.patientCode}</div>
+                      <div className="text-sm">{p.fullName}</div>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg border-amber-200 bg-amber-50 p-0 text-amber-700 hover:border-amber-300 hover:bg-amber-100"
+                          title="Patient Details"
+                          onMouseEnter={() => prefetchPatientContext(p.id)}
+                          onClick={() => {
+                            prefetchPatientContext(p.id);
+                            pushRecentPatient({
+                              id: p.id,
+                              name: p.fullName,
+                              code: p.patientCode,
+                              serviceType: group.serviceType,
+                            });
+                            setRecentPatients(getRecentPatients());
+                            openTrackedPath(`/patients/${p.id}`);
+                          }}
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg border-slate-200 bg-white p-0 shadow-sm"
+                          title="Autoref / Examination"
+                          onMouseEnter={() => prefetchPatientContext(p.id)}
+                          onClick={() => {
+                            prefetchPatientContext(p.id);
+                            pushRecentPatient({
+                              id: p.id,
+                              name: p.fullName,
+                              code: p.patientCode,
+                              serviceType: group.serviceType,
+                            });
+                            setRecentPatients(getRecentPatients());
+                            openTrackedPath(`/examination/${p.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg border-sky-200 bg-sky-50 p-0 text-sky-700 hover:border-sky-300 hover:bg-sky-100"
+                          title="Open Sheet"
+                          onMouseEnter={() => prefetchPatientContext(p.id)}
+                          onClick={() => {
+                            prefetchPatientContext(p.id);
+                            pushRecentPatient({
+                              id: p.id,
+                              name: p.fullName,
+                              code: p.patientCode,
+                              serviceType: group.serviceType,
+                            });
+                            setRecentPatients(getRecentPatients());
+                            openTrackedPath(sheetPathForPatient(group.serviceType, p.id));
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg border-green-200 bg-green-50 p-0 text-green-700 hover:border-green-300 hover:bg-green-100"
+                          title="Medical File"
+                          onMouseEnter={() => prefetchPatientContext(p.id)}
+                          onClick={() => {
+                            prefetchPatientContext(p.id);
+                            pushRecentPatient({
+                              id: p.id,
+                              name: p.fullName,
+                              code: p.patientCode,
+                              serviceType: group.serviceType,
+                            });
+                            setRecentPatients(getRecentPatients());
+                            setSelectedPatientId(p.id);
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {group.patients.length > (todayGroupVisibleCounts[group.serviceType] ?? 6) ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      onClick={() =>
+                        setTodayGroupVisibleCounts((prev) => ({
+                          ...prev,
+                          [group.serviceType]: (prev[group.serviceType] ?? 6) + 6,
+                        }))
+                      }
+                    >
+                      عرض المزيد
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Floating Toggle Button - Top Right */}
+      {canSeeTodayPatients && (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="fixed right-6 top-6 z-30 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-lg rounded-full h-12 w-12 p-0 flex items-center justify-center"
+          onClick={() => setDailyBoardOpen((prev) => !prev)}
+          title={dailyBoardOpen ? "إخفاء مرضى اليوم" : "عرض مرضى اليوم"}
+        >
+          {dailyBoardOpen ? (
+            <ChevronRight className="h-6 w-6" />
+          ) : (
+            <ChevronLeft className="h-6 w-6" />
+          )}
+        </Button>
+      )}
+
+      <PullToRefresh
+        onRefresh={async () => {
+          await Promise.all([permissionsQuery.refetch(), todayPatientsQuery.refetch()]);
+        }}
+        className="min-h-screen"
+      >
+        <main className="w-screen py-8" dir="rtl">
+          {(permissionsQuery.isError || todayPatientsQuery.isError) && (
+            <div>
+              <OfflinePageState
+                title="الاتصال بالخادم غير مستقر"
+                body="بعض بيانات لوحة التحكم المباشرة غير متاحة الآن. يمكنك المتابعة بالوظائف الأساسية ثم إعادة المحاولة."
+                onRetry={() => {
+                  void permissionsQuery.refetch();
+                  void todayPatientsQuery.refetch();
+                }}
+              />
+            </div>
+          )}
+          {isAdmin && (
+            <div ref={topMenuRef} className="relative mb-6" dir="rtl">
+              <div className="inline-flex items-center rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
+                  onMouseEnter={() => setActiveTopMenu("admin")}
+                  onClick={() => setActiveTopMenu((prev) => (prev === "admin" ? null : "admin"))}
+                >
+                  الإدارة
+                  <ChevronDown className={`h-4 w-4 transition ${activeTopMenu === "admin" ? "rotate-180" : ""}`} />
+                </button>
+              </div>
+              {activeTopMenu === "admin" && (
+                <div
+                  className="absolute right-0 z-30 mt-2 w-[min(100vw-2rem,72rem)] rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]"
+                  onMouseEnter={() => setActiveTopMenu("admin")}
+                  onMouseLeave={() => setActiveTopMenu(null)}
+                >
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    {adminMenuSections.map((section) => (
+                      <div key={section.title} className="space-y-3">
+                        <div className="border-b border-sky-200 pb-2 text-sm font-bold text-slate-800">{section.title}</div>
+                        <div className="space-y-2">
+                          {section.items.map((item, idx) => (
+                            <button
+                              key={`${section.title}-${item.label}-${idx}`}
+                              type="button"
+                              className="block w-full rounded-lg px-2 py-2 text-right hover:bg-slate-50"
+                              onClick={() => {
+                                setActiveTopMenu(null);
+                                item.onClick();
+                              }}
+                            >
+                              <div className="text-sm font-semibold text-slate-900">{item.label}</div>
+                              <div className="text-xs text-slate-500">{item.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Main content area - full width (floating drawer overlays on top) */}
+          <div className="w-screen px-4 grid gap-6 items-start grid-cols-1">
+            {/* Main Content Area - Full Width */}
+            <div className="w-full col-span-1">
+              {showPatientDataPanel && (
+                <div className="mb-6">
+                  <ReceptionPatientInfoPanel
+                    canEditPatientData={canEditPatientData}
+                    onOpenExamination={() => setLocation("/examination")}
+                  />
+                </div>
+              )}
+
+              <div className="w-full rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
+                {selectedPatientId ? (
+                  // Patient Medical File Accordion
+                  <div className="flex flex-col h-[600px]">
+                    {/* Header */}
+                    <div className="flex justify-between items-center pb-4 border-b">
+                      <h2 className="text-lg font-semibold">
+                        {selectedPatientQuery.isLoading ? "جاري التحميل..." : selectedPatientQuery.data?.fullName ?? "بدون اسم"}
+                      </h2>
+                      <button
+                        onClick={() => {
+                          setSelectedPatientId(null);
+                          setPatientFormData({
+                            medicalHistory: "",
+                            symptoms: [],
+                            measurements: {
+                              autoref: { od: { s: "", c: "", axis: "", ucva: "", bcva: "" }, os: { s: "", c: "", axis: "", ucva: "", bcva: "" } },
+                              iop: { od: "", os: "" },
+                            },
+                            glasses: { od: { s: "", c: "", axis: "", pd: "", bcva: "" }, os: { s: "", c: "", axis: "", pd: "", bcva: "" } },
+                            pentacam: { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "" } },
+                            tests: [],
+                            treatment: [],
+                            diagnosis: "",
+                            diseases: [],
+                            recommendations: "",
+                          });
+                        }}
+                        className="text-2xl text-muted-foreground hover:text-foreground"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Accordion */}
+                    <div className="flex-1 overflow-y-auto py-4">
+                      <Accordion type="single" collapsible className="w-full" defaultValue="profile">
+                        {/* 1. المعلومات الأساسية - Profile Data */}
+                        <AccordionItem value="profile">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Profile Data</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            <div className="grid grid-cols-3 gap-4">
+                              {/* Row 1: تاريخ الميلاد | السن | الاسم */}
+                              <div>
+                                <Label>تاريخ الميلاد</Label>
+                                <Input value={selectedPatientQuery.data?.dateOfBirth ? (() => {
+                                  const dob = new Date(selectedPatientQuery.data.dateOfBirth);
+                                  const month = String(dob.getMonth() + 1).padStart(2, '0');
+                                  const day = String(dob.getDate()).padStart(2, '0');
+                                  const year = dob.getFullYear();
+                                  return `${month}/${day}/${year}`;
+                                })() : ""} disabled className="mt-1 text-xs" />
+                              </div>
+                              <div>
+                                <Label>السن</Label>
+                                <Input value={selectedPatientQuery.data?.age ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+                              <div>
+                                <Label>الاسم</Label>
+                                <Input value={selectedPatientQuery.data?.fullName ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+
+                              {/* Row 2: الهاتف | الخدمة | الكود */}
+                              <div>
+                                <Label>الهاتف</Label>
+                                <Input value={selectedPatientQuery.data?.phone ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+                              <div>
+                                <Label>الخدمة</Label>
+                                <Input value={selectedPatientQuery.data?.serviceType ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+                              <div>
+                                <Label>الكود</Label>
+                                <Input value={selectedPatientQuery.data?.patientCode ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+
+                              {/* Row 3: الطبيب | تاريخ الزيارة | تاريخ الفحص */}
+                              <div>
+                                <Label>الطبيب</Label>
+                                <Input value={selectedPatientQuery.data?.doctorId ?? ""} disabled className="mt-1 text-xs" />
+                              </div>
+                              <div>
+                                <Label>تاريخ الزيارة</Label>
+                                <Input
+                                  type="date"
+                                  value={visitDate}
+                                  onChange={async (e) => {
+                                    const newDate = e.target.value;
+                                    setVisitDate(newDate);
+                                    // Update visit date in database
+                                    const examinations = selectedPatientExaminationsQuery.data ?? [];
+                                    const latestExam = examinations.length > 0 ? examinations[0] : null;
+                                    if (latestExam?.visitId) {
+                                      try {
+                                        await updateVisitDateMutation.mutateAsync({
+                                          visitId: latestExam.visitId,
+                                          visitDate: newDate,
+                                        });
+                                      } catch (error) {
+                                        console.error("Failed to update visit date:", error);
+                                      }
+                                    }
+                                  }}
+                                  className="mt-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <Label>تاريخ الفحص</Label>
+                                <Input
+                                  type="date"
+                                  value={examinationDate}
+                                  disabled
+                                  className="mt-1 text-xs"
+                                />
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 2. التاريخ المرضي - Medical History */}
+                        <AccordionItem value="medicalHistory">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Medical History</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            <div>
+                              <Textarea
+                                value={patientFormData.medicalHistory}
+                                onChange={(e) =>
+                                  setPatientFormData((prev) => ({ ...prev, medicalHistory: e.target.value }))
+                                }
+                                placeholder="اكتب التاريخ المرضي هنا..."
+                                className="mt-1"
+                                rows={4}
+                              />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 3. الأعراض - Symptoms */}
+                        <AccordionItem value="symptoms">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Symptoms</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            {symptomsQuery.isLoading ? (
+                              <div className="text-slate-500 text-sm">جاري التحميل...</div>
+                            ) : symptomsQuery.isError ? (
+                              <div className="text-red-500 text-sm">خطأ في تحميل الأعراض</div>
+                            ) : (symptomsQuery.data?.length ?? 0) === 0 ? (
+                              <div className="text-slate-500 text-sm">لا توجد أعراض</div>
+                            ) : (
+                              <div className="space-y-2">
+                                {(symptomsQuery.data ?? []).map((symptom: any) => (
+                                  <div key={symptom.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`symptom-${symptom.id}`}
+                                      checked={(patientFormData.symptoms || []).includes(symptom.id)}
+                                      onCheckedChange={() => toggleCheckbox("symptoms", symptom.id)}
+                                    />
+                                    <Label htmlFor={`symptom-${symptom.id}`} className="cursor-pointer">
+                                      {symptom.name}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 4. القياسات - Measurements (Read-only) */}
+                        <AccordionItem value="measurements">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">AutoRef | IOP</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                              <table className="text-xs w-full table-fixed" dir="ltr">
+                                <colgroup>
+                                  <col style={{ width: "30px" }} />
+                                  <col style={{ width: "35px" }} />
+                                  <col style={{ width: "32px" }} />
+                                  <col style={{ width: "32px" }} />
+                                  <col style={{ width: "35px" }} />
+                                  <col style={{ width: "32px" }} />
+                                </colgroup>
+                                <thead>
+                                  <tr className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white">
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">العين</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">UCVA</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">S</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">C</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">AXIS</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">IOP</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {["od", "os"].map((eye) => (
+                                    <tr key={eye} className="border-b hover:bg-cyan-50 transition-colors">
+                                      <td className="px-1 py-1 text-center font-bold text-slate-900 bg-slate-50 text-[11px]">{eye === "od" ? "OD" : "OS"}</td>
+                                      <td className="px-1 py-1 text-center text-slate-700 text-[11px]">
+                                        {(patientFormData.measurements?.autoref?.[eye as "od" | "os"]?.ucva ?? "—") as string}
+                                      </td>
+                                      <td className="px-1 py-1 text-center text-slate-700 text-[11px]">
+                                        {(patientFormData.measurements?.autoref?.[eye as "od" | "os"]?.s ?? "—") as string}
+                                      </td>
+                                      <td className="px-1 py-1 text-center text-slate-700 text-[11px]">
+                                        {(patientFormData.measurements?.autoref?.[eye as "od" | "os"]?.c ?? "—") as string}
+                                      </td>
+                                      <td className="px-1 py-1 text-center text-slate-700 text-[11px]">
+                                        {(patientFormData.measurements?.autoref?.[eye as "od" | "os"]?.axis ?? "—") as string}
+                                      </td>
+                                      <td className="px-1 py-1 text-center text-slate-700 text-[11px]">
+                                        {(patientFormData.measurements?.iop?.[eye as "od" | "os"] ?? "—") as string}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 5. مقاس النظاره - Glasses Prescription */}
+                        <AccordionItem value="glasses">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">👓 Refraction</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                              <table className="text-xs w-full table-fixed" dir="ltr">
+                                <colgroup>
+                                  <col style={{ width: "30px" }} />
+                                  <col style={{ width: "40px" }} />
+                                  <col style={{ width: "32px" }} />
+                                  <col style={{ width: "32px" }} />
+                                  <col style={{ width: "32px" }} />
+                                  <col style={{ width: "32px" }} />
+                                </colgroup>
+                                <thead>
+                                  <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">العين</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">BCVA</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">S</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">C</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">A</th>
+                                    <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-[11px]">PD</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {["od", "os"].map((eye) => (
+                                    <tr key={eye} className="border-b hover:bg-blue-50 transition-colors">
+                                      <td className="px-1 py-1 text-center font-bold text-slate-900 bg-slate-50 text-[11px]">{eye === "od" ? "OD" : "OS"}</td>
+                                      <td className="px-1 py-1 text-center">
+                                        <Input
+                                          value={(patientFormData.glasses?.[eye as "od" | "os"]?.bcva ?? "") as string}
+                                          onChange={(e) => {
+                                            setPatientFormData((prev) => {
+                                              const newData = { ...prev };
+                                              if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "", bcva: "" };
+                                              (newData.glasses[eye as "od" | "os"] as any).bcva = e.target.value;
+                                              return newData;
+                                            });
+                                          }}
+                                          placeholder="—"
+                                          className="text-center h-7 text-xs border-slate-300 focus:border-blue-500 p-0.5"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <Input
+                                          value={(patientFormData.glasses?.[eye as "od" | "os"]?.s ?? "") as string}
+                                          onChange={(e) => {
+                                            setPatientFormData((prev) => {
+                                              const newData = { ...prev };
+                                              if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "", bcva: "" };
+                                              (newData.glasses[eye as "od" | "os"] as any).s = e.target.value;
+                                              return newData;
+                                            });
+                                          }}
+                                          placeholder="—"
+                                          className="text-center h-7 text-xs border-slate-300 focus:border-blue-500 p-0.5"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <Input
+                                          value={(patientFormData.glasses?.[eye as "od" | "os"]?.c ?? "") as string}
+                                          onChange={(e) => {
+                                            setPatientFormData((prev) => {
+                                              const newData = { ...prev };
+                                              if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "", bcva: "" };
+                                              (newData.glasses[eye as "od" | "os"] as any).c = e.target.value;
+                                              return newData;
+                                            });
+                                          }}
+                                          placeholder="—"
+                                          className="text-center h-7 text-xs border-slate-300 focus:border-blue-500 p-0.5"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <Input
+                                          value={(patientFormData.glasses?.[eye as "od" | "os"]?.axis ?? "") as string}
+                                          onChange={(e) => {
+                                            setPatientFormData((prev) => {
+                                              const newData = { ...prev };
+                                              if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "", bcva: "" };
+                                              (newData.glasses[eye as "od" | "os"] as any).axis = e.target.value;
+                                              return newData;
+                                            });
+                                          }}
+                                          placeholder="—"
+                                          className="text-center h-7 text-xs border-slate-300 focus:border-blue-500 p-0.5"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <Input
+                                          value={(patientFormData.glasses?.[eye as "od" | "os"]?.pd ?? "") as string}
+                                          onChange={(e) => {
+                                            setPatientFormData((prev) => {
+                                              const newData = { ...prev };
+                                              if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "", bcva: "" };
+                                              (newData.glasses[eye as "od" | "os"] as any).pd = e.target.value;
+                                              return newData;
+                                            });
+                                          }}
+                                          placeholder="—"
+                                          className="text-center h-7 text-xs border-slate-300 focus:border-blue-500 p-0.5"
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 6. البنتاكام - Pentacam (Read-only) */}
+                        <AccordionItem value="pentacam">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">🔬 Pentacam</AccordionTrigger>
+                          <AccordionContent dir="ltr">
+                            <div className="space-y-4">
+                              <Button
+                                type="button"
+                                onClick={() => setPentacamImagesOpen(true)}
+                                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white"
+                              >
+                                <Eye className="h-4 w-4 ml-2" />
+                                عرض صور البنتاكام
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-4" dir="ltr">
+                              {/* LT - Left Eye Table (OS) */}
+                              <div className="border border-slate-300 overflow-hidden">
+                                <div className="bg-slate-50 px-3 py-2 font-bold text-slate-900 border-b border-slate-300 text-center text-sm">فحص القرنيه LT</div>
+                                <table className="w-full border-collapse text-sm">
+                                  <tbody>
+                                    <tr className="border-b border-slate-300">
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900">K1</td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900 text-center">AX</td>
+                                      <td className="px-3 py-2 text-slate-600"></td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900">K2</td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="px-3 py-2 text-slate-600"></td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Thinnest Point</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Corneal Apex</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Residual Stroma</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Planned TTT</td>
+                                    </tr>
+                                    <tr>
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Ablation</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              {/* RT - Right Eye Table (OD) */}
+                              <div className="border border-slate-300 overflow-hidden">
+                                <div className="bg-slate-50 px-3 py-2 font-bold text-slate-900 border-b border-slate-300 text-center text-sm">فحص القرنيه RT</div>
+                                <table className="w-full border-collapse text-sm">
+                                  <tbody>
+                                    <tr className="border-b border-slate-300">
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900">K1</td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900 text-center">AX</td>
+                                      <td className="px-3 py-2 text-slate-600"></td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td className="border-r border-slate-300 px-3 py-2 font-bold text-slate-900">K2</td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="border-r border-slate-300 px-3 py-2 text-slate-600"></td>
+                                      <td className="px-3 py-2 text-slate-600"></td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Thinnest Point</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Corneal Apex</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Residual Stroma</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-300">
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Planned TTT</td>
+                                    </tr>
+                                    <tr>
+                                      <td colSpan={4} className="px-3 py-2 font-bold text-slate-900">Ablation</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 7. الفحوصات - Tests */}
+                        <AccordionItem value="tests">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Investigation</AccordionTrigger>
+                          <AccordionContent dir="ltr" className="space-y-6">
+                            {/* Saved Test Requests Templates */}
+                            <div>
+                              <div className="font-semibold text-slate-900 mb-3 text-sm">Saved Test Requests</div>
+                              {testRequestsQuery.isLoading ? (
+                                <div className="text-slate-500 text-sm">جاري التحميل...</div>
+                              ) : testRequestsQuery.isError ? (
+                                <div className="text-red-500 text-sm">خطأ في تحميل الطلبات</div>
+                              ) : (testRequestsQuery.data?.length ?? 0) === 0 ? (
+                                <div className="text-slate-500 text-xs">لا توجد طلبات محفوظة</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {(testRequestsQuery.data ?? []).map((req: any) => (
+                                    <div key={req.id} className="border border-slate-200 rounded p-2 bg-slate-50">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Checkbox
+                                          id={`req-${req.id}`}
+                                          checked={selectedTestRequestId === req.id}
+                                          onCheckedChange={() => {
+                                            if (selectedTestRequestId === req.id) {
+                                              setSelectedTestRequestId(null);
+                                            } else {
+                                              setSelectedTestRequestId(req.id);
+                                              // Load tests from this request
+                                              const tests = (req.items ?? []).map((item: any) => item.testId);
+                                              setPatientFormData((prev) => ({
+                                                ...prev,
+                                                tests: tests,
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <Label htmlFor={`req-${req.id}`} className="cursor-pointer text-xs font-medium flex-1">
+                                          {req.requestDate ? new Date(req.requestDate).toLocaleDateString("ar-EG") : "No date"}
+                                        </Label>
+                                      </div>
+                                      {(req.items ?? []).length > 0 && (
+                                        <div className="ml-6 text-xs text-slate-600 space-y-1">
+                                          {req.items.map((item: any) => (
+                                            <div key={item.id}>{item.testName}</div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Quick Add Tests */}
+                            <div className="border-t border-slate-200 pt-4">
+                              <div className="font-semibold text-slate-900 mb-3 text-sm">Quick Add Tests</div>
+                              {testsQuery.isLoading ? (
+                                <div className="text-slate-500 text-sm">جاري التحميل...</div>
+                              ) : testsQuery.isError ? (
+                                <div className="text-red-500 text-sm">خطأ في تحميل الفحوصات</div>
+                              ) : (testsQuery.data?.length ?? 0) === 0 ? (
+                                <div className="text-slate-500 text-xs">لا توجد فحوصات</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {(testsQuery.data ?? []).map((test: any) => (
+                                    <div key={test.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`test-${test.id}`}
+                                        checked={(patientFormData.tests || []).includes(test.id)}
+                                        onCheckedChange={() => toggleCheckbox("tests", test.id)}
+                                      />
+                                      <Label htmlFor={`test-${test.id}`} className="cursor-pointer text-xs">
+                                        {test.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 8. العلاج - Treatment */}
+                        <AccordionItem value="treatment">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Treatment</AccordionTrigger>
+                          <AccordionContent dir="ltr" className="space-y-6">
+                            {/* Saved Prescriptions Templates */}
+                            <div>
+                              <div className="font-semibold text-slate-900 mb-3 text-sm">Saved Prescriptions</div>
+                              {prescriptionsQuery.isLoading ? (
+                                <div className="text-slate-500 text-sm">جاري التحميل...</div>
+                              ) : prescriptionsQuery.isError ? (
+                                <div className="text-red-500 text-sm">خطأ في تحميل الوصفات</div>
+                              ) : (prescriptionsQuery.data?.length ?? 0) === 0 ? (
+                                <div className="text-slate-500 text-xs">لا توجد وصفات محفوظة</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {(prescriptionsQuery.data ?? []).map((presc: any) => (
+                                    <div key={presc.id} className="border border-slate-200 rounded p-2 bg-slate-50">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Checkbox
+                                          id={`presc-${presc.id}`}
+                                          checked={selectedPrescriptionId === presc.id}
+                                          onCheckedChange={() => {
+                                            if (selectedPrescriptionId === presc.id) {
+                                              setSelectedPrescriptionId(null);
+                                            } else {
+                                              setSelectedPrescriptionId(presc.id);
+                                              // Load medications from this prescription
+                                              const medications = (presc.items ?? []).map((item: any) => item.medicationId);
+                                              setPatientFormData((prev) => ({
+                                                ...prev,
+                                                treatment: medications,
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <Label htmlFor={`presc-${presc.id}`} className="cursor-pointer text-xs font-medium flex-1">
+                                          {presc.prescriptionDate ? new Date(presc.prescriptionDate).toLocaleDateString("ar-EG") : "No date"}
+                                        </Label>
+                                      </div>
+                                      {(presc.items ?? []).length > 0 && (
+                                        <div className="ml-6 text-xs text-slate-600 space-y-1">
+                                          {presc.items.map((item: any) => (
+                                            <div key={item.id}>
+                                              {item.medicationName}
+                                              {item.dosage && ` - ${item.dosage}`}
+                                              {item.frequency && ` (${item.frequency})`}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Quick Add Medications */}
+                            <div className="border-t border-slate-200 pt-4">
+                              <div className="font-semibold text-slate-900 mb-3 text-sm">Quick Add Medications</div>
+                              {medicationsQuery.isLoading ? (
+                                <div className="text-slate-500 text-sm">جاري التحميل...</div>
+                              ) : medicationsQuery.isError ? (
+                                <div className="text-red-500 text-sm">خطأ في تحميل العلاجات</div>
+                              ) : (medicationsQuery.data?.length ?? 0) === 0 ? (
+                                <div className="text-slate-500 text-xs">لا توجد علاجات</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {(medicationsQuery.data ?? []).map((med: any) => (
+                                    <div key={med.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`med-${med.id}`}
+                                        checked={(patientFormData.treatment || []).includes(med.id)}
+                                        onCheckedChange={() => toggleCheckbox("treatment", med.id)}
+                                      />
+                                      <Label htmlFor={`med-${med.id}`} className="cursor-pointer text-xs">
+                                        {med.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* 9. التشخيص - Diagnosis */}
+                        <AccordionItem value="diagnosis">
+                          <AccordionTrigger className="text-base font-semibold" dir="ltr">Diagnosis</AccordionTrigger>
+                          <AccordionContent dir="ltr" className="space-y-4">
+                            {/* Diagnosis Text */}
+                            <div>
+                              <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
+                              <textarea
+                                id="diagnosis"
+                                value={patientFormData.diagnosis}
+                                onChange={(e) => setPatientFormData((prev) => ({ ...prev, diagnosis: e.target.value }))}
+                                className="w-full min-h-20 mt-2 p-2 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                placeholder="Enter diagnosis details..."
+                              />
+                            </div>
+
+                            {/* Diseases */}
+                            <div>
+                              <Label className="text-sm font-medium">Diseases</Label>
+                              {diseasesQuery.isLoading ? (
+                                <div className="text-slate-500 text-xs mt-2">جاري التحميل...</div>
+                              ) : diseasesQuery.isError ? (
+                                <div className="text-red-500 text-xs mt-2">خطأ في تحميل الأمراض</div>
+                              ) : (diseasesQuery.data?.length ?? 0) === 0 ? (
+                                <div className="text-slate-500 text-xs mt-2">لا توجد أمراض</div>
+                              ) : (
+                                <div className="mt-2 space-y-2">
+                                  {(diseasesQuery.data ?? []).map((disease: any) => (
+                                    <div key={disease.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`disease-${disease.id}`}
+                                        checked={(patientFormData.diseases || []).includes(disease.id)}
+                                        onCheckedChange={() => {
+                                          setPatientFormData((prev) => {
+                                            const diseases = prev.diseases || [];
+                                            if (diseases.includes(disease.id)) {
+                                              return { ...prev, diseases: diseases.filter((d) => d !== disease.id) };
+                                            } else {
+                                              return { ...prev, diseases: [...diseases, disease.id] };
+                                            }
+                                          });
+                                        }}
+                                      />
+                                      <Label htmlFor={`disease-${disease.id}`} className="cursor-pointer text-xs">
+                                        {disease.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Recommendations */}
+                            <div>
+                              <Label htmlFor="recommendations" className="text-sm font-medium">Recommendations</Label>
+                              <textarea
+                                id="recommendations"
+                                value={patientFormData.recommendations}
+                                onChange={(e) => setPatientFormData((prev) => ({ ...prev, recommendations: e.target.value }))}
+                                className="w-full min-h-20 mt-2 p-2 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                placeholder="Enter recommendations..."
+                              />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+
+                    {/* Save Status */}
+                    <div className="text-xs text-muted-foreground px-2 py-2 border-t">
+                      {isSaving ? "جاري الحفظ..." : lastSaveTime ? `آخر حفظ: ${lastSaveTime.toLocaleTimeString("ar-EG")}` : ""}
+                    </div>
+
+                    {/* Pentacam Images Modal */}
+                    <Dialog open={pentacamImagesOpen} onOpenChange={setPentacamImagesOpen}>
+                      <DialogContent className="max-h-[90vh] w-[96vw] max-w-4xl overflow-hidden p-0 flex flex-col">
+                        <DialogHeader className="border-b px-6 py-4">
+                          <DialogTitle className="text-base sm:text-lg">صور البنتاكام</DialogTitle>
+                        </DialogHeader>
+                        <div className="overflow-y-auto flex-1">
+                          <div className="px-6 py-4">
+                            {selectedPatientId && (
+                              <PentacamFilesPanel
+                                patientId={selectedPatientId}
+                                compact={false}
+                                active={pentacamImagesOpen}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                ) : (
+                  // Normal Dashboard Cards
+                  <>
+                    {user?.role !== "admin" && permissionsQuery.isSuccess && displayMainCards.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground">لا توجد صلاحيات مفعلة لهذا المستخدم</div>
+                    ) : permissionsQuery.isLoading ? (
+                      <div className="w-full grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <div key={index} className="space-y-3">
+                            <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
+                            <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-full grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {displayMainCards.map((card: any, index: number) => renderCard(card, index))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Floating Side Panel Overlay */}
+            {canSeeTodayPatients && (
+              <>
+                {/* Overlay Background */}
+                {dailyBoardOpen && (
+                  <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setDailyBoardOpen(false)} />
+                )}
+                {/* Floating Side Panel - Today's Patients */}
+                <div className={`fixed top-0 right-0 h-screen w-80 z-50 transition-transform duration-300 ${dailyBoardOpen ? "translate-x-0" : "translate-x-full"}`}>
+                  <Card className="overflow-hidden border-slate-200/80 bg-white/95 shadow-2xl h-full rounded-none flex flex-col">
+                  <CardHeader className="border-b border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.95))]">
+                    <div className="space-y-2">
+                      <CardTitle className="text-lg text-slate-900">مرضى اليوم</CardTitle>
+                      <CardDescription className="text-xs text-slate-600">
+                        {todayPatientsDate || todayDateIso} | الإجمالي: {todayTotal}
+                      </CardDescription>
+                      <div className="flex items-center gap-2 pt-2 flex-col gap-1">
+                        <Button type="button" variant="outline" size="sm" className="w-full border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100" onClick={() => setLocation("/patients")}>المرضى</Button>
+                        <Button type="button" variant="outline" size="sm" className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setLocation("/examination")}>الفحص</Button>
+                        <Input type="date" value={todayPatientsDate} onChange={(e) => setTodayPatientsDate(e.target.value)} className="w-full text-xs" />
+                        <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setTodayPatientsDate(todayDateIso)}>اليوم</Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setTodayPatientsExpanded((prev) => !prev)}
+                          title={todayPatientsExpanded ? "إخفاء مرضى اليوم" : "عرض مرضى اليوم"}
+                          aria-label={todayPatientsExpanded ? "إخفاء مرضى اليوم" : "عرض مرضى اليوم"}
+                        >
+                          {todayPatientsExpanded ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                          {todayPatientsExpanded ? "إخفاء" : "عرض"}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+                    {todayPatientsExpanded ? (
+                      todayPatientsQuery.isLoading ? (
+                        <div className="space-y-3">
+                          {Array.from({ length: 3 }).map((_, index) => (
+                            <div key={index} className="space-y-2">
+                              <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+                              <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+                              <div className="h-8 w-full animate-pulse rounded bg-slate-100" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {todayGroups.length === 0 ? (
+                            <div className="text-xs text-muted-foreground text-center py-4">لا توجد حالات</div>
+                          ) : (
+                            todayGroups.map((group) => (
+                              <div key={group.serviceType} className="space-y-2">
+                                <div className="text-xs font-semibold text-slate-700 border-b pb-1">
+                                  {sheetLabel(group.serviceType)} ({group.total})
+                                </div>
+                                {group.patients.length === 0 ? (
+                                  <div className="text-xs text-muted-foreground">لا توجد حالات</div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {group.patients.slice(0, todayGroupVisibleCounts[group.serviceType] ?? 3).map((p) => (
+                                      <div key={p.id} className="rounded border border-slate-200 px-2 py-1 bg-slate-50 space-y-1">
+                                        <div className="text-xs text-muted-foreground font-mono">{p.patientCode}</div>
+                                        <div className="text-xs font-medium">{p.fullName}</div>
+                                        <div className="flex items-center justify-between gap-1">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-7 rounded p-0 border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100 text-xs"
+                                            title="Patient Details"
+                                            onMouseEnter={() => prefetchPatientContext(p.id)}
+                                            onClick={() => {
+                                              prefetchPatientContext(p.id);
+                                              pushRecentPatient({
+                                                id: p.id,
+                                                name: p.fullName,
+                                                code: p.patientCode,
+                                                serviceType: group.serviceType,
+                                              });
+                                              setRecentPatients(getRecentPatients());
+                                              openTrackedPath(`/patients/${p.id}`);
+                                            }}
+                                          >
+                                            <User className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-7 rounded p-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs"
+                                            title="Examination"
+                                            onMouseEnter={() => prefetchPatientContext(p.id)}
+                                            onClick={() => {
+                                              prefetchPatientContext(p.id);
+                                              pushRecentPatient({
+                                                id: p.id,
+                                                name: p.fullName,
+                                                code: p.patientCode,
+                                                serviceType: group.serviceType,
+                                              });
+                                              setRecentPatients(getRecentPatients());
+                                              openTrackedPath(`/examination/${p.id}`);
+                                            }}
+                                          >
+                                            <Eye className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-7 rounded p-0 border-sky-200 bg-sky-50 p-0 text-sky-700 hover:border-sky-300 hover:bg-sky-100 text-xs"
+                                            title="Open Sheet"
+                                            onMouseEnter={() => prefetchPatientContext(p.id)}
+                                            onClick={() => {
+                                              prefetchPatientContext(p.id);
+                                              pushRecentPatient({
+                                                id: p.id,
+                                                name: p.fullName,
+                                                code: p.patientCode,
+                                                serviceType: group.serviceType,
+                                              });
+                                              setRecentPatients(getRecentPatients());
+                                              openTrackedPath(sheetPathForPatient(group.serviceType, p.id));
+                                            }}
+                                          >
+                                            <FileText className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-7 rounded p-0 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 text-xs"
+                                            title="Medical File"
+                                            onMouseEnter={() => prefetchPatientContext(p.id)}
+                                            onClick={() => {
+                                              prefetchPatientContext(p.id);
+                                              pushRecentPatient({
+                                                id: p.id,
+                                                name: p.fullName,
+                                                code: p.patientCode,
+                                                serviceType: group.serviceType,
+                                              });
+                                              setRecentPatients(getRecentPatients());
+                                              setSelectedPatientId(p.id);
+                                            }}
+                                          >
+                                            <FileText className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {group.patients.length > (todayGroupVisibleCounts[group.serviceType] ?? 3) ? (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-7 text-xs border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                        onClick={() =>
+                                          setTodayGroupVisibleCounts((prev) => ({
+                                            ...prev,
+                                            [group.serviceType]: (prev[group.serviceType] ?? 3) + 3,
+                                          }))
+                                        }
+                                      >
+                                        عرض المزيد
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {activeTodayGroups.length === 0 ? (
+                          <div className="text-xs text-muted-foreground w-full text-center">لا توجد حالات</div>
+                        ) : (
+                          activeTodayGroups.map((group) => (
+                            <div
+                              key={group.serviceType}
+                              className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700"
+                            >
+                              {sheetLabel(group.serviceType)} {group.total}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                </div>
+              </>
+            )}
+          </div>
+        </main>
+      </PullToRefresh>
+    </div>
+  );
+}
+
+function ReceptionPatientInfoPanel({
+  canEditPatientData,
+  onOpenExamination,
+}: {
+  canEditPatientData: boolean;
+  onOpenExamination: () => void;
+}) {
+  const normalizeServiceType = (value: unknown): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "specialist" || raw === "lasik" || raw === "surgery" || raw === "external") return raw;
+    return "consultant";
+  };
+  const formatPatientCode = (value: string) => {
+    const raw = String(value ?? "").trim().toUpperCase();
+    if (!raw) return "";
+    if (/^\d+$/.test(raw)) return raw.padStart(4, "0");
+    return raw.replace(/\s+/g, "");
+  };
+  const calculateAgeFromDob = (dob: string) => {
+    const raw = String(dob ?? "").trim();
+    if (!raw) return "";
+    const date = new Date(`${raw}T00:00:00`);
+    if (Number.isNaN(date.valueOf())) return "";
+    const now = new Date();
+    let age = now.getFullYear() - date.getFullYear();
+    const monthDiff = now.getMonth() - date.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
+      age -= 1;
+    }
+    return age >= 0 ? String(age) : "";
+  };
+  const utils = trpc.useUtils();
+  const [patientInfo, setPatientInfo] = useState({ id: 0, name: "", code: "" });
+  const [patientDetails, setPatientDetails] = useState({
+    dateOfBirth: "",
+    age: "",
+    address: "",
+    phone: "",
+    job: "",
+  });
+  const [doctorName, setDoctorName] = useState("");
+  const [serviceType, setServiceType] = useState<"consultant" | "specialist" | "lasik" | "surgery" | "external">("consultant");
+  const [serviceCode, setServiceCode] = useState("");
+  const [serviceQty, setServiceQty] = useState("2");
+  const [serviceFlags, setServiceFlags] = useState({
+    consultation: false,
+    examination: false,
+    imaging: false,
+  });
+  const [serviceNotes, setServiceNotes] = useState({
+    consultation: "",
+    examination: "",
+    imaging: "",
+  });
+  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [patientPanelOpen, setPatientPanelOpen] = useState(() => getPanelState("patientPanelOpen", true));
+
+  const patientQuery = trpc.patient.getPatient.useQuery(
+    patientInfo.id,
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, refetchOnReconnect: false }
+  );
+  const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
+    { patientId: patientInfo.id, page: "examination" },
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, refetchOnReconnect: false }
+  );
+  const createPatientMutation = trpc.medical.createPatient.useMutation();
+  const updatePatientMutation = trpc.medical.updatePatient.useMutation();
+  const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
+  const linkPatientServiceToMssqlMutation = trpc.medical.linkPatientServiceToMssql.useMutation();
+  const hydratedPatientStateRef = useRef<number | null>(null);
+  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+    refetchOnReconnect: false,
+  });
+  const availableDoctors = useMemo(
+    () =>
+      ((doctorsQuery.data ?? []) as Array<{ id: string; name: string; code: string; username?: string; doctorType?: string; isActive?: boolean }>)
+        .filter((doctor) => doctor.isActive !== false)
+        .sort((a, b) => String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true })),
+    [doctorsQuery.data]
+  );
+  const selectedDoctorEntry = useMemo(() => {
+    const normalized = String(doctorName ?? "").trim().toLowerCase();
+    if (!normalized) return null;
+    return (
+      availableDoctors.find((doctor) => {
+        const name = String(doctor.name ?? "").trim().toLowerCase();
+        const code = String(doctor.code ?? "").trim().toLowerCase();
+        const username = String(doctor.username ?? "").trim().toLowerCase();
+        return normalized === name || normalized === code || (username && normalized === username);
+      }) ?? null
+    );
+  }, [availableDoctors, doctorName]);
+  const serviceOptions = useMemo(() => {
+    const list = Array.isArray(serviceDirectoryQuery.data) ? (serviceDirectoryQuery.data as any[]) : [];
+    const normalizedSheet = String(serviceType || "").trim().toLowerCase();
+    const doctorType = String((selectedDoctorEntry as any)?.doctorType ?? "").trim().toLowerCase();
+    const targetType = normalizedSheet || doctorType;
+
+    const normalized = list
+      .filter((item) => item && item.isActive !== false)
+      .map((item) => ({
+        code: String(item.code ?? "").trim(),
+        name: String(item.name ?? "").trim(),
+        serviceType: String(item.serviceType ?? "").trim().toLowerCase(),
+      }))
+      .filter((item) => item.code && item.name);
+
+    if (!targetType) return normalized;
+    return normalized.filter((item) => item.serviceType === targetType);
+  }, [serviceDirectoryQuery.data, serviceType, selectedDoctorEntry]);
+  const selectedServiceOption = useMemo(
+    () => serviceOptions.find((item) => item.code === serviceCode) ?? null,
+    [serviceOptions, serviceCode]
+  );
+  useEffect(() => {
+    setPanelState("patientPanelOpen", patientPanelOpen);
+  }, [patientPanelOpen]);
+  const isPentacamService = useMemo(() => {
+    const code = String(selectedServiceOption?.code ?? serviceCode ?? "").trim().toLowerCase();
+    const name = String(selectedServiceOption?.name ?? "").trim().toLowerCase();
+    if (!code && !name) return false;
+    return (
+      code === "1501" ||
+      code.includes("pentacam") ||
+      name.includes("pentacam") ||
+      name.includes("بنتاكام")
+    );
+  }, [selectedServiceOption, serviceCode]);
+
+  useEffect(() => {
+    if (!patientQuery.data) return;
+    const p = patientQuery.data as any;
+    setPatientInfo({
+      id: p.id ?? 0,
+      name: p.fullName ?? "",
+      code: p.patientCode ?? "",
+    });
+    setPatientDetails({
+      dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth).split("T")[0] : "",
+      age: p.age != null ? String(p.age) : "",
+      address: p.address ?? "",
+      phone: p.phone ?? "",
+      job: p.occupation ?? "",
+    });
+  }, [patientQuery.data]);
+
+  useEffect(() => {
+    hydratedPatientStateRef.current = null;
+  }, [patientInfo.id]);
+
+  useEffect(() => {
+    const stateData = (patientStateQuery.data as any)?.data;
+    if (!stateData) return;
+    if (hydratedPatientStateRef.current === patientInfo.id) return;
+    const doctorFromState =
+      String(stateData.doctorName ?? "").trim() ||
+      String(stateData.signatures?.doctor ?? "").trim();
+    if (doctorFromState) setDoctorName(doctorFromState);
+    const visitFromState = String(stateData.visitDate ?? "").trim();
+    if (visitFromState) setVisitDate(visitFromState);
+    if (stateData.serviceCode !== undefined) {
+      setServiceCode(String(stateData.serviceCode ?? ""));
+    }
+    if (stateData.serviceQty !== undefined) {
+      setServiceQty(String(stateData.serviceQty ?? "2") || "2");
+    }
+    const flags = stateData.serviceFlags;
+    if (flags && typeof flags === "object") {
+      setServiceFlags({
+        consultation: Boolean((flags as any).consultation),
+        examination: Boolean((flags as any).examination),
+        imaging: Boolean((flags as any).imaging),
+      });
+    }
+    const notes = stateData.serviceNotes;
+    if (notes && typeof notes === "object") {
+      setServiceNotes({
+        consultation: String((notes as any).consultation ?? ""),
+        examination: String((notes as any).examination ?? ""),
+        imaging: String((notes as any).imaging ?? ""),
+      });
+    }
+    hydratedPatientStateRef.current = patientInfo.id;
+  }, [patientStateQuery.data, patientInfo.id]);
+
+  useEffect(() => {
+    setPatientDetails((prev) => ({
+      ...prev,
+      age: calculateAgeFromDob(prev.dateOfBirth),
+    }));
+  }, [patientDetails.dateOfBirth]);
+
+  const handleSave = async () => {
+    try {
+      let targetPatientId = Number(patientInfo.id ?? 0);
+      if (!targetPatientId) {
+        if (!canEditPatientData) {
+          toast.error("ليس لديك صلاحية تعديل بيانات المريض");
+          return;
+        }
+        const fullName = String(patientInfo.name ?? "").trim();
+        const phone = String(patientDetails.phone ?? "").trim();
+        if (!fullName) {
+          toast.error("Enter patient name first");
+          return;
+        }
+        if (!phone) {
+          toast.error("Enter patient phone first");
+          return;
+        }
+        const created = await createPatientMutation.mutateAsync({
+          fullName,
+          patientCode: formatPatientCode(patientInfo.code) || undefined,
+          dateOfBirth: patientDetails.dateOfBirth || undefined,
+          age: patientDetails.age ? Number(patientDetails.age) : undefined,
+          phone,
+          address: patientDetails.address || undefined,
+          occupation: patientDetails.job || undefined,
+          branch: "examinations",
+          serviceType,
+          locationType: "center",
+          lastVisit: visitDate || undefined,
+        });
+        targetPatientId = Number((created as any)?.patientId ?? 0);
+        if (!targetPatientId) {
+          toast.error("Failed to create patient");
+          return;
+        }
+        setPatientInfo((prev) => ({
+          ...prev,
+          id: targetPatientId,
+          code: String((created as any)?.patientCode ?? prev.code ?? ""),
+        }));
+      } else if (canEditPatientData) {
+        await updatePatientMutation.mutateAsync({
+          patientId: targetPatientId,
+          updates: {
+            patientCode: formatPatientCode(patientInfo.code) || undefined,
+            fullName: patientInfo.name || undefined,
+            dateOfBirth: patientDetails.dateOfBirth || null,
+            age: patientDetails.age ? Number(patientDetails.age) : null,
+            address: patientDetails.address || null,
+            phone: patientDetails.phone || null,
+            occupation: patientDetails.job || null,
+            serviceType,
+          },
+        });
+      }
+      await savePatientStateMutation.mutateAsync({
+        patientId: targetPatientId,
+        page: "examination",
+        data: {
+          doctorName,
+          visitDate,
+          serviceType,
+          serviceCode,
+          serviceQty,
+          serviceFlags,
+          serviceNotes,
+          signatures: { doctor: doctorName },
+        },
+      });
+      const normalizedService = String(serviceCode ?? "").trim();
+      if (normalizedService) {
+        let patientCodeForMssql =
+          formatPatientCode(patientInfo.code) ||
+          String((patientQuery.data as any)?.patientCode ?? "").trim();
+
+        if (!patientCodeForMssql && targetPatientId) {
+          try {
+            const freshPatient = await utils.patient.getPatient.fetch(targetPatientId);
+            patientCodeForMssql = String((freshPatient as any)?.patientCode ?? "").trim();
+            if (patientCodeForMssql) {
+              setPatientInfo((prev) => ({ ...prev, code: patientCodeForMssql }));
+            }
+          } catch (error) {
+            toast.error(getTrpcErrorMessage(error, "تعذر جلب كود المريض تلقائيًا"));
+          }
+        }
+
+        if (!patientCodeForMssql) {
+          toast.error("لم يتم العثور على كود المريض لتسجيل الخدمة في الحسابات");
+        } else {
+          const singleServiceCode =
+            normalizedService
+              .split(/[,\s]+/)
+              .map((value) => value.trim())
+              .filter(Boolean)[0] ?? "";
+          if (singleServiceCode) {
+            const parsedQty = Number.parseInt(String(serviceQty ?? ""), 10);
+            const quantity = isPentacamService
+              ? (Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 2)
+              : 1;
+            // No MSSQL sync for Dashboard (followups and existing patients)
+            // await linkPatientServiceToMssqlMutation.mutateAsync({
+            //   patientId: targetPatientId,
+            //   serviceCode: singleServiceCode,
+            //   quantity,
+            //   doctorCode: String((selectedDoctorEntry as any)?.code ?? "").trim() || undefined,
+            //   doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
+            // });
+          }
+        }
+      }
+      toast.success("Patient saved");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "Failed to save patient"));
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-xl">بيانات المريض</CardTitle>
+            <CardDescription>حقول الفحص مع المدخلات</CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => setPatientPanelOpen((prev) => !prev)}
+            title={patientPanelOpen ? "إغلاق بيانات المريض" : "فتح بيانات المريض"}
+            aria-label={patientPanelOpen ? "إغلاق بيانات المريض" : "فتح بيانات المريض"}
+          >
+            {patientPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      {patientPanelOpen ? (
+      <CardContent className="space-y-4" dir="rtl">
+        <div className="mb-2 flex justify-end">
+          <PatientPicker
+            onSelect={(patient) =>
+              setPatientInfo({
+                id: patient.id,
+                name: patient.fullName ?? "",
+                code: formatPatientCode(patient.patientCode ?? ""),
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-3 text-xs" dir="rtl" style={{ textAlign: "center" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">الاسم</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                value={patientInfo.name}
+                onChange={(e) => setPatientInfo((p) => ({ ...p, name: e.target.value }))}
+                readOnly={!canEditPatientData}
+              />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">تاريخ الميلاد</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                type="date"
+                value={patientDetails.dateOfBirth}
+                onChange={(e) => setPatientDetails((p) => ({ ...p, dateOfBirth: e.target.value }))}
+                readOnly={!canEditPatientData}
+                disabled={!canEditPatientData}
+              />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">السن</Label>
+              <Input className="text-xs border-0 flex-1 min-w-0" style={{ textAlign: "right" }} value={patientDetails.age} readOnly />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">العنوان</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                value={patientDetails.address}
+                onChange={(e) => setPatientDetails((p) => ({ ...p, address: e.target.value }))}
+                readOnly={!canEditPatientData}
+              />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">الموبايل</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                value={patientDetails.phone}
+                onChange={(e) => setPatientDetails((p) => ({ ...p, phone: e.target.value.replace(/\D+/g, "") }))}
+                readOnly={!canEditPatientData}
+              />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">كود العميل</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                value={patientInfo.code}
+                onChange={(e) => setPatientInfo((p) => ({ ...p, code: formatPatientCode(e.target.value) }))}
+                onBlur={(e) => setPatientInfo((p) => ({ ...p, code: formatPatientCode(e.target.value) }))}
+                dir="ltr"
+                readOnly={!canEditPatientData}
+              />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">الوظيفة</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                value={patientDetails.job}
+                onChange={(e) => setPatientDetails((p) => ({ ...p, job: e.target.value }))}
+                readOnly={!canEditPatientData}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">الطبيب</Label>
+              <Select value={doctorName} onValueChange={setDoctorName}>
+                <SelectTrigger className="text-xs border-0 w-full sm:w-40 min-w-0" style={{ textAlign: "right" }}>
+                  <SelectValue placeholder={doctorsQuery.isLoading ? "Loading doctors..." : "اختر الطبيب"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDoctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.name}>
+                      {doctor.code} - {doctor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">تاريخ الكشف</Label>
+              <Input
+                className="text-xs border-0 flex-1 min-w-0"
+                style={{ textAlign: "right" }}
+                type="date"
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label className="font-bold">نوع الشيت</Label>
+              <Select value={serviceType} onValueChange={(value) => setServiceType(normalizeServiceType(value))}>
+                <SelectTrigger className="text-xs border-0 w-full min-w-0" style={{ textAlign: "right" }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultant">استشاري</SelectItem>
+                  <SelectItem value="specialist">اخصائي</SelectItem>
+                  <SelectItem value="lasik">ليزك</SelectItem>
+                  <SelectItem value="surgery">عمليات</SelectItem>
+                  <SelectItem value="external">خارجي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-end gap-3 flex-wrap">
+              <label className="inline-flex items-center gap-1 text-sm whitespace-nowrap flex-row-reverse">
+                <Checkbox
+                  checked={serviceFlags.consultation}
+                  onCheckedChange={(checked) =>
+                    setServiceFlags((prev) => ({ ...prev, consultation: Boolean(checked) }))
+                  }
+                />
+                كشف
+                <Input
+                  value={serviceNotes.consultation}
+                  onChange={(e) =>
+                    setServiceNotes((prev) => ({ ...prev, consultation: e.target.value }))
+                  }
+                  className="h-8 w-32 mr-1"
+                  placeholder="تفاصيل كشف"
+                />
+              </label>
+              <label className="inline-flex items-center gap-1 text-sm whitespace-nowrap flex-row-reverse">
+                <Checkbox
+                  checked={serviceFlags.examination}
+                  onCheckedChange={(checked) =>
+                    setServiceFlags((prev) => ({ ...prev, examination: Boolean(checked) }))
+                  }
+                />
+                فحص
+                <Input
+                  value={serviceNotes.examination}
+                  onChange={(e) =>
+                    setServiceNotes((prev) => ({ ...prev, examination: e.target.value }))
+                  }
+                  className="h-8 w-32 mr-1"
+                  placeholder="تفاصيل فحص"
+                />
+              </label>
+              <label className="inline-flex items-center gap-1 text-sm whitespace-nowrap flex-row-reverse">
+                <Checkbox
+                  checked={serviceFlags.imaging}
+                  onCheckedChange={(checked) =>
+                    setServiceFlags((prev) => ({ ...prev, imaging: Boolean(checked) }))
+                  }
+                />
+                اشعه
+                <Input
+                  value={serviceNotes.imaging}
+                  onChange={(e) =>
+                    setServiceNotes((prev) => ({ ...prev, imaging: e.target.value }))
+                  }
+                  className="h-8 w-32 mr-1"
+                  placeholder="تفاصيل اشعه"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label htmlFor="srv-code" className="font-bold">الخدمة</Label>
+              <Select
+                value={serviceCode || "__none"}
+                onValueChange={(value) => setServiceCode(value === "__none" ? "" : value)}
+              >
+                <SelectTrigger id="srv-code" className="text-xs border-0 w-full sm:w-56 min-w-0">
+                  <SelectValue placeholder="اختر الخدمة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">—</SelectItem>
+                  {serviceOptions.map((opt) => (
+                    <SelectItem key={opt.code} value={opt.code}>
+                      {opt.code} - {opt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {isPentacamService ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <Label htmlFor="srv-qty" className="font-bold">الكمية</Label>
+                <Select value={serviceQty || "2"} onValueChange={(value) => setServiceQty(value)}>
+                  <SelectTrigger id="srv-qty" className="text-xs border-0 w-full sm:w-32 min-w-0">
+                    <SelectValue placeholder="الكمية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+          <div className="flex flex-wrap gap-2">
+          <Button
+            className="bg-sky-600 text-white hover:bg-sky-700"
+            onClick={handleSave}
+            disabled={createPatientMutation.isPending || updatePatientMutation.isPending || savePatientStateMutation.isPending}
+          >
+             حفظ
+           </Button>
+          <Button
+            variant="outline"
+            className="border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100"
+            onClick={onOpenExamination}
+          >
+            فتح شاشة الفحص
+          </Button>
+          </div>
+      </CardContent>
+      ) : null}
+    </Card>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

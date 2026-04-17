@@ -1,0 +1,1 @@
+ALTER TABLE `examinations` ADD `fundusData` text;

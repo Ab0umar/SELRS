@@ -1,0 +1,94 @@
+﻿<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="SELRS mobile access for Al Shrouk Eye Center." />
+    <link rel="dns-prefetch" href="//op.selrs.cc" />
+    <link rel="preconnect" href="https://op.selrs.cc" crossorigin />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <title>&#1605;&#1585;&#1603;&#1586; &#1593;&#1610;&#1608;&#1606; &#1575;&#1604;&#1588;&#1585;&#1608;&#1602; - SELRS</title>
+    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top, rgba(15, 118, 110, 0.2), transparent 42%),
+          linear-gradient(180deg, #f5fbfb 0%, #eef6f5 100%);
+        color: #0f172a;
+        transition: opacity 220ms ease, visibility 220ms ease;
+      }
+
+      #boot-splash.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .boot-splash-card {
+        width: min(88vw, 420px);
+        border: 1px solid rgba(15, 118, 110, 0.14);
+        border-radius: 28px;
+        padding: 28px 24px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+        text-align: center;
+        backdrop-filter: blur(12px);
+      }
+
+      .boot-splash-logo {
+        width: 88px;
+        height: 88px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 20px rgba(15, 118, 110, 0.18));
+      }
+
+      .boot-splash-line {
+        width: 84px;
+        height: 4px;
+        margin: 18px auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(15, 118, 110, 0.2), #0f766e, rgba(15, 118, 110, 0.2));
+        animation: bootPulse 1.4s ease-in-out infinite;
+      }
+
+      @keyframes bootPulse {
+        0%, 100% { transform: scaleX(0.75); opacity: 0.55; }
+        50% { transform: scaleX(1); opacity: 1; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="boot-splash" aria-hidden="true">
+      <div class="boot-splash-card">
+        <img class="boot-splash-logo" src="/logo.png" alt="SELRS" />
+        <div style="margin-top: 18px; font-size: 1.35rem; font-weight: 700;">SELRS</div>
+        <div style="margin-top: 8px; color: #475569; font-size: 0.95rem;">
+          Connecting to Al Shrouk Eye Center
+        </div>
+        <div class="boot-splash-line"></div>
+      </div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+
+</html>
+
+

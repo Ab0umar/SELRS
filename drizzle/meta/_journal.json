@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1770343396918,
+      "tag": "0000_vengeful_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1770517642121,
+      "tag": "0001_wandering_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1739244320000,
+      "tag": "00014_add_location_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1739246200000,
+      "tag": "00015_add_last_visit",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1771020330293,
+      "tag": "0016_complex_emma_frost",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1774835351694,
+      "tag": "0017_old_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1774882441296,
+      "tag": "0018_cool_the_spike",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1774882574989,
+      "tag": "0019_fixed_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1774898702122,
+      "tag": "0020_orange_thunderbolt_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1774916010622,
+      "tag": "0021_amazing_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "5",
+      "when": 1774977004712,
+      "tag": "0022_serious_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1775597008972,
+      "tag": "0023_rainy_peter_parker",
+      "breakpoints": true
+    }
+  ]
+}

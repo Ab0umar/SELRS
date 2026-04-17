@@ -1,0 +1,96 @@
+node_modules/
+dist/
+.cache/
+.env
+.env.*
+!.env.example
+
+.manus-logs/
+*.log
+
+.DS_Store
+Thumbs.db
+
+coverage/
+playwright-report/
+test-results/
+backups/
+!backups/
+backups/*
+!backups/.gitkeep
+
+*.tsbuildinfo
+Dump20260302.sql
+GIT.txt
+
+# Local Pentacam export images (keep local, never track)
+Pentacam/
+Pentacam/incoming/
+Pentacam/processed/
+Pentacam/failed/
+
+# Local Android signing files
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+
+# Android build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/release/
+
+# Nested legacy repos (keep local only)
+SELRS.cc/
+apk/
+web/
+desktop/*.exe
+desktop/*.exe
+
+# Desktop build/runtime outputs
+desktop/**/bin/
+desktop/**/obj/
+desktop/publish/
+desktop/publish-win7/
+desktop/installer/
+desktop/*.msi
+desktop/*.zip
+desktop/SelrsDesktop/*.user
+desktop/SelrsDesktop/*.suo
+
+# Electron build/runtime outputs
+desktop-electron/dist/
+desktop-electron/win7/node_modules/
+desktop-electron/*.exe
+desktop-electron/*.zip
+desktop-electron/*.7z
+
+# Packaged mobile artifacts
+*.apk
+*.aab
+android/*.zip
+
+# iOS build outputs (if present)
+ios/Pods/
+ios/DerivedData/
+ios/build/
+
+# Capacitor/Android Studio local files
+android/local.properties
+android/*.iml
+android/.idea/
+ios/.idea/
+.gradle-local/
+
+# Vite/Node caches
+.vite/
+.turbo/
+.parcel-cache/
+pnpm-debug.log
+npm-debug.log
+yarn-error.log
+
+# OS junk
+*.swp
+*.swo

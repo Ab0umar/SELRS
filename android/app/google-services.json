@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "825362518613",
+    "project_id": "selrs-35f95",
+    "storage_bucket": "selrs-35f95.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:825362518613:android:fcb73ea8c088eef8843adc",
+        "android_client_info": {
+          "package_name": "cc.selrs.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFpffWD1h-vFGEHXm_lOcxxAVBeGT84is"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

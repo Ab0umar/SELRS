@@ -1,0 +1,48 @@
+{
+    "name":  "SELRS",
+    "version":  "1.0.89",
+    "private":  true,
+    "main":  "main.js",
+    "scripts":  {
+                    "start":  "electron .",
+                    "dist:sync":  "powershell -ExecutionPolicy Bypass -File ./sync-version.ps1",
+                    "dist":  "npm run dist:sync \u0026\u0026 electron-builder --win nsis"
+                },
+    "devDependencies":  {
+                            "electron":  "^37.4.0",
+                            "electron-builder":  "^26.0.12"
+                        },
+    "build":  {
+                  "appId":  "cc.selrs.electron",
+                  "productName":  "SELRS",
+                  "directories":  {
+                                      "output":  "C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS.cc"
+                                  },
+                  "files":  [
+                                "main.js",
+                                "preload.js"
+                            ],
+                  "win":  {
+                              "icon":  "assets/app.ico",
+                              "target":  [
+                                             {
+                                                 "target":  "nsis",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             }
+                                         ]
+                          },
+                  "nsis":  {
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  true,
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "SELRS",
+                               "installerIcon":  "assets/app.ico",
+                               "uninstallerIcon":  "assets/app.ico",
+                               "installerHeaderIcon":  "assets/app.ico",
+                               "artifactName":  "SELRS-Electron-Setup-${version}.${ext}"
+                           }
+              }
+}
