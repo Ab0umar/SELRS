@@ -94,3 +94,36 @@ yarn-error.log
 # OS junk
 *.swp
 *.swo
+
+# Local/editor/worktree metadata
+.claude/
+.idea/
+
+# Non-code local archives / notes
+OLD/
+Doc/
+design-previews/
+design-previews-v2/
+design-previews-v3/
+design-previews-v4/
+design-previews-v5/
+design-previews-v6/
+design-previews-v7/
+backups/
+selrs/
+
+# Temp/debug dumps
+tmp_*.jpg
+tmp_*.txt
+*.bak
+
+# Office exports (keep code repo lean)
+*.xlsx
+*.xls
+*.csv
+*.doc
+*.docx
+
+# One-off local text dumps
+2026-*-this-session-is-being-continued-from-a-previous-c.txt
+@{name=SELRS; version=*}
