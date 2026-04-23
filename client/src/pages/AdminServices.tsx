@@ -273,7 +273,7 @@ export default function AdminServices() {
           createdAt: String(row?.createdAt ?? new Date().toISOString()),
         } satisfies DoctorServiceSheetMatch;
       })
-      .filter((row): row is DoctorServiceSheetMatch => Boolean(row));
+      .filter((row): row is NonNullable<typeof row> => row !== null);
     setDoctorServiceMatches(normalized);
     setIsMappingsInitialized(true);
   }, [isMappingsInitialized, mappingsQuery.data]);

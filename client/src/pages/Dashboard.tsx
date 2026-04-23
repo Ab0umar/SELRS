@@ -1294,7 +1294,7 @@ export default function Dashboard() {
           onSelect={(patient) => {
             if (!patientPickerNav) return;
             const path = patientPickerNav.replace(":id", String(patient.id));
-            pushRecentPatient({ id: patient.id, fullName: patient.fullName, patientCode: patient.patientCode ?? "" });
+            pushRecentPatient({ id: patient.id, name: patient.fullName, code: patient.patientCode ?? "" });
             setRecentPatients(getRecentPatients());
             setPatientPickerNav(null);
             setLocation(path);
@@ -2898,9 +2898,9 @@ function ReceptionPatientInfoPanel({
           serviceCode: normalizeMappingCode(row?.serviceCode),
           isActive: row?.isActive !== false,
         }))
-        .filter((row: DoctorServiceSheetMatch) => row.isActive !== false)
-        .filter((row: DoctorServiceSheetMatch) => row.doctorCode === selectedDoctorCode)
-        .map((row: DoctorServiceSheetMatch) => row.serviceCode)
+        .filter((row) => row.isActive !== false)
+        .filter((row) => row.doctorCode === selectedDoctorCode)
+        .map((row) => row.serviceCode)
     );
     if (allowedServiceCodes.size === 0) return [];
     return normalized.filter((item) => allowedServiceCodes.has(item.normalizedCode));

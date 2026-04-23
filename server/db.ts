@@ -785,7 +785,6 @@ export async function resetMssqlSyncCodes(): Promise<number> {
     doctorCode: null,
     doctorId: null,
     serviceCode: null,
-    treatingDoctor: null as any,
   });
   // Also reset MSSQL sync markers so the next run can backfill from the start.
   await updateSystemSettings("mssql_sync_state_v1", {

@@ -4841,7 +4841,7 @@ export const medicalRouter = router({
       operationType: z.string().optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
-      await db.deleteOperationList(input.doctorTab, input.listDate, input.operationType ?? null);
+      await db.deleteOperationList(input.doctorTab, input.listDate);
       await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_LIST", "operationList", 0, { message: `Deleted operation list for ${input.doctorTab}` });
       return { success: true };
     }),
