@@ -124,7 +124,7 @@ export function ShortcutsMenu({ isMobile, onLogout }: { isMobile?: boolean; onLo
                   <span className="hidden sm:inline">Patient Hub</span>
                   <span className="sm:hidden">{getGroupIcon("Patient Hub")}</span>
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto" side="bottom" align="start">
+                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto">
                   <div className="space-y-1 text-right text-sm text-slate-900" style={{ minWidth: "150px" }}>
                     {navGroups[0].links.map((link) => (
                       <a key={link.href} href={link.href} className="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
@@ -145,7 +145,7 @@ export function ShortcutsMenu({ isMobile, onLogout }: { isMobile?: boolean; onLo
                   <span className="hidden sm:inline">Workflow</span>
                   <span className="sm:hidden">{getGroupIcon("Workflow")}</span>
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto" side="bottom" align="center">
+                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto">
                   <div className="space-y-1 text-right text-sm text-slate-900" style={{ minWidth: "150px" }}>
                     {navGroups[1].links.map((link) => (
                       <a key={link.href} href={link.href} className="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
@@ -167,7 +167,7 @@ export function ShortcutsMenu({ isMobile, onLogout }: { isMobile?: boolean; onLo
                     <span className="hidden sm:inline">Admin</span>
                     <span className="sm:hidden">{getGroupIcon("Admin")}</span>
                   </NavigationMenuTrigger>
-                  <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto" side="bottom" align="center">
+                  <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto">
                     <div className="space-y-1 text-right text-sm text-slate-900" style={{ minWidth: "150px" }}>
                       {navGroups[2].links.map((link) => (
                         <a key={link.href} href={link.href} className="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
@@ -190,7 +190,7 @@ export function ShortcutsMenu({ isMobile, onLogout }: { isMobile?: boolean; onLo
                     <span className="hidden sm:inline">Doctor Hub</span>
                     <span className="sm:hidden">{getGroupIcon("Doctor Hub")}</span>
                   </NavigationMenuTrigger>
-                  <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto" side="bottom" align="start">
+                  <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2 max-h-[250px] overflow-y-auto">
                     <div className="space-y-1 text-right text-sm text-slate-900" style={{ minWidth: "150px" }}>
                       {navGroups[3].links.map((link) => (
                         <a key={link.href} href={link.href} className="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
@@ -240,7 +240,7 @@ export function ShortcutsMenu({ isMobile, onLogout }: { isMobile?: boolean; onLo
                 <NavigationMenuTrigger className="rounded-md border border-slate-200 bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-1">
                   {group.trigger}
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2" side="bottom" align="center">
+                <NavigationMenuContent className="rounded-md border border-slate-200 bg-white shadow-sm z-50 mt-2">
                   <div className="space-y-1 text-right text-sm text-slate-900" style={{ minWidth: "150px" }}>
                     {group.links.map((link) => (
                       <a key={link.href} href={link.href} className="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900">

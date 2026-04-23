@@ -468,374 +468,192 @@ export default function MedicalReports() {
     });
   }, [reportsQuery.data, formData.patientName, formData.patientCode, user?.name]);
 
+  // Inline form panel — always visible on right side
+  const FormPanel = () => (
+    <Card className="text-right sticky top-4" dir="rtl">
+      <CardHeader>
+        <CardTitle>{selectedReport ? "تعديل التقرير" : "تقرير طبي جديد"}</CardTitle>
+        <CardDescription>أدخل بيانات التقرير الطبي والروشتة</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <PatientPicker initialPatientId={selectedPatientId ?? undefined} onSelect={handleSelectPatient} />
+        <Tabs defaultValue="patient-info" persistKey="medical-reports" className="w-full">
+          <TabsList className="grid w-full grid-cols-3" dir="rtl">
+            <TabsTrigger value="patient-info">المريض</TabsTrigger>
+            <TabsTrigger value="diagnosis">التشخيص</TabsTrigger>
+            <TabsTrigger value="prescription">الروشتة</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="patient-info" className="space-y-4" dir="rtl">
+            <div>
+              <Label htmlFor="patient-name">اسم المريض</Label>
+              <Input id="patient-name" placeholder="أدخل اسم المريض" value={formData.patientName}
+                onChange={(e) => setFormData({ ...formData, patientName: e.target.value })} />
+            </div>
+            <div><Label>الهاتف</Label><Input value={formData.phone} readOnly /></div>
+            <div><Label>العمر</Label><Input value={formData.age} readOnly /></div>
+            <div><Label>العنوان</Label><Input value={formData.address} readOnly /></div>
+            <div><Label>كود المريض</Label><Input value={formData.patientCode} readOnly /></div>
+          </TabsContent>
+
+          <TabsContent value="diagnosis" className="space-y-4" dir="rtl">
+            <div>
+              <Label htmlFor="visit-date">تاريخ الزيارة</Label>
+              <Input id="visit-date" type="date" value={formData.visitDate}
+                onChange={(e) => setFormData({ ...formData, visitDate: e.target.value })} />
+            </div>
+            <div>
+              <Label>نوع العملية</Label>
+              <Input value={formData.operationType}
+                onChange={(e) => setFormData({ ...formData, operationType: e.target.value })} />
+            </div>
+            <div>
+              <Label>التشخيص</Label>
+              <Input value={diseaseSearch} onChange={(e) => setDiseaseSearch(e.target.value)}
+                placeholder="ابحث عن تشخيص..." className="mt-2 text-right" dir="rtl" />
+              <div className="mt-2 space-y-3 max-h-60 overflow-y-auto">
+                {Object.entries(
+                  (diseasesQuery.data ?? [])
+                    .filter((d: any) => `${d.abbrev || ""} ${d.name || ""}`.toLowerCase().includes(diseaseSearch.trim().toLowerCase()))
+                    .reduce((acc: Record<string, any[]>, d: any) => {
+                      const key = d.branch || "other";
+                      if (!acc[key]) acc[key] = [];
+                      acc[key].push(d);
+                      return acc;
+                    }, {})
+                ).map(([branch, items]) => (
+                  <div key={branch} className="border rounded-lg p-3">
+                    <button type="button" className="w-full flex items-center justify-between font-semibold"
+                      onClick={() => setExpandedDiseaseGroups((prev) =>
+                        prev.includes(branch) ? prev.filter((b) => b !== branch) : [...prev, branch])}>
+                      <span>{branch}</span>
+                    </button>
+                    {expandedDiseaseGroups.includes(branch) && (
+                      <div className="mt-3 grid grid-cols-1 gap-2">
+                        {items.map((d: any) => {
+                          const label = d.abbrev || d.name;
+                          return (
+                            <label key={d.id} className="flex items-center gap-2">
+                              <Checkbox checked={formData.diseases.includes(label)}
+                                onCheckedChange={(checked) => {
+                                  const next = new Set(formData.diseases);
+                                  if (checked) next.add(label); else next.delete(label);
+                                  setFormData({ ...formData, diseases: Array.from(next) });
+                                }} />
+                              <span>{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>التوصية</Label>
+              <Textarea value={formData.recommendation}
+                onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
+                className="h-20" />
+            </div>
+            <div>
+              <Label>ملاحظات إضافية</Label>
+              <Textarea value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="h-20" />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="prescription" className="space-y-4" dir="rtl">
+            <div className="rounded-lg border p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <Label>الروشتة الطبية</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleLoadPrescriptionFromPage}>
+                  تحميل من صفحة الروشتة
+                </Button>
+              </div>
+              <Textarea value={formData.prescription}
+                onChange={(e) => setFormData({ ...formData, prescription: e.target.value })}
+                className="h-32 mt-2" placeholder="أدخل الأدوية والتعليمات" />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex gap-2 pt-2">
+          {canWriteReports && (
+            <Button onClick={handleCreateReport} className="flex-1 bg-primary hover:bg-primary/90">
+              {selectedReport ? "تحديث التقرير" : "إنشاء التقرير"}
+            </Button>
+          )}
+          {selectedReport && (
+            <Button variant="outline" onClick={() => { setSelectedReport(null); setIsDialogOpen(false); }}>
+              جديد
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background text-right">
-      {/* Header */}
       <PageHeader backTo="/dashboard" />
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 print:p-0">
-        {(reportsQuery.isError || patientQuery.isError || prescriptionsQuery.isError || prescriptionsWithItemsQuery.isError || sheetQuery.isError) ? (
+        {(reportsQuery.isError || patientQuery.isError) ? (
           <div className="mb-6">
             <OfflinePageState
               title="تعذر تحديث بيانات التقرير"
-              body="بعض بيانات التقرير أو المريض غير متاحة الآن. أعد المحاولة عندما يعود الاتصال."
-              onRetry={() => {
-                void reportsQuery.refetch();
-                void patientQuery.refetch();
-                void prescriptionsQuery.refetch();
-                void prescriptionsWithItemsQuery.refetch();
-                void sheetQuery.refetch();
-              }}
+              body="بعض بيانات التقرير أو المريض غير متاحة الآن."
+              onRetry={() => { void reportsQuery.refetch(); void patientQuery.refetch(); }}
             />
           </div>
         ) : null}
-        {/* Create Report Button */}
-        {canWriteReports && (
-          <div className="mb-8 print:hidden">
-            {!isDialogOpen ? (
-              <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
-                إنشاء تقرير جديد
-              </Button>
-            ) : (
-              <Card className="text-right" dir="rtl">
-                <CardHeader>
-                  <CardTitle>إنشاء تقرير طبي جديد</CardTitle>
-                  <CardDescription>
-                    أدخل بيانات التقرير الطبي والروشتة
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                <div className="mb-4">
-                  <PatientPicker initialPatientId={selectedPatientId ?? undefined} onSelect={handleSelectPatient} />
-                </div>
-                <Tabs defaultValue="patient-info" persistKey="medical-reports" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3" dir="rtl">
-                    <TabsTrigger value="prescription">الروشتة</TabsTrigger>
-                    <TabsTrigger value="diagnosis">التشخيص</TabsTrigger>
-                    <TabsTrigger value="patient-info">المريض</TabsTrigger>
-                  </TabsList>
 
-                  {/* Patient Info Tab */}
-                  <TabsContent value="patient-info" className="space-y-4">
-                    <div>
-                      <Label htmlFor="patient-name">اسم المريض</Label>
-                      <Input
-                        id="patient-name"
-                        placeholder="أدخل اسم المريض"
-                        value={formData.patientName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, patientName: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="patient-phone">الهاتف</Label>
-                      <Input
-                        id="patient-phone"
-                        value={formData.phone}
-                        readOnly
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="patient-age">العمر</Label>
-                      <Input
-                        id="patient-age"
-                        value={formData.age}
-                        readOnly
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="patient-address">العنوان</Label>
-                      <Input
-                        id="patient-address"
-                        value={formData.address}
-                        readOnly
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="patient-code">كود المريض</Label>
-                      <Input
-                        id="patient-code"
-                        placeholder="P001"
-                        value={formData.patientCode}
-                        readOnly
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* Diagnosis Tab */}
-                  <TabsContent value="diagnosis" className="space-y-4">
-                    <div>
-                      <Label htmlFor="visit-date">تاريخ الزيارة</Label>
-                      <Input
-                        id="visit-date"
-                        type="date"
-                        value={formData.visitDate}
-                        onChange={(e) =>
-                          setFormData({ ...formData, visitDate: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="operation-type">نوع العملية</Label>
-                      <Input
-                        id="operation-type"
-                        value={formData.operationType}
-                        onChange={(e) =>
-                          setFormData({ ...formData, operationType: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>التشخيص</Label>
-                      <Input
-                        value={diseaseSearch}
-                        onChange={(e) => setDiseaseSearch(e.target.value)}
-                        placeholder="ابحث عن تشخيص..."
-                        className="mt-2 text-right"
-                        dir="rtl"
-                      />
-                      <div className="mt-2 space-y-3">
-                        {Object.entries(
-                          (diseasesQuery.data ?? [])
-                            .filter((d: any) => {
-                              const label = `${d.abbrev || ""} ${d.name || ""}`.toLowerCase();
-                              return label.includes(diseaseSearch.trim().toLowerCase());
-                            })
-                            .reduce((acc: Record<string, any[]>, d: any) => {
-                              const key = d.branch || "other";
-                              if (!acc[key]) acc[key] = [];
-                              acc[key].push(d);
-                              return acc;
-                            }, {})
-                        ).map(([branch, items]) => (
-                          <div key={branch} className="border rounded-lg p-3">
-                            <button
-                              type="button"
-                              className="w-full flex items-center justify-between font-semibold"
-                              onClick={() =>
-                                setExpandedDiseaseGroups((prev) =>
-                                  prev.includes(branch) ? prev.filter((b) => b !== branch) : [...prev, branch]
-                                )
-                              }
-                            >
-                              <span>{branch}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {expandedDiseaseGroups.includes(branch) ? "" : ""}
-                              </span>
-                            </button>
-                            {expandedDiseaseGroups.includes(branch) && (
-                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {items.map((d: any) => {
-                                  const label = d.abbrev || d.name;
-                                  return (
-                                    <label key={d.id} className="flex items-center gap-2">
-                                      <Checkbox
-                                        checked={formData.diseases.includes(label)}
-                                        onCheckedChange={(checked) => {
-                                          const next = new Set(formData.diseases);
-                                          if (checked) next.add(label);
-                                          else next.delete(label);
-                                          setFormData({ ...formData, diseases: Array.from(next) });
-                                        }}
-                                      />
-                                      <span>{label}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {(!diseasesQuery.data || (diseasesQuery.data ?? []).length === 0) && (
-                          <div className="text-sm text-muted-foreground">لا توجد أمراض بعد</div>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="recommendation">التوصية / نوع العملية</Label>
-                      <Textarea
-                        id="recommendation"
-                        placeholder="أدخل التوصية أو نوع العملية المقترحة"
-                        value={formData.recommendation}
-                        onChange={(e) =>
-                          setFormData({ ...formData, recommendation: e.target.value })
-                        }
-                        className="h-20"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="notes">ملاحظات إضافية</Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="أي ملاحظات أخرى"
-                        value={formData.notes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, notes: e.target.value })
-                        }
-                        className="h-20"
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* Prescription Tab */}
-                  <TabsContent value="prescription" className="space-y-4">
-                    <div className="rounded-lg border p-4">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <Label htmlFor="prescription">الروشتة الطبية</Label>
-                        <Button type="button" variant="outline" size="sm" onClick={handleLoadPrescriptionFromPage}>
-                          تحميل من صفحة الروشتة
-                        </Button>
-                      </div>
-                      <Textarea
-                        id="prescription"
-                        placeholder="أدخل الأدوية والتعليمات"
-                        value={formData.prescription}
-                        onChange={(e) =>
-                          setFormData({ ...formData, prescription: e.target.value })
-                        }
-                        className="h-32 mt-2"
-                      />
-                      <div className="mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>مثال على الروشتة:</strong>
-                        </p>
-                        <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                          <li>• قطرة Refresh Plus - 4 مرات يومياً</li>
-                          <li>• مرهم Refresh PM - قبل النوم</li>
-                          <li>• تجنب الأنشطة الشاقة لمدة أسبوع</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={handleCreateReport}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    {selectedReport ? "تحديث التقرير" : "إنشاء التقرير"}
-                  </Button>
-                  <Button
-                    onClick={() => setIsDialogOpen(false)}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    إغلاق
-                  </Button>
-                </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Reports List */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form panel — always visible left 2/3 */}
           <div className="lg:col-span-2 print:hidden">
+            <FormPanel />
+          </div>
+
+          {/* Reports List — right 1/3 */}
+          <div className="print:hidden space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>التقارير الطبية</CardTitle>
-                <CardDescription>
-                  عدد التقارير: {parsedReports.length}
-                </CardDescription>
+                <CardDescription>عدد التقارير: {parsedReports.length}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {!selectedPatientId ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      اختر مريضاً لعرض تقاريره
-                    </p>
+                    <p className="text-center text-muted-foreground py-8">اختر مريضاً من النموذج لعرض تقاريره</p>
                   ) : reportsQuery.isLoading ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      جاري تحميل التقارير...
-                    </p>
+                    <p className="text-center text-muted-foreground py-8">جاري تحميل التقارير...</p>
                   ) : parsedReports.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      لا توجد تقارير
-                    </p>
+                    <p className="text-center text-muted-foreground py-8">لا توجد تقارير</p>
                   ) : (
                     parsedReports.map((report) => (
-                      <div
-                        key={report.id}
-                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold">{report.patientName}</h3>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">
-                              {report.date ? formatDateLabel(report.date) : ""}
-                            </p>
-                            <p className="text-xs font-medium text-primary">
-                              {report.doctor}
-                            </p>
+                      <div key={report.id}
+                        className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer ${selectedReport?.id === report.id ? "border-primary bg-primary/5" : ""}`}
+                        onClick={() => handleViewReport(report)}>
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold">{report.patientName}</h3>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">{report.date ? formatDateLabel(report.date) : ""}</p>
+                            <p className="text-xs font-medium text-primary">{report.doctor}</p>
                           </div>
                         </div>
-
                         <div className="mb-3 text-sm">
-                          <p className="mb-2">
-                            <span className="font-semibold">التشخيص:</span>{" "}
-                            {formatDisplayValue(report.diagnosis)}
-                          </p>
-                          <p>
-                            <span className="font-semibold">التوصية:</span>{" "}
-                            {formatDisplayValue(report.recommendation)}
-                          </p>
+                          <p className="mb-1"><span className="font-semibold">التشخيص:</span> {formatDisplayValue(report.diagnosis)}</p>
+                          <p><span className="font-semibold">التوصية:</span> {formatDisplayValue(report.recommendation)}</p>
                         </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewReport(report)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            عرض
-                          </Button>
-                          {canWriteReports && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedReport(report);
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  patientName: report.patientName,
-                                  patientCode: report.patientCode,
-                                  diagnosis: report.diagnosis ?? "",
-                                  diseases: report.diseases ?? [],
-                                  recommendation: report.recommendation ?? "",
-                                  prescription: report.prescription ?? "",
-                                  notes: report.notes ?? "",
-                                  operationType: report.operationType ?? "",
-                                  visitDate: report.visitDate ?? prev.visitDate,
-                                }));
-                                setIsDialogOpen(true);
-                              }}
-                            >
-                              تعديل
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleDownloadReportPdf(report)}
-                          >
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadReportPdf(report)}>
                             <Download className="h-4 w-4 mr-1" />
-                            تحميل PDF
+                            PDF
                           </Button>
                           {canDeleteReports && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteReport(report.id)}
-                            >
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteReport(report.id)}>
                               <Trash2 className="h-4 w-4 mr-1" />
                               حذف
                             </Button>
@@ -847,97 +665,46 @@ export default function MedicalReports() {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Report Details */}
-          <div>
-            {selectedReport ? (
-              <>
-                <Card>
-                <CardHeader className="space-y-3 print:hidden">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <CardTitle>تقرير طبي</CardTitle>
-                      </div>
-                      <div className="flex items-center gap-3 print:hidden">
-                        <img src="/logo.png" alt="Shorouk-Eyes Center" className="h-12 w-12 object-contain" />
-                        <div className="text-right">
-                          <p className="font-semibold leading-tight">Shorouk-Eyes Center</p>
-                          <p className="text-xs text-muted-foreground leading-tight">For Lasik & Refractive Surgery</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                  <div className="hidden print:flex items-center justify-between gap-4 border-b pb-3">
-                    <div></div>
-                  </div>
-                    <div className="hidden print:flex items-center justify-center gap-10 text-sm" dir="rtl">
-                      <span className="inline-flex items-center gap-1" dir="rtl">
-                        <span className="font-semibold">الاسم:</span>
-                        <span>{selectedReport.patientName}</span>
-                      </span>
-                      {selectedReport.patientAge ? (
-                        <span className="inline-flex items-center gap-1" dir="rtl">
-                          <span className="font-semibold">السن:</span>
-                          <span dir="ltr">{selectedReport.patientAge}</span>
-                        </span>
-                      ) : null}
-                      {selectedReport.date ? (
-                        <span className="inline-flex items-center gap-1" dir="rtl">
-                          <span className="font-semibold">التاريخ:</span>
-                          <span dir="ltr">{formatDateLabel(selectedReport.date)}</span>
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="print:hidden">
-                      <p className="text-sm font-semibold text-muted-foreground">
-                        المريض
-                      </p>
-                      <p className="text-lg font-bold">{formatDisplayValue(selectedReport.patientName)}</p>
-                      {selectedReport.patientAge ? (
-                        <p className="text-sm text-muted-foreground">السن: {formatDisplayValue(selectedReport.patientAge)}</p>
-                      ) : null}
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-semibold text-muted-foreground mb-2">
-                        التشخيص
-                      </p>
-                      <p className="text-sm">{formatDisplayValue(selectedReport.diagnosis)}</p>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-semibold text-muted-foreground mb-2">
-                        التوصية
-                      </p>
-                      <p className="text-sm">{formatDisplayValue(selectedReport.recommendation)}</p>
-                    </div>
-
-                    <Button
-                      className="w-full bg-primary hover:bg-primary/90 mt-4 print:hidden"
-                      onClick={() => handleDownloadReportPdf(selectedReport)}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      تحميل كـ PDF
-                    </Button>
-                  </CardContent>
-                </Card>
-                <div className="hidden print:flex flex-col items-end pt-3 text-sm" dir="rtl">
-                  <span className="font-semibold">الطبيب المعالج</span>
-                  <span className="mt-1">{selectedReport.doctor}</span>
-                </div>
-              </>
-            ) : (
+            {/* Print preview */}
+            {selectedReport && (
               <Card>
-                <CardContent className="pt-6">
-                  <p className="text-center text-muted-foreground">
-                    اختر تقريراً لعرض التفاصيل
-                  </p>
+                <CardHeader className="space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle>تقرير طبي</CardTitle>
+                    <div className="flex items-center gap-3">
+                      <img src="/logo.png" alt="Shorouk-Eyes Center" className="h-12 w-12 object-contain" />
+                      <div className="text-right">
+                        <p className="font-semibold leading-tight">Shorouk-Eyes Center</p>
+                        <p className="text-xs text-muted-foreground leading-tight">For Lasik & Refractive Surgery</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4" dir="rtl">
+                  <div className="flex flex-wrap gap-6 text-sm border-b pb-3">
+                    <span><span className="font-semibold">الاسم: </span>{selectedReport.patientName}</span>
+                    {selectedReport.patientAge && <span><span className="font-semibold">السن: </span>{selectedReport.patientAge}</span>}
+                    {selectedReport.date && <span><span className="font-semibold">التاريخ: </span>{formatDateLabel(selectedReport.date)}</span>}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">التشخيص</p>
+                    <p className="text-sm">{formatDisplayValue(selectedReport.diagnosis)}</p>
+                  </div>
+                  <div className="border-t pt-3">
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">التوصية</p>
+                    <p className="text-sm">{formatDisplayValue(selectedReport.recommendation)}</p>
+                  </div>
+                  <Button className="w-full bg-primary hover:bg-primary/90 print:hidden"
+                    onClick={() => handleDownloadReportPdf(selectedReport)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    تحميل كـ PDF
+                  </Button>
                 </CardContent>
               </Card>
             )}
           </div>
+
         </div>
       </main>
       <style>{`

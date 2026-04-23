@@ -80,6 +80,12 @@ let serviceCsvCache:
       map: Map<string, "consultant" | "specialist" | "lasik" | "surgery" | "external">;
     }
   | null = null;
+let doctorServiceSheetMatchCache:
+  | {
+      at: number;
+      map: Map<string, "consultant" | "specialist" | "lasik" | "external">;
+    }
+  | null = null;
 let pentacamServiceCodesCache:
   | {
       at: number;
@@ -191,6 +197,33 @@ function normalizeLocationType(input: unknown): "center" | "external" | undefine
   if (["external", "outside", "خارجي"].includes(v)) return "external";
   if (["center", "internal", "داخلي", "المركز"].includes(v)) return "center";
   return undefined;
+}
+
+function normalizeSheetType(input: unknown): "consultant" | "specialist" | "lasik" | "external" | undefined {
+  const v = String(input ?? "").trim().toLowerCase();
+  if (!v) return undefined;
+  if (v === "consultant") return "consultant";
+  if (v === "specialist") return "specialist";
+  if (v === "lasik") return "lasik";
+  if (v === "external") return "external";
+  if (v === "pentacam" || v === "pentacam_center" || v === "radiology_center" || v === "pentacam_c") return "lasik";
+  if (
+    v === "pentacam_external" ||
+    v === "radiology_external" ||
+    v === "pentacam_ex" ||
+    v === "pentacam_ex_c" ||
+    v === "surgery_external"
+  ) {
+    return "external";
+  }
+  return undefined;
+}
+
+function normalizeDoctorServiceMatchKey(doctorCode: unknown, serviceCode: unknown): string {
+  const doc = String(doctorCode ?? "").trim().toLowerCase();
+  const srv = normalizeServiceCode(serviceCode).toLowerCase();
+  if (!doc || !srv) return "";
+  return `${doc}::${srv}`;
 }
 
 const STRICT_REQUIRED_SYNC_COLUMNS = asBool(process.env.MSSQL_SYNC_STRICT_REQUIRED_COLUMNS, true);
@@ -2626,6 +2659,35 @@ async function loadServiceTypeMap(): Promise<Map<string, "consultant" | "special
   return map;
 }
 
+async function loadDoctorServiceSheetMatchMap(): Promise<Map<string, "consultant" | "specialist" | "lasik" | "external">> {
+  const now = Date.now();
+  if (doctorServiceSheetMatchCache && now - doctorServiceSheetMatchCache.at < 60_000) {
+    return doctorServiceSheetMatchCache.map;
+  }
+
+  const map = new Map<string, "consultant" | "specialist" | "lasik" | "external">();
+  try {
+    const setting = await db.getSystemSetting("doctor_service_sheet_match_v1");
+    if (setting?.value) {
+      const parsed = JSON.parse(String(setting.value));
+      if (Array.isArray(parsed)) {
+        for (const entry of parsed) {
+          if ((entry as any)?.isActive === false) continue;
+          const key = normalizeDoctorServiceMatchKey((entry as any)?.doctorCode, (entry as any)?.serviceCode);
+          const sheet = normalizeSheetType((entry as any)?.sheetType);
+          if (!key || !sheet) continue;
+          map.set(key, sheet);
+        }
+      }
+    }
+  } catch {
+    // No mapping is a valid state.
+  }
+
+  doctorServiceSheetMatchCache = { at: now, map };
+  return map;
+}
+
 export async function getMssqlSyncStatus() {
   const state = await readSyncState();
   const runtime = await readRuntimeStatus();
@@ -2693,6 +2755,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
   try {
     const doctorMap = await loadDoctorMapFromCsv();
     const serviceTypeMap = await loadServiceTypeMap();
+    const doctorServiceSheetMatchMap = await loadDoctorServiceSheetMatchMap();
     await pool.connect();
     let fetched: any;
     try {
@@ -2715,7 +2778,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
     }
     const rows = Array.isArray(fetched?.recordset) ? fetched.recordset : [];
     result.fetched = rows.length;
-    const rowsToProcess = rows.map((raw) => {
+    const rowsToProcess = rows.map((raw: any) => {
       const source = (raw ?? {}) as Record<string, any>;
       const next = { ...source } as Record<string, any>;
       const serviceCode = normalizeServiceCode(pick(source, ["serviceCode", "SRV_CD", "srv_cd"]));
@@ -2800,8 +2863,30 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         if (primaryServiceCode) payload.serviceCode = primaryServiceCode;
         if (incomingServiceCodes.length > 0) payload.serviceCodes = incomingServiceCodes;
         const receiptRef = pick(source, ["TR_NO", "INV_NO", "CAINV_NO", "tr_noNew", "KSH_NO"]);
-        // Priority: serviceCode lookup first (source of truth in service_directory), then fallback to MSSQL data
+        const doctorCode = pick(source, ["doctorCode", "DRS_CD", "DR_CD"]);
+        const mappedMatch = (() => {
+          if (!doctorCode) return undefined;
+          const byPrimary = primaryServiceCode
+            ? doctorServiceSheetMatchMap.get(normalizeDoctorServiceMatchKey(doctorCode, primaryServiceCode))
+            : undefined;
+          if (byPrimary) return { sheet: byPrimary, serviceCode: primaryServiceCode };
+          for (const code of incomingServiceCodes) {
+            const byAny = doctorServiceSheetMatchMap.get(normalizeDoctorServiceMatchKey(doctorCode, code));
+            if (byAny) return { sheet: byAny, serviceCode: code };
+          }
+          return undefined;
+        })();
+        const mappedSheet = mappedMatch?.sheet;
+        const mappedServiceCode = mappedMatch?.serviceCode ?? "";
+        if (mappedServiceCode) {
+          payload.serviceCode = mappedServiceCode;
+        }
+        // Priority:
+        // 1) explicit doctor+service mapping from admin settings
+        // 2) service directory mapping by code
+        // 3) MSSQL row serviceType/serviceName fallback
         const serviceType =
+          (mappedSheet ? normalizeServiceType(mappedSheet) : undefined) ||
           (primaryServiceCode ? serviceTypeMap.get(primaryServiceCode) : undefined) ||
           normalizeServiceType(source.serviceType ?? source.serviceName);
         if (serviceType) {
@@ -2811,9 +2896,12 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         let locationType =
           normalizeLocationTypeFromIdNo(source.idno ?? source.IDNO) ??
           normalizeLocationType(source.locationType);
+        if (!locationType && mappedSheet === "external") {
+          locationType = "external";
+        }
         if (!locationType && serviceType === "external") locationType = "external";
+        if (!locationType && serviceType && serviceType !== "external") locationType = "center";
         if (locationType) payload.locationType = locationType;
-        const doctorCode = pick(source, ["doctorCode", "DRS_CD", "DR_CD"]);
         const doctorNameFromRow = pick(source, ["DOC_NAME", "DOC_NAM", "doctorName"]);
         let resolvedDoctorName = "";
         // Look up doctors table by code to get correct doctorId (UUID)
@@ -2862,6 +2950,8 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
               doctorCode: isBlank(payload.doctorCode) ? null : String(payload.doctorCode),
               doctorId: isBlank(payload.doctorId) ? null : String(payload.doctorId),
               serviceCode: isBlank(payload.serviceCode) ? null : String(payload.serviceCode),
+              serviceType: isBlank(payload.serviceType) ? null : String(payload.serviceType),
+              locationType: isBlank(payload.locationType) ? null : String(payload.locationType),
               ...(isBlank(payload.treatingDoctor) ? {} : { treatingDoctor: String(payload.treatingDoctor) }),
             };
             await db.updatePatient(Number(existing.id), alwaysUpdates);
@@ -3048,6 +3138,21 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           const existingServiceCodes = existingServiceCodesRaw
             .map((v: unknown) => String(v ?? "").trim())
             .filter(Boolean);
+          const existingServiceSheetTypeByCode =
+            existingData && typeof existingData.serviceSheetTypeByCode === "object"
+              ? (existingData.serviceSheetTypeByCode as Record<string, string>)
+              : {};
+          const mappedServiceSheetTypeByCode: Record<string, string> = {};
+          if (doctorCode) {
+            for (const code of incomingServiceCodes) {
+              const mapped = doctorServiceSheetMatchMap.get(normalizeDoctorServiceMatchKey(doctorCode, code));
+              if (mapped) mappedServiceSheetTypeByCode[code] = mapped;
+            }
+          }
+          const mergedServiceSheetTypeByCode = {
+            ...existingServiceSheetTypeByCode,
+            ...mappedServiceSheetTypeByCode,
+          };
           const nextDoctorName =
             doctorName && doctorName !== existingDoctorName ? doctorName : "";
           const nextDoctorCode =
@@ -3063,6 +3168,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
             mergedDoctorNames.length === existingDoctorNames.length &&
             !nextServiceCode &&
             mergedServiceCodes.length === existingServiceCodes.length &&
+            Object.keys(mappedServiceSheetTypeByCode).length === 0 &&
             !backfillChanged
           ) {
             continue;
@@ -3075,6 +3181,9 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
             ...(mergedDoctorNames.length > 0 ? { doctorNames: mergedDoctorNames } : {}),
             ...(nextServiceCode ? { serviceCode: nextServiceCode } : {}),
             ...(mergedServiceCodes.length > 0 ? { serviceCodes: mergedServiceCodes } : {}),
+            ...(Object.keys(mergedServiceSheetTypeByCode).length > 0
+              ? { serviceSheetTypeByCode: mergedServiceSheetTypeByCode }
+              : {}),
             ...(backfillChanged ? { mssqlBackfill: mergedBackfill } : {}),
             signatures: {
               ...(existingData.signatures ?? {}),

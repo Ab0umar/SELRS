@@ -94,7 +94,11 @@ export function useAuth(options?: UseAuthOptions) {
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
       if (redirectToLogin && typeof window !== "undefined") {
-        setLocation(getLoginUrl());
+        // Desktop app blocks location.replace — use allowReloadOnce flag to bypass the guard
+        if ((window as any).__SELRS_DESKTOP) {
+          (window as any).__allowReloadOnce = true;
+        }
+        window.location.replace(getLoginUrl());
       }
     }
   }, [clearStoredSession, logoutMutation, setLocation, utils]);

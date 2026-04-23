@@ -102,7 +102,7 @@ export default function Visits() {
 
       // Wait a moment then refetch
       await new Promise(resolve => setTimeout(resolve, 500));
-      await visitsQuery.refetch();
+      await patientVisitsQuery.refetch();
       setEditingVisitIndex(null);
       setEditDate("");
     } catch (error) {
@@ -133,7 +133,7 @@ export default function Visits() {
         visitId: visit.id,
         updates
       });
-      visitsQuery.refetch();
+      patientVisitsQuery.refetch();
       setEditingExamType(null);
     } catch (error) {
       console.error("Failed to update exam:", error);

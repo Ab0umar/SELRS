@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Sparkles } from "lucide-react";
 
 type TeamRole =
   | "admin"
@@ -16,6 +14,8 @@ type TeamRole =
   | "nurse"
   | "technician"
   | "reception";
+
+type AccessLevel = "none" | "r" | "rw";
 type TeamPermissionsMap = Record<TeamRole, string[]>;
 
 const DEFAULT_TEAM_PERMISSIONS: TeamPermissionsMap = {
@@ -88,6 +88,64 @@ const ROLE_ORDER: TeamRole[] = [
   "reception",
 ];
 
+function getLevel(permissions: string[], pageId: string): AccessLevel {
+  const rw = permissions.find((e) => e === `${pageId}:rw`);
+  if (rw) return "rw";
+  const r = permissions.find((e) => e === `${pageId}:r` || e === pageId);
+  if (r) return "r";
+  return "none";
+}
+
+function setLevel(permissions: string[], pageId: string, level: AccessLevel): string[] {
+  const filtered = permissions.filter(
+    (e) => e !== pageId && e !== `${pageId}:r` && e !== `${pageId}:rw`
+  );
+  if (level === "r") return [...filtered, pageId, `${pageId}:r`];
+  if (level === "rw") return [...filtered, pageId, `${pageId}:rw`];
+  return filtered;
+}
+
+function AccessToggle({
+  level,
+  onChange,
+}: {
+  level: AccessLevel;
+  onChange: (l: AccessLevel) => void;
+}) {
+  const base = "px-1.5 py-0.5 text-[10px] font-semibold border transition-colors focus:outline-none";
+  const active = "bg-slate-700 text-white border-slate-700";
+  const inactive = "bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600";
+
+  return (
+    <div className="inline-flex rounded overflow-hidden border border-slate-200">
+      <button
+        type="button"
+        className={`${base} ${level === "none" ? active : inactive} rounded-l`}
+        onClick={() => onChange("none")}
+        title="No access"
+      >
+        -
+      </button>
+      <button
+        type="button"
+        className={`${base} ${level === "r" ? "bg-blue-600 text-white border-blue-600" : inactive} border-l`}
+        onClick={() => onChange("r")}
+        title="Read only"
+      >
+        R
+      </button>
+      <button
+        type="button"
+        className={`${base} ${level === "rw" ? "bg-emerald-600 text-white border-emerald-600" : inactive} border-l rounded-r`}
+        onClick={() => onChange("rw")}
+        title="Read & Write"
+      >
+        R&W
+      </button>
+    </div>
+  );
+}
+
 export default function AdminPermissions() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -108,9 +166,7 @@ export default function AdminPermissions() {
   });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/");
-    }
+    if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
@@ -128,15 +184,11 @@ export default function AdminPermissions() {
 
   if (!isAuthenticated || user?.role !== "admin") return null;
 
-  const togglePermission = (role: TeamRole, pageId: string, checked: boolean) => {
-    setPermissions((prev) => {
-      const current = prev[role] ?? [];
-      if (checked) {
-        if (current.includes(pageId)) return prev;
-        return { ...prev, [role]: [...current, pageId] };
-      }
-      return { ...prev, [role]: current.filter((id) => id !== pageId) };
-    });
+  const handleChange = (role: TeamRole, pageId: string, level: AccessLevel) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [role]: setLevel(prev[role] ?? [], pageId, level),
+    }));
   };
 
   return (
@@ -147,7 +199,7 @@ export default function AdminPermissions() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Edit role permissions and save changes.
+            Set access level per role: <span className="font-semibold text-blue-600">R</span> = read-only, <span className="font-semibold text-emerald-600">R&W</span> = read &amp; write, <span className="font-semibold text-slate-500">-</span> = no access.
           </div>
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm">
@@ -163,16 +215,13 @@ export default function AdminPermissions() {
               </thead>
               <tbody>
                 {PAGE_PERMISSIONS.map((perm) => (
-                  <tr key={perm.id} className="border-b last:border-b-0">
+                  <tr key={perm.id} className="border-b last:border-b-0 hover:bg-slate-50/50">
                     <td className="p-2 font-medium whitespace-nowrap">{perm.label}</td>
                     {ROLE_ORDER.map((role) => (
                       <td key={`${perm.id}-${role}`} className="p-2 text-center">
-                        <Checkbox
-                          checked={permissions[role].includes(perm.id)}
-                          onCheckedChange={(checked) =>
-                            togglePermission(role, perm.id, Boolean(checked))
-                          }
-                          aria-label={`${ROLE_LABELS[role]} ${perm.label}`}
+                        <AccessToggle
+                          level={getLevel(permissions[role], perm.id)}
+                          onChange={(level) => handleChange(role, perm.id, level)}
                         />
                       </td>
                     ))}

@@ -88,6 +88,16 @@ const DEFAULT_ROLE: UserRole = "doctor";
 const DEFAULT_BRANCH: UserBranch = "examinations";
 const DEFAULT_SHIFT: 1 | 2 = 1;
 const MSSQL_WRITE_PERMISSION = "/ops/mssql-add";
+const stripPermissionAccessSuffix = (permission: string) =>
+  String(permission ?? "").replace(/:(r|rw)$/i, "");
+const normalizePermissionIdsForCheckbox = (pageIds: string[]) =>
+  Array.from(new Set(pageIds.map(stripPermissionAccessSuffix).filter(Boolean)));
+const permissionListsEqual = (left: string[], right: string[]) => {
+  if (left.length !== right.length) return false;
+  const leftSorted = [...left].sort();
+  const rightSorted = [...right].sort();
+  return leftSorted.every((value, index) => value === rightSorted[index]);
+};
 
 export default function AdminUsers() {
   const { user, isAuthenticated } = useAuth();
@@ -185,6 +195,7 @@ export default function AdminUsers() {
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didHydrateUserStateRef = useRef(false);
+  const lastPermissionSyncRef = useRef("");
   const isSaving = createUserMutation.isPending || updateUserMutation.isPending || setUserPermissionsMutation.isPending;
 
   const permissionStateQuery = trpc.medical.getUserPermissionState.useQuery(
@@ -208,7 +219,8 @@ export default function AdminUsers() {
     };
   }, [teamPermissionsQuery.data]);
 
-  const getRoleDefaults = (role: UserRole) => roleDefaults[role] ?? [];
+  const getRoleDefaults = (role: UserRole) =>
+    normalizePermissionIdsForCheckbox(roleDefaults[role] ?? []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -302,6 +314,7 @@ export default function AdminUsers() {
   };
 
   const handleEdit = (u: User) => {
+    lastPermissionSyncRef.current = "";
     setEditUserId(u.id);
     setEditUser({
       username: u.username,
@@ -338,20 +351,32 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (!isEditOpen || !permissionStateQuery.data) return;
+    const incomingPages = normalizePermissionIdsForCheckbox(permissionStateQuery.data.pageIds);
+    const signature = JSON.stringify({
+      userId: editUserId,
+      role: editUser.role,
+      hasOverride: permissionStateQuery.data.hasOverride,
+      pages: incomingPages.slice().sort(),
+    });
+    if (lastPermissionSyncRef.current === signature) return;
+    lastPermissionSyncRef.current = signature;
+
     if (permissionStateQuery.data.hasOverride) {
-      setEditPermissions(permissionStateQuery.data.pageIds);
-      setEditUser((prev) => ({
-        ...prev,
-        writeToMssql: permissionStateQuery.data.pageIds.includes(MSSQL_WRITE_PERMISSION),
-      }));
+      const nextWriteToMssql = incomingPages.includes(MSSQL_WRITE_PERMISSION);
+      setEditPermissions((prev) => (permissionListsEqual(prev, incomingPages) ? prev : incomingPages));
+      setEditUser((prev) =>
+        prev.writeToMssql === nextWriteToMssql
+          ? prev
+          : { ...prev, writeToMssql: nextWriteToMssql }
+      );
       return;
     }
     const defaults = getRoleDefaults(editUser.role);
-    setEditPermissions(defaults);
-    setEditUser((prev) => ({
-      ...prev,
-      writeToMssql: defaults.includes(MSSQL_WRITE_PERMISSION),
-    }));
+    const nextWriteToMssql = defaults.includes(MSSQL_WRITE_PERMISSION);
+    setEditPermissions((prev) => (permissionListsEqual(prev, defaults) ? prev : defaults));
+    setEditUser((prev) =>
+      prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql }
+    );
   }, [permissionStateQuery.data, isEditOpen, editUserId, editUser.role]);
 
   const togglePermission = (pageId: string) => {

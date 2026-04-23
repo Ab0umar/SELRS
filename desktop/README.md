@@ -27,6 +27,6 @@ powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop\build-selrs-desktop
 لتغيير الرابط:
 
 ```powershell
-$env:SELRS_DESKTOP_URL="http://192.168.137.100:4000"
+$env:SELRS_DESKTOP_URL="http://192.168.0.100:4000"
 Start-Process "E:\SELRS.cc\desktop\publish\SelrsDesktop.exe"
 ```

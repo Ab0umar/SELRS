@@ -20,6 +20,9 @@ type SheetTypeChoice =
   | ServiceType
   | "pentacam_center"
   | "pentacam_external"
+  | "pentacam_c"
+  | "pentacam_ex"
+  | "pentacam_ex_c"
   | "surgery_external";
 type PatientStatus = "new" | "followup" | "archived";
 
@@ -156,8 +159,9 @@ export default function AdminPatients() {
     const key = String(value ?? "").trim().toLowerCase();
     if (key === "consultant") return "Consultant";
     if (key === "specialist") return "Specialist";
-    if (key === "pentacam" || key === "pentacam_center") return "Pentacam (Center)";
-    if (key === "pentacam_external") return "Pentacam (External)";
+    if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_c") return "Pentacam C";
+    if (key === "pentacam_external" || key === "pentacam_ex") return "Pentacam Ex";
+    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
     if (key === "lasik") return "Lasik";
     if (key === "external") return "External";
     if (key === "surgery" || key === "operation" || key === "surgery_center" || key === "operation_center") return "Surgery";
@@ -339,12 +343,18 @@ export default function AdminPatients() {
     value === "surgery" ||
     value === "pentacam_center" ||
     value === "pentacam_external" ||
+    value === "pentacam_c" ||
+    value === "pentacam_ex" ||
+    value === "pentacam_ex_c" ||
     value === "surgery_external";
   const normalizeSheetTypeChoice = (value: unknown): SheetTypeChoice | "" => {
     const raw = String(value ?? "").trim().toLowerCase();
     if (!raw) return "";
-    if (raw === "pentacam" || raw === "radiology_center") return "pentacam_center";
-    if (raw === "radiology_external") return "pentacam_external";
+    if (raw === "pentacam" || raw === "radiology_center" || raw === "pentacam_center") return "pentacam_c";
+    if (raw === "radiology_external" || raw === "pentacam_external") return "pentacam_ex";
+    if (raw === "pentacam_c") return "pentacam_c";
+    if (raw === "pentacam_ex") return "pentacam_ex";
+    if (raw === "pentacam_ex_c") return "pentacam_ex_c";
     if (raw === "surgery_center" || raw === "operation" || raw === "operation_center") return "surgery";
     if (raw === "operation_external") return "surgery_external";
     return isSheetTypeChoice(raw) ? raw : "";
@@ -352,13 +362,13 @@ export default function AdminPatients() {
   const normalizeSheetTypeToService = (value: unknown): ServiceType | "" => {
     const mapped = normalizeSheetTypeChoice(value);
     if (!mapped) return "";
-    if (mapped === "pentacam_center") return "specialist";
-    if (mapped === "pentacam_external" || mapped === "surgery_external") return "external";
+    if (mapped === "pentacam_center" || mapped === "pentacam_c") return "lasik";
+    if (mapped === "pentacam_external" || mapped === "pentacam_ex" || mapped === "pentacam_ex_c" || mapped === "surgery_external") return "external";
     return mapped;
   };
   function toLegacyServiceType(value: SheetTypeChoice): ServiceType {
-    if (value === "pentacam_center") return "specialist";
-    if (value === "pentacam_external" || value === "surgery_external") return "external";
+    if (value === "pentacam_center" || value === "pentacam_c") return "lasik";
+    if (value === "pentacam_external" || value === "pentacam_ex" || value === "pentacam_ex_c" || value === "surgery_external") return "external";
     return value;
   }
   const getRowServiceCode = (patient: PatientRow) =>
@@ -523,7 +533,7 @@ export default function AdminPatients() {
     if (existing) return existing;
     return {
       fullName: String(patient.fullName ?? ""),
-      treatingDoctor: String(patient.treatingDoctor ?? ""),
+      treatingDoctor: String(patient.treatingDoctor || (patient as any).treatingDoctors?.[0] || ""),
       dateOfBirth: patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
       age: patient.age != null ? String(patient.age) : "",
       address: String(patient.address ?? ""),
@@ -559,32 +569,61 @@ export default function AdminPatients() {
         [rowKey]: { state: "saving", at: new Date().toISOString() },
       }));
       const rowServiceCode = getRowServiceCode(patient);
+      const currentSheetType = getRowSheetType(patient);
+      const sheetTypeChanged = next.serviceType !== currentSheetType;
+      const nextDoctor = next.treatingDoctor.trim();
+      const normalizedDoctorName = nextDoctor.toLocaleLowerCase("ar");
+      const selectedDoctor =
+        activeDoctors.find((doctor) => String(doctor.name ?? "").trim().toLocaleLowerCase("ar") === normalizedDoctorName) ??
+        null;
+      if (nextDoctor && !selectedDoctor) {
+        throw new Error("Doctor name must match an active doctor from directory");
+      }
+      const selectedDoctorCode = String(selectedDoctor?.code ?? "").trim() || null;
+      const selectedDoctorId = String(selectedDoctor?.id ?? "").trim() || null;
+      const selectedLocationType = selectedDoctor
+        ? (selectedDoctor.locationType === "external" ? "external" : "center")
+        : null;
+      const doctorUpdates =
+        nextDoctor && selectedDoctor
+          ? {
+              doctorCode: selectedDoctorCode,
+              doctorId: selectedDoctorId,
+              locationType: selectedLocationType,
+            }
+          : {};
       if (rowServiceCode) {
+        const updates: Record<string, unknown> = {
+          fullName: next.fullName.trim(),
+          dateOfBirth: next.dateOfBirth || null,
+          age: next.age ? Number(next.age) : null,
+          address: next.address.trim() || null,
+          phone: next.phone.trim() || null,
+          occupation: next.occupation.trim() || null,
+          ...doctorUpdates,
+          status: next.status,
+        };
         await updatePatientMutation.mutateAsync({
           patientId: patient.id,
-          updates: {
-            fullName: next.fullName.trim(),
-            dateOfBirth: next.dateOfBirth || null,
-            age: next.age ? Number(next.age) : null,
-            address: next.address.trim() || null,
-            phone: next.phone.trim() || null,
-            occupation: next.occupation.trim() || null,
-            status: next.status,
-          },
+          updates,
         });
       } else {
+        const updates: Record<string, unknown> = {
+          fullName: next.fullName.trim(),
+          dateOfBirth: next.dateOfBirth || null,
+          age: next.age ? Number(next.age) : null,
+          address: next.address.trim() || null,
+          phone: next.phone.trim() || null,
+          occupation: next.occupation.trim() || null,
+          ...doctorUpdates,
+          status: next.status,
+        };
+        if (sheetTypeChanged) {
+          updates.serviceType = toLegacyServiceType(next.serviceType);
+        }
         await updatePatientMutation.mutateAsync({
           patientId: patient.id,
-          updates: {
-            fullName: next.fullName.trim(),
-            dateOfBirth: next.dateOfBirth || null,
-            age: next.age ? Number(next.age) : null,
-            address: next.address.trim() || null,
-            phone: next.phone.trim() || null,
-            occupation: next.occupation.trim() || null,
-            serviceType: toLegacyServiceType(next.serviceType),
-            status: next.status,
-          },
+          updates,
         });
       }
 
@@ -595,7 +634,14 @@ export default function AdminPatients() {
         existingState && typeof (existingState as any).data === "object" && (existingState as any).data
           ? ((existingState as any).data as Record<string, any>)
           : {};
-      const nextDoctor = next.treatingDoctor.trim();
+
+      const existingDoctorName = String(existingData?.doctorName ?? "").trim();
+      const doctorNameForState = nextDoctor || existingDoctorName;
+      const existingDoctorSignature =
+        existingData?.signatures && typeof existingData.signatures === "object"
+          ? String((existingData.signatures as Record<string, unknown>).doctor ?? "").trim()
+          : "";
+      const doctorSignatureForState = nextDoctor || existingDoctorSignature;
 
       await savePatientPageStateMutation.mutateAsync({
         patientId: patient.id,
@@ -604,7 +650,7 @@ export default function AdminPatients() {
           ...existingData,
           syncLockManual: true,
           manualEditedAt: new Date().toISOString(),
-          ...(rowServiceCode
+          ...(rowServiceCode && sheetTypeChanged
             ? {
                 serviceSheetTypeByCode: {
                   ...(existingData && typeof existingData.serviceSheetTypeByCode === "object"
@@ -614,10 +660,10 @@ export default function AdminPatients() {
                 },
               }
             : {}),
-          doctorName: nextDoctor,
+          doctorName: doctorNameForState,
           signatures: {
             ...(existingData.signatures ?? {}),
-            doctor: nextDoctor,
+            doctor: doctorSignatureForState,
           },
         },
       });
@@ -738,6 +784,7 @@ export default function AdminPatients() {
     try {
       const result = await bulkAssignDoctorMutation.mutateAsync({
         patientIds: Array.from(new Set(filteredPatients.map((patient) => patient.id))),
+        doctorCode: String(selectedDoctor.code ?? "").trim(),
         doctorName: nextDoctorName,
         doctorLocationType: nextLocation,
       });
@@ -1045,6 +1092,9 @@ export default function AdminPatients() {
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="consultant">Consultant</SelectItem>
               <SelectItem value="specialist">Specialist</SelectItem>
+              <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+              <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+              <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
               <SelectItem value="lasik">Lasik</SelectItem>
               <SelectItem value="external">External</SelectItem>
             </SelectContent>
@@ -1109,6 +1159,9 @@ export default function AdminPatients() {
               <SelectItem value="none">Select Sheet Type</SelectItem>
               <SelectItem value="consultant">Consultant</SelectItem>
               <SelectItem value="specialist">Specialist</SelectItem>
+              <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+              <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+              <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
               <SelectItem value="lasik">Lasik</SelectItem>
               <SelectItem value="external">External</SelectItem>
             </SelectContent>
@@ -1177,7 +1230,6 @@ export default function AdminPatients() {
                 <TableHead className="bg-white/95 py-3 text-right w-10">
                   <Checkbox
                     checked={selectedPatients.size > 0 && visiblePatients.every(p => selectedPatients.has(p.id))}
-                    indeterminate={selectedPatients.size > 0 && !visiblePatients.every(p => selectedPatients.has(p.id))}
                     onCheckedChange={(checked) => {
                       if (checked) {
                         const newSelected = new Set(selectedPatients);
@@ -1286,6 +1338,11 @@ export default function AdminPatients() {
                           <SelectItem value="specialist">Specialist</SelectItem>
                           <SelectItem value="lasik">Lasik</SelectItem>
                           <SelectItem value="external">External</SelectItem>
+                          <SelectItem value="surgery">Surgery</SelectItem>
+                          <SelectItem value="surgery_external">Surgery External</SelectItem>
+                          <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                          <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                          <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>

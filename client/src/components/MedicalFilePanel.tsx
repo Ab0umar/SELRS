@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -33,6 +34,8 @@ const READY_TABS = [
 const MEDICAL_TABS = ["medical-history", "measurements", "pentacam", "investigation", "diagnosis", "treatment"];
 
 export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePanelProps) {
+  const { user } = useAuth();
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const queryClient = useQueryClient();
   const [activeMedicalTab, setActiveMedicalTab] = useState("medical-history");
   const touchStartX = useRef(0);
@@ -110,6 +113,10 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
   // Get autoref from dedicated table
   const autorefQuery = trpc.medical.getAutorefractometryByPatient.useQuery(
+    { patientId },
+    { refetchOnWindowFocus: false }
+  );
+  const afterRefractionQuery = trpc.medical.getAfterRefractionByPatient.useQuery(
     { patientId },
     { refetchOnWindowFocus: false }
   );
@@ -206,12 +213,15 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
       // Get autoref from dedicated table (matched by examinationId), fallback to examination row
       const autorefRecord = autorefQuery.data?.find((r: any) => r.examinationId === selectedExamination.id);
+      const afterRecord = afterRefractionQuery.data?.find((r: any) => r.examinationId === selectedExamination.id);
       const autorefOD = autorefRecord
         ? { s: autorefRecord.sphereOD || "", c: autorefRecord.cylinderOD || "", axis: autorefRecord.axisOD || "", ucva: autorefRecord.ucvaOD || "", bcva: autorefRecord.bcvaOD || "" }
         : { s: selectedExamination.sphereOD || "", c: selectedExamination.cylinderOD || "", axis: selectedExamination.axisOD || "", ucva: selectedExamination.ucvaOD || "", bcva: selectedExamination.bcvaOD || "" };
       const autorefOS = autorefRecord
         ? { s: autorefRecord.sphereOS || "", c: autorefRecord.cylinderOS || "", axis: autorefRecord.axisOS || "", ucva: autorefRecord.ucvaOS || "", bcva: autorefRecord.bcvaOS || "" }
         : { s: selectedExamination.sphereOS || "", c: selectedExamination.cylinderOS || "", axis: selectedExamination.axisOS || "", ucva: selectedExamination.ucvaOS || "", bcva: selectedExamination.bcvaOS || "" };
+      const afterOD = { s: afterRecord?.sphereOD || "", c: afterRecord?.cylinderOD || "", axis: afterRecord?.axisOD || "" };
+      const afterOS = { s: afterRecord?.sphereOS || "", c: afterRecord?.cylinderOS || "", axis: afterRecord?.axisOS || "" };
 
       // Get glasses/refraction from dedicated table (matched by examinationId), fallback to glassesData JSON
       const glassesRecord = glassesRecordsQuery.data?.find((r: any) => r.examinationId === selectedExamination.id);
@@ -258,6 +268,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
           measurements: {
             autoref: { od: autorefOD, os: autorefOS },
             iop: { od: selectedExamination.iopOD || "", os: selectedExamination.iopOS || "" },
+            after: { od: afterOD, os: afterOS },
           },
           glasses: glassesData,
           fundus: fundusData,
@@ -276,8 +287,8 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
       // Update refraction table data from glassesData (handle both old 'axis' and new 'a' formats)
       if (glassesData.od || glassesData.os) {
         setRefractionTableData({
-          od: { s: glassesData.od?.s || "", c: glassesData.od?.c || "", a: glassesData.od?.a || glassesData.od?.axis || "", pd: glassesData.od?.pd || "" },
-          os: { s: glassesData.os?.s || "", c: glassesData.os?.c || "", a: glassesData.os?.a || glassesData.os?.axis || "", pd: glassesData.os?.pd || "" },
+          od: { s: (glassesData.od as any)?.s || "", c: (glassesData.od as any)?.c || "", a: (glassesData.od as any)?.a || (glassesData.od as any)?.axis || "", pd: (glassesData.od as any)?.pd || "" },
+          os: { s: (glassesData.os as any)?.s || "", c: (glassesData.os as any)?.c || "", a: (glassesData.os as any)?.a || (glassesData.os as any)?.axis || "", pd: (glassesData.os as any)?.pd || "" },
         });
       }
 
@@ -287,7 +298,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
         setExaminationDate(dateStr);
       }
     }
-  }, [selectedExaminationId, selectedExamination, pentacamQuery.data, doctorReportQuery.data, visitTestRequestsQuery.data, visitPrescriptionsQuery.data, autorefQuery.data, glassesRecordsQuery.data]);
+  }, [selectedExaminationId, selectedExamination, pentacamQuery.data, doctorReportQuery.data, visitTestRequestsQuery.data, visitPrescriptionsQuery.data, autorefQuery.data, afterRefractionQuery.data, glassesRecordsQuery.data]);
 
 
   // Auto-save after creating examination
@@ -342,6 +353,12 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
         },
         {
           onSuccess: () => {
+            saveAfterRefractionMutation.mutate({
+              examinationId: examIdToSave,
+              patientId,
+              od: formData.measurements?.after?.od,
+              os: formData.measurements?.after?.os,
+            });
             const doctorReport = (doctorReportQuery.data as any)?.[0];
             if (doctorReport?.id) {
               updateDoctorReportMutation.mutate({
@@ -690,6 +707,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
       toast.error(error.message || "خطأ في حفظ الزيارة والبيانات");
     },
   });
+  const saveAfterRefractionMutation = trpc.medical.saveAfterRefractionData.useMutation();
 
   const deleteExaminationMutation = trpc.medical.deleteExaminationDirect.useMutation({
     onSuccess: () => {
@@ -753,6 +771,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
         isFollowup: isFollowup,
         autoref: formData.measurements?.autoref,
         iop: formData.measurements?.iop,
+        after: formData.measurements?.after,
         glasses: glassesData,
         fundus: formData.fundus,
         pentacam: formData.pentacam,
@@ -825,6 +844,12 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
       },
       {
         onSuccess: () => {
+          saveAfterRefractionMutation.mutate({
+            examinationId: examIdToSave,
+            patientId,
+            od: formData.measurements?.after?.od,
+            os: formData.measurements?.after?.os,
+          });
           console.log('Exam saved, now saving doctor report');
           const doctorReport = (doctorReportQuery.data as any)?.[0];
           const visitId = selectedExam?.visitId;
@@ -1026,18 +1051,20 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                size="icon"
-                variant="destructive"
-                disabled={!selectedExaminationId}
-                onClick={() => {
-                  if (selectedExaminationId && confirm("هل أنت متأكد من حذف هذه الزيارة؟")) {
-                    deleteExaminationMutation.mutate({ examinationId: selectedExaminationId });
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin ? (
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  disabled={!selectedExaminationId}
+                  onClick={() => {
+                    if (selectedExaminationId && confirm("هل أنت متأكد من حذف هذه الزيارة؟")) {
+                      deleteExaminationMutation.mutate({ examinationId: selectedExaminationId });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              ) : null}
             </div>
           </div>
         )}
@@ -1118,9 +1145,9 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                     <TabsContent value="autoref" className="mt-0 space-y-4">
                       <div className="flex items-center gap-2 mb-4" dir="ltr">
                         <label className="font-semibold min-w-[50px]">UCVA</label>
-                        <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.ucva || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                        <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                         <span className="text-slate-400">/</span>
-                        <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.ucva || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                        <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                       </div>
                       <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
                         <table className="w-full border-collapse text-center text-[10px] sm:text-sm" dir="ltr">
@@ -1139,25 +1166,25 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                               <tr key={eye} className="bg-white hover:bg-slate-50">
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 font-bold text-[10px] sm:text-xs">{eye === "od" ? "OD" : "OS"}</td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                                   <Input
                                     value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))}
+                                    onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))}
                                     className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                                   />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                                   <Input
                                     value={formData.measurements?.iop?.[eye as "od" | "os"] || ""}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))}
+                                    onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))}
                                     className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                                   />
                                 </td>
@@ -1171,11 +1198,11 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                           <div key={`auto-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
                             <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
                             <div className="grid grid-cols-2 gap-2">
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.iop?.[eye as "od" | "os"] || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))} className="h-8 w-full text-xs text-center border-input" placeholder="IOP" />
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
+                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                              <Input value={formData.measurements?.iop?.[eye as "od" | "os"] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))} className="h-8 w-full text-xs text-center border-input" placeholder="IOP" />
+                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                              <Input value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
                             </div>
                           </div>
                         ))}
@@ -1198,13 +1225,13 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                               <tr key={`after-${eye}`} className="bg-white hover:bg-slate-50">
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 font-bold text-[10px] sm:text-xs">{eye === "od" ? "OD" : "OS"}</td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                                 <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
+                                  <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
                                 </td>
                               </tr>
                             ))}
@@ -1216,9 +1243,9 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                           <div key={`after-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
                             <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
                             <div className="grid grid-cols-2 gap-2">
-                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
+                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                              <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
                             </div>
                           </div>
                         ))}
@@ -1234,9 +1261,9 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                   {/* BCVA Input Row */}
                   <div className="flex items-center gap-2 mb-4" dir="ltr">
                     <label className="font-semibold min-w-[50px]">BCVA</label>
-                    <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.bcva || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                    <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                     <span className="text-slate-400">/</span>
-                    <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.bcva || ""} onChange={(e) => setFormData(prev => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                    <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                   </div>
                   <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
                     <table className="w-full border-collapse text-center text-xs sm:text-sm" dir="ltr">
@@ -1344,7 +1371,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                             <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                               <Input
                                 value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))}
                                 placeholder="Normal/Abnormal"
                                 className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                               />
@@ -1352,7 +1379,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                             <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                               <Input
                                 value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))}
                                 placeholder="0.3"
                                 className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                               />
@@ -1360,7 +1387,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                             <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                               <Input
                                 value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))}
                                 placeholder="Normal"
                                 className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                               />
@@ -1368,7 +1395,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                             <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                               <Input
                                 value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))}
                                 placeholder="Normal"
                                 className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                               />
@@ -1376,7 +1403,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                             <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
                               <Input
                                 value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))}
                                 placeholder="Notes"
                                 className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
                               />
@@ -1390,11 +1417,11 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                     {["od", "os"].map((eye) => (
                       <div key={`fundus-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
                         <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""} onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))} placeholder="Disc Status" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""} onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))} placeholder="Cup/Disc" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""} onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))} placeholder="Macula" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""} onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))} placeholder="Vessels" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""} onChange={(e) => setFormData(prev => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))} placeholder="Other" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))} placeholder="Disc Status" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))} placeholder="Cup/Disc" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))} placeholder="Macula" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))} placeholder="Vessels" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))} placeholder="Other" className="h-8 text-xs text-center border-input" />
                       </div>
                     ))}
                   </div>
@@ -1433,55 +1460,55 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                         <tr className="bg-white text-sm font-medium text-slate-800">
                           <td className="border px-3 py-3 font-bold">OD</td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.k1 || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.k1 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.k2 || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.k2 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.axis || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.thinnest || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.thinnest || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.apex || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.apex || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.residual || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.residual || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.ttt || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.ttt || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.ablation || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.od?.ablation || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                         </tr>
                         <tr className="bg-white text-sm font-medium text-slate-800">
                           <td className="border px-3 py-3 font-bold">OS</td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.k1 || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.k1 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.k2 || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.k2 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.axis || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.thinnest || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.thinnest || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.apex || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.apex || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.residual || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.residual || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.ttt || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.ttt || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                           <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.ablation || ""} onChange={(e) => setFormData(prev => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
+                            <Input type="number" value={formData.pentacam?.os?.ablation || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
                           </td>
                         </tr>
                       </tbody>
@@ -1722,7 +1749,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                         <Label className="text-sm font-medium block mb-2">Diseases</Label>
                         {(formData.diseases || []).length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-3">
-                            {(formData.diseases || []).map((diseaseId) => {
+                            {(formData.diseases || []).map((diseaseId: any) => {
                               const disease = diseasesQuery.data?.find((d: any) => d.id === diseaseId);
                               return disease ? (
                                 <div key={diseaseId} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-2">
@@ -1732,7 +1759,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                                     onClick={() => {
                                       setFormData((prev: any) => ({
                                         ...prev,
-                                        diseases: (prev.diseases || []).filter((d) => d !== diseaseId)
+                                        diseases: (prev.diseases || []).filter((d: any) => d !== diseaseId)
                                       }));
                                     }}
                                     className="font-bold text-sm"
@@ -1773,7 +1800,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                                           setFormData((prev: any) => {
                                             const diseases = prev.diseases || [];
                                             if (diseases.includes(disease.id)) {
-                                              return { ...prev, diseases: diseases.filter((d) => d !== disease.id) };
+                                              return { ...prev, diseases: diseases.filter((d: any) => d !== disease.id) };
                                             } else {
                                               return { ...prev, diseases: [...diseases, disease.id] };
                                             }

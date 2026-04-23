@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Edit, FileText, Printer, Upload, Trash2, Users2, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { matchesServiceCodeOrNameTerm, normalizeSearchText, normalizeServiceCodeForSearch } from "@/lib/patientFiltering";
@@ -51,17 +51,18 @@ const normalizeServiceCode = (value: unknown) => {
 const normalizeSheetType = (value: unknown) => {
   const raw = String(value ?? "").trim().toLowerCase();
   if (!raw) return "";
-  if (raw === "pentacam") return "pentacam_center";
+  if (raw === "pentacam") return "pentacam_c";
   if (raw === "surgery_center") return "surgery";
   if (raw === "surgery_external") return "surgery_external";
-  if (raw === "pentacam_center" || raw === "radiology_center") return "pentacam_center";
-  if (raw === "pentacam_external" || raw === "radiology_external") return "pentacam_external";
+  if (raw === "pentacam_center" || raw === "radiology_center" || raw === "pentacam_c") return "pentacam_c";
+  if (raw === "pentacam_external" || raw === "radiology_external" || raw === "pentacam_ex") return "pentacam_ex";
+  if (raw === "pentacam_ex_c") return "pentacam_ex_c";
   return raw;
 };
   const toLegacyServiceType = (value: string): "consultant" | "specialist" | "lasik" | "external" | "surgery" => {
   const normalized = normalizeSheetType(value);
-  if (normalized === "pentacam_center") return "consultant";
-  if (normalized === "pentacam_external") return "external";
+  if (normalized === "pentacam_center" || normalized === "pentacam_c") return "lasik";
+  if (normalized === "pentacam_external" || normalized === "pentacam_ex" || normalized === "pentacam_ex_c") return "external";
   if (normalized === "surgery_external") return "external";
   if (normalized === "consultant" || normalized === "specialist" || normalized === "lasik" || normalized === "external" || normalized === "surgery") {
     return normalized;
@@ -94,7 +95,9 @@ export default function Patients() {
   const canEditPatients = user?.role === "admin" || user?.role === "manager" || user?.role === "reception";
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchString = useSearch();
+  const initialSearch = useMemo(() => new URLSearchParams(searchString).get("q") ?? "", []);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
@@ -136,6 +139,9 @@ export default function Patients() {
     | "surgery_external"
     | "pentacam_center"
     | "pentacam_external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
   >("consultant");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importDateFormat, setImportDateFormat] = useState<"" | "DMY" | "MDY">("");
@@ -152,6 +158,9 @@ export default function Patients() {
     | "surgery_external"
     | "pentacam_center"
     | "pentacam_external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
     | ""
   >("");
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
@@ -233,6 +242,19 @@ export default function Patients() {
     const t = setTimeout(() => setDebouncedSearchTerm(searchTerm.trim()), 180);
     return () => clearTimeout(t);
   }, [searchTerm]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const current = params.get("q") ?? "";
+    if (current === searchTerm) return;
+    if (searchTerm) {
+      params.set("q", searchTerm);
+    } else {
+      params.delete("q");
+    }
+    const newSearch = params.toString();
+    setLocation("/patients" + (newSearch ? `?${newSearch}` : ""), { replace: true });
+  }, [searchTerm]);
   const hasActiveDateFilters = Boolean(toIsoDate(dateFrom) || toIsoDate(dateTo));
   const liveSearchTerm = normalizeSearchText(searchTerm);
   const useClientFilterWindow = Boolean(liveSearchTerm || hasActiveDateFilters);
@@ -240,8 +262,8 @@ export default function Patients() {
     if (activeTab === "consultant" || activeTab === "specialist" || activeTab === "lasik" || activeTab === "surgery" || activeTab === "external") {
       return activeTab;
     }
-    if (activeTab === "pentacam_center") return "specialist";
-    if (activeTab === "pentacam_external" || activeTab === "surgery_external") return "external";
+    if (activeTab === "pentacam_center" || activeTab === "pentacam_c") return "lasik";
+    if (activeTab === "pentacam_external" || activeTab === "pentacam_ex" || activeTab === "pentacam_ex_c" || activeTab === "surgery_external") return "external";
     return undefined;
   }, [activeTab]);
   const patientsQuery = trpc.medical.getAllPatients.useQuery(
@@ -679,8 +701,8 @@ export default function Patients() {
     );
   const mapLegacyServiceTypeToModernTabs = (legacyType: string): string[] => {
     const normalized = normalizeSheetType(legacyType);
-    if (normalized === "pentacam_center") return ["consultant"];
-    if (normalized === "pentacam_external") return ["external"];
+    if (normalized === "pentacam_center" || normalized === "pentacam_c") return ["lasik"];
+    if (normalized === "pentacam_external" || normalized === "pentacam_ex" || normalized === "pentacam_ex_c") return ["external"];
     if (normalized === "surgery") return ["consultant"];
     if (normalized === "surgery_external") return ["external"];
     if (normalized === "consultant" || normalized === "specialist" || normalized === "lasik" || normalized === "external") {
@@ -746,6 +768,9 @@ export default function Patients() {
         "pentacam",
         "pentacam_center",
         "pentacam_external",
+        "pentacam_c",
+        "pentacam_ex",
+        "pentacam_ex_c",
         "lasik",
         "external",
         "surgery",
@@ -834,6 +859,9 @@ export default function Patients() {
       const serviceTypeLabel = (() => {
         if (serviceTypeRaw === "consultant") return "استشاري";
         if (serviceTypeRaw === "specialist") return "اخصائي";
+        if (serviceTypeRaw === "pentacam_c") return "Pentacam C";
+        if (serviceTypeRaw === "pentacam_ex") return "Pentacam Ex";
+        if (serviceTypeRaw === "pentacam_ex_c") return "Pentacam Ex.C";
         if (serviceTypeRaw === "pentacam" || serviceTypeRaw === "pentacam_center" || serviceTypeRaw === "pentacam_external") return "بنتاكام";
         if (serviceTypeRaw === "lasik") return "فحوصات الليزك";
         if (serviceTypeRaw === "external") return "خارجي";
@@ -959,6 +987,9 @@ export default function Patients() {
       pentacam: `/sheets/pentacam/${patientId}`,
       pentacam_center: `/sheets/pentacam/${patientId}`,
       pentacam_external: `/sheets/external/${patientId}`,
+      pentacam_c: `/sheets/lasik/${patientId}`,
+      pentacam_ex: `/sheets/external/${patientId}`,
+      pentacam_ex_c: `/sheets/external/${patientId}`,
       lasik: `/sheets/lasik/${patientId}`,
       external: `/sheets/external/${patientId}`,
       surgery: `/sheets/operation/${patientId}`,
@@ -1188,6 +1219,9 @@ export default function Patients() {
       | "surgery_external"
       | "pentacam_center"
       | "pentacam_external"
+      | "pentacam_c"
+      | "pentacam_ex"
+      | "pentacam_ex_c"
   ) => {
     if (!isAdmin) {
       toast.error("التعديل للأدمن فقط.");
@@ -1236,7 +1270,10 @@ export default function Patients() {
       sheetType !== "surgery" &&
       sheetType !== "surgery_external" &&
       sheetType !== "pentacam_center" &&
-      sheetType !== "pentacam_external"
+      sheetType !== "pentacam_external" &&
+      sheetType !== "pentacam_c" &&
+      sheetType !== "pentacam_ex" &&
+      sheetType !== "pentacam_ex_c"
     ) {
       await saveSheetMutation.mutateAsync({
         patientId: selectedPatient.id,
@@ -1369,7 +1406,10 @@ export default function Patients() {
       return;
     }
 
-    console.log(`[handleSavePatientFromForm] selectedDoctorId="${selectedDoctorId}", selectedSheetType="${selectedSheetType}"`);
+    const selectedDoctor = availableDoctors.find((doctor) => String(doctor.id) === String(selectedDoctorId));
+    const selectedDoctorCode = String(selectedDoctor?.code ?? "").trim();
+    console.log(`[handleSavePatientFromForm] selectedDoctorId="${selectedDoctorId}", selectedDoctorCode="${selectedDoctorCode}", selectedSheetType="${selectedSheetType}"`);
+    const selectedDoctorIdNumeric = Number(selectedDoctorId);
     await createPatientMutation.mutateAsync({
       patientCode: patientDraft.patientCode.trim() || undefined,
       fullName: patientDraft.fullName.trim(),
@@ -1380,7 +1420,8 @@ export default function Patients() {
       occupation: patientDraft.occupation.trim(),
       branch: "examinations",
       serviceType: toLegacyServiceType(selectedSheetType || "consultant"),
-      doctorId: selectedDoctorId ? Number(selectedDoctorId) : undefined,
+      doctorId: Number.isFinite(selectedDoctorIdNumeric) ? selectedDoctorIdNumeric : undefined,
+      ...(selectedDoctorCode ? { doctorCode: selectedDoctorCode } : {}),
     });
     setActiveTab(normalizeSheetType(selectedSheetType || "consultant") || "consultant");
     toast.success("تم إضافة المريض");
@@ -1615,8 +1656,9 @@ export default function Patients() {
                     <SelectContent>
                       <SelectItem value="consultant">Consultant</SelectItem>
                       <SelectItem value="specialist">Specialist</SelectItem>
-                      <SelectItem value="pentacam_center">Pentacam (Center)</SelectItem>
-                      <SelectItem value="pentacam_external">Pentacam (External)</SelectItem>
+                      <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                      <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                      <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                       <SelectItem value="lasik">Lasik</SelectItem>
                       <SelectItem value="external">External</SelectItem>
                       <SelectItem value="surgery">Surgery</SelectItem>
@@ -1953,6 +1995,9 @@ export default function Patients() {
                 <SelectContent>
                   <SelectItem value="consultant">استشاري</SelectItem>
                   <SelectItem value="specialist">اخصائي</SelectItem>
+                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                   <SelectItem value="lasik">فحوصات الليزك</SelectItem>
                   <SelectItem value="external">خارجي</SelectItem>
                 </SelectContent>
@@ -2276,9 +2321,29 @@ function PatientDataQuickPanel({ onOpenExamination }: { onOpenExamination: () =>
     .filter((doctor) => doctor.isActive !== false)
     .sort((a, b) => String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true }));
   const doctorsLoading = !!doctorDirectoryQuery?.isLoading;
-  const normalizeServiceType = (value: unknown): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
+  const normalizeServiceType = (
+    value: unknown
+  ):
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c" => {
     const raw = String(value ?? "").trim().toLowerCase();
-    if (raw === "specialist" || raw === "lasik" || raw === "surgery" || raw === "external") return raw;
+    if (
+      raw === "specialist" ||
+      raw === "lasik" ||
+      raw === "surgery" ||
+      raw === "external" ||
+      raw === "pentacam_c" ||
+      raw === "pentacam_ex" ||
+      raw === "pentacam_ex_c"
+    ) {
+      return raw;
+    }
     return "consultant";
   };
   const formatPatientCode = (value: string) => {
@@ -2310,7 +2375,16 @@ function PatientDataQuickPanel({ onOpenExamination }: { onOpenExamination: () =>
     job: "",
   });
   const [doctorName, setDoctorName] = useState("");
-  const [serviceType, setServiceType] = useState<"consultant" | "specialist" | "lasik" | "surgery" | "external">("consultant");
+  const [serviceType, setServiceType] = useState<
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
+  >("consultant");
   const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
   const hydratedPatientStateRef = useRef<number | null>(null);
 
@@ -2389,8 +2463,9 @@ function PatientDataQuickPanel({ onOpenExamination }: { onOpenExamination: () =>
           address: patientDetails.address || undefined,
           occupation: patientDetails.job || undefined,
           branch: "examinations",
-          serviceType,
+          serviceType: toLegacyServiceType(serviceType),
           locationType: "center",
+          doctorName: doctorName || undefined,
           lastVisit: visitDate || undefined,
         });
         targetPatientId = Number((created as any)?.patientId ?? 0);
@@ -2414,7 +2489,7 @@ function PatientDataQuickPanel({ onOpenExamination }: { onOpenExamination: () =>
             address: patientDetails.address || null,
             phone: patientDetails.phone || null,
             occupation: patientDetails.job || null,
-            serviceType,
+            serviceType: toLegacyServiceType(serviceType),
           },
         });
       }
@@ -2519,6 +2594,9 @@ function PatientDataQuickPanel({ onOpenExamination }: { onOpenExamination: () =>
               <SelectContent>
                 <SelectItem value="consultant">استشاري</SelectItem>
                 <SelectItem value="specialist">اخصائي</SelectItem>
+                <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                 <SelectItem value="lasik">ليزك</SelectItem>
                 <SelectItem value="surgery">عمليات</SelectItem>
                 <SelectItem value="external">خارجي</SelectItem>
@@ -2702,6 +2780,9 @@ const PatientsTable = memo(function PatientsTable({
     const key = normalizeSheetType(value);
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
+    if (key === "pentacam_c") return "Pentacam C";
+    if (key === "pentacam_ex") return "Pentacam Ex";
+    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
     if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_external") return "بنتاكام";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
@@ -2714,8 +2795,9 @@ const PatientsTable = memo(function PatientsTable({
     const key = normalizeSheetType(value);
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
-    if (key === "pentacam_center") return "بنتاكام مركز";
-    if (key === "pentacam_external") return "بنتاكام خارجي";
+    if (key === "pentacam_center" || key === "pentacam_c") return "Pentacam C";
+    if (key === "pentacam_external" || key === "pentacam_ex") return "Pentacam Ex";
+    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
     if (key === "surgery") return "عمليات";

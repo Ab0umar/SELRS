@@ -3,10 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Plus, Save, RotateCcw, Trash2 } from "lucide-react";
+import { Printer, Plus, Save, RotateCcw, Trash2, ImageDown, Share2 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { captureElementAsJpg } from "@/lib/nativePdf";
 import PageHeader from "@/components/PageHeader";
 import { OfflinePageState } from "@/components/OfflinePageState";
 
@@ -18,8 +22,10 @@ interface ListData {
   phone: string;
   doctor: string;
   operation: string;
+  eye: string;
   center: boolean;
-  payment: boolean;
+  payment: string;
+  hospital: string;
   code: string;
   amount: number;
   paidAmount: number;
@@ -34,12 +40,30 @@ interface DoctorOption {
   name: string;
   code: string;
 }
+interface AccountsAdjustments {
+  radiology: number;
+  external: number;
+  cashbox: number;
+}
+interface AccountsAdjustmentInputs {
+  radiology: string;
+  external: string;
+  cashbox: string;
+}
+interface SavedSummary {
+  key: string;
+  date: string;
+  names: string[];
+  listId?: number;
+  items: any[];
+  operationType?: string | null;
+}
 const TAB_SAADANY = "saadany";
 const TAB_SAWAF = "sawaf";
 const TAB_OTHERS = "others";
 const TAB_CONFIG = [
-  { key: TAB_SAADANY, label: "د/سعدني", doctor: "د. سعدني" },
-  { key: TAB_SAWAF, label: "د/صواف", doctor: "د. صواف" },
+  { key: TAB_SAADANY, label: "د/سعدني", doctor: "د. محمد السعدني" },
+  { key: TAB_SAWAF, label: "د/صواف", doctor: "د. أحمد الصواف" },
   { key: TAB_OTHERS, label: "آخرون", doctor: "" },
 ] as const;
 const normalizeTabKey = (value: unknown): string => {
@@ -55,6 +79,7 @@ const OPERATION_LABELS: Record<string, string> = {
   "Lasik Metal": "Metal",
   Femto: "Femto",
   Cataract: "Cataract",
+  Yag: "Yag",
   Other: "Others",
 };
 const OPERATION_BASE_AMOUNTS: Record<string, number> = {
@@ -64,6 +89,7 @@ const OPERATION_BASE_AMOUNTS: Record<string, number> = {
   "Lasik Metal": 5000,
   Femto: 35000,
   Cataract: 7000,
+  Yag: 3000,
   Other: 0,
 };
 const FEMTO_CENTER_SHARE_DEFAULT = 1000;
@@ -140,20 +166,12 @@ export const DEFAULT_APPOINTMENTS_PRICING: AppointmentsPricingConfig = {
 
 const EMPTY_APPOINTMENTS_PRICING: AppointmentsPricingConfig = {
   amount: {
-    prk: {
-      fallback: 0,
-    },
-    lasik: {
-      fallback: 0,
-    },
+    prk: { saadanyConsultantSaadany: 0, saadanyConsultant: 0, saadanySpecialist: 0, fallback: 0 },
+    lasik: { saadanyConsultantSaadany: 0, saadanyConsultant: 0, sawaf: 0, fallback: 0 },
   },
   doctorAccount: {
-    prk: {
-      others: 0,
-    },
-    lasik: {
-      othersFallback: 0,
-    },
+    prk: { saadany: 0, consultant: 0, specialist: 0, sawaf: 0, others: 0 },
+    lasik: { saadany: 0, consultant: 0, sawafMoria: 0, sawafMetal: 0, sawafFallback: 0, othersMoria: 0, othersMetal: 0, othersFallback: 0 },
   },
 };
 type OpKey = "prk" | "lasik" | "lasik_moria" | "lasik_metal" | "femto" | "other";
@@ -262,8 +280,8 @@ const normalizeDoctorName = (value: unknown) => {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
   const lowered = raw.toLowerCase();
-  if (lowered === "dr. saadany" || lowered === "saadany") return "د/سعدني";
-  if (lowered === "dr. sawaf" || lowered === "sawaf") return "د/صواف";
+  if (lowered.includes("saadany") || lowered.includes("سعدني")) return "د. محمد السعدني";
+  if (lowered.includes("sawaf") || lowered.includes("صواف")) return "د. أحمد الصواف";
   return raw;
 };
 
@@ -280,7 +298,7 @@ export default function Appointments() {
     refetchOnWindowFocus: false,
   });
   const myPermissions = (permissionsQuery.data ?? []) as string[];
-  const canManageList = userRole === "reception" || userRole === "admin";
+  const canManageList = userRole === "reception" || userRole === "admin" || userRole === "accountant";
   const canOpenPricing = userRole === "admin" || userRole === "accountant" || myPermissions.includes("appointments_pricing_v1") || myPermissions.includes("/admin/settings/pricing-rules");
   const canOpenAccounts = canOpenPricing || myPermissions.includes("/appointments/accounts");
   const canSearchList = canManageList || canOpenAccounts;
@@ -308,7 +326,7 @@ export default function Appointments() {
     const minutes = String(now.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   });
-  const [viewMode, setViewMode] = useState<"list" | "accounts">("list");
+  const [viewMode, setViewMode] = useState<"list" | "accounts" | "history">("list");
   const [lists, setLists] = useState<Record<string, ListData[]>>({
     [TAB_SAADANY]: [],
     [TAB_SAWAF]: [],
@@ -321,8 +339,10 @@ export default function Appointments() {
     phone: "",
     doctor: "",
     operation: "",
+    eye: "",
     center: false,
-    payment: false,
+    payment: "",
+    hospital: "",
     code: "",
     amount: 0,
     paidAmount: 0,
@@ -333,7 +353,17 @@ export default function Appointments() {
   const [patientSearchTerm, setPatientSearchTerm] = useState("");
   const [debouncedPatientSearch, setDebouncedPatientSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
-  const [savedSummariesByTab, setSavedSummariesByTab] = useState<Record<string, { key: string; date: string; names: string[]; listId?: number; items: any[] }[]>>({});
+  const [savedSummariesByTab, setSavedSummariesByTab] = useState<Record<string, SavedSummary[]>>({});
+  const [accountsAdjustmentsByTab, setAccountsAdjustmentsByTab] = useState<Record<string, AccountsAdjustments>>({
+    [TAB_SAADANY]: { radiology: 0, external: 0, cashbox: 0 },
+    [TAB_SAWAF]: { radiology: 0, external: 0, cashbox: 0 },
+    [TAB_OTHERS]: { radiology: 0, external: 0, cashbox: 0 },
+  });
+  const [accountsAdjustmentInputsByTab, setAccountsAdjustmentInputsByTab] = useState<Record<string, AccountsAdjustmentInputs>>({
+    [TAB_SAADANY]: { radiology: "0", external: "0", cashbox: "0" },
+    [TAB_SAWAF]: { radiology: "0", external: "0", cashbox: "0" },
+    [TAB_OTHERS]: { radiology: "0", external: "0", cashbox: "0" },
+  });
 
   const toDateInputValue = (value?: string | Date | null) => {
     if (!value) return "";
@@ -341,12 +371,12 @@ export default function Appointments() {
     if (Number.isNaN(date.valueOf())) return "";
     return date.toISOString().split("T")[0];
   };
+  const [selectedListId, setSelectedListId] = useState<number>(0);
   const safeListDate = toDateInputValue(listDate) || new Date().toISOString().split("T")[0];
   const listQuery = trpc.medical.getOperationList.useQuery(
-    { doctorTab: activeTab, listDate: safeListDate },
-    { refetchOnWindowFocus: false, enabled: Boolean(safeListDate) }
+    { doctorTab: activeTab, listDate: safeListDate, operationType: operationType || null },
+    { refetchOnWindowFocus: false, enabled: Boolean(safeListDate) && selectedListId === 0 }
   );
-  const [selectedListId, setSelectedListId] = useState<number>(0);
   const listByIdQuery = trpc.medical.getOperationListById.useQuery(
     { listId: selectedListId },
     { enabled: selectedListId > 0, refetchOnWindowFocus: false }
@@ -411,8 +441,10 @@ export default function Appointments() {
   });
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const lastSavedRef = useRef<string>("");
+  const lastSaveAttemptRef = useRef<{ snapshot: string; at: number }>({ snapshot: "", at: 0 });
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exportTargetRef = useRef<HTMLDivElement | null>(null);
   const didHydrateUserStateRef = useRef(false);
 
   const formatDayDate = (value?: string | null) => {
@@ -465,63 +497,8 @@ export default function Appointments() {
     }
   }, [canOpenAccounts, viewMode]);
 
-  useEffect(() => {
-    const raw = localStorage.getItem("user_state_appointments");
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw);
-      if (data.activeTab) setActiveTab(normalizeTabKey(data.activeTab));
-      if (data.listDate) setListDate(data.listDate);
-      if (data.operationType !== undefined) setOperationType(data.operationType ?? "");
-      if (data.operationTypeOther !== undefined) setOperationTypeOther(data.operationTypeOther ?? "");
-      if (data.doctorName !== undefined) setDoctorName(normalizeDoctorName(data.doctorName ?? ""));
-      if (data.listTime !== undefined) setListTime(data.listTime ?? "");
-      if (data.viewMode === "accounts" || data.viewMode === "list") setViewMode(data.viewMode);
-      if (data.historySearch !== undefined) setHistorySearch(data.historySearch ?? "");
-      if (data.autoSaveEnabled !== undefined) setAutoSaveEnabled(Boolean(data.autoSaveEnabled));
-    } catch {
-      // ignore bad cache
-    }
-  }, []);
 
-  useEffect(() => {
-    const data = (userStateQuery.data as any)?.data;
-    if (!data) return;
-    if (didHydrateUserStateRef.current) return;
-    if (data.activeTab) setActiveTab(normalizeTabKey(data.activeTab));
-    if (data.listDate) setListDate(data.listDate);
-    if (data.operationType !== undefined) setOperationType(data.operationType ?? "");
-    if (data.operationTypeOther !== undefined) setOperationTypeOther(data.operationTypeOther ?? "");
-    if (data.doctorName !== undefined) setDoctorName(normalizeDoctorName(data.doctorName ?? ""));
-    if (data.listTime !== undefined) setListTime(data.listTime ?? "");
-    if (data.viewMode === "accounts" || data.viewMode === "list") setViewMode(data.viewMode);
-    if (data.historySearch !== undefined) setHistorySearch(data.historySearch ?? "");
-    if (data.autoSaveEnabled !== undefined) setAutoSaveEnabled(Boolean(data.autoSaveEnabled));
-    didHydrateUserStateRef.current = true;
-  }, [userStateQuery.data]);
 
-  useEffect(() => {
-    const raw = localStorage.getItem("appointments_saved_summaries");
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as typeof savedSummariesByTab;
-      setSavedSummariesByTab(parsed ?? {});
-    } catch {
-      // ignore bad cache
-    }
-  }, []);
-
-  // Load lists from localStorage on mount
-  useEffect(() => {
-    const raw = localStorage.getItem("appointments_working_lists");
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as typeof lists;
-      setLists(parsed ?? { [TAB_SAADANY]: [], [TAB_SAWAF]: [], [TAB_OTHERS]: [] });
-    } catch {
-      // ignore bad cache
-    }
-  }, []);
 
   useEffect(() => {
     if (!historyQuery.data) return;
@@ -537,6 +514,7 @@ export default function Appointments() {
         names,
         listId: item.id,
         items: item.items ?? [],
+        operationType: item.operationType ?? null,
       });
     });
     setSavedSummariesByTab((prev) => {
@@ -551,10 +529,17 @@ export default function Appointments() {
         });
         merged[tab] = Array.from(byKey.values());
       });
-      localStorage.setItem("appointments_saved_summaries", JSON.stringify(merged));
       return merged;
     });
   }, [historyQuery.data]);
+
+  const normalizeOperationTypeFilter = (value?: string | null) => String(value ?? "").trim().toLowerCase();
+  const selectedOperationTypeFilter = normalizeOperationTypeFilter(operationType || null);
+  const filteredSavedSummaries = useMemo(() => {
+    const items = savedSummariesByTab[activeTab] ?? [];
+    if (!selectedOperationTypeFilter) return items;
+    return items.filter((item) => normalizeOperationTypeFilter(item.operationType ?? null) === selectedOperationTypeFilter);
+  }, [savedSummariesByTab, activeTab, selectedOperationTypeFilter]);
 
   useEffect(() => {
     if (!listDate) {
@@ -564,11 +549,11 @@ export default function Appointments() {
 
   useEffect(() => {
     if (activeTab === TAB_SAADANY) {
-      setDoctorName("د. سعدني");
+      setDoctorName("د. محمد السعدني");
       return;
     }
     if (activeTab === TAB_SAWAF) {
-      setDoctorName("د. صواف");
+      setDoctorName("د. أحمد الصواف");
     }
   }, [activeTab]);
 
@@ -576,7 +561,7 @@ export default function Appointments() {
     if (activeTab === TAB_SAWAF || activeTab === TAB_OTHERS) {
       return ["PRK", "Lasik", "Lasik Moria", "Lasik Metal", "Femto"];
     }
-    return ["PRK", "Lasik", "Lasik Moria", "Lasik Metal", "Femto", "Cataract", "Other"];
+    return ["PRK", "Lasik", "Lasik Moria", "Lasik Metal", "Femto", "Cataract", "Yag", "Other"];
   }, [activeTab]);
 
   useEffect(() => {
@@ -609,8 +594,10 @@ export default function Appointments() {
           phone: item.phone ?? "",
           doctor: normalizeDoctorName(item.doctor ?? ""),
           operation: item.operation ?? "",
+          eye: item.eye ?? "",
           center: Boolean(item.center),
-          payment: Boolean(item.payment),
+          payment: sanitizePayment(item.payment),
+          hospital: item.hospital ?? "",
           code: item.code ?? "",
         };
         const current = existingMap.get(keyFor(next));
@@ -678,9 +665,381 @@ export default function Appointments() {
     },
     { centerAmount: 0, paid: 0, remainingAmount: 0 }
   );
+  const accountsAdjustments = accountsAdjustmentsByTab[activeTab] ?? { radiology: 0, external: 0, cashbox: 0 };
+  const accountsAdjustmentInputs = accountsAdjustmentInputsByTab[activeTab] ?? {
+    radiology: String(accountsAdjustments.radiology ?? 0),
+    external: String(accountsAdjustments.external ?? 0),
+    cashbox: String(accountsAdjustments.cashbox ?? 0),
+  };
+  const accountsAdjustmentsTotal =
+    Number(accountsAdjustments.radiology ?? 0) +
+    Number(accountsAdjustments.external ?? 0) +
+    Number(accountsAdjustments.cashbox ?? 0);
+  const accountsNetAfterAdjustments = accountingTotals.remainingAmount - accountsAdjustmentsTotal;
+  const showSawafAdjustments = activeTab === TAB_SAWAF;
+  const handleAccountsAdjustmentInputChange = (key: keyof AccountsAdjustments, rawValue: string) => {
+    setAccountsAdjustmentInputsByTab((prev) => ({
+      ...prev,
+      [activeTab]: {
+        ...(prev[activeTab] ?? { radiology: "0", external: "0", cashbox: "0" }),
+        [key]: rawValue,
+      },
+    }));
+    const normalized = rawValue.trim().replace(",", ".");
+    if (normalized === "" || normalized === "+" || normalized === "-") return;
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) return;
+    setAccountsAdjustmentsByTab((prev) => ({
+      ...prev,
+      [activeTab]: {
+        ...(prev[activeTab] ?? { radiology: 0, external: 0, cashbox: 0 }),
+        [key]: parsed,
+      },
+    }));
+  };
+  const handleAccountsAdjustmentInputBlur = (key: keyof AccountsAdjustments) => {
+    const numericValue = Number(accountsAdjustments[key] ?? 0);
+    setAccountsAdjustmentInputsByTab((prev) => ({
+      ...prev,
+      [activeTab]: {
+        ...(prev[activeTab] ?? { radiology: "0", external: "0", cashbox: "0" }),
+        [key]: String(Number.isFinite(numericValue) ? numericValue : 0),
+      },
+    }));
+  };
+  const exportDoctorLabel = (doctorName || TAB_CONFIG.find((tab) => tab.key === activeTab)?.label || "-").trim();
+  const exportOperationLabel = operationTypeLabel(operationType || "Other");
+  const exportDateLabel = toDateInputValue(listDate) || "-";
+  const exportTimeLabel = (listTime || "-").trim();
+
+  const buildOpsTableHtml = (fontSize: string) => {
+    const BORDER = "1px solid #555";
+    const BASE = `border:${BORDER};padding:3px 5px;text-align:center;font-size:${fontSize};font-family:Arial,sans-serif;overflow:hidden;`;
+    const H = `${BASE}background:#e5e7eb;font-weight:bold;`;
+    const cols = [
+      { label: "#",          w: "4%",  style: `${BASE}font-weight:bold;` },
+      { label: "رقم الإيصال", w: "10%", style: BASE },
+      { label: "اسم المريض", w: "26%", style: `${BASE}text-align:right;` },
+      { label: "الهاتف",    w: "13%", style: `${BASE}direction:ltr;` },
+      { label: "الطبيب",    w: "13%", style: BASE },
+      { label: "العملية",   w: "10%", style: BASE },
+      { label: "مركز",      w: "6%",  style: BASE },
+      { label: "دفع",       w: "6%",  style: BASE },
+      { label: "الكود",     w: "8%",  style: BASE },
+    ];
+    const colgroup = cols.map(c => `<col style="width:${c.w}">`).join("");
+    const thead = cols.map(c => `<th style="${H}">${c.label}</th>`).join("");
+    const tbody = currentList.map((apt, i) => {
+      const vals = [i + 1, apt.number ?? "", apt.name ?? "", apt.phone ?? "", apt.doctor ?? "", operationTypeLabel(apt.operation), apt.center ? "✓" : "", apt.payment, apt.code ?? ""];
+      return `<tr>${vals.map((v, ci) => `<td style="${cols[ci].style}">${v}</td>`).join("")}</tr>`;
+    }).join("") || `<tr><td colspan="9" style="padding:10px;text-align:center;color:#888;font-size:${fontSize};">لا توجد حالات</td></tr>`;
+    return `<colgroup>${colgroup}</colgroup><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody>`;
+  };
+
+  const buildAccountsPrintContent = (compact: boolean) => {
+    const hindiDate = toHindi(exportDateLabel.replace(/-/g, "/"));
+    const hindiTime = toHindi(exportTimeLabel);
+    const bodyRows = currentList.map((apt) => {
+      const values = computeAccounting(apt);
+      return `<tr>
+        <td>${apt.name || "-"}</td>
+        <td>${operationTypeLabel(apt.operation || operationType || "Other")}</td>
+        <td>${toHindi(String(Number(apt.amount ?? 0).toFixed(2)))}</td>
+        <td>${apt.discountType === "percent" ? "نسبة %" : "قيمة"}</td>
+        <td>${toHindi(String(Number(apt.discountValue ?? 0).toFixed(2)))}</td>
+        <td>${toHindi(values.paid.toFixed(2))}</td>
+        <td>${toHindi(values.centerAmount.toFixed(2))}</td>
+        <td>${toHindi(values.remainingAmount.toFixed(2))}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="8" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
+    const extraRows = showSawafAdjustments
+      ? `
+        <tr>
+          <td colspan="5"></td>
+          <td style="font-weight:700;">الاشعه</td>
+          <td colspan="2">${toHindi(accountsAdjustments.radiology.toFixed(2))}</td>
+        </tr>
+        <tr>
+          <td colspan="5"></td>
+          <td style="font-weight:700;">خارجي</td>
+          <td colspan="2">${toHindi(accountsAdjustments.external.toFixed(2))}</td>
+        </tr>
+        <tr>
+          <td colspan="5"></td>
+          <td style="font-weight:700;">الصندوق</td>
+          <td colspan="2">${toHindi(accountsAdjustments.cashbox.toFixed(2))}</td>
+        </tr>
+        <tr style="font-weight:700;background:#f5f5f5;">
+          <td colspan="5">إجمالي (الاشعه + خارجي + الصندوق)</td>
+          <td>${toHindi(accountsAdjustmentsTotal.toFixed(2))}</td>
+          <td>${toHindi(accountingTotals.centerAmount.toFixed(2))}</td>
+          <td>${toHindi(accountsNetAfterAdjustments.toFixed(2))}</td>
+        </tr>
+      `
+      : "";
+    const cellPad = compact ? "3px 6px" : "6px 6px";
+    const headSize = compact ? "9pt" : "12pt";
+    const bodySize = compact ? "9pt" : "12pt";
+    return `
+      <div dir="rtl" style="font-size:${compact ? "11px" : "14px"};font-weight:700;margin-bottom:8px;text-align:center;font-family:Tahoma,Arial,sans-serif;">
+        حسابات العمليات - التاريخ: ${hindiDate} &nbsp;|&nbsp; الساعة: ${hindiTime} &nbsp;|&nbsp; الطبيب: ${exportDoctorLabel} &nbsp;|&nbsp; نوع العملية: ${exportOperationLabel}
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:Tahoma,Arial,sans-serif;">
+        <thead><tr>
+          ${["اسم المريض", "نوع العملية", "المبلغ", "نوع الخصم", "الخصم", "المدفوع", "حساب المركز (من الدكتور)", "المتبقي (حساب الدكتور)"]
+            .map((h) => `<th style="border:1px solid #444;padding:${cellPad};background:#d1d5db;font-weight:bold;font-size:${headSize};text-align:center;">${h}</th>`)
+            .join("")}
+        </tr></thead>
+        <tbody style="font-size:${bodySize};">
+          ${bodyRows}
+          <tr style="font-weight:700;background:#f3f4f6;">
+            <td colspan="5">الإجمالي</td>
+            <td>${toHindi(accountingTotals.paid.toFixed(2))}</td>
+            <td>${toHindi(accountingTotals.centerAmount.toFixed(2))}</td>
+            <td>${toHindi(accountingTotals.remainingAmount.toFixed(2))}</td>
+          </tr>
+          ${extraRows}
+        </tbody>
+      </table>
+      <style>tbody tr td{border:1px solid #444;padding:${cellPad};text-align:center;vertical-align:middle;}</style>
+    `;
+  };
+
+  const buildOperationsPrintContent = () => {
+    if (viewMode === "accounts") {
+      return buildAccountsPrintContent(false);
+    }
+    const hindiDate = toHindi(exportDateLabel.replace(/-/g, "/"));
+    const hindiTime = toHindi(exportTimeLabel);
+    const hasCataract = operationType === "Cataract" || currentList.some(r => r.operation === "Cataract");
+    const colSpan = hasCataract ? 10 : 9;
+    const cols = [
+      { key: "#", w: "4%" },
+      { key: "name", w: "28%" },
+      { key: "phone", w: "12%" },
+      { key: "doctor", w: "14%" },
+      { key: "operation", w: "10%" },
+      { key: "eye", w: "8%" },
+      ...(hasCataract ? [{ key: "hospital", w: "10%" }] : []),
+      { key: "center", w: "7%" },
+      { key: "payment", w: "7%" },
+      { key: "code", w: "10%" },
+    ];
+    const colgroup = `<colgroup>${cols.map((c) => `<col style="width:${c.w}">`).join("")}</colgroup>`;
+    const rows = currentList.map((apt, i) => `<tr>
+      <td style="font-weight:bold;text-align:center;">${toHindi(String(i + 1))}</td>
+      <td style="text-align:center;">${apt.name ?? ""}</td>
+      <td style="direction:ltr;text-align:center;">${apt.phone ?? ""}</td>
+      <td>${apt.doctor ?? ""}</td>
+      <td>${operationTypeLabel(apt.operation)}</td>
+      <td>${apt.eye ?? ""}</td>
+      ${hasCataract ? `<td>${apt.hospital ?? ""}</td>` : ""}
+      <td>${apt.center ? "✓" : ""}</td>
+      <td>${apt.payment}</td>
+      <td>${apt.code ?? ""}</td>
+    </tr>`).join("") || `<tr><td colspan="${colSpan}" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
+    const headers = ["#","اسم المريض","الهاتف","الطبيب","العملية","العين",...(hasCataract ? ["المستشفى"] : []),"مركز","دفع","الكود"];
+    return `
+      <div dir="rtl" style="font-size:14px;font-weight:700;margin-bottom:10px;text-align:center;font-family:Tahoma,Arial,sans-serif;">
+        التاريخ: ${hindiDate} &nbsp;|&nbsp; الساعة: ${hindiTime} &nbsp;|&nbsp; الطبيب: ${exportDoctorLabel}
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:Tahoma,Arial,sans-serif;">
+        ${colgroup}
+        <thead><tr>
+          ${headers.map(h=>`<th style="border:1px solid #444;padding:6px 6px;background:#d1d5db;font-weight:bold;font-size:12pt;text-align:center;white-space:nowrap;line-height:1.2;font-family:Tahoma,Arial,sans-serif;vertical-align:middle;height:44px;">${h}</th>`).join("")}
+        </tr></thead>
+        <tbody style="font-size:12pt;">${rows}</tbody>
+      </table>
+      <style>tbody tr td{border:1px solid #444;padding:6px 6px;text-align:center;vertical-align:middle !important;white-space:nowrap;line-height:1.2;font-family:Tahoma,Arial,sans-serif;height:42px;display:table-cell;} tbody tr td:nth-child(3){direction:ltr;}</style>`;
+  };
 
   const handlePrint = () => {
+    if (viewMode === "accounts") {
+      const content = buildAccountsPrintContent(true);
+      const overlay = document.createElement("div");
+      overlay.id = "ops-print-overlay";
+      overlay.dir = "rtl";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:#fff;padding:8mm;box-sizing:border-box;overflow:auto;font-family:Arial,sans-serif;";
+      overlay.innerHTML = content;
+      document.body.appendChild(overlay);
+
+      const style = document.createElement("style");
+      style.id = "ops-print-style";
+      style.textContent = `@page{size:A5 landscape;margin:6mm;} @media print{body>*{display:none!important;} body>#ops-print-overlay{display:block!important;position:fixed!important;inset:0!important;padding:0!important;}}`;
+      document.head.appendChild(style);
+
+      const cleanup = () => {
+        overlay.remove();
+        document.getElementById("ops-print-style")?.remove();
+      };
+      window.addEventListener("afterprint", cleanup, { once: true });
+      window.print();
+      return;
+    }
+
+    const hindiDate = toHindi(exportDateLabel.replace(/-/g, "/"));
+    const hindiTime = toHindi(exportTimeLabel);
+    const hasCataract = operationType === "Cataract" || currentList.some(r => r.operation === "Cataract");
+    const colSpan = hasCataract ? 10 : 9;
+    const rows = currentList.map((apt, i) => `<tr>
+      <td style="font-weight:bold;text-align:center;">${toHindi(String(i + 1))}</td>
+      <td style="text-align:right;">${apt.name ?? ""}</td>
+      <td style="direction:ltr;text-align:center;">${apt.phone ?? ""}</td>
+      <td>${apt.doctor ?? ""}</td>
+      <td>${operationTypeLabel(apt.operation)}</td>
+      <td>${apt.eye ?? ""}</td>
+      ${hasCataract ? `<td>${apt.hospital ?? ""}</td>` : ""}
+      <td>${apt.center ? "✓" : ""}</td>
+      <td>${apt.payment}</td>
+      <td>${apt.code ?? ""}</td>
+    </tr>`).join("") || `<tr><td colspan="${colSpan}" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
+    const headers = ["#","اسم المريض","الهاتف","الطبيب","العملية","العين",...(hasCataract ? ["المستشفى"] : []),"مركز","دفع","الكود"];
+    const content = `
+      <div dir="rtl" style="font-size:11px;font-weight:700;margin-bottom:8px;text-align:center;font-family:Tahoma,Arial,sans-serif;">
+        التاريخ: ${hindiDate} &nbsp;|&nbsp; الساعة: ${hindiTime} &nbsp;|&nbsp; الطبيب: ${exportDoctorLabel}
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:auto;font-family:Tahoma,Arial,sans-serif;">
+        <thead><tr>
+          ${headers.map(h=>`<th style="border:1px solid #444;padding:3px 6px;background:#d1d5db;font-weight:bold;font-size:9pt;text-align:center;">${h}</th>`).join("")}
+        </tr></thead>
+        <tbody style="font-size:9pt;">${rows}</tbody>
+      </table>
+      <style>tbody tr td{border:1px solid #444;padding:3px 6px;text-align:center;vertical-align:middle;}</style>`;
+
+    const overlay = document.createElement("div");
+    overlay.id = "ops-print-overlay";
+    overlay.dir = "rtl";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:#fff;padding:8mm;box-sizing:border-box;overflow:auto;font-family:Arial,sans-serif;";
+    overlay.innerHTML = content;
+    document.body.appendChild(overlay);
+
+    const style = document.createElement("style");
+    style.id = "ops-print-style";
+    style.textContent = `@page{size:A5 landscape;margin:6mm;} @media print{body>*{display:none!important;} body>#ops-print-overlay{display:block!important;position:fixed!important;inset:0!important;padding:0!important;}}`;
+    document.head.appendChild(style);
+
+    const cleanup = () => {
+      overlay.remove();
+      document.getElementById("ops-print-style")?.remove();
+    };
+    window.addEventListener("afterprint", cleanup, { once: true });
     window.print();
+  };
+
+  const toHindi = (s: string) => s.replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
+  const sanitizePayment = (v: any) => { const s = String(v ?? ""); return (s === "true" || s === "false" || s === "1" || s === "0") ? "" : s; };
+
+  const captureOperationsAsJpg = async (): Promise<Blob> => {
+    const content = buildOperationsPrintContent();
+    const captureWidth = 1180; // A5 landscape-like viewport used in print preview
+    const captureHeight = 820;
+    const captureRoot = document.createElement("div");
+    captureRoot.dir = "rtl";
+    captureRoot.style.cssText = `position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:8mm;box-sizing:border-box;overflow:hidden;font-family:Tahoma,Arial,sans-serif;width:${captureWidth}px;height:${captureHeight}px;`;
+    captureRoot.innerHTML = content;
+    document.body.appendChild(captureRoot);
+    try {
+      await new Promise((r) => setTimeout(r, 120));
+      const blob = await captureElementAsJpg({
+        element: captureRoot,
+        quality: 0.92,
+      });
+      if (!blob) throw new Error("toBlob failed");
+      return blob;
+    } finally {
+      captureRoot.remove();
+    }
+  };
+
+  const buildExportFileName = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return `operations-${activeTab}-${stamp}.jpg`;
+  };
+
+  const saveBlobInBrowser = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const blobToBase64Data = async (blob: Blob): Promise<string> => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Cannot read export blob."));
+      reader.readAsDataURL(blob);
+    });
+    const commaIndex = dataUrl.indexOf(",");
+    return commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
+  };
+
+  const saveJpg = async () => {
+    try {
+      const blob = await captureOperationsAsJpg();
+      const fileName = buildExportFileName();
+      if (!Capacitor.isNativePlatform()) {
+        saveBlobInBrowser(blob, fileName);
+        toast.success("تم حفظ الصورة JPG");
+        return;
+      }
+
+      const base64 = await blobToBase64Data(blob);
+      await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      toast.success("تم حفظ الصورة JPG في Documents");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "تعذر حفظ الصورة JPG"));
+    }
+  };
+
+  const shareJpg = async () => {
+    try {
+      const blob = await captureOperationsAsJpg();
+      const fileName = buildExportFileName();
+
+      if (Capacitor.isNativePlatform()) {
+        const base64 = await blobToBase64Data(blob);
+        const written = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+          recursive: true,
+        });
+        await Share.share({
+          title: "Operations",
+          text: "Operations list JPG",
+          url: written.uri,
+          dialogTitle: "Share JPG",
+        });
+        return;
+      }
+
+      if (navigator.share) {
+        const file = new File([blob], fileName, { type: "image/jpeg" });
+        const canShareFiles =
+          typeof (navigator as any).canShare === "function"
+            ? (navigator as any).canShare({ files: [file] })
+            : true;
+        if (canShareFiles) {
+          await navigator.share({ title: "Operations", files: [file] });
+          return;
+        }
+      }
+
+      saveBlobInBrowser(blob, fileName);
+      toast.success("تم حفظ الصورة JPG");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "تعذر مشاركة الصورة JPG"));
+    }
   };
 
   const handleAddPatientRow = (patient: any) => {
@@ -707,8 +1066,10 @@ export default function Appointments() {
       phone: patient.phone ?? "",
       doctor: doctorName,
       operation: operationType === "" ? operationTypeOther : operationType,
+      eye: "",
       center: false,
-      payment: false,
+      payment: "",
+      hospital: "",
       code: patient.patientCode ?? "",
       amount: 0,
       paidAmount: 0,
@@ -763,6 +1124,7 @@ export default function Appointments() {
       toast.error("عرض فقط لهذا الدور");
       return;
     }
+    if (saveListMutation.isPending) return;
     if (currentList.length === 0) {
       toast.error("القائمة فارغة. أضف حالة واحدة على الأقل قبل الحفظ");
       return;
@@ -785,6 +1147,7 @@ export default function Appointments() {
     }
 
     const payload = {
+      listId: selectedListId > 0 ? selectedListId : null,
       doctorTab: activeTab,
       listDate,
       operationType: operationType || null,
@@ -796,13 +1159,27 @@ export default function Appointments() {
         phone: row.phone,
         doctor: row.doctor,
         operation: row.operation,
+        eye: row.eye,
         center: row.center,
-        payment: row.payment,
+        payment: sanitizePayment(row.payment),
+        hospital: row.hospital,
         code: row.code,
         discountType: row.discountType,
         discountValue: row.discountValue,
         })),
     };
+    const snapshot = JSON.stringify(payload);
+    const now = Date.now();
+    if (
+      lastSaveAttemptRef.current.snapshot === snapshot &&
+      now - lastSaveAttemptRef.current.at < 2000
+    ) {
+      return;
+    }
+    lastSaveAttemptRef.current = { snapshot, at: now };
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    // Prevent auto-save from submitting the same payload right after manual save.
+    lastSavedRef.current = snapshot;
 
     await saveListMutation.mutateAsync(payload);
 
@@ -816,7 +1193,7 @@ export default function Appointments() {
       }
       const updated = {
         ...prev,
-        [activeTab]: [...next, { key, date: listDate, names, items: currentList }],
+        [activeTab]: [...next, { key, date: listDate, names, items: currentList, operationType: operationType || null }],
       };
       localStorage.setItem("appointments_saved_summaries", JSON.stringify(updated));
       return updated;
@@ -824,7 +1201,7 @@ export default function Appointments() {
     historyQuery.refetch();
   };
 
-  const handleEditSavedSummary = (summary: { date: string; items: any[]; listId?: number }) => {
+  const handleEditSavedSummary = (summary: SavedSummary) => {
     if (summary.listId) {
       handleLoadListById(summary.listId);
       return;
@@ -841,8 +1218,10 @@ export default function Appointments() {
           phone: row.phone ?? "",
           doctor: normalizeDoctorName(row.doctor ?? doctorName),
           operation: row.operation ?? "",
+          eye: row.eye ?? "",
           center: Boolean(row.center),
-          payment: Boolean(row.payment),
+          payment: sanitizePayment(row.payment),
+          hospital: row.hospital ?? "",
           code: row.code ?? "",
           amount: Number(row.amount ?? 0),
           paidAmount: Number(row.paidAmount ?? 0),
@@ -877,8 +1256,10 @@ export default function Appointments() {
   useEffect(() => {
     if (!canManageList) return;
     if (!autoSaveEnabled) return;
+    if (saveListMutation.isPending) return;
     if (currentList.length === 0) return;
     const payload = {
+      listId: selectedListId > 0 ? selectedListId : null,
       doctorTab: activeTab,
       listDate,
       operationType: operationType || null,
@@ -890,8 +1271,10 @@ export default function Appointments() {
         phone: row.phone,
         doctor: row.doctor,
         operation: row.operation,
+        eye: row.eye,
         center: row.center,
-        payment: row.payment,
+        payment: sanitizePayment(row.payment),
+        hospital: row.hospital,
         code: row.code,
         discountType: row.discountType,
         discountValue: row.discountValue,
@@ -902,6 +1285,14 @@ export default function Appointments() {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
+        const now = Date.now();
+        if (
+          lastSaveAttemptRef.current.snapshot === snapshot &&
+          now - lastSaveAttemptRef.current.at < 2000
+        ) {
+          return;
+        }
+        lastSaveAttemptRef.current = { snapshot, at: now };
         await saveListMutation.mutateAsync(payload);
         lastSavedRef.current = snapshot;
         historyQuery.refetch();
@@ -912,12 +1303,8 @@ export default function Appointments() {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [autoSaveEnabled, activeTab, listDate, operationType, doctorName, listTime, currentList, saveListMutation, historyQuery]);
+  }, [autoSaveEnabled, activeTab, listDate, operationType, doctorName, listTime, currentList, selectedListId, saveListMutation, saveListMutation.isPending, historyQuery]);
 
-  // Save lists to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem("appointments_working_lists", JSON.stringify(lists));
-  }, [lists]);
 
   useEffect(() => {
     const payload = {
@@ -931,7 +1318,6 @@ export default function Appointments() {
       historySearch,
       autoSaveEnabled,
     };
-    localStorage.setItem("user_state_appointments", JSON.stringify(payload));
     if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     userStateTimerRef.current = setTimeout(() => {
       saveUserStateMutation.mutate({ page: "appointments", data: payload });
@@ -957,16 +1343,19 @@ export default function Appointments() {
       toast.error("عرض فقط لهذا الدور");
       return;
     }
-    await deleteListMutation.mutateAsync({ doctorTab: activeTab, listDate });
+    // "New List" should only clear the current local working form, not delete saved DB history.
     setLists({ ...lists, [activeTab]: [] });
+    setSelectedListId(0);
     setNewRow({
       number: "",
       name: "",
       phone: "",
       doctor: "",
       operation: "",
+      eye: "",
       center: false,
-      payment: false,
+      payment: "",
+      hospital: "",
       code: "",
       amount: 0,
       paidAmount: 0,
@@ -995,8 +1384,10 @@ export default function Appointments() {
       phone: item.phone ?? "",
       doctor: normalizeDoctorName(item.doctor ?? ""),
       operation: item.operation ?? "",
+      eye: item.eye ?? "",
       center: Boolean(item.center),
-      payment: Boolean(item.payment),
+      payment: sanitizePayment(item.payment),
+      hospital: item.hospital ?? "",
       code: item.code ?? "",
       amount: 0,
       paidAmount: 0,
@@ -1068,9 +1459,20 @@ export default function Appointments() {
               حسابات
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setViewMode("history")}
+            className={`px-4 py-2 font-semibold transition-all ${
+              viewMode === "history" ? "border-b-2 border-primary text-primary" : "text-gray-600 hover:text-primary"
+            }`}
+          >
+            السجل السابق
+          </button>
         </div>
 
         <div className="bg-white p-8 print:p-0">
+          {(viewMode === "list" || viewMode === "accounts") && (
+          <>
             <div className="mb-4 border-b-2 pb-3" style={{ textAlign: "center" }}>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm print:hidden">
               <label className="flex items-center gap-2">
@@ -1170,6 +1572,14 @@ export default function Appointments() {
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
+              <Button variant="outline" size="sm" onClick={saveJpg}>
+                <ImageDown className="h-4 w-4 mr-2" />
+                حفظ JPG
+              </Button>
+              <Button variant="outline" size="sm" onClick={shareJpg}>
+                <Share2 className="h-4 w-4 mr-2" />
+                مشاركة JPG
+              </Button>
             </div>
           </div>
 
@@ -1224,119 +1634,137 @@ export default function Appointments() {
           )}
 
           {viewMode === "list" && (
-          <div className="mb-6 overflow-x-auto" dir="rtl">
-            <table className="w-full table-fixed border-collapse border border-gray-500 text-xs text-center print:text-[10px]" dir="rtl">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border border-gray-500 p-1 font-bold w-6 text-center">#</th>
-                  <th className="border border-gray-500 p-1 font-bold w-16 text-center">رقم الإيصال</th>
-                  <th className="border border-gray-500 p-1 font-bold w-36 text-center">اسم المريض</th>
-                  <th className="border border-gray-500 p-1 font-bold w-24 text-center">الهاتف</th>
-                  <th className="border border-gray-500 p-2 font-bold w-20 text-center">الطبيب</th>
-                  <th className="border border-gray-500 p-1 font-bold w-12 text-center">العملية</th>
-                  <th className="border border-gray-500 p-1 font-bold w-6 text-center">مركز</th>
-                  <th className="border border-gray-500 p-1 font-bold w-8 text-center">دفع</th>
-                  <th className="border border-gray-500 p-1 font-bold w-12 text-center">الكود</th>
-                  <th className="border border-gray-500 p-1 font-bold w-12 print:hidden text-center">حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentList.map((apt, index) => (
-                  <tr key={apt.id} className="border border-gray-500">
-                    <td className="border border-gray-500 p-1 text-center font-bold w-6">
-                      {index + 1}
-                    </td>
-                    <td className="border border-gray-500 p-1 w-16">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="ltr"
-                          value={apt.number}
-                          onChange={(e) => handleUpdateRow(apt.id, "number", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-36">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="rtl"
-                          value={apt.name}
-                          onChange={(e) => handleUpdateRow(apt.id, "name", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full !max-w-none"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-24">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="rtl"
-                          value={apt.phone}
-                          onChange={(e) => handleUpdateRow(apt.id, "phone", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-20">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="rtl"
-                          value={apt.doctor}
-                          onChange={(e) => handleUpdateRow(apt.id, "doctor", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-12">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="rtl"
-                          value={apt.operation}
-                          onChange={(e) => handleUpdateRow(apt.id, "operation", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-6">
-                      <input type="checkbox" checked={apt.center} onChange={(e) => handleUpdateRow(apt.id, "center", e.target.checked)} disabled={!canManageList} />
-                    </td>
-                    <td className="border border-gray-500 p-1 w-8">
-                      <input type="checkbox" checked={apt.payment} onChange={(e) => handleUpdateRow(apt.id, "payment", e.target.checked)} disabled={!canManageList} />
-                    </td>
-                    <td className="border border-gray-500 p-1 w-12">
-                      <div className="flex justify-start">
-                        <Input
-                          dir="rtl"
-                          value={apt.code}
-                          onChange={(e) => handleUpdateRow(apt.id, "code", e.target.value)}
-                          readOnly={!canManageList}
-                          className="text-[11px] h-6 text-center w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="border border-gray-500 p-1 w-12 print:hidden">
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteRow(apt.id)} disabled={!canManageList}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
+          <div className="mb-6" dir="rtl">
+            {/* Editable table — screen only */}
+            <div ref={exportTargetRef} className="overflow-x-auto ops-screen-table">
+              <div className="mb-1 text-sm font-bold">قائمة العمليات</div>
+              <div className="mb-2 text-xs text-muted-foreground">
+                التاريخ: {exportDateLabel} | الساعة: {exportTimeLabel} | الطبيب: {exportDoctorLabel} | نوع العملية: {exportOperationLabel}
+              </div>
+              <table className="w-full table-fixed border-collapse border border-gray-500 text-xs text-center" dir="rtl">
+                <thead>
+                  <tr className="bg-gray-200">
+                    <th className="border border-gray-500 p-1 font-bold w-6 text-center">#</th>
+                    <th className="border border-gray-500 p-1 font-bold w-16 text-center">رقم الإيصال</th>
+                    <th className="border border-gray-500 p-1 font-bold w-36 text-center">اسم المريض</th>
+                    <th className="border border-gray-500 p-1 font-bold w-24 text-center">الهاتف</th>
+                    <th className="border border-gray-500 p-2 font-bold w-20 text-center">الطبيب</th>
+                    <th className="border border-gray-500 p-1 font-bold w-12 text-center">العملية</th>
+                    <th className="border border-gray-500 p-1 font-bold w-14 text-center">العين</th>
+                    {(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) && (
+                      <th className="border border-gray-500 p-1 font-bold w-16 text-center">المستشفى</th>
+                    )}
+                    <th className="border border-gray-500 p-1 font-bold w-6 text-center">مركز</th>
+                    <th className="border border-gray-500 p-1 font-bold w-12 text-center">دفع</th>
+                    <th className="border border-gray-500 p-1 font-bold w-12 text-center">الكود</th>
+                    <th className="border border-gray-500 p-1 font-bold w-12 text-center">حذف</th>
                   </tr>
-                ))}
-                {currentList.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="p-4 text-gray-500">لا توجد حالات في القائمة الحالية.</td>
+                </thead>
+                <tbody>
+                  {currentList.map((apt, index) => (
+                    <tr key={apt.id} className="border border-gray-500">
+                      <td className="border border-gray-500 p-1 text-center font-bold w-6">{index + 1}</td>
+                      <td className="border border-gray-500 p-1 w-16"><Input dir="ltr" value={apt.number} onChange={(e) => handleUpdateRow(apt.id, "number", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full" /></td>
+                      <td className="border border-gray-500 p-1 w-36"><Input dir="rtl" value={apt.name} onChange={(e) => handleUpdateRow(apt.id, "name", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full !max-w-none" /></td>
+                      <td className="border border-gray-500 p-1 w-24"><Input dir="rtl" value={apt.phone} onChange={(e) => handleUpdateRow(apt.id, "phone", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full" /></td>
+                      <td className="border border-gray-500 p-1 w-20"><Input dir="rtl" value={apt.doctor} onChange={(e) => handleUpdateRow(apt.id, "doctor", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full" /></td>
+                      <td className="border border-gray-500 p-1 w-12 text-center">
+                        <select value={apt.operation || ""} onChange={(e) => handleUpdateRow(apt.id, "operation", e.target.value)} disabled={!canManageList} className="text-[11px] h-6 text-center w-full border-0 bg-transparent">
+                          <option value="">-</option>
+                          {operationOptions.map((opt) => (
+                            <option key={opt} value={opt}>{operationTypeLabel(opt)}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="border border-gray-500 p-1 w-14 text-center">
+                        <select value={apt.eye || ""} onChange={(e) => handleUpdateRow(apt.id, "eye", e.target.value)} disabled={!canManageList} className="text-[11px] h-6 text-center w-full border-0 bg-transparent">
+                          <option value="">-</option>
+                          <option value="OD">OD</option>
+                          <option value="OS">OS</option>
+                          <option value="OU">OU</option>
+                        </select>
+                      </td>
+                      {(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) && (
+                        <td className="border border-gray-500 p-1 w-16 text-center">
+                          <select value={apt.hospital || ""} onChange={(e) => handleUpdateRow(apt.id, "hospital", e.target.value)} disabled={!canManageList} className="text-[11px] h-6 text-center w-full border-0 bg-transparent">
+                            <option value="">-</option>
+                            <option value="الشروق">الشروق</option>
+                            <option value="الأمل">الأمل</option>
+                          </select>
+                        </td>
+                      )}
+                      <td className="border border-gray-500 p-1 w-6 text-center"><input type="checkbox" checked={apt.center} onChange={(e) => handleUpdateRow(apt.id, "center", e.target.checked)} disabled={!canManageList} /></td>
+                      <td className="border border-gray-500 p-1 w-12"><Input value={apt.payment} onChange={(e) => handleUpdateRow(apt.id, "payment", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full" /></td>
+                      <td className="border border-gray-500 p-1 w-12"><Input dir="rtl" value={apt.code} onChange={(e) => handleUpdateRow(apt.id, "code", e.target.value)} readOnly={!canManageList} className="text-[11px] h-6 text-center w-full" /></td>
+                      <td className="border border-gray-500 p-1 w-12 text-center">
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteRow(apt.id)} disabled={!canManageList}><Trash2 className="h-4 w-4" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {currentList.length === 0 && (
+                    <tr><td colSpan={(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) ? 11 : 10} className="p-4 text-gray-500">لا توجد حالات في القائمة الحالية.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Print-only static table — no form controls */}
+            <div className="ops-print-table" style={{ display: "none" }}>
+              <div style={{ marginBottom: "6px", fontWeight: "bold", fontSize: "13px" }}>قائمة العمليات</div>
+              <div style={{ marginBottom: "8px", fontSize: "10px" }}>
+                التاريخ: {exportDateLabel} | الساعة: {exportTimeLabel} | الطبيب: {exportDoctorLabel}
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", tableLayout: "auto" }} dir="rtl">
+                <thead>
+                  <tr style={{ background: "#e5e7eb" }}>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>#</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>رقم الإيصال</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>اسم المريض</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>الهاتف</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>الطبيب</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>العملية</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>العين</th>
+                    {(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) && (
+                      <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>المستشفى</th>
+                    )}
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>مركز</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>دفع</th>
+                    <th style={{ border: "1px solid #6b7280", padding: "3px 5px", fontWeight: "bold", textAlign: "center", whiteSpace: "nowrap" }}>الكود</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {currentList.map((apt, index) => (
+                    <tr key={`print-${apt.id}`}>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center", fontWeight: "bold" }}>{index + 1}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.number}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 8px", textAlign: "right" }}>{apt.name}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center", direction: "ltr" }}>{apt.phone}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.doctor}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{operationTypeLabel(apt.operation)}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.eye || "-"}</td>
+                      {(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) && (
+                        <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.hospital || "-"}</td>
+                      )}
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.center ? "✓" : ""}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.payment}</td>
+                      <td style={{ border: "1px solid #6b7280", padding: "3px 5px", textAlign: "center" }}>{apt.code}</td>
+                    </tr>
+                  ))}
+                  {currentList.length === 0 && (
+                    <tr><td colSpan={(operationType === "Cataract" || currentList.some(r => r.operation === "Cataract")) ? 11 : 10} style={{ padding: "12px", textAlign: "center", color: "#6b7280" }}>لا توجد حالات في القائمة الحالية.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
           )}
 
           {viewMode === "accounts" && (
-            <div className="overflow-x-auto mb-6" dir="rtl">
+            <div ref={exportTargetRef} className="overflow-x-auto mb-6" dir="rtl">
+              <div className="mb-1 text-sm font-bold">حسابات العمليات</div>
+              <div className="mb-2 text-xs text-muted-foreground">
+                التاريخ: {exportDateLabel} | الساعة: {exportTimeLabel} | الطبيب: {exportDoctorLabel} | نوع العملية: {exportOperationLabel}
+              </div>
               <table className="w-full border-collapse border border-gray-500 text-xs text-center">
                 <thead>
                   <tr className="bg-gray-200">
@@ -1426,7 +1854,6 @@ export default function Appointments() {
                     </tr>
                   )}
                 </tbody>
-                {currentList.length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-100 font-bold">
                       <td className="border border-gray-500 p-2" colSpan={5}>الإجمالي</td>
@@ -1434,17 +1861,74 @@ export default function Appointments() {
                       <td className="border border-gray-500 p-2">{accountingTotals.centerAmount.toFixed(2)}</td>
                       <td className="border border-gray-500 p-2">{accountingTotals.remainingAmount.toFixed(2)}</td>
                     </tr>
+                    {showSawafAdjustments && (
+                      <>
+                        <tr className="bg-white">
+                          <td className="border border-gray-500 p-2" colSpan={5}></td>
+                          <td className="border border-gray-500 p-2 font-semibold">الاشعه</td>
+                          <td className="border border-gray-500 p-2" colSpan={2}>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              step="0.01"
+                              value={accountsAdjustmentInputs.radiology}
+                              onChange={(e) => handleAccountsAdjustmentInputChange("radiology", e.target.value)}
+                              onBlur={() => handleAccountsAdjustmentInputBlur("radiology")}
+                              className="h-8 text-center"
+                            />
+                          </td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="border border-gray-500 p-2" colSpan={5}></td>
+                          <td className="border border-gray-500 p-2 font-semibold">خارجي</td>
+                          <td className="border border-gray-500 p-2" colSpan={2}>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              step="0.01"
+                              value={accountsAdjustmentInputs.external}
+                              onChange={(e) => handleAccountsAdjustmentInputChange("external", e.target.value)}
+                              onBlur={() => handleAccountsAdjustmentInputBlur("external")}
+                              className="h-8 text-center"
+                            />
+                          </td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="border border-gray-500 p-2" colSpan={5}></td>
+                          <td className="border border-gray-500 p-2 font-semibold">الصندوق</td>
+                          <td className="border border-gray-500 p-2" colSpan={2}>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              step="0.01"
+                              value={accountsAdjustmentInputs.cashbox}
+                              onChange={(e) => handleAccountsAdjustmentInputChange("cashbox", e.target.value)}
+                              onBlur={() => handleAccountsAdjustmentInputBlur("cashbox")}
+                              className="h-8 text-center"
+                            />
+                          </td>
+                        </tr>
+                        <tr className="bg-gray-50 font-semibold">
+                          <td className="border border-gray-500 p-2" colSpan={5}>إجمالي (الاشعه + خارجي + الصندوق)</td>
+                          <td className="border border-gray-500 p-2">{accountsAdjustmentsTotal.toFixed(2)}</td>
+                          <td className="border border-gray-500 p-2">{accountingTotals.centerAmount.toFixed(2)}</td>
+                          <td className="border border-gray-500 p-2">{accountsNetAfterAdjustments.toFixed(2)}</td>
+                        </tr>
+                      </>
+                    )}
                   </tfoot>
-                )}
               </table>
             </div>
           )}
 
-          {(savedSummariesByTab[activeTab] ?? []).length > 0 && (
+          </>
+          )}
+
+          {viewMode !== "history" && filteredSavedSummaries.length > 0 && (
             <div className="mt-4 border-t pt-3 print:hidden" dir="rtl">
               <div className="text-sm font-bold mb-2">القوائم المحفوظة</div>
               <div className="flex flex-col gap-2 text-sm">
-                {(savedSummariesByTab[activeTab] ?? []).map((item) => (
+                {filteredSavedSummaries.map((item) => (
                   <div key={item.key} className="border border-gray-200 rounded p-2 flex items-start justify-between gap-2">
                     <div>
                       <div className="font-semibold">{item.date}</div>
@@ -1466,7 +1950,7 @@ export default function Appointments() {
             </div>
           )}
 
-          {activeTab === TAB_SAADANY && (
+          {viewMode === "history" && (
           <div className="mt-6 border-t pt-4 print:hidden">
             <h3 className="text-sm font-bold mb-3">السجل السابق لقوائم العمليات</h3>
             <div className="mb-3 flex justify-end">

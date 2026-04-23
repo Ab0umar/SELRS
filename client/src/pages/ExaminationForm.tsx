@@ -17,6 +17,7 @@ import { formatDateLabel } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
 import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import RefractionValueSelect from "@/components/RefractionValueSelect";
+import SearchableCombobox from "@/components/SearchableCombobox";
 import {
   AIR_PUFF_OPTIONS,
   CYLINDER_OPTIONS,
@@ -32,6 +33,38 @@ interface DoctorOption {
   locationType?: "center" | "external";
   doctorType?: "consultant" | "specialist" | "external";
 }
+interface DoctorServiceSheetMatch {
+  doctorCode: string;
+  serviceCode: string;
+  sheetType: string;
+  isActive?: boolean;
+}
+
+const normalizeMappingCode = (value: unknown): string => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const westernDigits = raw
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  const noDecimal = westernDigits.replace(/\.0+$/, "");
+  const compact = noDecimal.replace(/\s+/g, "").toLowerCase();
+  if (/^\d+$/.test(compact)) {
+    const stripped = compact.replace(/^0+/, "");
+    return stripped || "0";
+  }
+  return compact;
+};
+
+const normalizeDoctorTypeToSheet = (value: unknown): "consultant" | "specialist" | "external" | "" => {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw === "consultant" || raw === "consa" || raw === "cons") return "consultant";
+  if (raw === "specialist" || raw === "spec") return "specialist";
+  if (raw === "external" || raw.includes("خار")) return "external";
+  if (raw.includes("consult")) return "consultant";
+  if (raw.includes("special")) return "specialist";
+  return "";
+};
 
 const PATIENT_DATA_EDIT_PERMISSION = "/patient-data/edit";
 
@@ -80,6 +113,10 @@ export default function ExaminationForm() {
   const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
+  const doctorServiceMatchQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: "doctor_service_sheet_match_v1" },
+    { refetchOnWindowFocus: false }
+  );
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
@@ -239,28 +276,51 @@ export default function ExaminationForm() {
       }) ?? null
     );
   }, [availableDoctors, doctorName]);
+  useEffect(() => {
+    if (!selectedDoctorEntry || sheetSelection) return;
+    const defaultSheet = normalizeDoctorTypeToSheet((selectedDoctorEntry as any)?.doctorType ?? "");
+    if (defaultSheet) setSheetSelection(defaultSheet);
+  }, [selectedDoctorEntry, sheetSelection]);
   const serviceOptions = useMemo(() => {
     const list = Array.isArray(serviceDirectoryQuery.data) ? (serviceDirectoryQuery.data as any[]) : [];
-    const normalizedSheet = String(sheetSelection || "").trim().toLowerCase();
-    const doctorType = String((selectedDoctorEntry as any)?.doctorType ?? "").trim().toLowerCase();
-    const targetType = normalizedSheet || doctorType;
-
     const normalized = list
       .filter((item) => item && item.isActive !== false)
       .map((item) => ({
         code: String(item.code ?? "").trim(),
+        normalizedCode: normalizeMappingCode(item.code),
         name: String(item.name ?? "").trim(),
         serviceType: String(item.serviceType ?? "").trim().toLowerCase(),
       }))
       .filter((item) => item.code && item.name);
+    const selectedDoctorCode = normalizeMappingCode((selectedDoctorEntry as any)?.code ?? "");
+    if (!selectedDoctorCode) return normalized;
 
-    if (!targetType) return normalized;
-    return normalized.filter((item) => item.serviceType === targetType);
-  }, [serviceDirectoryQuery.data, sheetSelection, selectedDoctorEntry]);
+    const rawMatches = (doctorServiceMatchQuery.data as any)?.value;
+    const rows = Array.isArray(rawMatches) ? rawMatches : [];
+    const allowedServiceCodes = new Set(
+      rows
+        .map((row: any) => ({
+          doctorCode: normalizeMappingCode(row?.doctorCode),
+          serviceCode: normalizeMappingCode(row?.serviceCode),
+          isActive: row?.isActive !== false,
+        }))
+        .filter((row: DoctorServiceSheetMatch) => row.isActive !== false)
+        .filter((row: DoctorServiceSheetMatch) => row.doctorCode === selectedDoctorCode)
+        .map((row: DoctorServiceSheetMatch) => row.serviceCode)
+    );
+    if (allowedServiceCodes.size === 0) return [];
+    return normalized.filter((item) => allowedServiceCodes.has(item.normalizedCode));
+  }, [doctorServiceMatchQuery.data, serviceDirectoryQuery.data, selectedDoctorEntry]);
   const selectedServiceOption = useMemo(
     () => serviceOptions.find((item) => item.code === serviceCode) ?? null,
     [serviceOptions, serviceCode]
   );
+  useEffect(() => {
+    if (!serviceCode) return;
+    if (!serviceOptions.some((item) => item.code === serviceCode)) {
+      setServiceCode("");
+    }
+  }, [serviceCode, serviceOptions]);
   const isPentacamService = useMemo(() => {
     const code = String(selectedServiceOption?.code ?? serviceCode ?? "").trim().toLowerCase();
     const name = String(selectedServiceOption?.name ?? "").trim().toLowerCase();
@@ -1212,44 +1272,52 @@ export default function ExaminationForm() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm">الطبيب</span>
-                        <Select
-                          value={doctorName || "__none"}
-                          onValueChange={(value) => setDoctorName(value === "__none" ? "" : value)}
-                        >
-                          <SelectTrigger id="doctor-name" className="text-xs border-0 w-full sm:w-40 min-w-0">
-                            <SelectValue placeholder="اختر الطبيب" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none">—</SelectItem>
-                            {availableDoctors.map((doctor) => (
-                              <SelectItem key={doctor.id} value={doctor.name}>
-                                {doctor.name}{doctor.code ? ` (${doctor.code})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableCombobox
+                          value={String((selectedDoctorEntry as any)?.code ?? "")}
+                          onChange={(value) => {
+                            if (!value) {
+                              setDoctorName("");
+                              return;
+                            }
+                            const doctor = availableDoctors.find((item) => String(item.code ?? "").trim() === value);
+                            setDoctorName(String(doctor?.name ?? ""));
+                            const defaultSheet = normalizeDoctorTypeToSheet(doctor?.doctorType ?? "");
+                            if (defaultSheet) setSheetSelection(defaultSheet);
+                          }}
+                          options={[
+                            { value: "", label: "—" },
+                            ...availableDoctors.map((doctor) => ({
+                              value: String(doctor.code ?? "").trim(),
+                              label: `${doctor.name}${doctor.code ? ` (${doctor.code})` : ""}`,
+                              keywords: `${doctor.name} ${doctor.username ?? ""} ${doctor.code ?? ""}`,
+                            })),
+                          ]}
+                          placeholder="اختر الطبيب"
+                          searchPlaceholder="ابحث عن طبيب..."
+                          className="border-0 w-full sm:w-48 min-w-0"
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                       <div className="flex items-center gap-2 min-w-0">
                         <Label htmlFor="srv-code" className="font-bold">الخدمة</Label>
-                        <Select
-                          value={serviceCode || "__none"}
-                          onValueChange={(value) => setServiceCode(value === "__none" ? "" : value)}
-                        >
-                          <SelectTrigger id="srv-code" className="text-xs border-0 w-full sm:w-56 min-w-0">
-                            <SelectValue placeholder="اختر الخدمة" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none">—</SelectItem>
-                            {serviceOptions.map((opt) => (
-                              <SelectItem key={opt.code} value={opt.code}>
-                                {opt.code} - {opt.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableCombobox
+                          value={serviceCode}
+                          onChange={(value) => setServiceCode(value)}
+                          options={[
+                            { value: "", label: "—" },
+                            ...serviceOptions.map((opt) => ({
+                              value: opt.code,
+                              label: `${opt.code} - ${opt.name}`,
+                              keywords: `${opt.code} ${opt.name}`,
+                            })),
+                          ]}
+                          placeholder="اختر الخدمة"
+                          searchPlaceholder="ابحث عن خدمة..."
+                          emptyText="لا توجد خدمات مطابقة للطبيب"
+                          className="border-0 w-full sm:w-64 min-w-0"
+                        />
                       </div>
                       {isPentacamService ? (
                         <div className="flex items-center gap-2 min-w-0">

@@ -209,6 +209,26 @@ export type AutorefractometryData = typeof autorefractometryData.$inferSelect;
 export type InsertAutorefractometryData = typeof autorefractometryData.$inferInsert;
 
 /**
+ * After Refraction Data table - بيانات AFTER (منفصلة عن Autoref)
+ */
+export const afterRefractionData = mysqlTable("afterRefractionData", {
+  id: int("id").autoincrement().primaryKey(),
+  examinationId: int("examinationId").notNull().references(() => examinations.id, { onDelete: "cascade" }),
+  patientId: int("patientId").notNull(),
+  sphereOD: varchar("sphereOD", { length: 20 }),
+  cylinderOD: varchar("cylinderOD", { length: 20 }),
+  axisOD: varchar("axisOD", { length: 20 }),
+  sphereOS: varchar("sphereOS", { length: 20 }),
+  cylinderOS: varchar("cylinderOS", { length: 20 }),
+  axisOS: varchar("axisOS", { length: 20 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AfterRefractionData = typeof afterRefractionData.$inferSelect;
+export type InsertAfterRefractionData = typeof afterRefractionData.$inferInsert;
+
+/**
  * Glasses Prescription Data table - بيانات وصفة النظارة
  * Separate table for glasses prescription to avoid overwriting when saving other data
  */
@@ -670,8 +690,10 @@ export const operationListItems = mysqlTable("operationListItems", {
   phone: varchar("phone", { length: 50 }),
   doctor: varchar("doctor", { length: 255 }),
   operation: varchar("operation", { length: 255 }),
+  eye: varchar("eye", { length: 50 }),
   center: boolean("center").default(false).notNull(),
-  payment: boolean("payment").default(false).notNull(),
+  payment: varchar("payment", { length: 255 }),
+  hospital: varchar("hospital", { length: 255 }),
   code: varchar("code", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({

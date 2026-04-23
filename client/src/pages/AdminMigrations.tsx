@@ -114,7 +114,7 @@ export default function AdminMigrations() {
           <Button
             onClick={() => {
               if (window.confirm("سيتم إصلاح جميع الفحوصات الأيتام. هل أنت متأكد؟")) {
-                fixOrphanedExaminationsMutation.mutate({});
+                fixOrphanedExaminationsMutation.mutate();
               }
             }}
             disabled={fixOrphanedExaminationsMutation.isPending}

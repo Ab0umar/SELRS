@@ -46,7 +46,7 @@ export default function AdminApiTools() {
     finishedAt: string;
   }>(null);
 
-  const appointmentsQuery = trpc.medical.getAllAppointments.useQuery(undefined, { enabled: false });
+  const appointmentsQuery = trpc.medical.getAppointments.useQuery(undefined, { enabled: false });
   const appointmentsByPatientQuery = trpc.medical.getAppointmentsByPatient.useQuery(
     { patientId: Number(patientId || 0) },
     { enabled: false }
@@ -67,6 +67,10 @@ export default function AdminApiTools() {
   const mssqlSyncRuntimeQuery = trpc.medical.getMssqlSyncRuntimeConfig.useQuery(undefined, {
     refetchOnWindowFocus: false,
     refetchInterval: 10000,
+  });
+  const runtimeDbInfoQuery = trpc.medical.getRuntimeDbInfo.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    enabled: false,
   });
 
   const createAppointmentMutation = trpc.medical.createAppointment.useMutation({
@@ -271,6 +275,24 @@ export default function AdminApiTools() {
             </div>
             <div className="text-sm text-muted-foreground">
                : {examinationsQuery.data ? examinationsQuery.data.length : "-"}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Runtime DB (debug)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" onClick={() => void runtimeDbInfoQuery.refetch()}>
+              Check Active Runtime DB
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              {runtimeDbInfoQuery.isFetching
+                ? "Checking..."
+                : runtimeDbInfoQuery.data
+                  ? `Host: ${runtimeDbInfoQuery.data.host ?? "-"} | Port: ${runtimeDbInfoQuery.data.port ?? "-"} | DB: ${runtimeDbInfoQuery.data.database ?? "-"} | URL: ${runtimeDbInfoQuery.data.maskedUrl ?? "-"}`
+                  : "No runtime DB info loaded yet"}
             </div>
           </CardContent>
         </Card>

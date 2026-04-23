@@ -14,7 +14,17 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 
 type ServiceType = "consultant" | "specialist" | "lasik" | "surgery" | "external";
 type ServiceCategory = "examination" | "radiology" | "operations" | "miscellaneous";
-type SheetType = ServiceType | "pentacam" | "surgery_center" | "surgery_external" | "pentacam_center" | "pentacam_external";
+type SheetType =
+  | ServiceType
+  | "pentacam"
+  | "surgery_center"
+  | "surgery_external"
+  | "pentacam_center"
+  | "pentacam_external"
+  | "pentacam_c"
+  | "pentacam_ex"
+  | "pentacam_ex_c";
+type DoctorType = "consultant" | "specialist" | "external";
 
 type ServiceEntry = {
   id: string;
@@ -25,6 +35,26 @@ type ServiceEntry = {
   srvTyp: "1" | "2";
   defaultSheet: SheetType;
   isActive: boolean;
+};
+
+type DoctorEntry = {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  locationType: "center" | "external";
+  doctorType: DoctorType;
+};
+
+type DoctorServiceSheetMatch = {
+  id: string;
+  doctorCode: string;
+  doctorName?: string;
+  serviceCode: string;
+  serviceName?: string;
+  sheetType: SheetType;
+  isActive: boolean;
+  createdAt: string;
 };
 
 const makeId = () => {
@@ -41,7 +71,10 @@ const isSheetType = (value: unknown): value is SheetType =>
   value === "surgery_center" ||
   value === "surgery_external" ||
   value === "pentacam_center" ||
-  value === "pentacam_external";
+  value === "pentacam_external" ||
+  value === "pentacam_c" ||
+  value === "pentacam_ex" ||
+  value === "pentacam_ex_c";
 
 const categorizeService = (code: string, name: string, serviceType: ServiceType): ServiceCategory => {
   const hay = `${String(code ?? "").toLowerCase()} ${String(name ?? "").toLowerCase()}`;
@@ -95,8 +128,13 @@ const normalizeStoredDefaultSheet = (value: unknown, inferred: SheetType): Sheet
   if (!raw) return inferred;
   if (raw === "pentacam" || raw === "radiology_center") return "pentacam_center";
   if (raw === "radiology_external") return "pentacam_external";
+  if (raw === "pentacam_c") return "pentacam_c";
+  if (raw === "pentacam_ex") return "pentacam_ex";
+  if (raw === "pentacam_ex_c") return "pentacam_ex_c";
   if (raw === "surgery") return "surgery_center";
   if (raw === "external") return "external";
+  if (raw === "pentacam_center") return "pentacam_c";
+  if (raw === "pentacam_external") return "pentacam_ex";
   return isSheetType(raw) ? (raw as SheetType) : inferred;
 };
 
@@ -107,7 +145,9 @@ const normalizeSrvTyp = (value: unknown, serviceType: ServiceType, defaultSheet:
     serviceType === "external" ||
     defaultSheet === "external" ||
     defaultSheet === "surgery_external" ||
-    defaultSheet === "pentacam_external"
+    defaultSheet === "pentacam_external" ||
+    defaultSheet === "pentacam_ex" ||
+    defaultSheet === "pentacam_ex_c"
   ) {
     return "2";
   }
@@ -119,6 +159,9 @@ const sheetOptions: Array<{ value: SheetType; label: string }> = [
   { value: "specialist", label: "اخصائي" },
   { value: "lasik", label: "فحوصات الليزك" },
   { value: "external", label: "خارجي" },
+  { value: "pentacam_c", label: "Pentacam C" },
+  { value: "pentacam_ex", label: "Pentacam Ex" },
+  { value: "pentacam_ex_c", label: "Pentacam Ex.C" },
 ];
 
 export default function AdminServices() {
@@ -138,16 +181,35 @@ export default function AdminServices() {
   const [moveTarget, setMoveTarget] = useState<ServiceCategory>("examination");
   const [sheetTarget, setSheetTarget] = useState<SheetType>("consultant");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
+  const [serviceSearchTerm, setServiceSearchTerm] = useState("");
+  const [mappingSheetType, setMappingSheetType] = useState<SheetType>("consultant");
+  const [selectedDoctorCodes, setSelectedDoctorCodes] = useState<string[]>([]);
+  const [selectedServiceCodes, setSelectedServiceCodes] = useState<string[]>([]);
+  const [doctorServiceMatches, setDoctorServiceMatches] = useState<DoctorServiceSheetMatch[]>([]);
+  const [isMappingsInitialized, setIsMappingsInitialized] = useState(false);
 
   const servicesQuery = trpc.medical.getSystemSetting.useQuery({ key: "service_directory" }, {
     refetchOnWindowFocus: false,
     staleTime: 0,  // Always consider data stale
     gcTime: 0,  // Don't cache
   });
+  const doctorDirectoryQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const mappingsQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: "doctor_service_sheet_match_v1" },
+    { refetchOnWindowFocus: false, staleTime: 0, gcTime: 0 }
+  );
   const utils = trpc.useUtils();
   const updateServicesMutation = trpc.medical.updateSystemSetting.useMutation({
     onSuccess: async () => {
       await utils.medical.getSystemSetting.invalidate({ key: "service_directory" });
+    },
+  });
+  const saveMappingsMutation = trpc.medical.updateSystemSetting.useMutation({
+    onSuccess: async () => {
+      await utils.medical.getSystemSetting.invalidate({ key: "doctor_service_sheet_match_v1" });
     },
   });
   const syncPatientsMutation = trpc.medical.syncPatientsFromMssql.useMutation();
@@ -190,6 +252,39 @@ export default function AdminServices() {
     setIsInitialized(true);
   }, [servicesQuery.data, isInitialized]);
 
+  useEffect(() => {
+    if (isMappingsInitialized || !mappingsQuery.data) return;
+    const raw = (mappingsQuery.data as any)?.value;
+    const rows = Array.isArray(raw) ? raw : [];
+    const normalized = rows
+      .map((row: any) => {
+        const doctorCode = String(row?.doctorCode ?? "").trim();
+        const serviceCode = String(row?.serviceCode ?? "").trim();
+        const sheetTypeRaw = String(row?.sheetType ?? "").trim().toLowerCase();
+        if (!doctorCode || !serviceCode || !isSheetType(sheetTypeRaw)) return null;
+        return {
+          id: String(row?.id ?? makeId()),
+          doctorCode,
+          doctorName: String(row?.doctorName ?? "").trim(),
+          serviceCode,
+          serviceName: String(row?.serviceName ?? "").trim(),
+          sheetType: sheetTypeRaw as SheetType,
+          isActive: row?.isActive !== false,
+          createdAt: String(row?.createdAt ?? new Date().toISOString()),
+        } satisfies DoctorServiceSheetMatch;
+      })
+      .filter((row): row is DoctorServiceSheetMatch => Boolean(row));
+    setDoctorServiceMatches(normalized);
+    setIsMappingsInitialized(true);
+  }, [isMappingsInitialized, mappingsQuery.data]);
+
+  const doctors = useMemo(() => {
+    const rows = (doctorDirectoryQuery.data ?? []) as DoctorEntry[];
+    return rows
+      .filter((doctor) => doctor.isActive !== false)
+      .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? ""), "ar"));
+  }, [doctorDirectoryQuery.data]);
+
   const sortedServices = useMemo(
     () => [...services].sort((a, b) => String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true })),
     [services]
@@ -199,8 +294,38 @@ export default function AdminServices() {
     return sortedServices.filter((service) => (service.category || "examination") === activeCategory);
   }, [activeCategory, sortedServices]);
 
+  const filteredDoctors = useMemo(() => {
+    const term = doctorSearchTerm.trim().toLowerCase();
+    if (!term) return doctors;
+    return doctors.filter((doctor) => {
+      const name = String(doctor.name ?? "").toLowerCase();
+      const code = String(doctor.code ?? "").toLowerCase();
+      return name.includes(term) || code.includes(term);
+    });
+  }, [doctorSearchTerm, doctors]);
+
+  const filteredServicesForMapping = useMemo(() => {
+    const term = serviceSearchTerm.trim().toLowerCase();
+    const base = sortedServices.filter((service) => service.isActive !== false);
+    if (!term) return base;
+    return base.filter((service) => {
+      const name = String(service.name ?? "").toLowerCase();
+      const code = String(service.code ?? "").toLowerCase();
+      return name.includes(term) || code.includes(term);
+    });
+  }, [serviceSearchTerm, sortedServices]);
+
   const visibleIds = useMemo(() => groupedServices.map((s) => s.id), [groupedServices]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const visibleDoctorCodes = useMemo(() => filteredDoctors.map((doctor) => doctor.code), [filteredDoctors]);
+  const allVisibleDoctorsSelected =
+    visibleDoctorCodes.length > 0 && visibleDoctorCodes.every((code) => selectedDoctorCodes.includes(code));
+  const visibleServiceCodes = useMemo(
+    () => filteredServicesForMapping.map((service) => service.code),
+    [filteredServicesForMapping]
+  );
+  const allVisibleServicesSelected =
+    visibleServiceCodes.length > 0 && visibleServiceCodes.every((code) => selectedServiceCodes.includes(code));
 
   const addService = () => {
     const code = newService.code.trim();
@@ -249,6 +374,27 @@ export default function AdminServices() {
     }
   };
 
+  const saveDoctorServiceMatches = async () => {
+    try {
+      // Persist compact rows to keep payload below MySQL TEXT limit.
+      const compact = doctorServiceMatches.map((row) => ({
+        id: row.id,
+        doctorCode: row.doctorCode,
+        serviceCode: row.serviceCode,
+        sheetType: row.sheetType,
+        isActive: row.isActive !== false,
+        createdAt: row.createdAt || new Date().toISOString(),
+      }));
+      await saveMappingsMutation.mutateAsync({
+        key: "doctor_service_sheet_match_v1",
+        value: compact,
+      });
+      toast.success("تم حفظ مطابقات الأطباء والخدمات ✓");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ المطابقات"));
+    }
+  };
+
   const syncPatients = async () => {
     try {
       const sync = await syncPatientsMutation.mutateAsync({ dryRun: false, incremental: true });
@@ -289,6 +435,82 @@ export default function AdminServices() {
     toast.success(`تم تغيير الشيت لـ ${selectedVisible.length} خدمة`);
   };
 
+  const addDoctorServiceMatches = () => {
+    if (selectedDoctorCodes.length === 0) {
+      toast.error("اختر طبيب واحد على الأقل");
+      return;
+    }
+    if (selectedServiceCodes.length === 0) {
+      toast.error("اختر خدمة واحدة على الأقل");
+      return;
+    }
+
+    const doctorByCode = new Map(doctors.map((doctor) => [doctor.code, doctor]));
+    const serviceByCode = new Map(sortedServices.map((service) => [service.code, service]));
+    const existingKey = new Set(
+      doctorServiceMatches.map((item) => `${item.doctorCode}::${item.serviceCode}::${item.sheetType}`)
+    );
+
+    const additions: DoctorServiceSheetMatch[] = [];
+    for (const doctorCode of selectedDoctorCodes) {
+      const doctor = doctorByCode.get(doctorCode);
+      if (!doctor) continue;
+      for (const serviceCode of selectedServiceCodes) {
+        const service = serviceByCode.get(serviceCode);
+        if (!service) continue;
+        const key = `${doctorCode}::${serviceCode}::${mappingSheetType}`;
+        if (existingKey.has(key)) continue;
+        existingKey.add(key);
+        additions.push({
+          id: makeId(),
+          doctorCode,
+          doctorName: doctor.name,
+          serviceCode,
+          serviceName: service.name,
+          sheetType: mappingSheetType,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (additions.length === 0) {
+      toast.error("كل المطابقات المحددة موجودة بالفعل");
+      return;
+    }
+
+    setDoctorServiceMatches((prev) => [...prev, ...additions]);
+    toast.success(`تمت إضافة ${additions.length} مطابقة`);
+  };
+
+  const removeMatch = (id: string) => {
+    setDoctorServiceMatches((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const deduplicateMatches = () => {
+    const seen = new Set<string>();
+    const next: DoctorServiceSheetMatch[] = [];
+    let removed = 0;
+
+    for (const row of doctorServiceMatches) {
+      const key = `${String(row.doctorCode).trim()}::${String(row.serviceCode).trim()}::${String(row.sheetType).trim()}`;
+      if (seen.has(key)) {
+        removed += 1;
+        continue;
+      }
+      seen.add(key);
+      next.push(row);
+    }
+
+    if (removed === 0) {
+      toast.success("لا توجد تكرارات");
+      return;
+    }
+
+    setDoctorServiceMatches(next);
+    toast.success(`تم حذف ${removed} تكرار`);
+  };
+
   const getCategoryLabel = (cat: ServiceCategory): string => {
     const labels: Record<ServiceCategory, string> = {
       examination: "كشف",
@@ -310,6 +532,9 @@ export default function AdminServices() {
   };
 
   if (!isAuthenticated || user?.role !== "admin") return null;
+
+  const doctorNameByCode = new Map(doctors.map((doctor) => [doctor.code, doctor.name]));
+  const serviceNameByCode = new Map(sortedServices.map((service) => [service.code, service.name]));
 
   return (
     <div className="container mx-auto px-4 py-8 text-right" dir="rtl">
@@ -416,6 +641,173 @@ export default function AdminServices() {
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
               📥 استيراد CSV
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-slate-200/80 bg-white/95 shadow-sm">
+        <CardHeader>
+          <CardTitle>مطابقة الأطباء مع الخدمات والشيت</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            اختر أكثر من طبيب وأكثر من خدمة، ثم اضغط "مطابقة" لإنشاء كل التركيبات. نفس الخدمة يمكن مشاركتها بين أطباء متعددين.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="space-y-2 rounded border border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Input
+                  placeholder="بحث طبيب (اسم / كود)"
+                  value={doctorSearchTerm}
+                  onChange={(e) => setDoctorSearchTerm(e.target.value)}
+                />
+                <label className="flex items-center gap-2 whitespace-nowrap text-sm">
+                  <Checkbox
+                    checked={allVisibleDoctorsSelected}
+                    onCheckedChange={(checked) => {
+                      if (Boolean(checked)) {
+                        setSelectedDoctorCodes((prev) => Array.from(new Set([...prev, ...visibleDoctorCodes])));
+                      } else {
+                        setSelectedDoctorCodes((prev) =>
+                          prev.filter((code) => !visibleDoctorCodes.includes(code))
+                        );
+                      }
+                    }}
+                  />
+                  تحديد الكل
+                </label>
+              </div>
+              <div className="max-h-64 space-y-1 overflow-auto">
+                {filteredDoctors.map((doctor) => (
+                  <label key={doctor.code} className="flex items-center justify-between gap-2 rounded border p-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{doctor.name}</div>
+                      <div className="text-xs text-slate-500" dir="ltr">{doctor.code}</div>
+                    </div>
+                    <Checkbox
+                      checked={selectedDoctorCodes.includes(doctor.code)}
+                      onCheckedChange={(checked) => {
+                        if (Boolean(checked)) {
+                          setSelectedDoctorCodes((prev) => Array.from(new Set([...prev, doctor.code])));
+                        } else {
+                          setSelectedDoctorCodes((prev) => prev.filter((code) => code !== doctor.code));
+                        }
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded border border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Input
+                  placeholder="بحث خدمة (اسم / كود)"
+                  value={serviceSearchTerm}
+                  onChange={(e) => setServiceSearchTerm(e.target.value)}
+                />
+                <label className="flex items-center gap-2 whitespace-nowrap text-sm">
+                  <Checkbox
+                    checked={allVisibleServicesSelected}
+                    onCheckedChange={(checked) => {
+                      if (Boolean(checked)) {
+                        setSelectedServiceCodes((prev) => Array.from(new Set([...prev, ...visibleServiceCodes])));
+                      } else {
+                        setSelectedServiceCodes((prev) =>
+                          prev.filter((code) => !visibleServiceCodes.includes(code))
+                        );
+                      }
+                    }}
+                  />
+                  تحديد الكل
+                </label>
+              </div>
+              <div className="max-h-64 space-y-1 overflow-auto">
+                {filteredServicesForMapping.map((service) => (
+                  <label key={service.code} className="flex items-center justify-between gap-2 rounded border p-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{service.name}</div>
+                      <div className="text-xs text-slate-500" dir="ltr">{service.code}</div>
+                    </div>
+                    <Checkbox
+                      checked={selectedServiceCodes.includes(service.code)}
+                      onCheckedChange={(checked) => {
+                        if (Boolean(checked)) {
+                          setSelectedServiceCodes((prev) => Array.from(new Set([...prev, service.code])));
+                        } else {
+                          setSelectedServiceCodes((prev) =>
+                            prev.filter((code) => code !== service.code)
+                          );
+                        }
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={mappingSheetType} onValueChange={(v) => setMappingSheetType(v as SheetType)}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="الشيت" />
+              </SelectTrigger>
+              <SelectContent>
+                {sheetOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={addDoctorServiceMatches}>✅ مطابقة المحدد</Button>
+            <Button type="button" variant="secondary" onClick={deduplicateMatches}>
+              🧹 حذف التكرارات
+            </Button>
+            <Button variant="outline" onClick={saveDoctorServiceMatches} disabled={saveMappingsMutation.isPending}>
+              💾 حفظ المطابقات
+            </Button>
+            <span className="text-xs text-slate-600">
+              أطباء محددين: {selectedDoctorCodes.length} | خدمات محددة: {selectedServiceCodes.length}
+            </span>
+          </div>
+
+          <div className="rounded border border-slate-200">
+            <div className="grid grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 border-b bg-slate-50 px-3 py-2 text-sm font-semibold">
+              <div>الطبيب</div>
+              <div>الخدمة</div>
+              <div>الشيت</div>
+              <div />
+            </div>
+            <div className="max-h-72 overflow-auto">
+              {doctorServiceMatches.length === 0 ? (
+                <div className="p-3 text-sm text-slate-500">لا توجد مطابقات محفوظة</div>
+              ) : (
+                doctorServiceMatches.map((match) => (
+                  <div key={match.id} className="grid grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 border-b px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="truncate">
+                        {doctorNameByCode.get(match.doctorCode) || match.doctorName || match.doctorCode}
+                      </div>
+                      <div className="text-xs text-slate-500" dir="ltr">{match.doctorCode}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate">
+                        {serviceNameByCode.get(match.serviceCode) || match.serviceName || match.serviceCode}
+                      </div>
+                      <div className="text-xs text-slate-500" dir="ltr">{match.serviceCode}</div>
+                    </div>
+                    <div>{match.sheetType}</div>
+                    <div>
+                      <Button variant="ghost" size="sm" onClick={() => removeMatch(match.id)} className="text-red-600">
+                        حذف
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

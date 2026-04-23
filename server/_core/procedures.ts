@@ -144,6 +144,28 @@ export const adminProcedure = t.procedure.use(
   }),
 );
 
+// Medical staff procedure - الطاقم الطبي (doctor, nurse, technician, reception, manager, admin)
+export const medicalStaffProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+    }
+
+    if (!["doctor", "nurse", "technician", "reception", "manager", "admin"].includes(ctx.user.role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Medical staff access required" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
 // Protected procedure - أي مستخدم مسجل دخول
 export const protectedProcedure = t.procedure.use(
   t.middleware(async (opts) => {

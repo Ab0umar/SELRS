@@ -126,7 +126,7 @@ function AppNotificationPanel() {
   const [clearEpoch, setClearEpoch] = useState(0);
   const itemsRaw = (notificationsQuery.data as any)?.value;
   const items = Array.isArray(itemsRaw)
-    ? (itemsRaw as AppNotificationItem[]).filter((item) => canCurrentUserSeeNotification(user?.role, item))
+    ? (itemsRaw as AppNotificationItem[]).filter((item) => canCurrentUserSeeNotification(user?.id, user?.role, item))
     : [];
   if (!items.length || !isAuthenticated) return null;
 

@@ -11,7 +11,7 @@ powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop-electron\build-elec
 لو تريد URL مختلف:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop-electron\build-electron-installer.ps1 -Url "http://192.168.137.100:4000"
+powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop-electron\build-electron-installer.ps1 -Url "http://192.168.0.100:4000"
 ```
 
 ## Output

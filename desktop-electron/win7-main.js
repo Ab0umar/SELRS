@@ -6,7 +6,7 @@ const DEFAULT_HOME_URL = "https://op.selrs.cc";
 const SOURCE_PRESETS = [
   { id: "cloud", label: "SELRS Cloud", url: "https://op.selrs.cc" },
   { id: "local", label: "Localhost :4000", url: "http://localhost:4000" },
-  { id: "lan", label: "LAN 192.168.137.100:4000", url: "http://192.168.137.100:4000" },
+  { id: "lan", label: "LAN 192.168.0.100:4000", url: "http://192.168.0.100:4000" },
 ];
 const UA_SUFFIX = " SELRSDesktop/1";
 const WINDOW_SHOW_TIMEOUT_MS = 4000;

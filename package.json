@@ -1,6 +1,6 @@
 {
   "name": "SELRS",
-  "version": "1.0.90",
+  "version": "1.0.108",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -53,6 +53,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@esbuild-kit/core-utils": "^3.3.2",
     "@hookform/resolvers": "^5.2.2",
+    "@openai/codex": "^0.121.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",

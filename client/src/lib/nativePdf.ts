@@ -13,6 +13,11 @@ type ExportElementToPdfOptions = {
   selector?: string;
   element?: HTMLElement | null;
 };
+type ExportElementToJpgOptions = {
+  selector?: string;
+  element?: HTMLElement | null;
+  quality?: number;
+};
 
 const SNAPSHOT_STYLE_PROPERTIES = [
   "display",
@@ -369,6 +374,58 @@ export async function exportElementToPdf({
       const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
       await triggerBlobDownload(blob, normalizedFileName);
       return true;
+    } finally {
+      snapshot.cleanup();
+    }
+  } finally {
+    target.scrollTop = previousScrollTop;
+  }
+}
+
+export async function captureElementAsJpg({
+  selector = "[data-mobile-pdf-root]",
+  element,
+  quality = 0.92,
+}: ExportElementToJpgOptions = {}) {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const target = element ?? (document.querySelector(selector) as HTMLElement | null);
+  if (!target) return null;
+
+  const previousScrollTop = target.scrollTop;
+  target.scrollTop = 0;
+
+  try {
+    if ((document as any).fonts?.ready) {
+      await (document as any).fonts.ready;
+    }
+
+    const snapshot = await createIsolatedSnapshotTarget(target);
+    if (!snapshot) return null;
+
+    try {
+      const canvas = await html2canvas(snapshot.cloneRoot, {
+        backgroundColor: "#ffffff",
+        scale: Math.max(2, window.devicePixelRatio || 1),
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        imageTimeout: 15000,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: Math.max(
+          snapshot.iframeDocument.documentElement.clientWidth,
+          snapshot.cloneRoot.scrollWidth
+        ),
+        windowHeight: Math.max(
+          snapshot.iframeDocument.documentElement.clientHeight,
+          snapshot.cloneRoot.scrollHeight
+        ),
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((result) => resolve(result), "image/jpeg", quality);
+      });
+      return blob;
     } finally {
       snapshot.cleanup();
     }

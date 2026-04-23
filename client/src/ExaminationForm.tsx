@@ -134,7 +134,6 @@ export default function ExaminationForm() {
     },
   });
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
-  const utils = trpc.useUtils();
   const lastSyncedRef = useRef<Record<string, string>>({});
   const hasPatient = Boolean(patientInfo.id);
   const normalizedRole = String((user as any)?.role ?? "").toLowerCase();
@@ -660,8 +659,8 @@ export default function ExaminationForm() {
       }
 
       // Add glasses data
-      if ((examData.glasses.od && [examData.glasses.od.s, examData.glasses.od.c, examData.glasses.od.axis, examData.glasses.od.pd, examData.glasses.od.add].some(Boolean)) ||
-          (examData.glasses.os && [examData.glasses.os.s, examData.glasses.os.c, examData.glasses.os.axis, examData.glasses.os.pd, examData.glasses.os.add].some(Boolean))) {
+      if ((examData.glasses.od && [examData.glasses.od.s, examData.glasses.od.c, examData.glasses.od.axis, examData.glasses.od.pd, (examData.glasses.od as any).add].some(Boolean)) ||
+          (examData.glasses.os && [examData.glasses.os.s, examData.glasses.os.c, examData.glasses.os.axis, examData.glasses.os.pd, (examData.glasses.os as any).add].some(Boolean))) {
         payload["glasses"] = examData.glasses;
       }
 

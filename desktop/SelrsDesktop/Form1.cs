@@ -10,8 +10,13 @@ namespace SelrsDesktop;
 public partial class Form1 : Form
 {
     private const string DefaultHomeUrl = "http://192.168.0.100:4000";
+    private static readonly (string id, string label, string url)[] UrlPresets = [
+        ("local", "Local (192.168.0.100:4000)", "http://192.168.0.100:4000"),
+        ("online", "Online (op.selrs.cc)", "https://op.selrs.cc"),
+    ];
     private readonly string _homeUrl;
     private readonly string _userDataDir;
+    private string _currentUrl;
     private string _lastUri = string.Empty;
     private const int WmNclbuttondown = 0xA1;
     private const int HtCaption = 0x2;
@@ -22,7 +27,9 @@ public partial class Form1 : Form
     public Form1()
     {
         var configuredUrl = Environment.GetEnvironmentVariable("SELRS_DESKTOP_URL");
-        _homeUrl = NormalizeHomeUrl(configuredUrl);
+        var savedUrl = LoadSavedUrl();
+        _homeUrl = NormalizeHomeUrl(configuredUrl ?? savedUrl);
+        _currentUrl = _homeUrl;
         _userDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SELRSDesktop",
@@ -32,6 +39,7 @@ public partial class Form1 : Form
         KeyPreview = true;
         KeyDown += HandleKeyDown;
         Shown += HandleShown;
+        webView.ContextMenuRequested += (_, args) => ShowUrlSwitchMenu(args);
         var chromeMode = (Environment.GetEnvironmentVariable("SELRS_WINDOW_CHROME") ?? "").Trim().ToLowerInvariant();
         var forceModernChrome = chromeMode == "modern" || chromeMode == "borderless";
 #if NETFRAMEWORK
@@ -103,9 +111,15 @@ public partial class Form1 : Form
 
     private void HandleTopBarAutoHideTick()
     {
-        if (!topBar.Visible) return;
         var clientPoint = PointToClient(Cursor.Position);
         var overTopArea = clientPoint.Y <= TopBarExpandedHeight + 6;
+        if (clientPoint.Y <= 3)
+        {
+            _lastTopEdgeHoverUtc = DateTime.UtcNow;
+            ShowTopBar();
+            return;
+        }
+        if (!topBar.Visible) return;
         if (overTopArea)
         {
             _lastTopEdgeHoverUtc = DateTime.UtcNow;
@@ -294,5 +308,61 @@ public partial class Form1 : Form
         return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
             ? uri.ToString()
             : DefaultHomeUrl;
+    }
+
+    private string LoadSavedUrl()
+    {
+        try
+        {
+            var configPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SELRSDesktop",
+                "url_config.txt");
+            if (File.Exists(configPath))
+            {
+                var saved = File.ReadAllText(configPath).Trim();
+                return string.IsNullOrWhiteSpace(saved) ? "" : saved;
+            }
+        }
+        catch { }
+        return "";
+    }
+
+    private void SaveUrl(string url)
+    {
+        try
+        {
+            var configDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SELRSDesktop");
+            Directory.CreateDirectory(configDir);
+            var configPath = Path.Combine(configDir, "url_config.txt");
+            File.WriteAllText(configPath, url);
+        }
+        catch { }
+    }
+
+    private void SwitchUrl(string newUrl)
+    {
+        var normalized = NormalizeHomeUrl(newUrl);
+        if (normalized == _currentUrl) return;
+        _currentUrl = normalized;
+        SaveUrl(normalized);
+        webView.CoreWebView2?.Navigate(normalized);
+    }
+
+    private void ShowUrlSwitchMenu(CoreWebView2ContextMenuRequestedEventArgs args)
+    {
+        args.Handled = true;
+        var menu = new ContextMenuStrip();
+        foreach (var (id, label, url) in UrlPresets)
+        {
+            var item = new ToolStripMenuItem(label);
+            if (NormalizeHomeUrl(url) == _currentUrl)
+                item.Checked = true;
+            item.Click += (_, _) => SwitchUrl(url);
+            menu.Items.Add(item);
+        }
+        menu.Show(webView, new System.Drawing.Point((int)args.Location.X, (int)args.Location.Y));
     }
 }

@@ -216,6 +216,8 @@ const Router = memo(function Router() {
       {/* Patient views */}
       <Route path={"/patients"} component={() => <ProtectedRoute><Patients /></ProtectedRoute>} />
       <Route path={"/patients/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
+      <Route path={"/medicalfile/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
+      <Route path={"/medicalfile"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
       <Route path={"/patient-file/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
       <Route path={"/patient-file"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
       <Route path={"/medical-reports/:id"} component={() => <ProtectedRoute><MedicalReports /></ProtectedRoute>} />

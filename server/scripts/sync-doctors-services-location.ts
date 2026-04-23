@@ -37,7 +37,9 @@ async function syncDoctorsAndServices() {
     }
 
     // Lazy load schema tables only at runtime, not during build
-    const { doctors, services } = await import("../../drizzle/schema");
+    const schema = await import("../../drizzle/schema");
+    const doctors = (schema as any).doctorsLookup ?? (schema as any).doctors;
+    const services = (schema as any).services ?? (schema as any).servicesTable;
 
     console.log("[SyncScript] Starting doctor and service location sync...\n");
 
@@ -115,7 +117,7 @@ async function syncDoctorsAndServices() {
       // Map srvTyp to locationType: "1" = center, "2" = external
       let locationType = "center";
       if (svc.srvTyp === "2") locationType = "external";
-      else if (svc.locationType) locationType = svc.locationType;
+      else if ((svc as any).locationType) locationType = (svc as any).locationType;
 
       try {
         const existing = await db.select().from(services).where(eq(services.code, svc.code)).limit(1);

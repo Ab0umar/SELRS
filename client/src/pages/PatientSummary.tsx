@@ -209,8 +209,8 @@ export default function PatientSummary() {
       if (!glassesData) {
         const sheetSources = [consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data];
         for (const sheet of sheetSources) {
-          if (sheet?.examData) {
-            const sheetExamData = parseJson(sheet.examData);
+          if ((sheet as any)?.examData) {
+            const sheetExamData = parseJson((sheet as any).examData);
             if (sheetExamData?.glasses) {
               glassesData = sheetExamData.glasses;
               break;
@@ -412,8 +412,8 @@ export default function PatientSummary() {
     // Also add pentacam data from sheets (backward compatibility for existing data)
     const sheetSources = [consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data];
     sheetSources.forEach((sheet) => {
-      if (sheet?.examData) {
-        const sheetExamData = parseJson(sheet.examData);
+      if ((sheet as any)?.examData) {
+        const sheetExamData = parseJson((sheet as any).examData);
         if (sheetExamData?.pentacam) {
           // OD row
           if (sheetExamData.pentacam.od) {

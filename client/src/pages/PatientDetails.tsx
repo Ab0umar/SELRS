@@ -105,6 +105,10 @@ export default function PatientDetails() {
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), staleTime: 0 }
   );
+  const afterRefractionQuery = trpc.medical.getAfterRefractionByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), staleTime: 0 }
+  );
 
   // Fetch sheet data for existing refraction (backward compatibility)
   const consultantSheetQuery = trpc.medical.getSheetEntry.useQuery(
@@ -164,9 +168,6 @@ export default function PatientDetails() {
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false }
   );
-  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
@@ -178,6 +179,7 @@ export default function PatientDetails() {
   const canViewPentacam =
     String(user?.role ?? "").toLowerCase() === "admin" ||
     (permissionsQuery.data ?? []).includes("/sheets/pentacam/:id");
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
 
   const deleteExaminationMutation = trpc.medical.deleteExaminationDirect.useMutation({
     onSuccess: () => {
@@ -191,16 +193,17 @@ export default function PatientDetails() {
   });
 
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window === "undefined") return "overview";
+    if (typeof window === "undefined") return "examinations";
     try {
       const stored = localStorage.getItem(`tabs:patient-details:${patientId ?? "new"}`) || "";
-      if (stored === "overview" || stored === "history" || stored === "exams" || stored === "reports" || stored === "prescriptions" || stored === "surgeries" || stored === "tests" || stored === "pentacam") {
+      if (stored === "overview") return "examinations";
+      if (stored === "examinations" || stored === "diagnosis" || stored === "treatment" || stored === "tests" || stored === "followup" || stored === "pentacam") {
         return stored;
       }
     } catch {
       // ignore
     }
-    return "overview";
+    return "examinations";
   });
   const [patientCodeDraft, setPatientCodeDraft] = useState("");
   const [serviceTypeDraft, setServiceTypeDraft] = useState("");
@@ -276,7 +279,7 @@ export default function PatientDetails() {
     if (!raw) return;
     try {
       const data = JSON.parse(raw);
-      if (data.activeTab !== undefined) setActiveTab(data.activeTab ?? "overview");
+      if (data.activeTab !== undefined) setActiveTab(data.activeTab === "overview" ? "examinations" : (data.activeTab ?? "examinations"));
     } catch {
       // ignore bad cache
     }
@@ -290,7 +293,7 @@ export default function PatientDetails() {
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (hydratedPatientStateRef.current === (patientId ?? null)) return;
-    if (data.activeTab !== undefined) setActiveTab(data.activeTab ?? "overview");
+    if (data.activeTab !== undefined) setActiveTab(data.activeTab === "overview" ? "examinations" : (data.activeTab ?? "examinations"));
     hydratedPatientStateRef.current = patientId ?? null;
   }, [patientStateQuery.data, patientId]);
 
@@ -317,7 +320,6 @@ export default function PatientDetails() {
   const prescriptions = prescriptionsQuery.data ?? [];
   const surgeries = surgeriesQuery.data ?? [];
   const followups = followupsQuery.data ?? [];
-  const symptoms = (symptomsQuery.data ?? []) as Array<{ id: string; name: string }>;
 
   const parseMedicalHistoryValue = (rawValue: unknown) => {
     const raw = String(rawValue ?? "").trim();
@@ -335,19 +337,6 @@ export default function PatientDetails() {
       .filter(Boolean);
     return { history, symptoms: Array.from(new Set(parsedSymptoms)) };
   };
-  const buildMedicalHistoryValue = (history: string, symptomNames: string[]) => {
-    const normalizedHistory = String(history ?? "").trim();
-    const normalizedSymptoms = Array.from(
-      new Set(
-        (symptomNames ?? [])
-          .map((name) => String(name ?? "").trim())
-          .filter(Boolean)
-      )
-    );
-    if (!normalizedSymptoms.length) return normalizedHistory;
-    return `${normalizedHistory ? `${normalizedHistory}\n\n` : ""}الأعراض: ${normalizedSymptoms.join("، ")}`;
-  };
-
   const latestReport = reports[0];
   const latestReportContent =
     parseJson((latestReport as any)?.content ?? latestReport?.diagnosis) ??
@@ -355,12 +344,69 @@ export default function PatientDetails() {
     latestReport?.diagnosis ??
     latestReport?.treatment ??
     null;
+  const overviewData = useMemo(() => {
+    const symptomSet = new Set<string>();
+    const pushSymptoms = (value: unknown) => {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const text = String(item ?? "").trim();
+          if (text) symptomSet.add(text);
+        }
+        return;
+      }
+      const text = String(value ?? "").trim();
+      if (!text) return;
+      text
+        .split(/[,\n،]/)
+        .map((item) => String(item ?? "").trim())
+        .filter(Boolean)
+        .forEach((item) => symptomSet.add(item));
+    };
+
+    let history = "";
+    if (typeof latestReportContent === "string") {
+      const parsed = parseMedicalHistoryValue(latestReportContent);
+      history = parsed.history || latestReportContent;
+      pushSymptoms(parsed.symptoms);
+    } else if (latestReportContent && typeof latestReportContent === "object") {
+      const contentObj = latestReportContent as Record<string, unknown>;
+      const parsed = parseMedicalHistoryValue(
+        firstNonEmpty(
+          contentObj.medicalHistory,
+          contentObj.history,
+          contentObj.chiefComplaint,
+          contentObj.notes,
+          contentObj.note,
+          contentObj.text
+        )
+      );
+      history = parsed.history;
+      pushSymptoms(parsed.symptoms);
+      pushSymptoms(contentObj.selectedSymptoms);
+      pushSymptoms(contentObj.symptoms);
+    }
+
+    if (!history) {
+      history = firstNonEmpty(
+        (latestReport as any)?.clinicalOpinion,
+        (latestReport as any)?.diagnosis,
+        (latestReport as any)?.recommendations
+      );
+    }
+    pushSymptoms((latestReport as any)?.symptoms);
+
+    return {
+      history: history.trim(),
+      symptoms: Array.from(symptomSet),
+    };
+  }, [latestReport, latestReportContent]);
 
   // Single data source: ONLY use examination endpoint
   const parsedExamSources = useMemo(() => {
     // Create lookup maps for autorefraction and glasses records
     const autorefMap = new Map<number, any>();
     const glassesMap = new Map<number, any>();
+    const afterMap = new Map<number, any>();
 
     if (Array.isArray(autorefractometryQuery.data)) {
       for (const record of autorefractometryQuery.data) {
@@ -373,10 +419,16 @@ export default function PatientDetails() {
         glassesMap.set(record.examinationId, record);
       }
     }
+    if (Array.isArray(afterRefractionQuery.data)) {
+      for (const record of afterRefractionQuery.data) {
+        afterMap.set(record.examinationId, record);
+      }
+    }
 
 	    // Extract examination data
 	    const examData = examinations.map((exam: any) => {
 	      const notesData = parseJson(exam?.radiologyLabsNotes) ?? {};
+      const afterRecord = afterMap.get(exam.id);
       // Get autorefraction from dedicated table, fallback to examination row columns
       const autorefRecord = autorefMap.get(exam.id);
       let autorefraction = autorefRecord ? {
@@ -403,8 +455,8 @@ export default function PatientDetails() {
       if (!glassesData) {
         const sheetSources = [consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data];
         for (const sheet of sheetSources) {
-          if (sheet?.examData) {
-            const sheetExamData = parseJson(sheet.examData);
+          if (sheet && typeof sheet === "object" && "examData" in sheet && (sheet as any).examData) {
+            const sheetExamData = parseJson((sheet as any).examData);
             if (sheetExamData?.glasses) {
               glassesData = sheetExamData.glasses;
               break;
@@ -430,16 +482,19 @@ export default function PatientDetails() {
         },
 	        // Tests and treatment from radiologyLabsNotes JSON field
 	        radiologyLabsNotes: exam?.radiologyLabsNotes,
+          pentacam: (notesData as any)?.pentacam || undefined,
 	        // "After" values from Measurements tab (القياسات)
-	        after:
-	          (notesData as any)?.measurements?.after ||
-	          (notesData as any)?.after ||
-	          undefined,
+	        after: afterRecord
+            ? {
+                od: { s: afterRecord.sphereOD, c: afterRecord.cylinderOD, axis: afterRecord.axisOD },
+                os: { s: afterRecord.sphereOS, c: afterRecord.cylinderOS, axis: afterRecord.axisOS },
+              }
+            : ((notesData as any)?.measurements?.after || (notesData as any)?.after || undefined),
 	      };
 	    });
     // Don't filter out data - show if ANY field has data
     return examData;
-  }, [examinations, autorefractometryQuery.data, glassesRecordsQuery.data, consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data]);
+  }, [examinations, autorefractometryQuery.data, afterRefractionQuery.data, glassesRecordsQuery.data, consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data]);
   const autorefractionRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
       const eyeSources = parsedExamSources.map((source) => source?.autorefraction?.[eyeKey] ?? null);
@@ -460,12 +515,11 @@ export default function PatientDetails() {
   const afterRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
       const afterSources = parsedExamSources.map((source) => (source as any)?.after?.[eyeKey] ?? null);
-      const autorefSources = parsedExamSources.map((source) => source?.autorefraction?.[eyeKey] ?? null);
       return {
         eye,
-        s: firstNonEmpty(...afterSources.map((item) => item?.s), ...autorefSources.map((item) => item?.s)),
-        c: firstNonEmpty(...afterSources.map((item) => item?.c), ...autorefSources.map((item) => item?.c)),
-        axis: firstNonEmpty(...afterSources.map((item) => item?.axis), ...autorefSources.map((item) => item?.axis)),
+        s: firstNonEmpty(...afterSources.map((item) => item?.s)),
+        c: firstNonEmpty(...afterSources.map((item) => item?.c)),
+        axis: firstNonEmpty(...afterSources.map((item) => item?.axis)),
       };
     };
     return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
@@ -962,9 +1016,9 @@ export default function PatientDetails() {
         }}
         className="min-h-screen"
       >
-      <main className="container mx-auto px-4 py-8 print:p-0">
+      <main className="container mx-auto px-4 py-8 print:p-0 overflow-x-hidden">
 
-        <div className="mb-4 flex items-center gap-3 print:hidden">
+        <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
           <Button
             variant="outline"
             size="sm"
@@ -986,7 +1040,7 @@ export default function PatientDetails() {
             </Button>
           ) : null}
           <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
-          {patientId ? (
+          {patientId && isAdmin ? (
             <Button
               variant="destructive"
               size="sm"
@@ -1010,212 +1064,92 @@ export default function PatientDetails() {
           ) : null}
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Card className="border-slate-200/80 bg-white/90 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">العمر</p>
-              <p className="text-2xl font-black text-slate-900">{overviewStats.age} سنة</p>
+        <section className="mb-8 space-y-4">
+          <Card className="border-slate-200/80 bg-white/92 shadow-sm">
+            <CardHeader className="border-b border-slate-100 pb-3">
+              <CardTitle>بيانات المريض</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">العمر</p>
+                  <p className="text-base font-black text-slate-900">{overviewStats.age} سنة</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">الجنس</p>
+                  <p className="text-base font-black text-slate-900">{overviewStats.gender || "—"}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">الحالة</p>
+                  <Badge className="bg-[linear-gradient(135deg,#0f766e_0%,#2563eb_100%)]">{overviewStats.status || "—"}</Badge>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">تاريخ التسجيل</p>
+                  <p className="text-sm font-semibold text-slate-900">{overviewStats.registrationDate || "—"}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-slate-200/80 bg-white/90 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">الجنس</p>
-              <p className="text-2xl font-black text-slate-900">{overviewStats.gender || "—"}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 bg-white/90 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">الحالة</p>
-              <Badge className="bg-[linear-gradient(135deg,#0f766e_0%,#2563eb_100%)]">{overviewStats.status || "—"}</Badge>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 bg-white/90 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">تاريخ التسجيل</p>
-              <p className="text-sm font-semibold text-slate-900">{overviewStats.registrationDate}</p>
-            </CardContent>
-          </Card>
-        </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} persistKey={`patient-details:${patientId ?? "new"}`} className="w-full">
-          <TabsList className="mb-8 flex h-auto w-full min-w-max rounded-3xl border border-slate-200/80 bg-white/85 p-2 shadow-sm print:hidden" dir="rtl" style={{ direction: "rtl" }}>
-            <TabsTrigger className="rounded-2xl" value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger className="rounded-2xl" value="examinations">الفحوصات</TabsTrigger>
-            {canViewPentacam ? (
-              <TabsTrigger className="rounded-2xl" value="pentacam">بنتاكام</TabsTrigger>
-            ) : null}
-            <TabsTrigger className="rounded-2xl" value="diagnosis">التشخيص</TabsTrigger>
-            <TabsTrigger className="rounded-2xl" value="treatment">العلاج</TabsTrigger>
-            <TabsTrigger className="rounded-2xl" value="tests">الاشعه و التحاليل</TabsTrigger>
-            <TabsTrigger className="rounded-2xl" value="followup">المتابعة</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="w-full">
-              <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-                <CardHeader className="border-b border-slate-100">
-                  <CardTitle>التاريخ المرضي و الاعراض</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* All Doctor Reports */}
-                  {reports.length > 0 ? (
-                    <div className="space-y-3">
-                      {reports.map((report: any, idx: number) => (
-                        <div key={idx} className="rounded border border-slate-200 p-4 bg-slate-50/50">
-                          <div className="mb-2 flex justify-between items-start">
-                            <span className="text-xs font-semibold text-slate-500">
-                              {report.createdAt ? new Date(report.createdAt).toLocaleDateString("ar-EG") : "—"}
-                            </span>
-                            {report.diagnosis && <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">تشخيص</span>}
-                          </div>
-                          <div className="text-right text-sm whitespace-pre-wrap" dir="rtl">
-                            <p className="font-medium text-slate-900 mb-1">{report.diagnosis || "—"}</p>
-                            {report.clinicalOpinion && <p className="text-slate-700 text-xs">{report.clinicalOpinion}</p>}
-                            {report.recommendations && <p className="text-slate-700 text-xs mt-1">{report.recommendations}</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-muted-foreground">لا توجد تقارير طبية محفوظة</p>
-                    </div>
-                  )}
-
-                  <div className="border-t pt-4">
-                    <p className="mb-2 text-xs font-semibold text-slate-500">الأعراض</p>
-                    {symptoms.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">لا توجد أعراض مضافة</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {symptoms.map((symptom) => (
-                          <Badge
-                            key={symptom.id}
-                            variant="default"
-                            className="rounded-full"
-                          >
-                            {symptom.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card className="border-slate-200/80 bg-white/92 shadow-sm md:col-span-2">
+              <CardHeader className="border-b border-slate-100 py-3">
+                <CardTitle className="text-base">التاريخ المرضي</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {overviewData.history ? (
+                  <div className="rounded border border-slate-200 p-4 bg-slate-50/50 text-sm whitespace-pre-wrap">
+                    {overviewData.history}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">لا يوجد تاريخ مرضي محفوظ</p>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Visits List */}
-            <div className="w-full">
-              <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-                <CardHeader className="border-b border-slate-100">
-                  <CardTitle>الزيارات</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {visitsQuery.isLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-10 bg-slate-100 rounded animate-pulse" />
-                      ))}
-                    </div>
-                  ) : visitsQuery.isError ? (
-                    <div className="text-sm text-red-600">خطأ في تحميل الزيارات</div>
-                  ) : (visitsQuery.data ?? []).length === 0 ? (
-                    <div className="text-sm text-slate-500">لا توجد زيارات</div>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {(visitsQuery.data ?? []).map((visit: any) => {
-                        const examForVisit = (examinationsQuery.data ?? []).find((e: any) => e.visitId === visit.id);
-                        const isEditing = editingVisitId === visit.id;
-                        return (
-                          <div key={visit.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-slate-100 transition flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-mono text-slate-600">#{visit.id}</span>
-                                {isEditing ? (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="date"
-                                      value={editVisitDate}
-                                      onChange={(e) => setEditVisitDate(e.target.value)}
-                                      className="w-32 h-7 text-xs"
-                                      dir="ltr"
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        updateVisitDateMutation.mutate({
-                                          visitId: visit.id,
-                                          visitDate: editVisitDate
-                                        });
-                                      }}
-                                      disabled={updateVisitDateMutation.isPending}
-                                    >
-                                      <Check className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => setEditingVisitId(null)}
-                                    >
-                                      <X className="h-4 w-4 text-red-600" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-slate-500">
-                                    {new Date(visit.visitDate).toLocaleDateString("ar-EG")}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-sm font-medium text-slate-800">
-                                {visit.visitType || "زيارة"}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {!isEditing && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    const dateObj = new Date(visit.visitDate);
-                                    const dateStr = dateObj.toISOString().split("T")[0];
-                                    setEditVisitDate(dateStr);
-                                    setEditingVisitId(visit.id);
-                                  }}
-                                  className="text-blue-600 hover:bg-blue-50"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {examForVisit && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    if (confirm("هل أنت متأكد من حذف هذه الزيارة؟")) {
-                                      deleteExaminationMutation.mutate({ examinationId: examForVisit.id });
-                                    }
-                                  }}
-                                  className="text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+            <Card className="border-slate-200/80 bg-white/92 shadow-sm">
+              <CardHeader className="border-b border-slate-100 py-3">
+                <CardTitle className="text-base">الأعراض</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {overviewData.symptoms.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">لا توجد أعراض مضافة</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {overviewData.symptoms.map((symptom, index) => (
+                      <Badge
+                        key={`${symptom}-${index}`}
+                        variant="default"
+                        className="rounded-full"
+                      >
+                        {symptom}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} persistKey={`patient-details:${patientId ?? "new"}`} className="w-full overflow-x-hidden">
+          <div className="mb-8 overflow-x-auto md:overflow-visible pb-1 print:hidden">
+            <TabsList className="inline-flex h-auto w-max min-w-max md:flex md:w-full md:min-w-0 rounded-3xl border border-slate-200/80 bg-white/85 p-2 shadow-sm" dir="rtl" style={{ direction: "rtl" }}>
+            <TabsTrigger className="rounded-2xl whitespace-nowrap" value="examinations">القياسات</TabsTrigger>
+            {canViewPentacam ? (
+              <TabsTrigger className="rounded-2xl whitespace-nowrap" value="pentacam">بنتاكام</TabsTrigger>
+            ) : null}
+            <TabsTrigger className="rounded-2xl whitespace-nowrap" value="diagnosis">التشخيص</TabsTrigger>
+            <TabsTrigger className="rounded-2xl whitespace-nowrap" value="treatment">العلاج</TabsTrigger>
+            <TabsTrigger className="rounded-2xl whitespace-nowrap" value="tests">الفحوصات</TabsTrigger>
+            <TabsTrigger className="rounded-2xl whitespace-nowrap" value="followup">المتابعة</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="examinations" className="space-y-6">
             <Card className="border-slate-200/80 bg-white/92 shadow-sm" dir="ltr">
               <CardHeader className="border-b border-slate-100 pb-3">
-                <CardTitle className="text-base">الفحوصات</CardTitle>
+                <CardTitle className="text-base">القياسات</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 <div className="rounded-xl border border-slate-200 bg-white">
@@ -1588,7 +1522,7 @@ export default function PatientDetails() {
           <TabsContent value="tests" className="space-y-6">
             <Card className="border-slate-200/80 bg-white/92 shadow-sm">
               <CardHeader className="border-b border-slate-100">
-                <CardTitle>الاشعه و التحاليل</CardTitle>
+                <CardTitle>الفحوصات</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {!testRequestsQuery?.data || testRequestsQuery.data.length === 0 ? (
@@ -1664,7 +1598,7 @@ export default function PatientDetails() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            {isEditing ? (
+                            {isEditing && isAdmin ? (
                               <>
                                 <Input
                                   type="date"
@@ -1697,21 +1631,24 @@ export default function PatientDetails() {
                             ) : (
                               <>
                                 <span className="text-xs text-muted-foreground">{formatDate(displayDate)}</span>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    const dateObj = new Date(displayDate);
-                                    const dateStr = dateObj.toISOString().split("T")[0];
-                                    setEditVisitDate(dateStr);
-                                    setEditingVisitId(exam.visitId);
-                                  }}
-                                  className="text-blue-600 hover:bg-blue-50"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                {isAdmin ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const dateObj = new Date(displayDate);
+                                      const dateStr = dateObj.toISOString().split("T")[0];
+                                      setEditVisitDate(dateStr);
+                                      setEditingVisitId(exam.visitId);
+                                    }}
+                                    className="text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                ) : null}
                               </>
                             )}
+                            {isAdmin ? (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1754,6 +1691,7 @@ export default function PatientDetails() {
                             >
                               <Trash2 className="h-3.5 w-3.5 text-red-500 hover:text-red-700" />
                             </Button>
+                            ) : null}
                           </div>
                         </div>
 

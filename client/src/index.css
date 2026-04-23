@@ -202,6 +202,14 @@
 }
 
 @layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .dark [class~="bg-white"] {
     background-color: color-mix(in oklch, var(--card) 94%, transparent) !important;
   }
@@ -494,6 +502,22 @@
     background: #fff !important;
     z-index: 9999 !important;
     padding: 0 !important;
+  }
+}
+
+/* Print Styles for Operations List — A5 Landscape */
+@media print {
+  body.print-ops-list * { visibility: hidden !important; }
+  body.print-ops-list .ops-print-table,
+  body.print-ops-list .ops-print-table * { visibility: visible !important; }
+  body.print-ops-list .ops-print-table {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    padding: 6mm !important;
+    box-sizing: border-box !important;
+    background: #fff !important;
   }
 }
 

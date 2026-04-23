@@ -123,7 +123,7 @@ export default function LasikExamSheet() {
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
   );
-  const reportsQuery = trpc.medical.getReportsByPatient.useQuery(
+  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
   );
@@ -135,11 +135,11 @@ export default function LasikExamSheet() {
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
   );
-  const followupsQuery = trpc.medical.getFollowupsByPatient.useQuery(
+  const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
   );
-  const pentacamQuery = trpc.medical.getPentacamByPatient.useQuery(
+  const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
   );

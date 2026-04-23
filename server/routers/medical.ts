@@ -3,7 +3,7 @@ import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, doctorProcedure, nurseProcedure, technicianProcedure, receptionProcedure, managerProcedure, adminProcedure } from "../_core/procedures";
+import { router, protectedProcedure, doctorProcedure, nurseProcedure, technicianProcedure, receptionProcedure, managerProcedure, adminProcedure, medicalStaffProcedure } from "../_core/procedures";
 import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
@@ -108,6 +108,9 @@ const serviceDirectoryEntrySchema = z.object({
       "surgery_external",
       "pentacam_center",
       "pentacam_external",
+      "pentacam_c",
+      "pentacam_ex",
+      "pentacam_ex_c",
       "radiology_center",
       "radiology_external",
     ])
@@ -449,6 +452,8 @@ const inferSrvTyp = (entry: {
     sheet === "external" ||
     sheet === "surgery_external" ||
     sheet === "pentacam_external" ||
+    sheet === "pentacam_ex" ||
+    sheet === "pentacam_ex_c" ||
     sheet === "radiology_external"
   ) {
     return "2";
@@ -464,12 +469,17 @@ const normalizeServiceDefaultSheet = (
   if (!raw) return fallbackServiceType;
   if (raw === "pentacam" || raw === "radiology_center") return "pentacam_center";
   if (raw === "radiology_external") return "pentacam_external";
+  if (raw === "pentacam_c") return "pentacam_c";
+  if (raw === "pentacam_ex") return "pentacam_ex";
+  if (raw === "pentacam_ex_c") return "pentacam_ex_c";
   if (raw === "surgery") return "surgery_center";
   if (raw === "external") {
     if (fallbackServiceType === "surgery") return "surgery_external";
     if (fallbackServiceType === "specialist") return "pentacam_external";
     return fallbackServiceType;
   }
+  if (raw === "pentacam_center") return "pentacam_c";
+  if (raw === "pentacam_external") return "pentacam_ex";
   return raw;
 };
 
@@ -1315,6 +1325,26 @@ async function resolveDoctorCodeById(doctorId?: number | null): Promise<string |
   return undefined;
 }
 
+async function resolveDoctorCodeByName(doctorName?: string | null): Promise<string | undefined> {
+  const target = String(doctorName ?? "").trim().toLowerCase();
+  if (!target) return undefined;
+  try {
+    const row = await db.getSystemSetting("doctor_directory");
+    if (!row?.value) return undefined;
+    const doctors = JSON.parse(row.value) as Array<{ name?: string; code?: string }>;
+    const exact = doctors.find((d) => String(d?.name ?? "").trim().toLowerCase() === target);
+    if (exact?.code) return String(exact.code).trim();
+    const fuzzy = doctors.find((d) => {
+      const n = String(d?.name ?? "").trim().toLowerCase();
+      return n && (n.includes(target) || target.includes(n));
+    });
+    if (fuzzy?.code) return String(fuzzy.code).trim();
+  } catch (err) {
+    console.error(`[resolveDoctorCodeByName] Error parsing doctor_directory:`, err);
+  }
+  return undefined;
+}
+
 function normalizePhoneKey(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
@@ -1390,16 +1420,9 @@ async function resolveServiceCodeForType(serviceType: string | undefined): Promi
       return code;
     }
 
-    // Fallback: use first available service code if no match
-    if (list.length > 0) {
-      const firstActive = list.find((entry: any) => entry && entry.isActive !== false && String(entry.code ?? "").trim());
-      if (firstActive) {
-        const code = String(firstActive.code).trim();
-        console.log(`[resolveServiceCodeForType] No match for serviceType="${type}", using fallback code: ${code}`);
-        return code;
-      }
-    }
-    console.log(`[resolveServiceCodeForType] No active service found`);
+    // Do not fallback to an unrelated service code from another type.
+    // Returning empty avoids writing a wrong service to MSSQL.
+    console.log(`[resolveServiceCodeForType] No active service matched type="${type}"`);
   } catch (err) {
     console.error(`[resolveServiceCodeForType] Error:`, err);
   }
@@ -1425,14 +1448,9 @@ async function pushNewPatientToMssql(patient: {
 }) {
   console.log(`[pushNewPatientToMssql] Patient ${patient.patientCode}, serviceType="${patient.serviceType}", providedServiceCode="${patient.serviceCode}"`);
 
-  // Use provided serviceCode directly if available, otherwise resolve from serviceType
+  // Use only explicit serviceCode (or doctor-scoped resolution upstream). Avoid generic type-only inference.
+  // Type-only fallback can map to the wrong service when multiple services share the same type.
   let serviceCode = String(patient.serviceCode ?? "").trim();
-  if (!serviceCode) {
-    const requestedServiceType = String(patient.serviceType ?? "").trim();
-    serviceCode = requestedServiceType
-      ? await resolveServiceCodeForType(requestedServiceType)
-      : "";
-  }
   console.log(`[pushNewPatientToMssql] Final serviceCode="${serviceCode}"`);
 
   return await insertPatientToMssql({
@@ -1504,6 +1522,7 @@ export const medicalRouter = router({
       locationType: z.enum(["center", "external"]).optional(),
       doctorId: z.number().optional(),
       doctorCode: z.string().optional(),
+      doctorName: z.string().optional(),
       serviceCode: z.string().optional(),
       lastVisit: z.string().optional(),
       skipIfExists: z.boolean().optional(),
@@ -1539,10 +1558,13 @@ export const medicalRouter = router({
           if (!existingCode) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Existing patient has no patientCode" });
           }
-          // Use provided doctorCode, or resolve from doctorId
+          // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById(patientInput.doctorId ?? (existingByIdentity as any)?.doctorId);
+            doctorCode = await resolveDoctorCodeById(patientInput.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
+          }
+          if (!doctorCode) {
+            doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
           }
           pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
@@ -1621,10 +1643,13 @@ export const medicalRouter = router({
         console.log(`[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`);
         let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
         if (created?.patientCode && created?.fullName) {
-          // Use provided doctorCode, or resolve from doctorId
+          // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById((created as any).doctorId);
+            doctorCode = await resolveDoctorCodeById((created as any).doctorId) ?? null;
+          }
+          if (!doctorCode) {
+            doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
           }
           console.log(`[createPatient] Resolved doctorCode=${doctorCode}`);
           pushResult = await pushNewPatientToMssql({
@@ -1749,6 +1774,47 @@ export const medicalRouter = router({
   getBuildInfo: protectedProcedure
     .query(async () => {
       return await getBuildInfo();
+    }),
+
+  getRuntimeDbInfo: adminProcedure
+    .query(async () => {
+      const raw = String(process.env.DATABASE_URL ?? "").trim();
+      if (!raw) {
+        return {
+          hasDatabaseUrl: false,
+          protocol: null as string | null,
+          host: null as string | null,
+          port: null as number | null,
+          database: null as string | null,
+          maskedUrl: null as string | null,
+        };
+      }
+      try {
+        const parsed = new URL(raw);
+        const database = parsed.pathname?.replace(/^\//, "") || null;
+        const portNum = parsed.port ? Number(parsed.port) : null;
+        const maskedUser = parsed.username ? "***" : "";
+        const maskedPass = parsed.password ? ":***" : "";
+        const authPart = parsed.username || parsed.password ? `${maskedUser}${maskedPass}@` : "";
+        const maskedUrl = `${parsed.protocol}//${authPart}${parsed.host}${parsed.pathname}${parsed.search}`;
+        return {
+          hasDatabaseUrl: true,
+          protocol: parsed.protocol.replace(":", ""),
+          host: parsed.hostname || null,
+          port: Number.isFinite(portNum) ? portNum : null,
+          database,
+          maskedUrl,
+        };
+      } catch {
+        return {
+          hasDatabaseUrl: true,
+          protocol: null as string | null,
+          host: null as string | null,
+          port: null as number | null,
+          database: null as string | null,
+          maskedUrl: "invalid DATABASE_URL format",
+        };
+      }
     }),
 
   syncPatientsFromMssql: adminProcedure
@@ -1930,6 +1996,7 @@ export const medicalRouter = router({
       locationType: z.enum(["center", "external"]).default("center"),
       doctorId: z.number().optional(),
       doctorCode: z.string().optional(),
+      doctorName: z.string().optional(),
       serviceCode: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -1950,10 +2017,13 @@ export const medicalRouter = router({
           if (!existingCode) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Existing patient has no patientCode" });
           }
-          // Use provided doctorCode, or resolve from doctorId
+          // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(input.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById(input.doctorId ?? (existingByIdentity as any)?.doctorId);
+            doctorCode = await resolveDoctorCodeById(input.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
+          }
+          if (!doctorCode) {
+            doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
           }
           pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
@@ -2036,10 +2106,13 @@ export const medicalRouter = router({
         }
 
         if (created?.patientCode && created?.fullName) {
-          // Use provided doctorCode, or resolve from doctorId
+          // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(input.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById((created as any).doctorId);
+            doctorCode = await resolveDoctorCodeById((created as any).doctorId) ?? null;
+          }
+          if (!doctorCode) {
+            doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
           }
           pushResult = await pushNewPatientToMssql({
             patientCode: String(created.patientCode),
@@ -2248,12 +2321,14 @@ export const medicalRouter = router({
     .input(
       z.object({
         patientIds: z.array(z.number()).min(1),
+        doctorCode: z.string().min(1),
         doctorName: z.string().min(1),
         doctorLocationType: z.enum(["center", "external"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const uniqueIds = Array.from(new Set(input.patientIds.filter((id) => Number.isFinite(id))));
+      const nextDoctorCode = input.doctorCode.trim();
       const nextDoctorName = input.doctorName.trim();
       const nextLocationType = input.doctorLocationType;
       const snapshots: Array<{
@@ -2280,6 +2355,9 @@ export const medicalRouter = router({
         });
 
         const nextUpdates: Record<string, any> = {
+          doctorCode: nextDoctorCode || null,
+          doctorId: null,
+          treatingDoctor: nextDoctorName || null,
           locationType: nextLocationType,
         };
         if (nextLocationType === "external") {
@@ -2289,6 +2367,17 @@ export const medicalRouter = router({
         await db.upsertPatientPageState(patientId, "examination", {
           ...existingData,
           doctorName: nextDoctorName,
+          doctorCode: nextDoctorCode,
+          doctorCodes: Array.from(
+            new Set(
+              [
+                ...((Array.isArray((existingData as any)?.doctorCodes) ? (existingData as any).doctorCodes : []) as unknown[]),
+                nextDoctorCode,
+              ]
+                .map((v) => String(v ?? "").trim())
+                .filter(Boolean)
+            )
+          ),
           signatures: {
             ...(existingData.signatures ?? {}),
             doctor: nextDoctorName,
@@ -2305,6 +2394,7 @@ export const medicalRouter = router({
         }, {}),
         fromDoctorSamples: Array.from(new Set(snapshots.map((s) => s.doctorName).filter(Boolean))).slice(0, 10),
         toDoctor: nextDoctorName,
+        doctorCode: nextDoctorCode,
         doctorName: nextDoctorName,
         doctorLocationType: nextLocationType,
         patientIds: uniqueIds.slice(0, 200),
@@ -2422,7 +2512,7 @@ export const medicalRouter = router({
     }),
 
   // Delete patient with all related data
-  deletePatientWithAllData: receptionProcedure
+  deletePatientWithAllData: adminProcedure
     .input(z.object({ patientId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -2435,7 +2525,7 @@ export const medicalRouter = router({
     }),
 
   // Delete visit with all related data
-  deleteVisitWithAllData: nurseProcedure
+  deleteVisitWithAllData: adminProcedure
     .input(z.object({ visitId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -2448,7 +2538,7 @@ export const medicalRouter = router({
     }),
 
   // Delete examination directly (for orphaned exams with invalid visitId)
-  deleteExaminationDirect: nurseProcedure
+  deleteExaminationDirect: adminProcedure
     .input(z.object({ examinationId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -2782,6 +2872,30 @@ export const medicalRouter = router({
 
         let appointmentId = (result as any)?.insertId as number | undefined;
         if (!appointmentId) {
+          const createdMs = new Date(input.appointmentDate).getTime();
+          const patientAppointments = await db.getAppointmentsByPatient(input.patientId);
+          const candidates = patientAppointments
+            .filter((row: any) => String(row?.appointmentType ?? "") === input.appointmentType)
+            .filter((row: any) => String(row?.branch ?? "") === input.branch)
+            .map((row: any) => {
+              const rowMs =
+                row?.appointmentDate instanceof Date
+                  ? row.appointmentDate.getTime()
+                  : new Date(String(row?.appointmentDate ?? "")).getTime();
+              const delta = Number.isFinite(rowMs) ? Math.abs(rowMs - createdMs) : Number.MAX_SAFE_INTEGER;
+              return { row, delta };
+            })
+            .filter((item: any) => item.delta <= 2 * 60 * 1000)
+            .sort((a: any, b: any) => {
+              if (a.delta !== b.delta) return a.delta - b.delta;
+              return Number(b?.row?.id ?? 0) - Number(a?.row?.id ?? 0);
+            });
+          const matched = candidates[0]?.row;
+          if (matched?.id && Number(matched.id) > 0) {
+            appointmentId = Number(matched.id);
+          }
+        }
+        if (!appointmentId) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to create appointment - no ID returned from database"
@@ -2857,7 +2971,7 @@ export const medicalRouter = router({
   // ============ EXAMINATION ROUTERS ============
 
   // Nurse: Create examination data
-  createExamination: nurseProcedure
+  createExamination: medicalStaffProcedure
     .input(z.object({
       visitId: z.number(),
       patientId: z.number(),
@@ -2932,6 +3046,25 @@ export const medicalRouter = router({
       return await db.getGlassesRecordsByPatient(input.patientId);
     }),
 
+  getAfterRefractionByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.getAfterRefractionByPatient(input.patientId);
+    }),
+
+  saveAfterRefractionData: protectedProcedure
+    .input(
+      z.object({
+        examinationId: z.number().int().positive(),
+        patientId: z.number().int().positive(),
+        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
+        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return await db.saveAfterRefractionData(input);
+    }),
+
   getVisitsByPatient: protectedProcedure
     .input(z.union([
       z.number(),
@@ -2980,17 +3113,12 @@ export const medicalRouter = router({
     }),
 
   // Update visit date
-  updateVisitDate: protectedProcedure
+  updateVisitDate: adminProcedure
     .input(z.object({
       visitId: z.number(),
       visitDate: z.string(),
     }))
-    .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["doctor", "nurse", "admin", "manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to update visit" });
-      }
-
+    .mutation(async ({ input }) => {
       // Parse the date
       const [year, month, day] = input.visitDate.split('-');
       const visitDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -3019,8 +3147,11 @@ export const medicalRouter = router({
       // Update autorefraction if provided
       if (input.updates.autorefraction && exams.length > 0) {
         const exam = exams[0];
-        await db.updateExamination(exam.id, {
-          autorefraction: JSON.stringify(input.updates.autorefraction)
+        await db.saveAutorefractometryData({
+          examinationId: exam.id,
+          patientId: exam.patientId,
+          od: input.updates.autorefraction?.od,
+          os: input.updates.autorefraction?.os,
         });
       }
 
@@ -3081,7 +3212,7 @@ export const medicalRouter = router({
       }
 
       // Get or create followup sheet
-      let sheet = await db.getLatestFollowupSheet(input.patientId, input.sheetType);
+      let sheet: any = await db.getLatestFollowupSheet(input.patientId, input.sheetType);
       let nextVersion = 1;
 
       if (sheet) {
@@ -3100,7 +3231,7 @@ export const medicalRouter = router({
           sheetType: input.sheetType,
           version: nextVersion,
         });
-        sheet = { id: (result as any)[0], patientId: input.patientId, sheetType: input.sheetType, version: nextVersion };
+        sheet = { id: (result as any)[0], patientId: input.patientId, sheetType: input.sheetType, version: nextVersion, createdAt: new Date(), updatedAt: new Date() };
       }
 
       // Save items
@@ -3174,7 +3305,7 @@ export const medicalRouter = router({
     }),
 
   // Update examination
-  updateExamination: doctorProcedure
+  updateExamination: medicalStaffProcedure
     .input(z.object({
       examinationId: z.number(),
       updates: z.record(z.string(), z.any()),
@@ -3271,7 +3402,7 @@ export const medicalRouter = router({
     }),
 
   // Doctor: Update or create pentacam results
-  updatePentacamResult: doctorProcedure
+  updatePentacamResult: medicalStaffProcedure
     .input(z.object({
       visitId: z.number(),
       patientId: z.number(),
@@ -3925,7 +4056,7 @@ export const medicalRouter = router({
   // ============ DOCTOR REPORT ROUTERS ============
 
   // Doctor: Create report
-  createDoctorReport: doctorProcedure
+  createDoctorReport: medicalStaffProcedure
     .input(z.object({
       visitId: z.number(),
       patientId: z.number(),
@@ -3953,7 +4084,7 @@ export const medicalRouter = router({
     }),
 
   // Doctor: Update existing report
-  updateDoctorReport: doctorProcedure
+  updateDoctorReport: medicalStaffProcedure
     .input(z.object({
       reportId: z.number(),
       diagnosis: z.string().optional(),
@@ -3978,7 +4109,7 @@ export const medicalRouter = router({
 
         // Convert surgeryScheduledDate to Date if provided
         if (updates.surgeryScheduledDate) {
-          updateData.surgeryScheduledDate = new Date(updates.surgeryScheduledDate);
+          updateData.surgeryScheduledDate = new Date(updates.surgeryScheduledDate).toISOString();
         }
 
         await db.updateDoctorReport(reportId, updateData);
@@ -4004,7 +4135,7 @@ export const medicalRouter = router({
   getDoctorReports: protectedProcedure.query(async () => {
     return await db.getAllDoctorReports();
   }),
-  createMedicalReport: doctorProcedure
+  createMedicalReport: medicalStaffProcedure
     .input(z.object({
       patientId: z.number(),
       visitDate: z.string().optional(),
@@ -4042,7 +4173,7 @@ export const medicalRouter = router({
       );
     return { success: true };
   }),
-  updateMedicalReport: doctorProcedure
+  updateMedicalReport: medicalStaffProcedure
     .input(z.object({
       reportId: z.number(),
       visitDate: z.string().optional(),
@@ -4324,12 +4455,12 @@ export const medicalRouter = router({
       return { success: true };
     }),
 
-  getMyTestFavorites: doctorProcedure
+  getMyTestFavorites: medicalStaffProcedure
     .query(async ({ ctx }) => {
       return await db.getTestFavoritesByUser(ctx.user.id);
     }),
 
-  toggleTestFavorite: doctorProcedure
+  toggleTestFavorite: medicalStaffProcedure
     .input(z.object({ testId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       return await db.toggleTestFavorite(ctx.user.id, input.testId);
@@ -4337,7 +4468,7 @@ export const medicalRouter = router({
 
   // ============ TEST REQUESTS ============
 
-  createTestRequest: doctorProcedure
+  createTestRequest: medicalStaffProcedure
     .input(z.object({
       patientId: z.number(),
       visitId: z.number().optional(),
@@ -4400,7 +4531,7 @@ export const medicalRouter = router({
   // ============ PRESCRIPTION ROUTERS ============
 
   // Doctor: Create prescription
-  createPrescription: doctorProcedure
+  createPrescription: medicalStaffProcedure
     .input(z.object({
       visitId: z.number(),
       patientId: z.number(),
@@ -4433,7 +4564,7 @@ export const medicalRouter = router({
       return await db.getPrescriptionsByVisit(input.visitId);
     }),
 
-  createPrescriptionWithItems: doctorProcedure
+  createPrescriptionWithItems: medicalStaffProcedure
     .input(z.object({
       patientId: z.number(),
       visitId: z.number().optional(),
@@ -4501,7 +4632,7 @@ export const medicalRouter = router({
   // ============ SURGERY ROUTERS ============
 
   // Doctor: Create surgery record
-  createSurgery: doctorProcedure
+  createSurgery: medicalStaffProcedure
     .input(z.object({
       patientId: z.number(),
       appointmentId: z.number().optional(),
@@ -4538,7 +4669,7 @@ export const medicalRouter = router({
     }),
 
   // Delete surgery
-  deleteSurgery: doctorProcedure
+  deleteSurgery: medicalStaffProcedure
     .input(z.object({ surgeryId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteSurgery(input.surgeryId);
@@ -4547,7 +4678,7 @@ export const medicalRouter = router({
     }),
 
   // Post-op followup
-  createPostOpFollowup: doctorProcedure
+  createPostOpFollowup: medicalStaffProcedure
     .input(z.object({
       surgeryId: z.number(),
       patientId: z.number().optional(),
@@ -4602,12 +4733,13 @@ export const medicalRouter = router({
     .input(z.object({
       doctorTab: z.string(),
       listDate: z.string(),
+      operationType: z.string().optional().nullable(),
     }))
     .query(async ({ input }) => {
       if (!input.listDate) {
         return { id: null, items: [] as any[] };
       }
-      return await db.getOperationList(input.doctorTab, input.listDate);
+      return await db.getOperationList(input.doctorTab, input.listDate, input.operationType ?? null);
     }),
   getOperationListById: protectedProcedure
     .input(z.object({ listId: z.number() }))
@@ -4617,6 +4749,7 @@ export const medicalRouter = router({
 
   saveOperationList: protectedProcedure
     .input(z.object({
+      listId: z.number().optional().nullable(),
       doctorTab: z.string(),
       listDate: z.string(),
       operationType: z.string().optional().nullable(),
@@ -4628,8 +4761,10 @@ export const medicalRouter = router({
         phone: z.string().optional(),
         doctor: z.string().optional(),
         operation: z.string().optional(),
+        eye: z.string().optional(),
         center: z.boolean().optional(),
-        payment: z.boolean().optional(),
+        payment: z.string().optional(),
+        hospital: z.string().optional(),
         code: z.string().optional(),
         discountType: z.string().optional(),
         discountValue: z.number().optional(),
@@ -4637,6 +4772,7 @@ export const medicalRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       await db.saveOperationList({
+        listId: input.listId ?? null,
         doctorTab: input.doctorTab,
         listDate: input.listDate,
         operationType: input.operationType ?? null,
@@ -4702,9 +4838,10 @@ export const medicalRouter = router({
     .input(z.object({
       doctorTab: z.string(),
       listDate: z.string(),
+      operationType: z.string().optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
-      await db.deleteOperationList(input.doctorTab, input.listDate);
+      await db.deleteOperationList(input.doctorTab, input.listDate, input.operationType ?? null);
       await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_LIST", "operationList", 0, { message: `Deleted operation list for ${input.doctorTab}` });
       return { success: true };
     }),
@@ -5151,8 +5288,9 @@ export const medicalRouter = router({
       }
 
       // Build/refresh sheet payload from dedicated tables (source of truth).
-      const [autorefRows, glassesRows, pentacamRows, reports, surgeries] = await Promise.all([
+      const [autorefRows, afterRefractionRows, glassesRows, pentacamRows, reports, surgeries] = await Promise.all([
         db.getAutorefractometryByPatient(input.patientId),
+        db.getAfterRefractionByPatient(input.patientId),
         db.getGlassesRecordsByPatient(input.patientId),
         db.getPentacamResultsByPatient(input.patientId, 1),
         db.getDoctorReportsByPatient(input.patientId),
@@ -5171,6 +5309,10 @@ export const medicalRouter = router({
         "sphereOD", "cylinderOD", "axisOD", "ucvaOD", "bcvaOD", "iopOD",
         "sphereOS", "cylinderOS", "axisOS", "ucvaOS", "bcvaOS", "iopOS",
       ]) as any;
+      const afterRefraction = pickFirstWithValues(afterRefractionRows as any[], [
+        "sphereOD", "cylinderOD", "axisOD",
+        "sphereOS", "cylinderOS", "axisOS",
+      ]) as any;
       const glasses = pickFirstWithValues(glassesRows as any[], [
         "sOD", "cOD", "axisOD", "pdOD", "bcvaOD",
         "sOS", "cOS", "axisOS", "pdOS", "bcvaOS",
@@ -5181,6 +5323,14 @@ export const medicalRouter = router({
       ]) as any;
       const report = (reports?.[0] ?? {}) as any;
       const surgery = (surgeries?.[0] ?? {}) as any;
+      const odSphere = autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "";
+      const odCylinder = autoref?.cylinderOD ?? base?.examData?.autorefraction?.od?.c ?? "";
+      const odAxis = autoref?.axisOD ?? base?.examData?.autorefraction?.od?.axis ?? "";
+      const osSphere = autoref?.sphereOS ?? base?.examData?.autorefraction?.os?.s ?? "";
+      const osCylinder = autoref?.cylinderOS ?? base?.examData?.autorefraction?.os?.c ?? "";
+      const osAxis = autoref?.axisOS ?? base?.examData?.autorefraction?.os?.axis ?? "";
+      const odAirPuff = autoref?.iopOD ?? base?.examData?.autorefraction?.od?.airPuff1 ?? "";
+      const osAirPuff = autoref?.iopOS ?? base?.examData?.autorefraction?.os?.airPuff1 ?? "";
 
       const payload = {
         ...base,
@@ -5195,21 +5345,51 @@ export const medicalRouter = router({
           autorefraction: {
             od: {
               ...(base?.examData?.autorefraction?.od ?? {}),
-              s: autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "",
-              c: autoref?.cylinderOD ?? base?.examData?.autorefraction?.od?.c ?? "",
-              axis: autoref?.axisOD ?? base?.examData?.autorefraction?.od?.axis ?? "",
+              s: odSphere,
+              s1: odSphere,
+              s2: odSphere,
+              s3: odSphere,
+              c: odCylinder,
+              c1: odCylinder,
+              c2: odCylinder,
+              c3: odCylinder,
+              axis: odAxis,
+              a1: odAxis,
+              a2: odAxis,
+              a3: odAxis,
+              afterS: afterRefraction?.sphereOD ?? base?.examData?.autorefraction?.od?.afterS ?? "",
+              afterC: afterRefraction?.cylinderOD ?? base?.examData?.autorefraction?.od?.afterC ?? "",
+              afterA: afterRefraction?.axisOD ?? base?.examData?.autorefraction?.od?.afterA ?? "",
               ucva: autoref?.ucvaOD ?? base?.examData?.autorefraction?.od?.ucva ?? "",
               bcva: autoref?.bcvaOD ?? base?.examData?.autorefraction?.od?.bcva ?? "",
               iop: autoref?.iopOD ?? base?.examData?.autorefraction?.od?.iop ?? "",
+              airPuff1: odAirPuff,
+              airPuff2: odAirPuff,
+              airPuff3: odAirPuff,
             },
             os: {
               ...(base?.examData?.autorefraction?.os ?? {}),
-              s: autoref?.sphereOS ?? base?.examData?.autorefraction?.os?.s ?? "",
-              c: autoref?.cylinderOS ?? base?.examData?.autorefraction?.os?.c ?? "",
-              axis: autoref?.axisOS ?? base?.examData?.autorefraction?.os?.axis ?? "",
+              s: osSphere,
+              s1: osSphere,
+              s2: osSphere,
+              s3: osSphere,
+              c: osCylinder,
+              c1: osCylinder,
+              c2: osCylinder,
+              c3: osCylinder,
+              axis: osAxis,
+              a1: osAxis,
+              a2: osAxis,
+              a3: osAxis,
+              afterS: afterRefraction?.sphereOS ?? base?.examData?.autorefraction?.os?.afterS ?? "",
+              afterC: afterRefraction?.cylinderOS ?? base?.examData?.autorefraction?.os?.afterC ?? "",
+              afterA: afterRefraction?.axisOS ?? base?.examData?.autorefraction?.os?.afterA ?? "",
               ucva: autoref?.ucvaOS ?? base?.examData?.autorefraction?.os?.ucva ?? "",
               bcva: autoref?.bcvaOS ?? base?.examData?.autorefraction?.os?.bcva ?? "",
               iop: autoref?.iopOS ?? base?.examData?.autorefraction?.os?.iop ?? "",
+              airPuff1: osAirPuff,
+              airPuff2: osAirPuff,
+              airPuff3: osAirPuff,
             },
           },
           glasses: {
@@ -5233,29 +5413,29 @@ export const medicalRouter = router({
           pentacam: {
             od: {
               ...(base?.examData?.pentacam?.od ?? {}),
-              k1: pentacam?.k1OD ?? "",
-              k2: pentacam?.k2OD ?? "",
-              axis: pentacam?.axisOD ?? "",
-              ax1: pentacam?.axisOD ?? "",
-              ax2: pentacam?.axisOD ?? "",
-              thinnest: pentacam?.thinnestPointOD ?? "",
-              apex: pentacam?.apexOD ?? "",
-              residual: pentacam?.residualOD ?? "",
-              ttt: pentacam?.tttOD ?? "",
-              ablation: pentacam?.ablationOD ?? "",
+              k1: pentacam?.k1OD ?? base?.examData?.pentacam?.od?.k1 ?? "",
+              k2: pentacam?.k2OD ?? base?.examData?.pentacam?.od?.k2 ?? "",
+              axis: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.axis ?? "",
+              ax1: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax1 ?? "",
+              ax2: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax2 ?? "",
+              thinnest: pentacam?.thinnestPointOD ?? base?.examData?.pentacam?.od?.thinnest ?? "",
+              apex: pentacam?.apexOD ?? base?.examData?.pentacam?.od?.apex ?? "",
+              residual: pentacam?.residualOD ?? base?.examData?.pentacam?.od?.residual ?? "",
+              ttt: pentacam?.tttOD ?? base?.examData?.pentacam?.od?.ttt ?? "",
+              ablation: pentacam?.ablationOD ?? base?.examData?.pentacam?.od?.ablation ?? "",
             },
             os: {
               ...(base?.examData?.pentacam?.os ?? {}),
-              k1: pentacam?.k1OS ?? "",
-              k2: pentacam?.k2OS ?? "",
-              axis: pentacam?.axisOS ?? "",
-              ax1: pentacam?.axisOS ?? "",
-              ax2: pentacam?.axisOS ?? "",
-              thinnest: pentacam?.thinnestPointOS ?? "",
-              apex: pentacam?.apexOS ?? "",
-              residual: pentacam?.residualOS ?? "",
-              ttt: pentacam?.tttOS ?? "",
-              ablation: pentacam?.ablationOS ?? "",
+              k1: pentacam?.k1OS ?? base?.examData?.pentacam?.os?.k1 ?? "",
+              k2: pentacam?.k2OS ?? base?.examData?.pentacam?.os?.k2 ?? "",
+              axis: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.axis ?? "",
+              ax1: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax1 ?? "",
+              ax2: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax2 ?? "",
+              thinnest: pentacam?.thinnestPointOS ?? base?.examData?.pentacam?.os?.thinnest ?? "",
+              apex: pentacam?.apexOS ?? base?.examData?.pentacam?.os?.apex ?? "",
+              residual: pentacam?.residualOS ?? base?.examData?.pentacam?.os?.residual ?? "",
+              ttt: pentacam?.tttOS ?? base?.examData?.pentacam?.os?.ttt ?? "",
+              ablation: pentacam?.ablationOS ?? base?.examData?.pentacam?.os?.ablation ?? "",
             },
           },
         },
@@ -5318,7 +5498,7 @@ export const medicalRouter = router({
           visitDate: new Date().toISOString(),
           notes: 'Created from refraction save'
         });
-        visitId = newVisit.id;
+        visitId = (newVisit as any).id ?? (newVisit as any).insertId;
       }
 
       // Prepare examination data
@@ -5327,36 +5507,8 @@ export const medicalRouter = router({
         visitId: visitId,
       };
 
-      // Add autorefraction data
-      if (input.autorefraction?.od) {
-        examinationData.sphereOD = input.autorefraction.od.s;
-        examinationData.cylinderOD = input.autorefraction.od.c;
-        examinationData.axisOD = input.autorefraction.od.axis;
-        examinationData.ucvaOD = input.autorefraction.od.ucva;
-        examinationData.bcvaOD = input.autorefraction.od.bcva;
-        examinationData.iopOD = input.autorefraction.od.iop;
-      }
-      if (input.autorefraction?.os) {
-        examinationData.sphereOS = input.autorefraction.os.s;
-        examinationData.cylinderOS = input.autorefraction.os.c;
-        examinationData.axisOS = input.autorefraction.os.axis;
-        examinationData.ucvaOS = input.autorefraction.os.ucva;
-        examinationData.bcvaOS = input.autorefraction.os.bcva;
-        examinationData.iopOS = input.autorefraction.os.iop;
-      }
-
-      // Add glasses data
-      if (input.glassesData) {
-        examinationData.glassesData = JSON.stringify(input.glassesData);
-      }
-
-      // Add pentacam data
-      if (input.pentacam) {
-        examinationData.pentacam = JSON.stringify(input.pentacam);
-      }
-
       // Create/update examination
-      const exams = await db.getExaminationsByVisit(visitId);
+      const exams = await db.getExaminationsByVisit(visitId!);
       let examinationId: number;
 
       if (exams.length > 0) {
@@ -5394,18 +5546,18 @@ export const medicalRouter = router({
         await db.saveGlassesRecord({
           examinationId,
           patientId: input.patientId,
-          sOD: input.glassesData?.od?.s,
-          cOD: input.glassesData?.od?.c,
-          axisOD: input.glassesData?.od?.axis,
-          pdOD: input.glassesData?.od?.pd,
-          addOD: input.glassesData?.od?.add,
-          bcvaOD: input.glassesData?.od?.bcva,
-          sOS: input.glassesData?.os?.s,
-          cOS: input.glassesData?.os?.c,
-          axisOS: input.glassesData?.os?.axis,
-          pdOS: input.glassesData?.os?.pd,
-          addOS: input.glassesData?.os?.add,
-          bcvaOS: input.glassesData?.os?.bcva,
+          sOD: (input.glassesData?.od as any)?.s,
+          cOD: (input.glassesData?.od as any)?.c,
+          axisOD: (input.glassesData?.od as any)?.axis,
+          pdOD: (input.glassesData?.od as any)?.pd,
+          addOD: (input.glassesData?.od as any)?.add,
+          bcvaOD: (input.glassesData?.od as any)?.bcva,
+          sOS: (input.glassesData?.os as any)?.s,
+          cOS: (input.glassesData?.os as any)?.c,
+          axisOS: (input.glassesData?.os as any)?.axis,
+          pdOS: (input.glassesData?.os as any)?.pd,
+          addOS: (input.glassesData?.os as any)?.add,
+          bcvaOS: (input.glassesData?.os as any)?.bcva,
         });
       }
 
@@ -5462,9 +5614,75 @@ export const medicalRouter = router({
         visitId: visitId,
       };
 
+      const pickNonEmptyString = (...values: unknown[]): string | undefined => {
+        for (const value of values) {
+          if (value === null || value === undefined) continue;
+          const normalized = String(value).trim();
+          if (normalized) return normalized;
+        }
+        return undefined;
+      };
+
       // Extract autoref data from payload
-      const autorefractionOd = input.data["autoref-od"] || input.data["autoref"]?.od;
-      const autorefractionOs = input.data["autoref-os"] || input.data["autoref"]?.os;
+      const autorefractionPayload =
+        input.data["autorefraction"] && typeof input.data["autorefraction"] === "object"
+          ? (input.data["autorefraction"] as Record<string, any>)
+          : null;
+      const autorefractionOd =
+        (input.data["autoref-od"] as Record<string, any> | undefined) ??
+        ((input.data["autoref"] as any)?.od as Record<string, any> | undefined) ??
+        (autorefractionPayload?.od as Record<string, any> | undefined);
+      const autorefractionOs =
+        (input.data["autoref-os"] as Record<string, any> | undefined) ??
+        ((input.data["autoref"] as any)?.os as Record<string, any> | undefined) ??
+        (autorefractionPayload?.os as Record<string, any> | undefined);
+
+      const sphereOD = pickNonEmptyString(
+        autorefractionOd?.s,
+        autorefractionOd?.s1,
+        autorefractionOd?.s2,
+        autorefractionOd?.s3
+      );
+      const cylinderOD = pickNonEmptyString(
+        autorefractionOd?.c,
+        autorefractionOd?.c1,
+        autorefractionOd?.c2,
+        autorefractionOd?.c3
+      );
+      const axisOD = pickNonEmptyString(
+        autorefractionOd?.axis,
+        autorefractionOd?.a1,
+        autorefractionOd?.a2,
+        autorefractionOd?.a3
+      );
+      const sphereOS = pickNonEmptyString(
+        autorefractionOs?.s,
+        autorefractionOs?.s1,
+        autorefractionOs?.s2,
+        autorefractionOs?.s3
+      );
+      const cylinderOS = pickNonEmptyString(
+        autorefractionOs?.c,
+        autorefractionOs?.c1,
+        autorefractionOs?.c2,
+        autorefractionOs?.c3
+      );
+      const axisOS = pickNonEmptyString(
+        autorefractionOs?.axis,
+        autorefractionOs?.a1,
+        autorefractionOs?.a2,
+        autorefractionOs?.a3
+      );
+      const airPuffOD = pickNonEmptyString(
+        autorefractionOd?.airPuff1,
+        autorefractionOd?.airPuff2,
+        autorefractionOd?.airPuff3
+      );
+      const airPuffOS = pickNonEmptyString(
+        autorefractionOs?.airPuff1,
+        autorefractionOs?.airPuff2,
+        autorefractionOs?.airPuff3
+      );
 
       // Extract glasses data for dedicated table save
       const glassesPayload = input.data["glasses"];
@@ -5489,18 +5707,71 @@ export const medicalRouter = router({
         await db.saveAutorefractometryData({
           examinationId,
           patientId: input.patientId,
-          sphereOD: autorefractionOd?.s,
-          cylinderOD: autorefractionOd?.c,
-          axisOD: autorefractionOd?.axis,
+          sphereOD,
+          cylinderOD,
+          axisOD,
           ucvaOD: autorefractionOd?.ucva,
           bcvaOD: autorefractionOd?.bcva,
-          iopOD: autorefractionOd?.iop,
-          sphereOS: autorefractionOs?.s,
-          cylinderOS: autorefractionOs?.c,
-          axisOS: autorefractionOs?.axis,
+          iopOD: autorefractionOd?.iop ?? airPuffOD,
+          od: autorefractionOd,
+          sphereOS,
+          cylinderOS,
+          axisOS,
           ucvaOS: autorefractionOs?.ucva,
           bcvaOS: autorefractionOs?.bcva,
-          iopOS: autorefractionOs?.iop,
+          iopOS: autorefractionOs?.iop ?? airPuffOS,
+          os: autorefractionOs,
+        });
+      }
+
+      // Save AFTER refraction to dedicated table when present.
+      const afterRefractionPayload =
+        input.data["afterRefraction"] && typeof input.data["afterRefraction"] === "object"
+          ? (input.data["afterRefraction"] as Record<string, any>)
+          : null;
+      const afterSphereOD = pickNonEmptyString(
+        autorefractionOd?.afterS,
+        afterRefractionPayload?.od?.s,
+        afterRefractionPayload?.od?.sphere
+      );
+      const afterCylinderOD = pickNonEmptyString(
+        autorefractionOd?.afterC,
+        afterRefractionPayload?.od?.c,
+        afterRefractionPayload?.od?.cylinder
+      );
+      const afterAxisOD = pickNonEmptyString(
+        autorefractionOd?.afterA,
+        afterRefractionPayload?.od?.axis,
+        afterRefractionPayload?.od?.a
+      );
+      const afterSphereOS = pickNonEmptyString(
+        autorefractionOs?.afterS,
+        afterRefractionPayload?.os?.s,
+        afterRefractionPayload?.os?.sphere
+      );
+      const afterCylinderOS = pickNonEmptyString(
+        autorefractionOs?.afterC,
+        afterRefractionPayload?.os?.c,
+        afterRefractionPayload?.os?.cylinder
+      );
+      const afterAxisOS = pickNonEmptyString(
+        autorefractionOs?.afterA,
+        afterRefractionPayload?.os?.axis,
+        afterRefractionPayload?.os?.a
+      );
+      if (
+        examinationId &&
+        (afterSphereOD || afterCylinderOD || afterAxisOD || afterSphereOS || afterCylinderOS || afterAxisOS)
+      ) {
+        await db.saveAfterRefractionData({
+          examinationId,
+          patientId: input.patientId,
+          sphereOD: afterSphereOD,
+          cylinderOD: afterCylinderOD,
+          axisOD: afterAxisOD,
+          sphereOS: afterSphereOS,
+          cylinderOS: afterCylinderOS,
+          axisOS: afterAxisOS,
         });
       }
 
@@ -5689,6 +5960,10 @@ export const medicalRouter = router({
         od: z.string().optional(),
         os: z.string().optional(),
       }).optional(),
+      after: z.object({
+        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
+        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
+      }).optional(),
       glasses: z.object({
         od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional(), bcva: z.string().optional() }).optional(),
         os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional(), bcva: z.string().optional() }).optional(),
@@ -5855,6 +6130,13 @@ export const medicalRouter = router({
         examinationId,
         patientId: input.patientId,
         ...input.autoref,
+      });
+
+      // Save AFTER to dedicated table (separate from autoref)
+      await db.saveAfterRefractionData({
+        examinationId,
+        patientId: input.patientId,
+        ...input.after,
       });
 
       // Always save glasses
@@ -6155,8 +6437,15 @@ export const medicalRouter = router({
       await db.updateVisitQueueStatus(input.visitId, input.queueStatus);
 
       // If marked as treated, advance the non-external queue one-by-one.
-      if (input.queueStatus === "treated" && input.date) {
-        await db.cascadeQueueStatus(input.date);
+      if (input.queueStatus === "treated") {
+        const normalizedInputDate =
+          typeof input.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.date.trim())
+            ? input.date.trim()
+            : null;
+        const visitDateIso = normalizedInputDate || (await db.getVisitDateIsoById(input.visitId));
+        if (visitDateIso) {
+          await db.cascadeQueueStatus(visitDateIso);
+        }
       }
 
       await db.logAuditEvent(ctx.user.id, "UPDATE_QUEUE_STATUS", "visit", input.visitId, {

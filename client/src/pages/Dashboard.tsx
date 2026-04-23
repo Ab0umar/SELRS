@@ -49,6 +49,7 @@ import { OfflinePageState } from "@/components/OfflinePageState";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { getCardUsage, getPanelState, getRecentPatients, pushRecentPatient, setPanelState, trackCardUsage } from "@/lib/dashboardLocalState";
 import MedicalFilePanel from "@/components/MedicalFilePanel";
+import SearchableCombobox from "@/components/SearchableCombobox";
 
 const PATIENT_DATA_EDIT_PERMISSION = "/patient-data/edit";
 
@@ -59,6 +60,27 @@ const serviceTypeLabels: Record<string, string> = {
   lasik: "ليزك",
   external: "خارجي",
   surgery: "جراحة",
+};
+interface DoctorServiceSheetMatch {
+  doctorCode: string;
+  serviceCode: string;
+  sheetType: string;
+  isActive?: boolean;
+}
+
+const normalizeMappingCode = (value: unknown): string => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const westernDigits = raw
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  const noDecimal = westernDigits.replace(/\.0+$/, "");
+  const compact = noDecimal.replace(/\s+/g, "").toLowerCase();
+  if (/^\d+$/.test(compact)) {
+    const stripped = compact.replace(/^0+/, "");
+    return stripped || "0";
+  }
+  return compact;
 };
 
 const getServiceTypeLabel = (serviceType: string | undefined) => {
@@ -89,6 +111,7 @@ export default function Dashboard() {
   const [todayGroupVisibleCounts, setTodayGroupVisibleCounts] = useState<Record<string, number>>({});
   const [treatedPatients, setTreatedPatients] = useState<Set<number>>(new Set());
   const [recentPatients, setRecentPatients] = useState(() => getRecentPatients());
+  const [patientPickerNav, setPatientPickerNav] = useState<string | null>(null);
 
   // Card visibility toggles - loaded from server
   const cardVisibilityQuery = trpc.medical.getDashboardCardVisibility.useQuery(undefined, {
@@ -103,6 +126,8 @@ export default function Dashboard() {
   const [todayTab, setTodayTab] = useState("patients");
   const [queueStatusTab, setQueueStatusTab] = useState<"checkedIn" | "next" | "clinic" | "treated">("checkedIn");
   const [sheetFilter, setSheetFilter] = useState<string | null>(null);
+  const [selectedTodayPatient, setSelectedTodayPatient] = useState<{ id: number; serviceType?: string } | null>(null);
+  const [todayPatientMenu, setTodayPatientMenu] = useState<{ id: number; serviceType?: string; fullName?: string } | null>(null);
   const [selectedPatientForMedicalFile, setSelectedPatientForMedicalFile] = useState<number | null>(null);
   // Dashboard cards
   const [showPatients, setShowPatients] = useState(true);
@@ -415,7 +440,6 @@ export default function Dashboard() {
     {
       enabled: Boolean(selectedPatientId),
       refetchOnWindowFocus: false,
-      onSuccess: (data) => console.log("✅ Exams query success:", { count: data?.length, patientId: selectedPatientId })
     }
   );
 
@@ -425,7 +449,6 @@ export default function Dashboard() {
     {
       enabled: Boolean(selectedPatientId),
       refetchOnWindowFocus: false,
-      onSuccess: (data) => console.log("✅ Visits query success:", { count: data?.length, patientId: selectedPatientId })
     }
   );
 
@@ -660,9 +683,9 @@ export default function Dashboard() {
       }
 
       // Load refraction data from patient page state
-      if (selectedExam?.pageStateData) {
+      if ((selectedExam as any)?.pageStateData) {
         try {
-          const pageState = typeof selectedExam.pageStateData === 'string' ? JSON.parse(selectedExam.pageStateData) : selectedExam.pageStateData;
+          const pageState = typeof (selectedExam as any).pageStateData === 'string' ? JSON.parse((selectedExam as any).pageStateData) : (selectedExam as any).pageStateData;
           if (pageState?.refraction) {
             const refData = pageState.refraction;
             setRefractionTableData({
@@ -746,9 +769,9 @@ export default function Dashboard() {
     };
 
     // Override with page state data if available
-    if (selectedExam?.pageStateData) {
+    if ((selectedExam as any)?.pageStateData) {
       try {
-        const pageState = typeof selectedExam.pageStateData === 'string' ? JSON.parse(selectedExam.pageStateData) : selectedExam.pageStateData;
+        const pageState = typeof (selectedExam as any).pageStateData === 'string' ? JSON.parse((selectedExam as any).pageStateData) : (selectedExam as any).pageStateData;
         if (pageState?.medicalHistory) formData.medicalHistory = pageState.medicalHistory;
         if (pageState?.symptoms) formData.symptoms = pageState.symptoms;
         if (pageState?.measurements) formData.measurements = pageState.measurements;
@@ -994,7 +1017,7 @@ export default function Dashboard() {
         description: "فتح ملف المريض الشامل",
         icon: UserRound,
         color: "bg-emerald-500",
-        action: () => setLocation("/patient-file"),
+        action: () => setPatientPickerNav("/patient-file/:id"),
         path: "/patient-file",
       });
     }
@@ -1049,7 +1072,7 @@ export default function Dashboard() {
         description: "كتابة وعرض التقارير الطبية",
         icon: FileText,
         color: "bg-purple-500",
-        action: () => setLocation("/medical-reports"),
+        action: () => setPatientPickerNav("/medical-reports/:id"),
         path: "/medical-reports",
       });
     }
@@ -1061,7 +1084,7 @@ export default function Dashboard() {
         description: "إنشاء وطباعة روشتات طبية",
         icon: FileText,
         color: "bg-orange-500",
-        action: () => setLocation("/prescription"),
+        action: () => setPatientPickerNav("/prescription/:id"),
         path: "/prescription",
       });
     }
@@ -1072,7 +1095,7 @@ export default function Dashboard() {
         description: "فتح وتعديل مقاس النظاره",
         icon: Eye,
         color: "bg-emerald-600",
-        action: () => setLocation("/refraction"),
+        action: () => setPatientPickerNav("/refraction/:id"),
         path: "/refraction",
       });
     }
@@ -1083,7 +1106,7 @@ export default function Dashboard() {
         description: "إنشاء وطباعة طلبات فحوصات",
         icon: ClipboardList,
         color: "bg-cyan-600",
-        action: () => setLocation("/request-tests"),
+        action: () => setPatientPickerNav("/request-tests/:id"),
         path: "/request-tests",
       });
     }
@@ -1226,6 +1249,9 @@ export default function Dashboard() {
     const key = String(serviceType ?? "").toLowerCase();
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
+    if (key === "pentacam_c") return "Pentacam C";
+    if (key === "pentacam_ex") return "Pentacam Ex";
+    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
     if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_external" || key === "radiology_center" || key === "radiology_external") return "بنتاكام";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
@@ -1236,6 +1262,8 @@ export default function Dashboard() {
     const key = String(serviceType ?? "").toLowerCase();
     if (key === "consultant") return `/sheets/consultant/${patientId}`;
     if (key === "specialist") return `/sheets/specialist/${patientId}`;
+    if (key === "pentacam_c") return `/sheets/lasik/${patientId}`;
+    if (key === "pentacam_ex" || key === "pentacam_ex_c") return `/sheets/external/${patientId}`;
     if (key === "pentacam" || key === "pentacam_center" || key === "radiology_center") return `/sheets/pentacam/${patientId}`;
     if (key === "pentacam_external" || key === "radiology_external") return `/sheets/external/${patientId}`;
     if (key === "lasik") return `/sheets/lasik/${patientId}`;
@@ -1255,6 +1283,66 @@ export default function Dashboard() {
       value: busiestTodayGroup ? `${sheetLabel(busiestTodayGroup.serviceType)} (${busiestTodayGroup.total})` : "-",
     },
   ];
+
+  const PatientNavDialog = () => (
+    <Dialog open={Boolean(patientPickerNav)} onOpenChange={(open) => { if (!open) setPatientPickerNav(null); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>اختر مريضاً</DialogTitle>
+        </DialogHeader>
+        <PatientPicker
+          onSelect={(patient) => {
+            if (!patientPickerNav) return;
+            const path = patientPickerNav.replace(":id", String(patient.id));
+            pushRecentPatient({ id: patient.id, fullName: patient.fullName, patientCode: patient.patientCode ?? "" });
+            setRecentPatients(getRecentPatients());
+            setPatientPickerNav(null);
+            setLocation(path);
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+
+  const TodayPatientMenuDialog = () => (
+    <Dialog open={Boolean(todayPatientMenu)} onOpenChange={(open) => { if (!open) setTodayPatientMenu(null); }}>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>ملفات المريض {todayPatientMenu?.fullName ? `- ${todayPatientMenu.fullName}` : ""}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: "الملف الطبي", action: () => setSelectedPatientForMedicalFile(todayPatientMenu?.id ?? null) },
+            { label: "الملف المجمع", path: () => `/patient-file/${todayPatientMenu?.id}` },
+            { label: "الشيت", path: () => sheetPathForPatient(String(todayPatientMenu?.serviceType || ""), todayPatientMenu?.id ?? 0) },
+            { label: "الملف الشامل", path: () => `/patient-summary/${todayPatientMenu?.id}` },
+            { label: "بنتاكام", path: () => `/sheets/pentacam/${todayPatientMenu?.id}` },
+            { label: "قياس و فحص", path: () => `/examination/${todayPatientMenu?.id}` },
+            { label: "الروشته", path: () => `/prescription/${todayPatientMenu?.id}` },
+            { label: "تحاليل و اشعه", path: () => `/request-tests/${todayPatientMenu?.id}` },
+            { label: "تشخيص/تقرير", path: () => `/medical-reports/${todayPatientMenu?.id}` },
+            { label: "الزيارات", path: () => `/visits/${todayPatientMenu?.id}` },
+          ].map(({ label, action, path }) => (
+            <Button
+              key={label}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs justify-center"
+              onClick={() => {
+                if (!todayPatientMenu) return;
+                if (typeof action === "function") action();
+                if (typeof path === "function") openTrackedPath(path());
+                setTodayPatientMenu(null);
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   const renderCard = (card: any, index: number, extraClassName = "") => {
     const Icon = card.icon;
@@ -1279,7 +1367,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      <PatientNavDialog />
+      <TodayPatientMenuDialog />
 
       <PullToRefresh
         onRefresh={async () => {
@@ -1288,7 +1378,7 @@ export default function Dashboard() {
         className="min-h-screen"
       >
         <main
-          className="w-screen py-8"
+          className="w-full max-w-full overflow-x-hidden py-8"
           dir="rtl"
           onTouchStart={handlePanelSwipeStart}
           onTouchEnd={handlePanelSwipeEnd}
@@ -1314,7 +1404,7 @@ export default function Dashboard() {
               {/* Today's Patients - Inline Section */}
               {canSeeTodayPatients && (
                 <div className="mb-6">
-                  <Card className="overflow-hidden border-slate-200/80 bg-white/95 shadow-sm">
+                  <Card className="border-slate-200/80 bg-white/95 shadow-sm">
                     <CardHeader className="border-b border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.95))] p-3 md:p-4">
                       <div className="flex items-center justify-between mb-2">
                         <CardTitle className="text-base md:text-lg text-slate-900">مرضى اليوم</CardTitle>
@@ -1324,10 +1414,10 @@ export default function Dashboard() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Tabs value={todayTab} onValueChange={setTodayTab} className="flex-1 min-w-[160px]" dir="rtl">
-                            <TabsList className="w-full grid grid-cols-2">
-                              <TabsTrigger value="patients" className="text-xs">المرضى</TabsTrigger>
-                              <TabsTrigger value="operations" className="text-xs">العمليات</TabsTrigger>
+                          <Tabs value={todayTab} onValueChange={setTodayTab} className="flex-1 w-full sm:min-w-[180px]" dir="rtl">
+                            <TabsList className="w-full grid grid-cols-2 h-9 bg-slate-100/90 p-1 rounded-lg">
+                              <TabsTrigger value="patients" className="text-xs sm:text-sm rounded-md">المرضى</TabsTrigger>
+                              <TabsTrigger value="operations" className="text-xs sm:text-sm rounded-md">العمليات</TabsTrigger>
                             </TabsList>
                           </Tabs>
                           <Input type="date" value={todayPatientsDate} onChange={(e) => setTodayPatientsDate(e.target.value)} className="w-36 text-xs" />
@@ -1365,15 +1455,20 @@ export default function Dashboard() {
                         </div>
                         {todayTab === "patients" && (
                           <>
-                            <Tabs value={queueStatusTab} onValueChange={(val) => setQueueStatusTab(val as any)} className="w-full" dir="rtl">
-                              <TabsList className="w-full grid grid-cols-4 h-auto gap-1 bg-transparent p-0">
-                                <TabsTrigger value="checkedIn" className="text-xs py-1 data-[state=active]:bg-blue-100">تسجيل</TabsTrigger>
-                                <TabsTrigger value="next" className="text-xs py-1 data-[state=active]:bg-yellow-100">التالي</TabsTrigger>
-                                <TabsTrigger value="clinic" className="text-xs py-1 data-[state=active]:bg-orange-100">العيادة</TabsTrigger>
-                                <TabsTrigger value="treated" className="text-xs py-1 data-[state=active]:bg-green-100">معالج</TabsTrigger>
-                              </TabsList>
-                            </Tabs>
-                            <div className="flex flex-wrap gap-1" dir="rtl">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 py-1 w-full" dir="rtl">
+                              {[
+                                { value: "checkedIn", label: "تسجيل", active: "bg-blue-100 text-blue-700 border-blue-300", base: "border-slate-200 bg-white text-slate-600" },
+                                { value: "next", label: "التالي", active: "bg-yellow-100 text-yellow-700 border-yellow-300", base: "border-slate-200 bg-white text-slate-600" },
+                                { value: "clinic", label: "العيادة", active: "bg-orange-100 text-orange-700 border-orange-300", base: "border-slate-200 bg-white text-slate-600" },
+                                { value: "treated", label: "معالج", active: "bg-green-100 text-green-700 border-green-300", base: "border-slate-200 bg-white text-slate-600" },
+                              ].map(({ value, label, active, base }) => (
+                                <button key={value} type="button" onClick={() => setQueueStatusTab(value as any)}
+                                  className={`text-xs sm:text-sm px-2 py-1.5 rounded-md border font-medium transition text-center ${queueStatusTab === value ? active : base}`}>
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex flex-wrap gap-1 py-1 w-full" dir="rtl">
                               {[
                                 { value: null, label: "الكل" },
                                 { value: "consultant", label: "استشاري" },
@@ -1381,16 +1476,37 @@ export default function Dashboard() {
                                 { value: "lasik", label: "ليزك" },
                                 { value: "external", label: "خارجي" },
                               ].map(({ value, label }) => (
-                                <button
-                                  key={label}
-                                  type="button"
-                                  onClick={() => setSheetFilter(value)}
-                                  className={`text-xs px-2 py-0.5 rounded-full border transition ${sheetFilter === value ? "bg-slate-700 text-white border-slate-700" : "bg-white text-slate-600 border-slate-300 hover:bg-slate-100"}`}
-                                >
+                                <button key={label} type="button" onClick={() => setSheetFilter(value)}
+                                  className={`text-xs sm:text-sm px-2.5 py-1 rounded-full border transition whitespace-nowrap ${sheetFilter === value ? "bg-slate-700 text-white border-slate-700" : "bg-white text-slate-600 border-slate-300 hover:bg-slate-100"}`}>
                                   {label}
                                 </button>
                               ))}
                             </div>
+                            {/* Moved to popup menu on patient press/select */}
+                            {false && <div className={`grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-nowrap md:overflow-x-auto gap-1 mt-2 pt-2 border-t border-slate-200 py-1 md:scrollbar-none md:-mx-3 md:px-3 lg:-mx-4 lg:px-4 transition-opacity ${selectedTodayPatient ? "opacity-100" : "opacity-30 pointer-events-none"}`} dir="rtl" style={{WebkitOverflowScrolling:"touch"}}>
+                              {[
+                                { label: "الملف الطبي", color: "text-rose-700 border-rose-200 bg-rose-50 hover:bg-rose-100", action: () => setSelectedPatientForMedicalFile(selectedTodayPatient?.id ?? null) },
+                                { label: "الملف المجمع", color: "text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100", path: () => `/patient-file/${selectedTodayPatient?.id}` },
+                                { label: "الشيت", color: "text-cyan-700 border-cyan-200 bg-cyan-50 hover:bg-cyan-100", path: () => sheetPathForPatient(String(selectedTodayPatient?.serviceType || ""), selectedTodayPatient?.id ?? 0) },
+                                { label: "الملف الشامل", color: "text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100", path: () => `/patient-summary/${selectedTodayPatient?.id}` },
+                                { label: "بنتاكام", color: "text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100", path: () => `/sheets/pentacam/${selectedTodayPatient?.id}` },
+                                { label: "قياس و فحص", color: "text-sky-700 border-sky-200 bg-sky-50 hover:bg-sky-100", path: () => `/examination/${selectedTodayPatient?.id}` },
+                                { label: "الروشته", color: "text-green-700 border-green-200 bg-green-50 hover:bg-green-100", path: () => `/prescription/${selectedTodayPatient?.id}` },
+                                { label: "تحاليل و اشعه", color: "text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100", path: () => `/request-tests/${selectedTodayPatient?.id}` },
+                                { label: "تشخيص/تقرير", color: "text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100", path: () => `/medical-reports/${selectedTodayPatient?.id}` },
+                                { label: "الزيارات", color: "text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100", path: () => `/visits/${selectedTodayPatient?.id}` },
+                              ].map(({ label, color, path, action }) => (
+                                <button key={label} type="button"
+                                  onClick={() => {
+                                    if (!selectedTodayPatient) return;
+                                    if (typeof action === "function") { action(); return; }
+                                    if (typeof path === "function") openTrackedPath(path());
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded border font-medium transition text-center ${color}`}>
+                                  {label}
+                                </button>
+                              ))}
+                            </div>}
                           </>
                         )}
                       </div>
@@ -1408,7 +1524,7 @@ export default function Dashboard() {
                             ))}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2" dir="rtl">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5" dir="rtl">
                             {(!queuePatientsQuery.data || queuePatientsQuery.data.length === 0) ? (
                               <div className="col-span-full text-xs text-muted-foreground text-center py-4">لا توجد حالات</div>
                             ) : (
@@ -1421,34 +1537,32 @@ export default function Dashboard() {
                                 .map((p) => {
                                   const pid = Number((p as any).patientId ?? p.id);
                                   return (
-                                <div key={`${p.id}-${pid}`} className="rounded border border-slate-200 p-2 space-y-1.5 bg-slate-50 hover:bg-slate-100 transition">
+                                <div
+                                  key={`${p.id}-${pid}`}
+                                  className={`rounded-lg border p-2.5 space-y-2 transition shadow-sm min-h-[118px] flex flex-col justify-between ${selectedTodayPatient?.id === pid ? "border-slate-500 bg-slate-100 ring-1 ring-slate-400" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+                                >
                                   <div className="flex items-center justify-between gap-1">
-                                    <Button
+                                    <button
                                       type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 w-8 sm:h-10 sm:w-10 p-0 flex-shrink-0 border-green-300 bg-green-100 text-green-700 hover:border-green-400 hover:bg-green-200"
-                                      title="ملف"
-                                      onMouseEnter={() => prefetchPatientContext(pid)}
+                                      className="text-xs sm:text-sm font-semibold text-right flex items-center justify-end gap-1 leading-tight line-clamp-2 min-h-[2.5rem] underline-offset-2 hover:underline text-slate-800"
+                                      title="فتح ملفات المريض"
                                       onClick={() => {
-                                        prefetchPatientContext(pid);
-                                        pushRecentPatient({
-                                          id: pid,
-                                          name: p.fullName,
-                                          code: p.patientCode,
-                                        });
-                                        setRecentPatients(getRecentPatients());
-                                        setSelectedPatientForMedicalFile(pid);
+                                        setSelectedTodayPatient({ id: pid, serviceType: p.serviceType });
+                                        setTodayPatientMenu({ id: pid, serviceType: p.serviceType, fullName: p.fullName });
                                       }}
                                     >
-                                      <FileText className="h-4 w-4 sm:h-6 sm:w-6" />
-                                    </Button>
-                                    <div className="text-xs font-medium text-right flex-1 leading-tight line-clamp-2">{p.fullName}</div>
+                                      <span aria-hidden="true" className="text-slate-500">⋯</span>
+                                      <span>{p.fullName}</span>
+                                    </button>
                                   </div>
-                                  {(p.doctorName || p.serviceType) && <div className="text-xs text-slate-600 text-right">{p.doctorName || getServiceTypeLabel(p.serviceType)}</div>}
-                                  <div className="pt-1 border-t border-slate-200 space-y-1" dir="rtl">
+                                  {(p.doctorName || p.serviceType) && (
+                                    <div className="text-[11px] sm:text-xs text-slate-600 text-right line-clamp-1 min-h-[1rem]">
+                                      {p.doctorName || getServiceTypeLabel(p.serviceType)}
+                                    </div>
+                                  )}
+                                  <div className="pt-1.5 border-t border-slate-200 space-y-1.5 mt-auto" dir="rtl">
                                     {p.checkedInAt && (
-                                      <div className="text-xs text-slate-500">
+                                      <div className="text-[11px] sm:text-xs text-slate-500">
                                         {p.checkedInTime || new Date(p.checkedInAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
                                       </div>
                                     )}
@@ -1478,96 +1592,6 @@ export default function Dashboard() {
                                         ✓
                                       </Button>
                                     )}
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100"
-                                      title="Patient File"
-                                      onClick={() => openTrackedPath(`/patient-file/${pid}`)}
-                                    >
-                                      <UserRound className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
-                                      title="Summary"
-                                      onClick={() => openTrackedPath(`/patient-summary/${pid}`)}
-                                    >
-                                      <ClipboardList className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-cyan-200 bg-cyan-50 text-cyan-700 hover:border-cyan-300 hover:bg-cyan-100"
-                                      title="Sheet"
-                                      onClick={() => openTrackedPath(sheetPathForPatient(String(p.serviceType || ""), pid))}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100"
-                                      title="Pentacam"
-                                      onClick={() => openTrackedPath(`/sheets/pentacam/${pid}`)}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100"
-                                      title="Examination"
-                                      onClick={() => openTrackedPath(`/examination/${pid}`)}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100"
-                                      title="Visits"
-                                      onClick={() => openTrackedPath(`/visits/${pid}`)}
-                                    >
-                                      <Calendar className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100"
-                                      title="روشته"
-                                      onClick={() => openTrackedPath(`/prescription/${pid}`)}
-                                    >
-                                      <Pill className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
-                                      title="فحوصات"
-                                      onClick={() => openTrackedPath(`/request-tests/${pid}`)}
-                                    >
-                                      <Activity className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100"
-                                      title="تقارير"
-                                      onClick={() => openTrackedPath(`/medical-reports/${pid}`)}
-                                    >
-                                      <FileCheck className="h-3 w-3" />
-                                    </Button>
                                   </div>
                                   </div>
                                 </div>
@@ -1667,7 +1691,7 @@ export default function Dashboard() {
                               iop: { od: "", os: "" },
                             },
                             glasses: { od: { s: "", c: "", axis: "", pd: "", bcva: "" }, os: { s: "", c: "", axis: "", pd: "", bcva: "" } },
-                            pentacam: { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "" } },
+                            pentacam: { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" } },
                             tests: [],
                             treatment: [],
                             diagnosis: "",
@@ -2249,7 +2273,7 @@ export default function Dashboard() {
                                             type="button"
                                             className="justify-start flex-1 px-2 py-1 text-xs"
                                             onClick={() => {
-                                              setSelectedTestRequestId(templateId);
+                                              setSelectedTestRequestId(Number(templateId));
                                             }}
                                           >
                                             {template.name || templateId}
@@ -2508,7 +2532,7 @@ export default function Dashboard() {
                                                     type="button"
                                                     className="justify-start flex-1 h-7 px-2 text-xs"
                                                     onClick={() => {
-                                                      setSelectedPrescriptionId(templateId);
+                                                      setSelectedPrescriptionId(Number(templateId));
                                                     }}
                                                   >
                                                     {template.name || templateId}
@@ -2686,9 +2710,54 @@ function ReceptionPatientInfoPanel({
   examinationDate?: string;
   onExaminationDateChange?: (date: string) => void;
 }) {
-  const normalizeServiceType = (value: unknown): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
+  const mapSheetTypeToLegacyService = (
+    value: unknown
+  ): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
     const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "pentacam_c" || raw === "pentacam_center" || raw === "pentacam" || raw === "radiology_center") return "lasik";
+    if (
+      raw === "pentacam_ex" ||
+      raw === "pentacam_ex_c" ||
+      raw === "pentacam_external" ||
+      raw === "radiology_external" ||
+      raw === "surgery_external"
+    ) {
+      return "external";
+    }
     if (raw === "specialist" || raw === "lasik" || raw === "surgery" || raw === "external") return raw;
+    return "consultant";
+  };
+  const normalizeServiceType = (
+    value: unknown
+  ):
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c" => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (
+      raw === "specialist" ||
+      raw === "lasik" ||
+      raw === "surgery" ||
+      raw === "external" ||
+      raw === "pentacam_c" ||
+      raw === "pentacam_ex" ||
+      raw === "pentacam_ex_c"
+    ) {
+      return raw;
+    }
+    if (raw === "pentacam" || raw === "pentacam_center" || raw === "radiology_center") return "pentacam_c";
+    if (raw === "pentacam_external" || raw === "radiology_external") return "pentacam_ex";
+    return "consultant";
+  };
+  const normalizeDoctorTypeToSheet = (value: unknown): "consultant" | "specialist" | "external" => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "specialist" || raw === "spec" || raw.includes("special")) return "specialist";
+    if (raw === "external" || raw.includes("خار")) return "external";
     return "consultant";
   };
   const formatPatientCode = (value: string) => {
@@ -2720,7 +2789,16 @@ function ReceptionPatientInfoPanel({
     job: "",
   });
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
-  const [serviceType, setServiceType] = useState<"consultant" | "specialist" | "lasik" | "surgery" | "external">("consultant");
+  const [serviceType, setServiceType] = useState<
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
+  >("consultant");
   const [serviceCode, setServiceCode] = useState("");
   const [serviceQty, setServiceQty] = useState("2");
   const [serviceFlags, setServiceFlags] = useState({
@@ -2735,6 +2813,14 @@ function ReceptionPatientInfoPanel({
   });
   const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [patientPanelOpen, setPatientPanelOpen] = useState(() => getPanelState("patientPanelOpen", true));
+  const [patientFormData, setPatientFormData] = useState<any>({
+    medicalHistory: "", symptoms: [], measurements: { autoref: { od: { s: "", c: "", axis: "", ucva: "", bcva: "" }, os: { s: "", c: "", axis: "", ucva: "", bcva: "" } }, iop: { od: "", os: "" } },
+    glasses: { od: { s: "", c: "", axis: "", pd: "", bcva: "" }, os: { s: "", c: "", axis: "", pd: "", bcva: "" } },
+    pentacam: { od: { k1: "", k2: "", axis: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" }, os: { k1: "", k2: "", axis: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" } },
+    tests: [], treatment: [], diagnosis: "", diseases: [], recommendations: "",
+  });
+  const [refractionTableData, setRefractionTableData] = useState<any>({ od: { distBcva: "", distS: "", distC: "", distAx: "" }, os: { distBcva: "", distS: "", distC: "", distAx: "" }, near: "" });
+  const [selectedExaminationId, setSelectedExaminationId] = useState<number | null>(null);
 
   // Sync examinationDate from parent when it changes
   useEffect(() => {
@@ -2769,6 +2855,10 @@ function ReceptionPatientInfoPanel({
     staleTime: 60 * 60 * 1000,
     refetchOnReconnect: false,
   });
+  const doctorServiceMatchQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: "doctor_service_sheet_match_v1" },
+    { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, refetchOnReconnect: false }
+  );
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
     staleTime: 60 * 60 * 1000,
@@ -2787,26 +2877,48 @@ function ReceptionPatientInfoPanel({
   }, [availableDoctors, selectedDoctorId]);
   const serviceOptions = useMemo(() => {
     const list = Array.isArray(serviceDirectoryQuery.data) ? (serviceDirectoryQuery.data as any[]) : [];
-    const normalizedSheet = String(serviceType || "").trim().toLowerCase();
-    const doctorType = String((selectedDoctorEntry as any)?.doctorType ?? "").trim().toLowerCase();
-    const targetType = normalizedSheet || doctorType;
-
     const normalized = list
       .filter((item) => item && item.isActive !== false)
       .map((item) => ({
         code: String(item.code ?? "").trim(),
+        normalizedCode: normalizeMappingCode(item.code),
         name: String(item.name ?? "").trim(),
         serviceType: String(item.serviceType ?? "").trim().toLowerCase(),
       }))
       .filter((item) => item.code && item.name);
+    const selectedDoctorCode = normalizeMappingCode((selectedDoctorEntry as any)?.code ?? "");
+    if (!selectedDoctorCode) return normalized;
 
-    if (!targetType) return normalized;
-    return normalized.filter((item) => item.serviceType === targetType);
-  }, [serviceDirectoryQuery.data, serviceType, selectedDoctorEntry]);
+    const rawMatches = (doctorServiceMatchQuery.data as any)?.value;
+    const rows = Array.isArray(rawMatches) ? rawMatches : [];
+    const allowedServiceCodes = new Set(
+      rows
+        .map((row: any) => ({
+          doctorCode: normalizeMappingCode(row?.doctorCode),
+          serviceCode: normalizeMappingCode(row?.serviceCode),
+          isActive: row?.isActive !== false,
+        }))
+        .filter((row: DoctorServiceSheetMatch) => row.isActive !== false)
+        .filter((row: DoctorServiceSheetMatch) => row.doctorCode === selectedDoctorCode)
+        .map((row: DoctorServiceSheetMatch) => row.serviceCode)
+    );
+    if (allowedServiceCodes.size === 0) return [];
+    return normalized.filter((item) => allowedServiceCodes.has(item.normalizedCode));
+  }, [doctorServiceMatchQuery.data, serviceDirectoryQuery.data, selectedDoctorEntry]);
+  useEffect(() => {
+    if (!selectedDoctorEntry) return;
+    setServiceType(normalizeDoctorTypeToSheet((selectedDoctorEntry as any)?.doctorType ?? ""));
+  }, [selectedDoctorEntry]);
   const selectedServiceOption = useMemo(
     () => serviceOptions.find((item) => item.code === serviceCode) ?? null,
     [serviceOptions, serviceCode]
   );
+  useEffect(() => {
+    if (!serviceCode) return;
+    if (!serviceOptions.some((item) => item.code === serviceCode)) {
+      setServiceCode("");
+    }
+  }, [serviceCode, serviceOptions]);
   // Auto-set sheet type based on selected service code
   useEffect(() => {
     if (!serviceCode || !serviceDirectoryQuery.data) return;
@@ -2814,9 +2926,10 @@ function ReceptionPatientInfoPanel({
     const selectedService = allServices.find((s) => String(s.code ?? "").trim() === serviceCode);
     if (selectedService) {
       const srvType = String(selectedService.serviceType ?? "").trim().toLowerCase();
-      if (srvType && ["consultant", "specialist", "lasik", "surgery", "external"].includes(srvType)) {
-        console.log(`🔄 Auto-setting sheet type to "${srvType}" for service code ${serviceCode}`);
-        setServiceType(srvType as any);
+      const mappedSrvType = normalizeServiceType(srvType);
+      if (mappedSrvType) {
+        console.log(`🔄 Auto-setting sheet type to "${mappedSrvType}" for service code ${serviceCode}`);
+        setServiceType(mappedSrvType as any);
       }
     }
   }, [serviceCode, serviceDirectoryQuery.data]);
@@ -2989,7 +3102,7 @@ function ReceptionPatientInfoPanel({
           address: patientDetails.address || undefined,
           occupation: patientDetails.job || undefined,
           branch: "examinations",
-          serviceType,
+          serviceType: mapSheetTypeToLegacyService(serviceType),
           serviceCode: serviceCode || undefined,
           locationType: "center",
           lastVisit: visitDate || undefined,
@@ -3018,7 +3131,7 @@ function ReceptionPatientInfoPanel({
             address: patientDetails.address || null,
             phone: patientDetails.phone || null,
             occupation: patientDetails.job || null,
-            serviceType,
+            serviceType: mapSheetTypeToLegacyService(serviceType),
           },
         });
       }
@@ -3026,7 +3139,7 @@ function ReceptionPatientInfoPanel({
       const commonExamData = {
         doctorName: selectedDoctorEntry ? String(selectedDoctorEntry.name ?? "") : "",
         visitDate,
-        serviceType,
+        serviceType: mapSheetTypeToLegacyService(serviceType),
         serviceCode,
         serviceQty,
         serviceFlags,
@@ -3247,18 +3360,25 @@ function ReceptionPatientInfoPanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             <div className="flex items-center gap-2 min-w-0">
               <Label className="font-bold">الطبيب</Label>
-              <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId} disabled={patientInfo.id > 0}>
-                <SelectTrigger className="text-xs border-0 w-full sm:w-40 min-w-0" style={{ textAlign: "right" }}>
-                  <SelectValue placeholder={doctorsQuery.isLoading ? "Loading doctors..." : "اختر الطبيب"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDoctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      {doctor.code} - {doctor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={selectedDoctorId}
+                onChange={(value) => {
+                  setSelectedDoctorId(value);
+                  const doctor = availableDoctors.find((item) => item.id === value);
+                  if (doctor) {
+                    setServiceType(normalizeDoctorTypeToSheet(doctor.doctorType ?? ""));
+                  }
+                }}
+                disabled={patientInfo.id > 0}
+                options={availableDoctors.map((doctor) => ({
+                  value: doctor.id,
+                  label: `${doctor.code} - ${doctor.name}`,
+                  keywords: `${doctor.code} ${doctor.name} ${doctor.username ?? ""}`,
+                }))}
+                placeholder={doctorsQuery.isLoading ? "Loading doctors..." : "اختر الطبيب"}
+                searchPlaceholder="ابحث عن طبيب..."
+                className="border-0 w-full sm:w-56 min-w-0"
+              />
             </div>
             <div className="flex items-center gap-2 min-w-0">
               <Label className="font-bold">تاريخ الكشف</Label>
@@ -3285,6 +3405,9 @@ function ReceptionPatientInfoPanel({
                 <SelectContent>
                   <SelectItem value="consultant">استشاري</SelectItem>
                   <SelectItem value="specialist">اخصائي</SelectItem>
+                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                   <SelectItem value="lasik">ليزك</SelectItem>
                   <SelectItem value="surgery">عمليات</SelectItem>
                   <SelectItem value="external">خارجي</SelectItem>
@@ -3349,22 +3472,22 @@ function ReceptionPatientInfoPanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             <div className="flex items-center gap-2 min-w-0">
               <Label htmlFor="srv-code" className="font-bold">الخدمة</Label>
-              <Select
-                value={serviceCode || "__none"}
-                onValueChange={(value) => setServiceCode(value === "__none" ? "" : value)}
-              >
-                <SelectTrigger id="srv-code" className="text-xs border-0 w-full sm:w-56 min-w-0">
-                  <SelectValue placeholder="اختر الخدمة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">—</SelectItem>
-                  {serviceOptions.map((opt) => (
-                    <SelectItem key={opt.code} value={opt.code}>
-                      {opt.code} - {opt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={serviceCode}
+                onChange={(value) => setServiceCode(value)}
+                options={[
+                  { value: "", label: "—" },
+                  ...serviceOptions.map((opt) => ({
+                    value: opt.code,
+                    label: `${opt.code} - ${opt.name}`,
+                    keywords: `${opt.code} ${opt.name}`,
+                  })),
+                ]}
+                placeholder="اختر الخدمة"
+                searchPlaceholder="ابحث عن خدمة..."
+                emptyText="لا توجد خدمات مطابقة للطبيب"
+                className="border-0 w-full sm:w-64 min-w-0"
+              />
             </div>
             {isPentacamService ? (
               <div className="flex items-center gap-2 min-w-0">

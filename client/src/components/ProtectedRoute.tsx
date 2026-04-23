@@ -45,7 +45,7 @@ export default function ProtectedRoute({
   const allowedPaths = useMemo(() => {
     const raw = (permissionsQuery.data ?? []) as string[];
     const normalized = raw
-      .map((entry) => normalizePath(entry))
+      .map((entry) => normalizePath(entry.replace(/:r[w]?$/, "")))
       .filter((entry) => entry.length > 0);
     return Array.from(new Set(normalized));
   }, [permissionsQuery.data]);
@@ -267,7 +267,7 @@ export default function ProtectedRoute({
 
   return (
     <>
-      <div className="bg-primary text-primary-foreground shadow-lg print:hidden">
+      <div className="bg-primary text-primary-foreground shadow-lg print:hidden sticky top-0 z-[130]">
         <div className="hidden sm:flex flex-row sm:items-center sm:justify-between px-3 py-3 sm:px-4 sm:py-4 container mx-auto">
           <div className="flex flex-col gap-1 items-start">
             <p className="text-sm font-semibold">مرحباً بك، <span dir="auto">{user?.name ?? ""}</span></p>

@@ -85,6 +85,13 @@
       "when": 1775597008972,
       "tag": "0023_rainy_peter_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1776775840382,
+      "tag": "0024_plain_lenny_balinger",
+      "breakpoints": true
     }
   ]
 }
