@@ -1132,6 +1132,23 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
               {/* Measurements Tab (AutoRef | IOP + Refraction) */}
               <TabsContent value="measurements" className="mt-0 space-y-6">
+                {examinations && examinations.length > 1 && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label className="text-sm font-medium whitespace-nowrap">تاريخ الزيارة</Label>
+                    <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="اختر زيارة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {examinations.map((exam: any) => (
+                          <SelectItem key={exam.id} value={String(exam.id)}>
+                            {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {/* AutoRef | IOP */}
                 <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
                   <h3 className="text-base font-semibold mb-6">AutoRef | IOP</h3>
@@ -1430,6 +1447,23 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
               {/* Pentacam Tab */}
               <TabsContent value="pentacam" className="mt-0 space-y-4">
+                {examinations && examinations.length > 1 && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label className="text-sm font-medium whitespace-nowrap">تاريخ الزيارة</Label>
+                    <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="اختر زيارة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {examinations.map((exam: any) => (
+                          <SelectItem key={exam.id} value={String(exam.id)}>
+                            {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
                   <h3 className="text-base font-semibold mb-6">🔬 بنتاكام</h3>
                   <div className="space-y-4">

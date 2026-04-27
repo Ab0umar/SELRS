@@ -216,6 +216,8 @@ export default function PatientDetails() {
   });
   const [editingVisitId, setEditingVisitId] = useState<number | null>(null);
   const [editVisitDate, setEditVisitDate] = useState<string>("");
+  const [selectedMeasExamId, setSelectedMeasExamId] = useState<number | null>(null);
+  const [selectedPentacamExamId, setSelectedPentacamExamId] = useState<number | null>(null);
 
   const updateVisitDateMutation = trpc.medical.updateVisitDate.useMutation({
     onSuccess: () => {
@@ -495,9 +497,16 @@ export default function PatientDetails() {
     // Don't filter out data - show if ANY field has data
     return examData;
   }, [examinations, autorefractometryQuery.data, afterRefractionQuery.data, glassesRecordsQuery.data, consultantSheetQuery.data, specialistSheetQuery.data, lasikSheetQuery.data, externalSheetQuery.data]);
+
+  const activeMeasExamSources = useMemo(() => {
+    if (selectedMeasExamId === null) return parsedExamSources;
+    const idx = (examinations as any[]).findIndex((e: any) => e.id === selectedMeasExamId);
+    return idx >= 0 ? [parsedExamSources[idx]].filter(Boolean) : parsedExamSources;
+  }, [selectedMeasExamId, parsedExamSources, examinations]);
+
   const autorefractionRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
-      const eyeSources = parsedExamSources.map((source) => source?.autorefraction?.[eyeKey] ?? null);
+      const eyeSources = activeMeasExamSources.map((source) => source?.autorefraction?.[eyeKey] ?? null);
       return {
         eye,
         ucva: firstNonEmpty(...eyeSources.map((item) => item?.ucva)),
@@ -511,10 +520,10 @@ export default function PatientDetails() {
     return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
       [row.ucva, row.bcva, row.s, row.c, row.axis, row.iop].some(Boolean)
     );
-  }, [parsedExamSources]);
+  }, [activeMeasExamSources]);
   const afterRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
-      const afterSources = parsedExamSources.map((source) => (source as any)?.after?.[eyeKey] ?? null);
+      const afterSources = activeMeasExamSources.map((source) => (source as any)?.after?.[eyeKey] ?? null);
       return {
         eye,
         s: firstNonEmpty(...afterSources.map((item) => item?.s)),
@@ -525,14 +534,26 @@ export default function PatientDetails() {
     return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
       [row.s, row.c, row.axis].some(Boolean)
     );
-  }, [parsedExamSources]);
+  }, [activeMeasExamSources]);
   const pentacamMeasurements = useMemo(() => {
     return Array.isArray(pentacamQuery.data) ? (pentacamQuery.data as any[]) : [];
   }, [pentacamQuery.data]);
 
+  const activePentacamMeasurements = useMemo(() => {
+    if (selectedPentacamExamId === null) return pentacamMeasurements;
+    const exam = (examinations as any[]).find((e: any) => e.id === selectedPentacamExamId);
+    return exam?.visitId ? pentacamMeasurements.filter((m: any) => m.visitId === exam.visitId) : [];
+  }, [selectedPentacamExamId, pentacamMeasurements, examinations]);
+
+  const activePentacamExamSources = useMemo(() => {
+    if (selectedPentacamExamId === null) return parsedExamSources;
+    const idx = (examinations as any[]).findIndex((e: any) => e.id === selectedPentacamExamId);
+    return idx >= 0 ? [parsedExamSources[idx]].filter(Boolean) : parsedExamSources;
+  }, [selectedPentacamExamId, parsedExamSources, examinations]);
+
   const glassesRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
-      const glassesSources = parsedExamSources.map((source) => source?.glasses?.[eyeKey] ?? null);
+      const glassesSources = activeMeasExamSources.map((source) => source?.glasses?.[eyeKey] ?? null);
       return {
         eye,
         s: firstNonEmpty(...glassesSources.map((item) => item?.s)),
@@ -547,12 +568,12 @@ export default function PatientDetails() {
       const hasData = [row.s, row.c, row.axis, row.pd, row.bcva].some(val => val !== undefined && val !== null && val !== "");
       return hasData;
     });
-  }, [parsedExamSources]);
+  }, [activeMeasExamSources]);
 
   const pentacamRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eyeSuffix: "OD" | "OS", eyeDisplay: "OD" | "OS") => {
       // Combine pentacamMeasurements and examination pentacam data
-      const dbSources = pentacamMeasurements.map((source) => ({
+      const dbSources = activePentacamMeasurements.map((source: any) => ({
         k1: source?.[`k1${eyeSuffix}`],
         k2: source?.[`k2${eyeSuffix}`],
         thinnest: source?.[`thinnestPoint${eyeSuffix}`],
@@ -563,17 +584,17 @@ export default function PatientDetails() {
       }));
 
       // Also get pentacam data from examinations (saved from RefractionPage)
-      const examPentacamSources = parsedExamSources
+      const examPentacamSources = activePentacamExamSources
         .map((source) => source?.pentacam?.[eyeKey])
         .filter(Boolean);
 
       return {
         eye: eyeDisplay,
-        k1: firstNonEmpty(...dbSources.map((item) => item?.k1), ...examPentacamSources.map((item) => item?.k1)),
-        k2: firstNonEmpty(...dbSources.map((item) => item?.k2), ...examPentacamSources.map((item) => item?.k2)),
-        thinnest: firstNonEmpty(...dbSources.map((item) => item?.thinnest), ...examPentacamSources.map((item) => item?.thinnest)),
-        apex: firstNonEmpty(...dbSources.map((item) => item?.apex), ...examPentacamSources.map((item) => item?.apex)),
-        residual: firstNonEmpty(...dbSources.map((item) => item?.residual), ...examPentacamSources.map((item) => item?.residualStroma)),
+        k1: firstNonEmpty(...dbSources.map((item) => item?.k1), ...examPentacamSources.map((item: any) => item?.k1)),
+        k2: firstNonEmpty(...dbSources.map((item) => item?.k2), ...examPentacamSources.map((item: any) => item?.k2)),
+        thinnest: firstNonEmpty(...dbSources.map((item) => item?.thinnest), ...examPentacamSources.map((item: any) => item?.thinnest)),
+        apex: firstNonEmpty(...dbSources.map((item) => item?.apex), ...examPentacamSources.map((item: any) => item?.apex)),
+        residual: firstNonEmpty(...dbSources.map((item) => item?.residual), ...examPentacamSources.map((item: any) => item?.residualStroma)),
         ttt: firstNonEmpty(...dbSources.map((item) => item?.ttt)),
         ablation: firstNonEmpty(...dbSources.map((item) => item?.ablation)),
       };
@@ -581,7 +602,7 @@ export default function PatientDetails() {
     return [buildEye("od", "OD", "OD"), buildEye("os", "OS", "OS")].filter((row) =>
       [row.k1, row.k2, row.thinnest, row.apex, row.residual, row.ttt, row.ablation].some(Boolean)
     );
-  }, [pentacamMeasurements, parsedExamSources]);
+  }, [activePentacamMeasurements, activePentacamExamSources]);
 
   const testsData = useMemo(() => {
     // Extract tests from radiologyLabsNotes
@@ -1149,7 +1170,24 @@ export default function PatientDetails() {
           <TabsContent value="examinations" className="space-y-6">
             <Card className="border-slate-200/80 bg-white/92 shadow-sm" dir="ltr">
               <CardHeader className="border-b border-slate-100 pb-3">
-                <CardTitle className="text-base">القياسات</CardTitle>
+                <div className="flex items-center justify-between gap-3 flex-wrap" dir="rtl">
+                  <CardTitle className="text-base">القياسات</CardTitle>
+                  {(examinations as any[]).length > 1 && (
+                    <Select value={selectedMeasExamId === null ? "all" : String(selectedMeasExamId)} onValueChange={(v) => setSelectedMeasExamId(v === "all" ? null : Number(v))}>
+                      <SelectTrigger className="h-7 w-auto min-w-[140px] text-xs">
+                        <SelectValue placeholder="كل الزيارات" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الزيارات</SelectItem>
+                        {(examinations as any[]).map((exam) => (
+                          <SelectItem key={exam.id} value={String(exam.id)}>
+                            {formatDate(exam.createdAt)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 <div className="rounded-xl border border-slate-200 bg-white">
@@ -1381,7 +1419,24 @@ export default function PatientDetails() {
             <TabsContent value="pentacam" className="space-y-6">
               <Card className="border-slate-200/80 bg-white/92 shadow-sm" dir="ltr">
                 <CardHeader className="border-b border-slate-100">
-                  <CardTitle>جدول البنتاكام</CardTitle>
+                  <div className="flex items-center justify-between gap-3 flex-wrap" dir="rtl">
+                    <CardTitle>جدول البنتاكام</CardTitle>
+                    {(examinations as any[]).length > 1 && (
+                      <Select value={selectedPentacamExamId === null ? "all" : String(selectedPentacamExamId)} onValueChange={(v) => setSelectedPentacamExamId(v === "all" ? null : Number(v))}>
+                        <SelectTrigger className="h-7 w-auto min-w-[140px] text-xs">
+                          <SelectValue placeholder="كل الزيارات" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">كل الزيارات</SelectItem>
+                          {(examinations as any[]).map((exam) => (
+                            <SelectItem key={exam.id} value={String(exam.id)}>
+                              {formatDate(exam.createdAt)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {pentacamRows.length ? (
