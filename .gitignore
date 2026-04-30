@@ -117,13 +117,59 @@ tmp_*.jpg
 tmp_*.txt
 *.bak
 
-# Office exports (keep code repo lean)
-*.xlsx
-*.xls
-*.csv
-*.doc
-*.docx
+# Root scripts and one-offs (ignore all unless explicitly allowed)
+/*.ts
+/*.js
+/*.mjs
+/*.cjs
+!/capacitor.config.ts
+!/drizzle.config.ts
+!/playwright.config.ts
+!/vite.config.ts
+!/ecosystem.config.js
+!/ecosystem.config.cjs
+!/components.json
+!/postcss.config.mjs
+!/fix-imports.js
 
-# One-off local text dumps
-2026-*-this-session-is-being-continued-from-a-previous-c.txt
-@{name=SELRS; version=*}
+# Root level text/logs/backups/binaries
+/*.txt
+/*.pdf
+/*.jpg
+/*.sql
+/*.ps1
+/*.bat
+/*.exe
+!/README.md
+!/*.md
+
+# Build assets in public (generated)
+client/public/assets/
+
+# Secrets and certs
+origin_cert.txt
+origin_key.txt
+
+# Temporary/Operation files
+/op
+/OD
+/selrs_web
+
+# Typos
+capacitor.conkfig.ts
+
+# Scrap/Old scripts folders
+scripts/New folder/
+scripts/New/ folder/
+scripts/New/
+
+# Generated Android icons/outputs
+android/IconKitchen-Output/
+android/ic_launcher/
+android/AppIcons/android/
+android/AppIcons/Assets.xcassets/
+
+# Scripts folder junk
+scripts/*.png
+scripts/*.jpg
+scripts/*.pdf
