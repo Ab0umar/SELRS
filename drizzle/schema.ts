@@ -1,4 +1,4 @@
-﻿import { int, varchar, text, timestamp, date, boolean, json, decimal, mysqlTable, mysqlEnum, primaryKey, index } from "drizzle-orm/mysql-core";
+import { int, varchar, text, timestamp, date, boolean, json, decimal, mysqlTable, mysqlEnum, primaryKey, index } from "drizzle-orm/mysql-core";
 import { uniqueIndex } from "drizzle-orm/mysql-core"
 /**
  * Core user table with local authentication (username/password)
