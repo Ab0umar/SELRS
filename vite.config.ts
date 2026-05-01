@@ -153,6 +153,8 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const APP_VERSION = process.env.npm_package_version ?? "unknown";
 const BUILD_TIME = new Date().toISOString();
+const ANDROID_GOOGLE_SERVICES_JSON = path.join(PROJECT_ROOT, "android", "app", "google-services.json");
+const hasAndroidGoogleServicesJson = fs.existsSync(ANDROID_GOOGLE_SERVICES_JSON);
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === "production";
@@ -170,6 +172,7 @@ export default defineConfig(({ mode }) => {
       __APP_VERSION__: JSON.stringify(APP_VERSION),
       __BUILD_TIME__: JSON.stringify(BUILD_TIME),
       __FAST_BUILD__: process.env.FAST_BUILD === "1",
+      __SELRS_BUILD_HAS_ANDROID_GOOGLE_SERVICES__: hasAndroidGoogleServicesJson,
     },
     resolve: {
       alias: {

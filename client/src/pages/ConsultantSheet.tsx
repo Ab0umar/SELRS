@@ -16,6 +16,7 @@ import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesi
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 export default function ConsultantSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -548,45 +549,29 @@ export default function ConsultantSheet() {
         }
       `}</style>
       {/* Header */}
-      <header className={`bg-primary text-primary-foreground shadow-lg sticky top-0 z-10 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+      <header
+        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between sheet-header-bar">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div>
-                  <h1 className="text-2xl font-bold">{consultantTemplate.sheetTitle}</h1>
-                  <p className="text-sm opacity-90">{formData.patientName}</p>
+                  <h1 className="text-2xl font-bold text-foreground">{consultantTemplate.sheetTitle}</h1>
+                  <p className="text-sm text-muted-foreground">{formData.patientName}</p>
                 </div>
               </div>
               <div className="flex gap-1 print:hidden"></div>
             </div>
-            <div className="flex gap-1 flex-wrap sheet-header-actions">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleBackNav}
-                className="text-primary-foreground border-primary-foreground hover:bg-primary/80"
-              >
+            <div className="flex flex-wrap gap-1 sheet-header-actions">
+              <Button type="button" variant="outline" size="sm" onClick={handleBackNav}>
                 رجوع
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                className="text-primary-foreground border-primary-foreground hover:bg-primary/80"
-              >
+              <Button type="button" variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadPDF}
-                className="text-primary-foreground border-primary-foreground hover:bg-primary/80"
-              >
+              <Button type="button" variant="outline" size="sm" onClick={handleDownloadPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 تحميل PDF
               </Button>
@@ -621,8 +606,8 @@ export default function ConsultantSheet() {
             {activeTab === "sheet" ? <div className="bg-white p-8 print:p-0">
               {/* Header with Logo and Center Name */}
               <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
-                <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>عيون الشروق لليزك وتصحيح الإبصار</h2>
-                <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>Al Shrouk Eye Center for Lasik & Vision Correction</p>
+                <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
+                <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
                 
               </div>
 
@@ -850,8 +835,8 @@ export default function ConsultantSheet() {
             <div className="bg-white p-8 print:p-0">
               {/* Header with Logo and Center Name */}
               <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
-                <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>عيون الشروق لليزك وتصحيح الإبصار</h2>
-                <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>Al Shrouk Eye Center for Lasik & Vision Correction</p>
+                <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
+                <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
               </div>
 
               {/* Patient Info */}

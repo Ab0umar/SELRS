@@ -43,7 +43,7 @@
 }
 
 :root {
-  /* Al Shrouk Eye Center - Primary Colors: Navy Blue & Gold */
+  /* SELRS — navy & orange accents (legacy mobile bundle tokens) */
   --primary: oklch(0.35 0.15 260); /* Navy Blue */
   --primary-foreground: oklch(0.98 0.001 60); /* Off-white */
   --sidebar-primary: oklch(0.40 0.14 260); /* Lighter Navy */
@@ -82,7 +82,7 @@
 }
 
 .dark {
-  /* Al Shrouk Eye Center - Dark Mode */
+  /* SELRS dark mode — legacy mobile bundle */
   --primary: oklch(0.40 0.14 260); /* Light Navy for dark mode */
   --primary-foreground: oklch(0.98 0.001 60);
   --sidebar-primary: oklch(0.35 0.15 260); /* Darker Navy */
@@ -623,8 +623,8 @@ select {
 }
 
 .auto-air-grid input[data-slot="input"]:focus-visible {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18) !important;
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
 }
 
 /* Compact inputs for Lasik tables to fit A4 */
@@ -1032,8 +1032,8 @@ select {
 }
 
 .examination-plain-grid input[data-slot="input"]:focus-visible {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18) !important;
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
 }
 
 .examination-plain-grid > .grid {

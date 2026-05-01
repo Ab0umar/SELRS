@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { getApiUrl } from "@/const";
-import { EyeOff, FolderSearch, RefreshCw, ScanLine } from "lucide-react";
+import { EyeOff, RefreshCw, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import AuthenticatedImage from "@/components/AuthenticatedImage";
 
@@ -193,7 +193,7 @@ export default function AdminPentacamFailed() {
 
   const badgeClass = (tone: "good" | "warn" | "muted") =>
     tone === "good"
-      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+      ? "border-secondary/40 bg-secondary/10 text-secondary"
       : tone === "warn"
         ? "border-amber-300 bg-amber-50 text-amber-900"
         : "border-slate-300 bg-slate-50 text-slate-700";
@@ -220,39 +220,6 @@ export default function AdminPentacamFailed() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_38%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
-              <FolderSearch className="h-3.5 w-3.5" />
-              Pentacam Recovery
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Pentacam Failed Review</h1>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                راجع الملفات غير المرتبطة، اختر الكود الصحيح لكل مجموعة، ثم طبّق التسمية أو أعد المحاولة على مستوى الملف الواحد.
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Groups</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-950">{filteredGroups.length}</div>
-            </div>
-            <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Files</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-950">{rows.length}</div>
-            </div>
-            <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Pending OCR</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-950">
-                {rows.filter((row) => !row.detectedId).length}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <Card className="border-slate-200/80 bg-white/95 shadow-sm">
         <CardHeader>
           <CardTitle>Pentacam Failed Review</CardTitle>

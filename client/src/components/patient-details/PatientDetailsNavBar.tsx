@@ -1,0 +1,71 @@
+import { Button } from "@/components/ui/button";
+import { ArrowRight, FileText } from "lucide-react";
+import PatientPicker from "@/components/PatientPicker";
+
+interface PatientDetailsNavBarProps {
+  patientId?: number;
+  isAdmin: boolean;
+  goBack: () => void;
+  setLocation: (url: string) => void;
+  deletePatientMutation: {
+    isPending: boolean;
+    mutateAsync: (vars: { patientId: number }) => Promise<any>;
+  };
+  handleSelectPatient: (p: { id: number; fullName: string; patientCode?: string | null }) => void;
+}
+
+export function PatientDetailsNavBar({
+  patientId,
+  isAdmin,
+  goBack,
+  setLocation,
+  deletePatientMutation,
+  handleSelectPatient,
+}: PatientDetailsNavBarProps) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => goBack()}
+        className="rounded-xl border-slate-200 bg-white hover:bg-slate-100"
+      >
+        <ArrowRight className="h-4 w-4 ml-2" />رجوع
+      </Button>
+      {patientId && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLocation(`/patient-summary/${patientId}`)}
+          className="rounded-xl border-slate-200 bg-white hover:bg-slate-100"
+        >
+          <FileText className="h-4 w-4 ml-2" />التقرير المجمع
+        </Button>
+      )}
+      <PatientPicker initialPatientId={patientId} onSelect={handleSelectPatient} />
+      {patientId && isAdmin && (
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={deletePatientMutation.isPending}
+          className="rounded-xl"
+          onClick={async () => {
+            if (confirm("هل أنت متأكد من حذف المريض وكل بياناته؟\n\nهذا الإجراء لا يمكن التراجع عنه!")) {
+              try {
+                await deletePatientMutation.mutateAsync({ patientId });
+                const { toast } = await import("sonner");
+                toast.success("تم حذف المريض بنجاح");
+                setLocation("/patients");
+              } catch {
+                const { toast } = await import("sonner");
+                toast.error("حدث خطأ في الحذف");
+              }
+            }
+          }}
+        >
+          <FileText className="h-4 w-4 ml-2" />حذف المريض
+        </Button>
+      )}
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
@@ -178,8 +178,8 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
     }
   );
 
-  // Update form when examination is selected
-  useMemo(() => {
+  // Update form when examination is selected (must be useEffect — setState inside useMemo causes render loops / max update depth)
+  useEffect(() => {
     if (selectedExamination) {
       // Parse glassesData if it exists
       let glassesData = { od: {}, os: {} };
@@ -298,7 +298,17 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
         setExaminationDate(dateStr);
       }
     }
-  }, [selectedExaminationId, selectedExamination, pentacamQuery.data, doctorReportQuery.data, visitTestRequestsQuery.data, visitPrescriptionsQuery.data, autorefQuery.data, afterRefractionQuery.data, glassesRecordsQuery.data]);
+  }, [
+    selectedExaminationId,
+    selectedExamination,
+    pentacamQuery.data,
+    doctorReportQuery.data,
+    visitTestRequestsQuery.data,
+    visitPrescriptionsQuery.data,
+    autorefQuery.data,
+    afterRefractionQuery.data,
+    glassesRecordsQuery.data,
+  ]);
 
 
   // Auto-save after creating examination

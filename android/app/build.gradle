@@ -1,37 +1,15 @@
-import java.util.Properties
-import java.io.FileInputStream
-import groovy.json.JsonSlurper
-
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
-    lint {
-          baseline = file("lint-baseline.xml")
-          }
     namespace = "cc.selrs.app"
     compileSdk = rootProject.ext.compileSdkVersion
-    def packageJson = new JsonSlurper().parse(file("../../package.json"))
-    def packageVersion = (packageJson.version ?: "1.0.5").toString()
-
-    // Auto-increment versionCode from package.json version
-    // Extract patch version and use it, or use environment variable if set
-    def versionParts = packageVersion.toString().split('\\.')
-    def baseVersionCode = 50
-    def patchVersion = versionParts.length >= 3 ? Integer.parseInt(versionParts[2]) : 0
-    def packageVersionCode = Integer.parseInt((System.getenv("APP_VERSION_CODE") ?: (baseVersionCode + patchVersion)).toString())
-
-    def keystoreProperties = new Properties()
-    def keystorePropertiesFile = rootProject.file("key.properties")
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-    }
-
     defaultConfig {
         applicationId "cc.selrs.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode packageVersionCode
-        versionName packageVersion
+        versionCode 1
+        versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -39,57 +17,26 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-            }
+            storeFile file('../SELRS.keystore')
+            storePassword '258288'
+            keyAlias 'release'
+            keyPassword '258288'
         }
     }
-
     buildTypes {
         release {
-            minifyEnabled = true
-            shrinkResources = true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig = signingConfigs.release
+            signingConfig signingConfigs.release
         }
     }
-
-    afterEvaluate {
-        tasks.all { task ->
-            if (task.name == 'assembleRelease') {
-                task.doLast {
-                    def outputDir = new File("C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS.cc")
-                    if (!outputDir.exists()) {
-                        outputDir.mkdirs()
-                    }
-                    def sourceDir = new File("${buildDir}/outputs/apk/release")
-                    if (sourceDir.exists()) {
-                        sourceDir.listFiles().each { file ->
-                            if (file.name.endsWith('.apk')) {
-                                def newName = "SELRS${android.defaultConfig.versionName}.apk"
-                                file.renameTo(new File(outputDir, newName))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-repositories {
-    google()
-    mavenCentral()
 }
 
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: '../capacitor-cordova-android-plugins/src/main/libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
@@ -98,15 +45,9 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation platform('com.google.firebase:firebase-bom:33.1.0')
+    implementation 'com.google.firebase:firebase-messaging'
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}

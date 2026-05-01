@@ -46,6 +46,8 @@ import {
   followupSheets,
   followupItems,
   doctorsLookup,
+  visitScheduleRequests,
+  InsertVisitScheduleRequest,
 } from "../drizzle/schema";
 const exec = promisify(execCb);
 
@@ -2949,6 +2951,110 @@ export async function getPentacamResultsByPatient(patientId: number, limit = 100
     .limit(safeLimit);
 }
 
+export type PentacamDashboardFilters = {
+  resultId?: number;
+  visitId?: number;
+  patientId?: number;
+  fromDate?: string;
+  toDate?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+/**
+ * Pentacam list rows with patient + visit + doctor (lookup) for dashboard UI.
+ */
+export async function getPentacamResultsForDashboard(filters: PentacamDashboardFilters) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const safeLimit = Number.isFinite(Number(filters.limit))
+    ? Math.max(1, Math.min(500, Number(filters.limit)))
+    : 150;
+  const safeOffset = Number.isFinite(Number(filters.offset)) ? Math.max(0, Number(filters.offset)) : 0;
+
+  const clauses: any[] = [];
+
+  if (filters.resultId !== undefined && Number.isFinite(Number(filters.resultId)) && Number(filters.resultId) > 0) {
+    clauses.push(eq(pentacamResults.id, Number(filters.resultId)));
+  }
+  if (filters.visitId !== undefined && Number.isFinite(Number(filters.visitId))) {
+    clauses.push(eq(pentacamResults.visitId, Number(filters.visitId)));
+  }
+  if (filters.patientId !== undefined && Number.isFinite(Number(filters.patientId)) && Number(filters.patientId) > 0) {
+    clauses.push(eq(pentacamResults.patientId, Number(filters.patientId)));
+  }
+
+  const fromD = String(filters.fromDate ?? "").trim();
+  const toD = String(filters.toDate ?? "").trim();
+  if (fromD || toD) {
+    const fromBound = fromD || "1970-01-01";
+    const toBound = toD || "2099-12-31";
+    clauses.push(
+      sql`DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) >= ${fromBound}`,
+    );
+    clauses.push(sql`DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) <= ${toBound}`);
+  }
+
+  const normalizedSearch = String(filters.search ?? "").trim();
+  if (normalizedSearch) {
+    const term = `%${normalizedSearch}%`;
+    const legacyTerm = `%${encodeForLegacySearch(normalizedSearch)}%`;
+    clauses.push(
+      or(
+        like(patients.fullName, term),
+        like(patients.fullName, legacyTerm),
+        like(doctorsLookup.name, term),
+        like(doctorsLookup.name, legacyTerm),
+      ),
+    );
+  }
+
+  const whereExpr = clauses.length > 0 ? and(...clauses) : undefined;
+
+  const rows = await db
+    .select({
+      ...getTableColumns(pentacamResults),
+      visitDate: visits.visitDate,
+      patientFullName: patients.fullName,
+      doctorDisplayName: doctorsLookup.name,
+    })
+    .from(pentacamResults)
+    .leftJoin(visits, eq(pentacamResults.visitId, visits.id))
+    .innerJoin(patients, eq(pentacamResults.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .where(whereExpr)
+    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})`))
+    .limit(safeLimit)
+    .offset(safeOffset);
+
+  return rows.map((row) => ({
+    ...row,
+    patientFullName: decodeMojibake((row as any).patientFullName),
+    doctorDisplayName: decodeMojibake((row as any).doctorDisplayName),
+  }));
+}
+
+export async function getPentacamDashboardDayStats() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const rows = await db
+    .select({
+      todayCount: sql<number>`COALESCE(SUM(CASE WHEN DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) = CURDATE() THEN 1 ELSE 0 END), 0)`,
+      yesterdayCount: sql<number>`COALESCE(SUM(CASE WHEN DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END), 0)`,
+    })
+    .from(pentacamResults)
+    .leftJoin(visits, eq(pentacamResults.visitId, visits.id));
+
+  const r = rows[0];
+  return {
+    todayCount: Number((r as any)?.todayCount ?? 0),
+    yesterdayCount: Number((r as any)?.yesterdayCount ?? 0),
+  };
+}
+
 export async function getRecentPentacamResultNotes(limit = 50000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -3035,6 +3141,41 @@ export async function getAllDoctorReports() {
   if (!db) throw new Error("Database not available");
 
   return await db.select().from(doctorReports).orderBy(desc(doctorReports.createdAt));
+}
+
+/** Joined rows for التقارير الطبية hub (جدول + إحصائيات). */
+export async function getMedicalReportsOverviewRows(limit = 250) {
+  const dbConn = await getDb();
+  if (!dbConn) throw new Error("Database not available");
+  const cap = Math.min(Math.max(limit, 1), 500);
+
+  const rows = await dbConn
+    .select({
+      id: doctorReports.id,
+      visitId: doctorReports.visitId,
+      patientId: doctorReports.patientId,
+      doctorUserId: doctorReports.doctorId,
+      diagnosis: doctorReports.diagnosis,
+      diseases: doctorReports.diseases,
+      treatment: doctorReports.treatment,
+      recommendations: doctorReports.recommendations,
+      visitDate: doctorReports.visitDate,
+      operationType: doctorReports.operationType,
+      clinicalOpinion: doctorReports.clinicalOpinion,
+      additionalNotes: doctorReports.additionalNotes,
+      createdAt: doctorReports.createdAt,
+      updatedAt: doctorReports.updatedAt,
+      patientName: patients.fullName,
+      patientCode: patients.patientCode,
+      doctorName: users.name,
+    })
+    .from(doctorReports)
+    .leftJoin(patients, eq(doctorReports.patientId, patients.id))
+    .leftJoin(users, eq(doctorReports.doctorId, users.id))
+    .orderBy(desc(doctorReports.createdAt))
+    .limit(cap);
+
+  return rows;
 }
 
 export async function getDoctorReportsByPatient(patientId: number) {
@@ -3205,6 +3346,50 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
   }
 
   return Object.values(grouped);
+}
+
+/** Recent prescriptions joined with patient/user for overview table (counts items in-memory). */
+export async function getPrescriptionsOverviewRows(limit = 250) {
+  const dbConn = await getDb();
+  if (!dbConn) throw new Error("Database not available");
+
+  const cap = Math.min(Math.max(limit, 1), 500);
+
+  const base = await dbConn
+    .select({
+      id: prescriptions.id,
+      patientId: prescriptions.patientId,
+      prescriptionDate: prescriptions.prescriptionDate,
+      notes: prescriptions.notes,
+      doctorId: prescriptions.doctorId,
+      doctorName: users.name,
+      patientName: patients.fullName,
+      patientCode: patients.patientCode,
+    })
+    .from(prescriptions)
+    .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+    .leftJoin(users, eq(prescriptions.doctorId, users.id))
+    .orderBy(desc(prescriptions.prescriptionDate))
+    .limit(cap);
+
+  if (base.length === 0) return [];
+
+  const ids = base.map((r) => r.id);
+  const countRows = await dbConn
+    .select({
+      prescriptionId: prescriptionItems.prescriptionId,
+      cnt: sql<number>`cast(count(*) as signed)`.mapWith(Number),
+    })
+    .from(prescriptionItems)
+    .where(inArray(prescriptionItems.prescriptionId, ids))
+    .groupBy(prescriptionItems.prescriptionId);
+
+  const countMap = new Map(countRows.map((r) => [r.prescriptionId, r.cnt]));
+
+  return base.map((r) => ({
+    ...r,
+    itemCount: countMap.get(r.id) ?? 0,
+  }));
 }
 
 export async function createPrescriptionWithItems(data: {
@@ -4730,82 +4915,77 @@ export async function getTodayVisitsByQueueStatus(dateIso: string, queueStatus?:
 }
 
 /**
- * Auto-advance patients through queue based on current state
+ * Auto-advance patients through queue based on current state.
+ * يُستدعى قبل قراءة طابور اليوم. بعد ترقية next→clinic يجب إعادة قراءة الطابور؛ النسخة السابقة كانت تستخدم لقطات قديمة فلا يُعبَّأ «التالي» من «تسجيل».
  */
 export async function autoAdvanceQueuePatients(dateIso: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  const connMaybe = await getDb();
+  if (!connMaybe) throw new Error("Database not available");
+  const conn = connMaybe;
 
   const nonExternalExpr = sql`(
     ${patients.locationType} IS NULL
     OR LOWER(TRIM(${patients.locationType})) NOT IN ('external', 'خارجي', 'outside', 'out')
   )`;
 
-  // Ensure there is always one clinic slot and one next slot when possible:
-  // - First checked-in -> clinic
-  // - Second checked-in -> next
-  const clinicActive = await db
-    .select({ id: visits.id })
-    .from(visits)
-    .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      nonExternalExpr,
-      eq(visits.queueStatus, "clinic")
-    ))
-    .orderBy(visits.id)
-    .limit(1);
+  const dayMatch = sql`DATE(${visits.visitDate}) = ${dateIso}`;
 
-  const nextActive = await db
-    .select({ id: visits.id })
-    .from(visits)
-    .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      nonExternalExpr,
-      eq(visits.queueStatus, "next")
-    ))
-    .orderBy(visits.id)
-    .limit(1);
-
-  // If clinic is empty but next exists, promote next -> clinic first.
-  if (clinicActive.length === 0 && nextActive.length > 0) {
-    await db
-      .update(visits)
-      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, nextActive[0].id));
+  async function firstVisitId(status: "clinic" | "next" | "checkedIn"): Promise<number | undefined> {
+    const rows = await conn
+      .select({ id: visits.id })
+      .from(visits)
+      .innerJoin(patients, eq(visits.patientId, patients.id))
+      .where(and(dayMatch, nonExternalExpr, eq(visits.queueStatus, status)))
+      .orderBy(visits.id)
+      .limit(1);
+    return rows[0]?.id;
   }
 
-  const checkedInVisits = await db
-    .select({ id: visits.id })
-    .from(visits)
-    .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      nonExternalExpr,
-      eq(visits.queueStatus, "checkedIn")
-    ))
-    .orderBy(visits.id)
-    .limit(5);
-  if (checkedInVisits.length === 0) return;
-
-  const clinicExistsAfterPromote = clinicActive.length > 0 || nextActive.length > 0;
-  if (!clinicExistsAfterPromote) {
-    await db
-      .update(visits)
-      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, checkedInVisits[0].id));
+  async function checkedInOrderedIds(limit: number): Promise<number[]> {
+    const rows = await conn
+      .select({ id: visits.id })
+      .from(visits)
+      .innerJoin(patients, eq(visits.patientId, patients.id))
+      .where(and(dayMatch, nonExternalExpr, eq(visits.queueStatus, "checkedIn")))
+      .orderBy(visits.id)
+      .limit(limit);
+    return rows.map((r) => r.id);
   }
 
-  const nextExistsAfterPromote = nextActive.length > 0;
-  if (!nextExistsAfterPromote) {
-    const nextCandidate = !clinicExistsAfterPromote ? checkedInVisits[1]?.id : checkedInVisits[0]?.id;
-    if (nextCandidate) {
-      await db
-        .update(visits)
-        .set({ queueStatus: "next", movedToNextAt: sql`CURRENT_TIMESTAMP` })
-        .where(eq(visits.id, nextCandidate));
-    }
+  // 1) عيادة فارغة لكن يوجد «التالي» → صعود إلى عيادة
+  let clinicId = await firstVisitId("clinic");
+  const nextHead = await firstVisitId("next");
+  if (clinicId == null && nextHead != null) {
+    await conn
+      .update(visits)
+      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(visits.id, nextHead));
+  }
+
+  // 2) لا يزال لا يوجد في العيادة → أقدم «تسجيل»
+  clinicId = await firstVisitId("clinic");
+  if (clinicId == null) {
+    const checked = await checkedInOrderedIds(1);
+    if (checked.length === 0) return;
+    await conn
+      .update(visits)
+      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(visits.id, checked[0]));
+    clinicId = checked[0];
+  }
+
+  // 3) لا يوجد «التالي» → أقدم «تسجيل» غير من occupies العيادة (بعد قراءة حالة حديثة)
+  const nextAfter = await firstVisitId("next");
+  if (nextAfter != null) return;
+
+  clinicId = await firstVisitId("clinic");
+  const checkedList = await checkedInOrderedIds(12);
+  const nextCandidate = checkedList.find((id) => id !== clinicId);
+  if (nextCandidate != null) {
+    await conn
+      .update(visits)
+      .set({ queueStatus: "next", movedToNextAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(visits.id, nextCandidate));
   }
 }
 
@@ -4901,6 +5081,25 @@ export async function cascadeQueueStatus(dateIso: string) {
       .set({ queueStatus: "next", movedToNextAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(visits.id, checkedInVisits[0].id));
   }
+}
+
+export async function insertVisitScheduleRequest(
+  row: Omit<InsertVisitScheduleRequest, "id" | "createdAt" | "updatedAt">,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result: unknown = await db.insert(visitScheduleRequests).values(row);
+  const r = result as { insertId?: number; [0]?: { insertId?: number } };
+  let insertId = Number(r?.insertId ?? r?.[0]?.insertId ?? 0);
+  if (!Number.isFinite(insertId) || insertId <= 0) {
+    const [latest] = await db
+      .select({ id: visitScheduleRequests.id })
+      .from(visitScheduleRequests)
+      .orderBy(desc(visitScheduleRequests.id))
+      .limit(1);
+    insertId = Number(latest?.id ?? 0);
+  }
+  return { id: insertId };
 }
 
 /**

@@ -5,10 +5,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
+import { Plug } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+
+const TRPC_API_REFERENCE = [
+  { method: "query" as const, path: "medical.getAppointments", description: "جلب جميع المواعيد", status: "فعال" },
+  { method: "query" as const, path: "medical.getAppointmentsByPatient", description: "مواعيد مريض محدد", status: "فعال" },
+  { method: "mutation" as const, path: "medical.createAppointment", description: "إنشاء موعد", status: "فعال" },
+  { method: "query" as const, path: "medical.getAllExaminations", description: "جميع الفحوصات", status: "فعال" },
+  { method: "mutation" as const, path: "medical.createExamination", description: "إنشاء فحص", status: "فعال" },
+  { method: "mutation" as const, path: "medical.updateExamination", description: "تحديث فحص", status: "فعال" },
+  { method: "query" as const, path: "medical.getRuntimeDbInfo", description: "معلومات اتصال قاعدة التشغيل", status: "صلاحية admin" },
+  { method: "mutation" as const, path: "medical.createPentacamResult", description: "إنشاء سجل بنتاكام", status: "فعال" },
+  { method: "query" as const, path: "medical.getPentacamResultsByVisit", description: "بنتاكام حسب الزيارة", status: "فعال" },
+  { method: "mutation" as const, path: "medical.createDoctorReport", description: "تقرير طبيب", status: "فعال" },
+  { method: "query" as const, path: "medical.getDoctorReportsByVisit", description: "تقارير حسب الزيارة", status: "فعال" },
+  { method: "query" as const, path: "medical.getMssqlSyncStatus", description: "حالة مزامنة MSSQL", status: "فعال" },
+  { method: "query" as const, path: "medical.getMssqlSyncRuntimeConfig", description: "إعداد تشغيل المزامنة التلقائية", status: "فعال" },
+  { method: "mutation" as const, path: "medical.updateMssqlSyncRuntimeConfig", description: "حفظ إعداد المزامنة التلقائية", status: "فعال" },
+  { method: "mutation" as const, path: "medical.syncPatientsFromMssql", description: "مزامنة مرضى من MSSQL", status: "فعال" },
+  { method: "mutation" as const, path: "medical.resetMssqlSyncCodes", description: "إعادة ضبط رموز المزامنة", status: "خطر" },
+  { method: "mutation" as const, path: "medical.resetPatientsAutoIncrement", description: "AUTO_INCREMENT للمرضى", status: "خطر" },
+] as const;
+
+function safeStringify(value: unknown) {
+  try {
+    return JSON.stringify(
+      value,
+      (_, v) => (typeof v === "bigint" ? String(v) : v),
+      2
+    );
+  } catch {
+    return String(value);
+  }
+}
 
 export default function AdminApiTools() {
   const { user, isAuthenticated } = useAuth();
@@ -45,6 +81,15 @@ export default function AdminApiTools() {
     startedAt: string;
     finishedAt: string;
   }>(null);
+  const [previewRequest, setPreviewRequest] = useState(
+    '{\n  "تلميح": "استخدم الأزرار أدناه لعرض مثال الإدخال ونتيجة tRPC"\n}'
+  );
+  const [previewResponse, setPreviewResponse] = useState("// لا توجد استجابة بعد");
+
+  const capturePreview = (procedure: string, input: unknown, output: unknown) => {
+    setPreviewRequest(safeStringify({ procedure, input }));
+    setPreviewResponse(safeStringify(output));
+  };
 
   const appointmentsQuery = trpc.medical.getAppointments.useQuery(undefined, { enabled: false });
   const appointmentsByPatientQuery = trpc.medical.getAppointmentsByPatient.useQuery(
@@ -99,18 +144,24 @@ export default function AdminApiTools() {
   });
 
   const resetMssqlSyncCodesMutation = trpc.medical.resetMssqlSyncCodes.useMutation({
-    onSuccess: (result) => toast.success(`Reset ${result.affected} patients — now run full sync`),
+    onSuccess: (result) => {
+      capturePreview("medical.resetMssqlSyncCodes", {}, result);
+      toast.success(`Reset ${result.affected} patients — now run full sync`);
+    },
     onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "Failed to reset sync codes")),
   });
 
   const [autoIncrementValue, setAutoIncrementValue] = useState("1128");
   const resetAutoIncrementMutation = trpc.medical.resetPatientsAutoIncrement.useMutation({
-    onSuccess: (result) => toast.success(`AUTO_INCREMENT set to ${result.value}`),
+    onSuccess: (result, variables) => {
+      capturePreview("medical.resetPatientsAutoIncrement", variables, result);
+      toast.success(`AUTO_INCREMENT set to ${result.value}`);
+    },
     onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "Failed to reset AUTO_INCREMENT")),
   });
 
   const syncMssqlPatientsMutation = trpc.medical.syncPatientsFromMssql.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       setLastSyncResult({
         fetched: Number(result.fetched ?? 0),
         inserted: Number(result.inserted ?? 0),
@@ -120,13 +171,15 @@ export default function AdminApiTools() {
         startedAt: String(result.startedAt ?? ""),
         finishedAt: String(result.finishedAt ?? ""),
       });
+      capturePreview("medical.syncPatientsFromMssql", variables, result);
       void mssqlSyncStatusQuery.refetch();
       toast.success("MSSQL patient sync completed");
     },
     onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "MSSQL sync failed")),
   });
   const updateMssqlSyncRuntimeMutation = trpc.medical.updateMssqlSyncRuntimeConfig.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result, variables) => {
+      capturePreview("medical.updateMssqlSyncRuntimeConfig", variables, result ?? { ok: true });
       toast.success("Auto sync config saved");
       await mssqlSyncRuntimeQuery.refetch();
     },
@@ -160,15 +213,95 @@ export default function AdminApiTools() {
   const examIdNum = Number(examinationId || 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div />
-        </div>
-      </header>
+    <div dir="rtl" className="mx-auto w-full max-w-[1440px] space-y-6 pb-2">
+      <PageHeader
+        title="أدوات API"
+        subtitle="أدوات tRPC للمشرفين: استدعاءات مباشرة، مزامنة MSSQL، وتشخيص قاعدة البيانات — الواجهة العامة للتطبيق تستخدم نفس المسار عبر /trpc"
+        icon={<Plug className="h-5 w-5" />}
+      />
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
-        <Card className="border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="border-border/80 bg-card shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base">معاينة الطلب والاستجابة</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            تُحدَّث تلقائياً عند تنفيذ الأزرار في الصفحة (آخر عملية ناجحة أو بيانات جلب).
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="request" className="w-full">
+            <TabsList className="mb-3 w-full justify-start sm:w-auto">
+              <TabsTrigger value="request">الطلب</TabsTrigger>
+              <TabsTrigger value="response">الاستجابة</TabsTrigger>
+            </TabsList>
+            <TabsContent value="request" className="mt-0">
+              <pre
+                className="max-h-[280px] overflow-auto rounded-lg border border-border/80 bg-muted/30 p-4 text-left text-xs leading-relaxed dir-ltr font-mono"
+                dir="ltr"
+              >
+                {previewRequest}
+              </pre>
+            </TabsContent>
+            <TabsContent value="response" className="mt-0">
+              <pre
+                className="max-h-[280px] overflow-auto rounded-lg border border-border/80 bg-muted/30 p-4 text-left text-xs leading-relaxed dir-ltr font-mono whitespace-pre-wrap"
+                dir="ltr"
+              >
+                {previewResponse}
+              </pre>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80 bg-card shadow-sm">
+        <CardHeader className="flex flex-col gap-1 border-b border-border/70 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">مرجع إجراءات tRPC (هذه الصفحة)</CardTitle>
+          <span className="text-xs text-muted-foreground">زمن الاستجابة غير مُقاس تلقائياً — استخدم أدوات المتصفح أو الشبكة</span>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="overflow-x-auto rounded-lg border border-border/70">
+            <Table dir="rtl">
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-right font-bold">الطريقة</TableHead>
+                  <TableHead className="min-w-[220px] text-right font-bold">المسار</TableHead>
+                  <TableHead className="text-right font-bold">الوصف</TableHead>
+                  <TableHead className="text-center font-bold">الحالة</TableHead>
+                  <TableHead className="text-center font-bold w-28">زمن الاستجابة</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {TRPC_API_REFERENCE.map((row) => (
+                  <TableRow key={row.path}>
+                    <TableCell>
+                      <Badge
+                        variant={row.method === "query" ? "secondary" : "default"}
+                        className={
+                          row.method === "query"
+                            ? "bg-emerald-600/15 text-emerald-800 dark:text-emerald-300"
+                            : "bg-primary/15 text-primary"
+                        }
+                      >
+                        {row.method === "query" ? "query" : "mutation"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs break-all dir-ltr text-right">{row.path}</TableCell>
+                    <TableCell className="text-sm">{row.description}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-[10px]">
+                        {row.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">—</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
             <CardTitle>المعرفات الأساسية</CardTitle>
           </CardHeader>
@@ -191,7 +324,7 @@ export default function AdminApiTools() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 bg-white/95 shadow-sm">
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
             <CardTitle>المواعيد (Appointments)</CardTitle>
           </CardHeader>
@@ -216,76 +349,136 @@ export default function AdminApiTools() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                onClick={() =>
-                  createAppointmentMutation.mutate({
+                className="selrs-gradient-btn text-white hover:opacity-95"
+                onClick={async () => {
+                  const input = {
                     patientId: patientIdNum,
                     appointmentDate,
                     appointmentType,
                     branch: appointmentBranch,
-                  })
-                }
+                  };
+                  try {
+                    const out = await createAppointmentMutation.mutateAsync(input);
+                    capturePreview("medical.createAppointment", input, out);
+                  } catch (error: unknown) {
+                    capturePreview("medical.createAppointment", input, {
+                      error: getTrpcErrorMessage(error, "فشل"),
+                    });
+                  }
+                }}
               >
                 إنشاء موعد
               </Button>
-              <Button variant="outline" onClick={() => appointmentsQuery.refetch()}>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const r = await appointmentsQuery.refetch();
+                  capturePreview(
+                    "medical.getAppointments",
+                    {},
+                    r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                  );
+                }}
+              >
                 جميع المواعيد
               </Button>
-              <Button variant="outline" onClick={() => appointmentsByPatientQuery.refetch()}>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const input = { patientId: patientIdNum };
+                  const r = await appointmentsByPatientQuery.refetch();
+                  capturePreview(
+                    "medical.getAppointmentsByPatient",
+                    input,
+                    r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                  );
+                }}
+              >
                 مواعيد المريض
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-               : {appointmentsQuery.data ? appointmentsQuery.data.length : "-"} |  :{" "}
+              عدد (جميع المواعيد): {appointmentsQuery.data ? appointmentsQuery.data.length : "-"} | عدد (مواعيد المريض):{" "}
               {appointmentsByPatientQuery.data ? appointmentsByPatientQuery.data.length : "-"}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
             <CardTitle>الفحوصات (Examinations)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
-                onClick={() =>
-                  createExaminationMutation.mutate({
-                    visitId: visitIdNum,
-                    patientId: patientIdNum,
-                    ucvaOD: "6/6",
-                  })
-                }
+                className="selrs-gradient-btn text-white hover:opacity-95"
+                onClick={async () => {
+                  const input = { visitId: visitIdNum, patientId: patientIdNum, ucvaOD: "6/6" };
+                  try {
+                    const out = await createExaminationMutation.mutateAsync(input);
+                    capturePreview("medical.createExamination", input, out);
+                  } catch (error: unknown) {
+                    capturePreview("medical.createExamination", input, {
+                      error: getTrpcErrorMessage(error, "فشل"),
+                    });
+                  }
+                }}
               >
                 إنشاء فحص
               </Button>
               <Button
                 variant="outline"
-                onClick={() =>
-                  updateExaminationMutation.mutate({
-                    examinationId: examIdNum,
-                    updates: { findings: "Updated findings" },
-                  })
-                }
+                onClick={async () => {
+                  const input = { examinationId: examIdNum, updates: { findings: "Updated findings" } };
+                  try {
+                    const out = await updateExaminationMutation.mutateAsync(input);
+                    capturePreview("medical.updateExamination", input, out);
+                  } catch (error: unknown) {
+                    capturePreview("medical.updateExamination", input, {
+                      error: getTrpcErrorMessage(error, "فشل"),
+                    });
+                  }
+                }}
               >
                 تحديث فحص
               </Button>
-              <Button variant="outline" onClick={() => examinationsQuery.refetch()}>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const r = await examinationsQuery.refetch();
+                  capturePreview(
+                    "medical.getAllExaminations",
+                    {},
+                    r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                  );
+                }}
+              >
                 جميع الفحوصات
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-               : {examinationsQuery.data ? examinationsQuery.data.length : "-"}
+              عدد السجلات المعروضة: {examinationsQuery.data ? examinationsQuery.data.length : "-"}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
-            <CardTitle>Runtime DB (debug)</CardTitle>
+            <CardTitle>Runtime DB (تشخيص)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" onClick={() => void runtimeDbInfoQuery.refetch()}>
-              Check Active Runtime DB
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const r = await runtimeDbInfoQuery.refetch();
+                capturePreview(
+                  "medical.getRuntimeDbInfo",
+                  {},
+                  r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                );
+              }}
+            >
+              فحص قاعدة التشغيل النشطة
             </Button>
             <div className="text-sm text-muted-foreground">
               {runtimeDbInfoQuery.isFetching
@@ -297,7 +490,7 @@ export default function AdminApiTools() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
             <CardTitle>البنتاكام (Pentacam)</CardTitle>
           </CardHeader>
@@ -309,27 +502,47 @@ export default function AdminApiTools() {
             />
             <div className="flex gap-2">
               <Button
-                onClick={() =>
-                  createPentacamMutation.mutate({
+                className="selrs-gradient-btn text-white hover:opacity-95"
+                onClick={async () => {
+                  const input = {
                     visitId: visitIdNum,
                     patientId: patientIdNum,
                     ltK1: pentacamLtK1 ? Number(pentacamLtK1) : undefined,
-                  })
-                }
+                  };
+                  try {
+                    const out = await createPentacamMutation.mutateAsync(input);
+                    capturePreview("medical.createPentacamResult", input, out);
+                  } catch (error: unknown) {
+                    capturePreview("medical.createPentacamResult", input, {
+                      error: getTrpcErrorMessage(error, "فشل"),
+                    });
+                  }
+                }}
               >
                 إنشاء بنتاكام
               </Button>
-              <Button variant="outline" onClick={() => pentacamByVisitQuery.refetch()}>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const input = { visitId: visitIdNum };
+                  const r = await pentacamByVisitQuery.refetch();
+                  capturePreview(
+                    "medical.getPentacamResultsByVisit",
+                    input,
+                    r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                  );
+                }}
+              >
                 بنتاكام حسب الزيارة
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-               : {pentacamByVisitQuery.data ? pentacamByVisitQuery.data.length : "-"}
+              عدد السجلات: {pentacamByVisitQuery.data ? pentacamByVisitQuery.data.length : "-"}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
             <CardTitle>تقارير الطبيب (Doctor Reports)</CardTitle>
           </CardHeader>
@@ -341,30 +554,50 @@ export default function AdminApiTools() {
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() =>
-                  createDoctorReportMutation.mutate({
+                className="selrs-gradient-btn text-white hover:opacity-95"
+                onClick={async () => {
+                  const input = {
                     visitId: visitIdNum,
                     patientId: patientIdNum,
                     diagnosis,
                     clinicalOpinion,
                     recommendedTreatment,
-                  })
-                }
+                  };
+                  try {
+                    const out = await createDoctorReportMutation.mutateAsync(input);
+                    capturePreview("medical.createDoctorReport", input, out);
+                  } catch (error: unknown) {
+                    capturePreview("medical.createDoctorReport", input, {
+                      error: getTrpcErrorMessage(error, "فشل"),
+                    });
+                  }
+                }}
               >
                 إنشاء تقرير طبيب
               </Button>
-              <Button variant="outline" onClick={() => doctorReportsByVisitQuery.refetch()}>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const input = { visitId: visitIdNum };
+                  const r = await doctorReportsByVisitQuery.refetch();
+                  capturePreview(
+                    "medical.getDoctorReportsByVisit",
+                    input,
+                    r.error ? { error: getTrpcErrorMessage(r.error, "فشل") } : r.data
+                  );
+                }}
+              >
                 تقارير حسب الزيارة
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-               : {doctorReportsByVisitQuery.data ? doctorReportsByVisitQuery.data.length : "-"}
+              عدد التقارير: {doctorReportsByVisitQuery.data ? doctorReportsByVisitQuery.data.length : "-"}
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
-            <CardTitle>MSSQL Patient Sync</CardTitle>
+            <CardTitle>مزامنة مرضى MSSQL</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -523,9 +756,9 @@ export default function AdminApiTools() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/80 bg-card shadow-sm">
           <CardHeader>
-            <CardTitle>Patients AUTO_INCREMENT</CardTitle>
+            <CardTitle>AUTO_INCREMENT — جدول المرضى</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2 items-center">
@@ -550,7 +783,6 @@ export default function AdminApiTools() {
             </div>
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

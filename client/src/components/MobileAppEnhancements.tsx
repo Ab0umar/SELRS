@@ -1,13 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
-import { Moon, Sun, Monitor } from "lucide-react";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { type NativeAppInfo } from "@/lib/appRuntime";
+import { shouldRegisterNativePush } from "@/lib/nativePushConfig";
 import { useLocation } from "wouter";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
@@ -101,41 +104,113 @@ function clearPushRegistrationFingerprint() {
   window.localStorage.removeItem(PUSH_REGISTRATION_STATE_KEY);
 }
 
-function ThemeToggle() {
-  const { theme, cycleTheme } = useTheme();
-  if (!cycleTheme) return null;
+const PULL_THRESHOLD = 72;
 
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      onClick={cycleTheme}
-      className="fixed bottom-3 left-3 z-[1000] rounded-full bg-background/90 backdrop-blur"
-      aria-label={
-        theme === "light"
-          ? "Switch to dark mode"
-          : theme === "dark"
-            ? "Switch to Windows 7 mode"
-            : "Switch to light mode"
+function PullToRefresh() {
+  const [pullY, setPullY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStartY = useRef<number | null>(null);
+  const pullYRef = useRef(0);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const getScrollTop = () => {
+      const main = document.querySelector("main");
+      return main ? main.scrollTop : window.scrollY ?? 0;
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (getScrollTop() === 0) {
+        touchStartY.current = e.touches[0].clientY;
       }
-      title={
-        theme === "light"
-          ? "Dark mode"
-          : theme === "dark"
-            ? "Windows 7 mode"
-            : "Light mode"
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchStartY.current === null) return;
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (dy > 0 && getScrollTop() === 0) {
+        const clamped = Math.min(dy * 0.4, PULL_THRESHOLD + 24);
+        pullYRef.current = clamped;
+        setPullY(clamped);
+      } else {
+        touchStartY.current = null;
+        pullYRef.current = 0;
+        setPullY(0);
       }
+    };
+
+    const onTouchEnd = () => {
+      if (pullYRef.current >= PULL_THRESHOLD) {
+        setIsRefreshing(true);
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        touchStartY.current = null;
+        pullYRef.current = 0;
+        setPullY(0);
+      }
+    };
+
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
+
+  if (!Capacitor.isNativePlatform()) return null;
+  if (pullY === 0 && !isRefreshing) return null;
+
+  const ready = pullY >= PULL_THRESHOLD || isRefreshing;
+  const offsetY = isRefreshing ? 16 : pullY - PULL_THRESHOLD;
+
+  return createPortal(
+    <div
+      className="pointer-events-none fixed inset-x-0 top-0 z-[500] flex justify-center"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      {theme === "light" ? (
-        <Moon className="h-4 w-4" />
-      ) : theme === "dark" ? (
-        <Monitor className="h-4 w-4" />
-      ) : (
-        <Sun className="h-4 w-4" />
-      )}
-    </Button>
+      <div
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition-colors",
+          ready ? "bg-primary" : "border border-border bg-background",
+        )}
+        style={{
+          transform: `translateY(${offsetY}px)`,
+          transition: pullY === 0 ? "transform 0.25s ease" : "none",
+        }}
+      >
+        {isRefreshing ? (
+          <Loader2 className="h-4 w-4 animate-spin text-white" />
+        ) : (
+          <RefreshCw
+            className={cn("h-4 w-4", ready ? "text-white" : "text-muted-foreground")}
+            style={{ transform: `rotate(${pullY * 4}deg)` }}
+          />
+        )}
+      </div>
+    </div>,
+    document.body,
   );
+}
+
+function NativeThemeSync() {
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const isDark = theme === "dark";
+    void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
+  }, [theme]);
+
+  return null;
 }
 
 function AppNotificationsBridge() {
@@ -231,6 +306,7 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+    if (!shouldRegisterNativePush()) return;
     if (!isAuthenticated) return;
 
     const deviceId = getOrCreatePushDeviceId();
@@ -296,8 +372,8 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
 
       await PushNotifications.createChannel({
         id: "selrs-push",
-        name: "SELRS Push",
-        description: "Background notifications from SELRS",
+        name: "عيون الشروق",
+        description: "إشعارات من تطبيق المركز",
         importance: 5,
         visibility: 1,
         vibration: true,
@@ -332,17 +408,21 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
     };
 
     const register = async () => {
-      await attachListeners();
+      try {
+        await attachListeners();
 
-      const currentPermission = await PushNotifications.checkPermissions();
-      const permission =
-        currentPermission.receive === "prompt"
-          ? await PushNotifications.requestPermissions()
-          : currentPermission;
-      if (permission.receive !== "granted") {
-        return;
+        const currentPermission = await PushNotifications.checkPermissions();
+        const permission =
+          currentPermission.receive === "prompt"
+            ? await PushNotifications.requestPermissions()
+            : currentPermission;
+        if (permission.receive !== "granted") {
+          return;
+        }
+        await PushNotifications.register();
+      } catch (error) {
+        console.error("[Push] Native registration flow failed", error);
       }
-      await PushNotifications.register();
     };
 
     void register();
@@ -372,7 +452,8 @@ export default function MobileAppEnhancements({ nativeAppInfo }: { nativeAppInfo
     <>
       <AppNotificationsBridge />
       <NativePushNotificationsBridge nativeAppInfo={nativeAppInfo} />
-      <ThemeToggle />
+      <NativeThemeSync />
+      <PullToRefresh />
     </>
   );
 }

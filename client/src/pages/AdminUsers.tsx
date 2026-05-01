@@ -4,20 +4,19 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit2, Shield} from "lucide-react";
+import { Plus, Trash2, Edit2, Shield, UserCheck, UserRound, UserX } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import AdminDoctors from "./AdminDoctors";
-import AdminPermissions from "./AdminPermissions";
-import AdminPatients from "./AdminPatients";
-import AdminServices from "./AdminServices";
-
 type UserRole = "admin" | "doctor" | "nurse" | "technician" | "reception" | "manager" | "accountant";
 type UserBranch = "examinations" | "surgery" | "both";
 type TeamPermissionsMap = Record<UserRole, string[]>;
@@ -32,17 +31,91 @@ interface User {
   shift: 1 | 2;
   isActive: boolean;
   createdAt: Date;
+  lastSignedIn?: Date | string | null;
 }
 
 type UserForm = {
   username: string;
   password: string;
   name: string;
+  email: string;
   role: UserRole;
   branch: UserBranch;
   shift: 1 | 2;
   writeToMssql: boolean;
 };
+
+const ROLE_TABS: { value: string; label: string }[] = [
+  { value: "all", label: "الكل" },
+  { value: "manager", label: "مدير" },
+  { value: "doctor", label: "طبيب" },
+  { value: "reception", label: "استقبال" },
+  { value: "nurse", label: "ممرض" },
+  { value: "technician", label: "فني" },
+  { value: "accountant", label: "محاسب" },
+  { value: "admin", label: "مسؤول" },
+];
+
+function initialsFromUser(name: string | null | undefined, username: string) {
+  const base = String(name ?? username ?? "?")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!base) return "؟";
+  const parts = base.split(" ");
+  if (parts.length >= 2)
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase().slice(0, 4);
+  return base.slice(0, 2).toUpperCase();
+}
+
+function roleLabelAr(role: UserRole): string {
+  const m: Record<UserRole, string> = {
+    admin: "مسؤول",
+    manager: "مدير",
+    doctor: "طبيب",
+    nurse: "ممرض",
+    technician: "فني",
+    reception: "استقبال",
+    accountant: "محاسب",
+  };
+  return m[role] ?? role;
+}
+
+function roleBadgeClass(role: UserRole): string {
+  const map: Record<UserRole, string> = {
+    manager: "bg-rose-100 text-rose-900 border-0 dark:bg-rose-950/50 dark:text-rose-100",
+    doctor: "bg-sky-100 text-sky-900 border-0 dark:bg-sky-950/55 dark:text-sky-100",
+    reception: "bg-emerald-100 text-emerald-900 border-0 dark:bg-emerald-950/55 dark:text-emerald-100",
+    nurse: "bg-violet-100 text-violet-900 border-0 dark:bg-violet-950/55 dark:text-violet-100",
+    technician: "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-100",
+    accountant: "bg-cyan-100 text-cyan-900 border-0 dark:bg-cyan-950/50 dark:text-cyan-100",
+    admin: "bg-slate-200 text-slate-900 border-0 dark:bg-slate-800 dark:text-slate-100",
+  };
+  return map[role] ?? "bg-muted text-foreground border-0";
+}
+
+function toDateKey(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.split("T")[0] ?? "";
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return Number.isFinite(t) ? value.toISOString().split("T")[0] : "";
+  }
+  const d = new Date(String(value));
+  return Number.isFinite(d.getTime()) ? d.toISOString().split("T")[0] : "";
+}
+
+function branchLabelAr(b: UserBranch): string {
+  const m: Record<UserBranch, string> = {
+    examinations: "فحوصات",
+    surgery: "عمليات",
+    both: "فحوصات وعمليات",
+  };
+  return m[b] ?? String(b);
+}
+
+function shiftLabelAr(s: 1 | 2): string {
+  return s === 2 ? "مساء (2)" : "صباح (1)";
+}
 
 const PAGE_PERMISSIONS = [
   { id: "/dashboard", label: "Dashboard" },
@@ -61,6 +134,7 @@ const PAGE_PERMISSIONS = [
   { id: "/sheets/external/:id", label: "External Sheet" },
   { id: "/medications", label: "Medications" },
   { id: "/prescription", label: "Prescription" },
+  { id: "/prescriptions", label: "Prescriptions Hub (جدول)" },
   { id: "/refraction/:id", label: "Refraction Page" },
   { id: "/tests", label: "Tests Management" },
   { id: "/request-tests", label: "Request Tests" },
@@ -148,6 +222,7 @@ export default function AdminUsers() {
     username: "",
     password: "",
     name: "",
+    email: "",
     role: DEFAULT_ROLE,
     branch: DEFAULT_BRANCH,
     shift: DEFAULT_SHIFT,
@@ -160,6 +235,7 @@ export default function AdminUsers() {
     username: "",
     password: "",
     name: "",
+    email: "",
     role: DEFAULT_ROLE,
     branch: DEFAULT_BRANCH,
     shift: DEFAULT_SHIFT,
@@ -168,26 +244,8 @@ export default function AdminUsers() {
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [filtersOpen, setFiltersOpen] = useState(true);
-  const ADMIN_USERS_TABS_PERSIST_KEY = "admin-users";
-  const [activeAdminTab, setActiveAdminTab] = useState(() => {
-    if (typeof window === "undefined") return "users";
-    try {
-      const stored = localStorage.getItem(`tabs:${ADMIN_USERS_TABS_PERSIST_KEY}`) || "";
-      if (
-        stored === "users" ||
-        stored === "doctors" ||
-        stored === "services" ||
-        stored === "permissions" ||
-        stored === "patients"
-      ) {
-        return stored;
-      }
-    } catch {
-      // ignore
-    }
-    return "users";
-  });
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const userStateQuery = trpc.medical.getUserPageState.useQuery(
     { page: "admin-users" },
     { refetchOnWindowFocus: false }
@@ -234,6 +292,11 @@ export default function AdminUsers() {
     if (didHydrateUserStateRef.current) return;
     if (data.searchTerm !== undefined) setSearchTerm(data.searchTerm ?? "");
     if (data.statusFilter !== undefined) setStatusFilter(data.statusFilter ?? "all");
+    if (data.roleFilter !== undefined && data.roleFilter !== null) {
+      const rf = String(data.roleFilter);
+      const allowed = new Set(ROLE_TABS.map((r) => r.value));
+      if (allowed.has(rf)) setRoleFilter(rf as UserRole | "all");
+    }
     didHydrateUserStateRef.current = true;
   }, [userStateQuery.data]);
 
@@ -249,19 +312,19 @@ export default function AdminUsers() {
   useEffect(() => {
     if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     userStateTimerRef.current = setTimeout(() => {
-      const payload = { searchTerm, statusFilter };
+      const payload = { searchTerm, statusFilter, roleFilter };
       saveUserStateMutation.mutate({ page: "admin-users", data: payload });
     }, 600);
     return () => {
       if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     };
-  }, [searchTerm, statusFilter, saveUserStateMutation]);
+  }, [searchTerm, statusFilter, roleFilter, saveUserStateMutation]);
 
   if (!isAuthenticated) return null;
 
   if (user?.role !== "admin") {
     return (
-      <div className="container mx-auto px-4 py-8 text-right" dir="rtl">
+      <div className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-right sm:px-0" dir="rtl">
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-700">Access Denied</CardTitle>
@@ -293,6 +356,7 @@ export default function AdminUsers() {
         username,
         password,
         name,
+        email: newUser.email.trim() ? newUser.email.trim() : undefined,
         role: newUser.role,
         branch: newUser.branch,
         shift: newUser.shift,
@@ -303,11 +367,13 @@ export default function AdminUsers() {
         username: "",
         password: "",
         name: "",
+        email: "",
         role: DEFAULT_ROLE,
         branch: DEFAULT_BRANCH,
         shift: DEFAULT_SHIFT,
         writeToMssql: false,
       });
+      setIsCreateOpen(false);
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to save user."));
     }
@@ -320,6 +386,7 @@ export default function AdminUsers() {
       username: u.username,
       password: "",
       name: u.name ?? "",
+      email: u.email ?? "",
       role: u.role,
       branch: u.branch,
       shift: u.shift ?? DEFAULT_SHIFT,
@@ -404,6 +471,7 @@ export default function AdminUsers() {
       const updates: Record<string, unknown> = {
         username,
         name,
+        email: editUser.email.trim() ? editUser.email.trim() : null,
         role: editUser.role,
         branch: editUser.branch,
         shift: editUser.shift,
@@ -433,6 +501,7 @@ export default function AdminUsers() {
         username: "",
         password: "",
         name: "",
+        email: "",
         role: DEFAULT_ROLE,
         branch: DEFAULT_BRANCH,
         shift: DEFAULT_SHIFT,
@@ -448,304 +517,469 @@ export default function AdminUsers() {
     const term = searchTerm.trim().toLowerCase();
 
     return users.filter((u) => {
-      const matchesTerm =
-        !term ||
-        [u.name, u.username]
-          .filter((value): value is string => Boolean(value))
-          .some((value) => value.toLowerCase().includes(term));
+      const hay = [u.name, u.username, u.email]
+        .filter((value): value is string => Boolean(value))
+        .map((value) => value.toLowerCase());
+      const matchesTerm = !term || hay.some((h) => h.includes(term));
 
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" ? u.isActive : !u.isActive);
 
-      return matchesTerm && matchesStatus;
+      const matchesRole = roleFilter === "all" || u.role === roleFilter;
+
+      return matchesTerm && matchesStatus && matchesRole;
     });
-  }, [users, searchTerm, statusFilter]);
+  }, [users, searchTerm, statusFilter, roleFilter]);
+
+  const usersTotal = users.length;
+  const usersActive = users.filter((u) => u.isActive).length;
+  const usersInactive = usersTotal - usersActive;
 
   return (
-    <div className="container mx-auto px-4 py-8 text-right" dir="rtl">
-      <Tabs
-        value={activeAdminTab}
-        onValueChange={(value) => {
-          if (value === "admin-home") {
-            setLocation("/dashboard?tab=admin");
-            return;
-          }
-          setActiveAdminTab(value);
-        }}
-        persistKey={ADMIN_USERS_TABS_PERSIST_KEY}
-        className="w-full"
-      >
-        <div className="mb-6">
-          <TabsList className="flex h-auto w-full min-w-max" dir="rtl">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="doctors">Doctors</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="permissions">Permissions</TabsTrigger>
-            <TabsTrigger value="patients">Patients</TabsTrigger>
-            <TabsTrigger value="admin-home">Admin Page</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="users">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="h-8 w-8 text-blue-600" />
-          <div />
-        </div>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right" dir="rtl">
+      <PageHeader
+        title="المستخدمين"
+        subtitle="User Management — إضافة حسابات وإدارة الأدوار والصلاحيات"
+        icon={<Shield className="h-5 w-5" />}
+        action={
+          <Button
+            type="button"
+            size="sm"
+            className="selrs-gradient-btn gap-2 text-white"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="text-xs sm:text-sm">مستخدم جديد</span>
+          </Button>
+        }
+      />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <StatCard
+          title="إجمالي المستخدمين"
+          value={usersTotal}
+          icon={UserRound}
+          iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+        />
+        <StatCard
+          title="نشط"
+          value={usersActive}
+          icon={UserCheck}
+          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+        />
+        <StatCard
+          title="غير نشط"
+          value={usersInactive}
+          icon={UserX}
+          iconColor="bg-red-100 text-red-700 dark:bg-red-950/55 dark:text-red-300"
+        />
       </div>
 
-      {/* Add/Edit User Form */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Add New User</CardTitle>
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <CardHeader className="space-y-1 border-b border-border/70 pb-4">
+          <CardTitle className="text-base">المستخدمين</CardTitle>
+          <CardDescription>عرض وفلترة وفق الدور وحالة النشاط</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
-              <Input
-                placeholder="username"
-                value={newUser.username}
-                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-              />
+        <CardContent className="space-y-5 pt-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="w-full lg:max-w-sm">
+              <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="بحث بالاسم أو البريد أو اسم المستخدم…" />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Name</label>
-              <Input
-                placeholder="Enter full name"
-                value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Role</label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
               <Select
-                value={newUser.role}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, role: value as UserRole })
-                }
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as "all" | "active" | "inactive")}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                <SelectTrigger className="h-10 w-full border-muted bg-background sm:w-[160px]" dir="rtl">
+                  <SelectValue placeholder="الحالة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="nurse">Nurse</SelectItem>
-                  <SelectItem value="technician">Technician</SelectItem>
-                  <SelectItem value="reception">Reception</SelectItem>
-                  <SelectItem value="accountant">Accountant</SelectItem>
+                  <SelectItem value="all">كل الحالات</SelectItem>
+                  <SelectItem value="active">نشط فقط</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Branch</label>
-              <Select
-                value={newUser.branch}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, branch: value as UserBranch })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="examinations">Examinations</SelectItem>
-                  <SelectItem value="surgery">Surgery</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Shift</label>
-              <Select
-                value={String(newUser.shift)}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, shift: Number(value) === 2 ? 2 : 1 })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select shift" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Morning (1)</SelectItem>
-                  <SelectItem value="2">Night (2)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 pt-8">
-              <Checkbox
-                checked={newUser.writeToMssql}
-                onCheckedChange={(checked) => setNewUser({ ...newUser, writeToMssql: Boolean(checked) })}
+              <FilterBar
+                filters={ROLE_TABS}
+                selected={roleFilter}
+                onSelect={(v) => setRoleFilter(v as UserRole | "all")}
+                className="max-w-[min(100%,640px)] sm:justify-end"
               />
-              <label className="text-sm font-medium">Write to MSSQL</label>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSaveUser} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
-              <Plus className="h-4 w-4 ml-2" />
-              Add
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Default permissions for role <strong>{newUser.role}</strong>: {getRoleDefaults(newUser.role).length}
-          </p>
-        </CardContent>
-      </Card>
 
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Users List ({filteredUsers.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 rounded-lg border bg-background p-3">
-            <div className="flex items-center justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setFiltersOpen((v) => !v)}
-              >
-                {filtersOpen ? "Hide Filters" : "Show Filters"}
-              </Button>
-            </div>
-
-            {filtersOpen && (
-              <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="w-full md:flex-1">
-                  <Input
-                    placeholder="Search by name or username..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-10 border-muted bg-background text-right"
-                    dir="rtl"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "active" | "inactive")}>
-                  <SelectTrigger className="h-10 w-full border-muted bg-background md:w-[180px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Mobile cards — hidden on sm+ */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
+            {usersQuery.isLoading && (
+              <div className="py-10 text-center text-muted-foreground">جاري تحميل المستخدمين…</div>
             )}
+            {!usersQuery.isLoading && filteredUsers.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground">لا توجد نتائج مطابقة.</div>
+            )}
+            {filteredUsers.map((u) => {
+              const initials = initialsFromUser(u.name, u.username);
+              const lastRaw = u.lastSignedIn as unknown;
+              const lastKey = toDateKey(lastRaw);
+              const createdKey = toDateKey(u.createdAt as unknown);
+              return (
+                <div key={u.id} className="rounded-xl border border-border/80 bg-card p-3" dir="rtl">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        title="حذف"
+                        onClick={() => void handleDelete(u.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-8 text-xs font-semibold",
+                          u.isActive
+                            ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
+                            : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
+                        )}
+                        onClick={() => void handleToggleActive(u)}
+                      >
+                        {u.isActive ? "نشط" : "غير نشط"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="min-w-0 text-right">
+                        <div className="font-semibold leading-tight">{u.name ?? u.username}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums" dir="ltr">
+                          @{u.username}
+                        </div>
+                      </div>
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
+                        aria-hidden
+                      >
+                        {initials}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+                    <div className="text-muted-foreground">البريد</div>
+                    <div className="truncate text-right" dir="ltr">{u.email?.trim() ? u.email : "—"}</div>
+                    <div className="text-muted-foreground">الدور</div>
+                    <div className="text-right">
+                      <Badge className={cn("font-semibold text-[10px]", roleBadgeClass(u.role))}>{roleLabelAr(u.role)}</Badge>
+                    </div>
+                    <div className="text-muted-foreground">الفرع / الوردية</div>
+                    <div className="text-right">{branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}</div>
+                    <div className="text-muted-foreground">آخر دخول</div>
+                    <div className="text-right tabular-nums">{lastKey ? formatDateLabel(lastKey) : "—"}</div>
+                    <div className="text-muted-foreground">تاريخ الإنشاء</div>
+                    <div className="text-right tabular-nums">{createdKey ? formatDateLabel(createdKey) : "—"}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="overflow-x-auto" dir="rtl">
-            <Table className="text-right">
+
+          {/* Desktop table — hidden on mobile */}
+          <div className="hidden overflow-x-auto rounded-lg border border-border/80 sm:block">
+            <Table className="min-w-[900px] text-right">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">Name</TableHead>
-                  <TableHead className="text-right">Username</TableHead>
-                  <TableHead className="text-right">Shift</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="bg-muted/40">
+                  <TableHead className="text-right font-semibold">الاسم</TableHead>
+                  <TableHead className="text-right font-semibold">البريد</TableHead>
+                  <TableHead className="text-right font-semibold">الدور</TableHead>
+                  <TableHead className="text-right font-semibold">الحالة</TableHead>
+                  <TableHead className="text-right font-semibold">آخر دخول</TableHead>
+                  <TableHead className="text-right font-semibold whitespace-nowrap">تاريخ الإنشاء</TableHead>
+                  <TableHead className="w-[120px] text-center font-semibold">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {usersQuery.isLoading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-right text-muted-foreground">
-                      Loading users...
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      جاري تحميل المستخدمين…
                     </TableCell>
                   </TableRow>
                 )}
                 {!usersQuery.isLoading && filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-right text-muted-foreground">
-                      No matching results
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      لا توجد نتائج مطابقة.
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="text-right">{u.name ?? ""}</TableCell>
-                    <TableCell className="text-right">{u.username}</TableCell>
-                    <TableCell className="text-right">{u.shift === 2 ? "Night (2)" : "Morning (1)"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleActive(u)}
-                        className={u.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}
-                      >
-                        {u.isActive ? " " : " "}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                {filteredUsers.map((u) => {
+                  const initials = initialsFromUser(u.name, u.username);
+                  const lastRaw = u.lastSignedIn as unknown;
+                  const lastKey = toDateKey(lastRaw);
+                  const createdKey = toDateKey(u.createdAt as unknown);
+                  return (
+                    <TableRow key={u.id} className="hover:bg-primary/[0.04]">
+                      <TableCell className="align-middle">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="min-w-0 text-right">
+                            <div className="font-semibold leading-tight">{u.name ?? u.username}</div>
+                            <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums" dir="ltr">
+                              @{u.username}
+                              <span className="mx-1 text-border">·</span>
+                              {branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}
+                            </div>
+                          </div>
+                          <div
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
+                            aria-hidden
+                          >
+                            {initials}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] align-middle">
+                        <span className="block truncate text-sm" dir="ltr" title={u.email ?? ""}>
+                          {u.email?.trim() ? u.email : "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="align-middle whitespace-nowrap">
+                        <Badge className={cn("font-semibold", roleBadgeClass(u.role))}>{roleLabelAr(u.role)}</Badge>
+                      </TableCell>
+                      <TableCell className="align-middle whitespace-nowrap">
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(u)}
+                          className={cn(
+                            "h-8 font-semibold",
+                            u.isActive
+                              ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
+                              : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
+                          )}
+                          title="تبديل حالة النشاط"
+                          onClick={() => void handleToggleActive(u)}
                         >
-                          <Edit2 className="h-4 w-4" />
+                          {u.isActive ? "نشط" : "غير نشط"}
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(u.id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="align-middle whitespace-nowrap text-sm tabular-nums">
+                        {lastKey ? (
+                          formatDateLabel(lastKey)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-middle whitespace-nowrap text-sm tabular-nums">
+                        {createdKey ? formatDateLabel(createdKey) : "—"}
+                      </TableCell>
+                      <TableCell className="text-center align-middle">
+                        <div className="flex justify-center gap-1">
+                          <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            title="حذف"
+                            onClick={() => void handleDelete(u.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
+
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) {
+            setNewUser({
+              username: "",
+              password: "",
+              name: "",
+              email: "",
+              role: DEFAULT_ROLE,
+              branch: DEFAULT_BRANCH,
+              shift: DEFAULT_SHIFT,
+              writeToMssql: false,
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl text-right sm:max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>مستخدم جديد</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">اسم المستخدم</label>
+              <Input
+                placeholder="اسم الدخول (إنجليزي)"
+                value={newUser.username}
+                className="text-right"
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">كلمة المرور</label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={newUser.password}
+                className="text-right"
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">الاسم الكامل</label>
+              <Input
+                placeholder="اسم الموظف"
+                value={newUser.name}
+                className="text-right"
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">البريد (اختياري)</label>
+              <Input
+                type="email"
+                placeholder="name@domain.com"
+                value={newUser.email}
+                className="text-right"
+                dir="ltr"
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">الدور</label>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الدور" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">مسؤول</SelectItem>
+                  <SelectItem value="manager">مدير</SelectItem>
+                  <SelectItem value="doctor">طبيب</SelectItem>
+                  <SelectItem value="nurse">ممرض</SelectItem>
+                  <SelectItem value="technician">فني</SelectItem>
+                  <SelectItem value="reception">استقبال</SelectItem>
+                  <SelectItem value="accountant">محاسب</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">الفرع</label>
+              <Select value={newUser.branch} onValueChange={(value) => setNewUser({ ...newUser, branch: value as UserBranch })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الفرع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="examinations">فحوصات</SelectItem>
+                  <SelectItem value="surgery">عمليات</SelectItem>
+                  <SelectItem value="both">كلاهما</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
+              <label className="text-sm font-semibold">الوردية</label>
+              <Select
+                value={String(newUser.shift)}
+                onValueChange={(value) => setNewUser({ ...newUser, shift: Number(value) === 2 ? 2 : 1 })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الوردية" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
+                  <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <Checkbox
+                checked={newUser.writeToMssql}
+                onCheckedChange={(checked) => setNewUser({ ...newUser, writeToMssql: Boolean(checked) })}
+              />
+              <label className="text-sm font-medium">كتابة على MSSQL</label>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            الصلاحيات الافتراضية للدور <strong>{roleLabelAr(newUser.role)}</strong>: عدد الشاشات {getRoleDefaults(newUser.role).length}
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button type="button" className="selrs-gradient-btn text-white gap-2" disabled={isSaving} onClick={() => void handleSaveUser()}>
+              <Plus className="h-4 w-4" />
+              إضافة
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+              إلغاء
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-3xl text-right" dir="rtl">
           <DialogHeader>
-            <DialogTitle>Edit User & Permissions</DialogTitle>
+            <DialogTitle>تعديل المستخدم والصلاحيات</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
+              <label className="block text-sm font-semibold mb-2">اسم المستخدم</label>
               <Input
-                placeholder="username"
+                placeholder="اسم الدخول"
                 value={editUser.username}
+                className="text-right"
                 onChange={(e) => setEditUser({ ...editUser, username: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-sm font-semibold mb-2">كلمة المرور</label>
               <Input
                 type="password"
-                placeholder="Leave empty to keep unchanged"
+                placeholder="اتركها فارغة إن لم يتغير"
                 value={editUser.password}
+                className="text-right"
                 onChange={(e) => setEditUser({ ...editUser, password: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Name</label>
+              <label className="block text-sm font-semibold mb-2">الاسم الكامل</label>
               <Input
-                placeholder="Enter full name"
+                placeholder="اسم الموظف"
                 value={editUser.name}
+                className="text-right"
                 onChange={(e) => setEditUser({ ...editUser, name: e.target.value })}
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold mb-2">البريد</label>
+              <Input
+                type="email"
+                placeholder="name@domain.com"
+                value={editUser.email}
+                className="text-right"
+                dir="ltr"
+                onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+              />
+            </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Role</label>
+              <label className="block text-sm font-semibold mb-2">الدور</label>
               <Select
                 value={editUser.role}
                 onValueChange={(value) => {
@@ -755,21 +989,21 @@ export default function AdminUsers() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder="اختر الدور" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="nurse">Nurse</SelectItem>
-                  <SelectItem value="technician">Technician</SelectItem>
-                  <SelectItem value="reception">Reception</SelectItem>
-                  <SelectItem value="accountant">Accountant</SelectItem>
+                  <SelectItem value="admin">مسؤول</SelectItem>
+                  <SelectItem value="manager">مدير</SelectItem>
+                  <SelectItem value="doctor">طبيب</SelectItem>
+                  <SelectItem value="nurse">ممرض</SelectItem>
+                  <SelectItem value="technician">فني</SelectItem>
+                  <SelectItem value="reception">استقبال</SelectItem>
+                  <SelectItem value="accountant">محاسب</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Branch</label>
+              <label className="block text-sm font-semibold mb-2">الفرع</label>
               <Select
                 value={editUser.branch}
                 onValueChange={(value) =>
@@ -777,17 +1011,17 @@ export default function AdminUsers() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
+                  <SelectValue placeholder="اختر الفرع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="examinations">Examinations</SelectItem>
-                  <SelectItem value="surgery">Surgery</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
+                  <SelectItem value="examinations">فحوصات</SelectItem>
+                  <SelectItem value="surgery">عمليات</SelectItem>
+                  <SelectItem value="both">كلاهما</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Shift</label>
+              <label className="block text-sm font-semibold mb-2">الوردية</label>
               <Select
                 value={String(editUser.shift)}
                 onValueChange={(value) =>
@@ -795,11 +1029,11 @@ export default function AdminUsers() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select shift" />
+                  <SelectValue placeholder="اختر الوردية" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Morning (1)</SelectItem>
-                  <SelectItem value="2">Night (2)</SelectItem>
+                  <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
+                  <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -810,15 +1044,15 @@ export default function AdminUsers() {
                   setEditUser({ ...editUser, writeToMssql: Boolean(checked) })
                 }
               />
-              <label className="text-sm font-medium">Write to MSSQL</label>
+              <label className="text-sm font-medium">كتابة على MSSQL</label>
             </div>
           </div>
 
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">Permissions</label>
-              <span className="text-xs text-muted-foreground">
-                {permissionStateQuery.isLoading ? " ..." : `${editPermissions.length} `}
+              <label className="block text-sm font-semibold">الصلاحيات (الشاشات)</label>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {permissionStateQuery.isLoading ? "…" : editPermissions.length}
               </span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 border rounded-lg p-3 max-h-56 overflow-y-auto">
@@ -836,38 +1070,20 @@ export default function AdminUsers() {
               ))}
             </div>
             {permissionStateQuery.isError && (
-              <p className="text-xs text-red-600 mt-2">Failed to load permissions.</p>
+              <p className="text-xs text-red-600 mt-2">تعذر تحميل الصلاحيات.</p>
             )}
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
-              Save
+            <Button onClick={() => void handleSaveEdit()} className="selrs-gradient-btn text-white" disabled={isSaving}>
+              حفظ
             </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-              Cancel
+              إلغاء
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-
-        <TabsContent value="doctors">
-          <AdminDoctors />
-        </TabsContent>
-
-        <TabsContent value="services">
-          <AdminServices />
-        </TabsContent>
-
-        <TabsContent value="permissions">
-          <AdminPermissions />
-        </TabsContent>
-
-        <TabsContent value="patients">
-          <AdminPatients />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

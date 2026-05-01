@@ -1,21 +1,21 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <meta name="theme-color" content="#0f766e" />
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#003D82" />
     <meta name="color-scheme" content="light" />
     <meta
       name="description"
-      content="SELRS mobile access for Al Shrouk Eye Center." />
+      content="مركز عيون الشروق — البوابة الطبية." />
     <link rel="dns-prefetch" href="//op.selrs.cc" />
     <link rel="preconnect" href="https://op.selrs.cc" crossorigin />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
-    <title>&#1605;&#1585;&#1603;&#1586; &#1593;&#1610;&#1608;&#1606; &#1575;&#1604;&#1588;&#1585;&#1608;&#1602; - SELRS</title>
+    <link rel="icon" type="image/svg+xml" href="/brand-fallback.svg" />
+    <link rel="apple-touch-icon" href="/brand-fallback.svg" />
+    <title>عيون الشروق</title>
     <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,9 +29,9 @@
         display: grid;
         place-items: center;
         background:
-          radial-gradient(circle at top, rgba(15, 118, 110, 0.2), transparent 42%),
-          linear-gradient(180deg, #f5fbfb 0%, #eef6f5 100%);
-        color: #0f172a;
+          radial-gradient(circle at top, rgba(0, 61, 130, 0.18), transparent 42%),
+          linear-gradient(135deg, #ffffff 0%, #e8f0f8 100%);
+        color: #001f47;
         transition: opacity 220ms ease, visibility 220ms ease;
       }
 
@@ -42,11 +42,11 @@
 
       .boot-splash-card {
         width: min(88vw, 420px);
-        border: 1px solid rgba(15, 118, 110, 0.14);
+        border: 1px solid rgba(0, 61, 130, 0.14);
         border-radius: 28px;
         padding: 28px 24px;
         background: rgba(255, 255, 255, 0.88);
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 24px 60px rgba(0, 31, 71, 0.14);
         text-align: center;
         backdrop-filter: blur(12px);
       }
@@ -55,7 +55,7 @@
         width: 88px;
         height: 88px;
         object-fit: contain;
-        filter: drop-shadow(0 8px 20px rgba(15, 118, 110, 0.18));
+        filter: drop-shadow(0 8px 20px rgba(0, 61, 130, 0.22));
       }
 
       .boot-splash-line {
@@ -63,7 +63,7 @@
         height: 4px;
         margin: 18px auto 0;
         border-radius: 999px;
-        background: linear-gradient(90deg, rgba(15, 118, 110, 0.2), #0f766e, rgba(15, 118, 110, 0.2));
+        background: linear-gradient(90deg, rgba(0, 61, 130, 0.2), #003d82 38%, #ff9500 72%, rgba(255, 149, 0, 0.2));
         animation: bootPulse 1.4s ease-in-out infinite;
       }
 
@@ -77,10 +77,15 @@
   <body>
     <div id="boot-splash" aria-hidden="true">
       <div class="boot-splash-card">
-        <img class="boot-splash-logo" src="/logo.png" alt="SELRS" />
-        <div style="margin-top: 18px; font-size: 1.35rem; font-weight: 700;">SELRS</div>
+        <img
+          class="boot-splash-logo"
+          src="/center-logo.png"
+          alt="شعار مركز عيون الشروق"
+          onerror="this.onerror=null;this.src='/brand-fallback.svg'"
+        />
+        <div style="margin-top: 18px; font-size: 1.35rem; font-weight: 700;">عيون الشروق</div>
         <div style="margin-top: 8px; color: #475569; font-size: 0.95rem;">
-          Connecting to Al Shrouk Eye Center
+          جاري التحميل…
         </div>
         <div class="boot-splash-line"></div>
       </div>

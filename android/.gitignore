@@ -37,9 +37,6 @@ proguard/
 
 # Android Studio captures folder
 captures/
-scripts/
-.specify/
-OP.SELRS.cc/
 
 # IntelliJ
 *.iml
@@ -102,4 +99,3 @@ app/src/main/assets/public
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
-

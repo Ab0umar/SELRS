@@ -12,6 +12,7 @@ import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
 import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesignerConfig, saveSheetDesignerConfig } from "@/lib/sheetDesigner";
+import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -335,44 +336,28 @@ export default function SpecialistSheet() {
         }
       `}</style>
       {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-lg sticky top-0 z-10 print:hidden">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between sheet-header-bar">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div>
-                  <h1 className="text-2xl font-bold">{sheetTemplate.sheetTitle}</h1>
-                  <p className="text-sm opacity-90">{formData.patientName}</p>
+                  <h1 className="text-2xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
+                  <p className="text-sm text-muted-foreground">{formData.patientName}</p>
                 </div>
               </div>
               <div className="flex gap-1 print:hidden sheet-header-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => setLocation("/patients")}
-                  className="text-primary-foreground hover:bg-primary/90"
-                >
+                <Button variant="ghost" size="sm" type="button" onClick={() => setLocation("/patients")}>
                   رجوع
                 </Button>
               </div>
             </div>
-            <div className="flex gap-1 flex-wrap sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                className="text-primary-foreground border border-gray-700 hover:bg-primary/80"
-              >
+            <div className="flex flex-wrap gap-1 sheet-header-actions">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                className="text-primary-foreground border border-gray-700 hover:bg-primary/80"
-              >
+              <Button variant="outline" size="sm" onClick={handleSaveSheet}>
                 حفظ
               </Button>
             </div>
@@ -396,8 +381,8 @@ export default function SpecialistSheet() {
           </div>
           {/* Header */}
           <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
-            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>عيون الشروق لليزك وتصحيح الإبصار</h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>Al Shrouk Eye Center for Lasik & Vision Correction</p>
+            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
+            <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
           </div>
 
           {/* Operation Details removed per request */}

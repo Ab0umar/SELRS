@@ -5,9 +5,11 @@ import { getApiUrl } from "@/const";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, DatabaseZap, Eye, ShieldCheck, WifiOff } from "lucide-react";
+import { Eye, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import {
   getOfflineCacheSummary,
   subscribeNetworkStatus } from "@/lib/appRuntime";
@@ -112,141 +114,137 @@ export default function Home() {
   }
 
   return (
-    <div
-      dir="rtl"
-      className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#dbeafe_0%,rgba(219,234,254,0.35)_24%,transparent_50%),linear-gradient(135deg,#f8fbff_0%,#eef6ff_34%,#f8fafc_100%)]"
-    >
+    <div dir="rtl" className="selrs-login-bg relative min-h-dvh overflow-hidden bg-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
-        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-amber-100/70 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-[48vh] bg-[radial-gradient(circle_at_62%_20%,rgba(0,61,130,0.10),transparent_30%),radial-gradient(circle_at_12%_30%,rgba(255,149,0,0.15),transparent_28%),linear-gradient(180deg,#ffffff_0%,#eef6ff_100%)]" />
+        <div className="absolute left-[-5rem] top-24 h-48 w-48 rounded-full bg-secondary/25 blur-3xl" />
+        <div className="absolute right-[-5rem] top-36 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+        <Eye className="absolute left-1/2 top-20 h-44 w-44 -translate-x-1/2 text-primary/[0.045]" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center p-4 sm:p-6 lg:p-10">
-        <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_minmax(0,28rem)] lg:items-center">
-          <section className="hidden rounded-[2rem] border border-white/70 bg-white/55 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur lg:block">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-sm font-medium text-sky-700">
-              <Eye className="h-4 w-4" />
-              منصة مركز عيون الشروق
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-between pt-[max(env(safe-area-inset-top),1rem)] lg:grid lg:grid-cols-[1fr_28rem] lg:items-center lg:gap-8 lg:px-8 lg:py-10">
+        <header className="px-5 pb-8 lg:px-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/15 bg-white shadow-[0_14px_40px_rgba(0,61,130,0.12)]">
+                <BrandLogo className="h-full w-full" imgClassName="p-1" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-black leading-tight text-primary sm:text-3xl">{BRAND_NAME_AR}</h1>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-600">{BRAND_TAGLINE_AR}</p>
+              </div>
             </div>
-            <div className="mt-6 max-w-xl">
-              <h1 className="text-4xl font-black tracking-tight text-slate-900">
-                واجهة أسرع وأوضح لإدارة المرضى والفحوصات داخل SELRS
-              </h1>
-              <p className="mt-4 text-lg leading-8 text-slate-600">
-                دخول آمن، حالة اتصال واضحة، وتجربة مناسبة للويب والتطبيق مع جاهزية أفضل للعمل اليومي داخل العيادة.
-              </p>
+            <div className="rounded-full border border-primary/15 bg-white/85 px-3 py-1.5 text-sm font-black tracking-[0.18em] text-primary shadow-sm">
+              SELRS
+            </div>
+          </div>
+
+          <div className="mt-8 hidden max-w-xl lg:block">
+            <h2 className="text-4xl font-black leading-tight text-slate-950">تسجيل دخول أسرع وأوضح للعيادة</h2>
+            <p className="mt-4 text-lg leading-8 text-slate-600">
+              واجهة مناسبة للموبايل والويب مع حالة اتصال واضحة وتجربة دخول بسيطة.
+            </p>
+          </div>
+        </header>
+
+        <Card className="relative mx-0 rounded-t-[2rem] rounded-b-none border-x-0 border-b-0 border-t border-white/80 bg-white/95 shadow-[0_-18px_60px_rgba(15,23,42,0.14)] backdrop-blur lg:mx-0 lg:rounded-[2rem] lg:border lg:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+          <div className="absolute inset-x-10 top-0 h-1 rounded-b-full bg-gradient-to-r from-primary via-primary to-secondary" />
+          <CardContent className="px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-8 sm:px-7 sm:pb-7">
+            <div className="mb-6 text-center">
+              <h2 className="text-3xl font-black tracking-tight text-primary">تسجيل الدخول</h2>
+              <p className="mt-2 text-sm font-medium text-slate-500">أدخل بياناتك للمتابعة إلى النظام</p>
             </div>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                <div className="mt-3 text-sm font-semibold text-slate-900">تسجيل آمن</div>
-                <div className="mt-1 text-sm leading-6 text-slate-600">حفظ الجلسة بالشكل المناسب للجهاز والمتصفح.</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-                <DatabaseZap className="h-5 w-5 text-amber-600" />
-                <div className="mt-3 text-sm font-semibold text-slate-900">جاهزية أوفلاين</div>
-                <div className="mt-1 text-sm leading-6 text-slate-600">بيانات إعدادات محفوظة محليًا لتقليل التعطل أثناء الانقطاع.</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-                <CheckCircle2 className="h-5 w-5 text-sky-700" />
-                <div className="mt-3 text-sm font-semibold text-slate-900">مؤشرات واضحة</div>
-                <div className="mt-1 text-sm leading-6 text-slate-600">إصدار البناء وحالة التطبيق ظاهرين بدون تشويش.</div>
-              </div>
-            </div>
-          </section>
+            <form onSubmit={handleLogin} className="space-y-4 text-right">
+              {!isOnline ? (
+                <Alert className="border-amber-200 bg-amber-50/90 text-amber-950">
+                  <WifiOff className="h-4 w-4" />
+                  <AlertDescription>
+                    الجهاز غير متصل بالإنترنت. بيانات الإعدادات المخزنة محليًا المتاحة الآن: {offlineCacheSummary.count}.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {error ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
 
-          <Card className="relative overflow-hidden border-white/80 bg-white/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
-            <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#0f766e_0%,#2563eb_48%,#d97706_100%)]" />
-            <CardHeader className="space-y-4 pb-4 text-center">
-              <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-[1.75rem] border border-sky-100 bg-white shadow-sm">
-                <img src="/logo.png" alt="SELRS logo" className="h-20 w-20 object-contain" />
-              </div>
               <div className="space-y-2">
-                <CardTitle className="text-3xl font-black tracking-tight text-slate-900">SELRS</CardTitle>
-                <CardDescription className="text-base text-slate-600">تسجيل الدخول إلى نظام مركز عيون الشروق</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4 text-right">
-                {!isOnline ? (
-                  <Alert className="border-amber-200 bg-amber-50/90 text-amber-950">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertDescription>
-                      الجهاز غير متصل بالإنترنت. بيانات الإعدادات المخزنة محليًا المتاحة الآن: {offlineCacheSummary.count}.
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-                {error ? (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                ) : null}
-
-                <div className="space-y-2">
-                  <label htmlFor="username" className="block text-sm font-semibold text-slate-700">
-                    اسم المستخدم
-                  </label>
+                <label htmlFor="username" className="block text-sm font-bold text-slate-700">
+                  اسم المستخدم
+                </label>
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
                   <Input
                     id="username"
                     type="text"
-                    placeholder="أدخل اسم المستخدم"
+                    placeholder="اسم المستخدم أو البريد الإلكتروني"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 bg-white text-left shadow-sm"
+                    className="h-14 rounded-2xl border-slate-200 bg-white pr-12 text-left text-base shadow-sm"
                     dir="ltr"
                     disabled={submitting}
                     required
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
-                    كلمة المرور
-                  </label>
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-bold text-slate-700">
+                  كلمة المرور
+                </label>
+                <div className="relative">
+                  <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
                   <Input
                     id="password"
                     type="password"
-                    placeholder="أدخل كلمة المرور"
+                    placeholder="كلمة المرور"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 bg-white text-left shadow-sm"
+                    className="h-14 rounded-2xl border-slate-200 bg-white pr-12 text-left text-base shadow-sm"
                     dir="ltr"
                     disabled={submitting}
                     required
                   />
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3">
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-slate-800">تذكرني على هذا الجهاز</div>
-                    <div className="text-xs text-slate-500">{rememberMe ? "سيتم حفظ الجلسة" : "سيتم إنهاء الجلسة عند إغلاق المتصفح"}</div>
-                  </div>
-                  <label className="flex items-center gap-3">
-                    <span className={`text-xs font-bold ${rememberMe ? "text-emerald-700" : "text-slate-500"}`}>
-                      {rememberMe ? "مفعل" : "متوقف"}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-5 w-5 rounded border-2 border-slate-400 bg-white accent-sky-600"
-                      disabled={submitting}
-                    />
-                  </label>
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-800">تذكرني</div>
+                  <div className="text-xs text-slate-500">{rememberMe ? "سيتم حفظ الجلسة" : "جلسة مؤقتة"}</div>
                 </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="peer sr-only"
+                    disabled={submitting}
+                  />
+                  <span className="h-8 w-14 rounded-full bg-slate-300 transition-colors peer-checked:bg-primary" />
+                  <span className="absolute left-1 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-6" />
+                </label>
+              </div>
 
-                <Button
-                  type="submit"
-                  className="h-12 w-full rounded-xl bg-[linear-gradient(135deg,#0f766e_0%,#2563eb_55%,#1d4ed8_100%)] text-base font-bold shadow-lg shadow-sky-200/70 hover:opacity-95"
-                  disabled={submitting}
-                >
-                  {submitting ? "جاري تسجيل الدخول..." : "دخول إلى النظام"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-2xl bg-gradient-to-l from-primary to-[#0067d6] text-base font-black text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-95"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  "جاري تسجيل الدخول..."
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <LogIn className="h-5 w-5" />
+                    دخول إلى النظام
+                  </span>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

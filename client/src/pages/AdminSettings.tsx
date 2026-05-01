@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
 import AdminStatus from "./AdminStatus";
 import AdminApiTools from "./AdminApiTools";
 import AdminMigrations from "./AdminMigrations";
-import { DEFAULT_APPOINTMENTS_PRICING } from "./Operations";
+import AdminPentacamFailed from "./AdminPentacamFailed";
+import AdminCardVisibility from "./AdminCardVisibility";
+import AdminNotificationSettings from "./AdminNotificationSettings";
+import { DEFAULT_APPOINTMENTS_PRICING } from "@/lib/operationsPricing";
 
 const KEY = "selrs_preferred_url";
 const PRICING_SETTING_KEY = "appointments_pricing_v1";
@@ -258,7 +260,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     setPricingJson(JSON.stringify(defaults, null, 2));
   };
   const setField = (setter: (draft: PricingConfig) => void) => {
-    setPricingForm((prev) => {
+    setPricingForm((prev: PricingConfig) => {
       const next = clonePricing(prev);
       setter(next);
       setPricingJson(JSON.stringify(next, null, 2));
@@ -285,21 +287,44 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          onClick={() => setLocation(isPricingOnlyMode ? "/appointments?tab=accounts" : "/dashboard?tab=admin")}
-        >
-          {isPricingOnlyMode ? "Back To Accounts" : "Admin Home"}
-        </Button>
-      </div>
+    <div className="mx-auto w-full max-w-[1440px] space-y-0 pb-6 text-right" dir="rtl">
       <Tabs defaultValue="settings" persistKey="admin-settings" className="w-full">
-        <TabsList className={`mb-6 grid w-full ${isPricingOnlyMode ? "grid-cols-1" : "grid-cols-4"} rounded-3xl border border-slate-200/80 bg-white/90 p-2 shadow-sm`}>
-          <TabsTrigger className="rounded-2xl" value="settings">Settings</TabsTrigger>
-          {!isPricingOnlyMode ? <TabsTrigger className="rounded-2xl" value="status">System Status</TabsTrigger> : null}
-          {!isPricingOnlyMode ? <TabsTrigger className="rounded-2xl" value="api">API Tools</TabsTrigger> : null}
-          {!isPricingOnlyMode ? <TabsTrigger className="rounded-2xl" value="migrations">Migrations</TabsTrigger> : null}
+        <TabsList
+          className="sticky top-0 z-[5] mb-6 flex w-full flex-wrap gap-1 rounded-lg bg-muted/50 p-1 sm:flex-nowrap sm:overflow-x-auto"
+        >
+          <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="settings">
+            الإعدادات العامة
+          </TabsTrigger>
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="status">
+              حالة النظام
+            </TabsTrigger>
+          ) : null}
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="api">
+              أدوات API
+            </TabsTrigger>
+          ) : null}
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="migrations">
+              الهجرات
+            </TabsTrigger>
+          ) : null}
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="pentacam">
+              بنتاكام الفاشل
+            </TabsTrigger>
+          ) : null}
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="cards">
+              ظهور الكروت
+            </TabsTrigger>
+          ) : null}
+          {!isPricingOnlyMode ? (
+            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="notifications">
+              إخطارات التطبيق
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
       <TabsContent value="settings">
@@ -481,6 +506,24 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       {!isPricingOnlyMode ? <TabsContent value="migrations">
         <AdminMigrations />
       </TabsContent> : null}
+
+      {!isPricingOnlyMode ? (
+        <TabsContent value="pentacam">
+          <AdminPentacamFailed />
+        </TabsContent>
+      ) : null}
+
+      {!isPricingOnlyMode ? (
+        <TabsContent value="cards">
+          <AdminCardVisibility />
+        </TabsContent>
+      ) : null}
+
+      {!isPricingOnlyMode ? (
+        <TabsContent value="notifications">
+          <AdminNotificationSettings />
+        </TabsContent>
+      ) : null}
       </Tabs>
     </div>
   );

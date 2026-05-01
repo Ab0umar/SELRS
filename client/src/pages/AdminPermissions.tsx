@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Shield } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -28,15 +33,20 @@ const DEFAULT_TEAM_PERMISSIONS: TeamPermissionsMap = {
   reception: [],
 };
 
-const ROLE_LABELS: Record<TeamRole, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  accountant: "Accountant",
-  doctor: "Doctor",
-  nurse: "Nurse",
-  technician: "Technician",
-  reception: "Reception",
+const ROLE_LABELS_AR: Record<TeamRole, string> = {
+  admin: "مسؤول",
+  manager: "مدير",
+  accountant: "محاسب",
+  doctor: "طبيب",
+  nurse: "ممرض",
+  technician: "فني",
+  reception: "استقبال",
 };
+
+/** ترتيب عرض يشبه البروتو: أدوار التشغيل ثم الدعم ثم المسؤول */
+const ROLE_UI_ORDER: TeamRole[] = ["manager", "doctor", "reception", "nurse", "technician", "accountant", "admin"];
+
+const ROLE_FILTER_OPTIONS = ROLE_UI_ORDER.map((r) => ({ value: r, label: ROLE_LABELS_AR[r] }));
 
 const PAGE_PERMISSIONS = [
   { id: "/dashboard", label: "Dashboard" },
@@ -55,8 +65,11 @@ const PAGE_PERMISSIONS = [
   { id: "/sheets/external/:id", label: "External Sheet" },
   { id: "/medications", label: "Medications & Tests" },
   { id: "/prescription", label: "Prescription" },
+  { id: "/prescriptions", label: "Prescriptions Hub (جدول)" },
   { id: "/refraction/:id", label: "Refraction Page" },
   { id: "/tests", label: "Tests Management" },
+  { id: "/examinations/catalog", label: "Examinations catalog (كتالوج الفحوصات)" },
+  { id: "/txhub", label: "TXhub (تحاليل وأشعة)" },
   { id: "/request-tests", label: "Request Tests" },
   { id: "/quick-entry", label: "Quick Patient Entry" },
   { id: "/doctor/patient/:id", label: "Doctor Patient View" },
@@ -78,16 +91,6 @@ const PAGE_PERMISSIONS = [
   { id: "/ops/mssql-add", label: "MSSQL Adding (Create Patient Sync)" },
 ] as const;
 
-const ROLE_ORDER: TeamRole[] = [
-  "admin",
-  "manager",
-  "accountant",
-  "doctor",
-  "nurse",
-  "technician",
-  "reception",
-];
-
 function getLevel(permissions: string[], pageId: string): AccessLevel {
   const rw = permissions.find((e) => e === `${pageId}:rw`);
   if (rw) return "rw";
@@ -97,53 +100,10 @@ function getLevel(permissions: string[], pageId: string): AccessLevel {
 }
 
 function setLevel(permissions: string[], pageId: string, level: AccessLevel): string[] {
-  const filtered = permissions.filter(
-    (e) => e !== pageId && e !== `${pageId}:r` && e !== `${pageId}:rw`
-  );
+  const filtered = permissions.filter((e) => e !== pageId && e !== `${pageId}:r` && e !== `${pageId}:rw`);
   if (level === "r") return [...filtered, pageId, `${pageId}:r`];
   if (level === "rw") return [...filtered, pageId, `${pageId}:rw`];
   return filtered;
-}
-
-function AccessToggle({
-  level,
-  onChange,
-}: {
-  level: AccessLevel;
-  onChange: (l: AccessLevel) => void;
-}) {
-  const base = "px-1.5 py-0.5 text-[10px] font-semibold border transition-colors focus:outline-none";
-  const active = "bg-slate-700 text-white border-slate-700";
-  const inactive = "bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600";
-
-  return (
-    <div className="inline-flex rounded overflow-hidden border border-slate-200">
-      <button
-        type="button"
-        className={`${base} ${level === "none" ? active : inactive} rounded-l`}
-        onClick={() => onChange("none")}
-        title="No access"
-      >
-        -
-      </button>
-      <button
-        type="button"
-        className={`${base} ${level === "r" ? "bg-blue-600 text-white border-blue-600" : inactive} border-l`}
-        onClick={() => onChange("r")}
-        title="Read only"
-      >
-        R
-      </button>
-      <button
-        type="button"
-        className={`${base} ${level === "rw" ? "bg-emerald-600 text-white border-emerald-600" : inactive} border-l rounded-r`}
-        onClick={() => onChange("rw")}
-        title="Read & Write"
-      >
-        R&W
-      </button>
-    </div>
-  );
 }
 
 export default function AdminPermissions() {
@@ -152,16 +112,18 @@ export default function AdminPermissions() {
   const utils = trpc.useUtils();
 
   const [permissions, setPermissions] = useState<TeamPermissionsMap>(DEFAULT_TEAM_PERMISSIONS);
+  const [selectedRole, setSelectedRole] = useState<TeamRole>("manager");
+
   const permissionsQuery = trpc.medical.getTeamPermissions.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
   const saveMutation = trpc.medical.setTeamPermissions.useMutation({
     onSuccess: () => {
-      toast.success("Role permissions updated");
-      utils.medical.getTeamPermissions.invalidate();
+      toast.success("تم تحديث صلاحيات الأدوار.");
+      void utils.medical.getTeamPermissions.invalidate();
     },
     onError: () => {
-      toast.error("Failed to update role permissions");
+      toast.error("تعذر حفظ الصلاحيات.");
     },
   });
 
@@ -184,59 +146,177 @@ export default function AdminPermissions() {
 
   if (!isAuthenticated || user?.role !== "admin") return null;
 
-  const handleChange = (role: TeamRole, pageId: string, level: AccessLevel) => {
+  const rolePerms = permissions[selectedRole] ?? [];
+
+  const handleChangeLevel = (pageId: string, level: AccessLevel) => {
     setPermissions((prev) => ({
       ...prev,
-      [role]: setLevel(prev[role] ?? [], pageId, level),
+      [selectedRole]: setLevel(prev[selectedRole] ?? [], pageId, level),
     }));
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-[1400px] border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>Permissions</CardTitle>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right" dir="rtl">
+      <PageHeader
+        title="الصلاحيات"
+        subtitle="إدارة صلاحيات الأدوار"
+        icon={<Shield className="h-5 w-5" />}
+      />
+
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <CardHeader className="space-y-1 border-b border-border/70">
+          <CardTitle className="text-base">{ROLE_LABELS_AR[selectedRole]}</CardTitle>
+          <CardDescription>
+            التخزين الحالي للنظام: <strong>عرض فقط</strong> (قراءة) أو<strong>عرض + كتابة</strong> (تعديل كامل). حقول الإنشاء
+            والتعديل والحذف مرتبطة معاً لتعكس وضع الكتابة الكامل.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Set access level per role: <span className="font-semibold text-blue-600">R</span> = read-only, <span className="font-semibold text-emerald-600">R&W</span> = read &amp; write, <span className="font-semibold text-slate-500">-</span> = no access.
+        <CardContent className="space-y-5 pt-5">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">اختيار الدور</span>
+            <FilterBar
+              filters={ROLE_FILTER_OPTIONS}
+              selected={selectedRole}
+              onSelect={(v) => setSelectedRole(v as TeamRole)}
+              className="max-w-[min(100%,920px)]"
+            />
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50/90">
-                  <th className="p-2 text-left whitespace-nowrap">Page</th>
-                  {ROLE_ORDER.map((role) => (
-                    <th key={role} className="p-2 text-center whitespace-nowrap">
-                      {ROLE_LABELS[role]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {PAGE_PERMISSIONS.map((perm) => (
-                  <tr key={perm.id} className="border-b last:border-b-0 hover:bg-slate-50/50">
-                    <td className="p-2 font-medium whitespace-nowrap">{perm.label}</td>
-                    {ROLE_ORDER.map((role) => (
-                      <td key={`${perm.id}-${role}`} className="p-2 text-center">
-                        <AccessToggle
-                          level={getLevel(permissions[role], perm.id)}
-                          onChange={(level) => handleChange(role, perm.id, level)}
+
+          {/* Mobile cards */}
+          <div className="space-y-2 sm:hidden">
+            {PAGE_PERMISSIONS.map((perm) => {
+              const level = getLevel(rolePerms, perm.id);
+              const canView = level === "r" || level === "rw";
+              const canWrite = level === "rw";
+              const toggleWriteRow = (on: boolean) => {
+                if (on) handleChangeLevel(perm.id, "rw");
+                else handleChangeLevel(perm.id, level !== "none" ? "r" : "none");
+              };
+              return (
+                <div key={perm.id} className="rounded-xl border border-border/80 bg-card px-4 py-3" dir="rtl">
+                  <div className="mb-2 font-medium leading-snug">{perm.label}</div>
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div>
+                      <div className="mb-1 text-muted-foreground">عرض</div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={canView}
+                          onCheckedChange={(c) => {
+                            const v = Boolean(c);
+                            if (!v) handleChangeLevel(perm.id, "none");
+                            else handleChangeLevel(perm.id, canWrite ? "rw" : "r");
+                          }}
+                          aria-label="عرض"
                         />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-muted-foreground">إنشاء</div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={canWrite}
+                          onCheckedChange={(c) => toggleWriteRow(Boolean(c))}
+                          aria-label="إنشاء"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-muted-foreground">تعديل</div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={canWrite}
+                          onCheckedChange={(c) => toggleWriteRow(Boolean(c))}
+                          aria-label="تعديل"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-muted-foreground">حذف</div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={canWrite}
+                          onCheckedChange={(c) => toggleWriteRow(Boolean(c))}
+                          aria-label="حذف"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-lg border border-border/80 sm:block">
+            <Table dir="rtl" className="min-w-[720px] text-right text-sm">
+              <TableHeader>
+                <TableRow className="bg-muted/45">
+                  <TableHead className="min-w-[200px] px-4 py-3 font-bold">الصفحة</TableHead>
+                  <TableHead className="w-28 px-2 py-3 text-center font-bold">عرض</TableHead>
+                  <TableHead className="w-28 px-2 py-3 text-center font-bold">إنشاء</TableHead>
+                  <TableHead className="w-28 px-2 py-3 text-center font-bold">تعديل</TableHead>
+                  <TableHead className="w-28 px-2 py-3 text-center font-bold">حذف</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {PAGE_PERMISSIONS.map((perm) => {
+                  const level = getLevel(rolePerms, perm.id);
+                  const canView = level === "r" || level === "rw";
+                  const canWrite = level === "rw";
+
+                  const toggleWriteRow = (on: boolean) => {
+                    if (on) handleChangeLevel(perm.id, "rw");
+                    else handleChangeLevel(perm.id, level !== "none" ? "r" : "none");
+                  };
+
+                  const writeCheckboxProps = {
+                    checked: canWrite,
+                    onCheckedChange: (c: unknown) => toggleWriteRow(Boolean(c)),
+                    "aria-label": "عمليات الكتابة",
+                  } as const;
+
+                  return (
+                    <TableRow key={perm.id} className="border-border/80 hover:bg-primary/[0.04]">
+                      <TableCell className="max-w-[360px] px-4 py-3 align-middle font-medium leading-snug">{perm.label}</TableCell>
+                      <TableCell className="py-3 text-center align-middle">
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={canView}
+                            onCheckedChange={(c) => {
+                              const v = Boolean(c);
+                              if (!v) handleChangeLevel(perm.id, "none");
+                              else handleChangeLevel(perm.id, canWrite ? "rw" : "r");
+                            }}
+                            aria-label="عرض"
+                          />
+                        </div>
+                      </TableCell>
+                      {[0, 1, 2].map((i) => (
+                        <TableCell key={i} className="py-3 text-center align-middle">
+                          <div className="flex justify-center">
+                            <Checkbox {...writeCheckboxProps} />
+                          </div>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
             <Button
+              type="button"
+              className="selrs-gradient-btn text-white"
               onClick={() => void saveMutation.mutateAsync(permissions)}
               disabled={saveMutation.isPending || permissionsQuery.isLoading}
             >
-              {saveMutation.isPending ? "Saving..." : "Save Permissions"}
+              {saveMutation.isPending ? "جاري الحفظ…" : "حفظ الصلاحيات"}
             </Button>
+            <p className="text-xs text-muted-foreground">
+              المرجع: عدم التفعيل يعني «لا وصول». «عرض» يعادل R. تفعيل أي عمود إنشاء/تعديل/حذف يفعّل R&amp;W لذلك الدور لهذه الصفحة.
+            </p>
           </div>
         </CardContent>
       </Card>

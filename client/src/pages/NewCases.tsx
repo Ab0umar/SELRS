@@ -63,7 +63,7 @@ export default function NewCases() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen selrs-page-bg" dir="rtl">
       <PageHeader backTo="/dashboard" />
       <main className="w-full space-y-6 px-3 py-6 sm:px-4">
         {patientId > 0 && patient ? (

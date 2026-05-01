@@ -180,7 +180,7 @@ function AppNotificationPanel() {
   };
 
   const toneClass = (kind?: string) => {
-    if (kind === "success") return "border-emerald-400 bg-emerald-50/80 text-emerald-900";
+    if (kind === "success") return "border-secondary/40 bg-secondary/10 text-foreground";
     if (kind === "warning") return "border-amber-400 bg-amber-50/80 text-amber-900";
     if (kind === "error") return "border-rose-400 bg-rose-50/80 text-rose-900";
     return "border-slate-300 bg-slate-50/80 text-slate-900";

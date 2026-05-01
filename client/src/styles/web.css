@@ -43,79 +43,91 @@
 }
 
 :root {
-  /* Al Shrouk Eye Center - Primary Colors: Navy Blue & Gold */
-  --primary: oklch(0.35 0.15 260); /* Navy Blue */
-  --primary-foreground: oklch(0.98 0.001 60); /* Off-white */
-  --sidebar-primary: oklch(0.40 0.14 260); /* Lighter Navy */
-  --sidebar-primary-foreground: oklch(0.98 0.001 60);
-  --accent: oklch(0.65 0.18 70); /* Gold/Amber */
-  --accent-foreground: oklch(0.15 0.01 260); /* Dark text on gold */
-  --chart-1: oklch(0.35 0.15 260); /* Navy */
-  --chart-2: oklch(0.45 0.14 260); /* Light Navy */
-  --chart-3: oklch(0.65 0.18 70); /* Gold */
-  --chart-4: oklch(0.55 0.16 265); /* Medium Navy */
-  --chart-5: oklch(0.30 0.16 260); /* Dark Navy */
+  /* SELRS Brand Colors */
+  --selrs-navy: #003D82;
+  --selrs-orange: #FF9500;
+  --selrs-dark-blue: #001F47;
+  --selrs-light-blue: #E8F0F8;
+  --selrs-light-orange: #FFE8CC;
+
+  /* Primary Colors - Navy Blue */
+  --primary: #003D82;
+  --primary-foreground: #FFFFFF;
+  --sidebar-primary: #003D82;
+  --sidebar-primary-foreground: #FFFFFF;
+
+  /* Charts - Navy Blue to Orange gradient */
+  --chart-1: #003D82;
+  --chart-2: #0052A3;
+  --chart-3: #FF9500;
+  --chart-4: #FFB84D;
+  --chart-5: #FFD699;
+
   --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+
+  /* Light Mode */
+  --background: #FFFFFF;
+  --foreground: #001F47;
+  --card: #F5F5F5;
+  --card-foreground: #001F47;
+  --popover: #FFFFFF;
+  --popover-foreground: #001F47;
+  --secondary: #FF9500;
+  --secondary-foreground: #FFFFFF;
+  --muted: #E8F0F8;
+  --muted-foreground: #4B5563;
+  --accent: #FF9500;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #FFFFFF;
+  --ring: #003D82;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #001F47;
+  --sidebar-accent: #FF9500;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #003D82;
 }
 
 .dark {
-  /* Al Shrouk Eye Center - Dark Mode */
-  --primary: oklch(0.40 0.14 260); /* Light Navy for dark mode */
-  --primary-foreground: oklch(0.98 0.001 60);
-  --sidebar-primary: oklch(0.35 0.15 260); /* Darker Navy */
-  --sidebar-primary-foreground: oklch(0.98 0.001 60);
-  --accent: oklch(0.70 0.17 70); /* Brighter Gold in dark mode */
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Dark Mode - Solid Black */
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #111111;
+  --card-foreground: #FFFFFF;
+  --popover: #111111;
+  --popover-foreground: #FFFFFF;
+  --primary: #003D82;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FF9500;
+  --secondary-foreground: #000000;
+  --muted: #1A1A1A;
+  --muted-foreground: #E5E7EB;
+  --accent: #FF9500;
+  --accent-foreground: #000000;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #333333;
+  --input: #1A1A1A;
+  --ring: #FF9500;
+
+  --chart-1: #003D82;
+  --chart-2: #0052A3;
+  --chart-3: #FF9500;
+  --chart-4: #FFB84D;
+  --chart-5: #FFD699;
+
+  --sidebar: #111111;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #003D82;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FF9500;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #333333;
+  --sidebar-ring: #FF9500;
 }
 
 @media print {
@@ -614,8 +626,8 @@ select {
 }
 
 .auto-air-grid input[data-slot="input"]:focus-visible {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18) !important;
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
 }
 
 /* Compact inputs for Lasik tables to fit A4 */
@@ -748,291 +760,146 @@ select {
   }
 }
 
-/*
- * Trial for Win7/Edge109:
- * Provide legacy-safe CSS variables and simplify key layout surfaces.
- */
-.legacy-win7:root {
-  --primary: #1f3f82;
-  --primary-foreground: #f8fafc;
-  --sidebar-primary: #31529a;
-  --sidebar-primary-foreground: #f8fafc;
-  --accent: #f2f4f7;
-  --accent-foreground: #1f2937;
-  --chart-1: #1f3f82;
-  --chart-2: #2f5aa8;
-  --chart-3: #d39c2a;
-  --chart-4: #4169b8;
-  --chart-5: #1b325f;
-  --background: #ffffff;
-  --foreground: #2f3a4a;
-  --card: #ffffff;
-  --card-foreground: #2f3a4a;
-  --popover: #ffffff;
-  --popover-foreground: #2f3a4a;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #374151;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #cbd5e1;
-  --input: #cbd5e1;
-  --ring: #3b82f6;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #2f3a4a;
-  --sidebar-accent: #f3f4f6;
-  --sidebar-accent-foreground: #1f2937;
-  --sidebar-border: #cbd5e1;
-  --sidebar-ring: #3b82f6;
+/* SELRS Brand Utilities */
+.selrs-gradient-primary {
+  background: linear-gradient(135deg, #003D82 0%, #0052A3 100%);
 }
 
-.legacy-win7 body {
-  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-  background: linear-gradient(180deg, #edf3fb 0%, #dbe7f7 100%) !important;
+.selrs-gradient-accent {
+  background: linear-gradient(135deg, #FF9500 0%, #FFB84D 100%);
 }
 
-.legacy-win7 [data-slot="card"],
-.legacy-win7 .card,
-.legacy-win7 [data-slot="dialog-content"],
-.legacy-win7 [data-slot="sheet-content"],
-.legacy-win7 [role="dialog"] {
+.selrs-gradient-mixed {
+  background: linear-gradient(135deg, #003D82 0%, #FF9500 100%);
+}
+
+.selrs-gradient-bar {
+  background: linear-gradient(90deg, #003D82 0%, #0052A3 48%, #FF9500 100%);
+}
+
+.selrs-text-gradient {
+  background: linear-gradient(135deg, #003D82 0%, #FF9500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.selrs-card {
+  border-radius: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: linear-gradient(180deg, #ffffff 0%, #f3f7fd 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.96),
-    0 1px 3px rgba(52, 85, 143, 0.18) !important;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition-property: box-shadow, border-color;
+  transition-duration: 200ms;
 }
 
-.legacy-win7 input[data-slot="input"],
-.legacy-win7 textarea[data-slot="textarea"],
-.legacy-win7 select,
-.legacy-win7 button {
-  background: #fff;
-  border: 1px solid var(--input);
-  border-radius: 6px;
+.selrs-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--accent);
 }
 
-.legacy-win7 .grid {
-  gap: 0.75rem;
-}
-
-.legacy-win7 .container {
-  max-width: 100%;
-}
-
-.legacy-win7 .bg-primary {
-  background: linear-gradient(180deg, #6f94d0 0%, #4f78bf 52%, #34558f 100%) !important;
-}
-
-.legacy-win7 .text-primary-foreground {
-  color: var(--primary-foreground) !important;
-}
-
-.legacy-win7 .bg-secondary {
-  background-color: var(--secondary) !important;
-}
-
-.legacy-win7 .text-secondary-foreground {
-  color: var(--secondary-foreground) !important;
-}
-
-.legacy-win7 .text-muted-foreground {
-  color: var(--muted-foreground) !important;
-}
-
-.legacy-win7 .border,
-.legacy-win7 .border-t,
-.legacy-win7 .border-r,
-.legacy-win7 .border-b,
-.legacy-win7 .border-l {
-  border-color: var(--border) !important;
-}
-
-.legacy-win7 .shadow-sm,
-.legacy-win7 .shadow,
-.legacy-win7 .shadow-md,
-.legacy-win7 .shadow-lg {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16) !important;
-}
-
-.legacy-win7 .backdrop-blur-sm,
-.legacy-win7 .backdrop-blur,
-.legacy-win7 .backdrop-blur-md,
-.legacy-win7 .backdrop-blur-lg {
-  backdrop-filter: none !important;
-}
-
-.legacy-win7 [data-slot="button"] {
-  min-height: 2rem;
-  padding: 0.3rem 0.7rem;
+.selrs-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   font-weight: 600;
-  line-height: 1.25;
+  padding: 0.5rem 1rem;
+  transition-property: opacity, transform;
+  transition-duration: 200ms;
 }
 
-.legacy-win7 .bg-primary[data-slot="button"] {
-  color: #fff !important;
+.selrs-button-primary:hover {
+  opacity: 0.9;
 }
 
-.legacy-win7 [data-slot="input"],
-.legacy-win7 [data-slot="textarea"],
-.legacy-win7 [data-slot="select-trigger"],
-.legacy-win7 [data-slot="select-content"],
-.legacy-win7 select,
-.legacy-win7 textarea,
-.legacy-win7 input {
-  border: 1px solid var(--input) !important;
-  background-color: #fff !important;
-  color: #111827;
+.selrs-button-primary:active {
+  transform: scale(0.95);
 }
 
-.legacy-win7 [data-slot="input"]:focus,
-.legacy-win7 [data-slot="textarea"]:focus,
-.legacy-win7 [data-slot="select-trigger"]:focus,
-.legacy-win7 select:focus,
-.legacy-win7 textarea:focus,
-.legacy-win7 input:focus {
-  outline: 1px solid #60a5fa;
-  outline-offset: 0;
-  box-shadow: none !important;
+.selrs-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--accent);
+  background-color: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition-property: background-color, transform;
+  transition-duration: 200ms;
 }
 
-.legacy-win7 [data-slot="button"],
-.legacy-win7 button {
-  color: #0f172a;
-  background: linear-gradient(180deg, #fefefe 0%, #e6edf7 52%, #d0dced 100%) !important;
-  border-color: #9bb0cf !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.98),
-    0 1px 0 rgba(74, 102, 148, 0.18) !important;
+.selrs-button-secondary:hover {
+  background-color: rgba(255, 149, 0, 0.1);
 }
 
-.legacy-win7 .bg-primary[data-slot="button"],
-.legacy-win7 .bg-primary button,
-.legacy-win7 button.bg-primary {
-  background: linear-gradient(180deg, #7fa8e1 0%, #5b83c8 52%, #365690 100%) !important;
-  color: #fff !important;
-  border-color: #2d4e84 !important;
+.selrs-button-secondary:active {
+  transform: scale(0.95);
 }
 
-.legacy-win7 .bg-destructive[data-slot="button"],
-.legacy-win7 .bg-destructive button,
-.legacy-win7 button.bg-destructive {
-  background-color: var(--destructive) !important;
-  color: #fff !important;
-  border-color: var(--destructive) !important;
+.selrs-page-bg {
+  background-image:
+    radial-gradient(circle at top, rgba(0, 61, 130, 0.06), transparent 24%),
+    linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 100%);
+  background-attachment: fixed;
 }
 
-.legacy-win7 [data-slot="table-container"],
-.legacy-win7 .overflow-x-auto {
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 6px;
+.dark .selrs-page-bg {
+  background-image:
+    radial-gradient(circle at top, rgba(255, 149, 0, 0.06), transparent 24%),
+    linear-gradient(180deg, #000000 0%, #111111 100%);
 }
 
-.legacy-win7 table {
-  border-collapse: collapse;
+.selrs-login-bg {
+  background-image:
+    radial-gradient(circle at top, rgba(0, 61, 130, 0.10) 0%, rgba(0, 61, 130, 0.04) 24%, transparent 50%),
+    linear-gradient(135deg, #FFFFFF 0%, #E8F0F8 34%, #F5F5F5 100%);
+  background-attachment: fixed;
 }
 
-.legacy-win7 th,
-.legacy-win7 td {
-  border-color: var(--border);
+.dark .selrs-login-bg {
+  background-image:
+    radial-gradient(circle at top, rgba(255, 149, 0, 0.12) 0%, rgba(255, 149, 0, 0.04) 24%, transparent 50%),
+    linear-gradient(135deg, #000000 0%, #111111 50%, #1A1A1A 100%);
 }
 
-.legacy-win7 .patients-table th,
-.legacy-win7 .patients-table td {
-  vertical-align: middle;
+.selrs-glass-card {
+  border: 1px solid rgba(0, 61, 130, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 24px 60px rgba(0, 31, 71, 0.12);
+  backdrop-filter: blur(14px);
 }
 
-.legacy-win7 [data-slot="tabs-list"] {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 0.2rem;
-  border: 1px solid #b5c5dd;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #edf3fb 0%, #d8e3f3 100%);
+.dark .selrs-glass-card {
+  border: 1px solid rgba(255, 149, 0, 0.16);
+  background: rgba(17, 17, 17, 0.85);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(14px);
 }
 
-.legacy-win7 [data-slot="tabs-trigger"] {
-  flex: 0 0 auto;
-  border: 1px solid transparent;
-  border-radius: 4px 4px 0 0;
-  background: linear-gradient(180deg, #edf2f9 0%, #d6e2f2 100%);
-  color: #42546f;
+.selrs-active-nav {
+  background-color: rgba(255, 149, 0, 0.1);
+  color: var(--accent);
+  position: relative;
 }
 
-.legacy-win7 [data-slot="tabs-trigger"] svg,
-.legacy-win7 [data-slot="button"] svg,
-.legacy-win7 button svg {
-  display: inline-block !important;
-  width: 1rem !important;
-  height: 1rem !important;
-  min-width: 1rem;
-  min-height: 1rem;
-  flex: 0 0 auto;
-  stroke: currentColor;
-  fill: none;
-  opacity: 1 !important;
+.selrs-active-nav::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
-.legacy-win7 svg,
-.legacy-win7 .lucide {
-  visibility: visible !important;
-  overflow: visible !important;
-  color: inherit !important;
-  stroke: currentColor !important;
-  stroke-width: 2 !important;
-}
-
-.legacy-win7 [data-slot="tabs-trigger"] .lucide,
-.legacy-win7 [data-slot="tabs-trigger"] svg {
-  margin-inline-start: 0;
-  margin-inline-end: 0.35rem;
-}
-
-.legacy-win7 [data-slot="tabs-trigger"] {
-  color: #334155;
-}
-
-.legacy-win7 [data-slot="tabs-trigger"][data-state="active"] {
-  color: #0f172a;
-  background: linear-gradient(180deg, #ffffff 0%, #edf3fb 100%);
-  border-color: #a8bddb #a8bddb #ffffff #a8bddb;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98);
-}
-
-.legacy-win7 .animate-in,
-.legacy-win7 .animate-out,
-.legacy-win7 .transition,
-.legacy-win7 .transition-colors,
-.legacy-win7 .transition-opacity,
-.legacy-win7 .transition-transform {
-  animation: none !important;
-  transition: none !important;
-}
-
-.legacy-win7 .page-layout {
-  min-height: 100vh;
-}
-
-.legacy-win7 .sheet-unified-actions,
-.legacy-win7 header.bg-primary {
-  background: linear-gradient(180deg, #7fa8e1 0%, #5b83c8 52%, #365690 100%) !important;
-  border-bottom: 1px solid #2c4d83;
-}
-
-@media (max-width: 1024px) {
-  .legacy-win7 .page-layout .grid {
-    display: block;
-  }
-
-  .legacy-win7 .page-layout .grid > * {
-    margin-bottom: 0.75rem;
-  }
-}
 
 
 /* Make plain examination inputs clearly visible and compact */
@@ -1049,8 +916,8 @@ select {
 }
 
 .examination-plain-grid input[data-slot="input"]:focus-visible {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18) !important;
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
 }
 
 .examination-plain-grid > .grid {

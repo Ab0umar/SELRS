@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Plus, Trash2, Edit2, FlaskConical, ClipboardList, Sparkles } from "lucide-react";
+import { Plus, Trash2, Edit2, FlaskConical, ClipboardList, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -125,61 +125,48 @@ export default function TestsManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <header className="bg-primary text-primary-foreground shadow-lg sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/dashboard")}
-            className="text-primary-foreground hover:bg-primary/80"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <section className="mb-8 overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(168,85,247,0.16),_transparent_34%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-fuchsia-700">
-                <FlaskConical className="h-3.5 w-3.5" />
-                Test Catalog
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-2" dir="rtl">
+      <section className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold text-primary">
+              <FlaskConical className="h-3.5 w-3.5" />
+              كتالوج الفحوصات
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">إدارة الفحوصات</h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              إدارة شاملة لفحوصات المختبر والأشعة والفحوصات البصرية.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <ClipboardList className="h-3.5 w-3.5" />
+                إجمالي الفحوصات
               </div>
-              <div className="space-y-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Tests Management</h1>
-                <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                  إدارة أوضح للفحوصات مع فصل أفضل بين إنشاء الفحص ومراجعة الكتالوج الحالي.
-                </p>
+              <div className="mt-2 text-sm font-semibold text-foreground">{tests.length}</div>
+            </div>
+            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
+              <div className="text-xs font-medium text-muted-foreground">الوضع</div>
+              <div className="mt-2 text-sm font-semibold text-foreground">
+                {editingId ? "تعديل فحص" : "إضافة جديدة"}
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <ClipboardList className="h-3.5 w-3.5" />
-                  Total Tests
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{tests.length}</div>
+            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5" />
+                الحالة
               </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Mode</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{editingId ? "Editing test" : "Create new"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Status
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{testsQuery.isLoading ? "Loading" : "Ready"}</div>
+              <div className="mt-2 text-sm font-semibold text-foreground">
+                {testsQuery.isLoading ? "جاري التحميل" : "جاهز"}
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="border-slate-200/80 bg-white/95 shadow-sm lg:col-span-1">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="border-border/80 shadow-sm lg:col-span-1">
           <CardHeader>
             <CardTitle>{editingId ? "تعديل الفحص" : "إضافة فحص جديد"}</CardTitle>
           </CardHeader>
@@ -232,7 +219,7 @@ export default function TestsManagement() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 bg-white/95 shadow-sm lg:col-span-2">
+        <Card className="border-border/80 shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle>قائمة الفحوصات</CardTitle>
           </CardHeader>
@@ -262,8 +249,7 @@ export default function TestsManagement() {
             </div>
           </CardContent>
         </Card>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

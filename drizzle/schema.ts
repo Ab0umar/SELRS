@@ -557,6 +557,10 @@ export const medications = mysqlTable("medications", {
   manufacturer: varchar("manufacturer", { length: 255 }),
   dosage: varchar("dosage", { length: 100 }),
   description: text("description"),
+  /** Optional stock count for pharmacy-style dashboards */
+  stockPieces: int("stockPieces"),
+  /** Row-level inventory posture; if null UI derives from stockPieces */
+  inventoryStatus: mysqlEnum("inventoryStatus", ["available", "out_of_stock", "reserved"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -575,6 +579,9 @@ export const tests = mysqlTable("tests", {
   normalRange: varchar("normalRange", { length: 255 }),
   unit: varchar("unit", { length: 64 }),
   description: text("description"),
+  priceEgp: varchar("priceEgp", { length: 32 }),
+  durationMinutes: int("durationMinutes"),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -765,6 +772,26 @@ export const followupItems = mysqlTable("followupItems", {
 
 export type FollowupItem = typeof followupItems.$inferSelect;
 export type InsertFollowupItem = typeof followupItems.$inferInsert;
+
+/**
+ * طلبات تحديد موعد / كشف (استقبال) — بيانات حرة دون ربط إلزامي بسجل مريض
+ */
+export const visitScheduleRequests = mysqlTable("visit_schedule_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  fullName: varchar("fullName", { length: 255 }).notNull(),
+  age: int("age"),
+  visitDate: date("visitDate").notNull(),
+  phone: varchar("phone", { length: 32 }),
+  service: varchar("service", { length: 128 }).notNull(),
+  createdByUserId: int("createdByUserId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  visitDateIdx: index("idx_visit_schedule_requests_visitDate").on(table.visitDate),
+}));
+
+export type VisitScheduleRequest = typeof visitScheduleRequests.$inferSelect;
+export type InsertVisitScheduleRequest = typeof visitScheduleRequests.$inferInsert;
 
 /**
  * Doctors lookup table (synced from MSSQL via code)

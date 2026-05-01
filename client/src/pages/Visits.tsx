@@ -1,22 +1,66 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
-import PageHeader from "@/components/PageHeader";
-import { ChevronDown, Edit, X, Check, FileText } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { FilterBar } from "@/components/shared/FilterBar";
+import { StatCard } from "@/components/shared/StatCard";
+import { cn } from "@/lib/utils";
+import { CalendarDays, ClipboardList, Edit, CalendarRange, Check, ChevronDown, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const visitKindTabs = [
+  { value: "all", label: "الكل" },
+  { value: "examination", label: "فحص" },
+  { value: "followup", label: "متابعة" },
+  { value: "consultation", label: "استشارة" },
+  { value: "surgery", label: "عملية" },
+];
+
+const visitTypeLabels: Record<string, string> = {
+  examination: "فحص",
+  followup: "متابعة",
+  consultation: "استشارة",
+  surgery: "عملية",
+};
+
+const visitTypeStyles: Record<string, string> = {
+  examination: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+  followup: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  consultation: "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300",
+  surgery: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+};
+
+function visitRowId(row: Record<string, unknown>, fallback: number): number {
+  const id = row?.id;
+  return typeof id === "number" && Number.isFinite(id) ? id : fallback;
+}
+
+function isInCurrentCalendarWeek(d: Date): boolean {
+  const now = new Date();
+  const day = now.getDay();
+  const start = new Date(now);
+  start.setDate(now.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  return d >= start && d < end;
+}
 
 export default function Visits() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, routeParams] = useRoute("/visits/:id");
   const [patientId, setPatientId] = useState<number>(0);
-  const [expandedVisit, setExpandedVisit] = useState<number | null>(null);
-  const [editingVisitIndex, setEditingVisitIndex] = useState<number | null>(null);
+  const [expandedVisitId, setExpandedVisitId] = useState<number | null>(null);
+  const [editingVisitId, setEditingVisitId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeVisitKind, setActiveVisitKind] = useState("all");
   const [editingExamType, setEditingExamType] = useState<string | null>(null);
   const [editDate, setEditDate] = useState<string>("");
   const [editAutorefraction, setEditAutorefraction] = useState<any>(null);
@@ -41,9 +85,7 @@ export default function Visits() {
   const updateExamDataMutation = trpc.medical.updateVisitExamData.useMutation();
 
   const patient = patientQuery.data as any;
-  const visits = patientId > 0
-    ? (patientVisitsQuery.data ?? []) as any[]
-    : (allVisitsQuery.data ?? []) as any[];
+  const visits = (patientId > 0 ? patientVisitsQuery.data ?? [] : allVisitsQuery.data ?? []) as any[];
   const isLoading = patientId > 0 ? patientVisitsQuery.isLoading : allVisitsQuery.isLoading;
 
   useEffect(() => {
@@ -85,6 +127,40 @@ export default function Visits() {
     }
   };
 
+  const stats = useMemo(() => {
+    const rows = visits as Record<string, unknown>[];
+    let thisWeek = 0;
+    let followups = 0;
+    for (const v of rows) {
+      const raw = v.visitDate ?? v.createdAt;
+      const d = raw ? new Date(String(raw)) : null;
+      if (d && !Number.isNaN(d.getTime()) && isInCurrentCalendarWeek(d)) thisWeek += 1;
+      if (String(v.visitType ?? "") === "followup") followups += 1;
+    }
+    return { total: rows.length, thisWeek, followups };
+  }, [visits]);
+
+  const filteredVisits = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return visits.filter((visit, idx) => {
+      const row = visit as Record<string, unknown>;
+      const vt = String(row.visitType ?? "");
+      if (activeVisitKind !== "all" && vt !== activeVisitKind) return false;
+      if (!needle) return true;
+      const nameLine = patientId > 0 && patient?.fullName ? String(patient.fullName) : String(row.patientName ?? "");
+      const hay = [
+        formatDateTime(String(row.visitDate ?? row.createdAt ?? "")),
+        String(row.chiefComplaint ?? ""),
+        nameLine,
+        `مريض ${String(row.patientId ?? "")}`,
+        `id ${visitRowId(row, idx)}`,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [visits, search, activeVisitKind, patientId, patient]);
+
   const handleStartEditDate = (visit: any) => {
     const dateObj = new Date(visit.visitDate);
     const dateStr = dateObj.toISOString().split("T")[0];
@@ -102,8 +178,12 @@ export default function Visits() {
 
       // Wait a moment then refetch
       await new Promise(resolve => setTimeout(resolve, 500));
-      await patientVisitsQuery.refetch();
-      setEditingVisitIndex(null);
+      if (patientId > 0) {
+        await patientVisitsQuery.refetch();
+      } else {
+        await allVisitsQuery.refetch();
+      }
+      setEditingVisitId(null);
       setEditDate("");
     } catch (error) {
       console.error("Failed to update visit date:", error);
@@ -133,83 +213,105 @@ export default function Visits() {
         visitId: visit.id,
         updates
       });
-      patientVisitsQuery.refetch();
+      if (patientId > 0) {
+        await patientVisitsQuery.refetch();
+      } else {
+        await allVisitsQuery.refetch();
+      }
       setEditingExamType(null);
     } catch (error) {
       console.error("Failed to update exam:", error);
     }
   };
 
+  if (!isAuthenticated) return null;
+
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <PageHeader backTo="/dashboard" />
-      <main className="w-full space-y-6 px-3 py-6 sm:px-4">
-        <Card className="border-slate-200/80 shadow-sm">
-          {/* Header with Patient Info / All Visits */}
-          <CardHeader className="border-b border-slate-200 pb-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              {/* Patient Info */}
-              {patientId > 0 && patient ? (
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl">{patient?.fullName || "المريض"}</CardTitle>
-                    <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600">
-                      <div>العمر: <span className="font-medium">{getPatientAge(patient?.dateOfBirth)} سنة</span></div>
-                      <div>الدكتور: <span className="font-medium">{patient?.doctorName || "-"}</span></div>
-                    </div>
+    <div className="mx-auto w-full max-w-[1280px]" dir="rtl">
+      <PageHeader
+        title="الزيارات"
+        subtitle="سجل الزيارات والفحوصات المرتبطة"
+        icon={<ClipboardList className="h-5 w-5" />}
+      />
+
+      <div className="mb-4 grid grid-cols-3 gap-3 sm:mb-6 sm:gap-4">
+        <StatCard
+          title="إجمالي الزيارات"
+          value={stats.total}
+          icon={ClipboardList}
+          description="كل السجلات المعروضة"
+          iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
+        />
+        <StatCard
+          title="زيارات هذا الأسبوع"
+          value={stats.thisWeek}
+          icon={CalendarDays}
+          description="ضمن الأسبوع الحالي"
+          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+        />
+        <StatCard
+          title="زيارات متابعة"
+          value={stats.followups}
+          icon={CalendarRange}
+          description={`نوع: متابعة`}
+          iconColor="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+        />
+      </div>
+
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+        <div className="w-full sm:w-72">
+          <SearchBar value={search} onChange={setSearch} placeholder="بحث باسم المريض، التاريخ، الشكوى..." />
+        </div>
+        <FilterBar filters={visitKindTabs} selected={activeVisitKind} onSelect={setActiveVisitKind} />
+      </div>
+
+      <Card className="border-border shadow-sm">
+        {patientId > 0 && patient ? (
+          <CardHeader className="border-b border-border pb-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-2xl">{patient?.fullName || "المريض"}</CardTitle>
+                <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                  <div>
+                    العمر: <span className="font-medium text-foreground">{getPatientAge(patient?.dateOfBirth)} سنة</span>
+                  </div>
+                  <div>
+                    الدكتور: <span className="font-medium text-foreground">{patient?.doctorName || "-"}</span>
                   </div>
                 </div>
-              ) : (
-                <div className="flex-1">
-                  <CardTitle className="text-2xl">جميع الزيارات</CardTitle>
-                  <div className="mt-2 text-sm text-slate-600">اختر مريض للتصفية</div>
-                </div>
-              )}
-
-                {/* Patient Picker on the Right */}
-                <div className="w-full sm:w-auto sm:min-w-[300px]">
-                  <Card className="border-slate-200/80 shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-base">اختيار المريض</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <PatientPicker
-                        initialPatientId={patientId > 0 ? patientId : undefined}
-                        onSelect={(selected) => {
-                          setPatientId(selected.id);
-                          setExpandedVisit(null);
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
               </div>
-            </CardHeader>
+            </div>
+          </CardHeader>
+        ) : null}
 
-          {/* Visits Content */}
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              {isLoading && (
-                <div className="text-center text-slate-500 py-8">جاري التحميل...</div>
-              )}
+        <CardContent className="pt-6">
+          <div className="space-y-3">
+            {isLoading && <div className="py-8 text-center text-muted-foreground">جاري التحميل...</div>}
 
-              {!isLoading && visits.length === 0 && (
-                <div className="text-center text-slate-500 py-8">لا توجد زيارات مسجلة</div>
-              )}
+            {!isLoading && visits.length === 0 && (
+              <div className="py-8 text-center text-muted-foreground">لا توجد زيارات مسجلة</div>
+            )}
 
-              {visits.map((visit, index) => {
-                const isExpanded = expandedVisit === index;
+            {!isLoading && visits.length > 0 && filteredVisits.length === 0 && (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">لا توجد زيارات مطابقة للبحث أو التصفية</div>
+            )}
+
+            {filteredVisits.map((visit, index) => {
+                const vid = visitRowId(visit as Record<string, unknown>, index);
+                const isExpanded = expandedVisitId === vid;
                 const visitDate = visit.visitDate || visit.createdAt;
-                const isEditingDate = editingVisitIndex === index;
+                const isEditingDate = editingVisitId === vid;
+                const vType = String((visit as any).visitType ?? "");
 
                 return (
-                  <Card key={index} className="border-slate-200/80">
+                  <Card key={vid} className="border-border transition-shadow hover:shadow-md">
                       {/* Visit Header - Expandable */}
-                      <CardHeader className="cursor-pointer hover:bg-slate-50">
+                      <CardHeader className="cursor-pointer hover:bg-muted/40">
                         <div className="flex items-center justify-between gap-2">
                           <button
-                            onClick={() => setExpandedVisit(isExpanded ? null : index)}
-                            className="flex-1 text-right flex items-center gap-2"
+                            type="button"
+                            onClick={() => setExpandedVisitId(isExpanded ? null : vid)}
+                            className="flex flex-1 items-center gap-2 text-right"
                           >
                             {isEditingDate ? (
                               <div className="flex-1 flex items-center gap-2">
@@ -235,7 +337,7 @@ export default function Visits() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditingVisitIndex(null);
+                                    setEditingVisitId(null);
                                   }}
                                 >
                                   <X className="h-4 w-4" />
@@ -243,12 +345,20 @@ export default function Visits() {
                               </div>
                             ) : (
                               <>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                  {visit.patientName || "مريض"} - {formatDateTime(visitDate)}
-                                  {visit.patientId && (
+                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                                  <span>
+                                    {(visit as any).patientName || "مريض"} — {formatDateTime(visitDate)}
+                                  </span>
+                                  {vType && visitTypeLabels[vType] ? (
+                                    <Badge variant="outline" className={cn("border-0 text-[10px] font-semibold", visitTypeStyles[vType])}>
+                                      {visitTypeLabels[vType]}
+                                    </Badge>
+                                  ) : null}
+                                  {visit.patientId ? (
                                     <Button
                                       size="sm"
                                       variant="ghost"
+                                      type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setLocation(`/patient-file/${visit.patientId}`);
@@ -257,7 +367,7 @@ export default function Visits() {
                                     >
                                       <FileText className="h-4 w-4" />
                                     </Button>
-                                  )}
+                                  ) : null}
                                 </CardTitle>
                               </>
                             )}
@@ -271,14 +381,15 @@ export default function Visits() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleStartEditDate(visit);
-                                  setEditingVisitIndex(index);
+                                  setEditingVisitId(vid);
                                 }}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
                             <button
-                              onClick={() => setExpandedVisit(isExpanded ? null : index)}
+                              type="button"
+                              onClick={() => setExpandedVisitId(isExpanded ? null : vid)}
                               className="p-2"
                             >
                               <ChevronDown
@@ -293,7 +404,7 @@ export default function Visits() {
 
                       {/* Visit Details - Expandable Content */}
                       {isExpanded && (
-                        <CardContent className="pt-4 space-y-6 border-t border-slate-200">
+                        <CardContent className="space-y-6 border-t border-border pt-4">
                           {/* Exam Data */}
                           {(visit.sphereOD || visit.sphereOS || visit.iopOD || visit.iopOS || visit.ucvaOD || visit.ucvaOS || visit.bcvaOD || visit.bcvaOS) && (
                             <div>
@@ -706,25 +817,6 @@ export default function Visits() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Patient Picker */}
-        <div className="w-full sm:w-auto sm:min-w-[300px]">
-          <Card className="border-slate-200/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">اختيار المريض</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PatientPicker
-                initialPatientId={patientId > 0 ? patientId : undefined}
-                onSelect={(selected) => {
-                  setPatientId(selected.id);
-                  setExpandedVisit(null);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </main>
     </div>
   );
 }

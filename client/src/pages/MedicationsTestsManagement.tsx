@@ -1,16 +1,42 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Plus, Trash2, Edit2, Upload, Star } from "lucide-react";
+import { FlaskConical, Link2, Plus, Trash2, Edit2, Upload, Star, Save } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { loadXlsx } from "@/lib/xlsx";
+
+type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
+type TestType = "examination" | "lab" | "imaging" | "other";
+
+function medicationTypeLabel(type: string | undefined | null): string {
+  const m: Record<string, string> = {
+    drops: "قطرة",
+    tablet: "أقراص",
+    ointment: "مرهم",
+    injection: "حقن",
+    suspension: "معلق",
+    other: "أخرى",
+  };
+  return m[String(type ?? "")] ?? String(type ?? "—");
+}
+
+function testTypeLabel(type: string | undefined | null): string {
+  const m: Record<string, string> = {
+    examination: "فحص",
+    lab: "تحاليل",
+    imaging: "أشعة",
+    other: "أخرى",
+  };
+  return m[String(type ?? "")] ?? String(type ?? "—");
+}
 
 export default function MedicationsTestsManagement() {
   const { isAuthenticated, user } = useAuth();
@@ -19,8 +45,8 @@ export default function MedicationsTestsManagement() {
   const medsFileRef = useRef<HTMLInputElement>(null);
   const testsFileRef = useRef<HTMLInputElement>(null);
   const [editingMedId, setEditingMedId] = useState<number | null>(null);
-  type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
-  type TestType = "examination" | "lab" | "imaging" | "other";
+  const [medListSearch, setMedListSearch] = useState("");
+  const [testListSearch, setTestListSearch] = useState("");
   const [newMedication, setNewMedication] = useState<{
     name: string;
     type: MedicationType;
@@ -99,7 +125,7 @@ export default function MedicationsTestsManagement() {
       favoritesQuery.refetch();
     },
     onError: () => {
-      toast.error("Failed to update favorite.");
+      toast.error("تعذر تحديث المفضلة.");
     },
   });
 
@@ -113,16 +139,32 @@ export default function MedicationsTestsManagement() {
     if (!favoritesQuery.error) return;
     if (favoritesErrorShownRef.current) return;
     favoritesErrorShownRef.current = true;
-    toast.error("Favorites are available for doctor/manager/admin only.");
+    toast.error("المفضلة متاحة لطبيب / مدير / مسؤول فقط.");
   }, [favoritesQuery.error]);
-
-  if (!isAuthenticated) return null;
 
   const medications = (medsQuery.data ?? []) as any[];
   const tests = (testsQuery.data ?? []) as any[];
   const canFavorite = ["doctor", "manager", "admin"].includes(user?.role || "");
   const favoriteIds = new Set((favoritesQuery.data ?? []).map((f: any) => f.testId));
   const favoriteTests = tests.filter((t) => favoriteIds.has(t.id));
+
+  const filteredMedications = useMemo(() => {
+    const q = medListSearch.trim().toLowerCase();
+    if (!q) return medications;
+    return medications.filter((med) =>
+      `${med.name ?? ""} ${med.strength ?? ""} ${med.type ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [medications, medListSearch]);
+
+  const filteredTests = useMemo(() => {
+    const q = testListSearch.trim().toLowerCase();
+    if (!q) return tests;
+    return tests.filter((test) =>
+      `${test.name ?? ""} ${test.category ?? ""} ${test.type ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [tests, testListSearch]);
+
+  if (!isAuthenticated) return null;
 
   const resetMedForm = () => {
     setNewMedication({
@@ -280,131 +322,246 @@ export default function MedicationsTestsManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <header className="bg-primary text-primary-foreground shadow-lg sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/dashboard")}
-            className="text-primary-foreground hover:bg-primary/80"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4" dir="rtl">
+      <PageHeader
+        title="إدارة الأدوية والفحوصات"
+        subtitle="إضافة وتعديل وحذف الأدوية والفحوصات الطبية"
+        icon={<FlaskConical className="h-5 w-5" />}
+      />
 
-      <main className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardTitle>{editingMedId ? " " : " "}</CardTitle>
-            <Input value={newMedication.name} onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })} placeholder="اسم الدواء" className="text-right w-full" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+        {/* صف الإدخال: يمين = أدوية، يسار = فحوصات (RTL) */}
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Link2 className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-lg">{editingMedId ? "تعديل دواء" : "الأدوية"}</CardTitle>
+            </div>
+            <CardDescription>أضف أو حدّث بيانات الدواء قبل الحفظ</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={newMedication.type} onValueChange={(value) => setNewMedication({ ...newMedication, type: value as MedicationType })}>
-                <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+          <CardContent className="space-y-4 pt-5">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">اسم الدواء</label>
+              <Input
+                value={newMedication.name}
+                onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                placeholder="مثال: توباماكس"
+                className="text-right"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">نوع الدواء</label>
+              <Select
+                value={newMedication.type}
+                onValueChange={(value) => setNewMedication({ ...newMedication, type: value as MedicationType })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="اختر النوع" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="drops">قطرة</SelectItem>
                   <SelectItem value="ointment">مرهم</SelectItem>
                   <SelectItem value="tablet">أقراص</SelectItem>
+                  <SelectItem value="injection">حقن</SelectItem>
+                  <SelectItem value="suspension">معلق</SelectItem>
                   <SelectItem value="other">أخرى</SelectItem>
                 </SelectContent>
               </Select>
-              <Input value={newMedication.strength} onChange={(e) => setNewMedication({ ...newMedication, strength: e.target.value })} placeholder="التركيز" />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSaveMedication} className="flex-1"><Plus className="h-4 w-4 ml-2" />حفظ</Button>
-              <input ref={medsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportMedications} className="hidden" />
-              <Button variant="outline" onClick={() => medsFileRef.current?.click()}><Upload className="h-4 w-4 ml-2" /></Button>
             </div>
             <div className="space-y-2">
-              {medications.map((med) => (
-                <div key={med.id} className="border rounded-lg p-3 flex items-center justify-between" dir="ltr">
-                  <div className="text-left" dir="ltr">
-                    <div className="font-bold">{med.name}</div>
-                    <div className="text-sm text-muted-foreground">{med.type || "—"}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="icon" variant="outline" onClick={() => handleEditMedication(med)}><Edit2 className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="destructive" onClick={() => handleDeleteMedication(med.id)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
+              <label className="text-sm font-semibold">التركيز / القوة</label>
+              <Input
+                value={newMedication.strength}
+                onChange={(e) => setNewMedication({ ...newMedication, strength: e.target.value })}
+                placeholder="مثال: 0.25%"
+                className="text-right"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => void handleSaveMedication()}
+                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-white sm:flex-none"
+              >
+                <Save className="h-4 w-4" />
+                حفظ
+              </Button>
+              <input ref={medsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportMedications} className="hidden" />
+              <Button type="button" variant="outline" className="gap-2 border-dashed" onClick={() => medsFileRef.current?.click()}>
+                <Upload className="h-4 w-4" />
+                رفع Excel
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardTitle>{editingTestId ? " " : " "}</CardTitle>
-            <Input value={newTest.name} onChange={(e) => setNewTest({ ...newTest, name: e.target.value })} placeholder="اسم الفحص" className="text-right w-full" />
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FlaskConical className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-lg">{editingTestId ? "تعديل فحص" : "الفحوصات"}</CardTitle>
+            </div>
+            <CardDescription>أضف أو حدّث الفحص والتصنيف</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4 pt-5">
             <div className="space-y-2">
-              <div className="text-sm font-semibold">المفضلات</div>
-              {!canFavorite ? (
-                <p className="text-xs text-muted-foreground">Favorites available for doctor/manager/admin.</p>
-              ) : favoriteTests.length === 0 ? (
-                <p className="text-xs text-muted-foreground">لا توجد مفضلات</p>
-              ) : (
-                favoriteTests.map((test) => (
-                  <div key={test.id} className="border rounded-lg p-2 flex items-center justify-between" dir="ltr">
-                    <div className="text-left" dir="ltr">
-                      <div className="font-bold text-sm">{test.name}</div>
-                      <div className="text-xs text-muted-foreground">{test.type || "—"}</div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => {
-                        if (!canFavorite) {
-                          toast.error("Favorites available for doctor/manager/admin.");
-                          return;
-                        }
-                        toggleFavoriteMutation.mutate({ testId: test.id });
-                      }}
-                    >
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
-                    </Button>
-                  </div>
-                ))
-              )}
+              <label className="text-sm font-semibold">اسم الفحص</label>
+              <Input
+                value={newTest.name}
+                onChange={(e) => setNewTest({ ...newTest, name: e.target.value })}
+                placeholder="مثال: فحص النظر"
+                className="text-right"
+              />
             </div>
-            <Select value={newTest.type} onValueChange={(value) => setNewTest({ ...newTest, type: value as TestType })}>
-              <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="examination">فحص</SelectItem>
-                <SelectItem value="lab">تحاليل</SelectItem>
-                <SelectItem value="imaging">أشعات</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              value={newTest.category}
-              onChange={(e) => setNewTest({ ...newTest, category: e.target.value })}
-              placeholder="تصنيف الفحص"
-              className="text-right"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleSaveTest} className="flex-1"><Plus className="h-4 w-4 ml-2" />حفظ</Button>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">نوع الفحص</label>
+              <Select value={newTest.type} onValueChange={(value) => setNewTest({ ...newTest, type: value as TestType })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="اختر النوع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="examination">فحص</SelectItem>
+                  <SelectItem value="lab">تحاليل</SelectItem>
+                  <SelectItem value="imaging">أشعة</SelectItem>
+                  <SelectItem value="other">أخرى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">التصنيف</label>
+              <Input
+                value={newTest.category}
+                onChange={(e) => setNewTest({ ...newTest, category: e.target.value })}
+                placeholder="مثال: بصريات"
+                className="text-right"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => void handleSaveTest()}
+                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-white sm:flex-none"
+              >
+                <Plus className="h-4 w-4" />
+                حفظ
+              </Button>
               <input ref={testsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportTests} className="hidden" />
-              <Button variant="outline" onClick={() => testsFileRef.current?.click()}><Upload className="h-4 w-4 ml-2" /></Button>
+              <Button type="button" variant="outline" className="gap-2 border-dashed" onClick={() => testsFileRef.current?.click()}>
+                <Upload className="h-4 w-4" />
+                رفع Excel
+              </Button>
             </div>
-            <div className="space-y-2">
-              {tests.map((test) => (
-                <div key={test.id} className="border rounded-lg p-3 flex items-center justify-between" dir="ltr">
-                  <div className="text-left" dir="ltr">
-                    <div className="font-bold">{test.name}</div>
-                    <div className="text-sm text-muted-foreground">{test.category || "—"}</div>
+          </CardContent>
+        </Card>
+
+        {/* قائمة الأدوية */}
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="border-b border-border/80 py-4">
+            <CardTitle className="text-base">قائمة الأدوية</CardTitle>
+            <CardDescription>{medications.length} دواء مسجّل</CardDescription>
+            <SearchBar value={medListSearch} onChange={setMedListSearch} placeholder="بحث في الأدوية..." className="mt-3" />
+          </CardHeader>
+          <CardContent className="max-h-[420px] space-y-2 overflow-y-auto pt-4">
+            {medsQuery.isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+            ) : filteredMedications.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+            ) : (
+              filteredMedications.map((med) => {
+                const sub = [medicationTypeLabel(med.type), String(med.strength ?? "").trim()].filter(Boolean).join(" ");
+                return (
+                  <div
+                    key={med.id}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="font-semibold leading-snug">{med.name}</div>
+                      {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" onClick={() => handleEditMedication(med)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="h-9 w-9"
+                        title="حذف"
+                        onClick={() => void handleDeleteMedication(med.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* قائمة الفحوصات + مفضلة */}
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="space-y-3 border-b border-border/80 py-4">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+              <span className="text-sm font-black">المفضلة</span>
+            </div>
+            {!canFavorite ? (
+              <p className="text-xs text-muted-foreground">المفضلة متاحة لطبيب / مدير / مسؤول فقط.</p>
+            ) : favoriteTests.length === 0 ? (
+              <p className="text-xs text-muted-foreground">لا توجد عناصر مفضلة — اضغط النجمة بجانب أي فحص لإضافته.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {favoriteTests.map((test) => (
+                  <button
+                    key={test.id}
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold transition hover:bg-primary/[0.08]"
+                    title="اضغط لإزالة من المفضلة"
+                    onClick={() => toggleFavoriteMutation.mutate({ testId: test.id })}
+                  >
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                    {test.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <CardTitle className="pt-2 text-base">كل الفحوصات</CardTitle>
+            <CardDescription>{tests.length} فحص مسجّل</CardDescription>
+            <SearchBar value={testListSearch} onChange={setTestListSearch} placeholder="بحث في الفحوصات..." />
+          </CardHeader>
+          <CardContent className="max-h-[340px] space-y-2 overflow-y-auto pt-4">
+            {testsQuery.isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+            ) : filteredTests.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+            ) : (
+              filteredTests.map((test) => (
+                <div
+                  key={test.id}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                >
+                  <div className="min-w-0 flex-1 text-right">
+                    <div className="font-semibold leading-snug">{test.name}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {[test.category, testTypeLabel(test.type)].filter(Boolean).join(" · ") || "—"}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
                     <Button
+                      type="button"
                       size="icon"
-                      variant="outline"
+                      variant={favoriteIds.has(test.id) ? "secondary" : "outline"}
+                      className="h-9 w-9"
+                      title={favoriteIds.has(test.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
                       onClick={() => {
                         if (!canFavorite) {
-                          toast.error("Favorites available for doctor/manager/admin.");
+                          toast.error("المفضلة متاحة لطبيب / مدير / مسؤول فقط.");
                           return;
                         }
                         toggleFavoriteMutation.mutate({ testId: test.id });
@@ -414,15 +571,26 @@ export default function MedicationsTestsManagement() {
                         className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground"}`}
                       />
                     </Button>
-                    <Button size="icon" variant="outline" onClick={() => handleEditTest(test)}><Edit2 className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="destructive" onClick={() => handleDeleteTest(test.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" onClick={() => handleEditTest(test)}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="h-9 w-9"
+                      title="حذف"
+                      onClick={() => void handleDeleteTest(test.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

@@ -48,13 +48,13 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
-  const clearStoredSession = useCallback(() => {
+  const clearStoredSession = useCallback(async () => {
     if (typeof window === "undefined") return;
     window.localStorage.removeItem("user");
     window.localStorage.removeItem("token");
     window.sessionStorage.removeItem("user");
     window.sessionStorage.removeItem("token");
-    void removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
+    await removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
   }, []);
   const getPreferredStorage = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -89,7 +89,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      clearStoredSession();
+      await clearStoredSession();
       setStoredUser(null);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
@@ -146,7 +146,7 @@ export function useAuth(options?: UseAuthOptions) {
   useEffect(() => {
     if (!(meQuery.error instanceof TRPCClientError)) return;
     if (meQuery.error.data?.code !== "UNAUTHORIZED" && meQuery.error.data?.httpStatus !== 401) return;
-    clearStoredSession();
+    void clearStoredSession();
     setStoredUser(null);
   }, [clearStoredSession, meQuery.error]);
 

@@ -1,11 +1,8 @@
 import { Suspense, lazy, memo, useCallback, useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import FloatingShortcuts from "@/components/FloatingShortcuts";
-import { Route, Switch } from "wouter";
-import { useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation, useRoute } from "wouter";
 import { getApiUrl } from "./const";
 import { type RuntimeIssue } from "./components/AppShellStatus";
 import MobileAppEnhancements from "./components/MobileAppEnhancements";
@@ -49,12 +46,17 @@ const SpecialistSheet = lazy(() => import("./pages/SpecialistSheet"));
 const LasikExamSheet = lazy(() => import("./pages/LasikExamSheet"));
 const LasikFollowupPage = lazy(() => import("./pages/LasikFollowupPage"));
 const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
+const PentacamResultsDashboard = lazy(() => import("./pages/PentacamResultsDashboard"));
 const ExternalOperationSheet = lazy(() => import("./pages/ExternalOperationSheet"));
 const RefractionPage = lazy(() => import("./pages/RefractionPage"));
 const PatientSummary = lazy(() => import("./pages/PatientSummary"));
 const MedicationsTestsManagement = lazy(() => import("./pages/MedicationsTestsManagement"));
+const MedicationsCatalogPage = lazy(() => import("./pages/MedicationsCatalogPage"));
 const MedicationsManagement = lazy(() => import("./pages/MedicationsManagement"));
+const ExaminationsCatalogPage = lazy(() => import("./pages/ExaminationsCatalogPage"));
+const TxHubPage = lazy(() => import("./pages/TxHubPage"));
 const WritePrescription = lazy(() => import("./pages/WritePrescription"));
+const PrescriptionsList = lazy(() => import("./pages/PrescriptionsList"));
 const RequestTests = lazy(() => import("./pages/RequestTests"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminMigrations = lazy(() => import("./pages/AdminMigrations"));
@@ -68,6 +70,8 @@ const AdminSheetDesigner = lazy(() => import("./pages/AdminSheetDesigner"));
 const AdminDoctors = lazy(() => import("./pages/AdminDoctors"));
 const AdminPentacamFailed = lazy(() => import("./pages/AdminPentacamFailed"));
 const AdminSheetCopies = lazy(() => import("./pages/AdminSheetCopies"));
+const AdminFormsHub = lazy(() => import("./pages/AdminFormsHub"));
+const AdminPatients = lazy(() => import("./pages/AdminPatients"));
 const AdminCardVisibility = lazy(() => import("./pages/AdminCardVisibility"));
 const AdminDiagnostics = lazy(() => import("./pages/AdminDiagnostics"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
@@ -84,7 +88,12 @@ const Visits = lazy(() => import("./pages/Visits"));
 const AdminServices = lazy(() => import("./pages/AdminServices"));
 const TestsManagement = lazy(() => import("./pages/TestsManagement"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
+const Styleguide = lazy(() => import("./pages/dev/Styleguide"));
+const ComponentsGallery = lazy(() => import("./pages/dev/ComponentsGallery"));
+const Prototypes = lazy(() => import("./pages/dev/Prototypes"));
+const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
+const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const RUNTIME_ISSUE_STORAGE_KEY = "selrs:last-runtime-issue";
 const HEALTH_POLL_MS = 60_000;
 const NATIVE_HEALTH_POLL_MS = 5 * 60_000;
@@ -98,12 +107,18 @@ const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/patient-summary", label: "التقرير المجمع" },
   { pathPrefix: "/medical-reports", label: "التقارير الطبية" },
   { pathPrefix: "/examination", label: "الفحوصات" },
+  { pathPrefix: "/workflow-hub", label: "مركز سير العمل" },
   { pathPrefix: "/quick-entry", label: "دخول سريع" },
   { pathPrefix: "/new-cases", label: "حالات جديدة" },
   { pathPrefix: "/followups", label: "المتابعات" },
   { pathPrefix: "/visits", label: "الزيارات" },
+  { pathPrefix: "/sheets/pentacam/dashboard", label: "نتائج البنتكام" },
   { pathPrefix: "/today", label: "مرضى اليوم" },
   { pathPrefix: "/operations", label: "العمليات" },
+  { pathPrefix: "/prescriptions", label: "الروشتات" },
+  { pathPrefix: "/medications", label: "الأدوية" },
+  { pathPrefix: "/examinations/catalog", label: "إدارة الاختبارات" },
+  { pathPrefix: "/txhub", label: "TXhub" },
   { pathPrefix: "/admin", label: "الإدارة" },
 ];
 
@@ -185,6 +200,14 @@ function LegacySurgerySheetRedirect() {
   return null;
 }
 
+/** `/prescriptions/:id` كان يُستخدم لفتح الكاتب؛ يُوجَّه الآن إلى `/prescription/:id`. */
+function PrescriptionsWriterDeepLinkRedirect() {
+  const [, params] = useRoute("/prescriptions/:id");
+  const id = params?.id?.trim();
+  if (!id) return null;
+  return <Redirect to={`/prescription/${id}`} />;
+}
+
 const Router = memo(function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -212,6 +235,7 @@ const Router = memo(function Router() {
       <Route path={"/visits"} component={() => <ProtectedRoute><Visits /></ProtectedRoute>} />
       <Route path={"/today"} component={() => <ProtectedRoute><TodayPatients /></ProtectedRoute>} />
       <Route path={"/operations"} component={() => <ProtectedRoute><Operations /></ProtectedRoute>} />
+      <Route path={"/workflow-hub"} component={() => <ProtectedRoute><WorkflowHub /></ProtectedRoute>} />
 
       {/* Patient views */}
       <Route path={"/patients"} component={() => <ProtectedRoute><Patients /></ProtectedRoute>} />
@@ -233,15 +257,31 @@ const Router = memo(function Router() {
       <Route path={"/sheets/external/:id"} component={() => <ProtectedRoute><ExternalOperationSheet /></ProtectedRoute>} />
       <Route path={"/sheets/lasik/:id"} component={() => <ProtectedRoute><LasikExamSheet /></ProtectedRoute>} />
       <Route path={"/sheets/lasik/:id/followup"} component={() => <ProtectedRoute><LasikFollowupPage /></ProtectedRoute>} />
+      <Route
+        path={"/sheets/pentacam/dashboard"}
+        component={() => (
+          <ProtectedRoute>
+            <PentacamResultsDashboard />
+          </ProtectedRoute>
+        )}
+      />
       <Route path={"/sheets/pentacam/:id"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
       <Route path={"/sheets/pentacam"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
       <Route path={"/sheets/operation/:id"} component={() => <ProtectedRoute><ExternalOperationSheet /></ProtectedRoute>} />
       <Route path={"/refraction/:id"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />
       <Route path={"/refraction"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />
-      <Route path={"/medications"} component={() => <ProtectedRoute><MedicationsManagement /></ProtectedRoute>} />
+      <Route path={"/medications"} component={() => <ProtectedRoute><MedicationsCatalogPage /></ProtectedRoute>} />
+      <Route path={"/medications/registry"} component={() => <ProtectedRoute><MedicationsManagement /></ProtectedRoute>} />
+      <Route path={"/examinations/catalog"} component={() => <ProtectedRoute><ExaminationsCatalogPage /></ProtectedRoute>} />
+      <Route path={"/txhub"} component={() => <ProtectedRoute><TxHubPage /></ProtectedRoute>} />
       <Route path={"/prescription/:id"} component={() => <ProtectedRoute><WritePrescription /></ProtectedRoute>} />
       <Route path={"/prescription"} component={() => <ProtectedRoute><WritePrescription /></ProtectedRoute>} />
+      <Route path={"/prescriptions/:id"} component={() => <ProtectedRoute><PrescriptionsWriterDeepLinkRedirect /></ProtectedRoute>} />
+      <Route path={"/prescriptions"} component={() => <ProtectedRoute><PrescriptionsList /></ProtectedRoute>} />
+      <Route path={"/medications-tests"} component={() => <ProtectedRoute><MedicationsTestsManagement /></ProtectedRoute>} />
       <Route path={"/tests"} component={() => <ProtectedRoute><MedicationsTestsManagement /></ProtectedRoute>} />
+      <Route path={"/tests-management"} component={() => <ProtectedRoute requiredRoles={["admin"]}><TestsManagement /></ProtectedRoute>} />
+      <Route path={"/pentacam"} component={() => <Redirect href="/sheets/pentacam" />} />
       <Route path={"/request-tests/:id"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
       <Route path={"/request-tests"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
       <Route path={"/sheet-copies"} component={() => <ProtectedRoute><AdminSheetCopies /></ProtectedRoute>} />
@@ -250,6 +290,18 @@ const Router = memo(function Router() {
       {/* Admin Hub - handles all /admin-hub routes internally */}
       <Route path={"/admin-hub"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminHubShell /></ProtectedRoute>} />
       <Route path={"/admin-hub/*"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminHubShell /></ProtectedRoute>} />
+
+      {/* selrs.cc top-level aliases (معادلات للصفحات الإدارية) */}
+      <Route path={"/users"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
+      <Route path={"/doctors"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminDoctors /></ProtectedRoute>} />
+      <Route path={"/permissions"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPermissions /></ProtectedRoute>} />
+      <Route path={"/services"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminServices /></ProtectedRoute>} />
+      <Route path={"/medical-sheets"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheets /></ProtectedRoute>} />
+      <Route path={"/sheet-designer"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetDesigner /></ProtectedRoute>} />
+      <Route path={"/system-status"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminStatus /></ProtectedRoute>} />
+      <Route path={"/migrations"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminMigrations /></ProtectedRoute>} />
+      <Route path={"/api-tools"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminApiTools /></ProtectedRoute>} />
+      <Route path={"/admin-patients"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPatients /></ProtectedRoute>} />
 
       {/* Legacy admin routes */}
       <Route path={"/admin/users"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
@@ -261,6 +313,8 @@ const Router = memo(function Router() {
       <Route path={"/admin/settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSettings /></ProtectedRoute>} />
       <Route path={"/admin/notification-settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminNotificationSettings /></ProtectedRoute>} />
       <Route path={"/admin/permissions"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPermissions /></ProtectedRoute>} />
+      <Route path={"/admin/patients"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPatients /></ProtectedRoute>} />
+      <Route path={"/admin/forms"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminFormsHub /></ProtectedRoute>} />
       <Route path={"/admin/sheets"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheets /></ProtectedRoute>} />
       <Route path={"/admin/sheet-designer"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetDesigner /></ProtectedRoute>} />
       <Route path={"/admin/sheet-copies"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetCopies /></ProtectedRoute>} />
@@ -270,6 +324,13 @@ const Router = memo(function Router() {
       <Route path={"/admin/tests"} component={() => <ProtectedRoute requiredRoles={["admin"]}><TestsManagement /></ProtectedRoute>} />
 
       <Route path={"/showcase"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ComponentShowcase /></ProtectedRoute>} />
+      <Route path={"/styleguide"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Styleguide /></ProtectedRoute>} />
+      <Route
+        path={"/components-gallery"}
+        component={() => <ProtectedRoute requiredRoles={["admin"]}><ComponentsGallery /></ProtectedRoute>}
+      />
+      <Route path={"/prototypes"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Prototypes /></ProtectedRoute>} />
+      <Route path={"/documentation"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Documentation /></ProtectedRoute>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -722,15 +783,13 @@ function App() {
           ) : (
             <WebAppEnhancements nativeAppInfo={nativeAppInfo} />
           )}
-          <FloatingShortcuts />
-
           <Toaster />
-          <div className="page-layout">
+          <div className="page-layout" dir="rtl">
             <Suspense
               fallback={
-                <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(15,118,110,0.12),transparent_42%),linear-gradient(180deg,#f8fbfb_0%,#f1f7f6_100%)] p-6">
-                  <div className="rounded-3xl border border-emerald-100 bg-white/90 px-6 py-5 text-center shadow-xl backdrop-blur">
-                    <div className="text-lg font-semibold text-slate-900">Loading SELRS</div>
+                <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(0,61,130,0.1),transparent_42%),linear-gradient(180deg,#ffffff_0%,var(--selrs-light-blue)_100%)] p-6">
+                  <div className="rounded-3xl border border-secondary/20 bg-white/90 px-6 py-5 text-center shadow-xl backdrop-blur">
+                    <div className="text-lg font-semibold text-slate-900">جاري التحميل…</div>
                     <div className="mt-1 text-sm text-slate-600">Preparing mobile workspace...</div>
                     <div className="mt-3 text-xs text-slate-500">{formatNativeAppLabel(nativeAppInfo)}</div>
                   </div>

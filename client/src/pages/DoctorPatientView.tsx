@@ -59,7 +59,7 @@ export default function DoctorPatientView() {
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen selrs-page-bg" dir="rtl">
       <PageHeader backTo="/dashboard" />
       <main className="container mx-auto max-w-4xl space-y-6 px-3 py-6 sm:px-4">
         {/* Patient Picker */}

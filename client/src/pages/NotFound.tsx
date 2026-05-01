@@ -11,9 +11,14 @@ export default function NotFound() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_30%),linear-gradient(135deg,_#f8fafc,_#eef2ff)]">
-      <Card className="mx-4 w-full max-w-xl border-slate-200/80 bg-white/90 shadow-lg backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden selrs-login-bg p-4">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--selrs-navy)_12%,transparent)] blur-3xl" />
+        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-[color-mix(in_srgb,var(--selrs-orange)_18%,transparent)] blur-3xl" />
+      </div>
+      <Card className="selrs-glass-card relative mx-auto w-full max-w-xl overflow-hidden border-white/80 bg-white/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary" aria-hidden />
+        <CardContent className="relative pt-8 pb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-600">
             <Sparkles className="h-3.5 w-3.5 text-rose-600" />
             Missing Route
@@ -39,10 +44,7 @@ export default function NotFound() {
             id="not-found-button-group"
             className="flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
+            <Button onClick={handleGoHome} className="px-6 py-2.5 shadow-md hover:shadow-lg">
               <Home className="w-4 h-4 mr-2" />
               Go Home
             </Button>

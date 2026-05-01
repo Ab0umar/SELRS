@@ -96,9 +96,17 @@ export default function ForcePasswordChange() {
   };
 
   return (
-    <div dir="rtl" className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.14),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-      <Card className="w-full max-w-xl border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
+    <div
+      dir="rtl"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden selrs-login-bg p-4"
+    >
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--selrs-navy)_12%,transparent)] blur-3xl" />
+        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-[color-mix(in_srgb,var(--selrs-orange)_18%,transparent)] blur-3xl" />
+      </div>
+      <Card className="selrs-glass-card relative w-full max-w-xl overflow-hidden border-white/80 bg-white/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary" aria-hidden />
+        <CardHeader className="relative">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-700">
             <ShieldAlert className="h-3.5 w-3.5" />
             Security Step
@@ -108,7 +116,7 @@ export default function ForcePasswordChange() {
             يجب تغيير كلمة المرور للمتابعة. الاسم الكامل للعرض فقط.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="relative space-y-6">
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="fullNameReadonly">الاسم الكامل</Label>

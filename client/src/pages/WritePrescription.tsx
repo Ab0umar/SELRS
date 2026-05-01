@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Printer, Save, Pencil, Upload, Pill, CalendarDays, UserRound, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -34,7 +34,9 @@ interface PrescriptionItem {
 export default function WritePrescription() {
   const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/prescription/:id");
+  const [, prescriptionParams] = useRoute("/prescription/:id");
+  const [, prescriptionsParams] = useRoute("/prescriptions/:id");
+  const params = prescriptionParams ?? prescriptionsParams;
   const isAdmin = user?.role === "admin";
   const canDeletePrescriptions = ["admin", "manager"].includes(user?.role || "");
   const isReadOnly = user?.role === "reception";
@@ -927,9 +929,13 @@ export default function WritePrescription() {
   };
   return (
     <div className="prescription-root min-h-screen bg-background" dir="rtl" style={{ direction: "rtl" }}>
-      {printMode.printView ? null : <PageHeader backTo="/patients" />}
+      {printMode.printView ? null : (
+        <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6">
+          <PageHeader title="كتابة الروشتة" subtitle="صف الأدوية والتعليمات قبل وبعد العملية" icon={<Pill className="h-5 w-5" />} />
+        </div>
+      )}
 
-      <main data-mobile-pdf-root className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8"}`}>
+      <main data-mobile-pdf-root className={`mx-auto max-w-[1280px] print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 pb-8 pt-2 md:px-6"}`}>
         {printMode.printView ? (
           <PrintPreviewBanner
             title="طباعة الروشتة"

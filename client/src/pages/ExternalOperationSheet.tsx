@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Globe2, Printer, ScanEye, UserRound } from "lucide-react";
+import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -16,6 +16,7 @@ import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesi
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 export default function ExternalOperationSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -434,42 +435,26 @@ export default function ExternalOperationSheet() {
           }
         }
       `}</style>
-      <header className={`bg-primary text-primary-foreground shadow-lg sticky top-0 z-10 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+      <header
+        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
             <div className="flex items-center gap-3 whitespace-nowrap">
-              <h1 className="text-xl font-bold">{sheetTemplate.sheetTitle}</h1>
-              <span className="text-sm opacity-90">{formData.patientName}</span>
+              <h1 className="text-xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
+              <span className="text-sm text-muted-foreground">{formData.patientName}</span>
             </div>
             <div className="flex gap-1 items-center whitespace-nowrap print:hidden sheet-header-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => goBack()}
-                className="text-primary-foreground hover:bg-primary/90"
-              >
+              <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
                 رجوع
               </Button>
             </div>
-            <div className="flex gap-1 flex-nowrap sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-                className="text-primary-foreground border-primary-foreground hover:bg-primary/80"
-              >
+            <div className="flex flex-nowrap gap-1 sheet-header-actions">
+              <Button variant="outline" size="sm" onClick={handlePrint} type="button">
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-                className="text-primary-foreground border-primary-foreground hover:bg-primary/80"
-              >
+              <Button variant="outline" size="sm" onClick={handleSaveSheet} type="button">
                 حفظ
               </Button>
             </div>
@@ -485,51 +470,6 @@ export default function ExternalOperationSheet() {
             onPrint={handlePrint}
           />
         ) : null}
-        <section className={`mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.16),_transparent_34%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-700">
-                <Globe2 className="h-3.5 w-3.5" />
-                External Operation
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-950">{sheetTemplate.sheetTitle}</h2>
-                <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                  عرض أكثر وضوحًا للشيت الخارجي مع مؤشرات سريعة للحالة الحالية قبل الدخول في تفاصيل القياسات والبيانات المطبوعة.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <UserRound className="h-3.5 w-3.5" />
-                  Patient
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{formData.patientName || "Select patient"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Date
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{formData.examinationDate || "-"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <ScanEye className="h-3.5 w-3.5" />
-                  Visit Type
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{operationType || "زيارة خارجية"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Eyes</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">
-                  {operationEyes.both ? "Both" : operationEyes.right && operationEyes.left ? "OD + OS" : operationEyes.right ? "OD" : operationEyes.left ? "OS" : "-"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
         <div className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
         </div>
@@ -546,10 +486,10 @@ export default function ExternalOperationSheet() {
           </div>
           <div className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8" style={{ textAlign: "center" }}>
             <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: "right" }}>
-              عيون الشروق لليزك وتصحيح الإبصار
+              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
             </h2>
             <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
-              Al Shrouk Eye Center for Lasik & Vision Correction
+              {BRAND_NAME_EN} — Lasik & Vision Correction
             </p>
           </div>
 

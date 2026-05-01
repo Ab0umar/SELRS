@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Sparkles } from "lucide-react";
+import { Eye, FileText, Palette, Plus } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   type BaseSheetTemplateConfig,
   coerceSheetDesignerConfig,
@@ -54,6 +55,7 @@ export default function AdminSheetDesigner() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [config, setConfig] = useState<SheetDesignerConfig>(DEFAULT_SHEET_DESIGNER_CONFIG);
+  const [activeDesignerTab, setActiveDesignerTab] = useState("consultant-followup");
   const settingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
     { enabled: isAuthenticated, refetchOnWindowFocus: false }
@@ -240,9 +242,9 @@ export default function AdminSheetDesigner() {
         value: config,
       });
       saveSheetDesignerConfig(config);
-      toast.success("Sheet designer saved");
+      toast.success("تم حفظ إعدادات مصمّم النماذج.");
     } catch {
-      toast.error("Failed to save sheet designer");
+      toast.error("تعذّر حفظ إعدادات مصمّم النماذج.");
     }
   };
 
@@ -254,48 +256,160 @@ export default function AdminSheetDesigner() {
         value: DEFAULT_SHEET_DESIGNER_CONFIG,
       });
       saveSheetDesignerConfig(DEFAULT_SHEET_DESIGNER_CONFIG);
-      toast.success("Sheet designer reset to default");
+      toast.success("تمت إعادة الإعدادات إلى الافتراضي.");
     } catch {
-      toast.error("Failed to reset sheet designer");
+      toast.error("تعذّرت إعادة الإعدادات إلى الافتراضي.");
     }
   };
 
+  const designerNav: { id: string; label: string; sections: string }[] = [
+    { id: "consultant-followup", label: "متابعة استشاري", sections: "جداول متابعة" },
+    { id: "consultant-template", label: "قالب استشاري", sections: "عناوين الشيت" },
+    { id: "specialist-template", label: "قالب متخصص", sections: "عناوين الشيت" },
+    { id: "lasik-template", label: "قالب ليزك", sections: "عناوين الشيت" },
+    { id: "external-template", label: "قالب خارجي", sections: "عناوين الشيت" },
+    { id: "pentacam-template", label: "قالب Pentacam", sections: "عناوين الشيت" },
+    { id: "consultant-css", label: "CSS استشاري", sections: "أنماط مخصصة" },
+    { id: "specialist-css", label: "CSS متخصص", sections: "أنماط مخصصة" },
+    { id: "lasik-css", label: "CSS ليزك", sections: "أنماط مخصصة" },
+    { id: "external-css", label: "CSS خارجي", sections: "أنماط مخصصة" },
+    { id: "pentacam-css", label: "CSS Pentacam", sections: "أنماط مخصصة" },
+  ];
+
+  const previewTitle = designerNav.find((n) => n.id === activeDesignerTab)?.label ?? "المعاينة";
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Advanced Sheet Designer</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-10 text-right" dir="rtl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title="مصمم النماذج"
+          subtitle="تصميم وتخصيص النماذج الطبية"
+          icon={<Palette className="h-5 w-5" />}
+        />
+        <Button
+          type="button"
+          className="selrs-gradient-btn shrink-0 gap-2 self-start text-white sm:mt-1"
+          onClick={() => setLocation("/medical-sheets")}
+        >
+          <Plus className="h-4 w-4" />
+          نموذج جديد
+        </Button>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="border-b border-border/80 bg-muted/15 py-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-5 w-5 text-primary" />
+              النماذج المتاحة
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">اختر قالباً للتعديل في اللوحة أدناه</p>
+          </CardHeader>
+          <CardContent className="max-h-[min(520px,65vh)] space-y-2 overflow-y-auto pt-4">
+            {designerNav.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveDesignerTab(item.id)}
+                className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-colors ${
+                  activeDesignerTab === item.id
+                    ? "border-primary/40 bg-primary/[0.06] shadow-sm"
+                    : "border-border/70 bg-card hover:bg-muted/30"
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold leading-snug">{item.label}</div>
+                  <div className="text-[11px] text-muted-foreground">{item.sections}</div>
+                </div>
+                <Eye className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <CardHeader className="border-b border-border/80 py-4">
+            <CardTitle className="text-base">معاينة النموذج</CardTitle>
+            <p className="text-xs text-muted-foreground">نموذج: {previewTitle}</p>
+          </CardHeader>
+          <CardContent className="grid gap-3 pt-4 sm:grid-cols-2">
+            {["البيانات الشخصية", "الفحص البصري", "القياسات", "التشخيص والعلاج"].map((section) => (
+              <div key={section} className="rounded-xl border border-border/80 bg-muted/10 p-3 shadow-inner">
+                <p className="mb-2 text-[10px] font-semibold text-muted-foreground">٤ حقول</p>
+                <p className="mb-3 text-center text-sm font-black">{section}</p>
+                <div className="space-y-2">
+                  <div className="h-8 rounded-md border border-dashed border-border/80 bg-background/80" />
+                  <div className="h-8 rounded-md border border-dashed border-border/80 bg-background/80" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="rounded-xl border-border/80 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">إجراءات</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Full editing: Follow-up labels/layout + custom CSS for all sheets.
+            بعد الحفظ تُحدَّث المعاينة لهذا الجهاز؛ راجع الطباعة قبل التوزيع.
           </p>
-          <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={updateSettingMutation.isPending}>Save All</Button>
-            <Button variant="outline" onClick={handleReset} disabled={updateSettingMutation.isPending}>Reset Default</Button>
-          </div>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button className="selrs-gradient-btn text-white hover:opacity-95" onClick={handleSave} disabled={updateSettingMutation.isPending}>
+            {updateSettingMutation.isPending ? "جاري الحفظ…" : "حفظ الكل"}
+          </Button>
+          <Button variant="outline" onClick={handleReset} disabled={updateSettingMutation.isPending}>
+            إعادة افتراضي
+          </Button>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="consultant-followup" persistKey="admin-sheet-designer" className="w-full">
-          <TabsList className="flex h-auto w-full min-w-max">
-            <TabsTrigger value="consultant-followup">Consultant Follow-up</TabsTrigger>
-            <TabsTrigger value="consultant-template">Consultant</TabsTrigger>
-            <TabsTrigger value="specialist-template">Specialist</TabsTrigger>
-            <TabsTrigger value="lasik-template">LASIK</TabsTrigger>
-            <TabsTrigger value="external-template">External</TabsTrigger>
-            <TabsTrigger value="pentacam-template">Pentacam</TabsTrigger>
-            <TabsTrigger value="consultant-css">Consultant CSS</TabsTrigger>
-            <TabsTrigger value="specialist-css">Specialist CSS</TabsTrigger>
-            <TabsTrigger value="lasik-css">LASIK CSS</TabsTrigger>
-            <TabsTrigger value="external-css">External CSS</TabsTrigger>
-            <TabsTrigger value="pentacam-css">Pentacam CSS</TabsTrigger>
-          </TabsList>
+      <Tabs
+        value={activeDesignerTab}
+        onValueChange={setActiveDesignerTab}
+        persistKey="admin-sheet-designer"
+        className="w-full"
+      >
+        <TabsList className="flex h-auto min-h-[2.75rem] w-full flex-wrap gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1.5 [scrollbar-width:none]">
+          <TabsTrigger value="consultant-followup" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            متابعة استشاري
+          </TabsTrigger>
+          <TabsTrigger value="consultant-template" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            استشاري
+          </TabsTrigger>
+          <TabsTrigger value="specialist-template" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            متخصص
+          </TabsTrigger>
+          <TabsTrigger value="lasik-template" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            ليزك
+          </TabsTrigger>
+          <TabsTrigger value="external-template" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            خارجي
+          </TabsTrigger>
+          <TabsTrigger value="pentacam-template" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            Pentacam
+          </TabsTrigger>
+          <TabsTrigger value="consultant-css" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            CSS استشاري
+          </TabsTrigger>
+          <TabsTrigger value="specialist-css" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            CSS متخصص
+          </TabsTrigger>
+          <TabsTrigger value="lasik-css" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            CSS ليزك
+          </TabsTrigger>
+          <TabsTrigger value="external-css" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            CSS خارجي
+          </TabsTrigger>
+          <TabsTrigger value="pentacam-css" className="shrink-0 rounded-lg text-xs sm:text-sm">
+            CSS Pentacam
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="consultant-followup" className="mt-4">
-          <Card>
+          <Card dir="rtl" className="border-border/80">
             <CardHeader>
-              <CardTitle>Consultant Follow-up Template</CardTitle>
+              <CardTitle>قالب متابعة الاستشاري</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderFollowupTextFields("followupConsultant")}
@@ -307,8 +421,10 @@ export default function AdminSheetDesigner() {
 
 
         <TabsContent value="consultant-template" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Consultant</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>القالب — استشاري</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {SHEET_TEMPLATE_FIELDS.map((field) => (
@@ -355,8 +471,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="specialist-template" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Specialist</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>القالب — متخصص</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {SHEET_TEMPLATE_FIELDS.map((field) => (
@@ -404,8 +522,10 @@ export default function AdminSheetDesigner() {
 
         <TabsContent value="lasik-template" className="mt-4">
           <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>LASIK</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>القالب — ليزك</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {SHEET_TEMPLATE_FIELDS.map((field) => (
@@ -449,13 +569,13 @@ export default function AdminSheetDesigner() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card dir="rtl" className="border-border/80">
             <CardHeader>
-              <CardTitle>LASIK Follow-up (Print)</CardTitle>
+              <CardTitle>متابعة ليزك (طباعة)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                These controls are used only by LASIK follow-up print layout.
+                تُستخدم هذه الحقول فقط لتخطيط طباعة متابعة الليزك.
               </p>
               {renderFollowupTextFields("followupLasik")}
               {renderFollowupNameFields("followupLasik")}
@@ -466,8 +586,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="external-template" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>External</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>القالب — خارجي</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {SHEET_TEMPLATE_FIELDS.map((field) => (
@@ -514,8 +636,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="pentacam-template" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Pentacam</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>القالب — Pentacam</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {SHEET_TEMPLATE_FIELDS.map((field) => (
@@ -575,8 +699,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="specialist-css" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Specialist Sheet Custom CSS</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>CSS مخصّص — متخصص</CardTitle>
+            </CardHeader>
             <CardContent>
               <Textarea
                 className="min-h-[320px] font-mono text-xs"
@@ -590,8 +716,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="lasik-css" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>LASIK Sheet Custom CSS</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>CSS مخصّص — ليزك</CardTitle>
+            </CardHeader>
             <CardContent>
               <Textarea
                 className="min-h-[320px] font-mono text-xs"
@@ -605,8 +733,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="external-css" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>External Sheet Custom CSS</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>CSS مخصّص — خارجي</CardTitle>
+            </CardHeader>
             <CardContent>
               <Textarea
                 className="min-h-[320px] font-mono text-xs"
@@ -620,8 +750,10 @@ export default function AdminSheetDesigner() {
         </TabsContent>
 
         <TabsContent value="pentacam-css" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Pentacam Sheet Custom CSS</CardTitle></CardHeader>
+          <Card dir="rtl" className="border-border/80">
+            <CardHeader>
+              <CardTitle>CSS مخصّص — Pentacam</CardTitle>
+            </CardHeader>
             <CardContent>
               <Textarea
                 className="min-h-[320px] font-mono text-xs"

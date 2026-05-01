@@ -4,7 +4,7 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarDays, Printer, Stethoscope, UserRound } from "lucide-react";
+import { Printer } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesignerConfig, saveSheetDesignerConfig } from "@/lib/sheetDesigner";
@@ -204,64 +204,24 @@ export default function ConsultantFollowupPage() {
         }
       `}</style>
 
-      <header className="bg-primary text-primary-foreground shadow-lg sticky top-0 z-[120] print:hidden pointer-events-auto">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-[120] border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden pointer-events-auto">
+        <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <div className="min-w-0 pointer-events-none">
-            <h1 className="text-xl font-bold">متابعات الاستشاري</h1>
-            <p className="text-sm opacity-90 truncate">{patientName}</p>
+            <h1 className="text-xl font-bold text-foreground">متابعات الاستشاري</h1>
+            <p className="truncate text-sm text-muted-foreground">{patientName}</p>
           </div>
-          <div className="flex gap-1 relative z-[130] pointer-events-auto shrink-0">
+          <div className="relative z-[130] flex shrink-0 flex-wrap items-center gap-1 pointer-events-auto">
             <div className="w-72 max-w-[45vw]">
               <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
             </div>
             <Button type="button" variant="default" size="sm" onClick={handleSaveFollowup} disabled={saveFollowupSheetMutation.isPending} className="bg-green-600 hover:bg-green-700 text-white">{saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}</Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)} className="text-primary-foreground border-primary-foreground hover:bg-primary/80">الاستمارة</Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => void printOrExportPdf(`consultant-followup-${initialPatientId ?? "sheet"}.pdf`)} className="text-primary-foreground border-primary-foreground hover:bg-primary/80"><Printer className="h-4 w-4 mr-2"/>طباعة</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)}>الاستمارة</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => void printOrExportPdf(`consultant-followup-${initialPatientId ?? "sheet"}.pdf`)}><Printer className="h-4 w-4 mr-2"/>طباعة</Button>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <section className="mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.16),_transparent_34%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm print:hidden">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-700">
-                <Stethoscope className="h-3.5 w-3.5" />
-                Consultant Follow-up
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-950">متابعات الاستشاري</h2>
-                <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                  لوحة أخف وأوضح لإدارة جداول المتابعة مع الحفاظ على نفس نموذج الطباعة الحالي بدون تغيير في البيانات.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <UserRound className="h-3.5 w-3.5" />
-                  Patient
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{patientName || "Select patient"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Operation Type
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{operationType || "-"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Date of Birth</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{patientDOB || "-"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Doctor</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{signatures.doctor || String(user?.name ?? "").trim() || "-"}</div>
-              </div>
-            </div>
-          </div>
-        </section>
         <div className="mb-3 print:hidden">
           <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} readOnly />
         </div>

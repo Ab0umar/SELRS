@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Segoe UI", Tahoma, Arial, sans-serif, system-ui;
+  --font-mono: "Cascadia Code", "Fira Code", ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -124,6 +126,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif, system-ui;
     direction: rtl;
     unicode-bidi: plaintext;
     text-align: start;
@@ -152,11 +155,8 @@
 }
 
 @media (max-width: 640px) {
-  html {
-    font-size: 14px;
-  }
   body {
-    line-height: 1.35;
+    line-height: 1.4;
   }
   h1 {
     font-size: 1.35rem;

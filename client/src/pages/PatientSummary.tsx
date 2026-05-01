@@ -63,7 +63,8 @@ export default function PatientSummary() {
   const { user, isAuthenticated } = useAuth();
   const { goBack } = useAppNavigation();
   const [, summaryParams] = useRoute("/patient-summary/:id");
-  const rawPatientId = summaryParams?.id;
+  const [, hubSummaryParams] = useRoute("/patient-hub/summary/:id");
+  const rawPatientId = summaryParams?.id ?? hubSummaryParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
 
   const patientQuery = trpc.patient.getPatient.useQuery(
@@ -567,7 +568,7 @@ export default function PatientSummary() {
   const patientName = firstNonEmpty(patient?.fullName, "—");
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/50">
+    <div className="min-h-screen selrs-page-bg" dir="rtl">
       <div className="mx-auto max-w-5xl space-y-6 p-4 pb-12 pt-6">
         {/* Header */}
         <div className="flex items-center justify-between">

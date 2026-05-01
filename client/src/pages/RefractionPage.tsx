@@ -8,7 +8,6 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
-import { Eye, FileSpreadsheet, ScanSearch, UserRound } from "lucide-react";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
@@ -409,53 +408,15 @@ export default function RefractionPage() {
           onPrint={handlePrint}
         />
       ) : null}
-      <section className={`mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_34%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm print:hidden ${printMode.printView ? "hidden" : ""}`}>
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
-              <Eye className="h-3.5 w-3.5" />
-              Refraction Desk
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Refraction</h1>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                شاشة أنظف لتجميع قراءات الـ refraction من الشيتات المختلفة قبل الحفظ والطباعة.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="refraction-no-print">
-              <PatientPicker
-                onSelect={(p) => {
-                  const id = Number((p as any)?.id ?? 0);
-                  if (!id) return;
-                  setLocation(`/refraction/${id}`);
-                }}
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  Code
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{String((patientQuery.data as any)?.patientCode ?? "-")}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Loaded Sources</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{[consultantQuery.data, specialistQuery.data, lasikQuery.data, externalQuery.data].filter(Boolean).length}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <ScanSearch className="h-3.5 w-3.5" />
-                  Status
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{patientId > 0 ? "Ready to save" : "Waiting for patient"}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className={`mb-4 refraction-no-print ${printMode.printView ? "hidden" : ""}`}>
+        <PatientPicker
+          onSelect={(p) => {
+            const id = Number((p as any)?.id ?? 0);
+            if (!id) return;
+            setLocation(`/refraction/${id}`);
+          }}
+        />
+      </div>
       <style>{`
         @media print {
           @page {

@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { NATIVE_THEME_KEY, hydrateDurableValue, saveDurableValue, writeLocalStorageValue } from "@/lib/nativeStorage";
 
-type Theme = "light" | "dark" | "win7";
+type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme?: () => void;
-  cycleTheme?: () => void;
   switchable: boolean;
 }
 
@@ -14,14 +13,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEME_STORAGE_KEY = "theme";
 
 const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-const isWindows7 = () =>
-  typeof navigator !== "undefined" && /Windows NT 6\.1/i.test(navigator.userAgent || "");
 
 const loadStoredTheme = (fallback: Theme): Theme => {
   if (!canUseStorage()) return fallback;
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "dark" || stored === "light" || stored === "win7" ? (stored as Theme) : fallback;
+    return stored === "dark" || stored === "light" ? (stored as Theme) : fallback;
   } catch {
     return fallback;
   }
@@ -58,48 +55,27 @@ export function ThemeProvider({
   useEffect(() => {
     if (!switchable) return;
     void hydrateDurableValue(NATIVE_THEME_KEY, THEME_STORAGE_KEY).then((stored) => {
-      if (stored === "dark" || stored === "light" || stored === "win7") {
+      if (stored === "dark" || stored === "light") {
         setTheme(stored as Theme);
       }
     });
   }, [switchable]);
 
   useEffect(() => {
-    if (isWindows7() && theme !== "win7") {
-      setTheme("win7");
-      return;
-    }
-
     const root = document.documentElement;
-
-    // Remove all theme classes
-    root.classList.remove("dark", "win7", "legacy-win7");
-
-    // Apply current theme
+    // Clean up any stale legacy theme classes from earlier builds.
+    root.classList.remove("win7", "legacy-win7");
     if (theme === "dark") {
       root.classList.add("dark");
-    } else if (theme === "win7") {
-      root.classList.add("win7");
-      root.classList.add("legacy-win7");
+    } else {
+      root.classList.remove("dark");
     }
-    // "light" is the default, no class needed
 
     if (switchable) {
       saveStoredTheme(theme);
     }
   }, [theme, switchable]);
 
-  const cycleTheme = switchable
-    ? () => {
-        setTheme(prev => {
-          if (prev === "light") return "dark";
-          if (prev === "dark") return "win7";
-          return "light";
-        });
-      }
-    : undefined;
-
-  // Keep toggleTheme for backwards compatibility (light <-> dark)
   const toggleTheme = switchable
     ? () => {
         setTheme(prev => (prev === "light" ? "dark" : "light"));
@@ -107,7 +83,7 @@ export function ThemeProvider({
     : undefined;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, cycleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );

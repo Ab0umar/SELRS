@@ -1,4 +1,4 @@
-import { ArrowRight, Home, Sparkles } from "lucide-react";
+import { ArrowRight, Home } from "lucide-react";
 import { useLocation } from "wouter";
 
 type PageHeaderProps = {
@@ -7,6 +7,7 @@ type PageHeaderProps = {
   hideOnPrint?: boolean;
 };
 
+/** شريط خفيف: رجوع + الرئيسية فقط (بدون الهيدر الأزرق وبدون تسمية Navigation). */
 export default function PageHeader({ backTo, label = "العودة", hideOnPrint = true }: PageHeaderProps) {
   const [, setLocation] = useLocation();
   const handleBack = () => {
@@ -18,42 +19,28 @@ export default function PageHeader({ backTo, label = "العودة", hideOnPrint
   };
 
   return (
-    <>
-      <header
-        className={`bg-primary text-primary-foreground shadow-lg sticky top-0 z-[120] pointer-events-auto ${
-          hideOnPrint ? "print:hidden" : ""
-        }`}
-      >
-        <div className="container mx-auto px-4 py-2">
-          <div className="h-1" />
-        </div>
-      </header>
-      <div className={`border-b border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] ${hideOnPrint ? "print:hidden" : ""}`}>
-        <div className="container mx-auto flex items-center justify-between gap-3 px-4 py-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600">
-            <Sparkles className="h-3.5 w-3.5 text-sky-600" />
-            Navigation
-          </div>
-          <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-          >
-            <ArrowRight className="h-4 w-4 mr-2" />
-            {label}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocation("/dashboard")}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-          >
-            <Home className="h-4 w-4" />
-            الصفحة الرئيسية
-          </button>
-          </div>
-        </div>
+    <div
+      className={`border-b border-border/80 bg-background/95 ${hideOnPrint ? "print:hidden" : ""}`}
+      dir="rtl"
+    >
+      <div className="mx-auto flex max-w-[1440px] items-center justify-end gap-2 px-3 py-2 sm:px-4">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+        >
+          <ArrowRight className="h-4 w-4 shrink-0" />
+          {label}
+        </button>
+        <button
+          type="button"
+          onClick={() => setLocation("/dashboard")}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+        >
+          <Home className="h-4 w-4 shrink-0" />
+          الصفحة الرئيسية
+        </button>
       </div>
-    </>
+    </div>
   );
 }

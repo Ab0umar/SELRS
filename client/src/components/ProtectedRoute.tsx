@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, LogOut, Monitor, Moon, Settings, ShieldAlert, ShieldCheck, Sparkles, Sun, UserCog } from "lucide-react";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { requestAppReload } from "@/lib/appRuntime";
-import { ShortcutsMenu } from "@/components/FloatingShortcuts";
-import { useTheme } from "@/contexts/ThemeContext";
+import { AppShell } from "@/components/layout/AppShell";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -30,8 +29,7 @@ export default function ProtectedRoute({
   requiredRoles,
   requiredBranches,
 }: ProtectedRouteProps) {
-  const { user, loading, logout } = useAuth();
-  const { theme, cycleTheme } = useTheme();
+  const { user, loading } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
   const mustChangePassword = Boolean((user as any)?.mustChangePassword);
   const forcePasswordRoute = "/force-password-change";
@@ -60,8 +58,33 @@ export default function ProtectedRoute({
     if (cleanPath === "/profile") return true;
     if (userRole === "reception" && cleanPath === "/examination") return true;
     if ((cleanPath === "/admin/settings/pricing-rules" || cleanPath === "/admin-hub/settings/pricing-rules") && userRole === "accountant") return true;
+    /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
+    if (
+      cleanPath === "/examinations/catalog" ||
+      cleanPath.startsWith("/examinations/catalog/") ||
+      cleanPath === "/txhub" ||
+      cleanPath.startsWith("/txhub/")
+    ) {
+      const matchTests = allowedPaths.some((p) => p === "/tests" || (p !== "/" && p.startsWith("/tests")));
+      const matchMeds = allowedPaths.some((p) => p === "/medications" || (p !== "/" && p.startsWith("/medications")));
+      const matchExamCatalog = allowedPaths.includes("/examinations/catalog") || allowedPaths.some((p) => p.startsWith("/examinations/catalog:"));
+      const matchTx = allowedPaths.includes("/txhub") || allowedPaths.some((p) => p.startsWith("/txhub"));
+      const allowExamPath = cleanPath === "/examinations/catalog" || cleanPath.startsWith("/examinations/catalog/");
+      const allowTxPath = cleanPath === "/txhub" || cleanPath.startsWith("/txhub/");
+      if (allowExamPath && (matchTests || matchMeds || matchExamCatalog)) return true;
+      if (allowTxPath && (matchTests || matchMeds || matchTx)) return true;
+    }
     if (cleanPath === "/patient-file" || cleanPath.startsWith("/patient-file/")) {
       if (allowedPaths.includes("/patients") || allowedPaths.includes("/patients/:id")) return true;
+    }
+    /** قائمة الروشتات: تُعامل مثل صلاحية الكتابة `/prescription` إن لم تُذكر صريحةً. */
+    if (cleanPath === "/prescriptions" || cleanPath.startsWith("/prescriptions/")) {
+      if (
+        allowedPaths.includes("/prescriptions") ||
+        allowedPaths.some((p) => p === "/prescription" || p.startsWith("/prescription/"))
+      ) {
+        return true;
+      }
     }
     if (cleanPath === forcePasswordRoute) return true;
     if (cleanPath === "/" || cleanPath === "/dashboard") return true;
@@ -142,9 +165,9 @@ export default function ProtectedRoute({
 
   if (loading || (userRole !== "admin" && permissionsQuery.isLoading)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
         <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 text-sky-700">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/5 text-primary">
             <ShieldCheck className="h-6 w-6 animate-pulse" />
           </div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -243,158 +266,7 @@ export default function ProtectedRoute({
     );
   }
 
-  const handleBack = (event?: React.MouseEvent) => {
-    event?.preventDefault();
-    const stack = navStackRef.current;
-    if (stack.length > 1) {
-      stack.pop();
-      const prev = stack[stack.length - 1];
-      sessionStorage.setItem("navStack", JSON.stringify(stack));
-      if (prev) {
-        setLocation(prev);
-        return;
-      }
-    }
-    setLocation("/dashboard");
-  };
-
-  const handleHome = (event?: React.MouseEvent) => {
-    event?.preventDefault();
-    setLocation("/dashboard");
-  };
-
-  const showAdminButton = userRole === "admin";
-
-  return (
-    <>
-      <div className="bg-primary text-primary-foreground shadow-lg print:hidden sticky top-0 z-[130]">
-        <div className="hidden sm:flex flex-row sm:items-center sm:justify-between px-3 py-3 sm:px-4 sm:py-4 container mx-auto">
-          <div className="flex flex-col gap-1 items-start">
-            <p className="text-sm font-semibold">مرحباً بك، <span dir="auto">{user?.name ?? ""}</span></p>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/90">
-              <Sparkles className="h-3.5 w-3.5" />
-              Secure Session
-            </div>
-          </div>
-          <div
-            className="flex items-center justify-center gap-3 text-center cursor-pointer"
-            role="button"
-            tabIndex={0}
-            onClick={handleHome}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                handleHome();
-              }
-            }}
-            aria-label="الصفحة الرئيسية"
-          >
-            <img src="/logo.png" alt="Logo" className="h-16 w-16" />
-            <div className="text-right">
-              <h1 className="text-2xl font-bold">مركز عيون الشروق</h1>
-            </div>
-          </div>
-          <div className="hidden sm:flex gap-2 justify-center">
-            <ShortcutsMenu onLogout={() => logout()} />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleHome}
-              className="text-slate-200 hover:bg-slate-100"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => logout()}
-              className="text-slate-200 hover:bg-slate-100"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-            {showAdminButton && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation("/admin-hub")}
-                className="text-slate-200 hover:bg-slate-100"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => cycleTheme?.()}
-              className="text-slate-200 hover:bg-slate-100"
-              title={
-                theme === "light"
-                  ? "Dark mode"
-                  : theme === "dark"
-                    ? "Windows 7 mode"
-                    : "Light mode"
-              }
-            >
-              {theme === "light" ? <Moon className="h-4 w-4" /> : theme === "dark" ? <Monitor className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/profile")}
-              className="text-slate-200 hover:bg-slate-100"
-            >
-              <UserCog className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="flex sm:hidden flex-col w-full">
-          <div
-            className="flex items-center justify-center gap-3 text-center cursor-pointer py-2"
-            role="button"
-            tabIndex={0}
-            onClick={handleHome}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                handleHome();
-              }
-            }}
-            aria-label="الصفحة الرئيسية"
-          >
-            <img src="/logo.png" alt="Logo" className="h-12 w-12" />
-            <div className="text-right">
-              <h1 className="text-lg font-bold">مركز عيون الشروق</h1>
-            </div>
-          </div>
-          <div className="flex w-full px-3 py-2 justify-center overflow-visible z-50">
-            <ShortcutsMenu isMobile={true} onLogout={() => logout()} />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => cycleTheme?.()}
-              className="ml-1 h-9 w-9 border-white/20 bg-white/10 text-white hover:bg-white/20 rounded-none"
-              title={
-                theme === "light"
-                  ? "Dark mode"
-                  : theme === "dark"
-                    ? "Windows 7 mode"
-                    : "Light mode"
-              }
-            >
-              {theme === "light" ? <Moon className="h-4 w-4" /> : theme === "dark" ? <Monitor className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      </div>
-      <div>{children}</div>
-    </>
-  );
+  return <AppShell>{children}</AppShell>;
 }
 
 

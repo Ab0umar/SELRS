@@ -1006,6 +1006,101 @@ function parsePentacamLocalMeta(notes: unknown): null | {
   }
 }
 
+function pentacamEyeHasAnyData(row: Record<string, unknown>, side: "OD" | "OS"): boolean {
+  if (side === "OD") {
+    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].some((v) => String(v ?? "").trim().length > 0);
+  }
+  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].some((v) => String(v ?? "").trim().length > 0);
+}
+
+function pentacamEyeIsComplete(row: Record<string, unknown>, side: "OD" | "OS"): boolean {
+  if (side === "OD") {
+    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].every((v) => String(v ?? "").trim().length > 0);
+  }
+  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].every((v) => String(v ?? "").trim().length > 0);
+}
+
+function expandPentacamDashboardRows(rows: any[]) {
+  const out: Array<{
+    resultId: number;
+    visitId: number;
+    patientId: number;
+    patientName: string;
+    doctorName: string;
+    visitDate: Date | string | null;
+    eye: "OD" | "OS";
+    k1: string | null;
+    k2: string | null;
+    axis: string | null;
+    thinnest: string | null;
+    quality: "accepted" | "repeat";
+  }> = [];
+
+  for (const row of rows) {
+    const meta = parsePentacamLocalMeta((row as any)?.notes);
+    const metaEye = String(meta?.eyeSide ?? "").trim().toLowerCase();
+    const importStatus = String(meta?.importStatus ?? "").trim().toLowerCase();
+    const forceRepeat =
+      importStatus.includes("repeat") || importStatus === "failed" || importStatus.includes("quality");
+
+    const considerOD =
+      pentacamEyeHasAnyData(row, "OD") ||
+      metaEye === "od" ||
+      metaEye === "right" ||
+      metaEye.includes("يمين");
+    const considerOS =
+      pentacamEyeHasAnyData(row, "OS") ||
+      metaEye === "os" ||
+      metaEye === "left" ||
+      metaEye.includes("يسار");
+
+    const emit = (side: "OD" | "OS") => {
+      const complete = pentacamEyeIsComplete(row, side);
+      const quality: "accepted" | "repeat" = forceRepeat || !complete ? "repeat" : "accepted";
+      const vals =
+        side === "OD"
+          ? {
+              k1: row.k1OD ?? null,
+              k2: row.k2OD ?? null,
+              axis: row.axisOD ?? null,
+              thinnest: row.thinnestPointOD ?? null,
+            }
+          : {
+              k1: row.k1OS ?? null,
+              k2: row.k2OS ?? null,
+              axis: row.axisOS ?? null,
+              thinnest: row.thinnestPointOS ?? null,
+            };
+      const rawDoctor = String(row.doctorDisplayName ?? "").trim();
+      const doctorName =
+        rawDoctor && !/^د\.?/u.test(rawDoctor) && !/^dr\.?/i.test(rawDoctor) ? `د. ${rawDoctor}` : rawDoctor;
+
+      out.push({
+        resultId: Number(row.id),
+        visitId: Number(row.visitId),
+        patientId: Number(row.patientId),
+        patientName: decodeMojibake(String(row.patientFullName ?? "").trim() || `مريض #${row.patientId}`),
+        doctorName: decodeMojibake(doctorName),
+        visitDate: (row as any).visitDate ?? row.createdAt ?? null,
+        eye: side,
+        k1: vals.k1 != null ? String(vals.k1) : null,
+        k2: vals.k2 != null ? String(vals.k2) : null,
+        axis: vals.axis != null ? String(vals.axis) : null,
+        thinnest: vals.thinnest != null ? String(vals.thinnest) : null,
+        quality,
+      });
+    };
+
+    if (considerOD) emit("OD");
+    if (considerOS) emit("OS");
+    if (!considerOD && !considerOS) {
+      emit("OD");
+    }
+  }
+
+  return out;
+}
+
 function stripLeadingCodeLabel(fileName: string): string {
   const raw = String(fileName ?? "").trim();
   if (!raw) return raw;
@@ -3463,6 +3558,58 @@ export const medicalRouter = router({
       return await db.getPentacamResultsByVisit(input.visitId);
     }),
 
+  listPentacamDashboard: protectedProcedure
+    .input(
+      z.object({
+        resultId: z.number().int().positive().optional(),
+        visitId: z.number().int().nonnegative().optional(),
+        patientId: z.number().int().positive().optional(),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
+        search: z.string().optional(),
+        eye: z.enum(["all", "OD", "OS"]).optional(),
+        quality: z.enum(["all", "accepted", "repeat"]).optional(),
+        limit: z.number().int().min(1).max(500).optional(),
+        offset: z.number().int().min(0).optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      await assertPentacamViewPermission(ctx.user);
+      const raw = await db.getPentacamResultsForDashboard({
+        resultId: input.resultId,
+        visitId: input.visitId,
+        patientId: input.patientId,
+        fromDate: input.fromDate,
+        toDate: input.toDate,
+        search: input.search,
+        limit: input.limit,
+        offset: input.offset,
+      });
+      let expanded = expandPentacamDashboardRows(raw);
+      const eye = input.eye ?? "all";
+      if (eye !== "all") {
+        expanded = expanded.filter((r) => r.eye === eye);
+      }
+      const quality = input.quality ?? "all";
+      if (quality !== "all") {
+        expanded = expanded.filter((r) => r.quality === quality);
+      }
+      return { rows: expanded };
+    }),
+
+  getPentacamDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+    await assertPentacamViewPermission(ctx.user);
+    const days = await db.getPentacamDashboardDayStats();
+    const sample = await db.getPentacamResultsForDashboard({ limit: 400, offset: 0 });
+    const expanded = expandPentacamDashboardRows(sample);
+    const needsRepeatEyes = expanded.filter((r) => r.quality === "repeat").length;
+    return {
+      examsToday: days.todayCount,
+      examsYesterday: days.yesterdayCount,
+      needsRepeatEyes,
+    };
+  }),
+
   getPentacamFilesByPatient: protectedProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
@@ -4132,6 +4279,13 @@ export const medicalRouter = router({
     .query(async ({ input }) => {
       return await db.getDoctorReportsByPatient(input.patientId);
     }),
+
+  getMedicalReportsOverview: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
+    .query(async ({ input }) => {
+      return await db.getMedicalReportsOverviewRows(input?.limit ?? 250);
+    }),
+
   getDoctorReports: protectedProcedure.query(async () => {
     return await db.getAllDoctorReports();
   }),
@@ -4237,6 +4391,8 @@ export const medicalRouter = router({
       manufacturer: z.string().optional(),
       dosage: z.string().optional(),
       description: z.string().optional(),
+      stockPieces: z.number().int().nonnegative().optional(),
+      inventoryStatus: z.enum(["available", "out_of_stock", "reserved"]).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       await db.createMedication({
@@ -4247,6 +4403,8 @@ export const medicalRouter = router({
         manufacturer: input.manufacturer || "",
         dosage: input.dosage || "",
         description: input.description || "",
+        stockPieces: input.stockPieces ?? null,
+        inventoryStatus: input.inventoryStatus ?? null,
       });
       await db.logAuditEvent(ctx.user.id, "CREATE_MEDICATION", "medication", 0, { message: `Added medication ${input.name}` });
       return { success: true };
@@ -4263,6 +4421,8 @@ export const medicalRouter = router({
         manufacturer: z.string().optional(),
         dosage: z.string().optional(),
         description: z.string().optional(),
+        stockPieces: z.number().int().nonnegative().nullable().optional(),
+        inventoryStatus: z.enum(["available", "out_of_stock", "reserved"]).nullable().optional(),
       }),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -4411,6 +4571,9 @@ export const medicalRouter = router({
       normalRange: z.string().optional(),
       unit: z.string().optional(),
       description: z.string().optional(),
+      priceEgp: z.string().optional(),
+      durationMinutes: z.number().int().nonnegative().optional(),
+      isActive: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       await db.createTest({
@@ -4420,6 +4583,9 @@ export const medicalRouter = router({
         normalRange: input.normalRange || "",
         unit: input.unit || "",
         description: input.description || "",
+        priceEgp: input.priceEgp?.trim() || null,
+        durationMinutes: input.durationMinutes ?? null,
+        isActive: input.isActive ?? true,
       });
       await db.logAuditEvent(ctx.user.id, "CREATE_TEST", "test", 0, { message: `Added test ${input.name}` });
       return { success: true };
@@ -4435,14 +4601,20 @@ export const medicalRouter = router({
         normalRange: z.string().optional(),
         unit: z.string().optional(),
         description: z.string().optional(),
+        priceEgp: z.string().nullable().optional(),
+        durationMinutes: z.number().int().nonnegative().nullable().optional(),
+        isActive: z.boolean().optional(),
       }),
     }))
     .mutation(async ({ input, ctx }) => {
-      const updates = {
-        ...input.updates,
-        category: input.updates.category ?? "",
-      };
-      await db.updateTest(input.testId, updates);
+      const raw = { ...input.updates } as Record<string, unknown>;
+      for (const key of Object.keys(raw)) {
+        if (raw[key] === undefined) delete raw[key];
+      }
+      if (input.updates.category !== undefined) {
+        raw.category = input.updates.category ?? "";
+      }
+      await db.updateTest(input.testId, raw);
       await db.logAuditEvent(ctx.user.id, "UPDATE_TEST", "test", input.testId, { message: "Updated test" });
       return { success: true };
     }),
@@ -4607,6 +4779,14 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPrescriptionsWithItemsByPatient(input.patientId);
+    }),
+
+  /** Recent prescriptions list for prescriptions hub (جدول نظرة عامة). */
+  getPrescriptionsOverview: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
+    .query(async ({ input }) => {
+      const limit = input?.limit ?? 250;
+      return await db.getPrescriptionsOverviewRows(limit);
     }),
 
   getPrescriptionsWithItemsByVisit: protectedProcedure
@@ -6428,9 +6608,12 @@ export const medicalRouter = router({
       date: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Check if user has permission to update queue status
+      // Same practical access as today-queue reads: طاقم طبي + استقبال + إدارة (وليس فقط doctor/nurse أو مسار /patients).
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
-      if (!permissions.includes("/patients") && ctx.user.role !== "doctor" && ctx.user.role !== "nurse") {
+      const role = String(ctx.user.role ?? "").toLowerCase();
+      const staffRoles = ["doctor", "nurse", "technician", "reception", "manager", "admin"];
+      const canUpdateQueue = permissions.includes("/patients") || staffRoles.includes(role);
+      if (!canUpdateQueue) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to update patient queue status." });
       }
 
@@ -6445,6 +6628,7 @@ export const medicalRouter = router({
         const visitDateIso = normalizedInputDate || (await db.getVisitDateIsoById(input.visitId));
         if (visitDateIso) {
           await db.cascadeQueueStatus(visitDateIso);
+          await db.autoAdvanceQueuePatients(visitDateIso);
         }
       }
 

@@ -1,18 +1,53 @@
-import { useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2, Upload } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import {
+  FlaskConical,
+  Link2,
+  MessageSquareWarning,
+  Microscope,
+  Pill,
+  Save,
+  Trash2,
+  Edit2,
+  Upload,
+} from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadXlsx } from "@/lib/xlsx";
+
+type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
+type TestType = "examination" | "lab" | "imaging" | "other";
+
+function medicationTypeLabel(type: string | undefined | null): string {
+  const m: Record<string, string> = {
+    drops: "قطرة",
+    tablet: "أقراص",
+    ointment: "مرهم",
+    injection: "حقن",
+    suspension: "معلق",
+    other: "أخرى",
+  };
+  return m[String(type ?? "")] ?? String(type ?? "—");
+}
+
+function testTypeLabel(type: string | undefined | null): string {
+  const m: Record<string, string> = {
+    examination: "فحص",
+    lab: "تحاليل",
+    imaging: "أشعة",
+    other: "أخرى",
+  };
+  return m[String(type ?? "")] ?? String(type ?? "—");
+}
 
 export default function MedicationsManagement() {
   const { isAuthenticated } = useAuth();
@@ -36,21 +71,17 @@ export default function MedicationsManagement() {
     }
     return "medications";
   });
-  const [expandedMeds, setExpandedMeds] = useState<number[]>([]);
-  const [expandedTests, setExpandedTests] = useState<number[]>([]);
-  const [expandedDiseases, setExpandedDiseases] = useState<number[]>([]);
-  const [expandedSymptoms, setExpandedSymptoms] = useState<string[]>([]);
-  const [expandedMedGroups, setExpandedMedGroups] = useState<string[]>([]);
-  const [expandedTestGroups, setExpandedTestGroups] = useState<string[]>([]);
-  const [expandedDiseaseGroups, setExpandedDiseaseGroups] = useState<string[]>([]);
-  const userStateQuery = trpc.medical.getUserPageState.useQuery(
-    { page: "medications" },
-    { refetchOnWindowFocus: false }
-  );
+
+  const [medListSearch, setMedListSearch] = useState("");
+  const [testListSearch, setTestListSearch] = useState("");
+  const [diseaseListSearch, setDiseaseListSearch] = useState("");
+  const [symptomListSearch, setSymptomListSearch] = useState("");
+
+  const userStateQuery = trpc.medical.getUserPageState.useQuery({ page: "medications" }, { refetchOnWindowFocus: false });
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didHydrateUserStateRef = useRef(false);
-  type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
+
   const [newMedication, setNewMedication] = useState<{
     name: string;
     type: MedicationType;
@@ -60,6 +91,23 @@ export default function MedicationsManagement() {
     type: "drops",
     strength: "",
   });
+
+  const [newTest, setNewTest] = useState<{
+    name: string;
+    type: TestType;
+    category: string;
+  }>({
+    name: "",
+    type: "examination",
+    category: "",
+  });
+  const [editingTestId, setEditingTestId] = useState<number | null>(null);
+
+  const [newDisease, setNewDisease] = useState({ name: "", branch: "", abbrev: "" });
+  const [editingDiseaseId, setEditingDiseaseId] = useState<number | null>(null);
+
+  const [newSymptom, setNewSymptom] = useState({ name: "" });
+  const [editingSymptomId, setEditingSymptomId] = useState<string | null>(null);
 
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -205,45 +253,26 @@ export default function MedicationsManagement() {
     if (!raw) return;
     try {
       const data = JSON.parse(raw);
-      if (data.activeTab) setActiveTab(data.activeTab);
-      if (Array.isArray(data.expandedMeds)) setExpandedMeds(data.expandedMeds);
-      if (Array.isArray(data.expandedTests)) setExpandedTests(data.expandedTests);
-      if (Array.isArray(data.expandedDiseases)) setExpandedDiseases(data.expandedDiseases);
-      if (Array.isArray(data.expandedSymptoms)) setExpandedSymptoms(data.expandedSymptoms);
-      if (Array.isArray(data.expandedMedGroups)) setExpandedMedGroups(data.expandedMedGroups);
-      if (Array.isArray(data.expandedTestGroups)) setExpandedTestGroups(data.expandedTestGroups);
-      if (Array.isArray(data.expandedDiseaseGroups)) setExpandedDiseaseGroups(data.expandedDiseaseGroups);
+      if (data.activeTab === "medications" || data.activeTab === "tests" || data.activeTab === "diseases" || data.activeTab === "symptoms") {
+        setActiveTab(data.activeTab);
+      }
     } catch {
       // ignore bad cache
     }
   }, []);
 
   useEffect(() => {
-    const data = (userStateQuery.data as any)?.data;
+    const data = (userStateQuery.data as { data?: { activeTab?: string } })?.data;
     if (!data) return;
     if (didHydrateUserStateRef.current) return;
-    if (data.activeTab) setActiveTab(data.activeTab);
-    if (Array.isArray(data.expandedMeds)) setExpandedMeds(data.expandedMeds);
-    if (Array.isArray(data.expandedTests)) setExpandedTests(data.expandedTests);
-    if (Array.isArray(data.expandedDiseases)) setExpandedDiseases(data.expandedDiseases);
-    if (Array.isArray(data.expandedSymptoms)) setExpandedSymptoms(data.expandedSymptoms);
-    if (Array.isArray(data.expandedMedGroups)) setExpandedMedGroups(data.expandedMedGroups);
-    if (Array.isArray(data.expandedTestGroups)) setExpandedTestGroups(data.expandedTestGroups);
-    if (Array.isArray(data.expandedDiseaseGroups)) setExpandedDiseaseGroups(data.expandedDiseaseGroups);
+    if (data.activeTab === "medications" || data.activeTab === "tests" || data.activeTab === "diseases" || data.activeTab === "symptoms") {
+      setActiveTab(data.activeTab as typeof activeTab);
+    }
     didHydrateUserStateRef.current = true;
   }, [userStateQuery.data]);
 
   useEffect(() => {
-    const payload = {
-      activeTab,
-      expandedMeds,
-      expandedTests,
-      expandedDiseases,
-      expandedSymptoms,
-      expandedMedGroups,
-      expandedTestGroups,
-      expandedDiseaseGroups,
-    };
+    const payload = { activeTab };
     localStorage.setItem("user_state_medications", JSON.stringify(payload));
     if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     userStateTimerRef.current = setTimeout(() => {
@@ -252,27 +281,46 @@ export default function MedicationsManagement() {
     return () => {
       if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     };
-  }, [activeTab, expandedMeds, expandedTests, expandedDiseases, expandedSymptoms, expandedMedGroups, expandedTestGroups, expandedDiseaseGroups, saveUserStateMutation]);
-
-  if (!isAuthenticated) return null;
+  }, [activeTab, saveUserStateMutation]);
 
   const medications = (medicationsQuery.data ?? []) as any[];
   const tests = (testsQuery.data ?? []) as any[];
   const diseases = (diseasesQuery.data ?? []) as any[];
   const symptoms = (symptomsQuery.data ?? []) as Array<{ id: string; name: string }>;
 
-  const [newTest, setNewTest] = useState({
-    name: "",
-    type: "examination" as "examination" | "lab" | "imaging" | "other",
-  });
-  const [editingTestId, setEditingTestId] = useState<number | null>(null);
+  const filteredMedications = useMemo(() => {
+    const q = medListSearch.trim().toLowerCase();
+    if (!q) return medications;
+    return medications.filter((med) =>
+      `${med.name ?? ""} ${med.strength ?? ""} ${med.type ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [medications, medListSearch]);
 
-  const [newDisease, setNewDisease] = useState({ name: "", branch: "", abbrev: "" });
-  const [editingDiseaseId, setEditingDiseaseId] = useState<number | null>(null);
-  const [newSymptom, setNewSymptom] = useState({ name: "" });
-  const [editingSymptomId, setEditingSymptomId] = useState<string | null>(null);
+  const filteredTests = useMemo(() => {
+    const q = testListSearch.trim().toLowerCase();
+    if (!q) return tests;
+    return tests.filter((test) =>
+      `${test.name ?? ""} ${test.category ?? ""} ${test.type ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [tests, testListSearch]);
 
-  const resetForm = () => {
+  const filteredDiseases = useMemo(() => {
+    const q = diseaseListSearch.trim().toLowerCase();
+    if (!q) return diseases;
+    return diseases.filter((disease) =>
+      `${disease.name ?? ""} ${disease.branch ?? ""} ${disease.abbrev ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [diseases, diseaseListSearch]);
+
+  const filteredSymptoms = useMemo(() => {
+    const q = symptomListSearch.trim().toLowerCase();
+    if (!q) return symptoms;
+    return symptoms.filter((s) => `${s.name ?? ""}`.toLowerCase().includes(q));
+  }, [symptoms, symptomListSearch]);
+
+  if (!isAuthenticated) return null;
+
+  const resetMedForm = () => {
     setNewMedication({
       name: "",
       type: "drops",
@@ -280,8 +328,16 @@ export default function MedicationsManagement() {
     });
   };
 
-  const handleAddMedication = async () => {
-    if (!newMedication.name) {
+  const resetTestForm = () => {
+    setNewTest({
+      name: "",
+      type: "examination",
+      category: "",
+    });
+  };
+
+  const handleSaveMedication = async () => {
+    if (!newMedication.name.trim()) {
       toast.error("يرجى إدخال اسم الدواء");
       return;
     }
@@ -290,17 +346,17 @@ export default function MedicationsManagement() {
       await updateMedicationMutation.mutateAsync({
         medicationId: editingId,
         updates: {
-          name: newMedication.name,
+          name: newMedication.name.trim(),
           type: newMedication.type,
-          strength: newMedication.strength,
+          strength: newMedication.strength.trim(),
         },
       });
       setEditingId(null);
     } else {
-      await createMedicationMutation.mutateAsync({ ...newMedication });
+      await createMedicationMutation.mutateAsync({ ...newMedication, name: newMedication.name.trim() });
     }
 
-    resetForm();
+    resetMedForm();
   };
 
   const handleEditMedication = (medication: any) => {
@@ -317,7 +373,7 @@ export default function MedicationsManagement() {
     await deleteMedicationMutation.mutateAsync({ medicationId: id });
   };
 
-  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -354,7 +410,7 @@ export default function MedicationsManagement() {
     }
   };
 
-  const handleImportTests = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportTests = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -372,7 +428,8 @@ export default function MedicationsManagement() {
             const form = row["Form"] || row["form"] || row["النوع"] || "examination";
             await createTestMutation.mutateAsync({
               name: String(name).trim(),
-              type: String(form || "examination") as any,
+              type: String(form || "examination") as TestType,
+              category: String(row["تصنيف"] || row["category"] || "").trim() || undefined,
             });
           }
           toast.success("تم استيراد الفحوصات بنجاح");
@@ -387,14 +444,80 @@ export default function MedicationsManagement() {
     }
   };
 
-  const toggleExpanded = (list: number[], id: number, setList: (next: number[]) => void) => {
-    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
-  };
-  const toggleGroup = (list: string[], key: string, setList: (next: string[]) => void) => {
-    setList(list.includes(key) ? list.filter((x) => x !== key) : [...list, key]);
+  const handleSaveTest = async () => {
+    if (!newTest.name.trim()) {
+      toast.error("يرجى إدخال اسم الفحص");
+      return;
+    }
+    const category = newTest.category.trim();
+    if (editingTestId) {
+      await updateTestMutation.mutateAsync({
+        testId: editingTestId,
+        updates: {
+          name: newTest.name.trim(),
+          type: newTest.type,
+          ...(category ? { category } : { category: "" }),
+        },
+      });
+      setEditingTestId(null);
+    } else {
+      await createTestMutation.mutateAsync({
+        name: newTest.name.trim(),
+        type: newTest.type,
+        category: category || undefined,
+      });
+    }
+    resetTestForm();
   };
 
-  const handleImportDiseases = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditTest = (test: any) => {
+    setNewTest({
+      name: test.name ?? "",
+      type: test.type ?? "examination",
+      category: test.category ?? "",
+    });
+    setEditingTestId(test.id);
+  };
+
+  const handleDeleteTest = async (id: number) => {
+    if (!window.confirm("هل أنت متأكد من حذف الفحص؟")) return;
+    await deleteTestMutation.mutateAsync({ testId: id });
+  };
+
+  const handleSaveDisease = async () => {
+    if (!newDisease.name.trim()) {
+      toast.error("يرجى إدخال اسم المرض");
+      return;
+    }
+    if (editingDiseaseId) {
+      await updateDiseaseMutation.mutateAsync({
+        diseaseId: editingDiseaseId,
+        name: newDisease.name.trim(),
+        branch: newDisease.branch.trim() || undefined,
+        abbrev: newDisease.abbrev.trim() || undefined,
+      });
+      setEditingDiseaseId(null);
+    } else {
+      await createDiseaseMutation.mutateAsync({
+        name: newDisease.name.trim(),
+        branch: newDisease.branch.trim() || undefined,
+        abbrev: newDisease.abbrev.trim() || undefined,
+      });
+    }
+    setNewDisease({ name: "", branch: "", abbrev: "" });
+  };
+
+  const handleEditDisease = (disease: any) => {
+    setNewDisease({ name: disease.name ?? "", branch: disease.branch ?? "", abbrev: disease.abbrev ?? "" });
+    setEditingDiseaseId(disease.id);
+  };
+
+  const handleDeleteDisease = async (id: number) => {
+    if (!window.confirm("هل أنت متأكد من حذف المرض؟")) return;
+    await deleteDiseaseMutation.mutateAsync({ diseaseId: id });
+  };
+
+  const handleImportDiseases = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -460,72 +583,6 @@ export default function MedicationsManagement() {
     }
   };
 
-  const handleSaveTest = async () => {
-    if (!newTest.name.trim()) {
-      toast.error("يرجى إدخال اسم الفحص");
-      return;
-    }
-    if (editingTestId) {
-      await updateTestMutation.mutateAsync({
-        testId: editingTestId,
-        updates: {
-          name: newTest.name,
-          type: newTest.type,
-        },
-      });
-      setEditingTestId(null);
-    } else {
-      await createTestMutation.mutateAsync({ ...newTest });
-    }
-    setNewTest({ name: "", type: "examination" });
-  };
-
-  const handleEditTest = (test: any) => {
-    setNewTest({
-      name: test.name ?? "",
-      type: test.type ?? "examination",
-    });
-    setEditingTestId(test.id);
-  };
-
-  const handleDeleteTest = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف الفحص؟")) return;
-    await deleteTestMutation.mutateAsync({ testId: id });
-  };
-
-  const handleSaveDisease = async () => {
-    if (!newDisease.name.trim()) {
-      toast.error("يرجى إدخال اسم المرض");
-      return;
-    }
-    if (editingDiseaseId) {
-      await updateDiseaseMutation.mutateAsync({
-        diseaseId: editingDiseaseId,
-        name: newDisease.name.trim(),
-        branch: newDisease.branch.trim() || undefined,
-        abbrev: newDisease.abbrev.trim() || undefined,
-      });
-      setEditingDiseaseId(null);
-    } else {
-      await createDiseaseMutation.mutateAsync({
-        name: newDisease.name.trim(),
-        branch: newDisease.branch.trim() || undefined,
-        abbrev: newDisease.abbrev.trim() || undefined,
-      });
-    }
-    setNewDisease({ name: "", branch: "", abbrev: "" });
-  };
-
-  const handleEditDisease = (disease: any) => {
-    setNewDisease({ name: disease.name ?? "", branch: disease.branch ?? "", abbrev: disease.abbrev ?? "" });
-    setEditingDiseaseId(disease.id);
-  };
-
-  const handleDeleteDisease = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف المرض؟")) return;
-    await deleteDiseaseMutation.mutateAsync({ diseaseId: id });
-  };
-
   const handleSaveSymptom = async () => {
     if (!newSymptom.name.trim()) {
       toast.error("يرجى إدخال اسم العرض");
@@ -555,7 +612,7 @@ export default function MedicationsManagement() {
     await deleteSymptomMutation.mutateAsync({ symptomId });
   };
 
-  const handleImportSymptoms = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportSymptoms = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -587,204 +644,172 @@ export default function MedicationsManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <PageHeader backTo="/dashboard" />
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4" dir="rtl">
+      <PageHeader
+        title="إدارة الأدوية والمراجع"
+        subtitle="إضافة وتعديل وحذف الأدوية والفحوصات والأمراض والأعراض"
+        icon={<Pill className="h-5 w-5" />}
+      />
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} persistKey="medications-management" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="medications">الأدوية</TabsTrigger>
-            <TabsTrigger value="tests">الفحوصات</TabsTrigger>
-            <TabsTrigger value="diseases">الأمراض</TabsTrigger>
-            <TabsTrigger value="symptoms">الأعراض</TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} persistKey="medications-management" className="w-full">
+        <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl border border-border bg-muted/30 p-1.5 sm:grid-cols-4">
+          <TabsTrigger value="medications" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+            الأدوية
+          </TabsTrigger>
+          <TabsTrigger value="tests" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+            الفحوصات
+          </TabsTrigger>
+          <TabsTrigger value="diseases" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+            الأمراض
+          </TabsTrigger>
+          <TabsTrigger value="symptoms" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+            الأعراض
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="medications">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>قائمة الأدوية</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(
-                      medications.reduce((acc: Record<string, any[]>, med) => {
-                        const key = med.type || "other";
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(med);
-                        return acc;
-                      }, {})
-                    ).map(([type, meds]) => (
-                      <div key={type} className="border rounded-lg p-3">
-                        <div
-                          className="font-bold mb-2 cursor-pointer flex items-center justify-between"
-                          onClick={() => toggleGroup(expandedMedGroups, type, setExpandedMedGroups)}
-                        >
-                          <span>{type}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {expandedMedGroups.includes(type) ? "" : ""}
-                          </span>
-                        </div>
-                        {expandedMedGroups.includes(type) && (
-                          <div className="space-y-2">
-                            {meds.map((med: any) => (
-                              <div key={med.id} className="border rounded-lg p-3">
-                                <div
-                                  className="flex items-center justify-between cursor-pointer"
-                                  onClick={() => toggleExpanded(expandedMeds, med.id, setExpandedMeds)}
-                                >
-                                  <div className="font-bold">{med.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {expandedMeds.includes(med.id) ? "" : ""}
-                                  </div>
-                                </div>
-                                {expandedMeds.includes(med.id) && (
-                                  <div className="mt-2 text-sm text-muted-foreground">
-                                    {med.strength ? `Category: ${med.strength}` : ""}
-                                  </div>
-                                )}
-                                <div className="flex gap-2 mt-3">
-                                  <Button size="icon" variant="outline" onClick={() => handleEditMedication(med)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button size="icon" variant="destructive" onClick={() => handleDeleteMedication(med.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {medications.length === 0 && (
-                      <p className="text-center text-muted-foreground">لا توجد أدوية بعد</p>
-                    )}
+        <TabsContent value="medications" className="mt-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Link2 className="h-4 w-4" />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>{editingId ? " " : " "}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  <CardTitle className="text-lg">{editingId ? "تعديل دواء" : "إضافة دواء"}</CardTitle>
+                </div>
+                <CardDescription>أضف أو حدّث بيانات الدواء ثم احفظ</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">اسم الدواء</label>
                   <Input
                     value={newMedication.name}
                     onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
-                    placeholder="اسم الدواء"
+                    placeholder="مثال: توباماكس"
+                    className="text-right"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">نوع الدواء</label>
                   <Select
                     value={newMedication.type}
                     onValueChange={(value) => setNewMedication({ ...newMedication, type: value as MedicationType })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full rounded-lg">
                       <SelectValue placeholder="اختر النوع" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="drops">قطرة</SelectItem>
                       <SelectItem value="ointment">مرهم</SelectItem>
                       <SelectItem value="tablet">أقراص</SelectItem>
+                      <SelectItem value="injection">حقن</SelectItem>
+                      <SelectItem value="suspension">معلق</SelectItem>
                       <SelectItem value="other">أخرى</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">التركيز / القوة</label>
                   <Input
                     value={newMedication.strength}
                     onChange={(e) => setNewMedication({ ...newMedication, strength: e.target.value })}
-                    placeholder="التركيز"
+                    placeholder="مثال: 0.25%"
+                    className="text-right"
                   />
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleAddMedication} disabled={createMedicationMutation.isPending}>
-                      <Plus className="h-4 w-4 ml-2" />
-                      {editingId ? "" : ""}
-                    </Button>
-                    <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSaveMedication()}
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    disabled={createMedicationMutation.isPending || updateMedicationMutation.isPending}
+                  >
+                    <Save className="h-4 w-4" />
+                    {editingId ? "تحديث" : "حفظ"}
+                  </Button>
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
+                  <Button type="button" variant="outline" className="gap-2 border-dashed rounded-lg" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
+                    رفع Excel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="tests">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>قائمة الفحوصات</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(
-                      tests.reduce((acc: Record<string, any[]>, test) => {
-                        const key = test.type || "other";
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(test);
-                        return acc;
-                      }, {})
-                    ).map(([type, items]) => (
-                      <div key={type} className="border rounded-lg p-3">
-                        <div
-                          className="font-bold mb-2 cursor-pointer flex items-center justify-between"
-                          onClick={() => toggleGroup(expandedTestGroups, type, setExpandedTestGroups)}
-                        >
-                          <span>{type}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {expandedTestGroups.includes(type) ? "" : ""}
-                          </span>
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="border-b border-border/80 py-4">
+                <CardTitle className="text-base">قائمة الأدوية</CardTitle>
+                <CardDescription>{medications.length} دواء مسجّل</CardDescription>
+                <SearchBar value={medListSearch} onChange={setMedListSearch} placeholder="بحث في الأدوية…" className="mt-3" />
+              </CardHeader>
+              <CardContent className="max-h-[min(520px,70vh)] space-y-2 overflow-y-auto pt-4">
+                {medicationsQuery.isLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+                ) : filteredMedications.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+                ) : (
+                  filteredMedications.map((med: any) => {
+                    const sub = [medicationTypeLabel(med.type), String(med.strength ?? "").trim()].filter(Boolean).join(" · ");
+                    return (
+                      <div
+                        key={med.id}
+                        className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                      >
+                        <div className="min-w-0 flex-1 text-right">
+                          <div className="font-semibold leading-snug">{med.name}</div>
+                          {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
                         </div>
-                        {expandedTestGroups.includes(type) && (
-                          <div className="space-y-2">
-                            {items.map((test: any) => (
-                              <div key={test.id} className="border rounded-lg p-3">
-                                <div
-                                  className="flex items-center justify-between cursor-pointer"
-                                  onClick={() => toggleExpanded(expandedTests, test.id, setExpandedTests)}
-                                >
-                                  <div className="font-bold">{test.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {expandedTests.includes(test.id) ? "" : ""}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 mt-3">
-                                  <Button size="icon" variant="outline" onClick={() => handleEditTest(test)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button size="icon" variant="destructive" onClick={() => handleDeleteTest(test.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <div className="flex shrink-0 gap-1">
+                          <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditMedication(med)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="destructive"
+                            className="h-9 w-9 rounded-lg"
+                            title="حذف"
+                            onClick={() => void handleDeleteMedication(med.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    ))}
-                    {tests.length === 0 && (
-                      <p className="text-center text-muted-foreground">لا توجد فحوصات بعد</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>{editingTestId ? " " : " "}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+        <TabsContent value="tests" className="mt-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                    <FlaskConical className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-lg">{editingTestId ? "تعديل فحص" : "إضافة فحص"}</CardTitle>
+                </div>
+                <CardDescription>اسم الفحص والنوع والتصنيف</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">اسم الفحص</label>
                   <Input
                     value={newTest.name}
                     onChange={(e) => setNewTest({ ...newTest, name: e.target.value })}
-                    placeholder="اسم الفحص"
+                    placeholder="مثال: فحص النظر"
+                    className="text-right"
                   />
-                  <Select
-                    value={newTest.type}
-                    onValueChange={(value) => setNewTest({ ...newTest, type: value as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="النوع" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">نوع الفحص</label>
+                  <Select value={newTest.type} onValueChange={(value) => setNewTest({ ...newTest, type: value as TestType })}>
+                    <SelectTrigger className="w-full rounded-lg">
+                      <SelectValue placeholder="اختر النوع" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="examination">فحص</SelectItem>
@@ -793,183 +818,249 @@ export default function MedicationsManagement() {
                       <SelectItem value="other">أخرى</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleSaveTest} disabled={createTestMutation.isPending}>
-                      <Plus className="h-4 w-4 ml-2" />
-                      {editingTestId ? "" : ""}
-                    </Button>
-                    <input ref={testsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportTests} className="hidden" />
-                    <Button variant="outline" onClick={() => testsFileRef.current?.click()}>
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">التصنيف</label>
+                  <Input
+                    value={newTest.category}
+                    onChange={(e) => setNewTest({ ...newTest, category: e.target.value })}
+                    placeholder="مثال: بصريات"
+                    className="text-right"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSaveTest()}
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    disabled={createTestMutation.isPending || updateTestMutation.isPending}
+                  >
+                    <Save className="h-4 w-4" />
+                    {editingTestId ? "تحديث" : "حفظ"}
+                  </Button>
+                  <input ref={testsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportTests} className="hidden" />
+                  <Button type="button" variant="outline" className="gap-2 border-dashed rounded-lg" onClick={() => testsFileRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
+                    رفع Excel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="diseases">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>قائمة الأمراض</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(
-                      diseases.reduce((acc: Record<string, any[]>, disease) => {
-                        const key = disease.branch || "other";
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(disease);
-                        return acc;
-                      }, {})
-                    ).map(([branch, items]) => (
-                      <div key={branch} className="border rounded-lg p-3">
-                        <div
-                          className="font-bold mb-2 cursor-pointer flex items-center justify-between"
-                          onClick={() => toggleGroup(expandedDiseaseGroups, branch, setExpandedDiseaseGroups)}
-                        >
-                          <span>{branch}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {expandedDiseaseGroups.includes(branch) ? "" : ""}
-                          </span>
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="border-b border-border/80 py-4">
+                <CardTitle className="text-base">قائمة الفحوصات</CardTitle>
+                <CardDescription>{tests.length} فحص مسجّل</CardDescription>
+                <SearchBar value={testListSearch} onChange={setTestListSearch} placeholder="بحث في الفحوصات…" className="mt-3" />
+              </CardHeader>
+              <CardContent className="max-h-[min(520px,70vh)] space-y-2 overflow-y-auto pt-4">
+                {testsQuery.isLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+                ) : filteredTests.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+                ) : (
+                  filteredTests.map((test: any) => (
+                    <div
+                      key={test.id}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="min-w-0 flex-1 text-right">
+                        <div className="font-semibold leading-snug">{test.name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {[test.category, testTypeLabel(test.type)].filter(Boolean).join(" · ") || "—"}
                         </div>
-                        {expandedDiseaseGroups.includes(branch) && (
-                          <div className="space-y-2">
-                            {items.map((disease: any) => (
-                              <div key={disease.id} className="border rounded-lg p-3">
-                                <div
-                                  className="flex items-center justify-between cursor-pointer"
-                                  onClick={() => toggleExpanded(expandedDiseases, disease.id, setExpandedDiseases)}
-                                >
-                                  <div className="font-bold">
-                                    {disease.abbrev ? `${disease.abbrev} - ${disease.name}` : disease.name}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {expandedDiseases.includes(disease.id) ? "" : ""}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 mt-3">
-                                  <Button size="icon" variant="outline" onClick={() => handleEditDisease(disease)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button size="icon" variant="destructive" onClick={() => handleDeleteDisease(disease.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    ))}
-                    {diseases.length === 0 && (
-                      <p className="text-center text-muted-foreground">لا توجد أمراض بعد</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="flex shrink-0 gap-1">
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditTest(test)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteTest(test.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>{editingDiseaseId ? " " : " "}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+        <TabsContent value="diseases" className="mt-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                    <Microscope className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-lg">{editingDiseaseId ? "تعديل مرض" : "إضافة مرض"}</CardTitle>
+                </div>
+                <CardDescription>الاسم والفرع والاختصار</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">اسم المرض</label>
                   <Input
                     value={newDisease.name}
                     onChange={(e) => setNewDisease({ ...newDisease, name: e.target.value })}
-                    placeholder="Name"
+                    placeholder="اسم المرض"
+                    className="text-right"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">الفرع</label>
                   <Input
                     value={newDisease.branch}
                     onChange={(e) => setNewDisease({ ...newDisease, branch: e.target.value })}
-                    placeholder="branch"
+                    placeholder="الفرع (اختياري)"
+                    className="text-right"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">الاختصار</label>
                   <Input
                     value={newDisease.abbrev}
                     onChange={(e) => setNewDisease({ ...newDisease, abbrev: e.target.value })}
-                    placeholder="Abbrev"
+                    placeholder="اختصار (اختياري)"
+                    className="text-right"
                   />
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleSaveDisease} disabled={createDiseaseMutation.isPending}>
-                      <Plus className="h-4 w-4 ml-2" />
-                      {editingDiseaseId ? "" : ""}
-                    </Button>
-                    <input ref={diseasesFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportDiseases} className="hidden" />
-                    <Button variant="outline" onClick={() => diseasesFileRef.current?.click()}>
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSaveDisease()}
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    disabled={createDiseaseMutation.isPending || updateDiseaseMutation.isPending}
+                  >
+                    <Save className="h-4 w-4" />
+                    {editingDiseaseId ? "تحديث" : "حفظ"}
+                  </Button>
+                  <input ref={diseasesFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportDiseases} className="hidden" />
+                  <Button type="button" variant="outline" className="gap-2 border-dashed rounded-lg" onClick={() => diseasesFileRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
+                    رفع Excel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="symptoms">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>قائمة الأعراض</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {symptoms.map((symptom) => (
-                      <div key={symptom.id} className="border rounded-lg p-3">
-                        <div
-                          className="flex items-center justify-between cursor-pointer"
-                          onClick={() => toggleGroup(expandedSymptoms, symptom.id, setExpandedSymptoms)}
-                        >
-                          <div className="font-bold">{symptom.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {expandedSymptoms.includes(symptom.id) ? "" : ""}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <Button size="icon" variant="outline" onClick={() => handleEditSymptom(symptom)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="destructive" onClick={() => handleDeleteSymptom(symptom.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="border-b border-border/80 py-4">
+                <CardTitle className="text-base">قائمة الأمراض</CardTitle>
+                <CardDescription>{diseases.length} مرض مسجّل</CardDescription>
+                <SearchBar value={diseaseListSearch} onChange={setDiseaseListSearch} placeholder="بحث في الأمراض…" className="mt-3" />
+              </CardHeader>
+              <CardContent className="max-h-[min(520px,70vh)] space-y-2 overflow-y-auto pt-4">
+                {diseasesQuery.isLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+                ) : filteredDiseases.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+                ) : (
+                  filteredDiseases.map((disease: any) => (
+                    <div
+                      key={disease.id}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="min-w-0 flex-1 text-right">
+                        <div className="font-semibold leading-snug">{disease.name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {[disease.branch, disease.abbrev].filter(Boolean).join(" · ") || "—"}
                         </div>
                       </div>
-                    ))}
-                    {symptoms.length === 0 && (
-                      <p className="text-center text-muted-foreground">لا توجد أعراض بعد</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="flex shrink-0 gap-1">
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditDisease(disease)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteDisease(disease.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>{editingSymptomId ? " " : " "}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+        <TabsContent value="symptoms" className="mt-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                    <MessageSquareWarning className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-lg">{editingSymptomId ? "تعديل عرض" : "إضافة عرض"}</CardTitle>
+                </div>
+                <CardDescription>عرض مرجعي للاستخدام في السجلات</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">اسم العرض</label>
                   <Input
                     value={newSymptom.name}
                     onChange={(e) => setNewSymptom({ name: e.target.value })}
                     placeholder="اسم العرض"
+                    className="text-right"
                   />
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleSaveSymptom} disabled={createSymptomMutation.isPending}>
-                      <Plus className="h-4 w-4 ml-2" />
-                      {editingSymptomId ? "" : ""}
-                    </Button>
-                    <input ref={symptomsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportSymptoms} className="hidden" />
-                    <Button variant="outline" onClick={() => symptomsFileRef.current?.click()}>
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSaveSymptom()}
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    disabled={createSymptomMutation.isPending || updateSymptomMutation.isPending}
+                  >
+                    <Save className="h-4 w-4" />
+                    {editingSymptomId ? "تحديث" : "حفظ"}
+                  </Button>
+                  <input ref={symptomsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportSymptoms} className="hidden" />
+                  <Button type="button" variant="outline" className="gap-2 border-dashed rounded-lg" onClick={() => symptomsFileRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
+                    رفع Excel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <CardHeader className="border-b border-border/80 py-4">
+                <CardTitle className="text-base">قائمة الأعراض</CardTitle>
+                <CardDescription>{symptoms.length} عرض مسجّل</CardDescription>
+                <SearchBar value={symptomListSearch} onChange={setSymptomListSearch} placeholder="بحث في الأعراض…" className="mt-3" />
+              </CardHeader>
+              <CardContent className="max-h-[min(520px,70vh)] space-y-2 overflow-y-auto pt-4">
+                {symptomsQuery.isLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+                ) : filteredSymptoms.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+                ) : (
+                  filteredSymptoms.map((symptom) => (
+                    <div
+                      key={symptom.id}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="min-w-0 flex-1 text-right">
+                        <div className="font-semibold leading-snug">{symptom.name}</div>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditSymptom(symptom)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteSymptom(symptom.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, FileSpreadsheet, Printer, Stethoscope, UserRound } from "lucide-react";
+import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -16,6 +16,7 @@ import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesi
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -388,46 +389,30 @@ export default function SpecialistSheet() {
         }
       `}</style>
       {/* Header */}
-        <header className={`bg-primary text-primary-foreground shadow-lg sticky top-0 z-10 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+        <header
+          className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between sheet-header-bar">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div>
-                  <h1 className="text-2xl font-bold">{sheetTemplate.sheetTitle}</h1>
-                  <p className="text-sm opacity-90">{formData.patientName}</p>
+                  <h1 className="text-2xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
+                  <p className="text-sm text-muted-foreground">{formData.patientName}</p>
                 </div>
               </div>
               <div className="flex gap-1 print:hidden sheet-header-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => goBack()}
-                  className="text-primary-foreground hover:bg-primary/90"
-                >
+                <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
                   رجوع
                 </Button>
               </div>
             </div>
-            <div className="flex gap-1 flex-wrap sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-                className="text-primary-foreground border border-gray-700 hover:bg-primary/80"
-              >
+            <div className="flex flex-wrap gap-1 sheet-header-actions">
+              <Button variant="outline" size="sm" onClick={handlePrint} type="button">
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-                className="text-primary-foreground border border-gray-700 hover:bg-primary/80"
-              >
+              <Button variant="outline" size="sm" onClick={handleSaveSheet} type="button">
                 حفظ
               </Button>
             </div>
@@ -444,49 +429,6 @@ export default function SpecialistSheet() {
             onPrint={handlePrint}
           />
         ) : null}
-        <section className={`mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.16),_transparent_34%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-6 shadow-sm print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-700">
-                <Stethoscope className="h-3.5 w-3.5" />
-                Specialist Sheet
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-950">{sheetTemplate.sheetTitle}</h2>
-                <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                  واجهة مراجعة وتوثيق الشيت التخصصي للمريض مع نفس محتوى الطباعة، لكن بطبقة عرض أوضح وأسهل أثناء العمل اليومي.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <UserRound className="h-3.5 w-3.5" />
-                  Patient
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{formData.patientName || "Select patient"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Date
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{formData.examinationDate || "-"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  Patient Code
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{formData.patientCode || "-"}</div>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Doctor</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{signatures.doctor || String(user?.name ?? "").trim() || "-"}</div>
-              </div>
-            </div>
-          </div>
-        </section>
         {/* Patient picker removed */}
           <div className="bg-white p-8 print:p-0 specialist-print-root">
            <div className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}>
@@ -501,8 +443,8 @@ export default function SpecialistSheet() {
           </div>
           {/* Header */}
           <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
-            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>عيون الشروق لليزك وتصحيح الإبصار</h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>Al Shrouk Eye Center for Lasik & Vision Correction</p>
+            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
+            <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
           </div>
 
           {/* Operation Details removed per request */}

@@ -49,7 +49,7 @@ export function AppShellStatus({
   onCopyRuntimeIssue,
 }: Props) {
   const showConnectivityBanner = !booting && (!online || serverReachable === false);
-  const connectivityTitle = !online ? "No internet connection" : "SELRS server is unreachable";
+  const connectivityTitle = !online ? "No internet connection" : "Cannot reach the server";
   const connectivityBody = !online
     ? "Reconnect to continue syncing live data."
     : "The app shell is open, but live server requests are currently failing.";
@@ -60,8 +60,8 @@ export function AppShellStatus({
     <>
       {booting ? (
         <div className="fixed inset-x-0 top-0 z-[1200] flex justify-center p-3 print:hidden">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/92 px-4 py-2 text-sm text-slate-700 shadow-lg backdrop-blur">
-            <RefreshCcw className="h-4 w-4 animate-spin text-emerald-600" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-white/92 px-4 py-2 text-sm text-slate-700 shadow-lg backdrop-blur">
+            <RefreshCcw className="h-4 w-4 animate-spin text-primary" />
             Preparing secure mobile session...
           </div>
         </div>
@@ -97,9 +97,9 @@ export function AppShellStatus({
       ) : null}
 
       {apiIssue ? (
-        <div className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-sky-200 ${cardClassName} print:hidden`}>
+        <div className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
+            <div className="rounded-2xl bg-primary/10 p-2 text-primary">
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
@@ -130,13 +130,13 @@ export function AppShellStatus({
       ) : null}
 
       {updateAvailable ? (
-        <div className={`fixed bottom-3 left-1/2 z-[1100] w-[min(92vw,28rem)] -translate-x-1/2 border-emerald-300 ${cardClassName} print:hidden`}>
+        <div className={`fixed bottom-3 left-1/2 z-[1100] w-[min(92vw,28rem)] -translate-x-1/2 border-secondary/40 ${cardClassName} print:hidden`}>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+            <div className="rounded-2xl bg-secondary/15 p-2 text-secondary">
               <Rocket className="h-4 w-4" />
             </div>
             <div>
-          <div className="text-sm font-semibold text-slate-900">A newer SELRS build is available</div>
+          <div className="text-sm font-semibold text-slate-900">A newer app build is available</div>
           <div className="mt-1 text-xs text-slate-600">
             Current: {buildInfo?.version ?? "unknown"} / {buildInfo?.buildTime ?? "unknown"}
           </div>

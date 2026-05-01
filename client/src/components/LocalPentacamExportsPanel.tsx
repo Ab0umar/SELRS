@@ -447,7 +447,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       <CardHeader className="space-y-3 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
               <FolderCog className="h-3.5 w-3.5" />
               Pentacam Intake
             </div>
@@ -699,7 +699,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
             {visibleItems.map((item, index) => (
               <div
                 key={`${item.name}-${item.mtime}`}
-                className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/30"
+                className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5"
               >
                 <label className="flex items-center gap-2 text-xs">
                   <input

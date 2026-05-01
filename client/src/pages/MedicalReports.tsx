@@ -8,13 +8,32 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Plus, Download, Eye, Trash2 } from "lucide-react";
+import {
+  ClipboardList,
+  DoorOpen,
+  FileText,
+  FlaskConical,
+  Image as ImageLucide,
+  Plus,
+  Eye,
+  MessageSquare,
+  Paperclip,
+  Scan,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
-import PageHeader from "@/components/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { FilterBar } from "@/components/shared/FilterBar";
+import { StatCard } from "@/components/shared/StatCard";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { OfflinePageState } from "@/components/OfflinePageState";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 function formatDisplayValue(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -43,11 +62,116 @@ function formatDisplayValue(value: unknown): string {
   return "";
 }
 
+const MEDICAL_REPORT_TYPE_TABS = [
+  { value: "all", label: "الكل" },
+  { value: "labs", label: "تحاليل" },
+  { value: "xrays", label: "أشعة" },
+  { value: "images", label: "صور" },
+  { value: "consult", label: "استشارة" },
+  { value: "discharge", label: "خروج" },
+] as const;
+
+type MedicalReportCategory = (typeof MEDICAL_REPORT_TYPE_TABS)[number]["value"];
+
+function categorizeMedicalReport(row: {
+  operationType?: string | null;
+  diagnosis?: string | null;
+  recommendations?: string | null;
+  clinicalOpinion?: string | null;
+}): Exclude<MedicalReportCategory, "all"> {
+  const ar = [row.operationType, row.diagnosis, row.recommendations, row.clinicalOpinion].map((x) => String(x ?? "")).join(" ");
+  const low = `${ar} `.toLowerCase();
+  if (/خروج|ملخص\s*خروج|discharge/i.test(ar)) return "discharge";
+  if (/تحليل|تحاليل|lab\b/i.test(ar + low)) return "labs";
+  if (/أشعة|اشعة|x\s*-?ray|radiology|ct\b|mri/i.test(ar + low)) return "xrays";
+  if (/صور|fundus|oct|topography|angiography/i.test(ar + low)) return "images";
+  if (/استشارة|consult/i.test(ar + low)) return "consult";
+  return "consult";
+}
+
+function typeLabel(cat: Exclude<MedicalReportCategory, "all">) {
+  const m: Record<string, string> = {
+    labs: "تحاليل",
+    xrays: "أشعة",
+    images: "صور",
+    consult: "استشارة",
+    discharge: "ملخص خروج",
+  };
+  return m[cat] ?? cat;
+}
+
+function typeBadgeClass(cat: Exclude<MedicalReportCategory, "all">) {
+  const m: Record<string, string> = {
+    labs: "bg-violet-100 text-violet-800 border-0 dark:bg-violet-950/60 dark:text-violet-300",
+    xrays: "bg-sky-100 text-sky-800 border-0 dark:bg-sky-950/60 dark:text-sky-300",
+    images: "bg-teal-100 text-teal-800 border-0 dark:bg-teal-950/60 dark:text-teal-300",
+    consult: "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-200",
+    discharge: "bg-rose-100 text-rose-800 border-0 dark:bg-rose-950/60 dark:text-rose-300",
+  };
+  return m[cat] ?? "bg-muted text-muted-foreground border-0";
+}
+
+function deriveReportStatus(row: { createdAt: unknown; updatedAt: unknown }) {
+  const c = new Date(row.createdAt as Date | string).getTime();
+  const u = new Date(row.updatedAt as Date | string).getTime();
+  if (!Number.isFinite(c)) return "final" as const;
+  if (Number.isFinite(u) && u - c > 60_000) return "final" as const;
+  const hrs = (Date.now() - c) / 36e5;
+  if (hrs < 72) return "review" as const;
+  return "pending" as const;
+}
+
+function statusLabel(st: ReturnType<typeof deriveReportStatus>) {
+  if (st === "final") return "نهائي";
+  if (st === "review") return "مراجعة";
+  return "معلق";
+}
+
+function statusTone(st: ReturnType<typeof deriveReportStatus>) {
+  if (st === "final") return "text-emerald-700 dark:text-emerald-400 font-semibold";
+  if (st === "review") return "text-sky-700 dark:text-sky-400 font-semibold";
+  return "text-amber-700 dark:text-amber-400 font-semibold";
+}
+
+function overviewReportTitleSnippet(row: Record<string, unknown>) {
+  const parts = [
+    String(row.diagnosis ?? "").trim(),
+    String(row.recommendations ?? "").trim(),
+    String(row.operationType ?? "").trim(),
+    String(row.clinicalOpinion ?? "").trim(),
+  ].filter(Boolean);
+  const raw = parts[0] ?? "";
+  const oneLine = raw.replace(/\s+/g, " ").trim();
+  if (!oneLine) return "—";
+  if (oneLine.length <= 96) return oneLine;
+  return `${oneLine.slice(0, 93)}…`;
+}
+
+const OVERVIEW_FILTERS = MEDICAL_REPORT_TYPE_TABS.map((t) => ({ value: t.value, label: t.label }));
+
+type ReportRow = {
+  id: number;
+  patientName: string;
+  patientCode: string;
+  patientAge?: string;
+  date: string;
+  doctor: string;
+  diagnosis: string;
+  diseases?: string[];
+  recommendation: string;
+  prescription?: string;
+  notes?: string;
+  operationType?: string;
+  visitDate?: string;
+};
+
 export default function MedicalReports() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/medical-reports/:id");
-  const initialPatientId = params?.id ? Number(params.id) : 0;
+  const [, hubReportsParams] = useRoute("/patient-hub/reports/:id");
+  const routePatientId = params?.id ?? hubReportsParams?.id;
+  const initialPatientId = routePatientId ? Number(routePatientId) : 0;
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(initialPatientId > 0 ? initialPatientId : null);
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: selectedPatientId ?? 0 },
@@ -76,29 +200,38 @@ export default function MedicalReports() {
     { patientId: selectedPatientId ?? 0, sheetType: "consultant" },
     { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false }
   );
+  const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const overviewQuery = trpc.medical.getMedicalReportsOverview.useQuery(undefined, {
+    enabled: Boolean(isAuthenticated),
+    refetchOnWindowFocus: false,
+  });
   const createReportMutation = trpc.medical.createMedicalReport.useMutation({
     onSuccess: () => {
       toast.success("تم إنشاء التقرير بنجاح");
-      reportsQuery.refetch();
+      void reportsQuery.refetch();
+      void overviewQuery.refetch();
     },
   });
   const updateReportMutation = trpc.medical.updateMedicalReport.useMutation({
     onSuccess: () => {
       toast.success("تم تعديل التقرير");
-      reportsQuery.refetch();
+      void reportsQuery.refetch();
+      void overviewQuery.refetch();
     },
   });
   const deleteReportMutation = trpc.medical.deleteMedicalReport.useMutation({
     onSuccess: () => {
       toast.success("تم حذف التقرير");
-      reportsQuery.refetch();
+      void reportsQuery.refetch();
+      void overviewQuery.refetch();
     },
   });
-  const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [overviewSearch, setOverviewSearch] = useState("");
+  const [overviewType, setOverviewType] = useState<string>("all");
+
   const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
   const [diseaseSearch, setDiseaseSearch] = useState("");
   const [expandedDiseaseGroups, setExpandedDiseaseGroups] = useState<string[]>([]);
@@ -171,11 +304,11 @@ export default function MedicalReports() {
   }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
-    const fromRoute = Number(params?.id ?? 0);
+    const fromRoute = Number(routePatientId ?? 0);
     if (Number.isFinite(fromRoute) && fromRoute > 0) {
       setSelectedPatientId(fromRoute);
     }
-  }, [params?.id]);
+  }, [routePatientId]);
 
   useEffect(() => {
     const raw = localStorage.getItem("user_state_medical_reports");
@@ -213,25 +346,8 @@ export default function MedicalReports() {
     };
   }, [expandedDiseaseGroups, diseaseSearch, saveUserStateMutation]);
 
-  if (!isAuthenticated) return null;
-
   const canWriteReports = ["doctor", "admin"].includes(user?.role || "");
   const canDeleteReports = ["admin", "manager"].includes(user?.role || "");
-  type ReportRow = {
-    id: number;
-    patientName: string;
-    patientCode: string;
-    patientAge?: string;
-    date: string;
-    doctor: string;
-    diagnosis: string;
-    diseases?: string[];
-    recommendation: string;
-    prescription?: string;
-    notes?: string;
-    operationType?: string;
-    visitDate?: string;
-  };
 
   const handleCreateReport = async () => {
     if (!selectedPatientId) {
@@ -288,7 +404,6 @@ export default function MedicalReports() {
       prescription: "",
       notes: "",
     });
-    setIsDialogOpen(false);
     setSelectedReport(null);
   };
 
@@ -317,7 +432,57 @@ export default function MedicalReports() {
       prescription: report.prescription || "",
       notes: report.notes || "",
     });
-    setIsDialogOpen(true);
+  };
+
+  function overviewRowToFormReport(row: Record<string, unknown>) {
+    let diseasesArr: string[] = [];
+    try {
+      const raw = row.diseases ? JSON.parse(String(row.diseases)) : [];
+      diseasesArr = Array.isArray(raw) ? raw.map((x: unknown) => String(x)) : [];
+    } catch {
+      diseasesArr = [];
+    }
+    const vd = row.visitDate;
+    const visitDateIso =
+      vd == null || vd === ""
+        ? new Date().toISOString().split("T")[0]
+        : typeof vd === "string"
+          ? vd.split("T")[0]
+          : new Date(vd as Date).toISOString().split("T")[0];
+    const created = row.createdAt ? new Date(String(row.createdAt)).toISOString().split("T")[0] : "";
+    return {
+      id: row.id as number,
+      patientName: String(row.patientName ?? ""),
+      patientCode: String(row.patientCode ?? ""),
+      patientAge: "",
+      date: created,
+      doctor: String(row.doctorName ?? ""),
+      diagnosis: String(row.diagnosis ?? ""),
+      diseases: diseasesArr,
+      recommendation: String(row.recommendations ?? row.operationType ?? ""),
+      prescription: String(row.treatment ?? ""),
+      notes: String(row.clinicalOpinion ?? row.additionalNotes ?? ""),
+      operationType: String(row.operationType ?? ""),
+      visitDate: visitDateIso,
+    };
+  }
+
+  function openFromOverview(row: Record<string, unknown>) {
+    const pid = Number(row.patientId ?? 0);
+    if (!Number.isFinite(pid) || pid <= 0) return;
+    setSelectedPatientId(pid);
+    setLocation(`/medical-reports/${pid}`);
+    handleViewReport(overviewRowToFormReport(row));
+    window.setTimeout(() => {
+      document.getElementById("medical-report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+
+  const handleNewReportClick = () => {
+    setSelectedReport(null);
+    window.requestAnimationFrame(() => {
+      document.getElementById("medical-report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleDownloadReportPdf = (report?: ReportRow | null) => {
@@ -433,44 +598,57 @@ export default function MedicalReports() {
     toast.success("تم تحميل الروشتة من صفحة الروشتة");
   };
 
-  const parsedReports = useMemo(() => {
-    const rows = reportsQuery.data ?? [];
-    const patientName = (patientQuery.data as any)?.fullName ?? formData.patientName;
-    const patientCode = (patientQuery.data as any)?.patientCode ?? formData.patientCode;
-    const patientAgeRaw = (patientQuery.data as any)?.age;
-    const patientAge = patientAgeRaw != null ? String(patientAgeRaw) : "";
-    return rows.map((report: any) => {
-      const diseases = (() => {
-        try {
-          return report.diseases ? JSON.parse(report.diseases) : [];
-        } catch {
-          return [];
-        }
-      })();
-      return {
-        id: report.id,
-        patientName,
-        patientCode,
-        patientAge,
-        date: (() => {
-          const date = report.createdAt instanceof Date ? report.createdAt : new Date(report.createdAt);
-          return Number.isNaN(date.valueOf()) ? "" : date.toISOString().split("T")[0];
-        })(),
-        doctor: user?.name || "",
-        diagnosis: report.diagnosis ?? "",
-        diseases,
-        recommendation: report.recommendations ?? report.operationType ?? "",
-        prescription: report.treatment ?? "",
-        notes: report.clinicalOpinion ?? report.additionalNotes ?? "",
-        operationType: report.operationType ?? "",
-        visitDate: report.visitDate ? (typeof report.visitDate === 'string' ? report.visitDate.split('T')[0] : report.visitDate instanceof Date ? report.visitDate.toISOString().split('T')[0] : new Date(report.visitDate).toISOString().split('T')[0]) : "",
-      };
-    });
-  }, [reportsQuery.data, formData.patientName, formData.patientCode, user?.name]);
+  const overviewRows = (overviewQuery.data ?? []) as Record<string, unknown>[];
 
-  // Inline form panel — always visible on right side
+  const overviewStats = useMemo(() => {
+    let labs = 0;
+    let xrays = 0;
+    let images = 0;
+    let consult = 0;
+    let discharge = 0;
+    for (const r of overviewRows) {
+      const c = categorizeMedicalReport(r as any);
+      if (c === "labs") labs += 1;
+      else if (c === "xrays") xrays += 1;
+      else if (c === "images") images += 1;
+      else if (c === "discharge") discharge += 1;
+      else consult += 1;
+    }
+    return {
+      total: overviewRows.length,
+      labs,
+      xrays,
+      images,
+      consult,
+      discharge,
+    };
+  }, [overviewRows]);
+
+  const filteredOverviewRows = useMemo(() => {
+    const q = overviewSearch.trim().toLowerCase();
+    return overviewRows.filter((row) => {
+      const cat = categorizeMedicalReport(row as any);
+      if (overviewType !== "all" && cat !== overviewType) return false;
+      if (!q) return true;
+      const hay = [
+        row.patientName,
+        row.patientCode,
+        row.diagnosis,
+        row.doctorName,
+        row.operationType,
+        row.recommendations,
+        row.treatment,
+        row.clinicalOpinion,
+      ]
+        .map((x) => String(x ?? "").toLowerCase())
+        .join(" ");
+      return hay.includes(q);
+    });
+  }, [overviewRows, overviewSearch, overviewType]);
+
+  // Inline form panel — below hub table
   const FormPanel = () => (
-    <Card className="text-right sticky top-4" dir="rtl">
+    <Card id="medical-report-form" className="text-right scroll-mt-24 lg:sticky lg:top-4" dir="rtl">
       <CardHeader>
         <CardTitle>{selectedReport ? "تعديل التقرير" : "تقرير طبي جديد"}</CardTitle>
         <CardDescription>أدخل بيانات التقرير الطبي والروشتة</CardDescription>
@@ -586,7 +764,7 @@ export default function MedicalReports() {
             </Button>
           )}
           {selectedReport && (
-            <Button variant="outline" onClick={() => { setSelectedReport(null); setIsDialogOpen(false); }}>
+            <Button variant="outline" onClick={() => { setSelectedReport(null); }}>
               جديد
             </Button>
           )}
@@ -595,118 +773,257 @@ export default function MedicalReports() {
     </Card>
   );
 
-  return (
-    <div className="min-h-screen bg-background text-right">
-      <PageHeader backTo="/dashboard" />
+  if (!isAuthenticated) return null;
 
-      <main className="container mx-auto px-4 py-8 print:p-0">
-        {(reportsQuery.isError || patientQuery.isError) ? (
+  return (
+    <div className="text-right">
+      <div className="mx-auto w-full max-w-[1280px] px-4 pb-8 pt-4 print:p-0 md:px-6" dir="rtl">
+        <PageHeader
+          title="التقارير الطبية"
+          subtitle="طباعة وإنشاء تقارير وربطها بملف المريض"
+          icon={<FileText className="h-5 w-5" />}
+          action={
+            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={handleNewReportClick}>
+              <Plus className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">تقرير جديد</span>
+            </Button>
+          }
+        />
+
+        {(reportsQuery.isError || patientQuery.isError || overviewQuery.isError) ? (
           <div className="mb-6">
             <OfflinePageState
               title="تعذر تحديث بيانات التقرير"
-              body="بعض بيانات التقرير أو المريض غير متاحة الآن."
-              onRetry={() => { void reportsQuery.refetch(); void patientQuery.refetch(); }}
+              body="بعض بيانات التقرير أو المريض أو الجدول غير متاحة الآن."
+              onRetry={() => {
+                void reportsQuery.refetch();
+                void patientQuery.refetch();
+                void overviewQuery.refetch();
+              }}
             />
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form panel — always visible left 2/3 */}
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6 print:hidden">
+          <StatCard
+            title="إجمالي التقارير"
+            value={overviewStats.total}
+            icon={ClipboardList}
+            iconColor="bg-primary/10 text-primary"
+          />
+          <StatCard
+            title="تحاليل"
+            value={overviewStats.labs}
+            icon={FlaskConical}
+            iconColor="bg-violet-100 text-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
+          />
+          <StatCard
+            title="أشعة"
+            value={overviewStats.xrays}
+            icon={Scan}
+            iconColor="bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300"
+          />
+          <StatCard
+            title="صور"
+            value={overviewStats.images}
+            icon={ImageLucide}
+            iconColor="bg-teal-100 text-teal-600 dark:bg-teal-950/60 dark:text-teal-300"
+          />
+          <StatCard
+            title="استشارة"
+            value={overviewStats.consult}
+            icon={MessageSquare}
+            iconColor="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+          />
+          <StatCard
+            title="خروج"
+            value={overviewStats.discharge}
+            icon={DoorOpen}
+            iconColor="bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+          />
+        </div>
+
+        <div className="mb-6 flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-96">
+            <SearchBar
+              value={overviewSearch}
+              onChange={setOverviewSearch}
+              placeholder="بحث بالاسم أو عنوان التقرير..."
+            />
+          </div>
+          <FilterBar
+            filters={OVERVIEW_FILTERS}
+            selected={overviewType}
+            onSelect={setOverviewType}
+            className="sm:justify-end"
+          />
+        </div>
+
+        <div className="mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm print:hidden">
+          {overviewQuery.isLoading ? (
+            <div className="p-12 text-center text-muted-foreground">جاري التحميل…</div>
+          ) : filteredOverviewRows.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              {overviewRows.length === 0 ? "لا توجد تقارير مسجلة بعد." : "لا توجد تقارير مطابقة للتصفية."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[980px] w-full text-right text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-3 font-semibold">المريض</th>
+                    <th className="px-4 py-3 font-semibold">الطبيب</th>
+                    <th className="px-4 py-3 font-semibold">التاريخ</th>
+                    <th className="px-4 py-3 font-semibold">النوع</th>
+                    <th className="px-4 py-3 font-semibold">العنوان</th>
+                    <th className="px-4 py-3 font-semibold">الحالة</th>
+                    <th className="w-12 px-4 py-3 text-center font-semibold">مرفقات</th>
+                    <th className="w-24 px-4 py-3 text-center font-semibold">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOverviewRows.map((row) => {
+                    const cat = categorizeMedicalReport(row as any);
+                    const st = deriveReportStatus(row as { createdAt: unknown; updatedAt: unknown });
+                    const created = row.createdAt
+                      ? typeof row.createdAt === "string"
+                        ? row.createdAt.split("T")[0]
+                        : new Date(row.createdAt as Date).toISOString().split("T")[0]
+                      : "";
+                    const attachmentHint = String(row.treatment ?? "").trim().length > 0;
+                    return (
+                      <tr key={String(row.id)} className="border-b border-border/70 transition-colors hover:bg-primary/[0.06]">
+                        <td className="max-w-[140px] px-4 py-3 align-top">
+                          <div className="truncate font-semibold" title={String(row.patientName ?? "")}>
+                            {String(row.patientName ?? "").trim() || "—"}
+                          </div>
+                          {row.patientCode ? (
+                            <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{String(row.patientCode)}</div>
+                          ) : null}
+                        </td>
+                        <td className="max-w-[120px] truncate px-4 py-3 align-top text-muted-foreground" title={String(row.doctorName ?? "")}>
+                          {String(row.doctorName ?? "").trim() || "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top" dir="ltr">
+                          <Badge variant="outline" className="font-normal">
+                            {created ? formatDateLabel(created) : "—"}
+                          </Badge>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top">
+                          <Badge className={cn("font-semibold", typeBadgeClass(cat))}>{typeLabel(cat)}</Badge>
+                        </td>
+                        <td className="max-w-[220px] px-4 py-3 align-top text-muted-foreground">
+                          <span className="line-clamp-2" title={overviewReportTitleSnippet(row)}>
+                            {overviewReportTitleSnippet(row)}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 align-top">
+                          <span className={cn("text-xs font-semibold", statusTone(st))}>{statusLabel(st)}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center align-top text-muted-foreground">
+                          <Paperclip className={`mx-auto h-4 w-4 ${attachmentHint ? "text-primary/80" : "opacity-30"}`} aria-hidden />
+                        </td>
+                        <td className="px-4 py-3 text-center align-top">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 w-9 p-0"
+                              title="عرض وتعديل"
+                              onClick={() => openFromOverview(row)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canDeleteReports ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+                                title="حذف"
+                                onClick={() => void handleDeleteReport(Number(row.id))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 print:grid-cols-1">
           <div className="lg:col-span-2 print:hidden">
             <FormPanel />
           </div>
-
-          {/* Reports List — right 1/3 */}
-          <div className="print:hidden space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>التقارير الطبية</CardTitle>
-                <CardDescription>عدد التقارير: {parsedReports.length}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {!selectedPatientId ? (
-                    <p className="text-center text-muted-foreground py-8">اختر مريضاً من النموذج لعرض تقاريره</p>
-                  ) : reportsQuery.isLoading ? (
-                    <p className="text-center text-muted-foreground py-8">جاري تحميل التقارير...</p>
-                  ) : parsedReports.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">لا توجد تقارير</p>
-                  ) : (
-                    parsedReports.map((report) => (
-                      <div key={report.id}
-                        className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer ${selectedReport?.id === report.id ? "border-primary bg-primary/5" : ""}`}
-                        onClick={() => handleViewReport(report)}>
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold">{report.patientName}</h3>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">{report.date ? formatDateLabel(report.date) : ""}</p>
-                            <p className="text-xs font-medium text-primary">{report.doctor}</p>
-                          </div>
-                        </div>
-                        <div className="mb-3 text-sm">
-                          <p className="mb-1"><span className="font-semibold">التشخيص:</span> {formatDisplayValue(report.diagnosis)}</p>
-                          <p><span className="font-semibold">التوصية:</span> {formatDisplayValue(report.recommendation)}</p>
-                        </div>
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="sm" onClick={() => handleDownloadReportPdf(report)}>
-                            <Download className="h-4 w-4 mr-1" />
-                            PDF
-                          </Button>
-                          {canDeleteReports && (
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteReport(report.id)}>
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              حذف
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Print preview */}
-            {selectedReport && (
-              <Card>
+          <div className="print:hidden">
+            {selectedReport ? (
+              <Card className="sticky top-4">
                 <CardHeader className="space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <CardTitle>تقرير طبي</CardTitle>
                     <div className="flex items-center gap-3">
-                      <img src="/logo.png" alt="Shorouk-Eyes Center" className="h-12 w-12 object-contain" />
+                      <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-white" />
                       <div className="text-right">
-                        <p className="font-semibold leading-tight">Shorouk-Eyes Center</p>
-                        <p className="text-xs text-muted-foreground leading-tight">For Lasik & Refractive Surgery</p>
+                        <p className="font-semibold leading-tight">{BRAND_NAME_AR}</p>
+                        <p className="text-xs text-muted-foreground leading-tight">{BRAND_NAME_EN}</p>
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4" dir="rtl">
-                  <div className="flex flex-wrap gap-6 text-sm border-b pb-3">
-                    <span><span className="font-semibold">الاسم: </span>{selectedReport.patientName}</span>
-                    {selectedReport.patientAge && <span><span className="font-semibold">السن: </span>{selectedReport.patientAge}</span>}
-                    {selectedReport.date && <span><span className="font-semibold">التاريخ: </span>{formatDateLabel(selectedReport.date)}</span>}
+                  <div className="flex flex-wrap gap-6 border-b pb-3 text-sm">
+                    <span>
+                      <span className="font-semibold">الاسم: </span>
+                      {selectedReport.patientName}
+                    </span>
+                    {selectedReport.patientAge ? (
+                      <span>
+                        <span className="font-semibold">السن: </span>
+                        {selectedReport.patientAge}
+                      </span>
+                    ) : null}
+                    {selectedReport.date ? (
+                      <span>
+                        <span className="font-semibold">التاريخ: </span>
+                        {formatDateLabel(selectedReport.date)}
+                      </span>
+                    ) : null}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground mb-1">التشخيص</p>
+                    <p className="mb-1 text-sm font-semibold text-muted-foreground">التشخيص</p>
                     <p className="text-sm">{formatDisplayValue(selectedReport.diagnosis)}</p>
                   </div>
                   <div className="border-t pt-3">
-                    <p className="text-sm font-semibold text-muted-foreground mb-1">التوصية</p>
+                    <p className="mb-1 text-sm font-semibold text-muted-foreground">التوصية</p>
                     <p className="text-sm">{formatDisplayValue(selectedReport.recommendation)}</p>
                   </div>
-                  <Button className="w-full bg-primary hover:bg-primary/90 print:hidden"
-                    onClick={() => handleDownloadReportPdf(selectedReport)}>
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Button
+                    className="w-full bg-primary hover:bg-primary/90 print:hidden"
+                    onClick={() => handleDownloadReportPdf(selectedReport)}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     تحميل كـ PDF
                   </Button>
                 </CardContent>
               </Card>
+            ) : (
+              <Card className="sticky top-4 border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-base">معاينة الطباعة</CardTitle>
+                  <CardDescription>اختر تقريراً من الجدول أو أنشئ تقريراً جديداً لعرض المعاينة هنا.</CardDescription>
+                </CardHeader>
+              </Card>
             )}
           </div>
-
         </div>
-      </main>
+      </div>
       <style>{`
         @media print {
           @page {

@@ -1,11 +1,3 @@
--keep class com.getcapacitor.** { *; }
--keep class com.capacitorjs.plugins.** { *; }
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
-
-
 # Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.

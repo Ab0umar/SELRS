@@ -1,43 +1,43 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-  buildscript {
-      ext {
-          compileSdkVersion = 36
-          targetSdkVersion = 36
-          minSdkVersion = 22
-      }
-      repositories {
-          google()
-          mavenCentral()
-      }
-      dependencies {
-          classpath 'com.android.tools.build:gradle:8.13.0'
-          classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'
-          classpath 'com.google.gms:google-services:4.4.4'
-      }
+buildscript {
+  ext {
+    compileSdkVersion = 37
+    targetSdkVersion = 37
+    minSdkVersion = 22
   }
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'com.android.tools.build:gradle:9.2.0'
+    classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'
+    classpath 'com.google.gms:google-services:4.4.4'
+  }
+}
 
-  apply from: "variables.gradle"
+apply from: "variables.gradle"
 
-  allprojects {
-      repositories {
-          google()
-          mavenCentral()
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+
+ext.kotlinPluginApplied = [:]
+
+subprojects {
+  afterEvaluate {
+    if (it.hasProperty('android')) {
+      android {
+        compileSdk rootProject.ext.compileSdkVersion
       }
+    }
   }
+}
 
-  ext.kotlinPluginApplied = [:]
-
-  subprojects {
-      afterEvaluate {
-          if (it.hasProperty('android')) {
-              android {
-                  compileSdk 36
-              }
-          }
-      }
-  }
-
-  task clean(type: Delete) {
-      delete rootProject.buildDir
-  }
+tasks.register('clean', Delete) {
+  delete rootProject.buildDir
+}

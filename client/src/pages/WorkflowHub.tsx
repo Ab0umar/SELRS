@@ -1,79 +1,230 @@
+import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar, Clock, ListChecks, RefreshCw } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import { CalendarCheck, ClipboardCheck, Footprints, LayoutGrid, Syringe } from "lucide-react";
 
-type WorkflowItem = {
-  title: string;
-  description: string;
-  path: string;
-  icon: typeof Calendar;
+function parseRowDate(value: unknown): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const d = new Date(String(value));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+function isInRollingWeek(d: Date, now: Date): boolean {
+  const t = startOfDay(now).getTime();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const x = startOfDay(d).getTime();
+  return x >= t - weekMs && x <= t + 24 * 60 * 60 * 1000;
+}
+
+type Accent = "blue" | "orange" | "emerald" | "rose";
+
+const ACCENT: Record<
+  Accent,
+  { bar: string; iconWrap: string; icon: string }
+> = {
+  blue: {
+    bar: "border-t-blue-500",
+    iconWrap: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+    icon: "text-blue-700 dark:text-blue-300",
+  },
+  orange: {
+    bar: "border-t-orange-500",
+    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200",
+    icon: "text-orange-800 dark:text-orange-200",
+  },
+  emerald: {
+    bar: "border-t-emerald-500",
+    iconWrap: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
+    icon: "text-emerald-800 dark:text-emerald-200",
+  },
+  rose: {
+    bar: "border-t-rose-500",
+    iconWrap: "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
+    icon: "text-rose-800 dark:text-rose-200",
+  },
 };
 
-const ITEMS: WorkflowItem[] = [
-  {
-    title: "Operations",
-    description: "قائمة المواعيد والعمليات",
-    path: "/operations",
-    icon: Calendar,
-  },
-  {
-    title: "Today",
-    description: "مرضى اليوم",
-    path: "/today",
-    icon: Clock,
-  },
-  {
-    title: "Visits",
-    description: "سجل الزيارات",
-    path: "/visits",
-    icon: ListChecks,
-  },
-  {
-    title: "Followups",
-    description: "المتابعات",
-    path: "/followups",
-    icon: RefreshCw,
-  },
-];
+type HubCard = {
+  key: string;
+  path: string;
+  title: string;
+  description: string;
+  statMain: number | string;
+  statSub: string;
+  icon: LucideIcon;
+  accent: Accent;
+};
 
 export default function WorkflowHub() {
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
+  const { merged, isLoading: todayLoading } = useTodayQueuePatientsMerged();
+  const visitsQuery = trpc.medical.getVisits.useQuery(undefined, { refetchOnWindowFocus: false });
+  const appointmentsQuery = trpc.medical.getOperations.useQuery(undefined, { refetchOnWindowFocus: false });
+
+  useEffect(() => {
+    if (!isAuthenticated) setLocation("/");
+  }, [isAuthenticated, setLocation]);
+
+  const now = useMemo(() => new Date(), []);
+
+  const followUpCount = useMemo(() => {
+    const rows = (visitsQuery.data ?? []) as Array<{ visitType?: string | null; visitDate?: unknown }>;
+    return rows.filter((v) => {
+      if (String(v.visitType ?? "") !== "followup") return false;
+      const d = parseRowDate(v.visitDate);
+      if (!d) return false;
+      return isSameMonth(d, now);
+    }).length;
+  }, [visitsQuery.data, now]);
+
+  const visitsWeekCount = useMemo(() => {
+    const rows = (visitsQuery.data ?? []) as Array<{ visitDate?: unknown }>;
+    return rows.filter((v) => {
+      const d = parseRowDate(v.visitDate);
+      if (!d) return false;
+      return isInRollingWeek(d, now);
+    }).length;
+  }, [visitsQuery.data, now]);
+
+  const surgeryMonthCount = useMemo(() => {
+    const rows = (appointmentsQuery.data ?? []) as Array<{ appointmentType?: string | null; appointmentDate?: unknown }>;
+    return rows.filter((a) => {
+      if (String(a.appointmentType ?? "") !== "surgery") return false;
+      const d = parseRowDate(a.appointmentDate);
+      if (!d) return false;
+      return isSameMonth(d, now);
+    }).length;
+  }, [appointmentsQuery.data, now]);
+
+  const todayCount = merged.length;
+
+  const cards: HubCard[] = useMemo(
+    () => [
+      {
+        key: "followups",
+        path: "/followups",
+        title: "المتابعات",
+        description: "إدارة مواعيد المتابعة والتذكيرات",
+        statMain: visitsQuery.isLoading ? "…" : followUpCount,
+        statSub: "متابعة مستحقة",
+        icon: ClipboardCheck,
+        accent: "blue",
+      },
+      {
+        key: "visits",
+        path: "/visits",
+        title: "الزيارات",
+        description: "تتبع جميع الزيارات والمواعيد",
+        statMain: visitsQuery.isLoading ? "…" : visitsWeekCount,
+        statSub: "زيارة هذا الأسبوع",
+        icon: Footprints,
+        accent: "orange",
+      },
+      {
+        key: "today",
+        path: "/today",
+        title: "مرضى اليوم",
+        description: "عرض مرضى اليوم وحالتهم في الانتظار",
+        statMain: todayLoading ? "…" : todayCount,
+        statSub: "مريض اليوم",
+        icon: CalendarCheck,
+        accent: "emerald",
+      },
+      {
+        key: "operations",
+        path: "/operations",
+        title: "العمليات",
+        description: "إدارة جدول العمليات الجراحية والمتابعة",
+        statMain: appointmentsQuery.isLoading ? "…" : surgeryMonthCount,
+        statSub: "عملية هذا الشهر",
+        icon: Syringe,
+        accent: "rose",
+      },
+    ],
+    [
+      followUpCount,
+      visitsWeekCount,
+      todayCount,
+      surgeryMonthCount,
+      visitsQuery.isLoading,
+      appointmentsQuery.isLoading,
+      todayLoading,
+    ],
+  );
+
+  if (!isAuthenticated) return null;
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6" dir="rtl">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <Card className="border-slate-200/80 bg-white/95 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle>العمل اليومي</CardTitle>
-            <CardDescription>افتح الشاشة المطلوبة مباشرة</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Button
-                    key={item.path}
-                    variant="outline"
-                    className="h-auto justify-start rounded-2xl border-slate-200 bg-white p-4 text-right shadow-sm hover:bg-slate-50"
-                    onClick={() => setLocation(item.path)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-2xl bg-slate-100 p-3">
-                        <Icon className="h-5 w-5 text-slate-700" />
-                      </div>
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="text-base font-semibold text-slate-900">{item.title}</span>
-                        <span className="text-xs text-slate-500">{item.description}</span>
-                      </div>
+    <div className="min-h-screen bg-muted/40" dir="rtl">
+      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+        <PageHeader
+          title="مركز سير العمل"
+          description="الوصول السريع لجميع أقسام سير العمل"
+          icon={<LayoutGrid className="h-6 w-6 text-primary" />}
+          className="mb-6 sm:mb-8"
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {cards.map((card) => {
+            const Icon = card.icon;
+            const a = ACCENT[card.accent];
+            return (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => setLocation(card.path)}
+                className={cn(
+                  "group w-full rounded-2xl border border-border/70 bg-card text-right shadow-sm transition-all",
+                  "hover:shadow-md hover:border-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  a.bar,
+                  "border-t-[3px]",
+                )}
+              >
+                <div className="flex flex-col gap-4 p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex flex-col items-end text-right">
+                      <span className="text-3xl font-black tabular-nums tracking-tight text-foreground sm:text-[2rem] leading-none">
+                        {card.statMain}
+                      </span>
+                      <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">{card.statSub}</span>
                     </div>
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-inner",
+                        a.iconWrap,
+                      )}
+                      aria-hidden
+                    >
+                      <Icon className={cn("h-6 w-6", a.icon)} />
+                    </div>
+                  </div>
+                  <div className="space-y-1 border-t border-border/60 pt-3">
+                    <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">{card.title}</h2>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{card.description}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

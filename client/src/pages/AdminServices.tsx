@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Activity, CheckCircle2, Edit2, Plus, Settings, Trash2, XCircle } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 
 type ServiceType = "consultant" | "specialist" | "lasik" | "surgery" | "external";
 type ServiceCategory = "examination" | "radiology" | "operations" | "miscellaneous";
@@ -164,12 +170,34 @@ const sheetOptions: Array<{ value: SheetType; label: string }> = [
   { value: "pentacam_ex_c", label: "Pentacam Ex.C" },
 ];
 
+const HUB_STATUS_FILTERS = [
+  { value: "all", label: "الكل" },
+  { value: "active", label: "فعالة" },
+  { value: "inactive", label: "معطلة" },
+] as const;
+
+const HUB_CATEGORY_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "كل الفئات" },
+  { value: "examination", label: "كشف" },
+  { value: "radiology", label: "أشعة" },
+  { value: "operations", label: "عمليات" },
+  { value: "miscellaneous", label: "متنوعة" },
+];
+
+function sheetOptionLabel(sheet: SheetType): string {
+  return sheetOptions.find((o) => o.value === sheet)?.label ?? String(sheet);
+}
+
 export default function AdminServices() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
   const [services, setServices] = useState<ServiceEntry[]>([]);
-  const [activeCategory, setActiveCategory] = useState<ServiceCategory>("examination");
+  const [hubSearch, setHubSearch] = useState("");
+  const [hubStatus, setHubStatus] = useState<"all" | "active" | "inactive">("all");
+  const [hubCategory, setHubCategory] = useState<ServiceCategory | "all">("all");
+  const [addOpen, setAddOpen] = useState(false);
+  const [expandServiceId, setExpandServiceId] = useState<string | null>(null);
   const [newService, setNewService] = useState<{ code: string; name: string; category: ServiceCategory; serviceType: ServiceType; defaultSheet: SheetType }>({
     code: "",
     name: "",
@@ -290,9 +318,18 @@ export default function AdminServices() {
     [services]
   );
 
-  const groupedServices = useMemo(() => {
-    return sortedServices.filter((service) => (service.category || "examination") === activeCategory);
-  }, [activeCategory, sortedServices]);
+  const hubFilteredServices = useMemo(() => {
+    const term = hubSearch.trim().toLowerCase();
+    return sortedServices.filter((service) => {
+      if (hubCategory !== "all" && (service.category || "examination") !== hubCategory) return false;
+      if (hubStatus === "active" && !service.isActive) return false;
+      if (hubStatus === "inactive" && service.isActive) return false;
+      if (!term) return true;
+      const code = String(service.code ?? "").toLowerCase();
+      const name = String(service.name ?? "").toLowerCase();
+      return code.includes(term) || name.includes(term);
+    });
+  }, [sortedServices, hubSearch, hubStatus, hubCategory]);
 
   const filteredDoctors = useMemo(() => {
     const term = doctorSearchTerm.trim().toLowerCase();
@@ -315,7 +352,7 @@ export default function AdminServices() {
     });
   }, [serviceSearchTerm, sortedServices]);
 
-  const visibleIds = useMemo(() => groupedServices.map((s) => s.id), [groupedServices]);
+  const visibleIds = useMemo(() => hubFilteredServices.map((s) => s.id), [hubFilteredServices]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const visibleDoctorCodes = useMemo(() => filteredDoctors.map((doctor) => doctor.code), [filteredDoctors]);
   const allVisibleDoctorsSelected =
@@ -352,6 +389,7 @@ export default function AdminServices() {
 
     setServices((prev) => [...prev, newEntry]);
     setNewService({ code: "", name: "", category: "examination", serviceType: "consultant", defaultSheet: "consultant" });
+    setAddOpen(false);
     toast.success("تم إضافة الخدمة");
   };
 
@@ -368,9 +406,9 @@ export default function AdminServices() {
   const saveServices = async () => {
     try {
       await updateServicesMutation.mutateAsync({ key: "service_directory", value: services });
-      toast.success("تم حفظ دليل الخدمات بنجاح ✓");
+      toast.success("تم حفظ الخدمات بنجاح ✓");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل حفظ دليل الخدمات"));
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ الخدمات"));
     }
   };
 
@@ -535,64 +573,140 @@ export default function AdminServices() {
 
   const doctorNameByCode = new Map(doctors.map((doctor) => [doctor.code, doctor.name]));
   const serviceNameByCode = new Map(sortedServices.map((service) => [service.code, service.name]));
+  const servicesTotal = sortedServices.length;
+  const servicesActive = sortedServices.filter((s) => s.isActive).length;
+  const servicesInactive = servicesTotal - servicesActive;
+
+  const newServiceFields = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="space-y-2">
+        <span className="text-xs font-semibold text-muted-foreground">كود الخدمة</span>
+        <Input
+          placeholder="كود الخدمة"
+          value={newService.code}
+          onChange={(e) => setNewService((prev) => ({ ...prev, code: e.target.value }))}
+          dir="ltr"
+        />
+      </div>
+      <div className="space-y-2">
+        <span className="text-xs font-semibold text-muted-foreground">اسم الخدمة</span>
+        <Input
+          placeholder="اسم الخدمة"
+          value={newService.name}
+          onChange={(e) => setNewService((prev) => ({ ...prev, name: e.target.value }))}
+        />
+      </div>
+      <div className="space-y-2">
+        <span className="text-xs font-semibold text-muted-foreground">الفئة</span>
+        <Select value={newService.category} onValueChange={(v) => setNewService((prev) => ({ ...prev, category: v as ServiceCategory }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="الفئة" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="examination">🏥 كشف</SelectItem>
+            <SelectItem value="radiology">📹 اشعه</SelectItem>
+            <SelectItem value="operations">⚕️ عمليات</SelectItem>
+            <SelectItem value="miscellaneous">💼 متنوعه</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <span className="text-xs font-semibold text-muted-foreground">نوع الخدمة</span>
+        <Select value={newService.serviceType} onValueChange={(v) => setNewService((prev) => ({ ...prev, serviceType: v as ServiceType }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="النوع" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="consultant">استشاري</SelectItem>
+            <SelectItem value="specialist">اخصائي</SelectItem>
+            <SelectItem value="lasik">ليزك</SelectItem>
+            <SelectItem value="external">خارجي</SelectItem>
+            <SelectItem value="surgery">عمليات</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2 sm:col-span-2">
+        <span className="text-xs font-semibold text-muted-foreground">الشيت الافتراضي</span>
+        <Select value={newService.defaultSheet} onValueChange={(v) => setNewService((prev) => ({ ...prev, defaultSheet: v as SheetType }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="الشيت" />
+          </SelectTrigger>
+          <SelectContent>
+            {sheetOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto px-4 py-8 text-right" dir="rtl">
-      {/* Add Service Card */}
-      <Card className="mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>إضافة خدمة جديدة</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
-            <Input placeholder="كود الخدمة" value={newService.code} onChange={(e) => setNewService((prev) => ({ ...prev, code: e.target.value }))} dir="ltr" />
-            <Input placeholder="اسم الخدمة" value={newService.name} onChange={(e) => setNewService((prev) => ({ ...prev, name: e.target.value }))} />
-            <Select value={newService.category} onValueChange={(v) => setNewService((prev) => ({ ...prev, category: v as ServiceCategory }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="الفئة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="examination">🏥 كشف</SelectItem>
-                <SelectItem value="radiology">📹 اشعه</SelectItem>
-                <SelectItem value="operations">⚕️ عمليات</SelectItem>
-                <SelectItem value="miscellaneous">💼 متنوعه</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={newService.serviceType} onValueChange={(v) => setNewService((prev) => ({ ...prev, serviceType: v as ServiceType }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="النوع" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="consultant">استشاري</SelectItem>
-                <SelectItem value="specialist">اخصائي</SelectItem>
-                <SelectItem value="lasik">ليزك</SelectItem>
-                <SelectItem value="external">خارجي</SelectItem>
-                <SelectItem value="surgery">عمليات</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={newService.defaultSheet} onValueChange={(v) => setNewService((prev) => ({ ...prev, defaultSheet: v as SheetType }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="الشيت" />
-              </SelectTrigger>
-              <SelectContent>
-                {sheetOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={addService}>إضافة</Button>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right" dir="rtl">
+      <PageHeader
+        title="الخدمات"
+        subtitle="إدارة خدمات المركز الطبي"
+        icon={<Settings className="h-5 w-5" />}
+        action={
+          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" />
+            <span className="text-xs sm:text-sm">إضافة خدمة</span>
+          </Button>
+        }
+      />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <StatCard
+          title="إجمالي الخدمات"
+          value={servicesTotal}
+          icon={Activity}
+          iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+        />
+        <StatCard
+          title="فعالة"
+          value={servicesActive}
+          icon={CheckCircle2}
+          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+        />
+        <StatCard
+          title="معطلة"
+          value={servicesInactive}
+          icon={XCircle}
+          iconColor="bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400"
+        />
+      </div>
+
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 pt-5 sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-start xl:justify-between">
+            <div className="w-full xl:max-w-sm">
+              <SearchBar value={hubSearch} onChange={setHubSearch} placeholder="بحث عن خدمة أو كود…" />
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <FilterBar
+                filters={[...HUB_STATUS_FILTERS]}
+                selected={hubStatus}
+                onSelect={(v) => setHubStatus(v as typeof hubStatus)}
+                className="sm:justify-end"
+              />
+              <FilterBar
+                filters={HUB_CATEGORY_FILTERS}
+                selected={hubCategory}
+                onSelect={(v) => setHubCategory(v as ServiceCategory | "all")}
+                className="max-w-full sm:max-w-[560px] sm:justify-end"
+              />
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={saveServices} disabled={updateServicesMutation.isPending}>
-              💾 حفظ الدليل
+          <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
+            <Button type="button" onClick={() => void saveServices()} disabled={updateServicesMutation.isPending}>
+              💾 حفظ التغييرات
             </Button>
-            <Button onClick={syncPatients} disabled={syncPatientsMutation.isPending}>
+            <Button type="button" onClick={() => void syncPatients()} disabled={syncPatientsMutation.isPending}>
               🔄 مزامنة المرضى
             </Button>
-            <Button variant="secondary" onClick={autoRecategorize} disabled={updateServicesMutation.isPending}>
+            <Button type="button" variant="secondary" onClick={autoRecategorize} disabled={updateServicesMutation.isPending}>
               🔄 إعادة تصنيف تلقائي
             </Button>
             <input
@@ -606,7 +720,10 @@ export default function AdminServices() {
                 if (!file) return;
                 try {
                   const text = await file.text();
-                  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+                  const lines = text
+                    .split(/\r?\n/)
+                    .map((line) => line.trim())
+                    .filter(Boolean);
                   const next = [...services];
                   let imported = 0;
                   for (const line of lines) {
@@ -638,14 +755,415 @@ export default function AdminServices() {
                 }
               }}
             />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
               📥 استيراد CSV
             </Button>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-border/80 bg-muted/15 p-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={allVisibleSelected}
+                onCheckedChange={(checked) => {
+                  if (Boolean(checked)) {
+                    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+                  } else {
+                    setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+                  }
+                }}
+              />
+              <span className="text-sm font-medium">تحديد الكل في النتائج ({visibleIds.length})</span>
+            </div>
+
+            {selectedIds.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2 pr-6">
+                  <Select value={moveTarget} onValueChange={(v) => setMoveTarget(v as ServiceCategory)}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="نقل إلى" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="examination">🏥 كشف</SelectItem>
+                      <SelectItem value="radiology">📹 اشعه</SelectItem>
+                      <SelectItem value="operations">⚕️ عمليات</SelectItem>
+                      <SelectItem value="miscellaneous">💼 ايرادات متنوعه</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={moveSelectedToCategory} size="sm" variant="default">
+                    ➡️ نقل المحدد
+                  </Button>
+                  <span className="text-xs text-muted-foreground">({selectedIds.length} محدد)</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pr-6">
+                  <Select value={sheetTarget} onValueChange={(v) => setSheetTarget(v as SheetType)}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="تغيير الشيت" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sheetOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={changeSelectedSheet} size="sm" variant="default">
+                    📋 تغيير الشيت
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="mt-6 border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <CardHeader className="border-b border-border/70">
+          <CardTitle className="text-base">قائمة الخدمات ({hubFilteredServices.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-0">
+          {/* Mobile cards */}
+          <div className="space-y-2 p-3 sm:hidden">
+            {!isInitialized ? (
+              <div className="py-10 text-center text-muted-foreground">جاري التحميل…</div>
+            ) : hubFilteredServices.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground">لا توجد خدمات مطابقة للتصفية.</div>
+            ) : (
+              hubFilteredServices.map((service) => (
+                <div key={service.id} className="rounded-xl border border-border/80 bg-card p-3" dir="rtl">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setExpandServiceId((id) => (id === service.id ? null : service.id))}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteService(service.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-8 text-xs font-semibold",
+                          service.isActive
+                            ? "border-emerald-500/45 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30"
+                            : "border-muted text-muted-foreground",
+                        )}
+                        onClick={() => updateService(service.id, { isActive: !service.isActive })}
+                      >
+                        {service.isActive ? "فعال" : "غير فعال"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="font-semibold leading-tight">{service.name}</div>
+                        <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground" dir="ltr">{service.code}</div>
+                      </div>
+                      <Checkbox
+                        checked={selectedIds.includes(service.id)}
+                        onCheckedChange={(checked) => {
+                          if (Boolean(checked)) setSelectedIds((prev) => [...prev, service.id]);
+                          else setSelectedIds((prev) => prev.filter((id) => id !== service.id));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+                    <div className="text-muted-foreground">الفئة</div>
+                    <div className="text-right">
+                      <Badge variant="secondary" className="text-[10px] font-medium">
+                        {getCategoryEmoji(service.category || "examination")} {getCategoryLabel(service.category || "examination")}
+                      </Badge>
+                    </div>
+                    <div className="text-muted-foreground">نوع الشيت</div>
+                    <div className="text-right">
+                      <Select
+                        value={service.defaultSheet}
+                        onValueChange={(v) => updateService(service.id, { defaultSheet: v as SheetType })}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sheetOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-muted-foreground">المركز / خارجي</div>
+                    <div className="flex items-center gap-3 text-right">
+                      <label className="flex items-center gap-1 whitespace-nowrap text-xs">
+                        <Checkbox
+                          checked={service.srvTyp === "1"}
+                          onCheckedChange={(checked) => {
+                            if (Boolean(checked)) updateService(service.id, { srvTyp: "1" });
+                            else if (service.srvTyp === "1") updateService(service.id, { srvTyp: "2" });
+                          }}
+                        />
+                        مركز
+                      </label>
+                      <label className="flex items-center gap-1 whitespace-nowrap text-xs">
+                        <Checkbox
+                          checked={service.srvTyp === "2"}
+                          onCheckedChange={(checked) => {
+                            if (Boolean(checked)) updateService(service.id, { srvTyp: "2" });
+                            else if (service.srvTyp === "2") updateService(service.id, { srvTyp: "1" });
+                          }}
+                        />
+                        خارجي
+                      </label>
+                    </div>
+                  </div>
+                  {expandServiceId === service.id ? (
+                    <div className="mt-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-muted-foreground">نوع الخدمة:</span>
+                        <Select
+                          value={service.serviceType}
+                          onValueChange={(v) => updateService(service.id, { serviceType: v as ServiceType })}
+                        >
+                          <SelectTrigger className="h-8 w-[160px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="consultant">استشاري</SelectItem>
+                            <SelectItem value="specialist">اخصائي</SelectItem>
+                            <SelectItem value="lasik">ليزك</SelectItem>
+                            <SelectItem value="external">خارجي</SelectItem>
+                            <SelectItem value="surgery">عمليات</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto sm:block">
+            <Table dir="rtl" className="min-w-[960px] text-right">
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead className="w-10 px-3" />
+                  <TableHead className="font-semibold">اسم الخدمة</TableHead>
+                  <TableHead className="font-semibold">الفئة</TableHead>
+                  <TableHead className="font-semibold">نوع الشيت</TableHead>
+                  <TableHead className="font-semibold">المركز / الخارجي</TableHead>
+                  <TableHead className="font-semibold">الحالة</TableHead>
+                  <TableHead className="w-[100px] text-center font-semibold">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!isInitialized ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      جاري التحميل…
+                    </TableCell>
+                  </TableRow>
+                ) : hubFilteredServices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      لا توجد خدمات مطابقة للتصفية.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  hubFilteredServices.map((service) => (
+                    <Fragment key={service.id}>
+                      <TableRow className="hover:bg-primary/[0.04]">
+                        <TableCell className="px-3 align-middle">
+                          <Checkbox
+                            checked={selectedIds.includes(service.id)}
+                            onCheckedChange={(checked) => {
+                              if (Boolean(checked)) {
+                                setSelectedIds((prev) => [...prev, service.id]);
+                              } else {
+                                setSelectedIds((prev) => prev.filter((id) => id !== service.id));
+                              }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="align-middle">
+                          <div className="font-semibold">{service.name}</div>
+                          <div className="text-xs tabular-nums text-muted-foreground" dir="ltr">
+                            {service.code}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap">
+                          <Badge variant="secondary" className="font-medium">
+                            {getCategoryEmoji(service.category || "examination")}{" "}
+                            {getCategoryLabel(service.category || "examination")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] align-middle">
+                          <Select
+                            value={service.defaultSheet}
+                            onValueChange={(v) => updateService(service.id, { defaultSheet: v as SheetType })}
+                          >
+                            <SelectTrigger className="h-9 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sheetOptions.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="align-middle">
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            <label className="flex items-center gap-1.5 whitespace-nowrap">
+                              <Checkbox
+                                checked={service.srvTyp === "1"}
+                                onCheckedChange={(checked) => {
+                                  if (Boolean(checked)) {
+                                    updateService(service.id, { srvTyp: "1" });
+                                  } else if (service.srvTyp === "1") {
+                                    updateService(service.id, { srvTyp: "2" });
+                                  }
+                                }}
+                              />
+                              مركز
+                            </label>
+                            <label className="flex items-center gap-1.5 whitespace-nowrap">
+                              <Checkbox
+                                checked={service.srvTyp === "2"}
+                                onCheckedChange={(checked) => {
+                                  if (Boolean(checked)) {
+                                    updateService(service.id, { srvTyp: "2" });
+                                  } else if (service.srvTyp === "2") {
+                                    updateService(service.id, { srvTyp: "1" });
+                                  }
+                                }}
+                              />
+                              خارجي
+                            </label>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "h-8 font-semibold",
+                              service.isActive
+                                ? "border-emerald-500/45 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30"
+                                : "border-muted text-muted-foreground",
+                            )}
+                            onClick={() => updateService(service.id, { isActive: !service.isActive })}
+                          >
+                            {service.isActive ? "فعال" : "غير فعال"}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center align-middle">
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="توسيع حقول متقدمة"
+                              onClick={() =>
+                                setExpandServiceId((id) => (id === service.id ? null : service.id))
+                              }
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              title="حذف"
+                              onClick={() => deleteService(service.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandServiceId === service.id ? (
+                        <TableRow key={`${service.id}-detail`} className="border-b bg-muted/20">
+                          <TableCell colSpan={7} className="py-4">
+                            <div className="flex flex-wrap items-center gap-3 text-sm">
+                              <span className="font-semibold text-muted-foreground">نوع الخدمة (تصنيف النظام):</span>
+                              <Select
+                                value={service.serviceType}
+                                onValueChange={(v) => updateService(service.id, { serviceType: v as ServiceType })}
+                              >
+                                <SelectTrigger className="h-9 w-[180px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="consultant">استشاري</SelectItem>
+                                  <SelectItem value="specialist">اخصائي</SelectItem>
+                                  <SelectItem value="lasik">ليزك</SelectItem>
+                                  <SelectItem value="external">خارجي</SelectItem>
+                                  <SelectItem value="surgery">عمليات</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <span className="text-xs text-muted-foreground">{sheetOptionLabel(service.defaultSheet)}</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </Fragment>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          setAddOpen(open);
+          if (!open)
+            setNewService({
+              code: "",
+              name: "",
+              category: "examination",
+              serviceType: "consultant",
+              defaultSheet: "consultant",
+            });
+        }}
+      >
+        <DialogContent className="max-w-lg text-right sm:max-w-xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>إضافة خدمة جديدة</DialogTitle>
+          </DialogHeader>
+          {newServiceFields}
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+            <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+              إلغاء
+            </Button>
+            <Button type="button" className="selrs-gradient-btn text-white gap-2" onClick={addService}>
+              <Plus className="h-4 w-4" />
+              إدراج الخدمة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <CardHeader>
           <CardTitle>مطابقة الأطباء مع الخدمات والشيت</CardTitle>
         </CardHeader>
@@ -808,180 +1326,6 @@ export default function AdminServices() {
                 ))
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Services List by Category */}
-      <Card>
-        <CardHeader>
-          <CardTitle>إدارة الخدمات ({sortedServices.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Category Tabs */}
-          <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as ServiceCategory)} persistKey="admin-services-categories">
-            <TabsList className="grid w-full grid-cols-4 rounded-3xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
-              <TabsTrigger className="rounded-2xl" value="examination">🏥 كشف</TabsTrigger>
-              <TabsTrigger className="rounded-2xl" value="radiology">📹 اشعه</TabsTrigger>
-              <TabsTrigger className="rounded-2xl" value="operations">⚕️ عمليات</TabsTrigger>
-              <TabsTrigger className="rounded-2xl" value="miscellaneous">💼 متنوعه</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Select All Checkbox and Move Controls */}
-          <div className="space-y-2 rounded border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={allVisibleSelected}
-                onCheckedChange={(checked) => {
-                  if (Boolean(checked)) {
-                    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
-                  } else {
-                    setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
-                  }
-                }}
-              />
-              <span className="text-sm font-medium">تحديد الكل ({visibleIds.length})</span>
-            </div>
-
-            {selectedIds.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2 pl-6">
-                  <Select value={moveTarget} onValueChange={(v) => setMoveTarget(v as ServiceCategory)}>
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="نقل إلى" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="examination">🏥 كشف</SelectItem>
-                      <SelectItem value="radiology">📹 اشعه</SelectItem>
-                      <SelectItem value="operations">⚕️ عمليات</SelectItem>
-                      <SelectItem value="miscellaneous">💼 ايرادات متنوعه</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={moveSelectedToCategory} size="sm" variant="default">
-                    ➡️ نقل المحدد
-                  </Button>
-                  <span className="text-xs text-slate-600">({selectedIds.length} محدد)</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 pl-6">
-                  <Select value={sheetTarget} onValueChange={(v) => setSheetTarget(v as SheetType)}>
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="تغيير الشيت" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sheetOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={changeSelectedSheet} size="sm" variant="default">
-                    📋 تغيير الشيت
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Services Grid */}
-          <div className="grid gap-3">
-            {groupedServices.length === 0 ? (
-              <div className="rounded border border-dashed border-slate-300 bg-slate-50 py-8 text-center text-slate-500">
-                لا توجد خدمات في هذه الفئة
-              </div>
-            ) : (
-              groupedServices.map((service) => (
-                <div key={service.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                  {/* Row 1: Code, Name, Category, Status */}
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex flex-1 items-center gap-3">
-                      <Checkbox
-                        checked={selectedIds.includes(service.id)}
-                        onCheckedChange={(checked) => {
-                          if (Boolean(checked)) {
-                            setSelectedIds((prev) => [...prev, service.id]);
-                          } else {
-                            setSelectedIds((prev) => prev.filter((id) => id !== service.id));
-                          }
-                        }}
-                      />
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-900">{service.name}</div>
-                        <div className="text-xs text-slate-500" dir="ltr">
-                          Code: {service.code}
-                        </div>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                        {getCategoryEmoji(service.category || "examination")} {getCategoryLabel(service.category || "examination")}
-                      </span>
-                      <Checkbox
-                        checked={service.isActive}
-                        onCheckedChange={(checked) => updateService(service.id, { isActive: Boolean(checked) })}
-                        title="نشط"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteService(service.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Row 2: Sheet Type + Location */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs font-medium text-slate-600">نوع الشيت</label>
-                      <Select value={service.defaultSheet} onValueChange={(v) => updateService(service.id, { defaultSheet: v as SheetType })}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sheetOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={service.srvTyp === "1"}
-                          onCheckedChange={(checked) => {
-                            if (Boolean(checked)) {
-                              updateService(service.id, { srvTyp: "1" });
-                            } else if (service.srvTyp === "1") {
-                              updateService(service.id, { srvTyp: "2" });
-                            }
-                          }}
-                        />
-                        <span>مركز</span>
-                      </label>
-
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={service.srvTyp === "2"}
-                          onCheckedChange={(checked) => {
-                            if (Boolean(checked)) {
-                              updateService(service.id, { srvTyp: "2" });
-                            } else if (service.srvTyp === "2") {
-                              updateService(service.id, { srvTyp: "1" });
-                            }
-                          }}
-                        />
-                        <span>خارجي</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
           </div>
         </CardContent>
       </Card>

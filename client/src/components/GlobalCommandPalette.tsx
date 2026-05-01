@@ -49,6 +49,12 @@ export default function GlobalCommandPalette() {
   }, []);
 
   useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("selrs:open-command-palette", onOpen);
+    return () => window.removeEventListener("selrs:open-command-palette", onOpen);
+  }, []);
+
+  useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
 
@@ -80,6 +86,7 @@ export default function GlobalCommandPalette() {
         placeholder="Search patients, codes, phones, Pentacam files..."
         value={query}
         onValueChange={setQuery}
+        autoFocus
       />
       <CommandList>
         <CommandEmpty>
