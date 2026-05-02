@@ -2,9 +2,8 @@ import { useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Stethoscope } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
@@ -12,8 +11,9 @@ import { trpc } from "@/lib/trpc";
 export default function DoctorPatientView() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/doctor/patient/:id");
-  const patientId = params?.id ? Number(params.id) : 0;
+  const [, legacyDoctorParams] = useRoute("/doctor/patient/:id");
+  const rawId = legacyDoctorParams?.id;
+  const patientId = rawId ? Number(rawId) : 0;
 
   const patientQuery = trpc.patient.getPatient.useQuery(
     patientId ?? 0,
@@ -59,7 +59,7 @@ export default function DoctorPatientView() {
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div className="min-h-screen selrs-page-bg" dir="rtl">
+    <div className="selrs-page-bg min-h-screen" dir="rtl">
       <PageHeader backTo="/dashboard" />
       <main className="container mx-auto max-w-4xl space-y-6 px-3 py-6 sm:px-4">
         {/* Patient Picker */}
@@ -166,20 +166,27 @@ export default function DoctorPatientView() {
             <CardContent>
               {latestPrescription ? (
                 <div className="space-y-2">
-                  {Array.isArray(latestPrescription.items) && latestPrescription.items.length > 0 ? (
-                    <div className="space-y-2">
-                      {latestPrescription.items.map((item: any, index: number) => (
-                        <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                          <div className="font-semibold text-slate-900">{item.medicationName}</div>
-                          <div className="mt-1 text-sm text-slate-600">
-                            Dosage: {item.dosage || "—"} | Frequency: {item.frequency || "—"}
+                  {(() => {
+                    const rxItems = Array.isArray(latestPrescription.prescriptionItems)
+                      ? latestPrescription.prescriptionItems
+                      : Array.isArray(latestPrescription.items)
+                        ? latestPrescription.items
+                        : [];
+                    return rxItems.length > 0 ? (
+                      <div className="space-y-2">
+                        {rxItems.map((item: any, index: number) => (
+                          <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="font-semibold text-slate-900">{item.medicationName}</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Dosage: {item.dosage || "—"} | Frequency: {item.frequency || "—"}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500">No medication items</p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No medication items</p>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">No prescriptions recorded</p>
@@ -195,14 +202,14 @@ export default function DoctorPatientView() {
               className="flex-1"
             >
               <FileText className="mr-2 h-4 w-4" />
-              View Full Details
+              ملف كامل للمريض
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setLocation(`/followup/${patientId}`)}
             >
-              Add Follow-up
+              متابعة
             </Button>
           </div>
           </div>

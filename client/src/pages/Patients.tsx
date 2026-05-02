@@ -22,7 +22,7 @@ export default function Patients() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
   const patientDetailPath = (id: number) =>
-    location.startsWith("/patient-hub") ? `/patient-hub/file/${id}` : `/patients/${id}`;
+    location.startsWith("/patient-hub") ? `/patient-hub/examination/${id}` : `/patients/${id}`;
   const isAdmin = user?.role === "admin";
   const canEditPatients = user?.role === "admin" || user?.role === "manager" || user?.role === "reception";
 

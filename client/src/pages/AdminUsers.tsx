@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit2, Shield, UserCheck, UserRound, UserX } from "lucide-react";
+import { Plus, Trash2, Edit2, Shield, UserCheck, UserRound, UserX, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -436,6 +436,29 @@ export default function AdminUsers() {
         ? prev.filter((id) => id !== pageId)
         : [...prev, pageId]
     );
+  };
+
+  const handleRestoreRolePermissions = async () => {
+    if (!editUserId) return;
+    try {
+      await setUserPermissionsMutation.mutateAsync({
+        userId: editUserId,
+        pageIds: [],
+        whenEmpty: "inherit",
+      });
+      const defaults = getRoleDefaults(editUser.role);
+      const nextMssql = defaults.includes(MSSQL_WRITE_PERMISSION);
+      lastPermissionSyncRef.current = "";
+      setEditPermissions(defaults);
+      setEditUser((prev) =>
+        prev.writeToMssql === nextMssql ? prev : { ...prev, writeToMssql: nextMssql },
+      );
+      await utils.medical.getUserPermissionState.invalidate();
+      await permissionStateQuery.refetch();
+      toast.success("تمت استعادة صلاحيات الدور الافتراضية لهذا المستخدم.");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "تعذر استعادة الصلاحيات الافتراضية."));
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -1064,11 +1087,24 @@ export default function AdminUsers() {
           </div>
 
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <label className="block text-sm font-semibold">الصلاحيات (الشاشات)</label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {permissionStateQuery.isLoading ? "…" : editPermissions.length}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {permissionStateQuery.isLoading ? "…" : editPermissions.length}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  disabled={setUserPermissionsMutation.isPending || !editUserId}
+                  onClick={() => void handleRestoreRolePermissions()}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  استعادة افتراضيات الدور
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 border rounded-lg p-3 max-h-56 overflow-y-auto">
               {PAGE_PERMISSIONS.map((page) => (

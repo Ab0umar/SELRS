@@ -16,7 +16,18 @@ import { SPHERE_OPTIONS, CYLINDER_OPTIONS, UCVA_BCVA_OPTIONS } from "@/lib/refra
 
 interface MedicalFilePanelProps {
   patientId: number;
-  onClose: () => void;
+  onClose?: () => void;
+  /** عرض داخل مركز المريض بدل طبقة ملء الشاشة */
+  embedded?: boolean;
+  /** مزامنة تاريخ الزيارة مع المركز — يطبَّق كقيمة أولية ويحدِّد الفحص عند توفر مطابقة */
+  hubVisitDate?: string;
+  /** عرض داخل مركز المريض — تعطيل الحفظ والتعديل */
+  patientHubReadOnly?: boolean;
+  /** رسالة تلميح للأزرار المعطّلة */
+  patientHubViewOnlyHint?: string;
+  /** ربط صريح بصفحة الزيارة (visit) عند المعرف في الرابط؛ يفضّل على مطابقة تاريخ الإنشاء لوحده */
+  hubVisitId?: number;
+  onHubVisitDateChange?: (isoDate: string) => void;
 }
 
 const READY_TABS = [
@@ -33,9 +44,20 @@ const READY_TABS = [
 ];
 const MEDICAL_TABS = ["medical-history", "measurements", "pentacam", "investigation", "diagnosis", "treatment"];
 
-export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePanelProps) {
+export default function MedicalFilePanel({
+  patientId,
+  onClose,
+  embedded = false,
+  patientHubReadOnly = false,
+  patientHubViewOnlyHint = "العرض فقط داخل المركز",
+  hubVisitDate,
+  hubVisitId,
+  onHubVisitDateChange,
+}: MedicalFilePanelProps) {
+  const dismiss = onClose ?? (() => {});
   const { user } = useAuth();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+  const hubRo = Boolean(patientHubReadOnly);
   const queryClient = useQueryClient();
   const [activeMedicalTab, setActiveMedicalTab] = useState("medical-history");
   const touchStartX = useRef(0);
@@ -93,6 +115,33 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
   const patient = patientQuery.data;
   const examinations = examinationsQuery.data || [];
+
+  useEffect(() => {
+    if (!embedded || !hubVisitDate) return;
+    setVisitDate(hubVisitDate);
+  }, [embedded, hubVisitDate]);
+
+  useEffect(() => {
+    if (!embedded || !examinations.length) return;
+    if (hubVisitId != null && hubVisitId > 0) {
+      const matchByVisit = examinations.find(
+        (e) => Number((e as { visitId?: unknown }).visitId) === hubVisitId,
+      );
+      if (matchByVisit?.id != null) {
+        setSelectedExaminationId((prev) => (prev === matchByVisit.id ? prev : matchByVisit.id));
+        return;
+      }
+    }
+    if (!hubVisitDate) return;
+    const match = examinations.find((e) => {
+      const created = (e as { createdAt?: Date | string }).createdAt;
+      const key = created ? new Date(created).toISOString().split("T")[0] : "";
+      return key === hubVisitDate;
+    });
+    if (match?.id != null) {
+      setSelectedExaminationId((prev) => (prev === match.id ? prev : match.id));
+    }
+  }, [embedded, hubVisitId, hubVisitDate, examinations]);
 
   // Get the latest visit for this patient
   const patientVisit = (visitsQuery.data as any)?.find((v: any) => v.patientId === patientId);
@@ -313,6 +362,10 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
   // Auto-save after creating examination
   useEffect(() => {
+    if (hubRo) {
+      setShouldSaveAfterCreate(false);
+      return;
+    }
     if (shouldSaveAfterCreate && selectedExaminationId && examinations.length > 0) {
       console.log('Exam created with ID:', selectedExaminationId, 'Now saving all data...');
       setShouldSaveAfterCreate(false);
@@ -448,7 +501,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
             // Wait longer for all mutations to complete before closing (2.5s)
             setTimeout(() => {
               setIsSaving(false);
-              onClose();
+              if (!embedded) dismiss();
             }, 2500);
           },
         }
@@ -541,10 +594,9 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
     onSuccess: () => {
       toast.success("تم حفظ البيانات بنجاح");
       setIsSaving(false);
-      // Close panel after 1 second to allow parent page to refetch
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      if (!embedded) {
+        setTimeout(() => dismiss(), 1000);
+      }
     },
     onError: (error) => {
       setIsSaving(false);
@@ -705,10 +757,9 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
         ]);
       }
 
-      // Close panel after delay to allow all saves to complete
       setTimeout(() => {
         setIsSaving(false);
-        onClose();
+        if (!embedded) dismiss();
       }, 2500);
     },
     onError: (error) => {
@@ -753,6 +804,10 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
   };
 
   const handleSave = () => {
+    if (hubRo) {
+      toast.info(patientHubViewOnlyHint);
+      return;
+    }
     // Build glasses data from refraction table (used for both first visit and no exam selected cases)
     const glassesData = {
       od: {
@@ -1020,17 +1075,30 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
     }
   };
 
+  const outerCls = embedded
+    ? "relative z-0 w-full flex min-h-0 flex-1 flex-col"
+    : "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4";
+  const innerCls = embedded
+    ? "flex min-h-[min(85vh,900px)] w-full max-h-[min(92vh,1000px)] flex-col rounded-lg border border-border bg-card text-card-foreground shadow-sm min-h-0"
+    : "flex h-[95vh] max-h-[95vh] w-full max-w-[95vw] flex-col rounded-lg bg-white shadow-lg min-h-0";
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="w-full h-screen max-h-screen bg-white rounded-lg shadow-lg flex flex-col" style={{ maxWidth: "95vw", maxHeight: "95vh" }}>
+    <div className={outerCls}>
+      <div className={innerCls}>
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="text-2xl text-muted-foreground hover:text-foreground"
-          >
-            ✕
-          </button>
+          {embedded ? (
+            <span className="text-sm text-muted-foreground" aria-hidden />
+          ) : (
+            <button
+              type="button"
+              onClick={dismiss}
+              className="text-2xl text-muted-foreground hover:text-foreground"
+              aria-label="إغلاق"
+            >
+              ✕
+            </button>
+          )}
           <h2 className="text-lg font-semibold">
             {patientQuery.isLoading ? "جاري التحميل..." : patient?.fullName ?? "بدون اسم"}
           </h2>
@@ -1038,8 +1106,8 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
         {/* Followup Checkbox */}
         <div className="px-6 py-3 border-b bg-slate-50 flex-shrink-0">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox checked={isFollowup} onCheckedChange={(checked) => setIsFollowup(Boolean(checked))} />
+          <label className={hubRo ? "flex items-center gap-2 opacity-70" : "flex items-center gap-2 cursor-pointer"}>
+            <Checkbox checked={isFollowup} disabled={hubRo} onCheckedChange={(checked) => setIsFollowup(Boolean(checked))} />
             <span className="text-sm font-medium">متابعه</span>
           </label>
         </div>
@@ -1061,7 +1129,7 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                   ))}
                 </SelectContent>
               </Select>
-              {isAdmin ? (
+              {isAdmin && !hubRo ? (
                 <Button
                   size="icon"
                   variant="destructive"
@@ -1096,6 +1164,12 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
 
             {/* Content Area */}
             <div className="px-6 py-6 flex flex-col flex-1 min-h-0 overflow-x-hidden">
+              {hubRo ? (
+                <p className="-mt-2 mb-2 text-xs text-muted-foreground" role="note">
+                  {patientHubViewOnlyHint}
+                </p>
+              ) : null}
+              <fieldset disabled={hubRo} className="flex min-h-0 w-full flex-1 flex-col border-0 p-0 m-0 min-w-0 disabled:opacity-95">
               {/* Medical History Tab */}
               <TabsContent value="medical-history" className="mt-0 space-y-4">
                 {/* PROFILE DATA - Only visible in Medical History tab */}
@@ -1119,7 +1193,16 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                     </div>
                     <div>
                       <Label>تاريخ الزيارة</Label>
-                      <Input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="mt-1 text-xs" />
+                      <Input
+                        type="date"
+                        value={visitDate}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setVisitDate(v);
+                          onHubVisitDateChange?.(v);
+                        }}
+                        className="mt-1 text-xs"
+                      />
                     </div>
                   </div>
                 </div>
@@ -2075,29 +2158,38 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                   </div>
                 </div>
               </TabsContent>
+              </fieldset>
             </div>
           </Tabs>
         </div>
 
         {/* Footer - Always visible */}
         <div className="border-t p-4 bg-slate-50 flex gap-2 flex-shrink-0">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{ backgroundColor: isSaving ? '#9ca3af' : 'blue', color: 'white', padding: '10px 20px', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-            {isSaving ? 'جاري الحفظ...' : 'حفظ'}
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              border: '1px solid #cbd5e1',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            إغلاق
-          </button>
+          {!hubRo ? (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ backgroundColor: isSaving ? '#9ca3af' : 'blue', color: 'white', padding: '10px 20px', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+              {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+            </button>
+          ) : (
+            <span className="self-center text-xs text-muted-foreground px-2">{patientHubViewOnlyHint}</span>
+          )}
+          {!embedded ? (
+            <button
+              type="button"
+              onClick={dismiss}
+              style={{
+                border: '1px solid #cbd5e1',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              إغلاق
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

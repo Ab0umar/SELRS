@@ -219,8 +219,8 @@ const Router = memo(function Router() {
 
       <Route path={"/dashboard"} component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-      {/* Patient hub optional entry */}
-      <Route path={"/patient-hub*"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
+      {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
+      <Route path={"/patient-hub/*?"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
 
       {/* Workflow routes */}
       <Route path={"/examination/:id"} component={() => <ProtectedRoute><ExaminationForm /></ProtectedRoute>} />

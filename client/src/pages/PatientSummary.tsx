@@ -64,7 +64,8 @@ export default function PatientSummary() {
   const { goBack } = useAppNavigation();
   const [, summaryParams] = useRoute("/patient-summary/:id");
   const [, hubSummaryParams] = useRoute("/patient-hub/summary/:id");
-  const rawPatientId = summaryParams?.id ?? hubSummaryParams?.id;
+  const [, hubBriefParams] = useRoute("/patient-hub/brief/:id");
+  const rawPatientId = summaryParams?.id ?? hubSummaryParams?.id ?? hubBriefParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
 
   const patientQuery = trpc.patient.getPatient.useQuery(

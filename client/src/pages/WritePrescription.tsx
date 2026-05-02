@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Printer, Save, Pencil, Upload, Pill, CalendarDays, UserRound, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
-import { formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
+import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { READY_PRESCRIPTION_TEMPLATES } from "@/data/readyPrescriptionTemplates";
@@ -31,15 +31,33 @@ interface PrescriptionItem {
   instructions: string;
 }
 
-export default function WritePrescription() {
+export type WritePrescriptionProps = {
+  hidePageChrome?: boolean;
+  /** من مركز المريض — يطبَّق على تاريخ الروشتة */
+  hubVisitDate?: string;
+  embeddedInPatientHub?: boolean;
+  /** مركز المريض: عرض فقط */
+  patientHubReadOnly?: boolean;
+  patientHubViewOnlyHint?: string;
+};
+
+export default function WritePrescription({
+  hidePageChrome,
+  hubVisitDate,
+  embeddedInPatientHub,
+  patientHubReadOnly,
+  patientHubViewOnlyHint = "العرض فقط داخل المركز",
+}: WritePrescriptionProps = {}) {
   const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [, prescriptionParams] = useRoute("/prescription/:id");
   const [, prescriptionsParams] = useRoute("/prescriptions/:id");
-  const params = prescriptionParams ?? prescriptionsParams;
+  const [, hubPrescriptionParams] = useRoute("/patient-hub/prescription/:id");
+  const params = prescriptionParams ?? prescriptionsParams ?? hubPrescriptionParams;
   const isAdmin = user?.role === "admin";
   const canDeletePrescriptions = ["admin", "manager"].includes(user?.role || "");
   const isReadOnly = user?.role === "reception";
+  const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
   const canImportReadyTemplates = isAdmin;
   const printMode = usePrintMode();
   const initialPatientId = params?.id ? Number(params.id) : 0;
@@ -51,6 +69,12 @@ export default function WritePrescription() {
   const [prescriptionDate, setPrescriptionDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+
+  useEffect(() => {
+    if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
+      setPrescriptionDate(hubVisitDate);
+    }
+  }, [hubVisitDate]);
 
   const toDateInputValue = (value: unknown) => {
     const date = new Date(String(value ?? ""));
@@ -79,7 +103,7 @@ export default function WritePrescription() {
   ];
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "prescription" },
-    { enabled: Boolean(patientId) && !isReadOnly, refetchOnWindowFocus: false }
+    { enabled: Boolean(patientId) && !editingForbidden, refetchOnWindowFocus: false }
   );
   const { mutate: savePatientPageState } = trpc.medical.savePatientPageState.useMutation();
   const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
@@ -259,7 +283,7 @@ export default function WritePrescription() {
   }, [patientQuery.data]);
 
   useEffect(() => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (hydratedPatientStateRef.current === patientId) return;
@@ -268,10 +292,10 @@ export default function WritePrescription() {
     if (data.medicationSearch !== undefined) setMedicationSearch(data.medicationSearch ?? "");
     if (Array.isArray(data.prescriptionItems)) setPrescriptionItems(data.prescriptionItems);
     hydratedPatientStateRef.current = patientId;
-  }, [patientStateQuery.data, isReadOnly, patientId]);
+  }, [patientStateQuery.data, editingForbidden, patientId]);
 
   useEffect(() => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     const patientKey = patientId ? `selrs:patient-draft:prescription:${patientId}` : null;
     const tempKey = "selrs:patient-draft:prescription:temp";
     const keysToCheck = patientKey ? [patientKey, tempKey] : [tempKey];
@@ -307,10 +331,10 @@ export default function WritePrescription() {
     } catch {
       // Ignore invalid local draft.
     }
-  }, [patientId, isReadOnly, patientStateQuery.data]);
+  }, [patientId, editingForbidden, patientStateQuery.data]);
 
   useEffect(() => {
-    if (!patientId || isReadOnly) return;
+    if (!patientId || editingForbidden) return;
     if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     const payload = {
       prescriptionDate,
@@ -324,10 +348,10 @@ export default function WritePrescription() {
     return () => {
       if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     };
-  }, [patientId, isReadOnly, prescriptionDate, generalNotes, medicationSearch, prescriptionItems, savePatientPageState]);
+  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems, savePatientPageState]);
 
   useEffect(() => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
     const payload = {
       prescriptionDate,
@@ -348,10 +372,10 @@ export default function WritePrescription() {
     return () => {
       if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
     };
-  }, [patientId, isReadOnly, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
+  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
 
   useEffect(() => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     const persistNow = () => {
       const payload = {
         prescriptionDate,
@@ -379,7 +403,7 @@ export default function WritePrescription() {
       window.removeEventListener("pagehide", persistNow);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [patientId, isReadOnly, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
+  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
 
   if (!isAuthenticated) return null;
 
@@ -476,7 +500,9 @@ export default function WritePrescription() {
     setPatientId(patient.id);
     setPatientName(patient.fullName ?? "");
     setPatientAge(patient.age != null ? String(patient.age) : "");
-    setLocation(`/prescription/${patient.id}`);
+    setLocation(
+      embeddedInPatientHub ? `/patient-hub/prescription/${patient.id}` : `/prescription/${patient.id}`,
+    );
   };
 
   const historyQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
@@ -484,7 +510,7 @@ export default function WritePrescription() {
     { enabled: Boolean(patientId), refetchOnWindowFocus: false }
   );
   useEffect(() => {
-    if (!isReadOnly) return;
+    if (!editingForbidden) return;
     const history = (historyQuery.data ?? []) as any[];
     if (!history.length) {
       setPrescriptionItems([]);
@@ -505,17 +531,17 @@ export default function WritePrescription() {
       const dateValue = toDateInputValue(latest.prescriptionDate);
       if (dateValue) setPrescriptionDate(dateValue);
     }
-  }, [historyQuery.data, isReadOnly]);
+  }, [historyQuery.data, editingForbidden]);
 
   const handleRemoveItem = (id: string) => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     setPrescriptionItems(prescriptionItems.filter((item) => item.id !== id));
     toast.success("تم حذف الدواء من الروشتة");
   };
 
   const handleSave = async () => {
-    if (isReadOnly) {
-      toast.error("التعديل متاح للأدمن فقط.");
+    if (editingForbidden) {
+      toast.error(patientHubReadOnly ? patientHubViewOnlyHint : "التعديل متاح للأدمن فقط.");
       return;
     }
     if (!patientId) {
@@ -581,7 +607,7 @@ export default function WritePrescription() {
   }, [medicationsQuery.data, medicationSearch]);
 
   const handleToggleMedication = (med: any) => {
-    if (isReadOnly) return;
+    if (editingForbidden) return;
     const exists = prescriptionItems.find((item) => item.medicationId === med.id);
     if (exists) {
       handleRemoveItem(exists.id);
@@ -928,14 +954,25 @@ export default function WritePrescription() {
     }
   };
   return (
-    <div className="prescription-root min-h-screen bg-background" dir="rtl" style={{ direction: "rtl" }}>
-      {printMode.printView ? null : (
+    <div
+      className={cn("prescription-root bg-background", hidePageChrome ? "min-h-0" : "min-h-screen")}
+      dir="rtl"
+      style={{ direction: "rtl" }}
+    >
+      {printMode.printView ? null : hidePageChrome ? null : (
         <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6">
           <PageHeader title="كتابة الروشتة" subtitle="صف الأدوية والتعليمات قبل وبعد العملية" icon={<Pill className="h-5 w-5" />} />
         </div>
       )}
 
-      <main data-mobile-pdf-root className={`mx-auto max-w-[1280px] print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 pb-8 pt-2 md:px-6"}`}>
+      <main
+        data-mobile-pdf-root
+        className={cn(
+          "mx-auto print:p-0",
+          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "max-w-[1280px]",
+          printMode.printView ? "px-3 py-3" : hidePageChrome ? "" : "px-4 pb-8 pt-2 md:px-6",
+        )}
+      >
         {printMode.printView ? (
           <PrintPreviewBanner
             title="طباعة الروشتة"
@@ -943,7 +980,7 @@ export default function WritePrescription() {
             onPrint={handlePrint}
           />
         ) : null}
-            <div className={isReadOnly ? "space-y-6" : "grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6"}>
+            <div className={editingForbidden ? "space-y-6" : "grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6"}>
                 <div className="space-y-6">
               <Card className="print:hidden">
                 <CardContent className="space-y-4 pt-6">
@@ -956,14 +993,14 @@ export default function WritePrescription() {
                         type="date"
                         value={prescriptionDate}
                         onChange={(e) => setPrescriptionDate(e.target.value)}
-                        disabled={isReadOnly}
+                        disabled={editingForbidden}
                       />
                       <span className="text-[10px] text-muted-foreground">{formatDateLabel(prescriptionDate)}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              {!isReadOnly && (
+              {!editingForbidden && (
                 <Card className="print:hidden">
                 <div className="flex items-center gap-3 px-6 pt-6 flex-nowrap">
                   <div className="text-sm font-semibold shrink-0">الأدوية المتاحة</div>
@@ -1033,7 +1070,7 @@ export default function WritePrescription() {
               )}
               </div>
               <div className="space-y-6">
-            {!isReadOnly && (
+            {!editingForbidden && (
               <Card className="print:hidden">
                 <CardHeader>
                   <div className="flex items-center justify-between gap-2">
@@ -1214,7 +1251,7 @@ export default function WritePrescription() {
               <CardHeader className="hidden print:hidden" />
               <CardContent className="prescription-print-rx space-y-3 pt-3">
                 <div className="text-base font-semibold">R/</div>
-                {isReadOnly ? (
+                {editingForbidden ? (
                   prescriptionItems.length === 0 ? (
                     <p className="text-center text-muted-foreground">لا توجد روشتة مسجلة لهذا المريض</p>
                 ) : (
@@ -1324,7 +1361,7 @@ export default function WritePrescription() {
                           <span className="font-semibold">التاريخ</span>
                           <span>{rx.prescriptionDate ? formatDateLabel(rx.prescriptionDate) : ""}</span>
                         </div>
-                        {canDeletePrescriptions ? (
+                        {canDeletePrescriptions && !editingForbidden ? (
                           <Button
                             type="button"
                             size="sm"
@@ -1384,7 +1421,7 @@ export default function WritePrescription() {
           )}
         </div>
         <div className={`print:hidden flex justify-end gap-2 mt-4 ${printMode.printView ? "hidden" : ""}`}>
-          {!isReadOnly && (
+          {!editingForbidden && (
             <Button
               variant="outline"
               onClick={handleSave}

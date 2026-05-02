@@ -77,6 +77,10 @@ export default function ProtectedRoute({
     if (cleanPath === "/patient-file" || cleanPath.startsWith("/patient-file/")) {
       if (allowedPaths.includes("/patients") || allowedPaths.includes("/patients/:id")) return true;
     }
+    /** مركز المريض: نفس مستوى الوصول لقائمة المرضى / ملف المريض */
+    if (cleanPath === "/patient-hub" || cleanPath.startsWith("/patient-hub/")) {
+      if (allowedPaths.includes("/patients") || allowedPaths.includes("/patients/:id")) return true;
+    }
     /** قائمة الروشتات: تُعامل مثل صلاحية الكتابة `/prescription` إن لم تُذكر صريحةً. */
     if (cleanPath === "/prescriptions" || cleanPath.startsWith("/prescriptions/")) {
       if (

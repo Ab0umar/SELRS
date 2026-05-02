@@ -23,7 +23,10 @@ export default function ConsultantSheet() {
   const { goBack, goHome } = useAppNavigation();
   const [location, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/consultant/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const [, hubConsultParams] = useRoute("/patient-hub/sheets/consultant/:id");
+  const initialPatientIdRaw = params?.id ?? hubConsultParams?.id;
+  const initialPatientId = initialPatientIdRaw ? Number(initialPatientIdRaw) : undefined;
+  const embeddedInPatientHub = location.startsWith("/patient-hub/sheets/");
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const [operationDateLeft, setOperationDateLeft] = useState("");
   const [operationDateRight, setOperationDateRight] = useState("");
@@ -369,7 +372,12 @@ export default function ConsultantSheet() {
       job: patient.occupation ?? "",
     }));
     if (patient.id) {
-      setLocation(`/sheets/consultant/${patient.id}`);
+      const qs = typeof window !== "undefined" ? window.location.search : "";
+      if (embeddedInPatientHub) {
+        setLocation(`/patient-hub/sheets/consultant/${patient.id}${qs}`);
+      } else {
+        setLocation(`/sheets/consultant/${patient.id}`);
+      }
     }
   };
 
@@ -384,6 +392,11 @@ export default function ConsultantSheet() {
   };
 
   const handleBackNav = () => {
+    const qs = typeof window !== "undefined" ? window.location.search : "";
+    if (embeddedInPatientHub && initialPatientId) {
+      setLocation(`/patient-hub/examination/${initialPatientId}${qs}`);
+      return;
+    }
     goBack();
   };
 
@@ -408,6 +421,7 @@ export default function ConsultantSheet() {
   const consultantTemplate = designerConfig.templates.consultant;
 
   const renderFollowupSection = () => (
+    <fieldset disabled={embeddedInPatientHub} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95">
     <div className="p-1 print:p-0 followup-print-root bg-white text-slate-900" dir="ltr" style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}>
       <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
         <div className="whitespace-nowrap">{followupLabels.rtLabel}: {operationEyes.right ? "" : "..."} &nbsp;&nbsp; {followupLabels.ltLabel}: {operationEyes.left ? "" : "..."} &nbsp; //</div>
@@ -507,10 +521,15 @@ export default function ConsultantSheet() {
         </table>
       ))}
     </div>
+    </fieldset>
   );
 
   return (
-    <div className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`} dir="rtl" style={{ direction: 'rtl', textAlign: 'right' }}>
+    <div
+      className={`${embeddedInPatientHub ? "prescription-root min-h-0 flex-1" : "min-h-screen"} bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      dir="rtl"
+      style={{ direction: 'rtl', textAlign: 'right' }}
+    >
       <style>{`
         ${designerConfig.css.consultant || ""}
         .refraction-table-center th,
@@ -550,38 +569,87 @@ export default function ConsultantSheet() {
       `}</style>
       {/* Header */}
       <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-10 border-b print:hidden ${
+          embeddedInPatientHub
+            ? "border-border/45 bg-background py-1.5"
+            : "border-border bg-background/95 py-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        } ${printMode.printView ? "hidden" : ""}`}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between sheet-header-bar">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">{consultantTemplate.sheetTitle}</h1>
+        <div
+          className={
+            embeddedInPatientHub
+              ? "mx-auto flex max-w-none items-start justify-between gap-2 px-2"
+              : "container mx-auto px-4 py-4"
+          }
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-start gap-2 sheet-header-bar">
+              <div className="min-w-0 flex-1">
+                <h1
+                  className={
+                    embeddedInPatientHub
+                      ? "truncate text-base font-semibold leading-tight text-foreground"
+                      : "text-2xl font-bold text-foreground"
+                  }
+                >
+                  {consultantTemplate.sheetTitle}
+                </h1>
+                {!embeddedInPatientHub && formData.patientName ? (
                   <p className="text-sm text-muted-foreground">{formData.patientName}</p>
-                </div>
+                ) : null}
               </div>
-              <div className="flex gap-1 print:hidden"></div>
             </div>
-            <div className="flex flex-wrap gap-1 sheet-header-actions">
-              <Button type="button" variant="outline" size="sm" onClick={handleBackNav}>
-                رجوع
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-2" />
-                طباعة
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={handleDownloadPDF}>
-                <Download className="h-4 w-4 mr-2" />
-                تحميل PDF
-              </Button>
-            </div>
+            {!embeddedInPatientHub ? <div className="flex gap-1 print:hidden"></div> : null}
+          </div>
+          <div
+            className={`sheet-header-actions shrink-0 ${
+              embeddedInPatientHub ? "flex flex-nowrap gap-1" : "flex flex-wrap gap-1"
+            }`}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={embeddedInPatientHub ? "h-8 px-2 text-xs" : undefined}
+              onClick={handleBackNav}
+            >
+              رجوع
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={embeddedInPatientHub ? "h-8 gap-1 px-2 text-xs" : undefined}
+              onClick={handlePrint}
+            >
+              <Printer className={`h-3.5 w-3.5 shrink-0 ${embeddedInPatientHub ? "" : "mr-2"}`} />
+              طباعة
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={embeddedInPatientHub ? "h-8 gap-1 px-2 text-xs" : undefined}
+              onClick={handleDownloadPDF}
+            >
+              <Download className={`h-3.5 w-3.5 shrink-0 ${embeddedInPatientHub ? "" : "mr-2"}`} />
+              {embeddedInPatientHub ? "PDF" : "تحميل PDF"}
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main data-mobile-pdf-root className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}>
+      <main
+        data-mobile-pdf-root
+        className={`print:p-0 ${
+          embeddedInPatientHub
+            ? printMode.printView
+              ? "mx-auto max-w-none px-3 py-3"
+              : "mx-auto max-w-none px-2 pb-4 pt-1"
+            : `container mx-auto ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`
+        }`}
+      >
         {printMode.printView ? (
           <PrintPreviewBanner
             title="شيت الاستشاري"
@@ -589,21 +657,29 @@ export default function ConsultantSheet() {
             onPrint={handlePrint}
           />
         ) : null}
-        <div className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+        <div className={`${embeddedInPatientHub ? "mb-1.5" : "mb-2"} print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <PatientPicker
             initialPatientId={initialPatientId}
             onSelect={handleSelectPatient}
           />
         </div>
           <Tabs value={activeTab} onValueChange={setActiveTab} persistKey={CONSULTANT_TABS_PERSIST_KEY} className={`w-full print:hidden ${printMode.printView ? "hidden" : ""}`}>
-        <TabsList className={`mb-2 flex h-auto w-full print:hidden ${printMode.printView ? "hidden" : ""}`}>
+        <TabsList
+          className={`print:hidden ${printMode.printView ? "hidden" : ""} ${
+            embeddedInPatientHub
+              ? "mb-1.5 h-8 w-fit max-w-full gap-0.5 p-1 [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:text-xs"
+              : "mb-2 flex h-auto w-full"
+          }`}
+        >
           <TabsTrigger value="followup">المتابعات</TabsTrigger>
           <TabsTrigger value="sheet">الفحوصات</TabsTrigger>
         </TabsList>
 
           {/* Main Sheet Tab */}
           <TabsContent value="sheet" className="space-y-0">
-            {activeTab === "sheet" ? <div className="bg-white p-8 print:p-0">
+            {activeTab === "sheet" ? (
+            <fieldset disabled={embeddedInPatientHub} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95">
+            <div className="bg-white p-8 print:p-0">
               {/* Header with Logo and Center Name */}
               <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
                 <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
@@ -820,7 +896,9 @@ export default function ConsultantSheet() {
                   </div>
                 </div>
               </div>
-            </div> : null}
+            </div>
+            </fieldset>
+            ) : null}
           </TabsContent>
 
           {/* Followup Tab */}

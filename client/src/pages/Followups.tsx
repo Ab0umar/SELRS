@@ -56,7 +56,20 @@ function followupRowId(row: any, fallback: number): number {
   return typeof id === "number" && Number.isFinite(id) ? id : fallback;
 }
 
-export default function Followups() {
+export type FollowupsProps = {
+  embeddedPatientId?: number;
+  hidePageChrome?: boolean;
+  hubVisitDateFilter?: string;
+  patientHubReadOnly?: boolean;
+  patientHubViewOnlyHint?: string;
+};
+
+export default function Followups(props: Partial<FollowupsProps> & object = {}) {
+  const embeddedPatientId = props?.embeddedPatientId;
+  const hidePageChrome = props?.hidePageChrome;
+  const hubVisitDateFilter = props?.hubVisitDateFilter;
+  const patientHubReadOnly = Boolean(props?.patientHubReadOnly);
+  const patientHubViewOnlyHint = props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [patientId, setPatientId] = useState<number>(0);
@@ -88,6 +101,12 @@ export default function Followups() {
       setLocation("/");
     }
   }, [isAuthenticated, setLocation]);
+
+  useEffect(() => {
+    if (embeddedPatientId && embeddedPatientId > 0) {
+      setPatientId(embeddedPatientId);
+    }
+  }, [embeddedPatientId]);
 
   const getPatientAge = (dob: string) => {
     if (!dob) return "-";
@@ -162,6 +181,11 @@ export default function Followups() {
       const f = raw as Record<string, unknown>;
       const status = deriveFollowupStatus(f, f.followupDate ?? f.createdAt);
       if (activeStatus !== "all" && status !== activeStatus) return false;
+      if (hubVisitDateFilter?.trim()) {
+        const vd = f.followupDate ?? f.createdAt;
+        const key = vd ? new Date(String(vd)).toISOString().split("T")[0] : "";
+        if (key !== hubVisitDateFilter) return false;
+      }
       if (!needle) return true;
       const parts = [
         formatDateTime(String(f.followupDate ?? f.createdAt ?? "")),
@@ -176,7 +200,7 @@ export default function Followups() {
       const hay = parts.join(" ").toLowerCase();
       return hay.includes(needle);
     });
-  }, [followups, search, activeStatus, patientId, patient]);
+  }, [followups, search, activeStatus, patientId, patient, hubVisitDateFilter]);
 
   const getStatusBadge = (status: FollowupStatus) => {
     switch (status) {
@@ -200,42 +224,52 @@ export default function Followups() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="mx-auto w-full max-w-[1280px]" dir="rtl">
-      <PageHeader
-        title="المتابعات"
-        subtitle="إدارة مواعيد المتابعة"
-        icon={<CalendarCheck className="h-5 w-5" />}
-        action={
-          <Button size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setLocation("/patients")} type="button">
-            <Plus className="h-4 w-4" />
-            <span className="text-xs sm:text-sm">متابعة جديدة</span>
-          </Button>
-        }
-      />
+    <div className={cn("mx-auto w-full", hidePageChrome ? "max-w-none px-2 py-3" : "max-w-[1280px]")} dir="rtl">
+      {!hidePageChrome ? (
+        <>
+          <PageHeader
+            title="المتابعات"
+            subtitle="إدارة مواعيد المتابعة"
+            icon={<CalendarCheck className="h-5 w-5" />}
+            action={
+              <Button size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setLocation("/patients")} type="button">
+                <Plus className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">متابعة جديدة</span>
+              </Button>
+            }
+          />
 
-      <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
-        <StatCard
-          title="إجمالي المتابعات"
-          value={stats.total}
-          icon={CalendarDays}
-          description="إجمالي السجلات"
-          iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
-        />
-        <StatCard
-          title="متابعة هذا الأسبوع"
-          value={stats.thisWeek}
-          icon={CalendarCheck}
-          description="خلال الأسبوع الحالي"
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
-        />
-        <StatCard
-          title="متأخرة"
-          value={stats.overdue}
-          icon={AlertTriangle}
-          description="تحتاج تواصل"
-          iconColor="bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
-        />
-      </div>
+          <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
+            <StatCard
+              title="إجمالي المتابعات"
+              value={stats.total}
+              icon={CalendarDays}
+              description="إجمالي السجلات"
+              iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
+            />
+            <StatCard
+              title="متابعة هذا الأسبوع"
+              value={stats.thisWeek}
+              icon={CalendarCheck}
+              description="خلال الأسبوع الحالي"
+              iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+            />
+            <StatCard
+              title="متأخرة"
+              value={stats.overdue}
+              icon={AlertTriangle}
+              description="تحتاج تواصل"
+              iconColor="bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+            />
+          </div>
+        </>
+      ) : null}
+
+      {hidePageChrome && patientHubReadOnly ? (
+        <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {patientHubViewOnlyHint}
+        </div>
+      ) : null}
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-72">
@@ -343,7 +377,12 @@ export default function Followups() {
                             variant="ghost"
                             size="sm"
                             className="h-9 w-9 p-0"
-                            onClick={() => setLocation(`/patient-file/${pid}`)}
+                            onClick={() => {
+                              const qs = typeof window !== "undefined" ? window.location.search : "";
+                              setLocation(
+                                patientHubReadOnly ? `/patient-hub/examination/${pid}${qs}` : `/patient-file/${pid}`,
+                              );
+                            }}
                             title="ملف المريض"
                           >
                             <ChevronRight className="h-4 w-4" />

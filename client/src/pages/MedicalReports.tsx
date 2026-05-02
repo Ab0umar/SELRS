@@ -14,7 +14,6 @@ import {
   FileText,
   FlaskConical,
   Image as ImageLucide,
-  Plus,
   Eye,
   MessageSquare,
   Paperclip,
@@ -167,7 +166,8 @@ type ReportRow = {
 
 export default function MedicalReports() {
   const { user, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const [loc, setLocation] = useLocation();
+  const inHubReports = loc.startsWith("/patient-hub/reports");
   const [, params] = useRoute("/medical-reports/:id");
   const [, hubReportsParams] = useRoute("/patient-hub/reports/:id");
   const routePatientId = params?.id ?? hubReportsParams?.id;
@@ -204,15 +204,8 @@ export default function MedicalReports() {
     refetchOnWindowFocus: false,
   });
   const overviewQuery = trpc.medical.getMedicalReportsOverview.useQuery(undefined, {
-    enabled: Boolean(isAuthenticated),
+    enabled: Boolean(isAuthenticated) && !inHubReports,
     refetchOnWindowFocus: false,
-  });
-  const createReportMutation = trpc.medical.createMedicalReport.useMutation({
-    onSuccess: () => {
-      toast.success("تم إنشاء التقرير بنجاح");
-      void reportsQuery.refetch();
-      void overviewQuery.refetch();
-    },
   });
   const updateReportMutation = trpc.medical.updateMedicalReport.useMutation({
     onSuccess: () => {
@@ -332,6 +325,7 @@ export default function MedicalReports() {
   }, [userStateQuery.data]);
 
   useEffect(() => {
+    if (inHubReports) return;
     const payload = {
       expandedDiseaseGroups,
       diseaseSearch,
@@ -344,12 +338,65 @@ export default function MedicalReports() {
     return () => {
       if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     };
-  }, [expandedDiseaseGroups, diseaseSearch, saveUserStateMutation]);
+  }, [expandedDiseaseGroups, diseaseSearch, saveUserStateMutation, inHubReports]);
 
   const canWriteReports = ["doctor", "admin"].includes(user?.role || "");
   const canDeleteReports = ["admin", "manager"].includes(user?.role || "");
 
-  const handleCreateReport = async () => {
+  const doctorDbRowToReportRow = (
+    row: Record<string, unknown>,
+    patient: { fullName?: string | null; patientCode?: string | null; age?: number | null } | null | undefined,
+  ): ReportRow => {
+    let diseasesArr: string[] = [];
+    try {
+      const raw = row.diseases ? JSON.parse(String(row.diseases)) : [];
+      diseasesArr = Array.isArray(raw) ? raw.map((x: unknown) => String(x)) : [];
+    } catch {
+      diseasesArr = [];
+    }
+    const visitRaw = row.visitDate;
+    const visitDateIso =
+      visitRaw == null || visitRaw === ""
+        ? new Date().toISOString().split("T")[0]
+        : typeof visitRaw === "string"
+          ? visitRaw.split("T")[0]
+          : new Date(visitRaw as Date).toISOString().split("T")[0];
+    const ca = row.createdAt;
+    const created =
+      ca == null
+        ? ""
+        : typeof ca === "string"
+          ? ca.split("T")[0]
+          : new Date(ca as Date).toISOString().split("T")[0];
+    const notesCombined = [String(row.clinicalOpinion ?? "").trim(), String(row.additionalNotes ?? "").trim()]
+      .filter(Boolean)
+      .join("\n\n");
+    return {
+      id: Number(row.id ?? 0),
+      patientName: String(patient?.fullName ?? "").trim(),
+      patientCode: String(patient?.patientCode ?? "").trim(),
+      patientAge: patient?.age != null ? String(patient.age) : "",
+      date: created,
+      doctor: "",
+      diagnosis: String(row.diagnosis ?? ""),
+      diseases: diseasesArr,
+      recommendation: String(row.recommendations ?? ""),
+      prescription: String(row.treatment ?? ""),
+      notes: notesCombined,
+      operationType: String(row.operationType ?? ""),
+      visitDate: visitDateIso,
+    };
+  };
+
+  const handleSaveReport = async () => {
+    if (inHubReports) {
+      toast.info("العرض فقط داخل مركز المريض");
+      return;
+    }
+    if (!selectedReport) {
+      toast.error("اختر تقريراً مسجّلاً من القائمة أولاً");
+      return;
+    }
     if (!selectedPatientId) {
       toast.error("يرجى اختيار المريض أولاً");
       return;
@@ -360,54 +407,34 @@ export default function MedicalReports() {
     }
 
     try {
-      if (selectedReport) {
-        await updateReportMutation.mutateAsync({
-          reportId: selectedReport.id,
-          visitDate: formData.visitDate,
-          diagnosis: formData.diagnosis,
-          diseases: formData.diseases,
-          prescription: formData.prescription,
-          recommendations: formData.recommendation,
-          clinicalOpinion: formData.notes,
-          operationType: formData.operationType,
-          additionalNotes: formData.notes,
-        });
-      } else {
-        await createReportMutation.mutateAsync({
-        patientId: selectedPatientId,
+      await updateReportMutation.mutateAsync({
+        reportId: selectedReport.id,
         visitDate: formData.visitDate,
         diagnosis: formData.diagnosis,
         diseases: formData.diseases,
-        clinicalOpinion: formData.notes,
-        recommendations: formData.recommendation,
-        operationType: formData.operationType,
         prescription: formData.prescription,
+        recommendations: formData.recommendation,
+        clinicalOpinion: formData.notes,
+        operationType: formData.operationType,
         additionalNotes: formData.notes,
-        });
-      }
+      });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء إنشاء التقرير"));
+      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء حفظ التقرير"));
       return;
     }
-
-    setFormData({
-      patientName: "",
-      patientCode: "",
-      phone: "",
-      age: "",
-      address: "",
-      visitDate: new Date().toISOString().split("T")[0],
-      operationType: "",
-      diagnosis: "",
-      diseases: [],
-      recommendation: "",
-      prescription: "",
-      notes: "",
-    });
-    setSelectedReport(null);
+    const reportId = selectedReport.id;
+    const res = await reportsQuery.refetch();
+    const refreshed = (Array.isArray(res.data) ? res.data : []) as Record<string, unknown>[];
+    const updated = refreshed.find((x) => Number(x?.id ?? 0) === reportId);
+    const p = patientQuery.data as { fullName?: string | null; patientCode?: string | null; age?: number | null } | undefined;
+    if (updated) handleViewReport(doctorDbRowToReportRow(updated, p ?? null));
   };
 
   const handleDeleteReport = async (id: number) => {
+    if (inHubReports) {
+      toast.info("العرض فقط داخل مركز المريض");
+      return;
+    }
     if (!window.confirm("هل أنت متأكد من حذف التقرير؟")) return;
     try {
       await deleteReportMutation.mutateAsync({ reportId: id });
@@ -471,19 +498,14 @@ export default function MedicalReports() {
     const pid = Number(row.patientId ?? 0);
     if (!Number.isFinite(pid) || pid <= 0) return;
     setSelectedPatientId(pid);
-    setLocation(`/medical-reports/${pid}`);
+    setLocation(
+      inHubReports ? `/patient-hub/reports/${pid}${typeof window !== "undefined" ? window.location.search : ""}` : `/medical-reports/${pid}`,
+    );
     handleViewReport(overviewRowToFormReport(row));
     window.setTimeout(() => {
       document.getElementById("medical-report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
   }
-
-  const handleNewReportClick = () => {
-    setSelectedReport(null);
-    window.requestAnimationFrame(() => {
-      document.getElementById("medical-report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
 
   const handleDownloadReportPdf = (report?: ReportRow | null) => {
     if (report) {
@@ -499,8 +521,11 @@ export default function MedicalReports() {
     fullName: string;
     patientCode?: string | null;
   }) => {
+    if (selectedPatientId !== patient.id) setSelectedReport(null);
     setSelectedPatientId(patient.id);
-    setLocation(`/medical-reports/${patient.id}`);
+    setLocation(
+      inHubReports ? `/patient-hub/reports/${patient.id}${typeof window !== "undefined" ? window.location.search : ""}` : `/medical-reports/${patient.id}`,
+    );
     setFormData((prev) => ({
       ...prev,
       patientName: patient.fullName ?? "",
@@ -646,15 +671,78 @@ export default function MedicalReports() {
     });
   }, [overviewRows, overviewSearch, overviewType]);
 
+  const patientDoctorReportRows = (reportsQuery.data ?? []) as Record<string, unknown>[];
+
   // Inline form panel — below hub table
   const FormPanel = () => (
     <Card id="medical-report-form" className="text-right scroll-mt-24 lg:sticky lg:top-4" dir="rtl">
       <CardHeader>
-        <CardTitle>{selectedReport ? "تعديل التقرير" : "تقرير طبي جديد"}</CardTitle>
-        <CardDescription>أدخل بيانات التقرير الطبي والروشتة</CardDescription>
+        <CardTitle>{selectedReport ? "تعديل التقرير" : "التقارير المسجّلة للمريض"}</CardTitle>
+        <CardDescription>
+          {selectedReport
+            ? "عدّل حقول التقرير المختار ثم احفظ التحديث."
+            : "اختر تقريراً مسجّلاً من القائمة لعرض محتواه وتعديله."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <PatientPicker initialPatientId={selectedPatientId ?? undefined} onSelect={handleSelectPatient} />
+        <PatientPicker
+          initialPatientId={selectedPatientId ?? undefined}
+          onSelect={handleSelectPatient}
+          fireOnInitialPatientLoad={false}
+        />
+        {inHubReports ? (
+          <p className="text-xs text-muted-foreground" role="note">
+            العرض فقط داخل مركز المريض
+          </p>
+        ) : null}
+        {selectedPatientId ? (
+          <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+            <p className="text-sm font-semibold">التقارير المحفوظة لهذا المريض</p>
+            {reportsQuery.isLoading ? (
+              <p className="text-xs text-muted-foreground">جاري التحميل…</p>
+            ) : patientDoctorReportRows.length === 0 ? (
+              <p className="text-xs text-muted-foreground">لا توجد تقارير مسجّلة لهذا المريض.</p>
+            ) : (
+              <ul className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                {patientDoctorReportRows.map((row) => {
+                  const rid = Number(row?.id ?? 0);
+                  const created = row?.createdAt
+                    ? typeof row.createdAt === "string"
+                      ? row.createdAt.split("T")[0]
+                      : new Date(row.createdAt as Date).toISOString().split("T")[0]
+                    : "";
+                  const snippet = overviewReportTitleSnippet(row);
+                  const active = selectedReport?.id === rid;
+                  return (
+                    <li key={rid || String(row.createdAt)}>
+                      <Button
+                        type="button"
+                        variant={active ? "secondary" : "outline"}
+                        className="h-auto w-full justify-start gap-2 whitespace-normal py-2 text-right"
+                        onClick={() =>
+                          handleViewReport(doctorDbRowToReportRow(row, patientQuery.data as any))
+                        }
+                      >
+                        <span className="shrink-0 font-mono text-xs text-muted-foreground" dir="ltr">
+                          {created ? formatDateLabel(created) : "—"}
+                        </span>
+                        <span className="min-w-0 flex-1 text-sm leading-snug">{snippet}</span>
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : null}
+        {!selectedReport && selectedPatientId ? (
+          <p className="text-sm text-muted-foreground">اختر أحد التقارير أعلاه للمتابعة.</p>
+        ) : null}
+        <fieldset
+          disabled={inHubReports || !selectedReport}
+          className="flex min-h-0 min-w-0 flex-col gap-4 border-0 p-0 m-0 disabled:opacity-95"
+        >
+        {selectedReport ? (
         <Tabs defaultValue="patient-info" persistKey="medical-reports" className="w-full">
           <TabsList className="grid w-full grid-cols-3" dir="rtl">
             <TabsTrigger value="patient-info">المريض</TabsTrigger>
@@ -756,19 +844,16 @@ export default function MedicalReports() {
             </div>
           </TabsContent>
         </Tabs>
+        ) : null}
 
         <div className="flex gap-2 pt-2">
-          {canWriteReports && (
-            <Button onClick={handleCreateReport} className="flex-1 bg-primary hover:bg-primary/90">
-              {selectedReport ? "تحديث التقرير" : "إنشاء التقرير"}
+          {canWriteReports && !inHubReports && selectedReport ? (
+            <Button onClick={() => void handleSaveReport()} className="flex-1 bg-primary hover:bg-primary/90">
+              تحديث التقرير
             </Button>
-          )}
-          {selectedReport && (
-            <Button variant="outline" onClick={() => { setSelectedReport(null); }}>
-              جديد
-            </Button>
-          )}
+          ) : null}
         </div>
+        </fieldset>
       </CardContent>
     </Card>
   );
@@ -777,20 +862,24 @@ export default function MedicalReports() {
 
   return (
     <div className="text-right">
-      <div className="mx-auto w-full max-w-[1280px] px-4 pb-8 pt-4 print:p-0 md:px-6" dir="rtl">
-        <PageHeader
-          title="التقارير الطبية"
-          subtitle="طباعة وإنشاء تقارير وربطها بملف المريض"
-          icon={<FileText className="h-5 w-5" />}
-          action={
-            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={handleNewReportClick}>
-              <Plus className="h-4 w-4" />
-              <span className="text-xs sm:text-sm">تقرير جديد</span>
-            </Button>
-          }
-        />
+      <div
+        className={cn(
+          "mx-auto w-full print:p-0",
+          inHubReports
+            ? "prescription-root bg-background max-w-none px-2 pb-4 pt-1"
+            : "max-w-[1280px] px-4 pb-8 pt-4 md:px-6",
+        )}
+        dir="rtl"
+      >
+        {!inHubReports ? (
+          <PageHeader
+            title="التقارير الطبية"
+            subtitle="عرض التقارير المسجّلة وطباعتها وربطها بملف المريض"
+            icon={<FileText className="h-5 w-5" />}
+          />
+        ) : null}
 
-        {(reportsQuery.isError || patientQuery.isError || overviewQuery.isError) ? (
+        {(reportsQuery.isError || patientQuery.isError || (!inHubReports && overviewQuery.isError)) ? (
           <div className="mb-6">
             <OfflinePageState
               title="تعذر تحديث بيانات التقرير"
@@ -798,12 +887,14 @@ export default function MedicalReports() {
               onRetry={() => {
                 void reportsQuery.refetch();
                 void patientQuery.refetch();
-                void overviewQuery.refetch();
+                if (!inHubReports) void overviewQuery.refetch();
               }}
             />
           </div>
         ) : null}
 
+        {!inHubReports ? (
+          <>
         <div
           className={cn(
             STAT_CARDS_MOBILE_ROW,
@@ -940,7 +1031,7 @@ export default function MedicalReports() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {canDeleteReports ? (
+                            {canDeleteReports && !inHubReports ? (
                               <Button
                                 type="button"
                                 size="sm"
@@ -962,6 +1053,9 @@ export default function MedicalReports() {
             </div>
           )}
         </div>
+
+          </>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 print:grid-cols-1">
           <div className="lg:col-span-2 print:hidden">
@@ -1022,7 +1116,11 @@ export default function MedicalReports() {
               <Card className="sticky top-4 border-dashed">
                 <CardHeader>
                   <CardTitle className="text-base">معاينة الطباعة</CardTitle>
-                  <CardDescription>اختر تقريراً من الجدول أو أنشئ تقريراً جديداً لعرض المعاينة هنا.</CardDescription>
+                  <CardDescription>
+                    {inHubReports
+                      ? "اختر تقريراً مسجّلاً من القائمة لعرض المعاينة هنا."
+                      : "اختر تقريراً مسجّلاً من القائمة أو من جدول التقارير لعرض المعاينة هنا."}
+                  </CardDescription>
                 </CardHeader>
               </Card>
             )}

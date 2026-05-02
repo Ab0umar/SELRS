@@ -71,10 +71,10 @@ export function AppSidebar({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const navGroupExpanded = (idx: number) => openNavGroups[`g-${idx}`] ?? true;
+  const navGroupExpanded = (idx: number) => openNavGroups[`g-${idx}`] ?? false;
   const toggleNavGroup = (idx: number) => {
     const key = `g-${idx}`;
-    setOpenNavGroups((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
+    setOpenNavGroups((prev) => ({ ...prev, [key]: !(prev[key] ?? false) }));
   };
 
   useEffect(() => {

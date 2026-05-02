@@ -20,12 +20,12 @@ import { FollowupTab } from "@/components/patient-details/FollowupTab";
 
 export default function PatientDetails() {
   const { user, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const inPatientHub = location.startsWith("/patient-hub/");
   const { goBack } = useAppNavigation();
   const [, patientsParams] = useRoute("/patients/:id");
   const [, patientFileParams] = useRoute("/patient-file/:id");
-  const [, patientHubFileParams] = useRoute("/patient-hub/file/:id");
-  const rawPatientId = patientsParams?.id ?? patientFileParams?.id ?? patientHubFileParams?.id;
+  const rawPatientId = patientsParams?.id ?? patientFileParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
 
   const pd = usePatientDetails({ patientId, user, isAuthenticated, setLocation });
@@ -48,7 +48,9 @@ export default function PatientDetails() {
   }
 
   const handleSelectPatient = (p: { id: number; fullName: string; patientCode?: string | null }) => {
-    if (p.id) setLocation(`/patient-file/${p.id}`);
+    if (!p.id) return;
+    const qs = typeof window !== "undefined" ? window.location.search : "";
+    setLocation(inPatientHub ? `/patient-hub/examination/${p.id}${qs}` : `/patient-file/${p.id}`);
   };
 
   return (
@@ -77,6 +79,8 @@ export default function PatientDetails() {
               isAdmin={pd.isAdmin}
               goBack={goBack}
               setLocation={setLocation}
+              inPatientHub={inPatientHub}
+              readOnlyPatientHub={inPatientHub}
               deletePatientMutation={pd.deletePatientMutation}
               handleSelectPatient={handleSelectPatient}
             />
@@ -142,7 +146,7 @@ export default function PatientDetails() {
                 visitsData={(pd.visitsQuery.data ?? []) as any[]}
                 surgeries={pd.surgeries}
                 followups={pd.followups}
-                isAdmin={pd.isAdmin}
+                isAdmin={pd.isAdmin && !inPatientHub}
                 editingVisitId={pd.editingVisitId}
                 editVisitDate={pd.editVisitDate}
                 setEditingVisitId={pd.setEditingVisitId}

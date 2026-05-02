@@ -52,10 +52,22 @@ function isInCurrentCalendarWeek(d: Date): boolean {
   return d >= start && d < end;
 }
 
-export default function Visits() {
+export type VisitsProps = {
+  hubVisitDateFilter?: string;
+  hidePageChrome?: boolean;
+  patientHubReadOnly?: boolean;
+  patientHubViewOnlyHint?: string;
+};
+
+export default function Visits(props: Partial<VisitsProps> & object = {}) {
+  const hubVisitDateFilter = props?.hubVisitDateFilter;
+  const hidePageChrome = props?.hidePageChrome;
+  const patientHubReadOnly = Boolean(props?.patientHubReadOnly);
+  const patientHubViewOnlyHint = props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [, routeParams] = useRoute("/visits/:id");
+  const [, routeParamsVisits] = useRoute("/visits/:id");
+  const [, routeParamsHub] = useRoute("/patient-hub/visits/:id");
   const [patientId, setPatientId] = useState<number>(0);
   const [expandedVisitId, setExpandedVisitId] = useState<number | null>(null);
   const [editingVisitId, setEditingVisitId] = useState<number | null>(null);
@@ -95,11 +107,12 @@ export default function Visits() {
   }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
-    const routeId = Number((routeParams as any)?.id ?? 0);
+    const raw = (routeParamsVisits as { id?: string } | undefined)?.id ?? (routeParamsHub as { id?: string } | undefined)?.id;
+    const routeId = Number(raw ?? 0);
     if (Number.isFinite(routeId) && routeId > 0) {
       setPatientId(routeId);
     }
-  }, [routeParams]);
+  }, [routeParamsVisits, routeParamsHub]);
 
   const getPatientAge = (dob: string) => {
     if (!dob) return "-";
@@ -146,6 +159,11 @@ export default function Visits() {
       const row = visit as Record<string, unknown>;
       const vt = String(row.visitType ?? "");
       if (activeVisitKind !== "all" && vt !== activeVisitKind) return false;
+      if (hubVisitDateFilter?.trim()) {
+        const vd = row.visitDate ?? row.createdAt;
+        const key = vd ? new Date(String(vd)).toISOString().split("T")[0] : "";
+        if (key !== hubVisitDateFilter) return false;
+      }
       if (!needle) return true;
       const nameLine = patientId > 0 && patient?.fullName ? String(patient.fullName) : String(row.patientName ?? "");
       const hay = [
@@ -159,15 +177,17 @@ export default function Visits() {
         .toLowerCase();
       return hay.includes(needle);
     });
-  }, [visits, search, activeVisitKind, patientId, patient]);
+  }, [visits, search, activeVisitKind, patientId, patient, hubVisitDateFilter]);
 
   const handleStartEditDate = (visit: any) => {
+    if (patientHubReadOnly) return;
     const dateObj = new Date(visit.visitDate);
     const dateStr = dateObj.toISOString().split("T")[0];
     setEditDate(dateStr);
   };
 
   const handleSaveDate = async (visit: any) => {
+    if (patientHubReadOnly) return;
     if (!editDate) return;
     try {
       const result = await updateVisitDateMutation.mutateAsync({
@@ -192,6 +212,7 @@ export default function Visits() {
   };
 
   const handleStartEditExam = (examType: string, examData: any) => {
+    if (patientHubReadOnly) return;
     setEditingExamType(examType);
     if (examType === "autorefraction") {
       setEditAutorefraction(JSON.parse(JSON.stringify(examData)));
@@ -201,6 +222,7 @@ export default function Visits() {
   };
 
   const handleSaveExam = async (visit: any, examType: string) => {
+    if (patientHubReadOnly) return;
     try {
       const updates: any = {};
       if (examType === "autorefraction") {
@@ -227,36 +249,46 @@ export default function Visits() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="mx-auto w-full max-w-[1280px]" dir="rtl">
-      <PageHeader
-        title="الزيارات"
-        subtitle="سجل الزيارات والفحوصات المرتبطة"
-        icon={<ClipboardList className="h-5 w-5" />}
-      />
+    <div className={cn("mx-auto w-full", hidePageChrome ? "max-w-none px-2 py-3" : "max-w-[1280px]")} dir="rtl">
+      {!hidePageChrome ? (
+        <>
+          <PageHeader
+            title="الزيارات"
+            subtitle="سجل الزيارات والفحوصات المرتبطة"
+            icon={<ClipboardList className="h-5 w-5" />}
+          />
 
-      <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
-        <StatCard
-          title="إجمالي الزيارات"
-          value={stats.total}
-          icon={ClipboardList}
-          description="كل السجلات المعروضة"
-          iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
-        />
-        <StatCard
-          title="زيارات هذا الأسبوع"
-          value={stats.thisWeek}
-          icon={CalendarDays}
-          description="ضمن الأسبوع الحالي"
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
-        />
-        <StatCard
-          title="زيارات متابعة"
-          value={stats.followups}
-          icon={CalendarRange}
-          description={`نوع: متابعة`}
-          iconColor="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
-        />
-      </div>
+          <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
+            <StatCard
+              title="إجمالي الزيارات"
+              value={stats.total}
+              icon={ClipboardList}
+              description="كل السجلات المعروضة"
+              iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
+            />
+            <StatCard
+              title="زيارات هذا الأسبوع"
+              value={stats.thisWeek}
+              icon={CalendarDays}
+              description="ضمن الأسبوع الحالي"
+              iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+            />
+            <StatCard
+              title="زيارات متابعة"
+              value={stats.followups}
+              icon={CalendarRange}
+              description={`نوع: متابعة`}
+              iconColor="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+            />
+          </div>
+        </>
+      ) : null}
+
+      {hidePageChrome && patientHubReadOnly ? (
+        <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {patientHubViewOnlyHint}
+        </div>
+      ) : null}
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-72">
@@ -361,7 +393,10 @@ export default function Visits() {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setLocation(`/patient-file/${visit.patientId}`);
+                                        const qs = typeof window !== "undefined" ? window.location.search : "";
+                                        setLocation(
+                                          patientHubReadOnly ? `/patient-hub/examination/${visit.patientId}${qs}` : `/patient-file/${visit.patientId}`,
+                                        );
                                       }}
                                       title="فتح ملف المريض"
                                     >
@@ -374,7 +409,7 @@ export default function Visits() {
                           </button>
 
                           <div className="flex items-center gap-1">
-                            {!isEditingDate && (
+                            {!patientHubReadOnly && !isEditingDate && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -471,7 +506,7 @@ export default function Visits() {
                             <div>
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-slate-900">الأوتوريفراكشن</h4>
-                                {editingExamType !== "autorefraction" && (
+                                {!patientHubReadOnly && editingExamType !== "autorefraction" && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -666,7 +701,7 @@ export default function Visits() {
                             <div>
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-slate-900">البنتاكام</h4>
-                                {editingExamType !== "pentacam" && (
+                                {!patientHubReadOnly && editingExamType !== "pentacam" && (
                                   <Button
                                     size="sm"
                                     variant="ghost"

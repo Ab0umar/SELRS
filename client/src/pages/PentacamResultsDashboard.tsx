@@ -61,7 +61,21 @@ function parseInitialQuery(): {
   }
 }
 
-export default function PentacamResultsDashboard() {
+export type PentacamResultsDashboardProps = {
+  embeddedPatientId?: number;
+  hidePageChrome?: boolean;
+  hubVisitDate?: string;
+  patientHubReadOnly?: boolean;
+  patientHubViewOnlyHint?: string;
+};
+
+export default function PentacamResultsDashboard({
+  embeddedPatientId,
+  hidePageChrome,
+  hubVisitDate,
+  patientHubReadOnly = false,
+  patientHubViewOnlyHint = "العرض فقط داخل المركز",
+}: PentacamResultsDashboardProps = {}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const initial = useMemo(() => parseInitialQuery(), []);
@@ -119,6 +133,19 @@ export default function PentacamResultsDashboard() {
     if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
 
+  useEffect(() => {
+    if (embeddedPatientId != null && embeddedPatientId > 0) {
+      setPatientId(String(embeddedPatientId));
+    }
+  }, [embeddedPatientId]);
+
+  useEffect(() => {
+    if (hidePageChrome && hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
+      setFromDate(hubVisitDate);
+      setToDate(hubVisitDate);
+    }
+  }, [hidePageChrome, hubVisitDate]);
+
   const trendDelta = useMemo(() => {
     const t = statsQuery.data?.examsToday ?? 0;
     const y = statsQuery.data?.examsYesterday ?? 0;
@@ -150,39 +177,61 @@ export default function PentacamResultsDashboard() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto max-w-[1400px] px-3 sm:px-4 py-6 sm:py-8" dir="rtl">
-        <PageHeader
-          title="بنتكام"
-          description="نتائج فحص البنتكام"
-          icon={<Eye className="h-5 w-5 text-primary" />}
-          action={
-            <Button variant="default" size="sm" className="gap-1.5 font-semibold" asChild>
-              <Link href="/sheets/pentacam">
-                <Upload className="h-4 w-4" />
-                استيراد نتائج
-              </Link>
-            </Button>
-          }
-        />
+    <div
+      className={cn(
+        hidePageChrome ? "prescription-root bg-background min-h-0" : "bg-muted/30 min-h-screen",
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto w-full",
+          hidePageChrome
+            ? "max-w-none px-2 pb-4 pt-1"
+            : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
+        )}
+        dir="rtl"
+      >
+        {!hidePageChrome ? (
+          <>
+            <PageHeader
+              title="بنتكام"
+              description="نتائج فحص البنتكام"
+              icon={<Eye className="h-5 w-5 text-primary" />}
+              action={
+                <Button variant="default" size="sm" className="gap-1.5 font-semibold" asChild>
+                  <Link href="/sheets/pentacam">
+                    <Upload className="h-4 w-4" />
+                    استيراد نتائج
+                  </Link>
+                </Button>
+              }
+            />
 
-        <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-2 sm:gap-4")}>
-          <StatCard
-            title="فحوصات اليوم"
-            value={statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
-            icon={Activity}
-            iconColor="bg-emerald-500/10 text-emerald-600"
-            trend={trendDelta >= 0 ? "up" : "down"}
-            change={statsQuery.isLoading ? "…" : `${Math.abs(trendDelta)} مقارنة بالأمس`}
-          />
-          <StatCard
-            title="بحاجة لتكرار"
-            value={statsQuery.isLoading ? "…" : (statsQuery.data?.needsRepeatEyes ?? 0)}
-            icon={AlertTriangle}
-            iconColor="bg-amber-500/10 text-amber-600"
-            description="جودة غير مقبولة"
-          />
-        </div>
+            <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-2 sm:gap-4")}>
+              <StatCard
+                title="فحوصات اليوم"
+                value={statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
+                icon={Activity}
+                iconColor="bg-emerald-500/10 text-emerald-600"
+                trend={trendDelta >= 0 ? "up" : "down"}
+                change={statsQuery.isLoading ? "…" : `${Math.abs(trendDelta)} مقارنة بالأمس`}
+              />
+              <StatCard
+                title="بحاجة لتكرار"
+                value={statsQuery.isLoading ? "…" : (statsQuery.data?.needsRepeatEyes ?? 0)}
+                icon={AlertTriangle}
+                iconColor="bg-amber-500/10 text-amber-600"
+                description="جودة غير مقبولة"
+              />
+            </div>
+          </>
+        ) : null}
+
+        {hidePageChrome && patientHubReadOnly ? (
+          <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {patientHubViewOnlyHint}
+          </div>
+        ) : null}
 
         <div className="rounded-xl border bg-card p-3 sm:p-4 shadow-sm space-y-4 mb-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -193,6 +242,7 @@ export default function PentacamResultsDashboard() {
                 className="h-9 text-sm"
                 placeholder="pentacam result id"
                 value={resultId}
+                disabled={patientHubReadOnly}
                 onChange={(e) => setResultId(e.target.value.replace(/[^\d]/g, ""))}
               />
             </div>
@@ -203,16 +253,23 @@ export default function PentacamResultsDashboard() {
                 className="h-9 text-sm"
                 placeholder="visit id"
                 value={visitId}
+                disabled={patientHubReadOnly}
                 onChange={(e) => setVisitId(e.target.value.replace(/[^\d]/g, ""))}
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">من تاريخ</Label>
-              <Input type="date" className="h-9 text-sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <Input
+                type="date"
+                className="h-9 text-sm"
+                value={fromDate}
+                disabled={patientHubReadOnly}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">إلى تاريخ</Label>
-              <Input type="date" className="h-9 text-sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <Input type="date" className="h-9 text-sm" value={toDate} disabled={patientHubReadOnly} onChange={(e) => setToDate(e.target.value)} />
             </div>
           </div>
           <div className="space-y-1">
@@ -222,6 +279,7 @@ export default function PentacamResultsDashboard() {
               className="h-9 text-sm"
               placeholder="patient id"
               value={patientId}
+              disabled={patientHubReadOnly}
               onChange={(e) => setPatientId(e.target.value.replace(/[^\d]/g, ""))}
             />
           </div>
@@ -233,13 +291,11 @@ export default function PentacamResultsDashboard() {
             onChange={setSearch}
             placeholder="بحث باسم المريض أو الطبيب..."
             className="lg:max-w-xl w-full"
+            disabled={patientHubReadOnly}
           />
-          <FilterBar
-            filters={filterTabs}
-            selected={activeFilter}
-            onSelect={setActiveFilter}
-            className="lg:justify-end"
-          />
+          <div className={cn("lg:justify-end", patientHubReadOnly && "pointer-events-none opacity-60")}>
+            <FilterBar filters={filterTabs} selected={activeFilter} onSelect={setActiveFilter} className="lg:justify-end" />
+          </div>
         </div>
 
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -317,11 +373,17 @@ export default function PentacamResultsDashboard() {
                         </span>
                       </td>
                       <td className="p-2.5 text-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
-                          <Link href={`/sheets/pentacam/${row.patientId}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        {patientHubReadOnly ? (
+                          <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
+                            <Eye className="h-4 w-4 text-muted-foreground opacity-50" aria-hidden />
+                          </span>
+                        ) : (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
+                            <Link href={`/sheets/pentacam/${row.patientId}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))
