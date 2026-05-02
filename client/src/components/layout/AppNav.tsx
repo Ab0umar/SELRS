@@ -6,8 +6,10 @@ import {
   Activity,
   CalendarCheck,
   CircleDot,
+  ClipboardList,
   Clock,
   Eye,
+  FileSpreadsheet,
   FileText,
   FlaskConical,
   LayoutGrid,
@@ -17,6 +19,7 @@ import {
   Shield,
   Stethoscope,
   Syringe,
+  TestTube2,
   UserRound,
   Users,
 } from "lucide-react";
@@ -24,7 +27,7 @@ import {
 export type NavLeaf = { icon: LucideIcon; label: string; path: string };
 export type NavGroup = { label: string; items: NavLeaf[] } | (NavLeaf & { items?: undefined });
 
-/** لوحة الإدارة — بدون تكرار ما هو متاح كتابات داخل «الإعدادات» أو «النماذج». */
+/** لوحة الإدارة — محاذاة الويب: مجموعات + روابط العيادة والإعدادات */
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
   { icon: Clock, label: "مرضى اليوم", path: "/today" },
@@ -32,10 +35,25 @@ export const adminNavGroups: NavGroup[] = [
   { icon: Repeat, label: "المتابعات", path: "/followups" },
   { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
   { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
-  { icon: FlaskConical, label: "إدارة الأدوية والفحوصات", path: "/tests" },
+  { icon: FlaskConical, label: "الأدوية والفحوصات", path: "/medications-tests" },
+  {
+    label: "العيادة والمرضى",
+    items: [
+      { icon: Users, label: "المرضى", path: "/patients" },
+      { icon: FileText, label: "ملف المريض", path: "/patient-file" },
+      { icon: Eye, label: "الفحوصات", path: "/examination" },
+      { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+      { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
+      { icon: Pill, label: "الروشتات", path: "/prescriptions" },
+      { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
+      { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
+      { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
+    ],
+  },
   {
     label: "إدارة المستخدمين والخدمات",
     items: [
+      { icon: LayoutGrid, label: "مركز الإدارة", path: "/admin-hub" },
       { icon: Users, label: "الموظفين", path: "/admin/users" },
       { icon: Stethoscope, label: "الأطباء", path: "/admin/doctors" },
       { icon: Settings, label: "الخدمات", path: "/admin/services" },
@@ -47,17 +65,22 @@ export const adminNavGroups: NavGroup[] = [
   { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
 ];
 
-/** Non-admin quick links. */
+/** روابط الموظفين — بدون مركز سير العمل؛ مطابقة للويب قدر الإمكان */
 export const staffQuickNav: NavLeaf[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard" },
-  { icon: LayoutGrid, label: "مركز سير العمل", path: "/workflow-hub" },
   { icon: Clock, label: "مرضى اليوم", path: "/today" },
   { icon: Syringe, label: "العمليات", path: "/operations" },
   { icon: Repeat, label: "المتابعات", path: "/followups" },
   { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
   { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
+  { icon: FlaskConical, label: "الأدوية والفحوصات", path: "/medications-tests" },
   { icon: Pill, label: "الروشتات", path: "/prescriptions" },
   { icon: Users, label: "المرضى", path: "/patients" },
   { icon: FileText, label: "ملف المريض", path: "/patient-file" },
   { icon: Eye, label: "الفحوصات", path: "/examination" },
+  { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+  { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
+  { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
+  { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
+  { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
 ];

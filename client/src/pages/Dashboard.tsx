@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { useMedicalFileLauncher } from '@/hooks/useMedicalFileLauncher'
+import { useAuth } from '@/hooks/useAuth'
 import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { AppointmentsSection } from '@/components/dashboard/appointments-activity'
 import { CollapsibleSection } from '@/components/shared/CollapsibleSection'
@@ -169,12 +170,15 @@ function MedicalStats() {
 
 export default function Dashboard() {
   const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } = useMedicalFileLauncher()
+  const { user } = useAuth()
+  const showAdminKpis = String(user?.role ?? '').toLowerCase() === 'admin'
 
   return (
     <div className="max-w-[1440px] mx-auto w-full space-y-3 sm:space-y-4">
       {medicalFilePortal}
       <QuickActions onOpenMeasurementsMedicalFile={openMedicalFilePicker} />
 
+      {showAdminKpis ? (
       <CollapsibleSection
         title="المؤشرات الرئيسية"
         icon={<IconWrap color="bg-primary/10 text-primary"><TrendingUp className="h-3.5 w-3.5" /></IconWrap>}
@@ -255,6 +259,7 @@ export default function Dashboard() {
           </section>
         </CardContent>
       </CollapsibleSection>
+      ) : null}
 
       <CollapsibleSection
         title="مرضى اليوم و العمليات"

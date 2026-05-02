@@ -6,8 +6,7 @@ async function main() {
   let updated = 0;
 
   for (const user of users) {
-    const roleDefaults = await db.getRoleDefaultPermissions(user.role);
-    await db.setUserPermissions(user.id, roleDefaults);
+    await db.setUserPermissions(user.id, [], { emptyMode: "inherit" });
     updated += 1;
   }
 

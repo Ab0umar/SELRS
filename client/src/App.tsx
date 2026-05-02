@@ -7,6 +7,7 @@ import { getApiUrl } from "./const";
 import { type RuntimeIssue } from "./components/AppShellStatus";
 import MobileAppEnhancements from "./components/MobileAppEnhancements";
 import WebAppEnhancements from "./components/WebAppEnhancements";
+import GlobalCommandPalette from "./components/GlobalCommandPalette";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -107,7 +108,6 @@ const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/patient-summary", label: "التقرير المجمع" },
   { pathPrefix: "/medical-reports", label: "التقارير الطبية" },
   { pathPrefix: "/examination", label: "الفحوصات" },
-  { pathPrefix: "/workflow-hub", label: "مركز سير العمل" },
   { pathPrefix: "/quick-entry", label: "دخول سريع" },
   { pathPrefix: "/new-cases", label: "حالات جديدة" },
   { pathPrefix: "/followups", label: "المتابعات" },
@@ -778,6 +778,7 @@ function App() {
         switchable
       >
         <TooltipProvider>
+          <GlobalCommandPalette />
           {isNativeShell ? (
             <MobileAppEnhancements nativeAppInfo={nativeAppInfo} />
           ) : (

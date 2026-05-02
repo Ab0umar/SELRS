@@ -90,24 +90,12 @@ function appointmentStatusAr(s: string | null | undefined) {
   return "مجدول";
 }
 
-const TODAY_PATIENTS_DATE_KEY = "selrs:today-patients-date";
-
 function isYmd(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
-function readStoredTodayPatientsDate(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(TODAY_PATIENTS_DATE_KEY);
-    return raw && isYmd(raw) ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-function initialTodayPatientsDate() {
-  return readStoredTodayPatientsDate() ?? new Date().toISOString().split("T")[0];
+function todayIsoDate() {
+  return new Date().toISOString().split("T")[0];
 }
 
 export function AppointmentsSection({
@@ -116,16 +104,11 @@ export function AppointmentsSection({
   onOpenMeasurementsMedicalFile?: (patientId: number) => void;
 } = {}) {
   const [shortcutPatient, setShortcutPatient] = useState<TodayQueuePatient | null>(null);
-  const [selectedDate, setSelectedDate] = useState(initialTodayPatientsDate);
+  const [selectedDate, setSelectedDate] = useState(todayIsoDate);
 
   const setTodayPatientsDate = (ymd: string) => {
     if (!isYmd(ymd)) return;
     setSelectedDate(ymd);
-    try {
-      localStorage.setItem(TODAY_PATIENTS_DATE_KEY, ymd);
-    } catch {
-      /* ignore quota / private mode */
-    }
   };
 
   const [mainTab, setMainTab] = useState<MainTab>("patients");
@@ -379,8 +362,8 @@ function QueuePatientCard({
     >
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-semibold leading-snug sm:text-sm">{patient.fullName ?? "—"}</p>
-          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground sm:text-xs">{patient.doctorName ?? "—"}</p>
+          <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">{patient.fullName ?? "—"}</p>
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-foreground/80 sm:text-xs sm:text-muted-foreground">{patient.doctorName ?? "—"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {st === "treated" ? (

@@ -93,25 +93,25 @@
 }
 
 .dark {
-  /* Dark Mode - Solid Black */
+  /* Material black — flat canvas (aligned with mobile bundle) */
   --background: #000000;
-  --foreground: #FFFFFF;
-  --card: #111111;
-  --card-foreground: #FFFFFF;
-  --popover: #111111;
-  --popover-foreground: #FFFFFF;
+  --foreground: #e8eaed;
+  --card: #000000;
+  --card-foreground: #e8eaed;
+  --popover: #000000;
+  --popover-foreground: #e8eaed;
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
-  --secondary: #FF9500;
-  --secondary-foreground: #000000;
-  --muted: #1A1A1A;
-  --muted-foreground: #E5E7EB;
+  --secondary: #121212;
+  --secondary-foreground: #e8eaed;
+  --muted: #121212;
+  --muted-foreground: #9aa0a6;
   --accent: #FF9500;
   --accent-foreground: #000000;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #333333;
-  --input: #1A1A1A;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
   --ring: #FF9500;
 
   --chart-1: #003D82;
@@ -120,13 +120,13 @@
   --chart-4: #FFB84D;
   --chart-5: #FFD699;
 
-  --sidebar: #111111;
-  --sidebar-foreground: #FFFFFF;
+  --sidebar: #000000;
+  --sidebar-foreground: #e8eaed;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #333333;
+  --sidebar-accent: #121212;
+  --sidebar-accent-foreground: #e8eaed;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #FF9500;
 }
 
@@ -883,9 +883,9 @@ select {
 }
 
 .dark .selrs-login-bg {
-  background-image:
-    radial-gradient(circle at top, rgba(255, 149, 0, 0.12) 0%, rgba(255, 149, 0, 0.04) 24%, transparent 50%),
-    linear-gradient(135deg, #000000 0%, #111111 50%, #1A1A1A 100%);
+  background-image: none;
+  background-color: var(--background);
+  background-attachment: scroll;
 }
 
 .selrs-glass-card {

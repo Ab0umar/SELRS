@@ -6412,12 +6412,12 @@ export const medicalRouter = router({
           message: "Failed to create user - no ID returned from database"
         });
       }
-      const createdRole = input.role ?? "reception";
-      const roleDefaults = await db.getRoleDefaultPermissions(createdRole);
-      const pageIds = input.writeToMssql
-        ? Array.from(new Set([...roleDefaults, "/ops/mssql-add"]))
-        : roleDefaults;
-      await db.setUserPermissions(createdUserId, pageIds, { emptyMode: "inherit" });
+      const extras = input.writeToMssql ? ["/ops/mssql-add"] : [];
+      await db.setUserPermissions(
+        createdUserId,
+        extras,
+        extras.length > 0 ? { emptyMode: "inherit", nonEmptyMode: "inherit_extras" } : { emptyMode: "inherit" },
+      );
       await db.logAuditEvent(ctx.user.id, "CREATE_USER", "user", 0, { username: input.username });
       return { success: true, userId: createdUserId };
     }),
@@ -6434,8 +6434,7 @@ export const medicalRouter = router({
       }
       await db.updateUser(input.userId, updates);
       if (typeof updates.role === "string" && updates.role.trim().length > 0) {
-        const roleDefaults = await db.getRoleDefaultPermissions(updates.role);
-        await db.setUserPermissions(input.userId, roleDefaults, { emptyMode: "inherit" });
+        await db.setUserPermissions(input.userId, [], { emptyMode: "inherit" });
       }
       await db.logAuditEvent(ctx.user.id, "UPDATE_USER", "user", input.userId, { updates: Object.keys(input.updates) });
       return { success: true };
@@ -6493,10 +6492,10 @@ export const medicalRouter = router({
         const previousRolePermissions = previousPermissions[role] ?? [];
         const nextRolePermissions = nextPermissions[role] ?? [];
         const currentUserPermissions = await db.getUserPermissionState(user.id);
-        if (
-          !currentUserPermissions.hasExplicitEmptyOverride &&
-          db.arePermissionListsEqual(currentUserPermissions.pageIds, previousRolePermissions)
-        ) {
+        if (currentUserPermissions.hasExplicitEmptyOverride) continue;
+        if (!currentUserPermissions.hasOverride) continue;
+        if (currentUserPermissions.hasInheritExtrasMarker) continue;
+        if (db.userPermissionsMirrorTeamSnapshot(currentUserPermissions.pageIds, previousRolePermissions)) {
           await db.setUserPermissions(user.id, nextRolePermissions, { emptyMode: "inherit" });
         }
       }
@@ -6510,11 +6509,26 @@ export const medicalRouter = router({
     .input(z.object({
       userId: z.number(),
       pageIds: z.array(z.string()),
+      /** Empty list: inherit live role (clear overrides) vs explicit deny-all */
+      whenEmpty: z.enum(["inherit", "explicit_deny"]).optional(),
+      /** Non-empty: full replace vs extras merged with live role */
+      nonEmptyStorage: z.enum(["replace", "inherit_extras"]).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Use explicit mode so even empty permission lists override role defaults
-      await db.setUserPermissions(input.userId, input.pageIds, { emptyMode: "explicit" });
-      await db.logAuditEvent(ctx.user.id, "SET_USER_PERMISSIONS", "user", input.userId, { count: input.pageIds.length });
+      const normalized = db.normalizePermissionList(input.pageIds);
+
+      if (normalized.length === 0) {
+        const whenEmpty = input.whenEmpty ?? "explicit_deny";
+        await db.setUserPermissions(input.userId, [], {
+          emptyMode: whenEmpty === "inherit" ? "inherit" : "explicit",
+        });
+      } else {
+        await db.setUserPermissions(input.userId, normalized, {
+          emptyMode: "explicit",
+          nonEmptyMode: input.nonEmptyStorage ?? "replace",
+        });
+      }
+      await db.logAuditEvent(ctx.user.id, "SET_USER_PERMISSIONS", "user", input.userId, { count: normalized.length });
       return { success: true };
     }),
 

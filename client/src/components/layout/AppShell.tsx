@@ -29,7 +29,6 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
 
   useEffect(() => {
     if (!isMobile || hideSidebar) return;
-    // RTL layout: sidebar is on the RIGHT. Swipe left from right edge → open. Swipe right → close.
     const EDGE_PX = 32;
     const MIN_SWIPE_PX = 48;
 
@@ -45,7 +44,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       const endY = e.changedTouches[0].clientY;
       const dx = endX - start.x;
       const dy = endY - start.y;
-      if (Math.abs(dy) > Math.abs(dx) * 1.5) return; // mostly vertical — ignore
+      if (Math.abs(dy) > Math.abs(dx) * 1.5) return;
       const viewWidth = window.innerWidth;
       if (!mobileNavOpen && start.x > viewWidth - EDGE_PX && dx < -MIN_SWIPE_PX) {
         setMobileNavOpen(true);

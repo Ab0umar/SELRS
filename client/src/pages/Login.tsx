@@ -1,4 +1,2 @@
-import Home from "./Home";
-
-export default Home;
-
+/** Auth screen: shared implementation lives in `Home.tsx` (used for `/` and `/login`). */
+export { default } from "./Home";

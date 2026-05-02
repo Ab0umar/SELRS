@@ -20,8 +20,6 @@ import {
   User,
   LogOut,
 } from "lucide-react";
-import { BrandLogo } from "@/components/BrandLogo";
-import { BRAND_NAME_AR } from "@/lib/brand";
 
 export type AppHeaderProps = {
   userName: string;
@@ -65,7 +63,7 @@ export function AppHeader({
     : "";
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-background print:hidden md:bg-background/90 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/75">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top)] print:hidden md:bg-background/90 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/75">
       <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
 
       {/* LTR صف واحد: يسار = حساب + المود، الوسط = بحث، يمين = التاريخ (ثابت بصرياً بغض النظر عن اتجاه الصفحة) */}
@@ -73,16 +71,6 @@ export function AppHeader({
         className="flex h-14 w-full min-w-0 flex-row items-center gap-2 px-3 md:gap-3 md:px-6"
         dir="ltr"
       >
-        <button
-          type="button"
-          className="flex shrink-0 cursor-pointer items-center gap-2 md:hidden"
-          onClick={onHome}
-          aria-label="الصفحة الرئيسية"
-        >
-          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-white" />
-          <span className="text-sm font-black tracking-tight">{BRAND_NAME_AR}</span>
-        </button>
-
         <div className="flex shrink-0 items-center gap-1.5">
           <Button
             type="button"

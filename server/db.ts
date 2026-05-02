@@ -3860,13 +3860,17 @@ type TeamRole = "admin" | "manager" | "accountant" | "doctor" | "nurse" | "techn
 type TeamPermissionsMap = Record<TeamRole, string[]>;
 type UserPermissionSetOptions = {
   emptyMode?: "inherit" | "explicit";
+  /** Non-empty list only: default "replace" (full explicit list). "inherit_extras" unions paths with live role defaults in getEffectiveUserPermissions. */
+  nonEmptyMode?: "replace" | "inherit_extras";
 };
 
 const TEAM_PERMISSION_ROLES: TeamRole[] = ["admin", "manager", "accountant", "doctor", "nurse", "technician", "reception"];
 const TEAM_PERMISSIONS_SETTING_KEY = "team_permissions_v1";
 const EMPTY_PERMISSION_OVERRIDE = "__EMPTY_PERMISSION_OVERRIDE__";
+/** When present with optional paths, effective permissions = live role defaults ∪ stored paths (extras only). */
+const INHERIT_WITH_EXTRAS_MARKER = "__INHERIT_WITH_EXTRAS__";
 
-function normalizePermissionList(value: Iterable<unknown>) {
+export function normalizePermissionList(value: Iterable<unknown>) {
   return Array.from(
     new Set(
       Array.from(value)
@@ -3883,6 +3887,21 @@ export function arePermissionListsEqual(left: Iterable<unknown>, right: Iterable
   return leftNormalized.every((entry, index) => entry === rightNormalized[index]);
 }
 
+/** Strip :r / :rw suffixes so team defaults (from Admin Permissions) match user rows saved as bare paths (from Admin Users). */
+export function normalizePermissionPathsForTeamMirror(paths: Iterable<unknown>): string[] {
+  return normalizePermissionList(
+    Array.from(paths, (p) => String(p ?? "").trim().replace(/:r[w]?$/i, "")),
+  );
+}
+
+/** True when this user's stored permissions are the same access set as the previous team snapshot for their role (sync target). */
+export function userPermissionsMirrorTeamSnapshot(userPages: string[], teamPages: string[]): boolean {
+  return arePermissionListsEqual(
+    normalizePermissionPathsForTeamMirror(userPages),
+    normalizePermissionPathsForTeamMirror(teamPages),
+  );
+}
+
 export async function getUserPermissionState(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -3892,10 +3911,15 @@ export async function getUserPermissionState(userId: number) {
     .map((row) => String(row.pageId ?? "").trim())
     .filter((pageId) => pageId.length > 0);
   const hasExplicitEmptyOverride = rawPageIds.includes(EMPTY_PERMISSION_OVERRIDE);
+  const hasInheritExtrasMarker = rawPageIds.includes(INHERIT_WITH_EXTRAS_MARKER);
+  const pageIds = rawPageIds.filter(
+    (pageId) => pageId !== EMPTY_PERMISSION_OVERRIDE && pageId !== INHERIT_WITH_EXTRAS_MARKER,
+  );
   return {
     hasOverride: rawPageIds.length > 0,
     hasExplicitEmptyOverride,
-    pageIds: rawPageIds.filter((pageId) => pageId !== EMPTY_PERMISSION_OVERRIDE),
+    hasInheritExtrasMarker,
+    pageIds,
   };
 }
 
@@ -3958,10 +3982,16 @@ export async function getRoleDefaultPermissions(role?: string) {
 export async function getEffectiveUserPermissions(userId: number, role?: string) {
   const directPermissions = await getUserPermissionState(userId);
   const inherited = await getRoleDefaultPermissions(role);
-  if (directPermissions.hasOverride) {
-    return Array.from(new Set(directPermissions.pageIds));
+  if (directPermissions.hasExplicitEmptyOverride) {
+    return normalizePermissionList([]);
   }
-  return Array.from(new Set(inherited));
+  if (!directPermissions.hasOverride) {
+    return normalizePermissionList(inherited);
+  }
+  if (directPermissions.hasInheritExtrasMarker) {
+    return normalizePermissionList([...inherited, ...directPermissions.pageIds]);
+  }
+  return normalizePermissionList(directPermissions.pageIds);
 }
 
 export async function setUserPermissions(userId: number, pageIds: string[], options: UserPermissionSetOptions = {}) {
@@ -3981,11 +4011,18 @@ export async function setUserPermissions(userId: number, pageIds: string[], opti
     return;
   }
 
-  await db.insert(userPermissions).values(cleanedPageIds.map((pageId) => ({
-    userId,
-    pageId,
-    createdAt: new Date(),
-  })));
+  const toPersist =
+    options.nonEmptyMode === "inherit_extras"
+      ? [INHERIT_WITH_EXTRAS_MARKER, ...cleanedPageIds]
+      : cleanedPageIds;
+
+  await db.insert(userPermissions).values(
+    toPersist.map((pageId) => ({
+      userId,
+      pageId,
+      createdAt: new Date(),
+    })),
+  );
 }
 
 // ============ SHEET ENTRIES ============

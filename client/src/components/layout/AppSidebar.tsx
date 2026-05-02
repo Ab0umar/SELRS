@@ -130,8 +130,9 @@ export function AppSidebar({
 
   const sidebarInner = (
     <div
+      dir="rtl"
       className="flex h-full min-h-0 flex-col overflow-hidden border-e border-border/80 bg-sidebar text-sidebar-foreground"
-      style={{ width: isMobile ? "100%" : collapsed ? 56 : sidebarWidth }}
+      style={{ width: isMobile ? "max-content" : collapsed ? 56 : sidebarWidth }}
     >
       <div className="h-1 selrs-gradient-bar shrink-0" aria-hidden />
       <div className={cn("flex h-14 shrink-0 items-center border-b border-border/80 bg-sidebar", collapsed && !isMobile ? "justify-center px-1" : "justify-between gap-1 px-3")}>
@@ -294,7 +295,8 @@ export function AppSidebar({
           onClick={() => onMobileOpenChange(false)}
         />
         <aside
-          className="fixed inset-y-0 right-0 z-[210] flex min-w-0 w-[min(88vw,16rem)] max-w-[16rem] flex-col overflow-hidden border-s border-border bg-sidebar text-sidebar-foreground shadow-2xl print:hidden"
+          dir="rtl"
+          className="fixed inset-y-0 right-0 z-[210] flex w-max min-w-[10.25rem] max-w-[min(88vw,14rem)] flex-col overflow-hidden border-s border-border bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground shadow-2xl print:hidden"
           role="dialog"
           aria-modal="true"
         >

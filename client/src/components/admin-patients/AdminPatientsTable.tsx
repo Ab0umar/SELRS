@@ -189,12 +189,12 @@ export function AdminPatientsTable({
                 {/* Info grid */}
                 <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-2 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
                   <div className="text-muted-foreground">الطبيب</div>
-                  <div>
+                  <div className="text-foreground">
                     <Select
                       value={draft.treatingDoctor || "__empty__"}
                       onValueChange={(value) => onSetDraftField(patient, "treatingDoctor", value === "__empty__" ? "" : value)}
                     >
-                      <SelectTrigger className="h-7 rounded-lg text-xs">
+                      <SelectTrigger className="h-7 rounded-lg text-xs text-foreground">
                         <SelectValue placeholder="اختر طبيباً" />
                       </SelectTrigger>
                       <SelectContent>
@@ -206,9 +206,9 @@ export function AdminPatientsTable({
                     </Select>
                   </div>
                   <div className="text-muted-foreground">نوع الخدمة</div>
-                  <div>
+                  <div className="text-foreground">
                     <Select value={draft.serviceType} onValueChange={(value) => onSetDraftField(patient, "serviceType", value)}>
-                      <SelectTrigger className="h-7 rounded-lg text-xs">
+                      <SelectTrigger className="h-7 rounded-lg text-xs text-foreground">
                         <SelectValue placeholder="نوع الشيت" />
                       </SelectTrigger>
                       <SelectContent>

@@ -496,9 +496,9 @@
   }
 
   .dark .selrs-login-bg {
-    background-image:
-      radial-gradient(circle at top, rgba(255, 149, 0, 0.12) 0%, rgba(255, 149, 0, 0.04) 24%, transparent 50%),
-      linear-gradient(135deg, #000000 0%, #111111 50%, #1A1A1A 100%);
+    background-image: none;
+    background-color: var(--background);
+    background-attachment: scroll;
   }
 
   .selrs-glass-card {

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { PAGE_PERMISSION_DEFINITIONS as PAGE_PERMISSIONS } from "@/lib/page-permissions";
 
 type TeamRole =
   | "admin"
@@ -48,49 +49,6 @@ const ROLE_UI_ORDER: TeamRole[] = ["manager", "doctor", "reception", "nurse", "t
 
 const ROLE_FILTER_OPTIONS = ROLE_UI_ORDER.map((r) => ({ value: r, label: ROLE_LABELS_AR[r] }));
 
-const PAGE_PERMISSIONS = [
-  { id: "/dashboard", label: "Dashboard" },
-  { id: "/patient-data/edit", label: "Edit Patient Data (Dashboard / Examination)" },
-  { id: "/patients", label: "Patients" },
-  { id: "/patients/:id", label: "Patient Details" },
-  { id: "/patient-file", label: "Medical File" },
-  { id: "/examination", label: "Examinations" },
-  { id: "/operations", label: "Operations / Operation List" },
-  { id: "/operations/accounts", label: "Operations - Accounts" },
-  { id: "/medical-reports", label: "Medical Reports" },
-  { id: "/patient-summary", label: "Patient Summary Report" },
-  { id: "/sheets/consultant/:id", label: "Consultant Sheet" },
-  { id: "/sheets/specialist/:id", label: "Specialist Sheet" },
-  { id: "/sheets/lasik/:id", label: "Lasik Sheet" },
-  { id: "/sheets/external/:id", label: "External Sheet" },
-  { id: "/medications", label: "Medications & Tests" },
-  { id: "/prescription", label: "Prescription" },
-  { id: "/prescriptions", label: "Prescriptions Hub (جدول)" },
-  { id: "/refraction/:id", label: "Refraction Page" },
-  { id: "/tests", label: "Tests Management" },
-  { id: "/examinations/catalog", label: "Examinations catalog (كتالوج الفحوصات)" },
-  { id: "/txhub", label: "TXhub (تحاليل وأشعة)" },
-  { id: "/request-tests", label: "Request Tests" },
-  { id: "/quick-entry", label: "Quick Patient Entry" },
-  { id: "/doctor/patient/:id", label: "Doctor Patient View" },
-  { id: "/visits", label: "Patient Visits" },
-  { id: "/followup/:id", label: "Followup Form" },
-  { id: "/followups", label: "Followups List" },
-  { id: "/new-cases", label: "New Cases" },
-  { id: "/admin/users", label: "Admin Users" },
-  { id: "/admin/permissions", label: "Admin Permissions" },
-  { id: "/admin/doctors", label: "Admin Doctors" },
-  { id: "/admin/settings", label: "Admin Settings" },
-  { id: "/admin/sheets", label: "Admin Sheets" },
-  { id: "/admin/sheet-designer", label: "Admin Sheet Designer" },
-  { id: "/admin/migrations", label: "Admin Migrations" },
-  { id: "/admin/status", label: "Admin Status" },
-  { id: "/admin/api-tools", label: "Admin API Tools" },
-  { id: "/admin/settings/pricing-rules", label: "Appointments Pricing Rules (Page)" },
-  { id: "appointments_pricing_v1", label: "Appointments Pricing Rules (Key)" },
-  { id: "/ops/mssql-add", label: "MSSQL Adding (Create Patient Sync)" },
-] as const;
-
 function getLevel(permissions: string[], pageId: string): AccessLevel {
   const rw = permissions.find((e) => e === `${pageId}:rw`);
   if (rw) return "rw";
@@ -121,6 +79,7 @@ export default function AdminPermissions() {
     onSuccess: () => {
       toast.success("تم تحديث صلاحيات الأدوار.");
       void utils.medical.getTeamPermissions.invalidate();
+      void utils.medical.getMyPermissions.invalidate();
     },
     onError: () => {
       toast.error("تعذر حفظ الصلاحيات.");

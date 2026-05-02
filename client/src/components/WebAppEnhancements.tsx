@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { type NativeAppInfo } from "@/lib/appRuntime";
@@ -222,7 +221,6 @@ export default function WebAppEnhancements({ nativeAppInfo }: { nativeAppInfo: N
     <>
       <AppNotificationsBridge />
       <AppNotificationPanel />
-      <GlobalCommandPalette />
     </>
   );
 }

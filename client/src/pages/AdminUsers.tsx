@@ -17,6 +17,7 @@ import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
 type UserRole = "admin" | "doctor" | "nurse" | "technician" | "reception" | "manager" | "accountant";
 type UserBranch = "examinations" | "surgery" | "both";
 type TeamPermissionsMap = Record<UserRole, string[]>;
@@ -117,46 +118,8 @@ function shiftLabelAr(s: 1 | 2): string {
   return s === 2 ? "مساء (2)" : "صباح (1)";
 }
 
-const PAGE_PERMISSIONS = [
-  { id: "/dashboard", label: "Dashboard" },
-  { id: "/patient-data/edit", label: "Edit Patient Data (Dashboard / Examination)" },
-  { id: "/patients", label: "Patients" },
-  { id: "/patients/:id", label: "Patient Details" },
-  { id: "/patient-file", label: "Medical File" },
-  { id: "/examination", label: "Examination" },
-  { id: "/operations", label: "Operations" },
-  { id: "/operations/accounts", label: "Operations - Accounts" },
-  { id: "/medical-reports", label: "Medical Reports" },
-  { id: "/patient-summary", label: "Patient Summary Report" },
-  { id: "/sheets/consultant/:id", label: "Consultant Sheet" },
-  { id: "/sheets/specialist/:id", label: "Specialist Sheet" },
-  { id: "/sheets/lasik/:id", label: "Lasik Sheet" },
-  { id: "/sheets/external/:id", label: "External Sheet" },
-  { id: "/medications", label: "Medications" },
-  { id: "/prescription", label: "Prescription" },
-  { id: "/prescriptions", label: "Prescriptions Hub (جدول)" },
-  { id: "/refraction/:id", label: "Refraction Page" },
-  { id: "/tests", label: "Tests Management" },
-  { id: "/request-tests", label: "Request Tests" },
-  { id: "/quick-entry", label: "Quick Patient Entry" },
-  { id: "/doctor/patient/:id", label: "Doctor Patient View" },
-  { id: "/visits", label: "Patient Visits" },
-  { id: "/followup/:id", label: "Followup Form" },
-  { id: "/followups", label: "Followups List" },
-  { id: "/new-cases", label: "New Cases" },
-  { id: "/admin/users", label: "Admin Users" },
-  { id: "/admin/migrations", label: "Admin Migrations" },
-  { id: "/admin/api-tools", label: "Admin API Tools" },
-  { id: "/admin/status", label: "Admin Status" },
-  { id: "/admin/settings", label: "Admin Settings" },
-  { id: "/admin/settings/pricing-rules", label: "Appointments Pricing Rules (Page)" },
-  { id: "appointments_pricing_v1", label: "Appointments Pricing Rules (Key)" },
-  { id: "/admin/sheets", label: "All Sheets" },
-  { id: "/admin/sheet-designer", label: "Sheet Designer" },
-  { id: "/admin/doctors", label: "Doctors" },
-  { id: "/admin/patients", label: "Admin Patients" },
-  { id: "/ops/mssql-add", label: "Write To MSSQL" },
-] as const;
+/** Checkbox list — synced with Admin Permissions (`lib/page-permissions`). */
+const PAGE_PERMISSIONS = PAGE_PERMISSION_DEFINITIONS;
 
 const DEFAULT_ROLE: UserRole = "doctor";
 const DEFAULT_BRANCH: UserBranch = "examinations";
@@ -172,6 +135,10 @@ const permissionListsEqual = (left: string[], right: string[]) => {
   const rightSorted = [...right].sort();
   return leftSorted.every((value, index) => value === rightSorted[index]);
 };
+
+function permissionBaseSet(paths: string[]): Set<string> {
+  return new Set(normalizePermissionIdsForCheckbox(paths));
+}
 
 export default function AdminUsers() {
   const { user, isAuthenticated } = useAuth();
@@ -423,26 +390,43 @@ export default function AdminUsers() {
       userId: editUserId,
       role: editUser.role,
       hasOverride: permissionStateQuery.data.hasOverride,
+      hasInheritExtrasMarker: permissionStateQuery.data.hasInheritExtrasMarker,
+      hasExplicitEmptyOverride: permissionStateQuery.data.hasExplicitEmptyOverride,
       pages: incomingPages.slice().sort(),
     });
     if (lastPermissionSyncRef.current === signature) return;
     lastPermissionSyncRef.current = signature;
 
-    if (permissionStateQuery.data.hasOverride) {
-      const nextWriteToMssql = incomingPages.includes(MSSQL_WRITE_PERMISSION);
-      setEditPermissions((prev) => (permissionListsEqual(prev, incomingPages) ? prev : incomingPages));
+    if (permissionStateQuery.data.hasExplicitEmptyOverride) {
+      setEditPermissions([]);
+      setEditUser((prev) => (prev.writeToMssql ? { ...prev, writeToMssql: false } : prev));
+      return;
+    }
+
+    if (!permissionStateQuery.data.hasOverride) {
+      const defaults = getRoleDefaults(editUser.role);
+      const nextWriteToMssql = defaults.includes(MSSQL_WRITE_PERMISSION);
+      setEditPermissions((prev) => (permissionListsEqual(prev, defaults) ? prev : defaults));
       setEditUser((prev) =>
-        prev.writeToMssql === nextWriteToMssql
-          ? prev
-          : { ...prev, writeToMssql: nextWriteToMssql }
+        prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
       );
       return;
     }
-    const defaults = getRoleDefaults(editUser.role);
-    const nextWriteToMssql = defaults.includes(MSSQL_WRITE_PERMISSION);
-    setEditPermissions((prev) => (permissionListsEqual(prev, defaults) ? prev : defaults));
+
+    if (permissionStateQuery.data.hasInheritExtrasMarker) {
+      const merged = normalizePermissionIdsForCheckbox([...getRoleDefaults(editUser.role), ...incomingPages]);
+      const nextWriteToMssql = merged.includes(MSSQL_WRITE_PERMISSION);
+      setEditPermissions((prev) => (permissionListsEqual(prev, merged) ? prev : merged));
+      setEditUser((prev) =>
+        prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
+      );
+      return;
+    }
+
+    const nextWriteToMssql = incomingPages.includes(MSSQL_WRITE_PERMISSION);
+    setEditPermissions((prev) => (permissionListsEqual(prev, incomingPages) ? prev : incomingPages));
     setEditUser((prev) =>
-      prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql }
+      prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
     );
   }, [permissionStateQuery.data, isEditOpen, editUserId, editUser.role]);
 
@@ -490,10 +474,37 @@ export default function AdminUsers() {
         ? Array.from(new Set([...editPermissions, MSSQL_WRITE_PERMISSION]))
         : editPermissions.filter((id) => id !== MSSQL_WRITE_PERMISSION);
 
-      await setUserPermissionsMutation.mutateAsync({
-        userId: editUserId,
-        pageIds: finalPermissions,
-      });
+      const defaultsNorm = getRoleDefaults(editUser.role);
+      const roleBases = permissionBaseSet(defaultsNorm);
+      const editBases = permissionBaseSet(finalPermissions);
+      const sameAsRole =
+        roleBases.size === editBases.size && [...roleBases].every((b) => editBases.has(b));
+
+      if (sameAsRole) {
+        await setUserPermissionsMutation.mutateAsync({
+          userId: editUserId,
+          pageIds: [],
+          whenEmpty: "inherit",
+        });
+      } else {
+        const roleSubsetOfEdit = [...roleBases].every((x) => editBases.has(x));
+        const strictSuperset = roleSubsetOfEdit && editBases.size > roleBases.size;
+
+        if (strictSuperset) {
+          const extras = finalPermissions.filter((id) => !roleBases.has(stripPermissionAccessSuffix(id)));
+          await setUserPermissionsMutation.mutateAsync({
+            userId: editUserId,
+            pageIds: extras,
+            nonEmptyStorage: "inherit_extras",
+          });
+        } else {
+          await setUserPermissionsMutation.mutateAsync({
+            userId: editUserId,
+            pageIds: finalPermissions,
+            nonEmptyStorage: "replace",
+          });
+        }
+      }
 
       setIsEditOpen(false);
       setEditUserId(null);

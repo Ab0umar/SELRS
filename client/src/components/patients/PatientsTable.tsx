@@ -290,18 +290,18 @@ export const PatientsTable = memo(function PatientsTable({
 
                 <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/40 p-3 text-xs">
                   <div className="text-muted-foreground">الكود</div>
-                  <div dir="ltr" className="text-right">{displayCode || "-"}</div>
+                  <div dir="ltr" className="text-right text-foreground">{displayCode || "-"}</div>
                   <div className="text-muted-foreground">الدكتور</div>
-                  <div className="text-right">{String((patient as any).treatingDoctor ?? "").trim() || "-"}</div>
+                  <div className="text-right text-foreground">{String((patient as any).treatingDoctor ?? "").trim() || "-"}</div>
                   <div className="text-muted-foreground">نوع الشيت</div>
-                  <div className="text-right">
+                  <div className="text-right text-foreground">
                     <span>{getSheetTypeLabel(getRowSheetType(patient))}</span>
                     <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {getSheetSourceLabel(getRowSheetSource(patient))}
                     </span>
                   </div>
                   <div className="text-muted-foreground">تاريخ فتح الملف</div>
-                  <div dir="ltr" className="text-right">{patient.lastVisit ? formatDisplayDate(patient.lastVisit) : ""}</div>
+                  <div dir="ltr" className="text-right text-foreground">{patient.lastVisit ? formatDisplayDate(patient.lastVisit) : ""}</div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
