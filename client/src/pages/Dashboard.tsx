@@ -9,6 +9,8 @@ import { Calendar, Clock, Activity, Eye, Stethoscope, FileText, Syringe, Trendin
 import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
+import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
+import { cn } from '@/lib/utils'
 
 const ChartLoading = () => <div className="h-[240px] bg-muted/30 animate-pulse rounded-lg" />
 const PatientTrendChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.PatientTrendChart })))
@@ -30,9 +32,9 @@ function TodayActivitySummary() {
     return (
       <div className="space-y-4 py-2">
         <p className="text-center text-xs text-muted-foreground">جاري التحميل…</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-3 sm:gap-3')}>
           {['a', 'b', 'c'].map((k) => (
-            <div key={k} className="h-14 animate-pulse rounded-lg bg-muted/40" />
+            <div key={k} className="h-14 min-w-[28%] shrink-0 animate-pulse rounded-lg bg-muted/40 sm:min-w-0" />
           ))}
         </div>
       </div>
@@ -47,9 +49,9 @@ function TodayActivitySummary() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-3 sm:gap-3')}>
         {stats.map((stat) => (
-          <div key={stat.label} className="text-center">
+          <div key={stat.label} className="min-w-[28%] shrink-0 text-center sm:min-w-0">
             <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center mx-auto mb-1.5`}>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </div>
@@ -149,9 +151,9 @@ function MedicalStats() {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-3')}>
       {stats.map((s) => (
-        <div key={s.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30">
+        <div key={s.label} className="flex min-w-[46%] shrink-0 items-center gap-2 rounded-lg bg-muted/30 p-2 sm:min-w-0 sm:gap-3 sm:p-2.5">
           <div className={`h-9 w-9 rounded-lg ${s.bg} flex items-center justify-center shrink-0`}>
             <s.icon className={`h-4 w-4 ${s.color}`} />
           </div>

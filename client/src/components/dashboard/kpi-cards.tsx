@@ -12,6 +12,7 @@ import {
   Stethoscope,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
 import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
 
@@ -94,11 +95,11 @@ export function KpiCards() {
   ]
 
   return (
-    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4')}>
       {kpis.map((item) => {
         const Icon = item.iconComponent
         return (
-          <Card key={item.title} className="relative overflow-hidden border-border">
+          <Card key={item.title} className="relative min-w-[9rem] shrink-0 overflow-hidden border-border sm:min-w-0">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {item.title}

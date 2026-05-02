@@ -1961,9 +1961,13 @@ export default function MedicalFilePanel({ patientId, onClose }: MedicalFilePane
                       ) : (
                         <>
                           <Tabs value={prescriptionTab} onValueChange={setPrescriptionTab} dir="rtl" className="mb-3">
-                            <TabsList className="w-full justify-start gap-2 overflow-x-hidden flex-nowrap">
+                            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1.5 bg-muted/50 p-1.5">
                               {READY_TABS.map((tab) => (
-                                <TabsTrigger key={tab} value={tab} className="text-xs whitespace-nowrap">
+                                <TabsTrigger
+                                  key={tab}
+                                  value={tab}
+                                  className="shrink-0 whitespace-normal px-2 py-1.5 text-[11px] leading-snug sm:text-xs"
+                                >
                                   {tab}
                                 </TabsTrigger>
                               ))}

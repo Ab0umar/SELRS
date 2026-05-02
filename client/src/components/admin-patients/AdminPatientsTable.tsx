@@ -127,7 +127,7 @@ export function AdminPatientsTable({
   return (
     <>
       {/* Mobile cards */}
-      <div className="space-y-2 sm:hidden" dir="rtl">
+      <div className="grid grid-cols-2 gap-2 sm:hidden" dir="rtl">
         {patientsLoading ? (
           <div className="py-10 text-center text-muted-foreground">جاري تحميل المرضى…</div>
         ) : visiblePatients.length === 0 ? (
@@ -152,7 +152,7 @@ export function AdminPatientsTable({
               <div
                 key={rowKey}
                 className={cn(
-                  "rounded-xl border border-border/80 bg-card p-3",
+                  "rounded-lg border border-border/80 bg-card p-2",
                   isUnsavedRow ? "border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/20" : undefined,
                 )}
               >

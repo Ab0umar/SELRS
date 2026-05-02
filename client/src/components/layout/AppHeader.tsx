@@ -65,7 +65,7 @@ export function AppHeader({
     : "";
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-background print:hidden md:bg-background/90 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/75">
       <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
 
       {/* LTR صف واحد: يسار = حساب + المود، الوسط = بحث، يمين = التاريخ (ثابت بصرياً بغض النظر عن اتجاه الصفحة) */}

@@ -12,8 +12,9 @@ import { getMobileQaEnabled, setMobileQaEnabled } from "@/lib/mobileQa";
 import { getApiOrigin, getApiUrl } from "@/const";
 import { Activity, CheckCircle2, Database, HardDrive, RefreshCw, Server, Timer, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { requestAppReload } from "@/lib/appRuntime";
+import { cn } from "@/lib/utils";
 
 type HealthState = {
   ok: boolean;
@@ -242,7 +243,7 @@ export default function AdminStatus() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
         <StatCard
           title="حالة الخادم"
           value={opsHealthQuery.isLoading ? "…" : serverOk ? "متصل" : "غير متصل"}

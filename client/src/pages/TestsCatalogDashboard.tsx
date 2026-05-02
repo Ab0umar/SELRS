@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -256,7 +256,13 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
           }
         />
 
-        <div className={cn("grid gap-3 mb-5", isTx ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3")}>
+        <div
+          className={cn(
+            STAT_CARDS_MOBILE_ROW,
+            "mb-5 gap-2 sm:gap-4",
+            isTx ? "sm:grid sm:grid-cols-2 lg:grid-cols-4" : "sm:grid sm:grid-cols-3",
+          )}
+        >
           <StatCard title={isTx ? "إجمالي التحاليل والأشعة" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary/10 text-primary" />
           <StatCard title="فعالة" value={stats.active} icon={CheckCircle2} iconColor="bg-emerald-500/10 text-emerald-600" />
           <StatCard title="معطلة" value={stats.inactive} icon={XCircle} iconColor="bg-red-500/10 text-red-600" />

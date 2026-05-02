@@ -8,9 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { Clock, Database, ListChecks, RefreshCcw, Shield, Upload, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 
 type MigrationRow = {
   name: string;
@@ -126,7 +126,7 @@ export default function AdminMigrations() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
         <StatCard
           title="إجمالي السجلات"
           value={migrationTotal}

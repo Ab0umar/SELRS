@@ -28,7 +28,7 @@ import { formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { OfflinePageState } from "@/components/OfflinePageState";
@@ -804,7 +804,12 @@ export default function MedicalReports() {
           </div>
         ) : null}
 
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6 print:hidden">
+        <div
+          className={cn(
+            STAT_CARDS_MOBILE_ROW,
+            "mb-4 gap-2 print:hidden sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4 lg:grid-cols-6",
+          )}
+        >
           <StatCard
             title="إجمالي التقارير"
             value={overviewStats.total}

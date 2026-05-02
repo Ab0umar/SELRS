@@ -8,7 +8,8 @@ import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
+import { cn } from "@/lib/utils";
 import { AlertTriangle, CalendarCheck, CalendarDays, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -212,7 +213,7 @@ export default function Followups() {
         }
       />
 
-      <div className="mb-4 grid grid-cols-3 gap-3 sm:mb-6 sm:gap-4">
+      <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
         <StatCard
           title="إجمالي المتابعات"
           value={stats.total}

@@ -132,10 +132,14 @@
       linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
     background-attachment: fixed;
   }
+  .dark html {
+    background-color: var(--background);
+  }
+
   .dark body {
-    background-image:
-      radial-gradient(circle at top, rgba(56, 189, 248, 0.10), transparent 24%),
-      linear-gradient(180deg, #0b1220 0%, #111827 100%);
+    /* Native shell: single canvas color (no gradient banding vs cards) */
+    background-color: var(--background);
+    background-image: none;
   }
   body * {
     unicode-bidi: plaintext;
@@ -198,10 +202,12 @@
     background-color: color-mix(in oklch, var(--muted) 82%, transparent) !important;
   }
 
-  .dark [class*="bg-card"],
-  .dark [class*="bg-background"],
+  .dark [class*="bg-card"] {
+    background-color: color-mix(in oklch, var(--card) 96%, transparent) !important;
+  }
+
   .dark [class*="bg-muted"] {
-    background-color: color-mix(in oklch, var(--card) 94%, transparent) !important;
+    background-color: color-mix(in oklch, var(--muted) 88%, var(--background) 12%) !important;
   }
 
   .dark [class*="border-slate-100"],
@@ -238,6 +244,13 @@
   .dark [class*="shadow-sm"],
   .dark [class*="shadow-lg"] {
     box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28) !important;
+  }
+
+  /* App shell — match body canvas (no second gradient layer) */
+  .dark .selrs-page-bg {
+    background-color: var(--background);
+    background-image: none;
+    background-attachment: scroll;
   }
 }
 

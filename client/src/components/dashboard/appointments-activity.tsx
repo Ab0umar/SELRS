@@ -297,7 +297,7 @@ export function AppointmentsSection({
               لا يوجد مرضى في هذه الفئة
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
               {filteredPatients.map((patient) => (
                 <QueuePatientCard
                   key={`${patient.id}-${patient.queueStatus}`}
@@ -377,22 +377,22 @@ function QueuePatientCard({
         "cursor-pointer",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-snug">{patient.fullName ?? "—"}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{patient.doctorName ?? "—"}</p>
+          <p className="line-clamp-2 text-xs font-semibold leading-snug sm:text-sm">{patient.fullName ?? "—"}</p>
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground sm:text-xs">{patient.doctorName ?? "—"}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           {st === "treated" ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
           ) : null}
-          <Badge className={cn("text-[10px] sm:text-xs", queueStatusStyles[st])}>
+          <Badge className={cn("max-w-full truncate text-[10px] sm:text-xs", queueStatusStyles[st])}>
             {queueStatusLabelsAr[st] ?? st}
           </Badge>
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
-        <Badge variant="outline" className={cn("text-[10px]", serviceTypeStyles[patient.serviceType ?? ""])}>
+      <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border/50 pt-2 text-xs sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
+        <Badge variant="outline" className={cn("w-fit max-w-full truncate text-[10px]", serviceTypeStyles[patient.serviceType ?? ""])}>
           {serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—"}
         </Badge>
         <div className="flex items-center gap-1.5">

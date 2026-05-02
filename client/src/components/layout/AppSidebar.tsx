@@ -294,7 +294,7 @@ export function AppSidebar({
           onClick={() => onMobileOpenChange(false)}
         />
         <aside
-          className="fixed inset-y-0 right-0 z-[210] flex min-w-0 w-[min(100vw,20rem)] flex-col overflow-hidden border-s border-border bg-sidebar text-sidebar-foreground shadow-2xl print:hidden"
+          className="fixed inset-y-0 right-0 z-[210] flex min-w-0 w-[min(88vw,16rem)] max-w-[16rem] flex-col overflow-hidden border-s border-border bg-sidebar text-sidebar-foreground shadow-2xl print:hidden"
           role="dialog"
           aria-modal="true"
         >

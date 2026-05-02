@@ -243,7 +243,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           />
         ) : null}
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 md:p-4">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-background p-2 sm:p-3 md:p-4">
           <div className="mx-auto min-h-0 w-full max-w-[1600px] flex-1">{children}</div>
         </main>
       </div>

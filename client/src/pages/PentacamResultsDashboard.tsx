@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,7 +166,7 @@ export default function PentacamResultsDashboard() {
           }
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-5">
+        <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-2 sm:gap-4")}>
           <StatCard
             title="فحوصات اليوم"
             value={statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}

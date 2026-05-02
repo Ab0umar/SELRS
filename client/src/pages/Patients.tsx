@@ -8,7 +8,8 @@ import { PatientsTabs } from "@/components/patients/PatientsTabs";
 import { PatientsTable } from "@/components/patients/PatientsTable";
 import { usePatientsList } from "@/hooks/patients/usePatientsList";
 import { usePatientsActions } from "@/hooks/patients/usePatientsActions";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
+import { cn } from "@/lib/utils";
 import { Users, Stethoscope, Eye, CalendarCheck } from "lucide-react";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { OfflinePageState } from "@/components/OfflinePageState";
@@ -144,7 +145,7 @@ export default function Patients() {
         className="min-h-screen"
       >
         <main className="max-w-[1280px] mx-auto w-full px-4 py-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
             <StatCard title="إجمالي المرضى" value={currentPatients.length} icon={Users} iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400" />
             <StatCard title="القسم الحالي" value={filteredPatients.length} icon={Stethoscope} iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" />
             <StatCard title="المحدد" value={selectedCount} icon={Eye} iconColor="bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400" />

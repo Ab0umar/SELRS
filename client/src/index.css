@@ -186,6 +186,23 @@
   }
 }
 
+@media (max-width: 768px) {
+  .dark html {
+    background-color: var(--background) !important;
+  }
+
+  .dark body {
+    background-color: var(--background) !important;
+    background-image: none !important;
+  }
+
+  .dark .selrs-page-bg {
+    background-color: var(--background) !important;
+    background-image: none !important;
+    background-attachment: scroll !important;
+  }
+}
+
 @layer utilities {
   .scrollbar-none {
     scrollbar-width: none;

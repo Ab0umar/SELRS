@@ -3,6 +3,10 @@ import type { LucideIcon } from "lucide-react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Mobile: all summary cards in one horizontal row (scroll). From `sm`: use with `sm:grid sm:grid-cols-*`. */
+export const STAT_CARDS_MOBILE_ROW =
+  "flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:overflow-visible sm:pb-0";
+
 interface StatCardProps {
   title?: string;
   label?: string;
@@ -38,16 +42,29 @@ export function StatCard({
   const trendDir: "up" | "down" | null = isStringTrend ? trend : trendObj ? (trendObj.positive ? "up" : "down") : null;
 
   return (
-    <div className={cn("rounded-xl border bg-card p-3 shadow-sm", className)} dir="rtl">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-muted-foreground">{displayLabel}</span>
+    <div
+      className={cn(
+        "min-w-[5.75rem] max-w-[42vw] shrink-0 rounded-xl border bg-card p-2 shadow-sm sm:min-w-0 sm:max-w-none sm:shrink sm:p-3",
+        className,
+      )}
+      dir="rtl"
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-1 sm:mb-2">
+        <span className="line-clamp-2 min-w-0 text-[10px] font-semibold leading-tight text-muted-foreground sm:text-xs">
+          {displayLabel}
+        </span>
         {icon ? (
-          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", iconColor || "bg-primary/10 text-primary")}>
-            {IconComponent ? <IconComponent className="h-4 w-4" /> : (icon as ReactNode)}
+          <div
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8",
+              iconColor || "bg-primary/10 text-primary",
+            )}
+          >
+            {IconComponent ? <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : (icon as ReactNode)}
           </div>
         ) : null}
       </div>
-      <div className="text-lg font-black tracking-tight tabular-nums">{value}</div>
+      <div className="text-base font-black tabular-nums tracking-tight sm:text-lg">{value}</div>
       {trendDir || change || description ? (
         <div className="flex items-center gap-1.5 mt-1.5">
           {trendDir ? (

@@ -81,7 +81,7 @@ export default function WritePrescription() {
     { patientId: patientId ?? 0, page: "prescription" },
     { enabled: Boolean(patientId) && !isReadOnly, refetchOnWindowFocus: false }
   );
-  const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
+  const { mutate: savePatientPageState } = trpc.medical.savePatientPageState.useMutation();
   const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
     { scope: "prescription" },
     { refetchOnWindowFocus: false }
@@ -319,12 +319,12 @@ export default function WritePrescription() {
       prescriptionItems,
     };
     patientStateTimerRef.current = setTimeout(() => {
-      savePatientStateMutation.mutate({ patientId, page: "prescription", data: payload });
+      savePatientPageState({ patientId, page: "prescription", data: payload });
     }, 800);
     return () => {
       if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     };
-  }, [patientId, isReadOnly, prescriptionDate, generalNotes, medicationSearch, prescriptionItems, savePatientStateMutation]);
+  }, [patientId, isReadOnly, prescriptionDate, generalNotes, medicationSearch, prescriptionItems, savePatientPageState]);
 
   useEffect(() => {
     if (isReadOnly) return;

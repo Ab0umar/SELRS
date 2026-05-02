@@ -8,6 +8,19 @@ import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativ
 
 const isNativeCapacitorPlatform = () => Capacitor.isNativePlatform();
 
+/** Prefer PDF snapshot over browser print dialog on phones / narrow viewports. */
+function preferPdfOverBrowserPrint(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isNativeCapacitorPlatform()) return true;
+  if (window.matchMedia("(max-width: 768px)").matches) return true;
+  try {
+    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 type ExportElementToPdfOptions = {
   fileName: string;
   selector?: string;
@@ -436,13 +449,22 @@ export async function captureElementAsJpg({
 
 export async function printOrExportPdf(
   fileName: string,
-  options?: Omit<ExportElementToPdfOptions, "fileName">
+  options?: Omit<ExportElementToPdfOptions, "fileName"> & { forceBrowserPrint?: boolean },
 ) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return false;
   }
-  void fileName;
-  void options;
+
+  const selector = options?.selector ?? "[data-mobile-pdf-root]";
+
+  if (!options?.forceBrowserPrint && preferPdfOverBrowserPrint()) {
+    const ok = await exportElementToPdf({
+      fileName,
+      selector,
+      element: options?.element,
+    });
+    if (ok) return true;
+  }
 
   if (canUseNativeAndroidPrint()) {
     try {

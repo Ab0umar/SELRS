@@ -127,7 +127,7 @@ function ComboBoxField({
     <select
       value={effectiveValue}
       onChange={(event) => onChange(event.target.value)}
-      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+      className="flex h-8 w-full max-w-full rounded-md border border-input bg-background px-1 py-0.5 text-center text-xs shadow-xs sm:h-9 sm:px-2 sm:text-sm"
     >
       {allowEmpty ? <option value="">{placeholder}</option> : null}
       {!hasCurrent && effectiveValue ? <option value={effectiveValue}>{effectiveValue}</option> : null}
@@ -500,24 +500,24 @@ export default function RefractionPage() {
 
           <div className="refraction-print-wrapper">
             <div
-              className="refraction-print-card w-full bg-white text-black"
+              className="refraction-print-card w-full max-w-full overflow-x-auto bg-white text-black print:overflow-visible"
               dir="ltr"
-              style={{ border: "2px solid #2ea3f2", borderTop: "0", borderRadius: 14, padding: 12, textAlign: "center" }}
+              style={{ border: "2px solid #2ea3f2", borderTop: "0", borderRadius: 14, padding: 12, textAlign: "center", background: "#fff" }}
             >
-            <div className="grid grid-cols-2 gap-3 mb-2 text-sm font-semibold text-center">
-              <div className="text-left">
+            <div className="mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-2 sm:gap-3 sm:text-sm">
+              <div className="text-center sm:text-left">
                 <span>Name :</span>{" "}
-                <span>{String((patientQuery.data as any)?.fullName ?? "........................")}</span>
+                <span className="break-words">{String((patientQuery.data as any)?.fullName ?? "........................")}</span>
               </div>
-              <div className="text-right">Date : {todayLabel}</div>
+              <div className="text-center sm:text-right">Date : {todayLabel}</div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mb-3 text-sm font-semibold text-center">
-              <div className="text-left">Colour : ........................</div>
-              <div>
+            <div className="mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
+              <div className="text-center sm:text-left">Colour : ........................</div>
+              <div className="min-w-0">
                 <span className="hidden print:inline">V.A : {form.bcvaOD || "......."} / {form.bcvaOS || "......."}</span>
-                <span className="print:hidden inline-flex items-center gap-1">
+                <span className="print:hidden flex flex-wrap items-center justify-center gap-1 sm:inline-flex sm:justify-center">
                   <span>V.A :</span>
-                  <div className="w-20">
+                  <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
                     <ComboBoxField
                       value={form.bcvaOD}
                       options={UCVA_BCVA_OPTIONS}
@@ -525,7 +525,7 @@ export default function RefractionPage() {
                     />
                   </div>
                   <span>/</span>
-                  <div className="w-20">
+                  <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
                     <ComboBoxField
                       value={form.bcvaOS}
                       options={UCVA_BCVA_OPTIONS}
@@ -534,20 +534,20 @@ export default function RefractionPage() {
                   </div>
                 </span>
               </div>
-              <div className="text-right">
+              <div className="text-center sm:text-right">
                 <span className="hidden print:inline">P.D. : {form.pdOS || "......."}</span>
-                <span className="print:hidden inline-flex items-center gap-1">
+                <span className="print:hidden inline-flex flex-wrap items-center justify-center gap-1">
                   <span>P.D. :</span>
                   <Input
                     value={form.pdOS}
                     onChange={(e) => setForm((p) => ({ ...p, pdOS: e.target.value }))}
-                    className="h-8 w-24 text-center"
+                    className="h-8 w-full max-w-[6.5rem] text-center sm:w-24"
                   />
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <div className="text-center text-white font-bold py-1" style={{ background: "#2ea3f2", borderRadius: "8px 8px 0 0" }}>
                   RIGHT

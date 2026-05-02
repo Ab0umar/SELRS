@@ -102,26 +102,22 @@ export default function AdminPatients() {
                   <span>إحصائيات شهرية ({monthTitleKey})</span>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4">
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.monthStats.total}</p>
-                  </div>
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">المركز:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.monthStats.center}</p>
-                  </div>
+              <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible">
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.total}</p>
                 </div>
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.monthStats.external}</p>
-                  </div>
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.monthStats.lasik}</p>
-                  </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">المركز:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.center}</p>
+                </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.external}</p>
+                </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.lasik}</p>
                 </div>
               </div>
             </div>
@@ -132,26 +128,22 @@ export default function AdminPatients() {
                   <span>إحصائيات سنوية ({list.statsYear})</span>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4">
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.yearStats.total}</p>
-                  </div>
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">المركز:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.yearStats.center}</p>
-                  </div>
+              <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible">
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.total}</p>
                 </div>
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.yearStats.external}</p>
-                  </div>
-                  <div className="min-w-0 flex-1 text-end">
-                    <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums text-foreground">{list.yearStats.lasik}</p>
-                  </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">المركز:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.center}</p>
+                </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.external}</p>
+                </div>
+                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.lasik}</p>
                 </div>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Copy, Layers, PackageOpen, Pencil, Trash2, Archive, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -107,7 +107,7 @@ export default function AdminSheetCopies() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+      <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-3 sm:gap-4")}>
         <StatCard
           title="إجمالي النسخ"
           value={totalCopies}
