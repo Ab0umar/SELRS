@@ -159,9 +159,9 @@ origin_key.txt
 capacitor.conkfig.ts
 
 # Scrap/Old scripts folders
-scripts/New folder/
-scripts/New/ folder/
-scripts/New/
+scripts/others/
+scripts/Package.js/
+
 
 # Generated Android icons/outputs
 android/IconKitchen-Output/

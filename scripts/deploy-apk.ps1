@@ -20,7 +20,7 @@ try {
              pnpm build
        }
        { Write-Step "APK"
-       Set-Location E:\SELRS.cc\android
+       Set-Location E:\SRV100\android
     
         Write-Step "Syncing APK"
             npx cap sync android
