@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,15 @@ import { loadXlsx } from "@/lib/xlsx";
 type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
 type TestType = "examination" | "lab" | "imaging" | "other";
 
+const REGISTRY_TAB_VALUES = ["medications", "tests", "diseases", "symptoms"] as const;
+type RegistryTab = (typeof REGISTRY_TAB_VALUES)[number];
+
+function tabFromSearch(search: string): RegistryTab | null {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const t = params.get("tab");
+  return REGISTRY_TAB_VALUES.includes(t as RegistryTab) ? (t as RegistryTab) : null;
+}
+
 function medicationTypeLabel(type: string | undefined | null): string {
   const m: Record<string, string> = {
     drops: "قطرة",
@@ -52,6 +61,7 @@ function testTypeLabel(type: string | undefined | null): string {
 export default function MedicationsManagement() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const search = useSearch();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const testsFileRef = useRef<HTMLInputElement>(null);
@@ -59,8 +69,11 @@ export default function MedicationsManagement() {
   const symptomsFileRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const MEDICATIONS_TABS_PERSIST_KEY = "medications-management";
-  const [activeTab, setActiveTab] = useState<"medications" | "tests" | "diseases" | "symptoms">(() => {
-    if (typeof window === "undefined") return "medications";
+  const [activeTab, setActiveTab] = useState<RegistryTab>(() => {
+    if (typeof window !== "undefined") {
+      const fromUrl = tabFromSearch(window.location.search);
+      if (fromUrl) return fromUrl;
+    }
     try {
       const stored = localStorage.getItem(`tabs:${MEDICATIONS_TABS_PERSIST_KEY}`) || "";
       if (stored === "medications" || stored === "tests" || stored === "diseases" || stored === "symptoms") {
@@ -249,6 +262,7 @@ export default function MedicationsManagement() {
   }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
+    if (tabFromSearch(typeof window !== "undefined" ? window.location.search : "")) return;
     const raw = localStorage.getItem("user_state_medications");
     if (!raw) return;
     try {
@@ -262,6 +276,10 @@ export default function MedicationsManagement() {
   }, []);
 
   useEffect(() => {
+    if (tabFromSearch(typeof window !== "undefined" ? window.location.search : "")) {
+      didHydrateUserStateRef.current = true;
+      return;
+    }
     const data = (userStateQuery.data as { data?: { activeTab?: string } })?.data;
     if (!data) return;
     if (didHydrateUserStateRef.current) return;
@@ -270,6 +288,18 @@ export default function MedicationsManagement() {
     }
     didHydrateUserStateRef.current = true;
   }, [userStateQuery.data]);
+
+  /** Deep links: `/medications/registry?tab=diseases` — keep tab in sync with the address bar */
+  useEffect(() => {
+    const fromUrl = tabFromSearch(search);
+    if (fromUrl) setActiveTab(fromUrl);
+  }, [search]);
+
+  const handleRegistryTabChange = (v: string) => {
+    const tab = v as RegistryTab;
+    setActiveTab(tab);
+    setLocation(`/medications/registry?tab=${tab}`, { replace: true });
+  };
 
   useEffect(() => {
     const payload = { activeTab };
@@ -651,7 +681,7 @@ export default function MedicationsManagement() {
         icon={<Pill className="h-5 w-5" />}
       />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} persistKey="medications-management" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleRegistryTabChange} persistKey="medications-management" className="w-full">
         <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl border border-border bg-muted/30 p-1.5 sm:grid-cols-4">
           <TabsTrigger value="medications" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             الأدوية

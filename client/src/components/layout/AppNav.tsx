@@ -1,89 +1,104 @@
 /**
- * Typed navigation manifest for AppSidebar (plan: consumed by sidebar + optionally compact header strip).
+ * Typed navigation manifest for AppSidebar (web + mobile): collapsible groups, closed by default.
  */
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  AlertTriangle,
+  Bell,
   CalendarCheck,
   CircleDot,
   ClipboardList,
   Clock,
+  Copy,
+  Database,
   Eye,
   FileSpreadsheet,
   FileText,
   FlaskConical,
+  HeartPulse,
   LayoutGrid,
   Network,
+  Paintbrush,
   Pill,
   Repeat,
   Settings,
   Shield,
   Stethoscope,
   Syringe,
+  Terminal,
   TestTube2,
   UserRound,
   Users,
+  Webhook,
+  Wrench,
 } from "lucide-react";
 
 export type NavLeaf = { icon: LucideIcon; label: string; path: string };
 export type NavGroup = { label: string; items: NavLeaf[] } | (NavLeaf & { items?: undefined });
 
-/** لوحة الإدارة — محاذاة الويب: مجموعات + روابط العيادة والإعدادات */
+/** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
   { icon: Clock, label: "مرضى اليوم", path: "/today" },
   { icon: Syringe, label: "العمليات", path: "/operations" },
+  { icon: Network, label: "مركز المريض", path: "/patient-hub" },
   {
-    label: "العيادة والمرضى",
+    label: "العيادات",
     items: [
-      { icon: Users, label: "المرضى", path: "/patients" },
-      { icon: Network, label: "مركز المريض", path: "/patient-hub" },
-      { icon: Repeat, label: "المتابعات", path: "/followups" },
-      { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
-      { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
-      { icon: FileText, label: "ملف المريض", path: "/patient-file" },
       { icon: Eye, label: "الفحوصات", path: "/examination" },
-      { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
-      { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
+      { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
       { icon: Pill, label: "الروشتات", path: "/prescriptions" },
+      { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
+      { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
+      { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+    ],
+  },
+  {
+    label: "المرضى",
+    items: [
       { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
       { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
-      { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
+      { icon: FileText, label: "ملف المريض", path: "/patient-file" },
+      { icon: Repeat, label: "المتابعات", path: "/followups" },
+      { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
     ],
   },
   {
-    label: "إدارة المستخدمين والخدمات",
+    label: "مركز الخدمات",
     items: [
-      { icon: LayoutGrid, label: "مركز الإدارة", path: "/admin-hub" },
-      { icon: Users, label: "الموظفين", path: "/admin/users" },
-      { icon: Stethoscope, label: "الأطباء", path: "/admin/doctors" },
-      { icon: Settings, label: "الخدمات", path: "/admin/services" },
-      { icon: FlaskConical, label: "الأدوية والفحوصات", path: "/medications-tests" },
-      { icon: Shield, label: "الصلاحيات", path: "/admin/permissions" },
-      { icon: UserRound, label: "المرضى", path: "/admin/patients" },
+      { icon: Pill, label: "الأدوية", path: "/medications" },
+      { icon: FlaskConical, label: "تحاليل وأشعة", path: "/examinations/catalog" },
+      { icon: Stethoscope, label: "أمراض", path: "/medications/registry?tab=diseases" },
+      { icon: ClipboardList, label: "أعراض", path: "/medications/registry?tab=symptoms" },
+      { icon: Network, label: "TXHUB", path: "/txhub" },
     ],
   },
-  { icon: FileText, label: "النماذج", path: "/admin/forms" },
-  { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
+  {
+    label: "مركز الإدارة",
+    items: [
+      { icon: LayoutGrid, label: "الرئيسية (كروت)", path: "/admin-hub" },
+      { icon: Shield, label: "الصلاحيات", path: "/admin-hub/permissions" },
+      { icon: Stethoscope, label: "الأطباء", path: "/admin-hub/doctors" },
+      { icon: Users, label: "المستخدمين", path: "/admin-hub/users" },
+      { icon: Terminal, label: "حالة النظام", path: "/admin-hub/status" },
+      { icon: Database, label: "ترحيل البيانات", path: "/admin-hub/migrations" },
+      { icon: HeartPulse, label: "الخدمات والأسعار", path: "/admin-hub/services" },
+      { icon: Wrench, label: "التشخيص والإصلاح", path: "/admin-hub/diagnostics" },
+      { icon: Settings, label: "الإعدادات العامة", path: "/admin-hub/settings" },
+      { icon: Settings, label: "تسعير المواعيد", path: "/admin-hub/settings/pricing-rules" },
+      { icon: Webhook, label: "أدوات API", path: "/admin-hub/api-tools" },
+      { icon: FlaskConical, label: "التحاليل (إدارة)", path: "/admin-hub/tests" },
+      { icon: LayoutGrid, label: "ظهور الكروت", path: "/admin-hub/card-visibility" },
+      { icon: Bell, label: "إخطارات التطبيق", path: "/admin-hub/notifications" },
+      { icon: FileText, label: "النماذج", path: "/admin-hub/forms" },
+      { icon: FileSpreadsheet, label: "شيتات المرضى", path: "/admin-hub/sheets" },
+      { icon: Paintbrush, label: "مصمم النماذج", path: "/admin-hub/sheet-designer" },
+      { icon: Copy, label: "نسخ النماذج", path: "/admin-hub/sheet-copies" },
+      { icon: AlertTriangle, label: "بنتكام الفاشل", path: "/admin-hub/pentacam-failed" },
+    ],
+  },
 ];
 
-/** روابط الموظفين — بدون مركز سير العمل؛ مطابقة للويب قدر الإمكان */
-export const staffQuickNav: NavLeaf[] = [
-  { icon: Activity, label: "لوحة التحكم", path: "/dashboard" },
-  { icon: Clock, label: "مرضى اليوم", path: "/today" },
-  { icon: Syringe, label: "العمليات", path: "/operations" },
-  { icon: Pill, label: "الروشتات", path: "/prescriptions" },
-  { icon: Users, label: "المرضى", path: "/patients" },
-  { icon: Network, label: "مركز المريض", path: "/patient-hub" },
-  { icon: Repeat, label: "المتابعات", path: "/followups" },
-  { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
-  { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
-  { icon: FlaskConical, label: "الأدوية والفحوصات", path: "/medications-tests" },
-  { icon: FileText, label: "ملف المريض", path: "/patient-file" },
-  { icon: Eye, label: "الفحوصات", path: "/examination" },
-  { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
-  { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
-  { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
-  { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
-  { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
-];
+/** نفس هيكل الإدمن بدون «مركز الإدارة» */
+export const staffNavGroups: NavGroup[] = adminNavGroups.slice(0, -1);

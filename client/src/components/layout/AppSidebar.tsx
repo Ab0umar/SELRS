@@ -15,7 +15,7 @@ import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { adminNavGroups, staffQuickNav, type NavGroup, type NavLeaf } from "./AppNav";
+import { adminNavGroups, staffNavGroups, type NavGroup, type NavLeaf } from "./AppNav";
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width-v2";
 const COLLAPSED_KEY = "selrs:sidebar-collapsed";
@@ -60,7 +60,7 @@ export function AppSidebar({
   const { user, logout } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
-  const menuItems: NavGroup[] = isAdmin ? adminNavGroups : staffQuickNav;
+  const menuItems: NavGroup[] = isAdmin ? adminNavGroups : staffNavGroups;
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
