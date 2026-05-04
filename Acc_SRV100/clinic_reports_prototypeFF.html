@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRV100 - Medical + Accounting Prototype</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f8fafc;color:#0f2748;font-size:14px}
+    .app{min-height:100vh;display:grid;grid-template-columns:260px 1fr;background:#fff}
+    .sidebar{border-left:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;justify-content:space-between}
+    .brand{padding:18px 14px;border-bottom:1px solid #edf2f7;display:flex;align-items:center;gap:10px}
+    .logo{width:44px;height:44px;border-radius:50%;border:2px solid #0b3d78;display:grid;place-items:center;font-weight:800;color:#0b3d78}
+    .brand b{display:block;font-size:15px}.brand span{color:#64748b;font-size:12px}
+    .nav{padding:12px}.nav button{width:100%;height:48px;margin:5px 0;border:0;background:#fff;border-radius:12px;text-align:right;padding:0 14px;font-weight:700;color:#334155;cursor:pointer;display:flex;align-items:center;gap:12px;justify-content:flex-start}.nav button.active,.nav button:hover{background:#fff3e0;color:#f08a00}.nav .ico{font-size:20px;width:26px;text-align:center}
+    .userbox{margin:14px;border:1px solid #e5e7eb;border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px}.avatar{width:38px;height:38px;border-radius:50%;background:#eef4fb;display:grid;place-items:center;font-weight:bold;color:#0b3d78}
+    .main{background:#f8fafc;min-width:0}.topbar{height:72px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:16px}.admin{display:flex;align-items:center;gap:12px}.search{flex:1;max-width:720px}.search input{width:100%;height:46px;border:1px solid #e2e8f0;border-radius:14px;background:#f1f5f9;padding:0 18px;text-align:center;color:#64748b}.date-pill{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px 14px;color:#0f2748}
+    .content{padding:18px 22px}.quick{display:grid;grid-template-columns:repeat(10,1fr);gap:12px;margin-bottom:18px}.qcard{height:110px;background:#eef3f9;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-weight:700;color:#1e3a5f;cursor:pointer}.qicon{width:44px;height:44px;border-radius:13px;background:#dbe7f3;display:grid;place-items:center;font-size:23px}.qcard.acct .qicon{background:#ffe8c2;color:#f08a00}.qcard:hover{outline:2px solid #cfe1f6}
+    .strip{height:64px;background:#f1f1f1;border:1px solid #e5e7eb;border-radius:16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-weight:800}.page{display:none}.page.active{display:block}.section{background:#f4f4f4;border:1px solid #e2e8f0;border-radius:18px;margin-bottom:18px;padding:18px}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.section-title{font-size:18px;font-weight:800}.orange{color:#f08a00}.blue{color:#073b78}
+    .filters{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}.field label{display:block;font-weight:700;margin-bottom:6px;color:#334155}.field input,.field select{width:100%;height:42px;border:1px solid #e2e8f0;background:#fff;border-radius:12px;padding:0 10px;font-family:inherit;color:#0f2748}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{height:38px;border:1px solid #e2e8f0;background:#fff;border-radius:12px;padding:0 16px;font-family:inherit;font-weight:800;color:#0f2748;cursor:pointer}.btn.primary{background:#073b78;color:#fff;border-color:#073b78}.btn.orange{background:#fff3e0;color:#f08a00;border-color:#ffd9a3}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}.stat{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px}.stat small{color:#64748b}.stat b{display:block;font-size:24px;margin-top:8px;color:#073b78}
+    .table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:auto}table{width:100%;border-collapse:collapse;min-width:950px}th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:right;white-space:nowrap}th{background:#f8fafc;color:#334155;font-weight:800}tr.selected{background:#eef6ff}.tag{display:inline-block;border-radius:10px;padding:4px 10px;font-weight:800;font-size:12px}.tag.cash{background:#e8f7ee;color:#16803b}.tag.exp{background:#fff3e0;color:#f08a00}.tag.due{background:#fee2e2;color:#b91c1c}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.patient-card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:16px;border-left:5px solid #073b78;box-shadow:0 2px 6px #0001}.patient-card.orange-border{border-left-color:#f08a00}.card-top{display:flex;justify-content:space-between;font-weight:800}.muted{color:#64748b}.print-paper{background:#fff;border:1px solid #d1d5db;border-radius:16px;padding:22px}.group-title{background:#ffd8bd;border-radius:10px;padding:10px;font-weight:800;color:#9b1c1c;margin-top:12px}.service-title{background:#ecebff;border-radius:10px;padding:10px;font-weight:800;color:#0f2748;margin-top:10px}.subtotal{background:#ecebff;font-weight:800;color:#9b1c1c}.grand{background:#ffffcc;font-weight:800;color:#9b1c1c}
+    @media(max-width:1200px){.quick{grid-template-columns:repeat(5,1fr)}.filters{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}.cards{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div>
+      <div class="brand"><div class="logo">عيون</div><div><b>عيون الشروق</b><span>ليزك والمياه البيضاء</span></div></div>
+      <div class="nav">
+        <button class="active" onclick="showPage('dashboard',this)"><span class="ico">⌁</span>لوحة التحكم</button>
+        <button onclick="showPage('today',this)"><span class="ico">◷</span>مرضى اليوم</button>
+        <button onclick="showPage('operations',this)"><span class="ico">⌁</span>العمليات</button>
+        <button onclick="showPage('patients',this)"><span class="ico">›</span>العيادة والمرضى</button>
+        <button onclick="showPage('accounting',this)"><span class="ico">▣</span>الحسابات</button>
+        <button onclick="showPage('reports',this)"><span class="ico">▤</span>التقارير</button>
+        <button onclick="showPage('settings',this)"><span class="ico">⚙</span>الإعدادات</button>
+      </div>
+    </div>
+    <div class="userbox"><div class="avatar">S</div><div><b>System Admin</b><br><span class="muted">—</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="admin"><span>☼</span><div class="avatar">SY</div><b>System Admin</b><span>⌄</span></div>
+      <div class="search"><input placeholder="بحث عن مرضى، أطباء، مواعيد... (⌘K)" /></div>
+      <div class="date-pill">● الأحد، ٣ مايو</div>
+    </div>
+
+    <div class="content">
+      <div class="quick">
+        <div class="qcard" onclick="showPage('reports')"><div class="qicon">▧</div>تقرير المريض</div>
+        <div class="qcard"><div class="qicon">♡</div>الملف الطبي</div>
+        <div class="qcard"><div class="qicon">▤</div>تشخيص / تقرير</div>
+        <div class="qcard"><div class="qicon">⚗</div>تحاليل و أشعه</div>
+        <div class="qcard"><div class="qicon">◈</div>الروشتات</div>
+        <div class="qcard"><div class="qicon">⊙</div>بنتاكام</div>
+        <div class="qcard"><div class="qicon">⌘</div>مقياس النظارة</div>
+        <div class="qcard"><div class="qicon">◉</div>القياسات و الفحص</div>
+        <div class="qcard"><div class="qicon">▦</div>حجز موعد</div>
+        <div class="qcard acct" onclick="showPage('accounting')"><div class="qicon">ج</div>الحسابات</div>
+      </div>
+
+      <div class="strip"><span>المؤشرات الرئيسية</span><span>⌄</span></div>
+
+      <section id="dashboard" class="page active">
+        <div class="stats">
+          <div class="stat"><small>مرضى اليوم</small><b>7</b></div>
+          <div class="stat"><small>مواعيد</small><b>0</b></div>
+          <div class="stat"><small>إيراد اليوم</small><b>3,690</b></div>
+          <div class="stat"><small>مصروفات</small><b>850</b></div>
+          <div class="stat"><small>صافي الخزنة</small><b>2,840</b></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><div class="section-title">مرضى اليوم و العمليات</div><div class="orange">◉</div></div>
+          <div class="cards">
+            <div class="patient-card orange-border"><div class="card-top"><b>جمال عبد العزيز عبد الحميد</b><span class="tag exp">عيادة</span></div><p class="muted">—</p><span>11:53 ◷</span></div>
+            <div class="patient-card orange-border"><div class="card-top"><b>محمود عادل السعدني</b><span class="tag exp">التالي</span></div><p class="muted">—</p><span>12:00 ◷</span></div>
+            <div class="patient-card"><div class="card-top"><b>محمد محجوب رياض المنشاوي</b><span class="tag cash">تسجيل</span></div><p class="muted">د/محمد السعدني غرابة</p><span>12:51 ◷</span></div>
+            <div class="patient-card"><div class="card-top"><b>ملك محمد العيد</b><span class="tag cash">تسجيل</span></div><p class="muted">—</p><span>14:27 ◷</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="today" class="page"><div class="section"><div class="section-title">مرضى اليوم</div><div class="cards"><div class="patient-card"><b>يوسف ياسر عبد الرحمن</b><p class="muted">تسجيل - أخصائي</p></div><div class="patient-card"><b>مريم مسعود عبد الملاك</b><p class="muted">تسجيل - أخصائي</p></div></div></div></section>
+      <section id="operations" class="page"><div class="section"><div class="section-title">العمليات</div><div class="table-wrap"><table><tr><th>المريض</th><th>العملية</th><th>الطبيب</th><th>التاريخ</th><th>الحالة</th></tr><tr><td>محمد أحمد</td><td>مياه بيضاء</td><td>د. علي</td><td>2026/05/03</td><td><span class="tag exp">مجدول</span></td></tr></table></div></div></section>
+      <section id="patients" class="page"><div class="section"><div class="section-title">العيادة والمرضى</div><div class="filters"><div class="field"><label>رقم المريض</label><input></div><div class="field"><label>اسم المريض</label><input></div><div class="field"><label>الموبايل</label><input></div><div class="field"><label>تاريخ فتح الملف</label><input></div><div class="actions"><button class="btn primary">بحث</button></div></div><div class="table-wrap"><table><tr><th>رقم المريض</th><th>اسم المريض</th><th>العمر</th><th>الجنس</th><th>تاريخ فتح الملف</th></tr><tr><td>1239</td><td>غادة محمد عثمان</td><td>30</td><td>أنثى</td><td>2026/04/30</td></tr></table></div></div></section>
+
+      <section id="accounting" class="page">
+        <div class="section">
+          <div class="section-head"><div class="section-title">الحسابات</div><div class="orange">مصدر الحسابات: SQL Server / Access حسب المرحلة</div></div>
+          <div class="filters"><div class="field"><label>من تاريخ</label><input value="2026/04/30"></div><div class="field"><label>إلى تاريخ</label><input value="2026/05/03"></div><div class="field"><label>القسم</label><select><option>الكل</option><option>الليزك</option></select></div><div class="field"><label>الشيفت / المستخدم</label><input></div><div class="actions"><button class="btn primary">بحث</button><button class="btn orange">طباعة</button></div></div>
+          <div class="stats"><div class="stat"><small>إجمالي الخدمات</small><b>3890</b></div><div class="stat"><small>الخصومات</small><b>200</b></div><div class="stat"><small>صافي الإيراد</small><b>3690</b></div><div class="stat"><small>المصروفات</small><b>850</b></div><div class="stat"><small>صافي الخزنة</small><b>2840</b></div></div>
+        </div>
+
+        <div class="section"><div class="section-head"><div class="section-title">استعلام الإيصالات</div><div class="actions"><button class="btn primary">بحث F11</button><button class="btn">تصدير Excel</button></div></div><div class="filters"><div class="field"><label>رقم الإيصال</label><input></div><div class="field"><label>المريض</label><input></div><div class="field"><label>نوع الإيصال</label><select><option>الكل</option><option>نقدي</option></select></div><div class="field"><label>الخدمة</label><input></div><div class="field"><label>جهة التعاقد</label><input></div></div><div class="table-wrap"><table><tr><th>رقم الإيصال</th><th>التاريخ</th><th>نوع</th><th>المريض</th><th>القسم</th><th>الإجمالي</th><th>الخصم</th><th>الصافي</th><th>الدفع</th></tr><tr class="selected"><td>1812</td><td>2026/04/30</td><td><span class="tag cash">نقدي</span></td><td>إلام الصاوي عمر</td><td>الليزك</td><td>360</td><td>0</td><td>360</td><td>كاش</td></tr><tr><td>1797</td><td>2026/04/30</td><td><span class="tag cash">نقدي</span></td><td>هالة محمد عطية</td><td>الليزك</td><td>360</td><td>50</td><td>310</td><td>كاش</td></tr></table></div></div>
+
+        <div class="section"><div class="section-head"><div class="section-title">تفاصيل الإيصال المختار</div></div><div class="table-wrap"><table><tr><th>الخدمة</th><th>الطبيب</th><th>العدد</th><th>السعر</th><th>الإجمالي</th><th>الخصم</th><th>الصافي</th></tr><tr><td>فحص عين بنتاكام - طبيب خارجي</td><td>د. علي</td><td>2</td><td>180</td><td>360</td><td>0</td><td>360</td></tr></table></div></div>
+
+        <div class="section"><div class="section-head"><div class="section-title">إضافة مصروف</div><div class="actions"><button class="btn primary">حفظ المصروف</button><button class="btn">مسح</button></div></div><div class="filters"><div class="field"><label>التاريخ</label><input value="2026/05/03"></div><div class="field"><label>بند المصروف</label><select><option>مستلزمات</option><option>صيانة</option><option>مرتبات</option></select></div><div class="field"><label>البيان</label><input placeholder="مثال: ورق وطباعة"></div><div class="field"><label>طريقة الدفع</label><select><option>كاش</option><option>فيزا</option><option>تحويل</option></select></div><div class="field"><label>المبلغ</label><input value="300"></div></div></div>
+
+        <div class="section"><div class="section-head"><div class="section-title">تقرير المصروفات</div></div><div class="table-wrap"><table><tr><th>رقم المصروف</th><th>التاريخ</th><th>البند</th><th>البيان</th><th>طريقة الدفع</th><th>المبلغ</th></tr><tr><td>EXP-12</td><td>2026/04/30</td><td>مستلزمات</td><td>ورق وطباعة</td><td>كاش</td><td>300</td></tr><tr><td>EXP-13</td><td>2026/04/30</td><td>صيانة</td><td>صيانة جهاز</td><td>كاش</td><td>550</td></tr></table></div></div>
+      </section>
+
+      <section id="reports" class="page">
+        <div class="section"><div class="section-head"><div class="section-title">تقرير إيراد الخدمات</div><div class="actions"><button class="btn primary">عرض التقرير</button><button class="btn orange">PDF</button></div></div><div class="filters"><div class="field"><label>من تاريخ</label><input value="2026/04/30"></div><div class="field"><label>إلى تاريخ</label><input value="2026/04/30"></div><div class="field"><label>القسم</label><select><option>الليزك</option></select></div><div class="field"><label>الخدمة</label><input></div><div class="field"><label>طريقة الدفع</label><select><option>الكل</option></select></div></div>
+          <div class="print-paper"><div style="text-align:center"><h2>عيون الشروق</h2><b>تقرير إيراد الخدمات</b><p>الفترة من 30/04/2026 إلى 30/04/2026</p></div><div class="group-title">القسم: الليزك</div><div class="service-title">الخدمة: كشف خارجي</div><div class="table-wrap"><table><tr><th>نوع الإيصال</th><th>رقم الإيصال</th><th>المريض</th><th>العدد</th><th>السعر</th><th>الخصم</th><th>الصافي</th></tr><tr><td>نقدي</td><td>1800</td><td>فتحي عبد الواحد محمد</td><td>1</td><td>215</td><td>0</td><td>215</td></tr><tr class="subtotal"><td colspan="3">إجمالي الخدمة</td><td>4</td><td>860</td><td>0</td><td>860</td></tr><tr class="grand"><td colspan="3">إجمالي الفترة</td><td>23</td><td>3890</td><td>200</td><td>3690</td></tr></table></div></div>
+        </div>
+      </section>
+      <section id="settings" class="page"><div class="section"><div class="section-title">الإعدادات</div></div></section>
+    </div>
+  </main>
+</div>
+<script>
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+</script>
+</body>
+</html>

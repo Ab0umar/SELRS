@@ -87,3 +87,8 @@ See Claude memory files: `project_mssql_sync_fix.md`, `feedback_stale_exam_state
 - Use `.claude/rules/permissions.md` for auth and access-control changes.
 - Use `.claude/rules/database.md` for DB/schema/data issues.
 - Use `.claude/rules/verification.md` when choosing checks.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

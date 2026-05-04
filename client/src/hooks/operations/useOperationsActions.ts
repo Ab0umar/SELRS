@@ -21,6 +21,7 @@ export function useOperationsActions(operations: OperationsState) {
   const saveListMutation = trpc.medical.saveOperationList.useMutation({
     onSuccess: async () => {
       await utils.medical.getOperationList.invalidate();
+      await utils.medical.getTodayOperationLists.invalidate();
       await operations.listQuery.refetch();
     },
     onError: (error) => {
@@ -28,7 +29,8 @@ export function useOperationsActions(operations: OperationsState) {
     },
   });
   const deleteListByIdMutation = trpc.medical.deleteOperationListById.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.medical.getTodayOperationLists.invalidate();
       toast.success("تم حذف القائمة من السجل");
       operations.historyQuery.refetch();
     },

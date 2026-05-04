@@ -1,0 +1,965 @@
+object ppReport1: TppReport
+  AutoStop = False
+  DataPipeline = daADOQueryDataView1.X
+  PrinterSetup.BinName = 'Default'
+  PrinterSetup.DocumentName = 'Report'
+  PrinterSetup.PaperName = 'A4'
+  PrinterSetup.PrinterName = 'Default'
+  PrinterSetup.SaveDeviceSettings = False
+  PrinterSetup.mmMarginBottom = 6350
+  PrinterSetup.mmMarginLeft = 6350
+  PrinterSetup.mmMarginRight = 6350
+  PrinterSetup.mmMarginTop = 6350
+  PrinterSetup.mmPaperHeight = 297127
+  PrinterSetup.mmPaperWidth = 210079
+  PrinterSetup.PaperSize = 9
+  SaveAsTemplate = True
+  Template.DatabaseSettings.DataPipeline = plItem
+  Template.DatabaseSettings.Name = '78 '#1603#1588#1601' '#1581#1587#1575#1576' '#1605#1585#1610#1590
+  Template.DatabaseSettings.NameField = 'ItemName'
+  Template.DatabaseSettings.TemplateField = 'Template'
+  Template.FileName = 'D:\C\OP\'#1603#1588#1601' '#1581#1587#1575#1576' '#1605#1585#1610#1590'.rtm'
+  Template.Format = ftASCII
+  DeviceType = 'Screen'
+  EmailSettings.ReportFormat = 'PDF'
+  OutlineSettings.CreateNode = True
+  OutlineSettings.CreatePageNodes = True
+  OutlineSettings.Enabled = False
+  OutlineSettings.Visible = False
+  PDFSettings.EmbedFontOptions = []
+  TextSearchSettings.DefaultString = '<FindText>'
+  TextSearchSettings.Enabled = True
+  TextSearchSettings.ShowAll = True
+  TextSearchSettings.SearchFromCurrentPage = True
+  TextSearchSettings.Visible = True
+  Left = 321
+  Top = 174
+  Version = '11.06'
+  mmColumnWidth = 0
+  DataPipelineName = 'X'
+  object ppHeaderBand1: TppHeaderBand
+    mmBottomOffset = 0
+    mmHeight = 30427
+    mmPrintPosition = 0
+    object ppDBText1: TppDBText
+      UserName = 'DBText1'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      DataField = 'COMP_NAME_AR'
+      DataPipeline = sysMain.PLSysNdx
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold, fsUnderline]
+      ParentDataPipeline = False
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'PLSysNdx'
+      mmHeight = 4995
+      mmLeft = 145521
+      mmTop = 794
+      mmWidth = 48948
+      BandType = 0
+    end
+    object ppLabel1: TppLabel
+      UserName = 'Label1'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1603#1588#1601' '#1581#1587#1575#1576' '#1605#1585#1610#1590' '#1583#1575#1582#1604#1609
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold, fsUnderline]
+      TextAlignment = taRightJustified
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 79640
+      mmTop = 8731
+      mmWidth = 36513
+      BandType = 0
+    end
+    object ppLabel2: TppLabel
+      UserName = 'Label2'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1582#1583#1605#1577' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 131498
+      mmTop = 25400
+      mmWidth = 65881
+      BandType = 0
+    end
+    object ppLabel3: TppLabel
+      UserName = 'Label3'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1587#1593#1585' '#1575#1604#1582#1583#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 105834
+      mmTop = 25400
+      mmWidth = 25929
+      BandType = 0
+    end
+    object ppLabel4: TppLabel
+      UserName = 'Label4'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1605' '#1580#1607#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 13758
+      mmTop = 25400
+      mmWidth = 25929
+      BandType = 0
+    end
+    object ppLabel5: TppLabel
+      UserName = 'Label5'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1593#1583#1583
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 91017
+      mmTop = 25400
+      mmWidth = 15081
+      BandType = 0
+    end
+    object ppLabel7: TppLabel
+      UserName = 'Label7'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1605' '#1605#1585#1610#1590
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 39423
+      mmTop = 25400
+      mmWidth = 25929
+      BandType = 0
+    end
+    object ppLabel6: TppLabel
+      UserName = 'Label6'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1602#1610#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 65088
+      mmTop = 25400
+      mmWidth = 25929
+      BandType = 0
+    end
+    object ppDBText11: TppDBText
+      UserName = 'DBText11'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      DataField = 'PAT_NM_AR'
+      DataPipeline = daADOQueryDataView1.X
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 89959
+      mmTop = 19050
+      mmWidth = 61913
+      BandType = 0
+    end
+    object ppDBText12: TppDBText
+      UserName = 'DBText12'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      DataField = 'PAT_CD'
+      DataPipeline = daADOQueryDataView1.X
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 154517
+      mmTop = 19050
+      mmWidth = 21696
+      BandType = 0
+    end
+    object ppLabel11: TppLabel
+      UserName = 'Label11'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1585#1602#1605' '#1575#1604#1605#1585#1610#1590
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 178594
+      mmTop = 19050
+      mmWidth = 16933
+      BandType = 0
+    end
+  end
+  object ppDetailBand1: TppDetailBand
+    mmBottomOffset = 0
+    mmHeight = 6615
+    mmPrintPosition = 0
+    object ppDBText2: TppDBText
+      UserName = 'DBText2'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'SRV_NM'
+      DataPipeline = daADOQueryDataView1.X
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 4995
+      mmLeft = 131234
+      mmTop = 265
+      mmWidth = 66146
+      BandType = 4
+    end
+    object ppDBText4: TppDBText
+      UserName = 'DBText4'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'PA_VL'
+      DataPipeline = daADOQueryDataView1.X
+      DisplayFormat = '0.00'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 39423
+      mmTop = 265
+      mmWidth = 25929
+      BandType = 4
+    end
+    object ppDBText7: TppDBText
+      UserName = 'DBText7'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'CA_VL'
+      DataPipeline = daADOQueryDataView1.X
+      DisplayFormat = '0.00'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 13758
+      mmTop = 265
+      mmWidth = 25929
+      BandType = 4
+    end
+    object ppDBText3: TppDBText
+      UserName = 'DBText3'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'prc'
+      DataPipeline = daADOQueryDataView1.X
+      DisplayFormat = '0.00'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 105834
+      mmTop = 265
+      mmWidth = 25929
+      BandType = 4
+    end
+    object ppDBText6: TppDBText
+      UserName = 'DBText6'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'total'
+      DataPipeline = daADOQueryDataView1.X
+      DisplayFormat = '0.00'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 65088
+      mmTop = 265
+      mmWidth = 25929
+      BandType = 4
+    end
+    object ppDBText5: TppDBText
+      UserName = 'DBText5'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'QTY'
+      DataPipeline = daADOQueryDataView1.X
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'X'
+      mmHeight = 5027
+      mmLeft = 91017
+      mmTop = 265
+      mmWidth = 15081
+      BandType = 4
+    end
+  end
+  object ppFooterBand1: TppFooterBand
+    mmBottomOffset = 0
+    mmHeight = 0
+    mmPrintPosition = 0
+  end
+  object ppGroup1: TppGroup
+    BreakName = 'PAT_CD'
+    DataPipeline = daADOQueryDataView1.X
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group1'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'X'
+    object ppGroupHeaderBand1: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 1058
+      mmPrintPosition = 0
+      object ppDBText8: TppDBText
+        UserName = 'DBText8'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        DataField = 'PAT_CD'
+        DataPipeline = daADOQueryDataView1.X
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        Transparent = True
+        Visible = False
+        DataPipelineName = 'X'
+        mmHeight = 1058
+        mmLeft = 157692
+        mmTop = 0
+        mmWidth = 21696
+        BandType = 3
+        GroupNo = 0
+      end
+      object ppDBText9: TppDBText
+        UserName = 'DBText9'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        DataField = 'PAT_NM_AR'
+        DataPipeline = daADOQueryDataView1.X
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        Transparent = True
+        Visible = False
+        DataPipelineName = 'X'
+        mmHeight = 529
+        mmLeft = 94456
+        mmTop = 265
+        mmWidth = 61913
+        BandType = 3
+        GroupNo = 0
+      end
+      object ppLabel8: TppLabel
+        UserName = 'Label8'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        Caption = #1585#1602#1605' '#1575#1604#1605#1585#1610#1590
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        Transparent = True
+        Visible = False
+        mmHeight = 1058
+        mmLeft = 180446
+        mmTop = 0
+        mmWidth = 16933
+        BandType = 3
+        GroupNo = 0
+      end
+    end
+    object ppGroupFooterBand1: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 0
+      mmPrintPosition = 0
+    end
+  end
+  object ppGroup2: TppGroup
+    BreakName = 'DPT_NM'
+    DataPipeline = daADOQueryDataView1.X
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group2'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'X'
+    object ppGroupHeaderBand2: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 6879
+      mmPrintPosition = 0
+      object ppDBText10: TppDBText
+        UserName = 'DBText10'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'DPT_NM'
+        DataPipeline = daADOQueryDataView1.X
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        DataPipelineName = 'X'
+        mmHeight = 5027
+        mmLeft = 122767
+        mmTop = 794
+        mmWidth = 61913
+        BandType = 3
+        GroupNo = 1
+      end
+      object ppLabel9: TppLabel
+        UserName = 'Label9'
+        HyperlinkColor = clBlue
+        AutoSize = False
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Caption = #1575#1604#1602#1587#1605
+        Color = clSilver
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        mmHeight = 5027
+        mmLeft = 184415
+        mmTop = 794
+        mmWidth = 13494
+        BandType = 3
+        GroupNo = 1
+      end
+    end
+    object ppGroupFooterBand2: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 10848
+      mmPrintPosition = 0
+      object ppLabel10: TppLabel
+        UserName = 'Label10'
+        HyperlinkColor = clBlue
+        AutoSize = False
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Caption = #1575#1580#1605#1575#1604#1610' '#1575#1604#1602#1587#1605' '
+        Color = clSilver
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        mmHeight = 5027
+        mmLeft = 65088
+        mmTop = 0
+        mmWidth = 133086
+        BandType = 5
+        GroupNo = 1
+      end
+      object ppDBCalc2: TppDBCalc
+        UserName = 'DBCalc2'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'PA_VL'
+        DataPipeline = daADOQueryDataView1.X
+        DisplayFormat = '0.00'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup2
+        TextAlignment = taRightJustified
+        DataPipelineName = 'X'
+        mmHeight = 5027
+        mmLeft = 39688
+        mmTop = 0
+        mmWidth = 25929
+        BandType = 5
+        GroupNo = 1
+      end
+      object ppDBCalc3: TppDBCalc
+        UserName = 'DBCalc3'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'CA_VL'
+        DataPipeline = daADOQueryDataView1.X
+        DisplayFormat = '0.00'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup2
+        TextAlignment = taRightJustified
+        DataPipelineName = 'X'
+        mmHeight = 5027
+        mmLeft = 14288
+        mmTop = 0
+        mmWidth = 25929
+        BandType = 5
+        GroupNo = 1
+      end
+      object ppDBCalc1: TppDBCalc
+        UserName = 'DBCalc1'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'total'
+        DataPipeline = daADOQueryDataView1.X
+        DisplayFormat = '0.00'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup2
+        TextAlignment = taRightJustified
+        DataPipelineName = 'X'
+        mmHeight = 5027
+        mmLeft = 66940
+        mmTop = 0
+        mmWidth = 25929
+        BandType = 5
+        GroupNo = 1
+      end
+    end
+  end
+  object daDataModule1: TdaDataModule
+    object daADOQueryDataView1: TdaADOQueryDataView
+      UserName = 'Query_X'
+      Height = 277
+      Left = 10
+      NameColumnWidth = 105
+      SizeColumnWidth = 35
+      SortMode = 3
+      Top = 10
+      TypeColumnWidth = 52
+      Width = 198
+      AutoSearchTabOrder = 0
+      object X: TppChildDBPipeline
+        AutoCreateFields = False
+        UserName = 'X'
+        object ppField1: TppField
+          FieldAlias = 'SRV_CD'
+          FieldName = 'SRV_CD'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 0
+        end
+        object ppField2: TppField
+          FieldAlias = 'PAT_CD'
+          FieldName = 'PAT_CD'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 1
+        end
+        object ppField3: TppField
+          FieldAlias = 'PAT_NM_AR'
+          FieldName = 'PAT_NM_AR'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 2
+        end
+        object ppField4: TppField
+          FieldAlias = 'SEC_CD'
+          FieldName = 'SEC_CD'
+          FieldLength = 4
+          DisplayWidth = 4
+          Position = 3
+        end
+        object ppField5: TppField
+          FieldAlias = 'SRV_NM'
+          FieldName = 'SRV_NM'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 4
+        end
+        object ppField6: TppField
+          FieldAlias = 'DPT_NM'
+          FieldName = 'DPT_NM'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 5
+        end
+        object ppField7: TppField
+          FieldAlias = 'prc'
+          FieldName = 'prc'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 6
+        end
+        object ppField8: TppField
+          FieldAlias = 'qty'
+          FieldName = 'qty'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 7
+        end
+        object ppField9: TppField
+          FieldAlias = 'total'
+          FieldName = 'total'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 8
+        end
+        object ppField10: TppField
+          FieldAlias = 'pa_vl'
+          FieldName = 'pa_vl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 9
+        end
+        object ppField11: TppField
+          FieldAlias = 'ca_vl'
+          FieldName = 'ca_vl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 10
+        end
+      end
+      object daSQL1: TdaSQL
+        GuidCollationType = gcMSAccess
+        DatabaseName = 'DAT'
+        DatabaseType = dtMSAccess
+        DataPipelineName = 'X'
+        EditSQLAsText = True
+        LinkColor = clBlack
+        LinkType = ltParameterizedSQL
+        MaxSQLFieldAliasLength = 0
+        SQLText.Strings = (
+          
+            'SELECT DISTINCT PAPAT_SRV.SRV_CD,PAPAT_SRV.PAT_CD ,PAPAT_SRV.PAT' +
+            '_NM_AR,PAPAT_SRV.SEC_CD,'
+          
+            '(SELECT SRV_NM_AR FROM SRVCMF WHERE SRV_CD=PAPAT_SRV.SRV_CD) aS ' +
+            'SRV_NM ,'
+          
+            '( SELECT DPT_NM_AR FROM DEPT WHERE DPT_NO=PAPAT_SRV.SEC_CD) AS D' +
+            'PT_NM,'
+          'PAPAT_SRV.PRC as prc,'
+          '--count(PAPAT_SRV.QTY) as qty1 ,'
+          '--count(PAPAT_SRV.QTY)*PAPAT_SRV.PRC as prc1,'
+          'sum(papat_srv.QTY) qty,'
+          'sum(papat_srv.QTY) * PAPAT_SRV.PRC as total,'
+          'count(PAPAT_SRV.QTY)*PAPAT_SRV.PA_VL as pa_vl,'
+          'count(PAPAT_SRV.QTY)*PAPAT_SRV.CA_VL as ca_vl'
+          ''
+          'FROM PAJRNRCVH,PAPAT_SRV'
+          'WHERE PAPAT_SRV.PAT_TYP='#39'1'#39
+          'AND'
+          'PAJRNRCVH.tr_no=PAPAT_SRV.tr_no'
+          'and'
+          'PAJRNRCVH.PAT_CD=PAPAT_SRV.PAT_CD'
+          'AND'
+          'PAJRNRCVH.tr_ty=PAPAT_SRV.tr_ty'
+          'and'
+          'PAJRNRCVH.sec_cd=PAPAT_SRV.sec_cd'
+          'and '
+          'PAJRNRCVH.cncl is null '
+          ''
+          'group by'
+          
+            'PAPAT_SRV.SEC_CD,PAPAT_SRV.SRV_CD,PAPAT_SRV.PAT_CD ,PAPAT_SRV.PA' +
+            'T_NM_AR,papat_srv.QTY,'
+          'PAPAT_SRV.PRC,PAPAT_SRV.PA_VL,PAPAT_SRV.CA_VL'
+          
+            'order by PAPAT_SRV.SEC_CD,PAPAT_SRV.SRV_CD,PAPAT_SRV.PAT_CD ,PAP' +
+            'AT_SRV.PAT_NM_AR,papat_srv.QTY,'
+          'PAPAT_SRV.PRC,PAPAT_SRV.PA_VL,PAPAT_SRV.CA_VL'
+          ''
+          ''
+          ''
+          ''
+          ''
+          ''
+          '  '
+          ''
+          ''
+          ''
+          '')
+        SQLType = sqSQL2
+        object daField1: TdaField
+          Alias = 'SRV_CD'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_CD'
+          FieldLength = 15
+          FieldName = 'SRV_CD'
+          SQLFieldName = 'SRV_CD'
+        end
+        object daField2: TdaField
+          Alias = 'PAT_CD'
+          DisplayWidth = 12
+          FieldAlias = 'PAT_CD'
+          FieldLength = 12
+          FieldName = 'PAT_CD'
+          SQLFieldName = 'PAT_CD'
+        end
+        object daField3: TdaField
+          Alias = 'PAT_NM_AR'
+          DisplayWidth = 100
+          FieldAlias = 'PAT_NM_AR'
+          FieldLength = 100
+          FieldName = 'PAT_NM_AR'
+          SQLFieldName = 'PAT_NM_AR'
+        end
+        object daField4: TdaField
+          Alias = 'SEC_CD'
+          DisplayWidth = 4
+          FieldAlias = 'SEC_CD'
+          FieldLength = 4
+          FieldName = 'SEC_CD'
+          SQLFieldName = 'SEC_CD'
+        end
+        object daField5: TdaField
+          Alias = 'SRV_NM'
+          DisplayWidth = 255
+          FieldAlias = 'SRV_NM'
+          FieldLength = 255
+          FieldName = 'SRV_NM'
+          SQLFieldName = 'SRV_NM'
+        end
+        object daField6: TdaField
+          Alias = 'DPT_NM'
+          DisplayWidth = 50
+          FieldAlias = 'DPT_NM'
+          FieldLength = 50
+          FieldName = 'DPT_NM'
+          SQLFieldName = 'DPT_NM'
+        end
+        object daField7: TdaField
+          Alias = 'prc'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'prc'
+          FieldLength = 0
+          FieldName = 'prc'
+          SQLFieldName = 'prc'
+        end
+        object daField8: TdaField
+          Alias = 'qty'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'qty'
+          FieldLength = 0
+          FieldName = 'qty'
+          SQLFieldName = 'qty'
+        end
+        object daField9: TdaField
+          Alias = 'total'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'total'
+          FieldLength = 0
+          FieldName = 'total'
+          SQLFieldName = 'total'
+        end
+        object daField10: TdaField
+          Alias = 'pa_vl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'pa_vl'
+          FieldLength = 0
+          FieldName = 'pa_vl'
+          SQLFieldName = 'pa_vl'
+        end
+        object daField11: TdaField
+          Alias = 'ca_vl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'ca_vl'
+          FieldLength = 0
+          FieldName = 'ca_vl'
+          SQLFieldName = 'ca_vl'
+        end
+      end
+    end
+  end
+  object ppParameterList1: TppParameterList
+  end
+end

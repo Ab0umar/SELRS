@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { Calendar, Check, CheckCircle2, Clock, Syringe, Users } from "lucide-react";
@@ -10,6 +11,8 @@ import { useTodayQueuePatientsMerged, type TodayQueuePatient } from "@/hooks/use
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
+import { getLocalDateIso } from "@/hooks/operations/operationsShared";
+import { tabLabelByKey } from "@/lib/operationsPricing";
 
 type MainTab = "patients" | "operations";
 type QueueFilter = "all" | QueueStatus;
@@ -65,37 +68,22 @@ function formatDateLongAr(iso: string) {
   });
 }
 
-function formatTimeAr(dateString: string | Date | null | undefined) {
-  if (dateString == null) return "—";
+function localYmdFromInstant(value: string | Date | null | undefined) {
+  if (value == null) return null;
   try {
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   } catch {
-    return "—";
+    return null;
   }
-}
-
-function appointmentTypeAr(t: string | null | undefined) {
-  if (t === "examination") return "فحص";
-  if (t === "surgery") return "جراحة";
-  if (t === "followup") return "متابعة";
-  return "موعد";
-}
-
-function appointmentStatusAr(s: string | null | undefined) {
-  if (s === "completed") return "مكتمل";
-  if (s === "cancelled") return "ملغي";
-  if (s === "no_show") return "لم يحضر";
-  return "مجدول";
 }
 
 function isYmd(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
-function todayIsoDate() {
-  return new Date().toISOString().split("T")[0];
 }
 
 export function AppointmentsSection({
@@ -104,7 +92,8 @@ export function AppointmentsSection({
   onOpenMeasurementsMedicalFile?: (patientId: number) => void;
 } = {}) {
   const [shortcutPatient, setShortcutPatient] = useState<TodayQueuePatient | null>(null);
-  const [selectedDate, setSelectedDate] = useState(todayIsoDate);
+  /** Same calendar-day default as Operations list (`getLocalDateIso`), not UTC midnight. */
+  const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
 
   const setTodayPatientsDate = (ymd: string) => {
     if (!isYmd(ymd)) return;
@@ -132,6 +121,65 @@ export function AppointmentsSection({
     refetchOnWindowFocus: false,
   });
 
+  /** Same source as Operations page aggregates: saved lists + optional MSSQL surgery rows (`medical.getTodayOperationLists`). */
+  const todayOperationListsQuery = trpc.medical.getTodayOperationLists.useQuery(
+    { date: selectedDate },
+    { staleTime: 60 * 1000, refetchOnWindowFocus: false },
+  );
+
+  const todayOperationsFlat = useMemo(() => {
+    type OpItem = {
+      id?: number;
+      name?: string | null;
+      code?: string | null;
+      doctor?: string | null;
+      operation?: string | null;
+      eye?: string | null;
+      hospital?: string | null;
+      payment?: string | null;
+      phone?: string | null;
+    };
+    type OpListRow = {
+      id?: number;
+      doctorTab?: string | null;
+      doctorName?: string | null;
+      operationType?: string | null;
+      listTime?: string | null;
+      isAutoFromMssql?: boolean;
+      items?: OpItem[];
+    };
+    const lists = (todayOperationListsQuery.data ?? []) as OpListRow[];
+    const out: Array<{
+      key: string;
+      listId: number;
+      doctorTab: string;
+      listDoctorName: string | null;
+      listOperationType: string | null;
+      listTime: string | null;
+      isAutoFromMssql: boolean;
+      item: OpItem;
+    }> = [];
+    for (const list of lists) {
+      const listId = Number(list.id ?? 0);
+      const doctorTab = String(list.doctorTab ?? "").trim() || "—";
+      const items = list.items ?? [];
+      for (const item of items) {
+        const itemId = Number(item.id ?? 0);
+        out.push({
+          key: `${listId}-${itemId}-${String(item.code ?? "").trim()}-${String(item.name ?? "").trim()}`,
+          listId,
+          doctorTab,
+          listDoctorName: list.doctorName ?? null,
+          listOperationType: list.operationType ?? null,
+          listTime: list.listTime ?? null,
+          isAutoFromMssql: Boolean(list.isAutoFromMssql),
+          item,
+        });
+      }
+    }
+    return out;
+  }, [todayOperationListsQuery.data]);
+
   const todayAppointments = useMemo(() => {
     const rows = (appointmentsQuery.data ?? []) as Array<{
       appointmentDate?: string | Date | null;
@@ -146,7 +194,7 @@ export function AppointmentsSection({
     return rows
       .filter((apt) => {
         if (!apt.appointmentDate) return false;
-        const day = new Date(apt.appointmentDate as string).toISOString().split("T")[0];
+        const day = localYmdFromInstant(apt.appointmentDate as string | Date);
         return day === selectedDate;
       })
       .sort((a, b) => {
@@ -160,6 +208,8 @@ export function AppointmentsSection({
     () => todayAppointments.filter((a) => a.appointmentType === "surgery").length,
     [todayAppointments],
   );
+
+  const operationListItemCount = todayOperationsFlat.length;
 
   const counts = useMemo(
     () => ({
@@ -216,11 +266,13 @@ export function AppointmentsSection({
           <span className="text-border">|</span>
           <span>
             <span className="font-semibold text-foreground tabular-nums">
-              {surgeryTodayCount > 0
-                ? surgeryTodayCount.toLocaleString("ar-EG")
-                : todayAppointments.length.toLocaleString("ar-EG")}
+              {operationListItemCount > 0
+                ? operationListItemCount.toLocaleString("ar-EG")
+                : surgeryTodayCount > 0
+                  ? surgeryTodayCount.toLocaleString("ar-EG")
+                  : todayAppointments.length.toLocaleString("ar-EG")}
             </span>{" "}
-            {surgeryTodayCount > 0 ? "عملية" : "موعد"}
+            {operationListItemCount > 0 || surgeryTodayCount > 0 ? "عملية" : "موعد"}
           </span>
         </div>
       </div>
@@ -304,16 +356,27 @@ export function AppointmentsSection({
         </>
       ) : (
         <>
-          {appointmentsQuery.isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">جاري التحميل…</p>
-          ) : todayAppointments.length === 0 ? (
+          {todayOperationListsQuery.isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : todayOperationListsQuery.isError ? (
+            <div
+              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-12 text-center text-sm text-destructive"
+              role="alert"
+            >
+              {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}
+            </div>
+          ) : todayOperationsFlat.length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
-              لا توجد مواعيد في هذا اليوم
+              لا توجد عمليات مسجّلة لهذا اليوم
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {todayAppointments.map((apt, idx) => (
-                <OperationDayCard key={apt.id ?? `${apt.patientId}-${idx}`} appointment={apt} />
+              {todayOperationsFlat.map((row) => (
+                <TodayOperationListItemCard key={row.key} row={row} />
               ))}
             </div>
           )}
@@ -406,25 +469,28 @@ function QueuePatientCard({
   );
 }
 
-function OperationDayCard({
-  appointment,
+function TodayOperationListItemCard({
+  row,
 }: {
-  appointment: {
-    patientName?: string | null;
-    patientCode?: string | null;
-    appointmentDate?: string | Date | null;
-    appointmentType?: string | null;
-    status?: string | null;
-    branch?: string | null;
+  row: {
+    doctorTab: string;
+    listDoctorName: string | null;
+    listOperationType: string | null;
+    listTime: string | null;
+    isAutoFromMssql: boolean;
+    item: {
+      name?: string | null;
+      code?: string | null;
+      doctor?: string | null;
+      operation?: string | null;
+      eye?: string | null;
+      hospital?: string | null;
+      payment?: string | null;
+    };
   };
 }) {
-  const t = appointment.appointmentType ?? "";
-  const accent =
-    t === "surgery"
-      ? "border-s-rose-500"
-      : t === "followup"
-        ? "border-s-amber-500"
-        : "border-s-primary";
+  const tabLabel = tabLabelByKey(row.doctorTab);
+  const accent = row.isAutoFromMssql ? "border-s-violet-500" : "border-s-rose-500";
 
   return (
     <div
@@ -436,25 +502,50 @@ function OperationDayCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-snug">{appointment.patientName ?? "مريض"}</p>
-          {appointment.patientCode ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">رقم: {appointment.patientCode}</p>
+          <p className="truncate text-sm font-semibold leading-snug">{row.item.name?.trim() || "مريض"}</p>
+          {row.item.code ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">رقم: {row.item.code}</p>
           ) : null}
         </div>
-        <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs">
-          {appointmentStatusAr(appointment.status)}
-        </Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {row.isAutoFromMssql ? (
+            <Badge variant="outline" className="text-[10px] sm:text-xs">
+              مزامنة
+            </Badge>
+          ) : null}
+          <Badge variant="outline" className="max-w-[9rem] truncate text-[10px] sm:text-xs" title={tabLabel}>
+            {tabLabel}
+          </Badge>
+        </div>
+      </div>
+      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+        {row.item.doctor ? <p>الطبيب: {row.item.doctor}</p> : row.listDoctorName ? <p>الطبيب: {row.listDoctorName}</p> : null}
+        {row.item.operation ? (
+          <p className="font-medium text-foreground">العملية: {row.item.operation}</p>
+        ) : row.listOperationType ? (
+          <p className="font-medium text-foreground">نوع القائمة: {row.listOperationType}</p>
+        ) : null}
+        {row.item.eye ? <p>العين: {row.item.eye}</p> : null}
+        {row.item.hospital ? <p>المستشفى: {row.item.hospital}</p> : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
-        <Badge className="bg-primary/10 text-[10px] text-primary sm:text-xs">{appointmentTypeAr(t)}</Badge>
-        <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
-          <Clock className="h-3 w-3 shrink-0" />
-          {formatTimeAr(appointment.appointmentDate)}
-        </span>
+        {row.item.payment ? (
+          <Badge className="bg-secondary/15 text-[10px] text-secondary sm:text-xs">{row.item.payment}</Badge>
+        ) : (
+          <span />
+        )}
+        {row.listTime ? (
+          <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
+            <Clock className="h-3 w-3 shrink-0" />
+            {row.listTime}
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Clock className="h-3 w-3 shrink-0" />
+            —
+          </span>
+        )}
       </div>
-      {appointment.branch ? (
-        <p className="mt-1.5 text-[10px] text-muted-foreground">الفرع: {appointment.branch}</p>
-      ) : null}
     </div>
   );
 }

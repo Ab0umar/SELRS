@@ -1,0 +1,655 @@
+# خطة تنفيذ مشروع Web App واحد فوق نظامين منفصلين
+
+## 0. الفكرة الأساسية
+
+المشروع عبارة عن Web App واحد للمستخدم، لكنه داخليًا مقسوم إلى نظامين منفصلين:
+
+1. Accounting Module
+   - قاعدة البيانات: SQL Server
+   - الحسابات، الإيصالات، الخدمات، الإيراد، الطاقم، الليزك
+   - المصدر الأساسي للحسابات يظل SQL Server
+
+2. Medical Module
+   - قاعدة البيانات: MySQL
+   - الملف الطبي، الزيارات، الفحوصات، الروشتات، الملاحظات الطبية
+   - المصدر الأساسي للبيانات الطبية يظل MySQL
+
+3. نقطة الربط الأساسية
+   - في SQL Server يوجد: PAT_CD
+   - في MySQL يوجد: patient.id كمفتاح داخلي فقط
+   - الربط الحقيقي يكون عبر حقل داخل جدول المرضى في MySQL مثل:
+     - patientCode
+     - أو mssqlPatientCode
+   - المعادلة الصحيحة:
+     SQL.PAT_CD = MySQL.patient.patientCode
+   - المعادلة الممنوعة:
+     SQL.PAT_CD = MySQL.patient.id
+
+---
+
+# 1. أهم قاعدة في المشروع
+
+لا تخلط الحسابات مع الطبي.
+
+يعني:
+
+- الحسابات تقرأ وتكتب من SQL Server فقط.
+- الطبي يقرأ ويكتب من MySQL فقط.
+- الواجهة واحدة، لكن قواعد البيانات منفصلة.
+- PAT_CD هو جسر الربط فقط.
+- MySQL patient.id لا يستخدم نهائيًا للربط مع الحسابات.
+- أول مرحلة في الحسابات تكون Read Only فقط.
+- لا نبدأ كتابة إيصالات أو حركات مالية من الويب الجديد إلا بعد ما القراءة والربط يثبتوا تمامًا.
+
+---
+
+# 2. شكل الفريق المقترح من Agents وموديلات
+
+## 2.1 Lead Architect Agent
+
+الموديل المقترح:
+- GPT-5.5
+- أو Claude Sonnet
+
+مسؤوليته:
+- يثبت تصميم النظام.
+- يحدد أسماء الملفات.
+- يحدد أسماء APIs.
+- يحدد قواعد SQL وMySQL.
+- يمنع أي Agent من تغيير المعمارية بدون سبب واضح.
+- يطلع ملفين أساسيين:
+  - ARCHITECTURE.md
+  - TASKS.md
+
+هذا الـ Agent هو القائد.
+أي Agent بعده لازم يقرأ ARCHITECTURE.md و TASKS.md قبل ما يكتب كود.
+
+---
+
+## 2.2 Backend Agent
+
+الموديل المقترح:
+- GPT-5.5
+- أو DeepSeek
+
+مسؤوليته:
+- تجهيز اتصال SQL Server.
+- تجهيز اتصال MySQL.
+- تنفيذ patient creation flow.
+- تنفيذ APIs الخاصة بالحسابات.
+- فصل MSSQL core عن mssqlPatients.ts بدل ما نعيد الملف كله من الصفر.
+
+---
+
+## 2.3 Frontend/UI Agent
+
+الموديل المقترح:
+- Claude Sonnet
+- أو GPT-5.5
+
+مسؤوليته:
+- بناء صفحات الويب.
+- تنظيم التصميم.
+- عمل صفحات الحسابات والطبي بشكل موحد.
+- عدم وضع منطق قواعد البيانات داخل الواجهة.
+
+---
+
+## 2.4 Integration Agent
+
+الموديل المقترح:
+- DeepSeek
+- أو GPT mini
+
+مسؤوليته:
+- ربط الواجهة بالـ APIs.
+- التأكد أن PAT_CD يظهر صح في شاشة المريض.
+- التأكد أن صفحات الحسابات تسحب من SQL فقط.
+- التأكد أن صفحات الطبي تسحب من MySQL فقط.
+
+---
+
+## 2.5 QA / Reviewer Agent
+
+الموديل المقترح:
+- GPT-5.5
+- أو Claude Opus / Sonnet
+
+مسؤوليته:
+- مراجعة الكود.
+- اختبار السيناريوهات.
+- كشف أي خلط بين SQL وMySQL.
+- التأكد من عدم كسر النظام القديم.
+- التأكد أن أول مرحلة حسابات Read Only.
+
+---
+
+# 3. الملفات الأساسية التي يجب إنشاؤها أولًا
+
+## 3.1 ARCHITECTURE.md
+
+يحتوي على:
+
+1. وصف النظام.
+2. فصل Accounting عن Medical.
+3. قاعدة الربط بين PAT_CD و patientCode.
+4. ممنوعات المشروع.
+5. Folder Structure.
+6. API Contracts.
+7. Data Flow.
+8. Error Handling.
+9. Retry/Pending Sync Logic.
+10. تنفيذ المرحلة الأولى Read Only للحسابات.
+
+---
+
+## 3.2 TASKS.md
+
+يحتوي على:
+
+1. مهام Architect.
+2. مهام Backend.
+3. مهام Frontend.
+4. مهام Integration.
+5. مهام QA.
+6. ترتيب التنفيذ.
+7. شروط قبول كل مرحلة.
+8. Checklist قبل الانتقال للمرحلة التالية.
+
+---
+
+# 4. ترتيب التنفيذ العملي بالظبط
+
+## المرحلة 1: تثبيت المعمارية
+
+المسؤول:
+- Lead Architect Agent
+
+المخرجات:
+- ARCHITECTURE.md
+- TASKS.md
+
+الخطوات:
+
+1. يقرأ وصف المشروع الحالي.
+2. يثبت القاعدة التالية:
+   - SQL Server للحسابات.
+   - MySQL للطبي.
+   - PAT_CD هو الربط.
+3. يحدد Folder Structure.
+4. يحدد APIs المطلوبة.
+5. يكتب ممنوعات واضحة لكل Agents.
+6. يحدد أول مرحلة كـ Accounting Read Only.
+
+شروط القبول:
+- وجود ARCHITECTURE.md واضح.
+- وجود TASKS.md واضح.
+- وجود أسماء ملفات ومسارات محددة.
+- وجود API list.
+- وجود rules تمنع الخلط بين القاعدتين.
+
+---
+
+## المرحلة 2: تجهيز طبقة قواعد البيانات
+
+المسؤول:
+- Backend Agent
+
+المخرجات المقترحة:
+
+server/db/mssql/core.ts
+server/db/mysql/core.ts
+server/db/mssql/types.ts
+server/db/mysql/types.ts
+
+المهام:
+
+1. إنشاء MSSQL connection helper.
+2. إنشاء MySQL connection helper.
+3. عدم كتابة business logic داخل ملفات الاتصال.
+4. فصل الاتصال عن mssqlPatients.ts.
+5. ترك mssqlPatients.ts القديم شغال مؤقتًا بدون كسره.
+
+ممنوع:
+- ممنوع حذف mssqlPatients.ts في البداية.
+- ممنوع إعادة كتابته بالكامل من الصفر.
+- ممنوع خلط queries الحسابات والطبي في نفس الملف.
+
+شروط القبول:
+- MSSQL connection يعمل.
+- MySQL connection يعمل.
+- كل اتصال منفصل.
+- لا يوجد كسر في الكود القديم.
+
+---
+
+## المرحلة 3: تنفيذ خدمة إنشاء المريض الموحدة
+
+المسؤول:
+- Backend Agent
+
+المخرجات المقترحة:
+
+server/modules/patients/createPatient.service.ts
+server/modules/patients/patientMapping.service.ts
+server/routes/patients.routes.ts
+
+الفكرة:
+
+عند إنشاء مريض جديد من الويب:
+
+1. يتم إنشاء المريض في SQL Server أولًا.
+2. SQL Server يرجع PAT_CD.
+3. يتم إنشاء المريض في MySQL ثانيًا.
+4. يتم حفظ PAT_CD داخل MySQL في patientCode أو mssqlPatientCode.
+5. لو MySQL فشل بعد نجاح SQL، لا يتم تجاهل الخطأ.
+6. يتم تسجيل حالة pending sync أو retry.
+
+Flow الصحيح:
+
+Create Patient Request
+        ↓
+Validate Input
+        ↓
+Create Patient in SQL Server
+        ↓
+Get PAT_CD
+        ↓
+Create Patient in MySQL with patientCode = PAT_CD
+        ↓
+Return unified response
+
+سيناريوهات الفشل:
+
+1. SQL فشل:
+   - لا يتم إنشاء شيء في MySQL.
+   - يرجع خطأ واضح.
+
+2. SQL نجح وMySQL فشل:
+   - لا نعتبر العملية ناجحة بالكامل.
+   - نسجل pending sync.
+   - يظهر تنبيه أو status واضح.
+   - يتم تجهيز retry لاحقًا.
+
+3. MySQL نجح لكن response فشل:
+   - لازم يكون فيه idempotency أو check يمنع التكرار.
+
+شروط القبول:
+- كل مريض جديد له PAT_CD في SQL.
+- كل مريض جديد له patientCode في MySQL.
+- patient.id في MySQL لا يساوي PAT_CD بالضرورة ولا يعتمد عليه.
+- أي فشل يظهر ولا يتم دفنه.
+
+---
+
+## المرحلة 4: تنفيذ Accounting Read APIs
+
+المسؤول:
+- Backend Agent
+
+المخرجات المقترحة:
+
+server/modules/accounting/lasikAccounting.service.ts
+server/modules/accounting/accounting.types.ts
+server/routes/accounting.routes.ts
+
+نطاق المرحلة الأولى:
+- Lasik only
+- SEC_CD = 15
+- Read Only
+
+APIs المقترحة:
+
+GET /api/accounting/lasik/receipts
+GET /api/accounting/lasik/revenue
+GET /api/accounting/lasik/services
+GET /api/accounting/lasik/staff
+GET /api/accounting/lasik/patient/:patCd/summary
+
+المهام:
+
+1. قراءة إيصالات الليزك من SQL Server.
+2. قراءة إيراد الليزك من SQL Server.
+3. قراءة خدمات الليزك من SQL Server.
+4. قراءة الطاقم/الدكاترة من SQL Server عند الحاجة.
+5. تصفية البيانات على SEC_CD = 15.
+6. دعم البحث بالتاريخ.
+7. دعم البحث بـ PAT_CD.
+
+ممنوع:
+- ممنوع كتابة أي حركة مالية في هذه المرحلة.
+- ممنوع نسخ الحسابات إلى MySQL.
+- ممنوع تعديل بيانات OP أو SQL من الويب في المرحلة الأولى.
+
+شروط القبول:
+- كل APIs تقرأ من SQL فقط.
+- لا يوجد insert/update/delete في الحسابات.
+- البيانات تظهر حسب التاريخ والقسم.
+
+---
+
+## المرحلة 5: بناء صفحات الواجهة
+
+المسؤول:
+- Frontend/UI Agent
+
+المخرجات المقترحة:
+
+client/pages/patients
+client/pages/patients/CreatePatient.tsx
+client/pages/patients/PatientProfile.tsx
+client/pages/accounting/lasik
+client/pages/accounting/lasik/Receipts.tsx
+client/pages/accounting/lasik/Revenue.tsx
+client/pages/accounting/lasik/Services.tsx
+client/pages/accounting/lasik/Staff.tsx
+
+المهام:
+
+1. شاشة إنشاء مريض.
+2. شاشة ملف المريض.
+3. صفحة إيصالات الليزك.
+4. صفحة إيراد الليزك.
+5. صفحة خدمات الليزك.
+6. صفحة طاقم/دكاترة الليزك.
+7. تصميم Navigation واضح بين Medical وAccounting.
+
+تقسيم الواجهة:
+
+Main Layout
+  - Patients
+  - Medical
+  - Accounting
+      - Lasik
+          - Receipts
+          - Revenue
+          - Services
+          - Staff
+
+قواعد مهمة:
+
+- الواجهة لا تعرف تفاصيل SQL أو MySQL.
+- الواجهة تتعامل مع APIs فقط.
+- لا يتم وضع connection strings أو database logic في frontend.
+- صفحة المريض تعرض patientCode/PAT_CD بوضوح عند الحاجة.
+
+شروط القبول:
+- الصفحات تفتح بدون أخطاء.
+- يوجد فصل واضح بين Medical وAccounting.
+- لا توجد calls مباشرة لقواعد البيانات من الواجهة.
+
+---
+
+## المرحلة 6: ربط الواجهة بالباك إند
+
+المسؤول:
+- Integration Agent
+
+المهام:
+
+1. ربط Create Patient form بـ create patient API.
+2. ربط Receipts page بـ accounting receipts API.
+3. ربط Revenue page بـ accounting revenue API.
+4. ربط Services page بـ services API.
+5. ربط Patient Profile بملخص الحسابات من SQL باستخدام PAT_CD.
+6. التأكد من loading/error states.
+
+قواعد الربط:
+
+- Patient Profile يعتمد داخليًا على MySQL patient.id للملف الطبي.
+- عند طلب بيانات حسابات، يستخدم patientCode/PAT_CD.
+- لا يرسل patient.id إلى accounting APIs.
+
+مثال صحيح:
+
+GET /api/accounting/lasik/patient/12345/summary
+
+حيث 12345 = PAT_CD
+
+مثال غلط:
+
+GET /api/accounting/lasik/patient/7/summary
+
+لو 7 هو MySQL patient.id وليس PAT_CD.
+
+شروط القبول:
+- إنشاء مريض يعمل end-to-end.
+- صفحة المريض تعرض البيانات الطبية من MySQL.
+- ملخص الحسابات يأتي من SQL باستخدام PAT_CD.
+- لا يوجد خلط بين IDs.
+
+---
+
+## المرحلة 7: مراجعة واختبار QA
+
+المسؤول:
+- QA / Reviewer Agent
+
+Checklist أساسي:
+
+1. هل SQL Server للحسابات فقط؟
+2. هل MySQL للطبي فقط؟
+3. هل PAT_CD محفوظ في MySQL؟
+4. هل MySQL patient.id غير مستخدم في الحسابات؟
+5. هل accounting المرحلة الأولى Read Only؟
+6. هل mssqlPatients.ts لم يتم كسره؟
+7. هل create patient flow واضح؟
+8. هل في pending sync عند فشل MySQL بعد نجاح SQL؟
+9. هل في error handling واضح؟
+10. هل في tests أو manual checklist؟
+
+سيناريوهات اختبار مهمة:
+
+1. إنشاء مريض جديد بنجاح في القاعدتين.
+2. فشل SQL أثناء إنشاء مريض.
+3. نجاح SQL وفشل MySQL.
+4. فتح ملف مريض طبي.
+5. فتح ملخص حسابات للمريض باستخدام PAT_CD.
+6. عرض إيصالات الليزك في فترة زمنية.
+7. التأكد أن المستخدم لا يستطيع كتابة حركة مالية من الويب في المرحلة الأولى.
+
+شروط القبول:
+- لا توجد أخطاء في السيناريوهات الأساسية.
+- أي فشل يظهر بشكل واضح.
+- لا يوجد خلط ID.
+- لا يوجد كتابة مالية من الويب.
+
+---
+
+# 5. ترتيب التنفيذ المختصر جدًا
+
+1. Architect يعمل ARCHITECTURE.md و TASKS.md.
+2. Backend يعمل mssql/core.ts و mysql/core.ts.
+3. Backend يعمل createPatient.service.ts.
+4. Backend يعمل accounting read APIs لليزك SEC_CD = 15.
+5. Frontend يعمل صفحات المرضى والحسابات.
+6. Integration يربط الواجهة بالـ APIs.
+7. QA يراجع ويختبر.
+8. بعد الاستقرار فقط نبدأ مرحلة كتابة الحسابات من الويب.
+
+---
+
+# 6. أوامر جاهزة لكل Agent
+
+## 6.1 Prompt للـ Architect Agent
+
+You are the Lead Architect for this project.
+
+Create ARCHITECTURE.md and TASKS.md for a web app that has one UI but two separated systems:
+
+1. Accounting module uses SQL Server.
+2. Medical module uses MySQL.
+3. Patient creation must write to SQL Server first, get PAT_CD, then write to MySQL with PAT_CD stored as patientCode or mssqlPatientCode.
+4. SQL.PAT_CD must never be treated as MySQL patient.id.
+5. Accounting data stays in SQL Server.
+6. Medical data stays in MySQL.
+7. Start with Lasik accounting only, SEC_CD = 15.
+8. First phase must be read-only accounting.
+9. Existing mssqlPatients.ts should not be rewritten from scratch; extract reusable MSSQL core and build new accounting module beside it.
+
+Output:
+- ARCHITECTURE.md
+- TASKS.md
+- exact folder structure
+- API list
+- implementation order
+- rules for other agents
+- acceptance checklist
+
+---
+
+## 6.2 Prompt للـ Backend Agent
+
+You are the Backend Agent.
+
+Read ARCHITECTURE.md and TASKS.md first.
+
+Your job:
+1. Do not change the architecture.
+2. Do not rewrite mssqlPatients.ts from scratch.
+3. Extract reusable MSSQL core connection.
+4. Create separated MySQL core connection.
+5. Implement create patient flow:
+   - create in SQL Server first
+   - get PAT_CD
+   - create in MySQL with patientCode/mssqlPatientCode = PAT_CD
+   - handle failure and pending sync
+6. Implement Lasik accounting read-only APIs from SQL Server only, SEC_CD = 15.
+
+Required output:
+- list of changed files
+- what changed
+- how to test
+- any risks
+
+---
+
+## 6.3 Prompt للـ Frontend/UI Agent
+
+You are the Frontend/UI Agent.
+
+Read ARCHITECTURE.md and TASKS.md first.
+
+Your job:
+1. Build UI pages only.
+2. Do not add database logic in frontend.
+3. Use backend APIs only.
+4. Create pages for:
+   - Create Patient
+   - Patient Profile
+   - Lasik Receipts
+   - Lasik Revenue
+   - Lasik Services
+   - Lasik Staff
+5. Keep Medical and Accounting visually separated but inside one web app.
+6. Show patientCode/PAT_CD where needed.
+
+Required output:
+- list of changed files
+- UI pages created
+- how to test manually
+- any missing API dependencies
+
+---
+
+## 6.4 Prompt للـ Integration Agent
+
+You are the Integration Agent.
+
+Read ARCHITECTURE.md and TASKS.md first.
+
+Your job:
+1. Connect frontend pages to backend APIs.
+2. Ensure Patient Profile uses MySQL patient.id for medical routes only.
+3. Ensure Accounting routes use PAT_CD/patientCode only.
+4. Never send MySQL patient.id to accounting APIs.
+5. Add loading and error states.
+6. Verify end-to-end create patient flow.
+
+Required output:
+- list of changed files
+- connected APIs
+- test cases run
+- bugs found or fixed
+
+---
+
+## 6.5 Prompt للـ QA / Reviewer Agent
+
+You are the QA and Reviewer Agent.
+
+Read ARCHITECTURE.md and TASKS.md first.
+
+Review the implementation for:
+1. SQL Server is used only for accounting.
+2. MySQL is used only for medical.
+3. PAT_CD is stored in MySQL as patientCode/mssqlPatientCode.
+4. MySQL patient.id is never used as SQL PAT_CD.
+5. Accounting phase is read-only.
+6. Existing mssqlPatients.ts is not broken.
+7. Patient creation handles partial failure.
+8. API names and folder structure follow ARCHITECTURE.md.
+
+Output:
+- pass/fail checklist
+- critical bugs
+- suggested fixes
+- files that need changes
+
+---
+
+# 7. قواعد ممنوعة على كل Agents
+
+1. ممنوع تغيير المعمارية بدون الرجوع إلى ARCHITECTURE.md.
+2. ممنوع اعتبار MySQL patient.id هو PAT_CD.
+3. ممنوع نسخ الحسابات كلها إلى MySQL.
+4. ممنوع كتابة حركات مالية من الويب في المرحلة الأولى.
+5. ممنوع حذف mssqlPatients.ts القديم في البداية.
+6. ممنوع خلط SQL queries وMySQL queries في نفس service.
+7. ممنوع frontend يتصل بقواعد البيانات مباشرة.
+8. ممنوع تجاهل فشل إنشاء المريض في إحدى القاعدتين.
+9. ممنوع أي Agent يشتغل من غير قراءة ARCHITECTURE.md و TASKS.md.
+10. ممنوع تنفيذ كل شيء مرة واحدة؛ التنفيذ يكون مراحل.
+
+---
+
+# 8. خطة المراحل بعد المرحلة الأولى
+
+## المرحلة الأولى
+- Read Only accounting.
+- Lasik only.
+- SEC_CD = 15.
+- Create patient dual-write.
+
+## المرحلة الثانية
+- تحسين التقارير.
+- فلترة متقدمة.
+- ملخص حسابات داخل ملف المريض.
+- مراجعة الربط مع المرضى القدامى.
+
+## المرحلة الثالثة
+- كتابة بعض العمليات المالية من الويب لو لزم.
+- إضافة صلاحيات قوية.
+- Audit log.
+- منع التعديل المباشر بدون تسجيل.
+
+## المرحلة الرابعة
+- توسيع النظام لأقسام أخرى غير الليزك.
+- إضافة sync/reconciliation tools.
+- مقارنة بين SQL وMySQL للمرضى غير المتطابقين.
+
+---
+
+# 9. القرار النهائي
+
+ابدأ هكذا:
+
+1. استخدم Architect Agent أولًا.
+2. لا تبدأ كود قبل ARCHITECTURE.md و TASKS.md.
+3. نفذ Backend قبل Frontend.
+4. ابدأ بالحسابات Read Only.
+5. ثبت PAT_CD كجسر الربط.
+6. راجع كل مرحلة بـ QA Agent.
+
+الهدف ليس أن يكتب AI كود كثير بسرعة.
+الهدف أن كل Agent يعرف حدوده حتى لا يخلط الطبي بالحسابات ولا SQL بـ MySQL.

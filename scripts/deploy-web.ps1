@@ -19,9 +19,6 @@ try {
         Write-Step "Building web app"
         pnpm build
        }
-
-    Write-Step "Restarting service $ServiceName"
-    nssm restart $ServiceName
     }
 finally {
     Pop-Location

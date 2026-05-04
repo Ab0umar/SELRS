@@ -2,6 +2,10 @@
  * Single source for Admin Permissions + Admin Users checkbox lists.
  * Keep in sync with `App.tsx` routes and `ProtectedRoute` checks.
  */
+type PagePermissionEntry = { readonly id: string; readonly label: string; readonly group?: string };
+
+export type PagePermissionDefinition = PagePermissionEntry;
+
 export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/dashboard", label: "لوحة التحكم / Dashboard" },
   { id: "/patient-data/edit", label: "تعديل بيانات المريض (لوحة / فحص)" },
@@ -10,6 +14,15 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/patients/:id", label: "تفاصيل المريض" },
   { id: "/patient-file", label: "الملف الطبي" },
   { id: "/patient-hub", label: "مركز المريض (Patient hub)" },
+  { id: "/accounting", label: "لوحة الحسابات", group: "الحسابات Acc." },
+  { id: "/accounting/daily-revenue", label: "الإيراد اليومي", group: "الحسابات Acc." },
+  { id: "/accounting/service-revenue", label: "إيراد الخدمات", group: "الحسابات Acc." },
+  { id: "/accounting/receipts", label: "الإيصالات", group: "الحسابات Acc." },
+  { id: "/accounting/services", label: "الخدمات", group: "الحسابات Acc." },
+  { id: "/accounting/patients", label: "استعلام المرضى", group: "الحسابات Acc." },
+  { id: "/accounting/patient", label: "حساب مريض", group: "الحسابات Acc." },
+  { id: "/accounting/doctor", label: "حساب طبيب", group: "الحسابات Acc." },
+  { id: "/accounting/print", label: "معاينة الطباعة", group: "الحسابات Acc." },
   { id: "/examination", label: "الفحوصات" },
   { id: "/quick-entry", label: "دخول سريع للمريض" },
   { id: "/new-cases", label: "حالات جديدة" },
@@ -61,6 +74,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin/tests", label: "إدارة الاختبارات (/admin/tests)" },
   { id: "/admin/pentacam-failed", label: "فشل البنتكام (إداري)" },
   { id: "/ops/mssql-add", label: "كتابة MSSQL (مزامنة)" },
-] as const;
+] as const satisfies readonly PagePermissionEntry[];
 
 export type PagePermissionId = (typeof PAGE_PERMISSION_DEFINITIONS)[number]["id"];
+
+/** Section heading for permission UIs (`PAGE_PERMISSION_DEFINITIONS` rows may omit `group`). */
+export function getPagePermissionGroup(entry: PagePermissionDefinition): string | undefined {
+  return entry.group;
+}

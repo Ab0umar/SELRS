@@ -8,9 +8,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$packageJsonPath = "E:\SELRS.cc\package.json"
+$packageJsonPath = "D:\C\SRV100\package.json"
 $androidDir = Join-Path $repoRoot "android"
-$apkOutputDir = "C:\Users\SELRS\OneDrive\Documents\SELRS.cc"
+$apkOutputDir = "C:\Users\drels\OneDrive\SELRS.cc"
 
 function Write-Step {
     param([string]$Message)

@@ -1,0 +1,288 @@
+/**
+ * OP-style report borders for Service Revenue (screen + browser print).
+ * Uses black borders and light fills that remain visible when printed.
+ */
+
+.reportWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.serviceBlock {
+  box-sizing: border-box;
+  margin-bottom: 14px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.serviceHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: #000;
+  background: #dde8f5;
+  border-bottom: 2px solid #000;
+}
+
+.serviceHeaderToggle {
+  flex-shrink: 0;
+}
+
+.serviceHeaderTitle {
+  flex: 1;
+  text-align: right;
+}
+
+.gridTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: auto;
+  background: #fff;
+}
+
+/** One master table: service banners + rows + period total in tfoot. */
+.revenueMasterTable {
+  border: 2px solid #000;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.groupBannerRow td {
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: #000;
+  background: #dde8f5;
+  border-bottom: 2px solid #000;
+  vertical-align: middle;
+}
+
+.groupBannerInner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  direction: rtl;
+  text-align: right;
+}
+
+.gridTable th,
+.gridTable td {
+  box-sizing: border-box;
+  padding: 6px 8px;
+  text-align: right;
+  vertical-align: middle;
+  color: #000;
+  border-bottom: 1px solid #000;
+  border-right: 1px solid #000;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.gridTable thead th {
+  font-weight: 700;
+  background: #e8e8e8;
+  border-bottom: 1px solid #000;
+}
+
+.gridTable th:first-child,
+.gridTable td:first-child {
+  border-right: none;
+}
+
+.gridTable :is(th, td).numeric {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 1%;
+  min-width: 0;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.bodyCellDoctor {
+  padding-inline-end: 12px;
+}
+
+.serviceSubtotalRow td {
+  font-weight: 700;
+  background: #ffe6cc;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+}
+
+.totalsArea {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.totalsTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: auto;
+}
+
+.totalsTable td {
+  box-sizing: border-box;
+  padding: 8px 10px;
+  text-align: right;
+  color: #000;
+  border-inline-start: 1px solid #000;
+  border-bottom: 1px solid #000;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.totalsTable td.numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 0.01%;
+  min-width: min-content;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.totalsTable td:first-child {
+  border-inline-start: none;
+  font-weight: 700;
+}
+
+.sectionTotalRow td {
+  font-weight: 700;
+  background: #d0d0d0;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  border-right: 1px solid #000;
+}
+
+.sectionTotalRow td:first-child {
+  border-right: none;
+}
+
+.periodTotalWrap {
+  border: 2px solid #000;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.periodTotalRow td {
+  font-weight: 700;
+  background: #bfbfbf;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  border-right: 1px solid #000;
+}
+
+.periodTotalRow td:first-child {
+  border-right: none;
+}
+
+.loadingTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000;
+  table-layout: auto;
+}
+
+.loadingTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #000;
+  border-inline-start: 1px solid #000;
+  min-width: 0;
+}
+
+.loadingTable td:first-child {
+  border-inline-start: none;
+}
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.colCompact { width: 1%; }
+.colStretch { width: auto; }
+
+@media print {
+  .gridTable {
+    font-size: 12.5px;
+  }
+
+  .serviceBlock {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .serviceHeader {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .gridTable thead th {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .serviceSubtotalRow td {
+    background: #ffe6cc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sectionTotalRow td {
+    background: #d0d0d0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .periodTotalRow td {
+    background: #bfbfbf !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .periodTotalWrap {
+    border-color: #000 !important;
+  }
+}

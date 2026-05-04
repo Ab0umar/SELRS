@@ -1,0 +1,4327 @@
+object ppReport1: TppReport
+  AutoStop = False
+  DataPipeline = daADOQueryDataView1.x
+  PrinterSetup.BinName = 'Default'
+  PrinterSetup.DocumentName = 'Report'
+  PrinterSetup.PaperName = 'A4'
+  PrinterSetup.PrinterName = 'Default'
+  PrinterSetup.SaveDeviceSettings = False
+  PrinterSetup.mmMarginBottom = 6350
+  PrinterSetup.mmMarginLeft = 6350
+  PrinterSetup.mmMarginRight = 6350
+  PrinterSetup.mmMarginTop = 6350
+  PrinterSetup.mmPaperHeight = 297000
+  PrinterSetup.mmPaperWidth = 210000
+  PrinterSetup.PaperSize = 9
+  SaveAsTemplate = True
+  Template.DatabaseSettings.DataPipeline = plItem
+  Template.DatabaseSettings.Name = '91 '#1578#1602#1585#1610#1585' '#1582#1583#1605#1575#1578' '#1575#1591#1576#1575#1569' '#1605#1601#1589#1604
+  Template.DatabaseSettings.NameField = 'ItemName'
+  Template.DatabaseSettings.TemplateField = 'Template'
+  Template.FileName = 'D:\C\OP\'#1582#1583#1605#1575#1578' '#1575#1604#1575#1591#1576#1575#1569' '#1605#1601#1589#1604'.rtm'
+  Template.Format = ftASCII
+  DeviceType = 'Screen'
+  EmailSettings.ReportFormat = 'PDF'
+  OutlineSettings.CreateNode = True
+  OutlineSettings.CreatePageNodes = True
+  OutlineSettings.Enabled = False
+  OutlineSettings.Visible = False
+  PDFSettings.EmbedFontOptions = []
+  TextSearchSettings.DefaultString = '<FindText>'
+  TextSearchSettings.Enabled = True
+  TextSearchSettings.ShowAll = True
+  TextSearchSettings.SearchFromCurrentPage = True
+  TextSearchSettings.Visible = True
+  Left = 321
+  Top = 174
+  Version = '11.06'
+  mmColumnWidth = 0
+  DataPipelineName = 'x'
+  object ppHeaderBand1: TppHeaderBand
+    mmBottomOffset = 0
+    mmHeight = 34925
+    mmPrintPosition = 0
+    object ppLabel1: TppLabel
+      UserName = 'Label1'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1578#1602#1585#1610#1585' '#1582#1583#1605#1575#1578' '#1575#1604#1575#1591#1576#1575#1569' '#1605#1601#1589#1604' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 14
+      Font.Style = [fsBold]
+      Transparent = True
+      mmHeight = 5842
+      mmLeft = 75142
+      mmTop = 4233
+      mmWidth = 45551
+      BandType = 0
+    end
+    object ppLabel2: TppLabel
+      UserName = 'Label2'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1605#1585#1610#1590' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 152665
+      mmTop = 30427
+      mmWidth = 44715
+      BandType = 0
+    end
+    object ppLabel3: TppLabel
+      UserName = 'Label3'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1582#1583#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 110067
+      mmTop = 30427
+      mmWidth = 42863
+      BandType = 0
+    end
+    object ppLabel4: TppLabel
+      UserName = 'Label4'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1578#1575#1585#1610#1582
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 57150
+      mmTop = 30427
+      mmWidth = 25135
+      BandType = 0
+    end
+    object ppLabel5: TppLabel
+      UserName = 'Label5'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1593#1583#1583
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 46038
+      mmTop = 30427
+      mmWidth = 11377
+      BandType = 0
+    end
+    object ppLabel6: TppLabel
+      UserName = 'Label6'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1587#1593#1585
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 25929
+      mmTop = 30427
+      mmWidth = 20373
+      BandType = 0
+    end
+    object ppLabel7: TppLabel
+      UserName = 'Label7'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1602#1610#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 0
+      mmTop = 30427
+      mmWidth = 26194
+      BandType = 0
+    end
+    object ppLabel8: TppLabel
+      UserName = 'Label8'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1580#1607#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 82021
+      mmTop = 30427
+      mmWidth = 28310
+      BandType = 0
+    end
+  end
+  object ppDetailBand1: TppDetailBand
+    mmBottomOffset = 0
+    mmHeight = 4498
+    mmPrintPosition = 0
+    object ppDBText1: TppDBText
+      UserName = 'DBText1'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'PAT_NM_AR'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 152665
+      mmTop = 265
+      mmWidth = 44715
+      BandType = 4
+    end
+    object ppDBText2: TppDBText
+      UserName = 'DBText2'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'SRV_NM'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 110067
+      mmTop = 265
+      mmWidth = 42863
+      BandType = 4
+    end
+    object ppDBText3: TppDBText
+      UserName = 'DBText3'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'DT'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 57150
+      mmTop = 265
+      mmWidth = 25135
+      BandType = 4
+    end
+    object ppDBText4: TppDBText
+      UserName = 'DBText4'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'QTY'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 46038
+      mmTop = 265
+      mmWidth = 11377
+      BandType = 4
+    end
+    object ppDBText5: TppDBText
+      UserName = 'DBText5'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'PRC'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 25929
+      mmTop = 265
+      mmWidth = 20373
+      BandType = 4
+    end
+    object ppDBText6: TppDBText
+      UserName = 'DBText6'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'tot'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 0
+      mmTop = 265
+      mmWidth = 26194
+      BandType = 4
+    end
+    object ppDBText8: TppDBText
+      UserName = 'DBText8'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'CA_NM'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 82021
+      mmTop = 265
+      mmWidth = 28310
+      BandType = 4
+    end
+  end
+  object ppFooterBand1: TppFooterBand
+    mmBottomOffset = 0
+    mmHeight = 0
+    mmPrintPosition = 0
+  end
+  object ppGroup1: TppGroup
+    BreakName = 'phnm_ar'
+    DataPipeline = daADOQueryDataView1.x
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group1'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'x'
+    object ppGroupHeaderBand1: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 4233
+      mmPrintPosition = 0
+      object ppDBText7: TppDBText
+        UserName = 'DBText7'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'phnm_ar'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 125942
+        mmTop = 0
+        mmWidth = 71438
+        BandType = 3
+        GroupNo = 0
+      end
+    end
+    object ppGroupFooterBand1: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 4233
+      mmPrintPosition = 0
+      object ppDBCalc1: TppDBCalc
+        UserName = 'DBCalc1'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'QTY'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 46038
+        mmTop = 0
+        mmWidth = 11377
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc2: TppDBCalc
+        UserName = 'DBCalc2'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'PRC'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 23019
+        mmTop = 0
+        mmWidth = 26194
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc3: TppDBCalc
+        UserName = 'DBCalc3'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'tot'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 0
+        mmTop = 0
+        mmWidth = 24871
+        BandType = 5
+        GroupNo = 0
+      end
+    end
+  end
+  object ppGroup2: TppGroup
+    BreakName = 'SRV_NM'
+    DataPipeline = daADOQueryDataView1.x
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group2'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'x'
+    object ppGroupHeaderBand2: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 0
+      mmPrintPosition = 0
+    end
+    object ppGroupFooterBand2: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 0
+      mmPrintPosition = 0
+    end
+  end
+  object daDataModule1: TdaDataModule
+    object daADOQueryDataView1: TdaADOQueryDataView
+      UserName = 'Query_x'
+      Height = 673
+      Left = 10
+      NameColumnWidth = 105
+      SizeColumnWidth = 35
+      SortMode = 0
+      Top = 10
+      TypeColumnWidth = 52
+      Width = 224
+      AutoSearchTabOrder = 0
+      object x: TppChildDBPipeline
+        AutoCreateFields = False
+        UserName = 'x'
+        object ppField1: TppField
+          FieldAlias = 'PAT_CD'
+          FieldName = 'PAT_CD'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 0
+        end
+        object ppField2: TppField
+          FieldAlias = 'VST_NO'
+          FieldName = 'VST_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 1
+        end
+        object ppField3: TppField
+          FieldAlias = 'DT'
+          FieldName = 'DT'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 2
+        end
+        object ppField4: TppField
+          FieldAlias = 'SRV_CD'
+          FieldName = 'SRV_CD'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 3
+        end
+        object ppField5: TppField
+          FieldAlias = 'FRMTIM'
+          FieldName = 'FRMTIM'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 4
+        end
+        object ppField6: TppField
+          FieldAlias = 'PRCGRP_ID'
+          FieldName = 'PRCGRP_ID'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 5
+        end
+        object ppField7: TppField
+          FieldAlias = 'PAT_NM_AR'
+          FieldName = 'PAT_NM_AR'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 6
+        end
+        object ppField8: TppField
+          FieldAlias = 'PAT_NM_EN'
+          FieldName = 'PAT_NM_EN'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 7
+        end
+        object ppField9: TppField
+          FieldAlias = 'PAT_TYP'
+          FieldName = 'PAT_TYP'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 8
+        end
+        object ppField10: TppField
+          FieldAlias = 'SEC_CD'
+          FieldName = 'SEC_CD'
+          FieldLength = 4
+          DisplayWidth = 4
+          Position = 9
+        end
+        object ppField11: TppField
+          FieldAlias = 'TR_NO'
+          FieldName = 'TR_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 10
+        end
+        object ppField12: TppField
+          FieldAlias = 'TR_TY'
+          FieldName = 'TR_TY'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 11
+        end
+        object ppField13: TppField
+          FieldAlias = 'PRG_SNO'
+          FieldName = 'PRG_SNO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 12
+        end
+        object ppField14: TppField
+          FieldAlias = 'INV_CD'
+          FieldName = 'INV_CD'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 13
+        end
+        object ppField15: TppField
+          FieldAlias = 'UNT_NO1'
+          FieldName = 'UNT_NO1'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 14
+        end
+        object ppField16: TppField
+          FieldAlias = 'UNT_NO2'
+          FieldName = 'UNT_NO2'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 15
+        end
+        object ppField17: TppField
+          FieldAlias = 'UNT_NO3'
+          FieldName = 'UNT_NO3'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 16
+        end
+        object ppField18: TppField
+          FieldAlias = 'UNT_NO4'
+          FieldName = 'UNT_NO4'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 17
+        end
+        object ppField19: TppField
+          FieldAlias = 'UNT_NO5'
+          FieldName = 'UNT_NO5'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 18
+        end
+        object ppField20: TppField
+          FieldAlias = 'CUR_UNT_NO'
+          FieldName = 'CUR_UNT_NO'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 19
+        end
+        object ppField21: TppField
+          FieldAlias = 'CUR_DPT_NO'
+          FieldName = 'CUR_DPT_NO'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 20
+        end
+        object ppField22: TppField
+          FieldAlias = 'TOTIM'
+          FieldName = 'TOTIM'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 21
+        end
+        object ppField23: TppField
+          FieldAlias = 'SRV_BY1'
+          FieldName = 'SRV_BY1'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 22
+        end
+        object ppField24: TppField
+          FieldAlias = 'SRV_BY2'
+          FieldName = 'SRV_BY2'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 23
+        end
+        object ppField25: TppField
+          FieldAlias = 'SRV_BY3'
+          FieldName = 'SRV_BY3'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 24
+        end
+        object ppField26: TppField
+          FieldAlias = 'SRV_BY4'
+          FieldName = 'SRV_BY4'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 25
+        end
+        object ppField27: TppField
+          FieldAlias = 'SRV_BY5'
+          FieldName = 'SRV_BY5'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 26
+        end
+        object ppField28: TppField
+          FieldAlias = 'CUR_SRV_BY'
+          FieldName = 'CUR_SRV_BY'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 27
+        end
+        object ppField29: TppField
+          FieldAlias = 'PRG_BY'
+          FieldName = 'PRG_BY'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 28
+        end
+        object ppField30: TppField
+          FieldAlias = 'STAT1'
+          FieldName = 'STAT1'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 29
+        end
+        object ppField31: TppField
+          FieldAlias = 'STAT2'
+          FieldName = 'STAT2'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 30
+        end
+        object ppField32: TppField
+          FieldAlias = 'STAT3'
+          FieldName = 'STAT3'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 31
+        end
+        object ppField33: TppField
+          FieldAlias = 'STAT4'
+          FieldName = 'STAT4'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 32
+        end
+        object ppField34: TppField
+          FieldAlias = 'STAT5'
+          FieldName = 'STAT5'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 33
+        end
+        object ppField35: TppField
+          FieldAlias = 'CUR_STAT'
+          FieldName = 'CUR_STAT'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 34
+        end
+        object ppField36: TppField
+          FieldAlias = 'CUR_STAT_TIM'
+          FieldName = 'CUR_STAT_TIM'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 35
+        end
+        object ppField37: TppField
+          FieldAlias = 'CUR_SRV_IDX'
+          FieldName = 'CUR_SRV_IDX'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 36
+        end
+        object ppField38: TppField
+          FieldAlias = 'DON_BY1'
+          FieldName = 'DON_BY1'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 37
+        end
+        object ppField39: TppField
+          FieldAlias = 'DON_BY2'
+          FieldName = 'DON_BY2'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 38
+        end
+        object ppField40: TppField
+          FieldAlias = 'DON_BY3'
+          FieldName = 'DON_BY3'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 39
+        end
+        object ppField41: TppField
+          FieldAlias = 'DON_BY4'
+          FieldName = 'DON_BY4'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 40
+        end
+        object ppField42: TppField
+          FieldAlias = 'DON_BY5'
+          FieldName = 'DON_BY5'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 41
+        end
+        object ppField43: TppField
+          FieldAlias = 'DON_DTTIM1'
+          FieldName = 'DON_DTTIM1'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 42
+        end
+        object ppField44: TppField
+          FieldAlias = 'DON_DTTIM2'
+          FieldName = 'DON_DTTIM2'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 43
+        end
+        object ppField45: TppField
+          FieldAlias = 'DON_DTTIM3'
+          FieldName = 'DON_DTTIM3'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 44
+        end
+        object ppField46: TppField
+          FieldAlias = 'DON_DTTIM4'
+          FieldName = 'DON_DTTIM4'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 45
+        end
+        object ppField47: TppField
+          FieldAlias = 'DON_DTTIM5'
+          FieldName = 'DON_DTTIM5'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 46
+        end
+        object ppField48: TppField
+          FieldAlias = 'QTY'
+          FieldName = 'QTY'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 47
+        end
+        object ppField49: TppField
+          FieldAlias = 'PRC'
+          FieldName = 'PRC'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 48
+        end
+        object ppField50: TppField
+          FieldAlias = 'DISC'
+          FieldName = 'DISC'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 49
+        end
+        object ppField51: TppField
+          FieldAlias = 'CA_CD'
+          FieldName = 'CA_CD'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 50
+        end
+        object ppField52: TppField
+          FieldAlias = 'PRG_DISC'
+          FieldName = 'PRG_DISC'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 51
+        end
+        object ppField53: TppField
+          FieldAlias = 'DISC_VL'
+          FieldName = 'DISC_VL'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 52
+        end
+        object ppField54: TppField
+          FieldAlias = 'PA_VL'
+          FieldName = 'PA_VL'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 53
+        end
+        object ppField55: TppField
+          FieldAlias = 'CA_VL'
+          FieldName = 'CA_VL'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 54
+        end
+        object ppField56: TppField
+          FieldAlias = 'MNGEXP'
+          FieldName = 'MNGEXP'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 55
+        end
+        object ppField57: TppField
+          FieldAlias = 'TAX1'
+          FieldName = 'TAX1'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 56
+        end
+        object ppField58: TppField
+          FieldAlias = 'TAX2'
+          FieldName = 'TAX2'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 57
+        end
+        object ppField59: TppField
+          FieldAlias = 'TAX3'
+          FieldName = 'TAX3'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 58
+        end
+        object ppField60: TppField
+          FieldAlias = 'TAX4'
+          FieldName = 'TAX4'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 59
+        end
+        object ppField61: TppField
+          FieldAlias = 'PMNGEXP'
+          FieldName = 'PMNGEXP'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 60
+        end
+        object ppField62: TppField
+          FieldAlias = 'PTAX1'
+          FieldName = 'PTAX1'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 61
+        end
+        object ppField63: TppField
+          FieldAlias = 'PTAX2'
+          FieldName = 'PTAX2'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 62
+        end
+        object ppField64: TppField
+          FieldAlias = 'PTAX3'
+          FieldName = 'PTAX3'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 63
+        end
+        object ppField65: TppField
+          FieldAlias = 'PTAX4'
+          FieldName = 'PTAX4'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 64
+        end
+        object ppField66: TppField
+          FieldAlias = 'PA_PAID'
+          FieldName = 'PA_PAID'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 65
+        end
+        object ppField67: TppField
+          FieldAlias = 'INV_NO'
+          FieldName = 'INV_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 66
+        end
+        object ppField68: TppField
+          FieldAlias = 'INV_DT'
+          FieldName = 'INV_DT'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 67
+        end
+        object ppField69: TppField
+          FieldAlias = 'PINV_NO'
+          FieldName = 'PINV_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 68
+        end
+        object ppField70: TppField
+          FieldAlias = 'PINV_DT'
+          FieldName = 'PINV_DT'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 69
+        end
+        object ppField71: TppField
+          FieldAlias = 'RMRK'
+          FieldName = 'RMRK'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 70
+        end
+        object ppField72: TppField
+          FieldAlias = 'RCMND'
+          FieldName = 'RCMND'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 71
+        end
+        object ppField73: TppField
+          FieldAlias = 'LABS'
+          FieldName = 'LABS'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 72
+        end
+        object ppField74: TppField
+          FieldAlias = 'PRGRS'
+          FieldName = 'PRGRS'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 73
+        end
+        object ppField75: TppField
+          FieldAlias = 'MDCMNT'
+          FieldName = 'MDCMNT'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 74
+        end
+        object ppField76: TppField
+          FieldAlias = 'SET_ID1'
+          FieldName = 'SET_ID1'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 75
+        end
+        object ppField77: TppField
+          FieldAlias = 'DUR1'
+          FieldName = 'DUR1'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 76
+        end
+        object ppField78: TppField
+          FieldAlias = 'SIT1'
+          FieldName = 'SIT1'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 77
+        end
+        object ppField79: TppField
+          FieldAlias = 'INTNS1'
+          FieldName = 'INTNS1'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 78
+        end
+        object ppField80: TppField
+          FieldAlias = 'ROM1'
+          FieldName = 'ROM1'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 79
+        end
+        object ppField81: TppField
+          FieldAlias = 'NOTS1'
+          FieldName = 'NOTS1'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 80
+        end
+        object ppField82: TppField
+          FieldAlias = 'FLD11'
+          FieldName = 'FLD11'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 81
+        end
+        object ppField83: TppField
+          FieldAlias = 'FLD21'
+          FieldName = 'FLD21'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 82
+        end
+        object ppField84: TppField
+          FieldAlias = 'FLD31'
+          FieldName = 'FLD31'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 83
+        end
+        object ppField85: TppField
+          FieldAlias = 'FLD41'
+          FieldName = 'FLD41'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 84
+        end
+        object ppField86: TppField
+          FieldAlias = 'FLD51'
+          FieldName = 'FLD51'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 85
+        end
+        object ppField87: TppField
+          FieldAlias = 'FLD61'
+          FieldName = 'FLD61'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 86
+        end
+        object ppField88: TppField
+          FieldAlias = 'FLD71'
+          FieldName = 'FLD71'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 87
+        end
+        object ppField89: TppField
+          FieldAlias = 'FLD81'
+          FieldName = 'FLD81'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 88
+        end
+        object ppField90: TppField
+          FieldAlias = 'RMRKS1'
+          FieldName = 'RMRKS1'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 89
+        end
+        object ppField91: TppField
+          FieldAlias = 'SET_ID2'
+          FieldName = 'SET_ID2'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 90
+        end
+        object ppField92: TppField
+          FieldAlias = 'DUR2'
+          FieldName = 'DUR2'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 91
+        end
+        object ppField93: TppField
+          FieldAlias = 'SIT2'
+          FieldName = 'SIT2'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 92
+        end
+        object ppField94: TppField
+          FieldAlias = 'INTNS2'
+          FieldName = 'INTNS2'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 93
+        end
+        object ppField95: TppField
+          FieldAlias = 'ROM2'
+          FieldName = 'ROM2'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 94
+        end
+        object ppField96: TppField
+          FieldAlias = 'NOTS2'
+          FieldName = 'NOTS2'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 95
+        end
+        object ppField97: TppField
+          FieldAlias = 'FLD12'
+          FieldName = 'FLD12'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 96
+        end
+        object ppField98: TppField
+          FieldAlias = 'FLD22'
+          FieldName = 'FLD22'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 97
+        end
+        object ppField99: TppField
+          FieldAlias = 'FLD32'
+          FieldName = 'FLD32'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 98
+        end
+        object ppField100: TppField
+          FieldAlias = 'FLD42'
+          FieldName = 'FLD42'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 99
+        end
+        object ppField101: TppField
+          FieldAlias = 'FLD52'
+          FieldName = 'FLD52'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 100
+        end
+        object ppField102: TppField
+          FieldAlias = 'FLD62'
+          FieldName = 'FLD62'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 101
+        end
+        object ppField103: TppField
+          FieldAlias = 'FLD72'
+          FieldName = 'FLD72'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 102
+        end
+        object ppField104: TppField
+          FieldAlias = 'FLD82'
+          FieldName = 'FLD82'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 103
+        end
+        object ppField105: TppField
+          FieldAlias = 'RMRKS2'
+          FieldName = 'RMRKS2'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 104
+        end
+        object ppField106: TppField
+          FieldAlias = 'SET_ID3'
+          FieldName = 'SET_ID3'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 105
+        end
+        object ppField107: TppField
+          FieldAlias = 'DUR3'
+          FieldName = 'DUR3'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 106
+        end
+        object ppField108: TppField
+          FieldAlias = 'SIT3'
+          FieldName = 'SIT3'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 107
+        end
+        object ppField109: TppField
+          FieldAlias = 'INTNS3'
+          FieldName = 'INTNS3'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 108
+        end
+        object ppField110: TppField
+          FieldAlias = 'ROM3'
+          FieldName = 'ROM3'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 109
+        end
+        object ppField111: TppField
+          FieldAlias = 'NOTS3'
+          FieldName = 'NOTS3'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 110
+        end
+        object ppField112: TppField
+          FieldAlias = 'FLD13'
+          FieldName = 'FLD13'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 111
+        end
+        object ppField113: TppField
+          FieldAlias = 'FLD23'
+          FieldName = 'FLD23'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 112
+        end
+        object ppField114: TppField
+          FieldAlias = 'FLD33'
+          FieldName = 'FLD33'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 113
+        end
+        object ppField115: TppField
+          FieldAlias = 'FLD43'
+          FieldName = 'FLD43'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 114
+        end
+        object ppField116: TppField
+          FieldAlias = 'FLD53'
+          FieldName = 'FLD53'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 115
+        end
+        object ppField117: TppField
+          FieldAlias = 'FLD63'
+          FieldName = 'FLD63'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 116
+        end
+        object ppField118: TppField
+          FieldAlias = 'FLD73'
+          FieldName = 'FLD73'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 117
+        end
+        object ppField119: TppField
+          FieldAlias = 'FLD83'
+          FieldName = 'FLD83'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 118
+        end
+        object ppField120: TppField
+          FieldAlias = 'RMRKS3'
+          FieldName = 'RMRKS3'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 119
+        end
+        object ppField121: TppField
+          FieldAlias = 'SET_ID4'
+          FieldName = 'SET_ID4'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 120
+        end
+        object ppField122: TppField
+          FieldAlias = 'DUR4'
+          FieldName = 'DUR4'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 121
+        end
+        object ppField123: TppField
+          FieldAlias = 'SIT4'
+          FieldName = 'SIT4'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 122
+        end
+        object ppField124: TppField
+          FieldAlias = 'INTNS4'
+          FieldName = 'INTNS4'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 123
+        end
+        object ppField125: TppField
+          FieldAlias = 'ROM4'
+          FieldName = 'ROM4'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 124
+        end
+        object ppField126: TppField
+          FieldAlias = 'NOTS4'
+          FieldName = 'NOTS4'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 125
+        end
+        object ppField127: TppField
+          FieldAlias = 'FLD14'
+          FieldName = 'FLD14'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 126
+        end
+        object ppField128: TppField
+          FieldAlias = 'FLD24'
+          FieldName = 'FLD24'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 127
+        end
+        object ppField129: TppField
+          FieldAlias = 'FLD34'
+          FieldName = 'FLD34'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 128
+        end
+        object ppField130: TppField
+          FieldAlias = 'FLD44'
+          FieldName = 'FLD44'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 129
+        end
+        object ppField131: TppField
+          FieldAlias = 'FLD54'
+          FieldName = 'FLD54'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 130
+        end
+        object ppField132: TppField
+          FieldAlias = 'FLD64'
+          FieldName = 'FLD64'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 131
+        end
+        object ppField133: TppField
+          FieldAlias = 'FLD74'
+          FieldName = 'FLD74'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 132
+        end
+        object ppField134: TppField
+          FieldAlias = 'FLD84'
+          FieldName = 'FLD84'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 133
+        end
+        object ppField135: TppField
+          FieldAlias = 'RMRKS4'
+          FieldName = 'RMRKS4'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 134
+        end
+        object ppField136: TppField
+          FieldAlias = 'SET_ID5'
+          FieldName = 'SET_ID5'
+          FieldLength = 10
+          DisplayWidth = 10
+          Position = 135
+        end
+        object ppField137: TppField
+          FieldAlias = 'DUR5'
+          FieldName = 'DUR5'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 136
+        end
+        object ppField138: TppField
+          FieldAlias = 'SIT5'
+          FieldName = 'SIT5'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 137
+        end
+        object ppField139: TppField
+          FieldAlias = 'INTNS5'
+          FieldName = 'INTNS5'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 138
+        end
+        object ppField140: TppField
+          FieldAlias = 'ROM5'
+          FieldName = 'ROM5'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 139
+        end
+        object ppField141: TppField
+          FieldAlias = 'NOTS5'
+          FieldName = 'NOTS5'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 140
+        end
+        object ppField142: TppField
+          FieldAlias = 'FLD15'
+          FieldName = 'FLD15'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 141
+        end
+        object ppField143: TppField
+          FieldAlias = 'FLD25'
+          FieldName = 'FLD25'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 142
+        end
+        object ppField144: TppField
+          FieldAlias = 'FLD35'
+          FieldName = 'FLD35'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 143
+        end
+        object ppField145: TppField
+          FieldAlias = 'FLD45'
+          FieldName = 'FLD45'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 144
+        end
+        object ppField146: TppField
+          FieldAlias = 'FLD55'
+          FieldName = 'FLD55'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 145
+        end
+        object ppField147: TppField
+          FieldAlias = 'FLD65'
+          FieldName = 'FLD65'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 146
+        end
+        object ppField148: TppField
+          FieldAlias = 'FLD75'
+          FieldName = 'FLD75'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 147
+        end
+        object ppField149: TppField
+          FieldAlias = 'FLD85'
+          FieldName = 'FLD85'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 148
+        end
+        object ppField150: TppField
+          FieldAlias = 'RMRKS5'
+          FieldName = 'RMRKS5'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 149
+        end
+        object ppField151: TppField
+          FieldAlias = 'PST1'
+          FieldName = 'PST1'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 150
+        end
+        object ppField152: TppField
+          FieldAlias = 'PST2'
+          FieldName = 'PST2'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 151
+        end
+        object ppField153: TppField
+          FieldAlias = 'PST3'
+          FieldName = 'PST3'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 152
+        end
+        object ppField154: TppField
+          FieldAlias = 'RMRK1'
+          FieldName = 'RMRK1'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 153
+        end
+        object ppField155: TppField
+          FieldAlias = 'RMRK2'
+          FieldName = 'RMRK2'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 154
+        end
+        object ppField156: TppField
+          FieldAlias = 'RMRK3'
+          FieldName = 'RMRK3'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 155
+        end
+        object ppField157: TppField
+          FieldAlias = 'ENTEREDBY'
+          FieldName = 'ENTEREDBY'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 156
+        end
+        object ppField158: TppField
+          FieldAlias = 'UPDATEDBY'
+          FieldName = 'UPDATEDBY'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 157
+        end
+        object ppField159: TppField
+          FieldAlias = 'ENTRYDATE'
+          FieldName = 'ENTRYDATE'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 158
+        end
+        object ppField160: TppField
+          FieldAlias = 'UPDATEDATE'
+          FieldName = 'UPDATEDATE'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 159
+        end
+        object ppField161: TppField
+          FieldAlias = 'DISCAPPLID'
+          FieldName = 'DISCAPPLID'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 160
+        end
+        object ppField162: TppField
+          FieldAlias = 'LN_SRC'
+          FieldName = 'LN_SRC'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 161
+        end
+        object ppField163: TppField
+          FieldAlias = 'REPIT_NO'
+          FieldName = 'REPIT_NO'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 162
+        end
+        object ppField164: TppField
+          FieldAlias = 'TR_DT'
+          FieldName = 'TR_DT'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 163
+        end
+        object ppField165: TppField
+          FieldAlias = 'CNCL'
+          FieldName = 'CNCL'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 164
+        end
+        object ppField166: TppField
+          FieldAlias = 'AZLOC'
+          FieldName = 'AZLOC'
+          FieldLength = 8
+          DisplayWidth = 8
+          Position = 165
+        end
+        object ppField167: TppField
+          FieldAlias = 'AZTR_TY'
+          FieldName = 'AZTR_TY'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 166
+        end
+        object ppField168: TppField
+          FieldAlias = 'AZTR_NO'
+          FieldName = 'AZTR_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 167
+        end
+        object ppField169: TppField
+          FieldAlias = 'AZLN_NO'
+          FieldName = 'AZLN_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 168
+        end
+        object ppField170: TppField
+          FieldAlias = 'CAINV_NO'
+          FieldName = 'CAINV_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 169
+        end
+        object ppField171: TppField
+          FieldAlias = 'IO_TY'
+          FieldName = 'IO_TY'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 170
+        end
+        object ppField172: TppField
+          FieldAlias = 'enter_no'
+          FieldName = 'enter_no'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 171
+        end
+        object ppField173: TppField
+          FieldAlias = 'SRV_BY6'
+          FieldName = 'SRV_BY6'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 172
+        end
+        object ppField174: TppField
+          FieldAlias = 'SRV_BY7'
+          FieldName = 'SRV_BY7'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 173
+        end
+        object ppField175: TppField
+          FieldAlias = 'SRV_BY8'
+          FieldName = 'SRV_BY8'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 174
+        end
+        object ppField176: TppField
+          FieldAlias = 'SRV_BY9'
+          FieldName = 'SRV_BY9'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 175
+        end
+        object ppField177: TppField
+          FieldAlias = 'SRV_BY10'
+          FieldName = 'SRV_BY10'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 176
+        end
+        object ppField178: TppField
+          FieldAlias = 'TYP_TKHR'
+          FieldName = 'TYP_TKHR'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 177
+        end
+        object ppField179: TppField
+          FieldAlias = 'Tim_Srv'
+          FieldName = 'Tim_Srv'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 178
+        end
+        object ppField180: TppField
+          FieldAlias = 'SRV_BY11'
+          FieldName = 'SRV_BY11'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 179
+        end
+        object ppField181: TppField
+          FieldAlias = 'EFCT'
+          FieldName = 'EFCT'
+          FieldLength = 1
+          DisplayWidth = 1
+          Position = 180
+        end
+        object ppField182: TppField
+          FieldAlias = 'tr_noNew'
+          FieldName = 'tr_noNew'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 181
+        end
+        object ppField183: TppField
+          FieldAlias = 'DR_VL'
+          FieldName = 'DR_VL'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 182
+        end
+        object ppField184: TppField
+          FieldAlias = 'DOC_NO'
+          FieldName = 'DOC_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 183
+        end
+        object ppField185: TppField
+          FieldAlias = 'DOC_TY'
+          FieldName = 'DOC_TY'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 184
+        end
+        object ppField186: TppField
+          FieldAlias = 'T_BTCH_ID'
+          FieldName = 'T_BTCH_ID'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 185
+        end
+        object ppField187: TppField
+          FieldAlias = 'BTCH_ID'
+          FieldName = 'BTCH_ID'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 186
+        end
+        object ppField188: TppField
+          FieldAlias = 'DISC_CA'
+          FieldName = 'DISC_CA'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 187
+        end
+        object ppField189: TppField
+          FieldAlias = 'LN_NO'
+          FieldName = 'LN_NO'
+          FieldLength = 0
+          DataType = dtLongint
+          DisplayWidth = 10
+          Position = 188
+        end
+        object ppField190: TppField
+          FieldAlias = 'DR_BNFT_ID1'
+          FieldName = 'DR_BNFT_ID1'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 189
+        end
+        object ppField191: TppField
+          FieldAlias = 'DR_BNFT_ID2'
+          FieldName = 'DR_BNFT_ID2'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 190
+        end
+        object ppField192: TppField
+          FieldAlias = 'DR_BNFT_ID3'
+          FieldName = 'DR_BNFT_ID3'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 191
+        end
+        object ppField193: TppField
+          FieldAlias = 'DR_BNFT_ID4'
+          FieldName = 'DR_BNFT_ID4'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 192
+        end
+        object ppField194: TppField
+          FieldAlias = 'DR_BNFT_ID5'
+          FieldName = 'DR_BNFT_ID5'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 193
+        end
+        object ppField195: TppField
+          FieldAlias = 'DISC_P'
+          FieldName = 'DISC_P'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 194
+        end
+        object ppField196: TppField
+          FieldAlias = 'DISC_CA_P'
+          FieldName = 'DISC_CA_P'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 195
+        end
+        object ppField197: TppField
+          FieldAlias = 'PDISC_P'
+          FieldName = 'PDISC_P'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 196
+        end
+        object ppField198: TppField
+          FieldAlias = 'PDISC_VL'
+          FieldName = 'PDISC_VL'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 197
+        end
+        object ppField199: TppField
+          FieldAlias = 'DR_DISC'
+          FieldName = 'DR_DISC'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 198
+        end
+        object ppField200: TppField
+          FieldAlias = 'DR_NET'
+          FieldName = 'DR_NET'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 199
+        end
+        object ppField201: TppField
+          FieldAlias = 'DR_CNT'
+          FieldName = 'DR_CNT'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 200
+        end
+        object ppField202: TppField
+          FieldAlias = 'BASIC_PRC'
+          FieldName = 'BASIC_PRC'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 201
+        end
+        object ppField203: TppField
+          FieldAlias = 'DR_CD_PRC'
+          FieldName = 'DR_CD_PRC'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 202
+        end
+        object ppField204: TppField
+          FieldAlias = 'DR_NET2'
+          FieldName = 'DR_NET2'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 203
+        end
+        object ppField205: TppField
+          FieldAlias = 'DR_DISC2'
+          FieldName = 'DR_DISC2'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 204
+        end
+        object ppField206: TppField
+          FieldAlias = 'DR_BTCH_ID'
+          FieldName = 'DR_BTCH_ID'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 205
+        end
+        object ppField207: TppField
+          FieldAlias = 'DR_BTCH_ID1'
+          FieldName = 'DR_BTCH_ID1'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 206
+        end
+        object ppField208: TppField
+          FieldAlias = 'DR_BTCH_ID2'
+          FieldName = 'DR_BTCH_ID2'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 207
+        end
+        object ppField209: TppField
+          FieldAlias = 'DR_BTCH_ID3'
+          FieldName = 'DR_BTCH_ID3'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 208
+        end
+        object ppField210: TppField
+          FieldAlias = 'DR_BTCH_ID4'
+          FieldName = 'DR_BTCH_ID4'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 209
+        end
+        object ppField211: TppField
+          FieldAlias = 'DR_BTCH_ID5'
+          FieldName = 'DR_BTCH_ID5'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 210
+        end
+        object ppField212: TppField
+          FieldAlias = 'DR_BNFT1'
+          FieldName = 'DR_BNFT1'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 211
+        end
+        object ppField213: TppField
+          FieldAlias = 'DR_BNFT2'
+          FieldName = 'DR_BNFT2'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 212
+        end
+        object ppField214: TppField
+          FieldAlias = 'DR_BNFT3'
+          FieldName = 'DR_BNFT3'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 213
+        end
+        object ppField215: TppField
+          FieldAlias = 'DR_BNFT4'
+          FieldName = 'DR_BNFT4'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 214
+        end
+        object ppField216: TppField
+          FieldAlias = 'DR_BNFT5'
+          FieldName = 'DR_BNFT5'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 215
+        end
+        object ppField217: TppField
+          FieldAlias = 'DR_RVLUS'
+          FieldName = 'DR_RVLUS'
+          FieldLength = 3999
+          DisplayWidth = 3999
+          Position = 216
+        end
+        object ppField218: TppField
+          FieldAlias = 'DR_BNFTDT'
+          FieldName = 'DR_BNFTDT'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 217
+        end
+        object ppField219: TppField
+          FieldAlias = 'DR_DBFTUSR'
+          FieldName = 'DR_DBFTUSR'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 218
+        end
+        object ppField220: TppField
+          FieldAlias = 'DR_RVLUS1'
+          FieldName = 'DR_RVLUS1'
+          FieldLength = 2000
+          DisplayWidth = 2000
+          Position = 219
+        end
+        object ppField221: TppField
+          FieldAlias = 'DR_RVLUS2'
+          FieldName = 'DR_RVLUS2'
+          FieldLength = 2000
+          DisplayWidth = 2000
+          Position = 220
+        end
+        object ppField222: TppField
+          FieldAlias = 'DR_RVLUS3'
+          FieldName = 'DR_RVLUS3'
+          FieldLength = 2000
+          DisplayWidth = 2000
+          Position = 221
+        end
+        object ppField223: TppField
+          FieldAlias = 'DR_RVLUS4'
+          FieldName = 'DR_RVLUS4'
+          FieldLength = 2000
+          DisplayWidth = 2000
+          Position = 222
+        end
+        object ppField224: TppField
+          FieldAlias = 'DR_RVLUS5'
+          FieldName = 'DR_RVLUS5'
+          FieldLength = 2000
+          DisplayWidth = 2000
+          Position = 223
+        end
+        object ppField225: TppField
+          FieldAlias = 'TMP_DR_BTCHID'
+          FieldName = 'TMP_DR_BTCHID'
+          FieldLength = 20
+          DisplayWidth = 20
+          Position = 224
+        end
+        object ppField226: TppField
+          FieldAlias = 'OPTR_NO'
+          FieldName = 'OPTR_NO'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 225
+        end
+        object ppField227: TppField
+          FieldAlias = 'DR_EFCT'
+          FieldName = 'DR_EFCT'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 226
+        end
+        object ppField228: TppField
+          FieldAlias = 'DR_TAX1'
+          FieldName = 'DR_TAX1'
+          FieldLength = 4
+          DataType = dtDouble
+          DisplayWidth = 19
+          Position = 227
+        end
+        object ppField229: TppField
+          FieldAlias = 'DR_TAX2'
+          FieldName = 'DR_TAX2'
+          FieldLength = 4
+          DataType = dtDouble
+          DisplayWidth = 19
+          Position = 228
+        end
+        object ppField230: TppField
+          FieldAlias = 'DR_TAX3'
+          FieldName = 'DR_TAX3'
+          FieldLength = 4
+          DataType = dtDouble
+          DisplayWidth = 19
+          Position = 229
+        end
+        object ppField231: TppField
+          FieldAlias = 'DR_TAX4'
+          FieldName = 'DR_TAX4'
+          FieldLength = 4
+          DataType = dtDouble
+          DisplayWidth = 19
+          Position = 230
+        end
+        object ppField232: TppField
+          FieldAlias = 'DR_TAX5'
+          FieldName = 'DR_TAX5'
+          FieldLength = 4
+          DataType = dtDouble
+          DisplayWidth = 19
+          Position = 231
+        end
+        object ppField233: TppField
+          FieldAlias = 'FRTR'
+          FieldName = 'FRTR'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 232
+        end
+        object ppField234: TppField
+          FieldAlias = 'PREF_SRV'
+          FieldName = 'PREF_SRV'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 233
+        end
+        object ppField235: TppField
+          FieldAlias = 'SRV_NM'
+          FieldName = 'SRV_NM'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 234
+        end
+        object ppField236: TppField
+          FieldAlias = 'tot'
+          FieldName = 'tot'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 235
+        end
+        object ppField237: TppField
+          FieldAlias = 'phnm_ar'
+          FieldName = 'phnm_ar'
+          FieldLength = 40
+          DisplayWidth = 40
+          Position = 236
+        end
+        object ppField238: TppField
+          FieldAlias = 'CA_NM'
+          FieldName = 'CA_NM'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 237
+        end
+      end
+      object daSQL1: TdaSQL
+        GuidCollationType = gcMSAccess
+        DatabaseName = 'DAT'
+        DatabaseType = dtMSAccess
+        DataPipelineName = 'x'
+        EditSQLAsText = True
+        LinkColor = clMaroon
+        LinkType = ltParameterizedSQL
+        MaxSQLFieldAliasLength = 0
+        SQLText.Strings = (
+          ' SELECT distinct S.*,'
+          '(select srv_nm_Ar from srvcmf where srv_cd= S.SRV_CD)AS SRV_NM ,'
+          '(s.qty*s.prc)as tot,'
+          '( select phnm_ar from mdteam where code=s.srv_by1)as phnm_ar,'
+          '( select CA_NM_AR from CMPMF where CA_CD=s.CA_CD)as CA_NM'
+          'FROM (PAPAT_SRV S LEFT JOIN PAPAT_IO PAPAT_IO '
+          
+            'ON (S.PAT_CD=PAPAT_IO.PAT_CD) AND (S.VST_NO=PAPAT_IO.VST_NO)) LE' +
+            'FT JOIN PAPATMF PAPATMF '
+          'ON S.PAT_CD=PAPATMF.PAT_CD Where 1=1 Order by S.PAT_CD')
+        SQLType = sqSQL2
+        object daField1: TdaField
+          Alias = 'PAT_CD'
+          DisplayWidth = 12
+          FieldAlias = 'PAT_CD'
+          FieldLength = 12
+          FieldName = 'PAT_CD'
+          SQLFieldName = 'PAT_CD'
+        end
+        object daField2: TdaField
+          Alias = 'VST_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'VST_NO'
+          FieldLength = 0
+          FieldName = 'VST_NO'
+          SQLFieldName = 'VST_NO'
+        end
+        object daField3: TdaField
+          Alias = 'DT'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DT'
+          FieldLength = 0
+          FieldName = 'DT'
+          SQLFieldName = 'DT'
+        end
+        object daField4: TdaField
+          Alias = 'SRV_CD'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_CD'
+          FieldLength = 15
+          FieldName = 'SRV_CD'
+          SQLFieldName = 'SRV_CD'
+        end
+        object daField5: TdaField
+          Alias = 'FRMTIM'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'FRMTIM'
+          FieldLength = 0
+          FieldName = 'FRMTIM'
+          SQLFieldName = 'FRMTIM'
+        end
+        object daField6: TdaField
+          Alias = 'PRCGRP_ID'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'PRCGRP_ID'
+          FieldLength = 0
+          FieldName = 'PRCGRP_ID'
+          SQLFieldName = 'PRCGRP_ID'
+        end
+        object daField7: TdaField
+          Alias = 'PAT_NM_AR'
+          DisplayWidth = 100
+          FieldAlias = 'PAT_NM_AR'
+          FieldLength = 100
+          FieldName = 'PAT_NM_AR'
+          SQLFieldName = 'PAT_NM_AR'
+        end
+        object daField8: TdaField
+          Alias = 'PAT_NM_EN'
+          DisplayWidth = 100
+          FieldAlias = 'PAT_NM_EN'
+          FieldLength = 100
+          FieldName = 'PAT_NM_EN'
+          SQLFieldName = 'PAT_NM_EN'
+        end
+        object daField9: TdaField
+          Alias = 'PAT_TYP'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'PAT_TYP'
+          FieldLength = 0
+          FieldName = 'PAT_TYP'
+          SQLFieldName = 'PAT_TYP'
+        end
+        object daField10: TdaField
+          Alias = 'SEC_CD'
+          DisplayWidth = 4
+          FieldAlias = 'SEC_CD'
+          FieldLength = 4
+          FieldName = 'SEC_CD'
+          SQLFieldName = 'SEC_CD'
+        end
+        object daField11: TdaField
+          Alias = 'TR_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'TR_NO'
+          FieldLength = 0
+          FieldName = 'TR_NO'
+          SQLFieldName = 'TR_NO'
+        end
+        object daField12: TdaField
+          Alias = 'TR_TY'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'TR_TY'
+          FieldLength = 0
+          FieldName = 'TR_TY'
+          SQLFieldName = 'TR_TY'
+        end
+        object daField13: TdaField
+          Alias = 'PRG_SNO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'PRG_SNO'
+          FieldLength = 0
+          FieldName = 'PRG_SNO'
+          SQLFieldName = 'PRG_SNO'
+        end
+        object daField14: TdaField
+          Alias = 'INV_CD'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'INV_CD'
+          FieldLength = 0
+          FieldName = 'INV_CD'
+          SQLFieldName = 'INV_CD'
+        end
+        object daField15: TdaField
+          Alias = 'UNT_NO1'
+          DisplayWidth = 8
+          FieldAlias = 'UNT_NO1'
+          FieldLength = 8
+          FieldName = 'UNT_NO1'
+          SQLFieldName = 'UNT_NO1'
+        end
+        object daField16: TdaField
+          Alias = 'UNT_NO2'
+          DisplayWidth = 8
+          FieldAlias = 'UNT_NO2'
+          FieldLength = 8
+          FieldName = 'UNT_NO2'
+          SQLFieldName = 'UNT_NO2'
+        end
+        object daField17: TdaField
+          Alias = 'UNT_NO3'
+          DisplayWidth = 8
+          FieldAlias = 'UNT_NO3'
+          FieldLength = 8
+          FieldName = 'UNT_NO3'
+          SQLFieldName = 'UNT_NO3'
+        end
+        object daField18: TdaField
+          Alias = 'UNT_NO4'
+          DisplayWidth = 8
+          FieldAlias = 'UNT_NO4'
+          FieldLength = 8
+          FieldName = 'UNT_NO4'
+          SQLFieldName = 'UNT_NO4'
+        end
+        object daField19: TdaField
+          Alias = 'UNT_NO5'
+          DisplayWidth = 8
+          FieldAlias = 'UNT_NO5'
+          FieldLength = 8
+          FieldName = 'UNT_NO5'
+          SQLFieldName = 'UNT_NO5'
+        end
+        object daField20: TdaField
+          Alias = 'CUR_UNT_NO'
+          DisplayWidth = 8
+          FieldAlias = 'CUR_UNT_NO'
+          FieldLength = 8
+          FieldName = 'CUR_UNT_NO'
+          SQLFieldName = 'CUR_UNT_NO'
+        end
+        object daField21: TdaField
+          Alias = 'CUR_DPT_NO'
+          DisplayWidth = 10
+          FieldAlias = 'CUR_DPT_NO'
+          FieldLength = 10
+          FieldName = 'CUR_DPT_NO'
+          SQLFieldName = 'CUR_DPT_NO'
+        end
+        object daField22: TdaField
+          Alias = 'TOTIM'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'TOTIM'
+          FieldLength = 0
+          FieldName = 'TOTIM'
+          SQLFieldName = 'TOTIM'
+        end
+        object daField23: TdaField
+          Alias = 'SRV_BY1'
+          DisplayWidth = 12
+          FieldAlias = 'SRV_BY1'
+          FieldLength = 12
+          FieldName = 'SRV_BY1'
+          SQLFieldName = 'SRV_BY1'
+        end
+        object daField24: TdaField
+          Alias = 'SRV_BY2'
+          DisplayWidth = 12
+          FieldAlias = 'SRV_BY2'
+          FieldLength = 12
+          FieldName = 'SRV_BY2'
+          SQLFieldName = 'SRV_BY2'
+        end
+        object daField25: TdaField
+          Alias = 'SRV_BY3'
+          DisplayWidth = 12
+          FieldAlias = 'SRV_BY3'
+          FieldLength = 12
+          FieldName = 'SRV_BY3'
+          SQLFieldName = 'SRV_BY3'
+        end
+        object daField26: TdaField
+          Alias = 'SRV_BY4'
+          DisplayWidth = 12
+          FieldAlias = 'SRV_BY4'
+          FieldLength = 12
+          FieldName = 'SRV_BY4'
+          SQLFieldName = 'SRV_BY4'
+        end
+        object daField27: TdaField
+          Alias = 'SRV_BY5'
+          DisplayWidth = 50
+          FieldAlias = 'SRV_BY5'
+          FieldLength = 50
+          FieldName = 'SRV_BY5'
+          SQLFieldName = 'SRV_BY5'
+        end
+        object daField28: TdaField
+          Alias = 'CUR_SRV_BY'
+          DisplayWidth = 12
+          FieldAlias = 'CUR_SRV_BY'
+          FieldLength = 12
+          FieldName = 'CUR_SRV_BY'
+          SQLFieldName = 'CUR_SRV_BY'
+        end
+        object daField29: TdaField
+          Alias = 'PRG_BY'
+          DisplayWidth = 12
+          FieldAlias = 'PRG_BY'
+          FieldLength = 12
+          FieldName = 'PRG_BY'
+          SQLFieldName = 'PRG_BY'
+        end
+        object daField30: TdaField
+          Alias = 'STAT1'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'STAT1'
+          FieldLength = 0
+          FieldName = 'STAT1'
+          SQLFieldName = 'STAT1'
+        end
+        object daField31: TdaField
+          Alias = 'STAT2'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'STAT2'
+          FieldLength = 0
+          FieldName = 'STAT2'
+          SQLFieldName = 'STAT2'
+        end
+        object daField32: TdaField
+          Alias = 'STAT3'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'STAT3'
+          FieldLength = 0
+          FieldName = 'STAT3'
+          SQLFieldName = 'STAT3'
+        end
+        object daField33: TdaField
+          Alias = 'STAT4'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'STAT4'
+          FieldLength = 0
+          FieldName = 'STAT4'
+          SQLFieldName = 'STAT4'
+        end
+        object daField34: TdaField
+          Alias = 'STAT5'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'STAT5'
+          FieldLength = 0
+          FieldName = 'STAT5'
+          SQLFieldName = 'STAT5'
+        end
+        object daField35: TdaField
+          Alias = 'CUR_STAT'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'CUR_STAT'
+          FieldLength = 0
+          FieldName = 'CUR_STAT'
+          SQLFieldName = 'CUR_STAT'
+        end
+        object daField36: TdaField
+          Alias = 'CUR_STAT_TIM'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'CUR_STAT_TIM'
+          FieldLength = 0
+          FieldName = 'CUR_STAT_TIM'
+          SQLFieldName = 'CUR_STAT_TIM'
+        end
+        object daField37: TdaField
+          Alias = 'CUR_SRV_IDX'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'CUR_SRV_IDX'
+          FieldLength = 0
+          FieldName = 'CUR_SRV_IDX'
+          SQLFieldName = 'CUR_SRV_IDX'
+        end
+        object daField38: TdaField
+          Alias = 'DON_BY1'
+          DisplayWidth = 12
+          FieldAlias = 'DON_BY1'
+          FieldLength = 12
+          FieldName = 'DON_BY1'
+          SQLFieldName = 'DON_BY1'
+        end
+        object daField39: TdaField
+          Alias = 'DON_BY2'
+          DisplayWidth = 12
+          FieldAlias = 'DON_BY2'
+          FieldLength = 12
+          FieldName = 'DON_BY2'
+          SQLFieldName = 'DON_BY2'
+        end
+        object daField40: TdaField
+          Alias = 'DON_BY3'
+          DisplayWidth = 12
+          FieldAlias = 'DON_BY3'
+          FieldLength = 12
+          FieldName = 'DON_BY3'
+          SQLFieldName = 'DON_BY3'
+        end
+        object daField41: TdaField
+          Alias = 'DON_BY4'
+          DisplayWidth = 12
+          FieldAlias = 'DON_BY4'
+          FieldLength = 12
+          FieldName = 'DON_BY4'
+          SQLFieldName = 'DON_BY4'
+        end
+        object daField42: TdaField
+          Alias = 'DON_BY5'
+          DisplayWidth = 12
+          FieldAlias = 'DON_BY5'
+          FieldLength = 12
+          FieldName = 'DON_BY5'
+          SQLFieldName = 'DON_BY5'
+        end
+        object daField43: TdaField
+          Alias = 'DON_DTTIM1'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DON_DTTIM1'
+          FieldLength = 0
+          FieldName = 'DON_DTTIM1'
+          SQLFieldName = 'DON_DTTIM1'
+        end
+        object daField44: TdaField
+          Alias = 'DON_DTTIM2'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DON_DTTIM2'
+          FieldLength = 0
+          FieldName = 'DON_DTTIM2'
+          SQLFieldName = 'DON_DTTIM2'
+        end
+        object daField45: TdaField
+          Alias = 'DON_DTTIM3'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DON_DTTIM3'
+          FieldLength = 0
+          FieldName = 'DON_DTTIM3'
+          SQLFieldName = 'DON_DTTIM3'
+        end
+        object daField46: TdaField
+          Alias = 'DON_DTTIM4'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DON_DTTIM4'
+          FieldLength = 0
+          FieldName = 'DON_DTTIM4'
+          SQLFieldName = 'DON_DTTIM4'
+        end
+        object daField47: TdaField
+          Alias = 'DON_DTTIM5'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DON_DTTIM5'
+          FieldLength = 0
+          FieldName = 'DON_DTTIM5'
+          SQLFieldName = 'DON_DTTIM5'
+        end
+        object daField48: TdaField
+          Alias = 'QTY'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'QTY'
+          FieldLength = 0
+          FieldName = 'QTY'
+          SQLFieldName = 'QTY'
+        end
+        object daField49: TdaField
+          Alias = 'PRC'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PRC'
+          FieldLength = 0
+          FieldName = 'PRC'
+          SQLFieldName = 'PRC'
+        end
+        object daField50: TdaField
+          Alias = 'DISC'
+          DisplayWidth = 10
+          FieldAlias = 'DISC'
+          FieldLength = 10
+          FieldName = 'DISC'
+          SQLFieldName = 'DISC'
+        end
+        object daField51: TdaField
+          Alias = 'CA_CD'
+          DisplayWidth = 12
+          FieldAlias = 'CA_CD'
+          FieldLength = 12
+          FieldName = 'CA_CD'
+          SQLFieldName = 'CA_CD'
+        end
+        object daField52: TdaField
+          Alias = 'PRG_DISC'
+          DisplayWidth = 10
+          FieldAlias = 'PRG_DISC'
+          FieldLength = 10
+          FieldName = 'PRG_DISC'
+          SQLFieldName = 'PRG_DISC'
+        end
+        object daField53: TdaField
+          Alias = 'DISC_VL'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DISC_VL'
+          FieldLength = 0
+          FieldName = 'DISC_VL'
+          SQLFieldName = 'DISC_VL'
+        end
+        object daField54: TdaField
+          Alias = 'PA_VL'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PA_VL'
+          FieldLength = 0
+          FieldName = 'PA_VL'
+          SQLFieldName = 'PA_VL'
+        end
+        object daField55: TdaField
+          Alias = 'CA_VL'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'CA_VL'
+          FieldLength = 0
+          FieldName = 'CA_VL'
+          SQLFieldName = 'CA_VL'
+        end
+        object daField56: TdaField
+          Alias = 'MNGEXP'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'MNGEXP'
+          FieldLength = 0
+          FieldName = 'MNGEXP'
+          SQLFieldName = 'MNGEXP'
+        end
+        object daField57: TdaField
+          Alias = 'TAX1'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'TAX1'
+          FieldLength = 0
+          FieldName = 'TAX1'
+          SQLFieldName = 'TAX1'
+        end
+        object daField58: TdaField
+          Alias = 'TAX2'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'TAX2'
+          FieldLength = 0
+          FieldName = 'TAX2'
+          SQLFieldName = 'TAX2'
+        end
+        object daField59: TdaField
+          Alias = 'TAX3'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'TAX3'
+          FieldLength = 0
+          FieldName = 'TAX3'
+          SQLFieldName = 'TAX3'
+        end
+        object daField60: TdaField
+          Alias = 'TAX4'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'TAX4'
+          FieldLength = 0
+          FieldName = 'TAX4'
+          SQLFieldName = 'TAX4'
+        end
+        object daField61: TdaField
+          Alias = 'PMNGEXP'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PMNGEXP'
+          FieldLength = 0
+          FieldName = 'PMNGEXP'
+          SQLFieldName = 'PMNGEXP'
+        end
+        object daField62: TdaField
+          Alias = 'PTAX1'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PTAX1'
+          FieldLength = 0
+          FieldName = 'PTAX1'
+          SQLFieldName = 'PTAX1'
+        end
+        object daField63: TdaField
+          Alias = 'PTAX2'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PTAX2'
+          FieldLength = 0
+          FieldName = 'PTAX2'
+          SQLFieldName = 'PTAX2'
+        end
+        object daField64: TdaField
+          Alias = 'PTAX3'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PTAX3'
+          FieldLength = 0
+          FieldName = 'PTAX3'
+          SQLFieldName = 'PTAX3'
+        end
+        object daField65: TdaField
+          Alias = 'PTAX4'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PTAX4'
+          FieldLength = 0
+          FieldName = 'PTAX4'
+          SQLFieldName = 'PTAX4'
+        end
+        object daField66: TdaField
+          Alias = 'PA_PAID'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PA_PAID'
+          FieldLength = 0
+          FieldName = 'PA_PAID'
+          SQLFieldName = 'PA_PAID'
+        end
+        object daField67: TdaField
+          Alias = 'INV_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'INV_NO'
+          FieldLength = 0
+          FieldName = 'INV_NO'
+          SQLFieldName = 'INV_NO'
+        end
+        object daField68: TdaField
+          Alias = 'INV_DT'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'INV_DT'
+          FieldLength = 0
+          FieldName = 'INV_DT'
+          SQLFieldName = 'INV_DT'
+        end
+        object daField69: TdaField
+          Alias = 'PINV_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'PINV_NO'
+          FieldLength = 0
+          FieldName = 'PINV_NO'
+          SQLFieldName = 'PINV_NO'
+        end
+        object daField70: TdaField
+          Alias = 'PINV_DT'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'PINV_DT'
+          FieldLength = 0
+          FieldName = 'PINV_DT'
+          SQLFieldName = 'PINV_DT'
+        end
+        object daField71: TdaField
+          Alias = 'RMRK'
+          DisplayWidth = 255
+          FieldAlias = 'RMRK'
+          FieldLength = 255
+          FieldName = 'RMRK'
+          SQLFieldName = 'RMRK'
+        end
+        object daField72: TdaField
+          Alias = 'RCMND'
+          DisplayWidth = 255
+          FieldAlias = 'RCMND'
+          FieldLength = 255
+          FieldName = 'RCMND'
+          SQLFieldName = 'RCMND'
+        end
+        object daField73: TdaField
+          Alias = 'LABS'
+          DisplayWidth = 255
+          FieldAlias = 'LABS'
+          FieldLength = 255
+          FieldName = 'LABS'
+          SQLFieldName = 'LABS'
+        end
+        object daField74: TdaField
+          Alias = 'PRGRS'
+          DisplayWidth = 255
+          FieldAlias = 'PRGRS'
+          FieldLength = 255
+          FieldName = 'PRGRS'
+          SQLFieldName = 'PRGRS'
+        end
+        object daField75: TdaField
+          Alias = 'MDCMNT'
+          DisplayWidth = 255
+          FieldAlias = 'MDCMNT'
+          FieldLength = 255
+          FieldName = 'MDCMNT'
+          SQLFieldName = 'MDCMNT'
+        end
+        object daField76: TdaField
+          Alias = 'SET_ID1'
+          DisplayWidth = 10
+          FieldAlias = 'SET_ID1'
+          FieldLength = 10
+          FieldName = 'SET_ID1'
+          SQLFieldName = 'SET_ID1'
+        end
+        object daField77: TdaField
+          Alias = 'DUR1'
+          DisplayWidth = 20
+          FieldAlias = 'DUR1'
+          FieldLength = 20
+          FieldName = 'DUR1'
+          SQLFieldName = 'DUR1'
+        end
+        object daField78: TdaField
+          Alias = 'SIT1'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'SIT1'
+          FieldLength = 0
+          FieldName = 'SIT1'
+          SQLFieldName = 'SIT1'
+        end
+        object daField79: TdaField
+          Alias = 'INTNS1'
+          DisplayWidth = 20
+          FieldAlias = 'INTNS1'
+          FieldLength = 20
+          FieldName = 'INTNS1'
+          SQLFieldName = 'INTNS1'
+        end
+        object daField80: TdaField
+          Alias = 'ROM1'
+          DisplayWidth = 20
+          FieldAlias = 'ROM1'
+          FieldLength = 20
+          FieldName = 'ROM1'
+          SQLFieldName = 'ROM1'
+        end
+        object daField81: TdaField
+          Alias = 'NOTS1'
+          DisplayWidth = 50
+          FieldAlias = 'NOTS1'
+          FieldLength = 50
+          FieldName = 'NOTS1'
+          SQLFieldName = 'NOTS1'
+        end
+        object daField82: TdaField
+          Alias = 'FLD11'
+          DisplayWidth = 50
+          FieldAlias = 'FLD11'
+          FieldLength = 50
+          FieldName = 'FLD11'
+          SQLFieldName = 'FLD11'
+        end
+        object daField83: TdaField
+          Alias = 'FLD21'
+          DisplayWidth = 50
+          FieldAlias = 'FLD21'
+          FieldLength = 50
+          FieldName = 'FLD21'
+          SQLFieldName = 'FLD21'
+        end
+        object daField84: TdaField
+          Alias = 'FLD31'
+          DisplayWidth = 50
+          FieldAlias = 'FLD31'
+          FieldLength = 50
+          FieldName = 'FLD31'
+          SQLFieldName = 'FLD31'
+        end
+        object daField85: TdaField
+          Alias = 'FLD41'
+          DisplayWidth = 50
+          FieldAlias = 'FLD41'
+          FieldLength = 50
+          FieldName = 'FLD41'
+          SQLFieldName = 'FLD41'
+        end
+        object daField86: TdaField
+          Alias = 'FLD51'
+          DisplayWidth = 50
+          FieldAlias = 'FLD51'
+          FieldLength = 50
+          FieldName = 'FLD51'
+          SQLFieldName = 'FLD51'
+        end
+        object daField87: TdaField
+          Alias = 'FLD61'
+          DisplayWidth = 50
+          FieldAlias = 'FLD61'
+          FieldLength = 50
+          FieldName = 'FLD61'
+          SQLFieldName = 'FLD61'
+        end
+        object daField88: TdaField
+          Alias = 'FLD71'
+          DisplayWidth = 50
+          FieldAlias = 'FLD71'
+          FieldLength = 50
+          FieldName = 'FLD71'
+          SQLFieldName = 'FLD71'
+        end
+        object daField89: TdaField
+          Alias = 'FLD81'
+          DisplayWidth = 50
+          FieldAlias = 'FLD81'
+          FieldLength = 50
+          FieldName = 'FLD81'
+          SQLFieldName = 'FLD81'
+        end
+        object daField90: TdaField
+          Alias = 'RMRKS1'
+          DisplayWidth = 255
+          FieldAlias = 'RMRKS1'
+          FieldLength = 255
+          FieldName = 'RMRKS1'
+          SQLFieldName = 'RMRKS1'
+        end
+        object daField91: TdaField
+          Alias = 'SET_ID2'
+          DisplayWidth = 10
+          FieldAlias = 'SET_ID2'
+          FieldLength = 10
+          FieldName = 'SET_ID2'
+          SQLFieldName = 'SET_ID2'
+        end
+        object daField92: TdaField
+          Alias = 'DUR2'
+          DisplayWidth = 20
+          FieldAlias = 'DUR2'
+          FieldLength = 20
+          FieldName = 'DUR2'
+          SQLFieldName = 'DUR2'
+        end
+        object daField93: TdaField
+          Alias = 'SIT2'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'SIT2'
+          FieldLength = 0
+          FieldName = 'SIT2'
+          SQLFieldName = 'SIT2'
+        end
+        object daField94: TdaField
+          Alias = 'INTNS2'
+          DisplayWidth = 20
+          FieldAlias = 'INTNS2'
+          FieldLength = 20
+          FieldName = 'INTNS2'
+          SQLFieldName = 'INTNS2'
+        end
+        object daField95: TdaField
+          Alias = 'ROM2'
+          DisplayWidth = 20
+          FieldAlias = 'ROM2'
+          FieldLength = 20
+          FieldName = 'ROM2'
+          SQLFieldName = 'ROM2'
+        end
+        object daField96: TdaField
+          Alias = 'NOTS2'
+          DisplayWidth = 50
+          FieldAlias = 'NOTS2'
+          FieldLength = 50
+          FieldName = 'NOTS2'
+          SQLFieldName = 'NOTS2'
+        end
+        object daField97: TdaField
+          Alias = 'FLD12'
+          DisplayWidth = 50
+          FieldAlias = 'FLD12'
+          FieldLength = 50
+          FieldName = 'FLD12'
+          SQLFieldName = 'FLD12'
+        end
+        object daField98: TdaField
+          Alias = 'FLD22'
+          DisplayWidth = 50
+          FieldAlias = 'FLD22'
+          FieldLength = 50
+          FieldName = 'FLD22'
+          SQLFieldName = 'FLD22'
+        end
+        object daField99: TdaField
+          Alias = 'FLD32'
+          DisplayWidth = 50
+          FieldAlias = 'FLD32'
+          FieldLength = 50
+          FieldName = 'FLD32'
+          SQLFieldName = 'FLD32'
+        end
+        object daField100: TdaField
+          Alias = 'FLD42'
+          DisplayWidth = 50
+          FieldAlias = 'FLD42'
+          FieldLength = 50
+          FieldName = 'FLD42'
+          SQLFieldName = 'FLD42'
+        end
+        object daField101: TdaField
+          Alias = 'FLD52'
+          DisplayWidth = 50
+          FieldAlias = 'FLD52'
+          FieldLength = 50
+          FieldName = 'FLD52'
+          SQLFieldName = 'FLD52'
+        end
+        object daField102: TdaField
+          Alias = 'FLD62'
+          DisplayWidth = 50
+          FieldAlias = 'FLD62'
+          FieldLength = 50
+          FieldName = 'FLD62'
+          SQLFieldName = 'FLD62'
+        end
+        object daField103: TdaField
+          Alias = 'FLD72'
+          DisplayWidth = 50
+          FieldAlias = 'FLD72'
+          FieldLength = 50
+          FieldName = 'FLD72'
+          SQLFieldName = 'FLD72'
+        end
+        object daField104: TdaField
+          Alias = 'FLD82'
+          DisplayWidth = 50
+          FieldAlias = 'FLD82'
+          FieldLength = 50
+          FieldName = 'FLD82'
+          SQLFieldName = 'FLD82'
+        end
+        object daField105: TdaField
+          Alias = 'RMRKS2'
+          DisplayWidth = 255
+          FieldAlias = 'RMRKS2'
+          FieldLength = 255
+          FieldName = 'RMRKS2'
+          SQLFieldName = 'RMRKS2'
+        end
+        object daField106: TdaField
+          Alias = 'SET_ID3'
+          DisplayWidth = 10
+          FieldAlias = 'SET_ID3'
+          FieldLength = 10
+          FieldName = 'SET_ID3'
+          SQLFieldName = 'SET_ID3'
+        end
+        object daField107: TdaField
+          Alias = 'DUR3'
+          DisplayWidth = 20
+          FieldAlias = 'DUR3'
+          FieldLength = 20
+          FieldName = 'DUR3'
+          SQLFieldName = 'DUR3'
+        end
+        object daField108: TdaField
+          Alias = 'SIT3'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'SIT3'
+          FieldLength = 0
+          FieldName = 'SIT3'
+          SQLFieldName = 'SIT3'
+        end
+        object daField109: TdaField
+          Alias = 'INTNS3'
+          DisplayWidth = 20
+          FieldAlias = 'INTNS3'
+          FieldLength = 20
+          FieldName = 'INTNS3'
+          SQLFieldName = 'INTNS3'
+        end
+        object daField110: TdaField
+          Alias = 'ROM3'
+          DisplayWidth = 20
+          FieldAlias = 'ROM3'
+          FieldLength = 20
+          FieldName = 'ROM3'
+          SQLFieldName = 'ROM3'
+        end
+        object daField111: TdaField
+          Alias = 'NOTS3'
+          DisplayWidth = 50
+          FieldAlias = 'NOTS3'
+          FieldLength = 50
+          FieldName = 'NOTS3'
+          SQLFieldName = 'NOTS3'
+        end
+        object daField112: TdaField
+          Alias = 'FLD13'
+          DisplayWidth = 50
+          FieldAlias = 'FLD13'
+          FieldLength = 50
+          FieldName = 'FLD13'
+          SQLFieldName = 'FLD13'
+        end
+        object daField113: TdaField
+          Alias = 'FLD23'
+          DisplayWidth = 50
+          FieldAlias = 'FLD23'
+          FieldLength = 50
+          FieldName = 'FLD23'
+          SQLFieldName = 'FLD23'
+        end
+        object daField114: TdaField
+          Alias = 'FLD33'
+          DisplayWidth = 50
+          FieldAlias = 'FLD33'
+          FieldLength = 50
+          FieldName = 'FLD33'
+          SQLFieldName = 'FLD33'
+        end
+        object daField115: TdaField
+          Alias = 'FLD43'
+          DisplayWidth = 50
+          FieldAlias = 'FLD43'
+          FieldLength = 50
+          FieldName = 'FLD43'
+          SQLFieldName = 'FLD43'
+        end
+        object daField116: TdaField
+          Alias = 'FLD53'
+          DisplayWidth = 50
+          FieldAlias = 'FLD53'
+          FieldLength = 50
+          FieldName = 'FLD53'
+          SQLFieldName = 'FLD53'
+        end
+        object daField117: TdaField
+          Alias = 'FLD63'
+          DisplayWidth = 50
+          FieldAlias = 'FLD63'
+          FieldLength = 50
+          FieldName = 'FLD63'
+          SQLFieldName = 'FLD63'
+        end
+        object daField118: TdaField
+          Alias = 'FLD73'
+          DisplayWidth = 50
+          FieldAlias = 'FLD73'
+          FieldLength = 50
+          FieldName = 'FLD73'
+          SQLFieldName = 'FLD73'
+        end
+        object daField119: TdaField
+          Alias = 'FLD83'
+          DisplayWidth = 50
+          FieldAlias = 'FLD83'
+          FieldLength = 50
+          FieldName = 'FLD83'
+          SQLFieldName = 'FLD83'
+        end
+        object daField120: TdaField
+          Alias = 'RMRKS3'
+          DisplayWidth = 255
+          FieldAlias = 'RMRKS3'
+          FieldLength = 255
+          FieldName = 'RMRKS3'
+          SQLFieldName = 'RMRKS3'
+        end
+        object daField121: TdaField
+          Alias = 'SET_ID4'
+          DisplayWidth = 10
+          FieldAlias = 'SET_ID4'
+          FieldLength = 10
+          FieldName = 'SET_ID4'
+          SQLFieldName = 'SET_ID4'
+        end
+        object daField122: TdaField
+          Alias = 'DUR4'
+          DisplayWidth = 20
+          FieldAlias = 'DUR4'
+          FieldLength = 20
+          FieldName = 'DUR4'
+          SQLFieldName = 'DUR4'
+        end
+        object daField123: TdaField
+          Alias = 'SIT4'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'SIT4'
+          FieldLength = 0
+          FieldName = 'SIT4'
+          SQLFieldName = 'SIT4'
+        end
+        object daField124: TdaField
+          Alias = 'INTNS4'
+          DisplayWidth = 20
+          FieldAlias = 'INTNS4'
+          FieldLength = 20
+          FieldName = 'INTNS4'
+          SQLFieldName = 'INTNS4'
+        end
+        object daField125: TdaField
+          Alias = 'ROM4'
+          DisplayWidth = 20
+          FieldAlias = 'ROM4'
+          FieldLength = 20
+          FieldName = 'ROM4'
+          SQLFieldName = 'ROM4'
+        end
+        object daField126: TdaField
+          Alias = 'NOTS4'
+          DisplayWidth = 50
+          FieldAlias = 'NOTS4'
+          FieldLength = 50
+          FieldName = 'NOTS4'
+          SQLFieldName = 'NOTS4'
+        end
+        object daField127: TdaField
+          Alias = 'FLD14'
+          DisplayWidth = 50
+          FieldAlias = 'FLD14'
+          FieldLength = 50
+          FieldName = 'FLD14'
+          SQLFieldName = 'FLD14'
+        end
+        object daField128: TdaField
+          Alias = 'FLD24'
+          DisplayWidth = 50
+          FieldAlias = 'FLD24'
+          FieldLength = 50
+          FieldName = 'FLD24'
+          SQLFieldName = 'FLD24'
+        end
+        object daField129: TdaField
+          Alias = 'FLD34'
+          DisplayWidth = 50
+          FieldAlias = 'FLD34'
+          FieldLength = 50
+          FieldName = 'FLD34'
+          SQLFieldName = 'FLD34'
+        end
+        object daField130: TdaField
+          Alias = 'FLD44'
+          DisplayWidth = 50
+          FieldAlias = 'FLD44'
+          FieldLength = 50
+          FieldName = 'FLD44'
+          SQLFieldName = 'FLD44'
+        end
+        object daField131: TdaField
+          Alias = 'FLD54'
+          DisplayWidth = 50
+          FieldAlias = 'FLD54'
+          FieldLength = 50
+          FieldName = 'FLD54'
+          SQLFieldName = 'FLD54'
+        end
+        object daField132: TdaField
+          Alias = 'FLD64'
+          DisplayWidth = 50
+          FieldAlias = 'FLD64'
+          FieldLength = 50
+          FieldName = 'FLD64'
+          SQLFieldName = 'FLD64'
+        end
+        object daField133: TdaField
+          Alias = 'FLD74'
+          DisplayWidth = 50
+          FieldAlias = 'FLD74'
+          FieldLength = 50
+          FieldName = 'FLD74'
+          SQLFieldName = 'FLD74'
+        end
+        object daField134: TdaField
+          Alias = 'FLD84'
+          DisplayWidth = 50
+          FieldAlias = 'FLD84'
+          FieldLength = 50
+          FieldName = 'FLD84'
+          SQLFieldName = 'FLD84'
+        end
+        object daField135: TdaField
+          Alias = 'RMRKS4'
+          DisplayWidth = 255
+          FieldAlias = 'RMRKS4'
+          FieldLength = 255
+          FieldName = 'RMRKS4'
+          SQLFieldName = 'RMRKS4'
+        end
+        object daField136: TdaField
+          Alias = 'SET_ID5'
+          DisplayWidth = 10
+          FieldAlias = 'SET_ID5'
+          FieldLength = 10
+          FieldName = 'SET_ID5'
+          SQLFieldName = 'SET_ID5'
+        end
+        object daField137: TdaField
+          Alias = 'DUR5'
+          DisplayWidth = 20
+          FieldAlias = 'DUR5'
+          FieldLength = 20
+          FieldName = 'DUR5'
+          SQLFieldName = 'DUR5'
+        end
+        object daField138: TdaField
+          Alias = 'SIT5'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'SIT5'
+          FieldLength = 0
+          FieldName = 'SIT5'
+          SQLFieldName = 'SIT5'
+        end
+        object daField139: TdaField
+          Alias = 'INTNS5'
+          DisplayWidth = 20
+          FieldAlias = 'INTNS5'
+          FieldLength = 20
+          FieldName = 'INTNS5'
+          SQLFieldName = 'INTNS5'
+        end
+        object daField140: TdaField
+          Alias = 'ROM5'
+          DisplayWidth = 20
+          FieldAlias = 'ROM5'
+          FieldLength = 20
+          FieldName = 'ROM5'
+          SQLFieldName = 'ROM5'
+        end
+        object daField141: TdaField
+          Alias = 'NOTS5'
+          DisplayWidth = 50
+          FieldAlias = 'NOTS5'
+          FieldLength = 50
+          FieldName = 'NOTS5'
+          SQLFieldName = 'NOTS5'
+        end
+        object daField142: TdaField
+          Alias = 'FLD15'
+          DisplayWidth = 50
+          FieldAlias = 'FLD15'
+          FieldLength = 50
+          FieldName = 'FLD15'
+          SQLFieldName = 'FLD15'
+        end
+        object daField143: TdaField
+          Alias = 'FLD25'
+          DisplayWidth = 50
+          FieldAlias = 'FLD25'
+          FieldLength = 50
+          FieldName = 'FLD25'
+          SQLFieldName = 'FLD25'
+        end
+        object daField144: TdaField
+          Alias = 'FLD35'
+          DisplayWidth = 50
+          FieldAlias = 'FLD35'
+          FieldLength = 50
+          FieldName = 'FLD35'
+          SQLFieldName = 'FLD35'
+        end
+        object daField145: TdaField
+          Alias = 'FLD45'
+          DisplayWidth = 50
+          FieldAlias = 'FLD45'
+          FieldLength = 50
+          FieldName = 'FLD45'
+          SQLFieldName = 'FLD45'
+        end
+        object daField146: TdaField
+          Alias = 'FLD55'
+          DisplayWidth = 50
+          FieldAlias = 'FLD55'
+          FieldLength = 50
+          FieldName = 'FLD55'
+          SQLFieldName = 'FLD55'
+        end
+        object daField147: TdaField
+          Alias = 'FLD65'
+          DisplayWidth = 50
+          FieldAlias = 'FLD65'
+          FieldLength = 50
+          FieldName = 'FLD65'
+          SQLFieldName = 'FLD65'
+        end
+        object daField148: TdaField
+          Alias = 'FLD75'
+          DisplayWidth = 50
+          FieldAlias = 'FLD75'
+          FieldLength = 50
+          FieldName = 'FLD75'
+          SQLFieldName = 'FLD75'
+        end
+        object daField149: TdaField
+          Alias = 'FLD85'
+          DisplayWidth = 50
+          FieldAlias = 'FLD85'
+          FieldLength = 50
+          FieldName = 'FLD85'
+          SQLFieldName = 'FLD85'
+        end
+        object daField150: TdaField
+          Alias = 'RMRKS5'
+          DisplayWidth = 255
+          FieldAlias = 'RMRKS5'
+          FieldLength = 255
+          FieldName = 'RMRKS5'
+          SQLFieldName = 'RMRKS5'
+        end
+        object daField151: TdaField
+          Alias = 'PST1'
+          DisplayWidth = 1
+          FieldAlias = 'PST1'
+          FieldLength = 1
+          FieldName = 'PST1'
+          SQLFieldName = 'PST1'
+        end
+        object daField152: TdaField
+          Alias = 'PST2'
+          DisplayWidth = 1
+          FieldAlias = 'PST2'
+          FieldLength = 1
+          FieldName = 'PST2'
+          SQLFieldName = 'PST2'
+        end
+        object daField153: TdaField
+          Alias = 'PST3'
+          DisplayWidth = 1
+          FieldAlias = 'PST3'
+          FieldLength = 1
+          FieldName = 'PST3'
+          SQLFieldName = 'PST3'
+        end
+        object daField154: TdaField
+          Alias = 'RMRK1'
+          DisplayWidth = 255
+          FieldAlias = 'RMRK1'
+          FieldLength = 255
+          FieldName = 'RMRK1'
+          SQLFieldName = 'RMRK1'
+        end
+        object daField155: TdaField
+          Alias = 'RMRK2'
+          DisplayWidth = 255
+          FieldAlias = 'RMRK2'
+          FieldLength = 255
+          FieldName = 'RMRK2'
+          SQLFieldName = 'RMRK2'
+        end
+        object daField156: TdaField
+          Alias = 'RMRK3'
+          DisplayWidth = 255
+          FieldAlias = 'RMRK3'
+          FieldLength = 255
+          FieldName = 'RMRK3'
+          SQLFieldName = 'RMRK3'
+        end
+        object daField157: TdaField
+          Alias = 'ENTEREDBY'
+          DisplayWidth = 50
+          FieldAlias = 'ENTEREDBY'
+          FieldLength = 50
+          FieldName = 'ENTEREDBY'
+          SQLFieldName = 'ENTEREDBY'
+        end
+        object daField158: TdaField
+          Alias = 'UPDATEDBY'
+          DisplayWidth = 50
+          FieldAlias = 'UPDATEDBY'
+          FieldLength = 50
+          FieldName = 'UPDATEDBY'
+          SQLFieldName = 'UPDATEDBY'
+        end
+        object daField159: TdaField
+          Alias = 'ENTRYDATE'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'ENTRYDATE'
+          FieldLength = 0
+          FieldName = 'ENTRYDATE'
+          SQLFieldName = 'ENTRYDATE'
+        end
+        object daField160: TdaField
+          Alias = 'UPDATEDATE'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'UPDATEDATE'
+          FieldLength = 0
+          FieldName = 'UPDATEDATE'
+          SQLFieldName = 'UPDATEDATE'
+        end
+        object daField161: TdaField
+          Alias = 'DISCAPPLID'
+          DisplayWidth = 1
+          FieldAlias = 'DISCAPPLID'
+          FieldLength = 1
+          FieldName = 'DISCAPPLID'
+          SQLFieldName = 'DISCAPPLID'
+        end
+        object daField162: TdaField
+          Alias = 'LN_SRC'
+          DisplayWidth = 12
+          FieldAlias = 'LN_SRC'
+          FieldLength = 12
+          FieldName = 'LN_SRC'
+          SQLFieldName = 'LN_SRC'
+        end
+        object daField163: TdaField
+          Alias = 'REPIT_NO'
+          DisplayWidth = 15
+          FieldAlias = 'REPIT_NO'
+          FieldLength = 15
+          FieldName = 'REPIT_NO'
+          SQLFieldName = 'REPIT_NO'
+        end
+        object daField164: TdaField
+          Alias = 'TR_DT'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'TR_DT'
+          FieldLength = 0
+          FieldName = 'TR_DT'
+          SQLFieldName = 'TR_DT'
+        end
+        object daField165: TdaField
+          Alias = 'CNCL'
+          DisplayWidth = 1
+          FieldAlias = 'CNCL'
+          FieldLength = 1
+          FieldName = 'CNCL'
+          SQLFieldName = 'CNCL'
+        end
+        object daField166: TdaField
+          Alias = 'AZLOC'
+          DisplayWidth = 8
+          FieldAlias = 'AZLOC'
+          FieldLength = 8
+          FieldName = 'AZLOC'
+          SQLFieldName = 'AZLOC'
+        end
+        object daField167: TdaField
+          Alias = 'AZTR_TY'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'AZTR_TY'
+          FieldLength = 0
+          FieldName = 'AZTR_TY'
+          SQLFieldName = 'AZTR_TY'
+        end
+        object daField168: TdaField
+          Alias = 'AZTR_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'AZTR_NO'
+          FieldLength = 0
+          FieldName = 'AZTR_NO'
+          SQLFieldName = 'AZTR_NO'
+        end
+        object daField169: TdaField
+          Alias = 'AZLN_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'AZLN_NO'
+          FieldLength = 0
+          FieldName = 'AZLN_NO'
+          SQLFieldName = 'AZLN_NO'
+        end
+        object daField170: TdaField
+          Alias = 'CAINV_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'CAINV_NO'
+          FieldLength = 0
+          FieldName = 'CAINV_NO'
+          SQLFieldName = 'CAINV_NO'
+        end
+        object daField171: TdaField
+          Alias = 'IO_TY'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'IO_TY'
+          FieldLength = 0
+          FieldName = 'IO_TY'
+          SQLFieldName = 'IO_TY'
+        end
+        object daField172: TdaField
+          Alias = 'enter_no'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'enter_no'
+          FieldLength = 0
+          FieldName = 'enter_no'
+          SQLFieldName = 'enter_no'
+        end
+        object daField173: TdaField
+          Alias = 'SRV_BY6'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY6'
+          FieldLength = 15
+          FieldName = 'SRV_BY6'
+          SQLFieldName = 'SRV_BY6'
+        end
+        object daField174: TdaField
+          Alias = 'SRV_BY7'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY7'
+          FieldLength = 15
+          FieldName = 'SRV_BY7'
+          SQLFieldName = 'SRV_BY7'
+        end
+        object daField175: TdaField
+          Alias = 'SRV_BY8'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY8'
+          FieldLength = 15
+          FieldName = 'SRV_BY8'
+          SQLFieldName = 'SRV_BY8'
+        end
+        object daField176: TdaField
+          Alias = 'SRV_BY9'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY9'
+          FieldLength = 15
+          FieldName = 'SRV_BY9'
+          SQLFieldName = 'SRV_BY9'
+        end
+        object daField177: TdaField
+          Alias = 'SRV_BY10'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY10'
+          FieldLength = 15
+          FieldName = 'SRV_BY10'
+          SQLFieldName = 'SRV_BY10'
+        end
+        object daField178: TdaField
+          Alias = 'TYP_TKHR'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'TYP_TKHR'
+          FieldLength = 0
+          FieldName = 'TYP_TKHR'
+          SQLFieldName = 'TYP_TKHR'
+        end
+        object daField179: TdaField
+          Alias = 'Tim_Srv'
+          DisplayWidth = 50
+          FieldAlias = 'Tim_Srv'
+          FieldLength = 50
+          FieldName = 'Tim_Srv'
+          SQLFieldName = 'Tim_Srv'
+        end
+        object daField180: TdaField
+          Alias = 'SRV_BY11'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_BY11'
+          FieldLength = 15
+          FieldName = 'SRV_BY11'
+          SQLFieldName = 'SRV_BY11'
+        end
+        object daField181: TdaField
+          Alias = 'EFCT'
+          DisplayWidth = 1
+          FieldAlias = 'EFCT'
+          FieldLength = 1
+          FieldName = 'EFCT'
+          SQLFieldName = 'EFCT'
+        end
+        object daField182: TdaField
+          Alias = 'tr_noNew'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'tr_noNew'
+          FieldLength = 0
+          FieldName = 'tr_noNew'
+          SQLFieldName = 'tr_noNew'
+        end
+        object daField183: TdaField
+          Alias = 'DR_VL'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_VL'
+          FieldLength = 0
+          FieldName = 'DR_VL'
+          SQLFieldName = 'DR_VL'
+        end
+        object daField184: TdaField
+          Alias = 'DOC_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DOC_NO'
+          FieldLength = 0
+          FieldName = 'DOC_NO'
+          SQLFieldName = 'DOC_NO'
+        end
+        object daField185: TdaField
+          Alias = 'DOC_TY'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DOC_TY'
+          FieldLength = 0
+          FieldName = 'DOC_TY'
+          SQLFieldName = 'DOC_TY'
+        end
+        object daField186: TdaField
+          Alias = 'T_BTCH_ID'
+          DisplayWidth = 20
+          FieldAlias = 'T_BTCH_ID'
+          FieldLength = 20
+          FieldName = 'T_BTCH_ID'
+          SQLFieldName = 'T_BTCH_ID'
+        end
+        object daField187: TdaField
+          Alias = 'BTCH_ID'
+          DisplayWidth = 20
+          FieldAlias = 'BTCH_ID'
+          FieldLength = 20
+          FieldName = 'BTCH_ID'
+          SQLFieldName = 'BTCH_ID'
+        end
+        object daField188: TdaField
+          Alias = 'DISC_CA'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DISC_CA'
+          FieldLength = 0
+          FieldName = 'DISC_CA'
+          SQLFieldName = 'DISC_CA'
+        end
+        object daField189: TdaField
+          Alias = 'LN_NO'
+          DataType = dtLongint
+          DisplayWidth = 10
+          FieldAlias = 'LN_NO'
+          FieldLength = 0
+          FieldName = 'LN_NO'
+          SQLFieldName = 'LN_NO'
+        end
+        object daField190: TdaField
+          Alias = 'DR_BNFT_ID1'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT_ID1'
+          FieldLength = 0
+          FieldName = 'DR_BNFT_ID1'
+          SQLFieldName = 'DR_BNFT_ID1'
+        end
+        object daField191: TdaField
+          Alias = 'DR_BNFT_ID2'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT_ID2'
+          FieldLength = 0
+          FieldName = 'DR_BNFT_ID2'
+          SQLFieldName = 'DR_BNFT_ID2'
+        end
+        object daField192: TdaField
+          Alias = 'DR_BNFT_ID3'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT_ID3'
+          FieldLength = 0
+          FieldName = 'DR_BNFT_ID3'
+          SQLFieldName = 'DR_BNFT_ID3'
+        end
+        object daField193: TdaField
+          Alias = 'DR_BNFT_ID4'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT_ID4'
+          FieldLength = 0
+          FieldName = 'DR_BNFT_ID4'
+          SQLFieldName = 'DR_BNFT_ID4'
+        end
+        object daField194: TdaField
+          Alias = 'DR_BNFT_ID5'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT_ID5'
+          FieldLength = 0
+          FieldName = 'DR_BNFT_ID5'
+          SQLFieldName = 'DR_BNFT_ID5'
+        end
+        object daField195: TdaField
+          Alias = 'DISC_P'
+          DisplayWidth = 20
+          FieldAlias = 'DISC_P'
+          FieldLength = 20
+          FieldName = 'DISC_P'
+          SQLFieldName = 'DISC_P'
+        end
+        object daField196: TdaField
+          Alias = 'DISC_CA_P'
+          DisplayWidth = 20
+          FieldAlias = 'DISC_CA_P'
+          FieldLength = 20
+          FieldName = 'DISC_CA_P'
+          SQLFieldName = 'DISC_CA_P'
+        end
+        object daField197: TdaField
+          Alias = 'PDISC_P'
+          DisplayWidth = 20
+          FieldAlias = 'PDISC_P'
+          FieldLength = 20
+          FieldName = 'PDISC_P'
+          SQLFieldName = 'PDISC_P'
+        end
+        object daField198: TdaField
+          Alias = 'PDISC_VL'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'PDISC_VL'
+          FieldLength = 0
+          FieldName = 'PDISC_VL'
+          SQLFieldName = 'PDISC_VL'
+        end
+        object daField199: TdaField
+          Alias = 'DR_DISC'
+          DisplayWidth = 20
+          FieldAlias = 'DR_DISC'
+          FieldLength = 20
+          FieldName = 'DR_DISC'
+          SQLFieldName = 'DR_DISC'
+        end
+        object daField200: TdaField
+          Alias = 'DR_NET'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_NET'
+          FieldLength = 0
+          FieldName = 'DR_NET'
+          SQLFieldName = 'DR_NET'
+        end
+        object daField201: TdaField
+          Alias = 'DR_CNT'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_CNT'
+          FieldLength = 0
+          FieldName = 'DR_CNT'
+          SQLFieldName = 'DR_CNT'
+        end
+        object daField202: TdaField
+          Alias = 'BASIC_PRC'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'BASIC_PRC'
+          FieldLength = 0
+          FieldName = 'BASIC_PRC'
+          SQLFieldName = 'BASIC_PRC'
+        end
+        object daField203: TdaField
+          Alias = 'DR_CD_PRC'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_CD_PRC'
+          FieldLength = 0
+          FieldName = 'DR_CD_PRC'
+          SQLFieldName = 'DR_CD_PRC'
+        end
+        object daField204: TdaField
+          Alias = 'DR_NET2'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_NET2'
+          FieldLength = 0
+          FieldName = 'DR_NET2'
+          SQLFieldName = 'DR_NET2'
+        end
+        object daField205: TdaField
+          Alias = 'DR_DISC2'
+          DisplayWidth = 20
+          FieldAlias = 'DR_DISC2'
+          FieldLength = 20
+          FieldName = 'DR_DISC2'
+          SQLFieldName = 'DR_DISC2'
+        end
+        object daField206: TdaField
+          Alias = 'DR_BTCH_ID'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID'
+          SQLFieldName = 'DR_BTCH_ID'
+        end
+        object daField207: TdaField
+          Alias = 'DR_BTCH_ID1'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID1'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID1'
+          SQLFieldName = 'DR_BTCH_ID1'
+        end
+        object daField208: TdaField
+          Alias = 'DR_BTCH_ID2'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID2'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID2'
+          SQLFieldName = 'DR_BTCH_ID2'
+        end
+        object daField209: TdaField
+          Alias = 'DR_BTCH_ID3'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID3'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID3'
+          SQLFieldName = 'DR_BTCH_ID3'
+        end
+        object daField210: TdaField
+          Alias = 'DR_BTCH_ID4'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID4'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID4'
+          SQLFieldName = 'DR_BTCH_ID4'
+        end
+        object daField211: TdaField
+          Alias = 'DR_BTCH_ID5'
+          DisplayWidth = 20
+          FieldAlias = 'DR_BTCH_ID5'
+          FieldLength = 20
+          FieldName = 'DR_BTCH_ID5'
+          SQLFieldName = 'DR_BTCH_ID5'
+        end
+        object daField212: TdaField
+          Alias = 'DR_BNFT1'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT1'
+          FieldLength = 0
+          FieldName = 'DR_BNFT1'
+          SQLFieldName = 'DR_BNFT1'
+        end
+        object daField213: TdaField
+          Alias = 'DR_BNFT2'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT2'
+          FieldLength = 0
+          FieldName = 'DR_BNFT2'
+          SQLFieldName = 'DR_BNFT2'
+        end
+        object daField214: TdaField
+          Alias = 'DR_BNFT3'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT3'
+          FieldLength = 0
+          FieldName = 'DR_BNFT3'
+          SQLFieldName = 'DR_BNFT3'
+        end
+        object daField215: TdaField
+          Alias = 'DR_BNFT4'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT4'
+          FieldLength = 0
+          FieldName = 'DR_BNFT4'
+          SQLFieldName = 'DR_BNFT4'
+        end
+        object daField216: TdaField
+          Alias = 'DR_BNFT5'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'DR_BNFT5'
+          FieldLength = 0
+          FieldName = 'DR_BNFT5'
+          SQLFieldName = 'DR_BNFT5'
+        end
+        object daField217: TdaField
+          Alias = 'DR_RVLUS'
+          DisplayWidth = 3999
+          FieldAlias = 'DR_RVLUS'
+          FieldLength = 3999
+          FieldName = 'DR_RVLUS'
+          SQLFieldName = 'DR_RVLUS'
+        end
+        object daField218: TdaField
+          Alias = 'DR_BNFTDT'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'DR_BNFTDT'
+          FieldLength = 0
+          FieldName = 'DR_BNFTDT'
+          SQLFieldName = 'DR_BNFTDT'
+        end
+        object daField219: TdaField
+          Alias = 'DR_DBFTUSR'
+          DisplayWidth = 50
+          FieldAlias = 'DR_DBFTUSR'
+          FieldLength = 50
+          FieldName = 'DR_DBFTUSR'
+          SQLFieldName = 'DR_DBFTUSR'
+        end
+        object daField220: TdaField
+          Alias = 'DR_RVLUS1'
+          DisplayWidth = 2000
+          FieldAlias = 'DR_RVLUS1'
+          FieldLength = 2000
+          FieldName = 'DR_RVLUS1'
+          SQLFieldName = 'DR_RVLUS1'
+        end
+        object daField221: TdaField
+          Alias = 'DR_RVLUS2'
+          DisplayWidth = 2000
+          FieldAlias = 'DR_RVLUS2'
+          FieldLength = 2000
+          FieldName = 'DR_RVLUS2'
+          SQLFieldName = 'DR_RVLUS2'
+        end
+        object daField222: TdaField
+          Alias = 'DR_RVLUS3'
+          DisplayWidth = 2000
+          FieldAlias = 'DR_RVLUS3'
+          FieldLength = 2000
+          FieldName = 'DR_RVLUS3'
+          SQLFieldName = 'DR_RVLUS3'
+        end
+        object daField223: TdaField
+          Alias = 'DR_RVLUS4'
+          DisplayWidth = 2000
+          FieldAlias = 'DR_RVLUS4'
+          FieldLength = 2000
+          FieldName = 'DR_RVLUS4'
+          SQLFieldName = 'DR_RVLUS4'
+        end
+        object daField224: TdaField
+          Alias = 'DR_RVLUS5'
+          DisplayWidth = 2000
+          FieldAlias = 'DR_RVLUS5'
+          FieldLength = 2000
+          FieldName = 'DR_RVLUS5'
+          SQLFieldName = 'DR_RVLUS5'
+        end
+        object daField225: TdaField
+          Alias = 'TMP_DR_BTCHID'
+          DisplayWidth = 20
+          FieldAlias = 'TMP_DR_BTCHID'
+          FieldLength = 20
+          FieldName = 'TMP_DR_BTCHID'
+          SQLFieldName = 'TMP_DR_BTCHID'
+        end
+        object daField226: TdaField
+          Alias = 'OPTR_NO'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'OPTR_NO'
+          FieldLength = 0
+          FieldName = 'OPTR_NO'
+          SQLFieldName = 'OPTR_NO'
+        end
+        object daField227: TdaField
+          Alias = 'DR_EFCT'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'DR_EFCT'
+          FieldLength = 0
+          FieldName = 'DR_EFCT'
+          SQLFieldName = 'DR_EFCT'
+        end
+        object daField228: TdaField
+          Alias = 'DR_TAX1'
+          DataType = dtDouble
+          DisplayWidth = 19
+          FieldAlias = 'DR_TAX1'
+          FieldLength = 4
+          FieldName = 'DR_TAX1'
+          SQLFieldName = 'DR_TAX1'
+        end
+        object daField229: TdaField
+          Alias = 'DR_TAX2'
+          DataType = dtDouble
+          DisplayWidth = 19
+          FieldAlias = 'DR_TAX2'
+          FieldLength = 4
+          FieldName = 'DR_TAX2'
+          SQLFieldName = 'DR_TAX2'
+        end
+        object daField230: TdaField
+          Alias = 'DR_TAX3'
+          DataType = dtDouble
+          DisplayWidth = 19
+          FieldAlias = 'DR_TAX3'
+          FieldLength = 4
+          FieldName = 'DR_TAX3'
+          SQLFieldName = 'DR_TAX3'
+        end
+        object daField231: TdaField
+          Alias = 'DR_TAX4'
+          DataType = dtDouble
+          DisplayWidth = 19
+          FieldAlias = 'DR_TAX4'
+          FieldLength = 4
+          FieldName = 'DR_TAX4'
+          SQLFieldName = 'DR_TAX4'
+        end
+        object daField232: TdaField
+          Alias = 'DR_TAX5'
+          DataType = dtDouble
+          DisplayWidth = 19
+          FieldAlias = 'DR_TAX5'
+          FieldLength = 4
+          FieldName = 'DR_TAX5'
+          SQLFieldName = 'DR_TAX5'
+        end
+        object daField233: TdaField
+          Alias = 'FRTR'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'FRTR'
+          FieldLength = 0
+          FieldName = 'FRTR'
+          SQLFieldName = 'FRTR'
+        end
+        object daField234: TdaField
+          Alias = 'PREF_SRV'
+          DisplayWidth = 100
+          FieldAlias = 'PREF_SRV'
+          FieldLength = 100
+          FieldName = 'PREF_SRV'
+          SQLFieldName = 'PREF_SRV'
+        end
+        object daField235: TdaField
+          Alias = 'SRV_NM'
+          DisplayWidth = 255
+          FieldAlias = 'SRV_NM'
+          FieldLength = 255
+          FieldName = 'SRV_NM'
+          SQLFieldName = 'SRV_NM'
+        end
+        object daField236: TdaField
+          Alias = 'tot'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'tot'
+          FieldLength = 0
+          FieldName = 'tot'
+          SQLFieldName = 'tot'
+        end
+        object daField237: TdaField
+          Alias = 'phnm_ar'
+          DisplayWidth = 40
+          FieldAlias = 'phnm_ar'
+          FieldLength = 40
+          FieldName = 'phnm_ar'
+          SQLFieldName = 'phnm_ar'
+        end
+        object daField238: TdaField
+          Alias = 'CA_NM'
+          DisplayWidth = 100
+          FieldAlias = 'CA_NM'
+          FieldLength = 100
+          FieldName = 'CA_NM'
+          SQLFieldName = 'CA_NM'
+        end
+      end
+    end
+  end
+  object ppParameterList1: TppParameterList
+  end
+end

@@ -1,0 +1,227 @@
+/**
+ * Shared OP-style report tables (black borders, RTL-safe, print-friendly).
+ * Used by Daily Revenue and Receipts Inquiry.
+ */
+
+.reportShell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+/** Period / filters summary — show once above tables (screen + print). */
+.reportMeta {
+  box-sizing: border-box;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border: 1px solid #000;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #000;
+  text-align: right;
+  direction: rtl;
+}
+
+.reportBlock {
+  box-sizing: border-box;
+  border: 2px solid #000;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.blockHeader {
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: #000;
+  background: #dde8f5;
+  border-bottom: 2px solid #000;
+  text-align: right;
+}
+
+.gridTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: auto;
+  background: #fff;
+}
+
+.gridTable th,
+.gridTable td {
+  box-sizing: border-box;
+  padding: 6px 8px;
+  text-align: right;
+  vertical-align: middle;
+  color: #000;
+  border-bottom: 1px solid #000;
+  border-right: 1px solid #000;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.gridTable thead th {
+  font-weight: 700;
+  background: #e8e8e8;
+  border-bottom: 1px solid #000;
+}
+
+.gridTable th:first-child,
+.gridTable td:first-child {
+  border-right: none;
+}
+
+.gridTable :is(th, td).numeric {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 1%;
+  min-width: 0;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.gridTable :is(th, td).colLink {
+  width: 1%;
+  min-width: min-content;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.grandTotalRow td {
+  font-weight: 700;
+  background: #bfbfbf;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  border-right: 1px solid #000;
+}
+
+.grandTotalRow td:first-child {
+  border-right: none;
+}
+
+.detailFooterRow td {
+  font-weight: 700;
+  background: #ffe6cc;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  border-right: 1px solid #000;
+}
+
+.detailFooterRow td:first-child {
+  border-right: none;
+}
+
+.rowSelected td {
+  background: #e3edf9;
+}
+
+.rowClickable {
+  cursor: pointer;
+}
+
+.rowClickable:hover td {
+  background: #f0f4fa;
+}
+
+.rowSelected.rowClickable:hover td {
+  background: #d9e8f8;
+}
+
+.loadingTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000;
+  table-layout: auto;
+}
+
+.loadingTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #000;
+  border-inline-start: 1px solid #000;
+  min-width: 0;
+}
+
+.loadingTable td:first-child {
+  border-inline-start: none;
+}
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.emptyHint {
+  padding: 24px;
+  text-align: center;
+  border: 2px dashed #333;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.headerFieldsWrap {
+  padding: 12px;
+  border-bottom: 2px solid #000;
+  background: #fff;
+}
+
+.colCompact { width: 1%; }
+.colStretch { width: auto; }
+
+@media print {
+  .gridTable {
+    font-size: 12.5px;
+  }
+
+  .reportBlock {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .blockHeader {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .gridTable thead th {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .grandTotalRow td {
+    background: #bfbfbf !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .detailFooterRow td {
+    background: #ffe6cc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rowSelected td {
+    background: #e3edf9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -13,9 +13,26 @@ import { ChevronDown, KeyRound, LogOut, PanelLeft, Settings, UserCog } from "luc
 import { BrandLogo } from "@/components/BrandLogo";
 import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { adminNavGroups, staffNavGroups, type NavGroup, type NavLeaf } from "./AppNav";
+import { trpc } from "@/lib/trpc";
+import {
+  normalizeNavPath,
+  pathGrantedByRoots,
+  permissionsToAllowedRoots,
+} from "@/lib/nav-permission-utils";
+import {
+  accountingNavGroup,
+  adminNavGroups,
+  staffNavGroups,
+  type NavGroup,
+  type NavGroupSection,
+  type NavLeaf,
+} from "./AppNav";
+
+const ACCOUNTING_SIDEBAR_BASE_PATHS = new Set(
+  accountingNavGroup.items.map((leaf) => normalizeNavPath(leaf.path.split("?")[0])),
+);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width-v2";
 const COLLAPSED_KEY = "selrs:sidebar-collapsed";
@@ -23,8 +40,12 @@ const DEFAULT_WIDTH = 210;
 const MIN_WIDTH = 170;
 const MAX_WIDTH = 480;
 
-function isNavGroup(item: NavGroup): item is { label: string; items: NavLeaf[] } {
-  return "items" in item && Array.isArray((item as { items?: unknown }).items);
+function isNavGroup(item: NavGroup): item is NavGroupSection {
+  return "items" in item && Array.isArray((item as NavGroupSection).items);
+}
+
+function canShowNavLeaf(item: NavLeaf, userRole: string): boolean {
+  return !item.roles || item.roles.map((role) => role.toLowerCase()).includes(userRole);
 }
 
 /** Match current route to nav path (exact, or child path under same base; ignores query on location). */
@@ -60,7 +81,38 @@ export function AppSidebar({
   const { user, logout } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
-  const menuItems: NavGroup[] = isAdmin ? adminNavGroups : staffNavGroups;
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+
+  const allowedRoots = useMemo(
+    () => permissionsToAllowedRoots((permissionsQuery.data ?? []) as string[]),
+    [permissionsQuery.data],
+  );
+
+  const menuItems: NavGroup[] = useMemo(() => {
+    const leafPassesEffectivePaths = (leaf: NavLeaf): boolean => {
+      if (isAdmin) return true;
+      const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+      if (!ACCOUNTING_SIDEBAR_BASE_PATHS.has(cleanPath)) return true;
+      if (!permissionsQuery.isSuccess) return true;
+      return pathGrantedByRoots(cleanPath, allowedRoots);
+    };
+
+    return (isAdmin ? adminNavGroups : staffNavGroups)
+      .map((item) => {
+        if (!isNavGroup(item)) {
+          return canShowNavLeaf(item, userRole) ? item : null;
+        }
+
+        const items = item.items.filter(
+          (leaf) => canShowNavLeaf(leaf, userRole) && leafPassesEffectivePaths(leaf),
+        );
+        return items.length > 0 ? { ...item, items } : null;
+      })
+      .filter((item): item is NavGroup => Boolean(item));
+  }, [allowedRoots, isAdmin, permissionsQuery.isSuccess, userRole]);
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -71,11 +123,16 @@ export function AppSidebar({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const navGroupExpanded = (idx: number) => openNavGroups[`g-${idx}`] ?? false;
-  const toggleNavGroup = (idx: number) => {
-    const key = `g-${idx}`;
-    setOpenNavGroups((prev) => ({ ...prev, [key]: !(prev[key] ?? false) }));
+  const navGroupExpanded = (navKey: string) => openNavGroups[navKey] ?? false;
+  const toggleNavGroup = (navKey: string) => {
+    setOpenNavGroups((prev) => ({ ...prev, [navKey]: !(prev[navKey] ?? false) }));
   };
+
+  useEffect(() => {
+    const locBase = location.split("?")[0];
+    if (!locBase.startsWith("/accounting")) return;
+    setOpenNavGroups((prev) => (prev.accounting ? prev : { ...prev, accounting: true }));
+  }, [location]);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
@@ -168,24 +225,72 @@ export function AppSidebar({
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-3 scrollbar-none bg-sidebar">
         {menuItems.map((item, idx) => {
           if (isNavGroup(item)) {
-            const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(idx);
+            const navKey = item.navKey ?? `g-${idx}`;
+            const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(navKey);
+            const locBase = location.split("?")[0];
+            const groupPathBase =
+              typeof item.groupPath === "string" ? item.groupPath.split("?")[0] : "";
+            const groupPathClean = groupPathBase ? normalizeNavPath(groupPathBase) : "";
+            const groupNavigateAllowed =
+              !item.groupPath ||
+              isAdmin ||
+              !permissionsQuery.isSuccess ||
+              pathGrantedByRoots(groupPathClean, allowedRoots);
+            const headerNavDisabled = Boolean(item.groupPath) && !groupNavigateAllowed;
+            const headerActive =
+              groupPathBase.length > 1 &&
+              locBase === groupPathBase &&
+              !item.items.some((sub) => navLeafActive(location, sub.path));
+
             return (
-              <div key={`g-${idx}`} className="mb-3">
+              <div key={navKey} className="mb-3">
                 {(!collapsed || isMobile) ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleNavGroup(idx)}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/50"
+                  <div
+                    className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
+                    role="group"
                     aria-expanded={sectionOpen}
                   >
-                    <span className="min-w-0 truncate">{item.label}</span>
-                    <ChevronDown
+                    <button
+                      type="button"
+                      disabled={headerNavDisabled}
+                      onClick={() => {
+                        if (item.groupPath) {
+                          if (!groupNavigateAllowed) return;
+                          onNavigate(item.groupPath);
+                          setOpenNavGroups((prev) => ({ ...prev, [navKey]: true }));
+                          if (isMobile) onMobileOpenChange(false);
+                        } else {
+                          toggleNavGroup(navKey);
+                        }
+                      }}
                       className={cn(
-                        "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
-                        sectionOpen ? "rotate-0" : "-rotate-90",
+                        "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-muted/50",
+                        headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
+                        headerActive
+                          ? "selrs-active-nav font-medium text-foreground"
+                          : "text-muted-foreground",
                       )}
-                    />
-                  </button>
+                    >
+                      <span className="min-w-0 truncate">{item.label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={sectionOpen ? "طي القسم" : "توسيع القسم"}
+                      title={sectionOpen ? "طي القسم" : "توسيع القسم"}
+                      onClick={() => toggleNavGroup(navKey)}
+                      className={cn(
+                        "shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/50",
+                        headerActive && "text-foreground",
+                      )}
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "h-3.5 w-3.5 transition-transform duration-200",
+                          sectionOpen ? "rotate-0" : "-rotate-90",
+                        )}
+                      />
+                    </button>
+                  </div>
                 ) : null}
                 {sectionOpen ? (
                   <div className="space-y-0.5">

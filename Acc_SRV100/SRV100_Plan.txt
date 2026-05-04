@@ -1,0 +1,998 @@
+SRV100_Plan
+خطة تنفيذ إضافة Accounting Module داخل مشروع SRV100 الحالي
+
+============================================================
+1) الملخص التنفيذي
+============================================================
+
+المشروع الحالي:
+- المسار: D:\C\SRV100
+- الويب موجود بالفعل وشغال.
+- الويب حاليًا طبي فقط.
+- الطبي يعمل على MySQL.
+- الحسابات الحالية تعمل على SQL Server من خلال برنامج OP.
+- برنامج الحسابات OP موجود في:
+  D:\OP
+
+الهدف:
+إضافة Accounting Module داخل نفس الويب الحالي بدون إعادة بناء المشروع وبدون كسر النظام الطبي.
+
+المبدأ النهائي:
+- واجهة واحدة Web App.
+- نظام طبي منفصل على MySQL.
+- نظام حسابات منفصل على SQL Server.
+- الربط بين النظامين يكون من خلال:
+  MySQL.patients.patientCode = SQL Server.PAPATMF.PAT_CD
+
+معلومة مهمة من الفحص:
+- MySQL patients count: 1358
+- SQL Server PAPATMF count: 1360
+- التطابق بين patientCode و PAT_CD: 1358
+- يوجد كودان في SQL وليسوا في MySQL:
+  0013
+  0699
+
+الخلاصة:
+الـ bridge موجود بالفعل.
+لا نحتاج mapping system جديد الآن.
+نستخدم patients.patientCode كجسر رسمي بين الطبي والحسابات.
+
+============================================================
+2) أهم قواعد المشروع
+============================================================
+
+قاعدة 1:
+لا نعيد بناء الويب من الصفر.
+
+قاعدة 2:
+لا نكسر النظام الطبي الحالي.
+
+قاعدة 3:
+لا ننقل الحسابات إلى MySQL.
+
+قاعدة 4:
+لا ننقل الطبي إلى SQL Server.
+
+قاعدة 5:
+لا نستخدم MySQL patients.id للربط مع الحسابات.
+
+قاعدة 6:
+الربط الوحيد المسموح بين النظامين:
+patients.patientCode = PAT_CD
+
+قاعدة 7:
+أول مرحلة للحسابات تكون Read Only فقط.
+
+قاعدة 8:
+ممنوع إنشاء أو تعديل إيصالات من الويب في المرحلة الأولى.
+
+قاعدة 9:
+نبدأ فقط بقسم الليزك:
+SEC_CD = 15
+
+قاعدة 10:
+لا نعيد كتابة mssqlPatients.ts من الصفر.
+
+قاعدة 11:
+نستخدم createMssqlPool الموجود حاليًا بدل إنشاء اتصال جديد عشوائي.
+
+قاعدة 12:
+أي Accounting logic جديد يكون في ملفات جديدة منفصلة عن medical.ts.
+
+============================================================
+3) الملفات التي لا يتم لمسها في البداية
+============================================================
+
+ممنوع تعديل هذه الملفات في المرحلة الأولى إلا للضرورة القصوى:
+
+- D:\C\SRV100\server\routers\medical.ts
+- D:\C\SRV100\server\db.ts
+- D:\C\SRV100\server\integrations\mssqlPatients.ts
+- D:\C\SRV100\client\src\components\ProtectedRoute.tsx
+- D:\OP\OP.exe
+- D:\OP\sbprg.mde
+- D:\OP\OPDATA.mdb
+- D:\OP\OPUSER.mdb
+- D:\OP\Scripts\tr_papat_srv.sql
+- D:\OP\Scripts\tr_aztrd.sql
+
+الاستثناء الوحيد:
+- App.tsx لإضافة routes جديدة فقط.
+- server/routers/index.ts لتسجيل accounting router فقط.
+
+============================================================
+4) الملفات الموجودة المهمة
+============================================================
+
+Frontend:
+- D:\C\SRV100\client\src\App.tsx
+- D:\C\SRV100\client\src\pages\Patients.tsx
+- D:\C\SRV100\client\src\pages\PatientDetails.tsx
+- D:\C\SRV100\client\src\pages\PatientSummary.tsx
+- D:\C\SRV100\client\src\pages\QuickPatientEntry.tsx
+- D:\C\SRV100\client\src\pages\ExaminationForm.tsx
+- D:\C\SRV100\client\src\pages\MedicalReports.tsx
+
+Backend:
+- D:\C\SRV100\server\routers\index.ts
+- D:\C\SRV100\server\routers\medical.ts
+- D:\C\SRV100\server\routers\patient.ts
+- D:\C\SRV100\server\db.ts
+- D:\C\SRV100\server\_core\procedures.ts
+- D:\C\SRV100\server\integrations\mssqlPatients.ts
+
+Database:
+- D:\C\SRV100\drizzle\schema.ts
+- D:\C\SRV100\drizzle\migrations
+
+MSSQL Sync:
+- D:\C\SRV100\server\_core\mssqlSyncScheduler.ts
+- D:\C\SRV100\server\_core\index.ts
+
+============================================================
+5) قواعد الداتا
+============================================================
+
+MySQL:
+- Database: selrs26
+- Patient table: patients
+- Primary key: id
+- id نوعه int auto_increment
+- id داخلي فقط ولا يستخدم في الحسابات.
+- الحقل المهم للربط:
+  patientCode
+
+SQL Server:
+- Database: op2026
+- Patient master table:
+  PAPATMF
+- Patient code:
+  PAT_CD
+
+Accounting tables:
+- PAJRNRCVH
+  جدول الإيصالات/اليومية
+  أعمدة مهمة:
+  PAT_CD
+  SEC_CD
+  TR_TY
+  TR_NO
+  TR_DT
+  DRS_CD
+  INV_NO
+  TOTL
+  DISC
+  CA_VL
+  PA_VL
+  ENTEREDBY
+
+- PAPAT_SRV
+  جدول الخدمات
+  أعمدة مهمة:
+  PAT_CD
+  VST_NO
+  SEC_CD
+  TR_TY
+  TR_NO
+  SRV_CD
+  SRV_BY1
+  CUR_SRV_BY
+  PRG_BY
+  PRG_SNO
+  PRC
+  DISC_VL
+  PA_VL
+  ENTRYDATE
+  UPDATEDATE
+
+فلتر الليزك:
+SEC_CD = 15
+
+============================================================
+6) المعمارية النهائية
+============================================================
+
+Frontend واحد:
+- Medical pages موجودة كما هي.
+- Accounting pages جديدة يتم إضافتها.
+
+Backend واحد:
+- Medical Router موجود كما هو.
+- Accounting Router جديد.
+- Patient Router موجود كما هو.
+- MSSQL integration موجود حاليًا.
+
+تقسيم منطقي:
+Medical Module:
+- MySQL
+- زيارات
+- فحوصات
+- تقارير
+- روشتات
+- عمليات طبية
+
+Accounting Module:
+- SQL Server
+- إيصالات
+- خدمات
+- إيرادات
+- طاقم/دكاترة عند الحاجة
+- Read Only في المرحلة الأولى
+
+Bridge:
+- patients.patientCode في MySQL
+- PAT_CD في SQL Server
+
+============================================================
+7) Folder Structure المقترح
+============================================================
+
+Backend جديد:
+
+server/
+  routers/
+    accounting.ts
+
+  services/
+    accounting/
+      mssqlAccounting.ts
+      lasikReceipts.service.ts
+      lasikServices.service.ts
+      lasikRevenue.service.ts
+      lasikPatientAccounting.service.ts
+
+Frontend جديد:
+
+client/src/pages/accounting/
+  AccountingHome.tsx
+  LasikReceipts.tsx
+  LasikRevenue.tsx
+  LasikServices.tsx
+  PatientAccountingSummary.tsx
+
+اختياري لاحقًا:
+
+client/src/components/accounting/
+  AccountingFilters.tsx
+  ReceiptsTable.tsx
+  RevenueCards.tsx
+  ServicesTable.tsx
+
+============================================================
+8) ترتيب التنفيذ بالظبط
+============================================================
+
+Step 0: اعمل Git branch جديد
+------------------------------------------------------------
+
+اسم الفرع:
+feature/accounting-module-readonly
+
+الهدف:
+أي تعديل يحصل يكون معزول عن الطبي الشغال.
+
+------------------------------------------------------------
+Step 1: أضف Backend Accounting Service Folder
+------------------------------------------------------------
+
+أنشئ:
+server/services/accounting/
+
+لا تعدل medical.ts.
+لا تعدل db.ts.
+لا تعدل mssqlPatients.ts.
+
+------------------------------------------------------------
+Step 2: أنشئ mssqlAccounting.ts
+------------------------------------------------------------
+
+المسار:
+server/services/accounting/mssqlAccounting.ts
+
+المهمة:
+- استيراد createMssqlPool من:
+  server/integrations/mssqlPatients.ts
+- توفير helper بسيط للحصول على pool.
+- عدم نسخ connection string.
+- عدم قراءة .env مباشرة لو createMssqlPool كافي.
+
+الهدف:
+كل accounting services تستخدم نفس الاتصال الموجود.
+
+------------------------------------------------------------
+Step 3: أنشئ lasikReceipts.service.ts
+------------------------------------------------------------
+
+المسار:
+server/services/accounting/lasikReceipts.service.ts
+
+المهام:
+- دالة getLasikReceipts
+- تقبل filters:
+  fromDate اختياري
+  toDate اختياري
+  patientCode اختياري
+  doctorCode اختياري
+  limit اختياري
+- تستخدم PAJRNRCVH
+- تستخدم SEC_CD = 15
+- Read Only فقط
+
+Query أساسي:
+
+SELECT TOP (@limit)
+  PAT_CD,
+  SEC_CD,
+  TR_TY,
+  TR_NO,
+  TR_DT,
+  DRS_CD,
+  INV_NO,
+  TOTL,
+  DISC,
+  CA_VL,
+  PA_VL,
+  ENTEREDBY
+FROM PAJRNRCVH
+WHERE SEC_CD = 15
+ORDER BY TR_DT DESC, TR_NO DESC
+
+لو patientCode موجود:
+AND PAT_CD = @patientCode
+
+------------------------------------------------------------
+Step 4: أنشئ lasikServices.service.ts
+------------------------------------------------------------
+
+المسار:
+server/services/accounting/lasikServices.service.ts
+
+المهام:
+- دالة getLasikServices
+- تقبل filters:
+  patientCode
+  fromDate
+  toDate
+  serviceCode
+  doctorCode
+  limit
+- تستخدم PAPAT_SRV
+- تستخدم SEC_CD = 15
+- Read Only فقط
+
+Query أساسي:
+
+SELECT TOP (@limit)
+  PAT_CD,
+  VST_NO,
+  SEC_CD,
+  TR_TY,
+  TR_NO,
+  SRV_CD,
+  SRV_BY1,
+  CUR_SRV_BY,
+  PRG_BY,
+  PRG_SNO,
+  PRC,
+  DISC_VL,
+  PA_VL,
+  ENTRYDATE,
+  UPDATEDATE
+FROM PAPAT_SRV
+WHERE SEC_CD = 15
+ORDER BY ENTRYDATE DESC, TR_NO DESC
+
+------------------------------------------------------------
+Step 5: أنشئ lasikRevenue.service.ts
+------------------------------------------------------------
+
+المسار:
+server/services/accounting/lasikRevenue.service.ts
+
+المهام:
+- دالة getLasikRevenueSummary
+- تجيب ملخص مالي من PAJRNRCVH
+- تستخدم SEC_CD = 15
+- Read Only فقط
+
+مقاييس مقترحة:
+- totalReceipts
+- totalGross
+- totalDiscount
+- totalCash
+- totalPaid
+- netAfterDiscount
+
+Query مبدئي:
+
+SELECT
+  COUNT(*) AS totalReceipts,
+  SUM(ISNULL(TOTL, 0)) AS totalGross,
+  SUM(ISNULL(DISC, 0)) AS totalDiscount,
+  SUM(ISNULL(CA_VL, 0)) AS totalCash,
+  SUM(ISNULL(PA_VL, 0)) AS totalPaid
+FROM PAJRNRCVH
+WHERE SEC_CD = 15
+
+مع فلاتر اختيارية للتاريخ والطبيب والمريض.
+
+------------------------------------------------------------
+Step 6: أنشئ lasikPatientAccounting.service.ts
+------------------------------------------------------------
+
+المسار:
+server/services/accounting/lasikPatientAccounting.service.ts
+
+المهمة:
+دالة getPatientLasikAccountingSummary(patientCode)
+
+ترجع:
+- آخر إيصالات المريض من PAJRNRCVH
+- خدمات المريض من PAPAT_SRV
+- إجمالي المدفوع
+- إجمالي الخصم
+- إجمالي الخدمات
+- آخر تاريخ حركة
+
+تستخدم:
+PAT_CD = @patientCode
+SEC_CD = 15
+
+------------------------------------------------------------
+Step 7: أنشئ accounting router
+------------------------------------------------------------
+
+المسار:
+server/routers/accounting.ts
+
+المهام:
+إنشاء tRPC router أو نفس نظام routers الحالي.
+
+Endpoints مقترحة:
+- accounting.lasikReceipts
+- accounting.lasikServices
+- accounting.lasikRevenueSummary
+- accounting.patientLasikSummary
+
+كلهم:
+- protectedProcedure
+- Read Only
+- يستخدموا services الجديدة فقط
+
+لا تستخدم medical.ts.
+لا تضع query SQL مباشرة داخل router إلا لو المشروع ماشي كده، والأفضل لا.
+
+------------------------------------------------------------
+Step 8: سجل accounting router
+------------------------------------------------------------
+
+الملف:
+server/routers/index.ts
+
+أضف:
+accounting: accountingRouter
+
+فقط.
+
+لا تعدل بقية routers.
+
+------------------------------------------------------------
+Step 9: اختبر Backend فقط
+------------------------------------------------------------
+
+قبل الواجهة:
+- تأكد أن السيرفر يعمل.
+- تأكد أن accounting router ظاهر.
+- جرّب endpoint receipts.
+- جرّب endpoint services.
+- جرّب endpoint revenue.
+- جرّب patient summary بكود موجود مثل أي patientCode موجود.
+
+Checks:
+- لا يوجد write على SQL.
+- لا يوجد write على MySQL.
+- لا يوجد تعديل على medical.ts.
+- لا يوجد كسر في patient pages.
+
+------------------------------------------------------------
+Step 10: أنشئ صفحات Frontend Accounting
+------------------------------------------------------------
+
+أنشئ فولدر:
+client/src/pages/accounting/
+
+الصفحات:
+- AccountingHome.tsx
+- LasikReceipts.tsx
+- LasikRevenue.tsx
+- LasikServices.tsx
+
+ابدأ بصفحة واحدة فقط:
+LasikReceipts.tsx
+
+ثم Revenue.
+ثم Services.
+
+------------------------------------------------------------
+Step 11: أضف frontend route
+------------------------------------------------------------
+
+الملف:
+client/src/App.tsx
+
+أضف route:
+- /accounting
+- /accounting/lasik/receipts
+- /accounting/lasik/revenue
+- /accounting/lasik/services
+
+استخدم نفس lazy route pattern الموجود.
+
+لا تغير routes الطبية الموجودة.
+
+------------------------------------------------------------
+Step 12: أضف navigation link
+------------------------------------------------------------
+
+حسب مكان القائمة في المشروع:
+- أضف رابط Accounting
+- أو Lasik Accounting
+
+مراعاة الصلاحيات:
+لا تعدل ProtectedRoute في البداية.
+لو فيه permission system واضح، استخدم الموجود فقط.
+
+------------------------------------------------------------
+Step 13: أضف Patient Accounting Summary داخل PatientDetails
+------------------------------------------------------------
+
+بعد ما صفحات الحسابات تستقر:
+
+في:
+client/src/pages/PatientDetails.tsx
+
+أضف section اختياري:
+Lasik Accounting Summary
+
+يعتمد على:
+patient.patientCode
+
+ينادي:
+accounting.patientLasikSummary(patientCode)
+
+لا يستخدم patient.id.
+
+مهم:
+لو patientCode غير موجود:
+اعرض:
+No accounting code linked.
+
+------------------------------------------------------------
+Step 14: اعمل QA
+------------------------------------------------------------
+
+راجع:
+- صفحة المرضى القديمة شغالة.
+- إنشاء مريض قديم شغال.
+- الفحوصات شغالة.
+- التقارير شغالة.
+- accounting pages تقرأ فقط.
+- لا يوجد أي INSERT/UPDATE/DELETE في accounting module.
+- كل فلاتر المريض تعتمد على PAT_CD/patientCode.
+- فرق 0013 و 0699 معروف ومتعامل معه بدون crash.
+
+------------------------------------------------------------
+Step 15: Missing patients review
+------------------------------------------------------------
+
+بعد استقرار القراءة:
+راجع الكودين:
+0013
+0699
+
+اعمل تقرير:
+- هل هم مرضى حقيقيين؟
+- هل محتاجين يتضافوا في MySQL؟
+- هل حالات قديمة/اختبارية؟
+- هل تم حذفهم من الطبي؟
+
+لا تعمل sync تلقائي إلا بعد مراجعة.
+
+============================================================
+9) API List المقترحة
+============================================================
+
+Backend tRPC style أسماء مقترحة:
+
+accounting.lasikReceipts
+Input:
+{
+  patientCode?: string;
+  doctorCode?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit?: number;
+}
+
+Output:
+Array<{
+  patientCode: string;
+  sectionCode: number;
+  transactionType: string | number;
+  transactionNo: string | number;
+  transactionDate: string;
+  doctorCode: string | null;
+  invoiceNo: string | null;
+  total: number;
+  discount: number;
+  cashValue: number;
+  paidValue: number;
+  enteredBy: string | null;
+}>
+
+------------------------------------------------------------
+
+accounting.lasikServices
+Input:
+{
+  patientCode?: string;
+  serviceCode?: string;
+  doctorCode?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit?: number;
+}
+
+Output:
+Array<{
+  patientCode: string;
+  visitNo: string | number | null;
+  sectionCode: number;
+  transactionType: string | number;
+  transactionNo: string | number;
+  serviceCode: string | null;
+  serviceBy: string | null;
+  currentServiceBy: string | null;
+  price: number;
+  discountValue: number;
+  paidValue: number;
+  entryDate: string | null;
+  updateDate: string | null;
+}>
+
+------------------------------------------------------------
+
+accounting.lasikRevenueSummary
+Input:
+{
+  patientCode?: string;
+  doctorCode?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+Output:
+{
+  totalReceipts: number;
+  totalGross: number;
+  totalDiscount: number;
+  totalCash: number;
+  totalPaid: number;
+  netAfterDiscount: number;
+}
+
+------------------------------------------------------------
+
+accounting.patientLasikSummary
+Input:
+{
+  patientCode: string;
+}
+
+Output:
+{
+  patientCode: string;
+  totalReceipts: number;
+  totalServices: number;
+  totalGross: number;
+  totalDiscount: number;
+  totalPaid: number;
+  lastTransactionDate: string | null;
+  recentReceipts: [];
+  services: [];
+}
+
+============================================================
+10) UI Pages
+============================================================
+
+AccountingHome.tsx:
+- كروت:
+  Lasik Receipts
+  Lasik Revenue
+  Lasik Services
+
+LasikReceipts.tsx:
+- Filters:
+  fromDate
+  toDate
+  patientCode
+  doctorCode
+- Table:
+  PAT_CD
+  TR_NO
+  TR_DT
+  DRS_CD
+  INV_NO
+  TOTL
+  DISC
+  CA_VL
+  PA_VL
+  ENTEREDBY
+
+LasikRevenue.tsx:
+- Filters:
+  fromDate
+  toDate
+  doctorCode
+- Cards:
+  totalReceipts
+  totalGross
+  totalDiscount
+  totalCash
+  totalPaid
+  netAfterDiscount
+
+LasikServices.tsx:
+- Filters:
+  fromDate
+  toDate
+  patientCode
+  serviceCode
+  doctorCode
+- Table:
+  PAT_CD
+  VST_NO
+  TR_NO
+  SRV_CD
+  PRC
+  DISC_VL
+  PA_VL
+  ENTRYDATE
+
+PatientAccountingSummary.tsx:
+- يظهر داخل PatientDetails لاحقًا.
+- يستخدم patientCode فقط.
+- يعرض ملخص سريع للمريض.
+
+============================================================
+11) Prompts للـ Agents
+============================================================
+
+------------------------------------------------------------
+Architect Agent Prompt
+------------------------------------------------------------
+
+You are the Lead Architect for SRV100.
+
+The web app already exists and works as a medical-only app.
+Do not rebuild it.
+Add accounting as a separate module.
+
+Confirmed facts:
+- Project root: D:\C\SRV100
+- Medical data uses MySQL.
+- Accounting data uses SQL Server.
+- MySQL patients table has patientCode.
+- SQL Server patient code is PAT_CD.
+- Bridge is: MySQL.patients.patientCode = SQL.PAT_CD
+- MySQL patients.id is internal only.
+- Lasik accounting uses SEC_CD = 15.
+- First phase must be read-only accounting.
+- Existing MSSQL integration file exists:
+  server/integrations/mssqlPatients.ts
+- Do not rewrite mssqlPatients.ts.
+- Reuse createMssqlPool from it.
+- Do not modify medical.ts or db.ts in phase 1.
+
+Your task:
+Create or review the implementation plan only.
+Do not write code yet.
+Confirm:
+- folder structure
+- service names
+- router names
+- endpoint list
+- files not to touch
+- implementation order
+- QA checklist
+
+------------------------------------------------------------
+Backend Agent Prompt
+------------------------------------------------------------
+
+You are the Backend Agent for SRV100.
+
+Implement only read-only Lasik accounting APIs.
+
+Rules:
+- Do not modify server/routers/medical.ts
+- Do not modify server/db.ts
+- Do not rewrite server/integrations/mssqlPatients.ts
+- Reuse createMssqlPool from server/integrations/mssqlPatients.ts
+- Accounting data stays in SQL Server
+- Medical data stays in MySQL
+- Use SEC_CD = 15
+- Use PAT_CD for SQL patient code
+- Never use MySQL patients.id for accounting
+- No INSERT, UPDATE, DELETE in accounting module
+
+Create:
+- server/services/accounting/mssqlAccounting.ts
+- server/services/accounting/lasikReceipts.service.ts
+- server/services/accounting/lasikServices.service.ts
+- server/services/accounting/lasikRevenue.service.ts
+- server/services/accounting/lasikPatientAccounting.service.ts
+- server/routers/accounting.ts
+
+Register:
+- accounting router in server/routers/index.ts
+
+APIs:
+- accounting.lasikReceipts
+- accounting.lasikServices
+- accounting.lasikRevenueSummary
+- accounting.patientLasikSummary
+
+Return normalized field names to frontend.
+
+After implementation:
+- list changed files
+- explain what changed
+- mention tests/checks run
+
+------------------------------------------------------------
+Frontend Agent Prompt
+------------------------------------------------------------
+
+You are the Frontend Agent for SRV100.
+
+Add accounting pages to the existing medical web app.
+
+Rules:
+- Do not redesign the whole app.
+- Do not break existing medical pages.
+- Use existing layout/style/components.
+- Add pages under client/src/pages/accounting/
+- Do not use patient.id for accounting.
+- Use patientCode only.
+
+Create:
+- client/src/pages/accounting/AccountingHome.tsx
+- client/src/pages/accounting/LasikReceipts.tsx
+- client/src/pages/accounting/LasikRevenue.tsx
+- client/src/pages/accounting/LasikServices.tsx
+- optional client/src/pages/accounting/PatientAccountingSummary.tsx
+
+Register routes in:
+- client/src/App.tsx
+
+Routes:
+- /accounting
+- /accounting/lasik/receipts
+- /accounting/lasik/revenue
+- /accounting/lasik/services
+
+Pages must call backend accounting APIs.
+Start simple.
+Tables and filters are enough.
+
+------------------------------------------------------------
+Integration Agent Prompt
+------------------------------------------------------------
+
+You are the Integration Agent for SRV100.
+
+Connect frontend accounting pages to backend accounting router.
+
+Rules:
+- Do not change medical data flow.
+- Do not write to SQL Server.
+- Do not write to MySQL.
+- Ensure patient accounting uses patientCode.
+- Never use patient.id for accounting.
+
+Tasks:
+- Verify accounting API calls work from pages.
+- Verify filters work.
+- Verify patientCode filter works.
+- Add PatientAccountingSummary to PatientDetails only if safe.
+- If PatientDetails is too fragile, create separate page/link first.
+
+Output:
+- changed files
+- integration issues found
+- remaining missing data
+- manual test checklist
+
+------------------------------------------------------------
+QA Agent Prompt
+------------------------------------------------------------
+
+You are the QA Reviewer for SRV100.
+
+Review the accounting module implementation.
+
+Check:
+1. No medical functionality broken.
+2. No changes to medical.ts unless justified.
+3. No changes to db.ts unless justified.
+4. No rewrite of mssqlPatients.ts.
+5. No SQL INSERT/UPDATE/DELETE in accounting module.
+6. All accounting queries have SEC_CD = 15.
+7. Patient linkage uses patientCode/PAT_CD.
+8. No use of patients.id for accounting.
+9. Frontend routes load.
+10. Receipts page loads.
+11. Revenue summary loads.
+12. Services page loads.
+13. Patient filter works.
+14. Missing codes 0013 and 0699 do not crash UI.
+15. Secrets are not exposed.
+
+Output:
+- bugs
+- risks
+- required fixes
+- safe to merge: yes/no
+
+============================================================
+12) المرحلة الثانية بعد نجاح Read Only
+============================================================
+
+بعد ما القراءة تثبت:
+
+Phase 2A:
+- Patient Accounting Summary داخل PatientDetails.
+
+Phase 2B:
+- مراجعة 0013 و 0699.
+
+Phase 2C:
+- تحسين التقارير:
+  يومي
+  شهري
+  حسب الطبيب
+  حسب الخدمة
+  حسب الفرع إن وجد
+
+Phase 2D:
+- صلاحيات:
+  من يرى الحسابات؟
+  من يرى الإجمالي؟
+  من يرى الخصومات؟
+
+Phase 2E:
+- التفكير في كتابة الحسابات من الويب.
+  لا يبدأ إلا بعد اعتماد كامل.
+  ويفضل يظل OP هو مصدر الكتابة الرسمي في البداية.
+
+============================================================
+13) القرار النهائي
+============================================================
+
+ابدأ بإضافة Accounting Read Only فقط.
+
+الترتيب:
+1. Backend services.
+2. Accounting router.
+3. Frontend pages.
+4. Patient summary.
+5. QA.
+6. Missing patients review.
+7. ثم التفكير في write operations لاحقًا.
+
+أهم جملة:
+SRV100 ليس مشروعًا جديدًا.
+SRV100 هو ويب طبي شغال.
+سنضيف له حسابات SQL Server كـ module مستقل، مع الربط عبر patientCode = PAT_CD فقط.

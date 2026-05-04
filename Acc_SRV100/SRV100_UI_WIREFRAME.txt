@@ -1,0 +1,104 @@
+SRV100 UI WIREFRAME (OP STYLE)
+
+MAIN LAYOUT
+---------------------------------
+Top Bar:
+SRV100 | Year | User | Logout
+
+Sidebar:
+- Patients
+- Doctors
+- Services
+- Receipts
+- Revenue Reports
+- Medical
+
+---------------------------------
+
+PATIENT SCREEN
+---------------------------------
+Search:
+[Patient Code] [Name] [Phone] [Search]
+
+Table:
+Code | Name | Age | Phone | Address | Doctor | View
+
+Patient Details Tabs:
+- Medical
+- Visits
+- Account Summary
+- Receipts
+- Services
+
+---------------------------------
+
+DOCTOR SCREEN
+---------------------------------
+Search:
+[Doctor Code] [Name] [Department]
+
+Table:
+Code | Name | Department | Status | View Account
+
+Doctor Details:
+- Services
+- Total Revenue
+- By Service
+- By Date
+
+---------------------------------
+
+SERVICE SCREEN
+---------------------------------
+Search:
+[Service Code] [Name] [Department]
+
+Table:
+Code | Name | Department | Price1 | Price2 | Discount
+
+---------------------------------
+
+RECEIPT SCREEN
+---------------------------------
+Filters:
+From Date | To Date | Department | Doctor | Patient | Receipt No
+
+Table:
+Receipt No | Date | Patient | Type | Total | Discount | Paid | User | View/Print
+
+Receipt Details:
+Header:
+Receipt No | Date | Patient | Doctor | Shift | Total
+
+Body:
+Service | Qty | Price | Total | Discount | Patient Share | Company Share
+
+---------------------------------
+
+REVENUE REPORT
+---------------------------------
+Filters:
+From | To | Department | Doctor | Service | Shift
+
+Table:
+Doctor
+  Service | Qty | Price | Total | Discount | Paid
+
+Subtotals per Service
+Subtotals per Doctor
+Grand Total
+
+---------------------------------
+
+PRINT LAYOUT
+---------------------------------
+Header:
+Clinic Name
+Report Name
+Date Range
+
+Body:
+Table with grouped data
+
+Footer:
+Totals

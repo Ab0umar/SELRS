@@ -1,0 +1,474 @@
+object ppReport1: TppReport
+  AutoStop = False
+  DataPipeline = daADOQueryDataView1.x
+  PrinterSetup.BinName = 'Default'
+  PrinterSetup.DocumentName = 'Report'
+  PrinterSetup.PaperName = 'A4'
+  PrinterSetup.PrinterName = 'Default'
+  PrinterSetup.SaveDeviceSettings = False
+  PrinterSetup.mmMarginBottom = 6350
+  PrinterSetup.mmMarginLeft = 6350
+  PrinterSetup.mmMarginRight = 6350
+  PrinterSetup.mmMarginTop = 6350
+  PrinterSetup.mmPaperHeight = 297000
+  PrinterSetup.mmPaperWidth = 210000
+  PrinterSetup.PaperSize = 9
+  SaveAsTemplate = True
+  Template.DatabaseSettings.DataPipeline = plItem
+  Template.DatabaseSettings.Name = '92 '#1578#1602#1585#1610#1585' '#1582#1583#1605#1575#1578' '#1575#1591#1576#1575#1569' '#1575#1580#1605#1575#1604#1609
+  Template.DatabaseSettings.NameField = 'ItemName'
+  Template.DatabaseSettings.TemplateField = 'Template'
+  Template.FileName = 'D:\C\OP\'#1582#1583#1605#1575#1578' '#1575#1604#1575#1591#1576#1575#1569' '#1575#1580#1605#1575#1604#1610'.rtm'
+  Template.Format = ftASCII
+  DeviceType = 'Screen'
+  EmailSettings.ReportFormat = 'PDF'
+  OutlineSettings.CreateNode = True
+  OutlineSettings.CreatePageNodes = True
+  OutlineSettings.Enabled = False
+  OutlineSettings.Visible = False
+  PDFSettings.EmbedFontOptions = []
+  TextSearchSettings.DefaultString = '<FindText>'
+  TextSearchSettings.Enabled = True
+  TextSearchSettings.ShowAll = True
+  TextSearchSettings.SearchFromCurrentPage = True
+  TextSearchSettings.Visible = True
+  Left = 321
+  Top = 174
+  Version = '11.06'
+  mmColumnWidth = 0
+  DataPipelineName = 'x'
+  object ppHeaderBand1: TppHeaderBand
+    mmBottomOffset = 0
+    mmHeight = 34925
+    mmPrintPosition = 0
+    object ppLabel1: TppLabel
+      UserName = 'Label1'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1578#1602#1585#1610#1585' '#1582#1583#1605#1575#1578' '#1575#1604#1575#1591#1576#1575#1569' '#1575#1580#1605#1575#1604#1610
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 14
+      Font.Style = [fsBold]
+      Transparent = True
+      mmHeight = 5842
+      mmLeft = 75142
+      mmTop = 4233
+      mmWidth = 45297
+      BandType = 0
+    end
+    object ppLabel3: TppLabel
+      UserName = 'Label3'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1582#1583#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 139436
+      mmTop = 30427
+      mmWidth = 57944
+      BandType = 0
+    end
+    object ppLabel5: TppLabel
+      UserName = 'Label5'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1593#1583#1583' '#1575#1604#1582#1583#1605#1575#1578' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 115094
+      mmTop = 30427
+      mmWidth = 24606
+      BandType = 0
+    end
+    object ppLabel6: TppLabel
+      UserName = 'Label6'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      Caption = #1575#1604#1587#1593#1585
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4233
+      mmLeft = 92869
+      mmTop = 30427
+      mmWidth = 22490
+      BandType = 0
+    end
+  end
+  object ppDetailBand1: TppDetailBand
+    mmBottomOffset = 0
+    mmHeight = 4498
+    mmPrintPosition = 0
+    object ppDBText2: TppDBText
+      UserName = 'DBText2'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'SRV_NM'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 139700
+      mmTop = 265
+      mmWidth = 57944
+      BandType = 4
+    end
+    object ppDBText4: TppDBText
+      UserName = 'DBText4'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'Cnt'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 115359
+      mmTop = 265
+      mmWidth = 24606
+      BandType = 4
+    end
+    object ppDBText5: TppDBText
+      UserName = 'DBText5'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'Prc1'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 10
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 4233
+      mmLeft = 93134
+      mmTop = 265
+      mmWidth = 22490
+      BandType = 4
+    end
+  end
+  object ppFooterBand1: TppFooterBand
+    mmBottomOffset = 0
+    mmHeight = 0
+    mmPrintPosition = 0
+  end
+  object ppGroup1: TppGroup
+    BreakName = 'phnm_ar'
+    DataPipeline = daADOQueryDataView1.x
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group1'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'x'
+    object ppGroupHeaderBand1: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 4233
+      mmPrintPosition = 0
+      object ppDBText7: TppDBText
+        UserName = 'DBText7'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'phnm_ar'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 125942
+        mmTop = 0
+        mmWidth = 71438
+        BandType = 3
+        GroupNo = 0
+      end
+    end
+    object ppGroupFooterBand1: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 4233
+      mmPrintPosition = 0
+      object ppDBCalc2: TppDBCalc
+        UserName = 'DBCalc2'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'Cnt'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 115359
+        mmTop = 0
+        mmWidth = 24606
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc3: TppDBCalc
+        UserName = 'DBCalc3'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'Prc1'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 93134
+        mmTop = 0
+        mmWidth = 22490
+        BandType = 5
+        GroupNo = 0
+      end
+    end
+  end
+  object ppGroup2: TppGroup
+    BreakName = 'SRV_NM'
+    DataPipeline = daADOQueryDataView1.x
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group2'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'x'
+    object ppGroupHeaderBand2: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 4233
+      mmPrintPosition = 0
+      object ppDBText8: TppDBText
+        UserName = 'DBText8'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        DataField = 'SRV_NM'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 10
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        Transparent = True
+        DataPipelineName = 'x'
+        mmHeight = 4233
+        mmLeft = 125942
+        mmTop = 0
+        mmWidth = 71438
+        BandType = 3
+        GroupNo = 1
+      end
+    end
+    object ppGroupFooterBand2: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 0
+      mmPrintPosition = 0
+    end
+  end
+  object daDataModule1: TdaDataModule
+    object daADOQueryDataView1: TdaADOQueryDataView
+      UserName = 'Query_x'
+      Height = 673
+      Left = 10
+      NameColumnWidth = 105
+      SizeColumnWidth = 35
+      SortMode = 0
+      Top = 10
+      TypeColumnWidth = 52
+      Width = 224
+      AutoSearchTabOrder = 0
+      object x: TppChildDBPipeline
+        AutoCreateFields = False
+        UserName = 'x'
+        object ppField1: TppField
+          FieldAlias = 'SRV_CD'
+          FieldName = 'SRV_CD'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 0
+        end
+        object ppField2: TppField
+          FieldAlias = 'Cnt'
+          FieldName = 'Cnt'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 1
+        end
+        object ppField3: TppField
+          FieldAlias = 'Prc1'
+          FieldName = 'Prc1'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 2
+        end
+        object ppField4: TppField
+          FieldAlias = 'srv_nm'
+          FieldName = 'srv_nm'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 3
+        end
+        object ppField5: TppField
+          FieldAlias = 'phnm_Ar'
+          FieldName = 'phnm_Ar'
+          FieldLength = 40
+          DisplayWidth = 40
+          Position = 4
+        end
+      end
+      object daSQL1: TdaSQL
+        GuidCollationType = gcMSAccess
+        DatabaseName = 'DAT'
+        DatabaseType = dtMSAccess
+        DataPipelineName = 'x'
+        EditSQLAsText = True
+        LinkColor = clMaroon
+        LinkType = ltParameterizedSQL
+        MaxSQLFieldAliasLength = 0
+        SQLText.Strings = (
+          'SELECT S.SRV_CD,SUM(S.QTY) as Cnt,Sum(S.PRC*S.QTY) as Prc1,'
+          '( select srv_nm_ar from srvcmf where srv_cd=s.srv_cd) as srv_nm,'
+          '( select phnm_ar from mdteam where code=s.srv_by1) as phnm_Ar'
+          ' FROM (PAPAT_SRV S LEFT JOIN PAPAT_IO PAPAT_IO ON '
+          
+            '(S.PAT_CD=PAPAT_IO.PAT_CD) AND (S.VST_NO=PAPAT_IO.VST_NO)) LEFT ' +
+            'JOIN PAPATMF PAPATMF ON '
+          'S.PAT_CD=PAPATMF.PAT_CD Where 1=1'
+          ' group by Srv_cd ,srv_by1 Order by Srv_Cd')
+        SQLType = sqSQL2
+        object daField1: TdaField
+          Alias = 'SRV_CD'
+          DisplayWidth = 15
+          FieldAlias = 'SRV_CD'
+          FieldLength = 15
+          FieldName = 'SRV_CD'
+          SQLFieldName = 'SRV_CD'
+        end
+        object daField2: TdaField
+          Alias = 'Cnt'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'Cnt'
+          FieldLength = 0
+          FieldName = 'Cnt'
+          SQLFieldName = 'Cnt'
+        end
+        object daField3: TdaField
+          Alias = 'Prc1'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'Prc1'
+          FieldLength = 0
+          FieldName = 'Prc1'
+          SQLFieldName = 'Prc1'
+        end
+        object daField4: TdaField
+          Alias = 'srv_nm'
+          DisplayWidth = 255
+          FieldAlias = 'srv_nm'
+          FieldLength = 255
+          FieldName = 'srv_nm'
+          SQLFieldName = 'srv_nm'
+        end
+        object daField5: TdaField
+          Alias = 'phnm_Ar'
+          DisplayWidth = 40
+          FieldAlias = 'phnm_Ar'
+          FieldLength = 40
+          FieldName = 'phnm_Ar'
+          SQLFieldName = 'phnm_Ar'
+        end
+      end
+    end
+  end
+  object ppParameterList1: TppParameterList
+  end
+end

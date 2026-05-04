@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
-import { adminProcedure, publicProcedure, router } from "./trpc";
+import { adminProcedure, publicProcedure, router } from "./procedures";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import mysql from "mysql2/promise";

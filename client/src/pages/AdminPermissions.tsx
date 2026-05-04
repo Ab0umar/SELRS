@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { PAGE_PERMISSION_DEFINITIONS as PAGE_PERMISSIONS } from "@/lib/page-permissions";
+import { PAGE_PERMISSION_DEFINITIONS as PAGE_PERMISSIONS, getPagePermissionGroup } from "@/lib/page-permissions";
 
 type TeamRole =
   | "admin"
@@ -143,7 +143,11 @@ export default function AdminPermissions() {
 
           {/* Mobile cards */}
           <div className="space-y-2 sm:hidden">
-            {PAGE_PERMISSIONS.map((perm) => {
+            {PAGE_PERMISSIONS.map((perm, idx) => {
+              const prevEntry = idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
+              const prevGroup = prevEntry ? getPagePermissionGroup(prevEntry) : undefined;
+              const groupLabel = getPagePermissionGroup(perm);
+              const showGroupHeader = Boolean(groupLabel && groupLabel !== prevGroup);
               const level = getLevel(rolePerms, perm.id);
               const canView = level === "r" || level === "rw";
               const canWrite = level === "rw";
@@ -152,7 +156,13 @@ export default function AdminPermissions() {
                 else handleChangeLevel(perm.id, level !== "none" ? "r" : "none");
               };
               return (
-                <div key={perm.id} className="rounded-xl border border-border/80 bg-card px-4 py-3" dir="rtl">
+                <Fragment key={perm.id}>
+                  {showGroupHeader ? (
+                    <div className="rounded-lg bg-muted/60 px-3 py-2 text-xs font-bold text-foreground">
+                      {groupLabel}
+                    </div>
+                  ) : null}
+                  <div className="rounded-xl border border-border/80 bg-card px-4 py-3" dir="rtl">
                   <div className="mb-2 font-medium leading-snug">{perm.label}</div>
                   <div className="grid grid-cols-4 gap-2 text-center text-xs">
                     <div>
@@ -201,6 +211,7 @@ export default function AdminPermissions() {
                     </div>
                   </div>
                 </div>
+                </Fragment>
               );
             })}
           </div>
@@ -218,7 +229,11 @@ export default function AdminPermissions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PAGE_PERMISSIONS.map((perm) => {
+                {PAGE_PERMISSIONS.flatMap((perm, idx) => {
+                  const prevEntry = idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
+                  const prevGroup = prevEntry ? getPagePermissionGroup(prevEntry) : undefined;
+                  const groupLabel = getPagePermissionGroup(perm);
+                  const showGroupHeader = Boolean(groupLabel && groupLabel !== prevGroup);
                   const level = getLevel(rolePerms, perm.id);
                   const canView = level === "r" || level === "rw";
                   const canWrite = level === "rw";
@@ -234,9 +249,26 @@ export default function AdminPermissions() {
                     "aria-label": "عمليات الكتابة",
                   } as const;
 
-                  return (
+                  const rows = [];
+
+                  if (showGroupHeader && groupLabel) {
+                    rows.push(
+                      <TableRow
+                        key={`grp-${groupLabel}-${idx}`}
+                        className="border-border/80 bg-muted/50 hover:bg-muted/55"
+                      >
+                        <TableCell colSpan={5} className="py-2.5 align-middle font-bold text-foreground">
+                          {groupLabel}
+                        </TableCell>
+                      </TableRow>,
+                    );
+                  }
+
+                  rows.push(
                     <TableRow key={perm.id} className="border-border/80 hover:bg-primary/[0.04]">
-                      <TableCell className="max-w-[360px] px-4 py-3 align-middle font-medium leading-snug">{perm.label}</TableCell>
+                      <TableCell className="max-w-[360px] px-4 py-3 align-middle font-medium leading-snug">
+                        {perm.label}
+                      </TableCell>
                       <TableCell className="py-3 text-center align-middle">
                         <div className="flex justify-center">
                           <Checkbox
@@ -257,8 +289,10 @@ export default function AdminPermissions() {
                           </div>
                         </TableCell>
                       ))}
-                    </TableRow>
+                    </TableRow>,
                   );
+
+                  return rows;
                 })}
               </TableBody>
             </Table>

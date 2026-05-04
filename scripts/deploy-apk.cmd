@@ -3,5 +3,5 @@ setlocal
 
 cd /d "%~dp0\.."
 
-powershell -ExecutionPolicy Bypass -File "E:\SELRS.cc\scripts\build-android-release.ps1" %*
+powershell -ExecutionPolicy Bypass -File "D:\C\SRV100\scripts\build-android-release.ps1" %*
 

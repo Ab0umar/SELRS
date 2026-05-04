@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
+import { PAGE_PERMISSION_DEFINITIONS, getPagePermissionGroup } from "@/lib/page-permissions";
 type UserRole = "admin" | "doctor" | "nurse" | "technician" | "reception" | "manager" | "accountant";
 type UserBranch = "examinations" | "surgery" | "both";
 type TeamPermissionsMap = Record<UserRole, string[]>;
@@ -1107,18 +1107,28 @@ export default function AdminUsers() {
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 border rounded-lg p-3 max-h-56 overflow-y-auto">
-              {PAGE_PERMISSIONS.map((page) => (
-                <label
-                  key={page.id}
-                  className="flex items-center gap-2 rounded border border-border px-2 py-1 text-[13px] leading-tight cursor-pointer"
-                >
-                  <Checkbox
-                    checked={editPermissions.includes(page.id)}
-                    onCheckedChange={() => togglePermission(page.id)}
-                  />
-                  <span>{page.label}</span>
-                </label>
-              ))}
+              {PAGE_PERMISSIONS.map((page, idx) => {
+                const prevEntry = idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
+                const prevGroup = prevEntry ? getPagePermissionGroup(prevEntry) : undefined;
+                const groupLabel = getPagePermissionGroup(page);
+                const showGroupHeader = Boolean(groupLabel && groupLabel !== prevGroup);
+                return (
+                  <Fragment key={page.id}>
+                    {showGroupHeader ? (
+                      <div className="col-span-full border-t border-border/70 pt-2 mt-1 first:mt-0 first:border-t-0 first:pt-0 text-xs font-bold text-muted-foreground">
+                        {groupLabel}
+                      </div>
+                    ) : null}
+                    <label className="flex items-center gap-2 rounded border border-border px-2 py-1 text-[13px] leading-tight cursor-pointer">
+                      <Checkbox
+                        checked={editPermissions.includes(page.id)}
+                        onCheckedChange={() => togglePermission(page.id)}
+                      />
+                      <span>{page.label}</span>
+                    </label>
+                  </Fragment>
+                );
+              })}
             </div>
             {permissionStateQuery.isError && (
               <p className="text-xs text-red-600 mt-2">تعذر تحميل الصلاحيات.</p>

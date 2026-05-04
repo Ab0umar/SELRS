@@ -5,8 +5,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
+  Banknote,
   Bell,
   CalendarCheck,
+  CalendarDays,
   CircleDot,
   ClipboardList,
   Clock,
@@ -21,6 +23,7 @@ import {
   Network,
   Paintbrush,
   Pill,
+  ReceiptText,
   Repeat,
   Settings,
   Shield,
@@ -34,13 +37,78 @@ import {
   Wrench,
 } from "lucide-react";
 
-export type NavLeaf = { icon: LucideIcon; label: string; path: string };
-export type NavGroup = { label: string; items: NavLeaf[] } | (NavLeaf & { items?: undefined });
+export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[] };
+
+/** Collapsible sidebar section (optional module home via groupPath). */
+export type NavGroupSection = {
+  label: string;
+  items: NavLeaf[];
+  /** Clicking the section title navigates here (e.g. `/accounting`). */
+  groupPath?: string;
+  /** Stable key for expand/collapse state (defaults to `g-${index}` in the sidebar). */
+  navKey?: string;
+};
+
+export type NavGroup = NavGroupSection | NavLeaf;
+
+const ACCOUNTING_NAV_ROLES = ["admin", "manager", "accountant"];
+
+/** الحسابات — روابط متداخلة؛ عنوان القسم يفتح لوحة الحسابات */
+export const accountingNavGroup: NavGroupSection = {
+  label: "الحسابات",
+  groupPath: "/accounting",
+  navKey: "accounting",
+  items: [
+    {
+      icon: CalendarDays,
+      label: "الإيراد اليومي",
+      path: "/accounting/daily-revenue",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: Banknote,
+      label: "إيراد الخدمات",
+      path: "/accounting/service-revenue",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: ReceiptText,
+      label: "الإيصالات",
+      path: "/accounting/receipts",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: ClipboardList,
+      label: "الخدمات",
+      path: "/accounting/services",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: Users,
+      label: "استعلام المرضى",
+      path: "/accounting/patients",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: UserRound,
+      label: "حساب مريض",
+      path: "/accounting/patient",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+    {
+      icon: Stethoscope,
+      label: "حساب طبيب",
+      path: "/accounting/doctor",
+      roles: ACCOUNTING_NAV_ROLES,
+    },
+  ],
+};
 
 /** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
   { icon: Clock, label: "مرضى اليوم", path: "/today" },
+  accountingNavGroup,
   { icon: Syringe, label: "العمليات", path: "/operations" },
   { icon: Network, label: "مركز المريض", path: "/patient-hub" },
   {

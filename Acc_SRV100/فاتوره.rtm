@@ -1,0 +1,1671 @@
+object ppReport1: TppReport
+  AutoStop = False
+  DataPipeline = daADOQueryDataView1.x
+  PrinterSetup.BinName = 'Default'
+  PrinterSetup.DocumentName = 'Report'
+  PrinterSetup.PaperName = 'A4'
+  PrinterSetup.PrinterName = 'Default'
+  PrinterSetup.SaveDeviceSettings = False
+  PrinterSetup.mmMarginBottom = 6350
+  PrinterSetup.mmMarginLeft = 6350
+  PrinterSetup.mmMarginRight = 6350
+  PrinterSetup.mmMarginTop = 6350
+  PrinterSetup.mmPaperHeight = 297127
+  PrinterSetup.mmPaperWidth = 210079
+  PrinterSetup.PaperSize = 9
+  SaveAsTemplate = True
+  Template.DatabaseSettings.DataPipeline = plItem
+  Template.DatabaseSettings.Name = '117 '#1601#1575#1578#1608#1585#1577' '#1593#1605#1610#1604
+  Template.DatabaseSettings.NameField = 'ItemName'
+  Template.DatabaseSettings.TemplateField = 'Template'
+  Template.FileName = 'D:\C\OP\'#1601#1575#1578#1608#1585#1607'.rtm'
+  Template.Format = ftASCII
+  DeviceType = 'Screen'
+  EmailSettings.ReportFormat = 'PDF'
+  OutlineSettings.CreateNode = True
+  OutlineSettings.CreatePageNodes = True
+  OutlineSettings.Enabled = False
+  OutlineSettings.Visible = False
+  PDFSettings.EmbedFontOptions = []
+  TextSearchSettings.DefaultString = '<FindText>'
+  TextSearchSettings.Enabled = True
+  TextSearchSettings.ShowAll = True
+  TextSearchSettings.SearchFromCurrentPage = True
+  TextSearchSettings.Visible = True
+  Left = 321
+  Top = 174
+  Version = '11.06'
+  mmColumnWidth = 0
+  DataPipelineName = 'x'
+  object ppHeaderBand1: TppHeaderBand
+    mmBottomOffset = 0
+    mmHeight = 65088
+    mmPrintPosition = 0
+    object ppShape3: TppShape
+      UserName = 'Shape3'
+      Brush.Color = clSilver
+      Shape = stRoundRect
+      mmHeight = 6879
+      mmLeft = 8202
+      mmTop = 58208
+      mmWidth = 188648
+      BandType = 0
+    end
+    object ppShape2: TppShape
+      UserName = 'Shape2'
+      Shape = stRoundRect
+      mmHeight = 10848
+      mmLeft = 8731
+      mmTop = 23283
+      mmWidth = 187855
+      BandType = 0
+    end
+    object ppShape1: TppShape
+      UserName = 'Shape1'
+      Shape = stRoundRect
+      mmHeight = 21431
+      mmLeft = 8467
+      mmTop = 34925
+      mmWidth = 188119
+      BandType = 0
+    end
+    object ppLabel1: TppLabel
+      UserName = 'Label1'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1593#1610#1608#1606' '#1575#1604#1588#1585#1608#1602' '#1604#1604#1610#1586#1603' '#1608' '#1578#1589#1581#1610#1581' '#1575#1604#1573#1576#1589#1575#1585
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 16
+      Font.Style = [fsBold, fsUnderline]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 6615
+      mmLeft = 8202
+      mmTop = 0
+      mmWidth = 188384
+      BandType = 0
+    end
+    object ppLabel4: TppLabel
+      UserName = 'Label4'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = ': '#1606#1608#1593' '#1575#1604#1578#1593#1575#1605#1604
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 98954
+      mmTop = 48419
+      mmWidth = 20638
+      BandType = 0
+    end
+    object ppLabel5: TppLabel
+      UserName = 'Label5'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = ': '#1578#1575#1585#1610#1582' '#1575#1604#1575#1610#1589#1575#1604
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 35719
+      mmTop = 37835
+      mmWidth = 21960
+      BandType = 0
+    end
+    object ppLabel6: TppLabel
+      UserName = 'Label6'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = ': '#1575#1604#1575#1587#1605' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 173567
+      mmTop = 37835
+      mmWidth = 12700
+      BandType = 0
+    end
+    object ppLabel8: TppLabel
+      UserName = 'Label8'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = ': '#1575#1604#1605#1583#1601#1608#1593
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 44450
+      mmTop = 48419
+      mmWidth = 13229
+      BandType = 0
+    end
+    object ppDBText2: TppDBText
+      UserName = 'DBText2'
+      HyperlinkColor = clBlue
+      AutoSize = True
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Color = clWindow
+      DataField = 'TRTYN'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5027
+      mmLeft = 83873
+      mmTop = 48419
+      mmWidth = 14023
+      BandType = 0
+    end
+    object ppDBText4: TppDBText
+      UserName = 'DBText4'
+      HyperlinkColor = clBlue
+      AutoSize = True
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Color = clWindow
+      DataField = 'tr_dt'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5027
+      mmLeft = 15346
+      mmTop = 37835
+      mmWidth = 16140
+      BandType = 0
+    end
+    object ppDBText5: TppDBText
+      UserName = 'DBText5'
+      HyperlinkColor = clBlue
+      AutoSize = True
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Color = clWindow
+      DataField = 'nam'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5027
+      mmLeft = 135467
+      mmTop = 37835
+      mmWidth = 36513
+      BandType = 0
+    end
+    object ppDBText9: TppDBText
+      UserName = 'DBText9'
+      HyperlinkColor = clBlue
+      AutoSize = True
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Color = clWindow
+      DataField = 'totl'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5027
+      mmLeft = 35190
+      mmTop = 48419
+      mmWidth = 7144
+      BandType = 0
+    end
+    object ppLabel11: TppLabel
+      UserName = 'Label11'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1601#1575#1578#1600#1600#1600#1600#1600#1608#1585#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Name = 'Arial'
+      Font.Size = 14
+      Font.Style = [fsBold, fsUnderline]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5821
+      mmLeft = 71438
+      mmTop = 26458
+      mmWidth = 61119
+      BandType = 0
+    end
+    object ppLabel12: TppLabel
+      UserName = 'Label12'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1575#1604#1582#1583#1605#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 136525
+      mmTop = 59267
+      mmWidth = 58473
+      BandType = 0
+    end
+    object ppLabel13: TppLabel
+      UserName = 'Label13'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1575#1604#1593#1583#1583
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 121444
+      mmTop = 59267
+      mmWidth = 14552
+      BandType = 0
+    end
+    object ppLabel14: TppLabel
+      UserName = 'Label14'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1575#1604#1587#1593#1585
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 101865
+      mmTop = 59267
+      mmWidth = 19050
+      BandType = 0
+    end
+    object ppLabel15: TppLabel
+      UserName = 'Label15'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1575#1604#1575#1580#1605#1575#1604#1610
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 79640
+      mmTop = 59267
+      mmWidth = 21696
+      BandType = 0
+    end
+    object ppLabel16: TppLabel
+      UserName = 'Label16'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1575#1604#1582#1589#1605
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 59267
+      mmTop = 59267
+      mmWidth = 18785
+      BandType = 0
+    end
+    object ppLabel17: TppLabel
+      UserName = 'Label17'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1605#1575#1610#1582#1589' '#1575#1604#1605#1585#1610#1590
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 35454
+      mmTop = 59267
+      mmWidth = 23019
+      BandType = 0
+    end
+    object ppLabel18: TppLabel
+      UserName = 'Label18'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1605#1575' '#1610#1582#1589' '#1575#1604#1580#1607#1577
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 8996
+      mmTop = 59002
+      mmWidth = 25135
+      BandType = 0
+    end
+    object ppLabel19: TppLabel
+      UserName = 'Label101'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = ': '#1581#1585#1585' '#1576#1608#1575#1587#1591#1577' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5292
+      mmLeft = 164836
+      mmTop = 48419
+      mmWidth = 21431
+      BandType = 0
+    end
+    object ppDBText18: TppDBText
+      UserName = 'DBText18'
+      HyperlinkColor = clBlue
+      AutoSize = True
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Color = clWindow
+      DataField = 'enteredby'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5027
+      mmLeft = 136525
+      mmTop = 48419
+      mmWidth = 26988
+      BandType = 0
+    end
+    object ppLabel2: TppLabel
+      UserName = 'Label2'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1587'. '#1578':62581'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4995
+      mmLeft = 8202
+      mmTop = 6350
+      mmWidth = 57150
+      BandType = 0
+    end
+    object ppLabel3: TppLabel
+      UserName = 'Label3'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1576'. '#1590':187-183-421'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 8202
+      mmTop = 11906
+      mmWidth = 57150
+      BandType = 0
+    end
+    object ppLabel7: TppLabel
+      UserName = 'Label7'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1591#1606#1591#1575' - '#1588' '#1593#1604#1610' '#1576#1610#1603' '#1575#1604#1603#1576#1610#1585' - '#1605#1587#1578#1588#1601#1610' '#1575#1604#1588#1585#1608#1602' '
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taRightJustified
+      Transparent = True
+      mmHeight = 4995
+      mmLeft = 128323
+      mmTop = 6350
+      mmWidth = 68263
+      BandType = 0
+    end
+    object ppLabel9: TppLabel
+      UserName = 'Label9'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1605' . '#1590':00-00-531-00602-5'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 5027
+      mmLeft = 8202
+      mmTop = 17463
+      mmWidth = 57150
+      BandType = 0
+    end
+    object ppLabel10: TppLabel
+      UserName = 'Label10'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1578#1604#1610#1601#1608#1606': 0403288778'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4995
+      mmLeft = 128323
+      mmTop = 11906
+      mmWidth = 68263
+      BandType = 0
+    end
+    object ppLabel21: TppLabel
+      UserName = 'Label102'
+      HyperlinkColor = clBlue
+      AutoSize = False
+      Border.BorderPositions = []
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = False
+      Caption = #1605#1608#1576#1575#1610#1604': 01027357352'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      mmHeight = 4995
+      mmLeft = 128323
+      mmTop = 17463
+      mmWidth = 68263
+      BandType = 0
+    end
+  end
+  object ppDetailBand1: TppDetailBand
+    mmBottomOffset = 0
+    mmHeight = 6085
+    mmPrintPosition = 0
+    object ppDBText10: TppDBText
+      UserName = 'DBText10'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'srv_nm'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 9
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 135467
+      mmTop = 529
+      mmWidth = 44715
+      BandType = 4
+    end
+    object ppDBText11: TppDBText
+      UserName = 'DBText101'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'qty'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 121179
+      mmTop = 529
+      mmWidth = 14288
+      BandType = 4
+    end
+    object ppDBText12: TppDBText
+      UserName = 'DBText12'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'prc'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 101600
+      mmTop = 529
+      mmWidth = 20108
+      BandType = 4
+    end
+    object ppDBText13: TppDBText
+      UserName = 'DBText13'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'tot'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 79904
+      mmTop = 529
+      mmWidth = 22225
+      BandType = 4
+    end
+    object ppDBText14: TppDBText
+      UserName = 'DBText14'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'disc_vl'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 59267
+      mmTop = 529
+      mmWidth = 21167
+      BandType = 4
+    end
+    object ppDBText15: TppDBText
+      UserName = 'DBText15'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'pa_vl'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 35190
+      mmTop = 529
+      mmWidth = 24606
+      BandType = 4
+    end
+    object ppDBText16: TppDBText
+      UserName = 'DBText16'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'ca_vl'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 8731
+      mmTop = 529
+      mmWidth = 26723
+      BandType = 4
+    end
+    object ppDBText17: TppDBText
+      UserName = 'DBText102'
+      HyperlinkColor = clBlue
+      Border.BorderPositions = [bpLeft, bpTop, bpRight, bpBottom]
+      Border.Color = clBlack
+      Border.Style = psSolid
+      Border.Visible = True
+      DataField = 'srv_cd'
+      DataPipeline = daADOQueryDataView1.x
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Name = 'Arial'
+      Font.Size = 12
+      Font.Style = [fsBold]
+      TextAlignment = taCentered
+      Transparent = True
+      DataPipelineName = 'x'
+      mmHeight = 5292
+      mmLeft = 179917
+      mmTop = 529
+      mmWidth = 16669
+      BandType = 4
+    end
+  end
+  object ppFooterBand1: TppFooterBand
+    mmBottomOffset = 0
+    mmHeight = 0
+    mmPrintPosition = 0
+  end
+  object ppGroup1: TppGroup
+    BreakName = 'grp'
+    DataPipeline = daADOQueryDataView1.x
+    KeepTogether = True
+    OutlineSettings.CreateNode = True
+    NewFile = False
+    StartOnOddPage = False
+    UserName = 'Group1'
+    mmNewColumnThreshold = 0
+    mmNewPageThreshold = 0
+    DataPipelineName = 'x'
+    object ppGroupHeaderBand1: TppGroupHeaderBand
+      mmBottomOffset = 0
+      mmHeight = 0
+      mmPrintPosition = 0
+    end
+    object ppGroupFooterBand1: TppGroupFooterBand
+      HideWhenOneDetail = False
+      mmBottomOffset = 0
+      mmHeight = 20373
+      mmPrintPosition = 0
+      object ppLabel20: TppLabel
+        UserName = 'Label19'
+        HyperlinkColor = clBlue
+        AutoSize = False
+        Border.BorderPositions = [bpTop, bpRight, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Caption = #1575#1604#1575#1580#1605#1575#1604#1610' '
+        Color = clSilver
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        mmHeight = 6879
+        mmLeft = 101865
+        mmTop = 794
+        mmWidth = 94721
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc1: TppDBCalc
+        UserName = 'DBCalc1'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'tot'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        DataPipelineName = 'x'
+        mmHeight = 6879
+        mmLeft = 80169
+        mmTop = 794
+        mmWidth = 22225
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc2: TppDBCalc
+        UserName = 'DBCalc2'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'disc_vl'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        DataPipelineName = 'x'
+        mmHeight = 6879
+        mmLeft = 59002
+        mmTop = 794
+        mmWidth = 21696
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc3: TppDBCalc
+        UserName = 'DBCalc3'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpTop, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'pa_vl'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        DataPipelineName = 'x'
+        mmHeight = 6879
+        mmLeft = 35719
+        mmTop = 794
+        mmWidth = 23283
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppDBCalc4: TppDBCalc
+        UserName = 'DBCalc4'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = [bpLeft, bpTop, bpBottom]
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = True
+        Color = clSilver
+        DataField = 'ca_vl'
+        DataPipeline = daADOQueryDataView1.x
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        ResetGroup = ppGroup1
+        TextAlignment = taCentered
+        DataPipelineName = 'x'
+        mmHeight = 6879
+        mmLeft = 8467
+        mmTop = 794
+        mmWidth = 27517
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppVariable1: TppVariable
+        UserName = 'Variable1'
+        HyperlinkColor = clBlue
+        AutoSize = False
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        BlankWhenZero = False
+        CalcOrder = 0
+        Color = clSilver
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        Transparent = True
+        mmHeight = 5027
+        mmLeft = 8731
+        mmTop = 8996
+        mmWidth = 169334
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppLabel22: TppLabel
+        UserName = 'Label22'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        Caption = ': '#1575#1604#1605#1583#1601#1608#1593
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        Transparent = True
+        mmHeight = 5027
+        mmLeft = 179388
+        mmTop = 8731
+        mmWidth = 13229
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppLabel23: TppLabel
+        UserName = 'Label23'
+        HyperlinkColor = clBlue
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        Caption = ': '#1575#1604#1605#1587#1578#1581#1602
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taCentered
+        Transparent = True
+        mmHeight = 4995
+        mmLeft = 178860
+        mmTop = 15081
+        mmWidth = 14817
+        BandType = 5
+        GroupNo = 0
+      end
+      object ppVariable2: TppVariable
+        UserName = 'Variable2'
+        HyperlinkColor = clBlue
+        AutoSize = False
+        Border.BorderPositions = []
+        Border.Color = clBlack
+        Border.Style = psSolid
+        Border.Visible = False
+        BlankWhenZero = False
+        CalcOrder = 1
+        Color = clSilver
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Name = 'Arial'
+        Font.Size = 12
+        Font.Style = [fsBold]
+        TextAlignment = taRightJustified
+        Transparent = True
+        mmHeight = 4995
+        mmLeft = 8731
+        mmTop = 15081
+        mmWidth = 168805
+        BandType = 5
+        GroupNo = 0
+      end
+    end
+  end
+  object daDataModule1: TdaDataModule
+    object daADOQueryDataView1: TdaADOQueryDataView
+      UserName = 'Query_x'
+      Height = 447
+      Left = 10
+      NameColumnWidth = 105
+      SizeColumnWidth = 35
+      SortMode = 0
+      Top = 10
+      TypeColumnWidth = 52
+      Width = 200
+      AutoSearchTabOrder = 0
+      object x: TppChildDBPipeline
+        AutoCreateFields = False
+        UserName = 'x'
+        object ppField1: TppField
+          FieldAlias = 'grp'
+          FieldName = 'grp'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 0
+        end
+        object ppField2: TppField
+          FieldAlias = 'sec_cd'
+          FieldName = 'sec_cd'
+          FieldLength = 4
+          DisplayWidth = 4
+          Position = 1
+        end
+        object ppField3: TppField
+          FieldAlias = 'pat_cd'
+          FieldName = 'pat_cd'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 2
+        end
+        object ppField4: TppField
+          FieldAlias = 'nam'
+          FieldName = 'nam'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 3
+        end
+        object ppField5: TppField
+          FieldAlias = 'tr_no'
+          FieldName = 'tr_no'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 4
+        end
+        object ppField6: TppField
+          FieldAlias = 'tr_dt'
+          FieldName = 'tr_dt'
+          FieldLength = 0
+          DataType = dtDateTime
+          DisplayWidth = 18
+          Position = 5
+        end
+        object ppField7: TppField
+          FieldAlias = 'tr_ty'
+          FieldName = 'tr_ty'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 6
+        end
+        object ppField8: TppField
+          FieldAlias = 'shft'
+          FieldName = 'shft'
+          FieldLength = 0
+          DataType = dtInteger
+          DisplayWidth = 10
+          Position = 7
+        end
+        object ppField9: TppField
+          FieldAlias = 'ca_cd'
+          FieldName = 'ca_cd'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 8
+        end
+        object ppField10: TppField
+          FieldAlias = 'disc_vl'
+          FieldName = 'disc_vl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 9
+        end
+        object ppField11: TppField
+          FieldAlias = 'srv_cd'
+          FieldName = 'srv_cd'
+          FieldLength = 15
+          DisplayWidth = 15
+          Position = 10
+        end
+        object ppField12: TppField
+          FieldAlias = 'srv_by1'
+          FieldName = 'srv_by1'
+          FieldLength = 12
+          DisplayWidth = 12
+          Position = 11
+        end
+        object ppField13: TppField
+          FieldAlias = 'qty'
+          FieldName = 'qty'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 12
+        end
+        object ppField14: TppField
+          FieldAlias = 'prc'
+          FieldName = 'prc'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 13
+        end
+        object ppField15: TppField
+          FieldAlias = 'totl'
+          FieldName = 'totl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 14
+        end
+        object ppField16: TppField
+          FieldAlias = 'tot'
+          FieldName = 'tot'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 15
+        end
+        object ppField17: TppField
+          FieldAlias = 'pa_vl'
+          FieldName = 'pa_vl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 16
+        end
+        object ppField18: TppField
+          FieldAlias = 'ca_vl'
+          FieldName = 'ca_vl'
+          FieldLength = 0
+          DataType = dtDouble
+          DisplayWidth = 10
+          Position = 17
+        end
+        object ppField19: TppField
+          FieldAlias = 'enteredby'
+          FieldName = 'enteredby'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 18
+        end
+        object ppField20: TppField
+          FieldAlias = 'dept_nm'
+          FieldName = 'dept_nm'
+          FieldLength = 50
+          DisplayWidth = 50
+          Position = 19
+        end
+        object ppField21: TppField
+          FieldAlias = 'srv_nm'
+          FieldName = 'srv_nm'
+          FieldLength = 255
+          DisplayWidth = 255
+          Position = 20
+        end
+        object ppField22: TppField
+          FieldAlias = 'ca_nm'
+          FieldName = 'ca_nm'
+          FieldLength = 100
+          DisplayWidth = 100
+          Position = 21
+        end
+        object ppField23: TppField
+          FieldAlias = 'shft_1'
+          FieldName = 'shft_1'
+          FieldLength = 45
+          DisplayWidth = 45
+          Position = 22
+        end
+        object ppField24: TppField
+          FieldAlias = 'TRTYN'
+          FieldName = 'TRTYN'
+          FieldLength = 5
+          DisplayWidth = 5
+          Position = 23
+        end
+      end
+      object daSQL1: TdaSQL
+        GuidCollationType = gcMSAccess
+        DatabaseName = 'DAT'
+        DatabaseType = dtMSAccess
+        DataPipelineName = 'x'
+        EditSQLAsText = True
+        LinkColor = clBlack
+        LinkType = ltParameterizedSQL
+        MaxSQLFieldAliasLength = 0
+        SQLText.Strings = (
+          
+            'select 1grp,pajrnrcvh.sec_cd,pajrnrcvh.pat_cd,pajrnrcvh.nam, paj' +
+            'rnrcvh.tr_no,pajrnrcvh.tr_dt,pajrnrcvh.tr_ty,pajrnrcvh.shft,papa' +
+            't_srv.ca_cd,papat_srv.disc_vl,'
+          
+            'papat_srv.srv_cd,papat_srv.srv_by1,papat_srv.qty,papat_srv.prc,p' +
+            'ajrnrcvh.totl,(papat_srv.qty*papat_srv.prc)as tot,'
+          
+            '(papat_srv.pa_vl-papat_Srv.disc_vl)as pa_vl,(papat_srv.ca_vl-dis' +
+            'c_ca)as ca_vl ,pajrnrcvh.enteredby,'
+          
+            '( select dpt_nm_ar from dept where dpt_no=papat_srv.sec_Cd) dept' +
+            '_nm,'
+          
+            '( select srv_nm_ar from srvcmf where srv_cd= papat_srv.srv_Cd) A' +
+            's srv_nm,'
+          
+            '( select ca_nm_Ar from cmpmf where ca_cd = papat_srv.ca_cd) As c' +
+            'a_nm,'
+          
+            '(select dscr_ar from  appcodes where id=1015 and seq =  pajrnrcv' +
+            'h.shft) as shft,'
+          
+            'CASE pajrnrcvh.TR_TY WHEN 1 THEN '#39#1606#1602#1583#1609#39' WHEN 5 THEN '#39#1570#1580#1604#39' WHEN 6' +
+            ' THEN '#39#1606#1586#1604#1575#1569#39' WHEN 8 THEN '#39#1605#1587#1578#1585#1583#39' END TRTYN'
+          'from papat_srv,pajrnrcvh'
+          'where '
+          'pajrnrcvh.sec_cd = papat_srv.sec_cd'
+          'and pajrnrcvh.tr_no= papat_srv.tr_no'
+          'and pajrnrcvh.tr_ty= papat_srv.tr_ty')
+        SQLType = sqSQL2
+        object daField1: TdaField
+          Alias = 'grp'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'grp'
+          FieldLength = 0
+          FieldName = 'grp'
+          SQLFieldName = 'grp'
+        end
+        object daField2: TdaField
+          Alias = 'sec_cd'
+          DisplayWidth = 4
+          FieldAlias = 'sec_cd'
+          FieldLength = 4
+          FieldName = 'sec_cd'
+          SQLFieldName = 'sec_cd'
+        end
+        object daField3: TdaField
+          Alias = 'pat_cd'
+          DisplayWidth = 12
+          FieldAlias = 'pat_cd'
+          FieldLength = 12
+          FieldName = 'pat_cd'
+          SQLFieldName = 'pat_cd'
+        end
+        object daField4: TdaField
+          Alias = 'nam'
+          DisplayWidth = 100
+          FieldAlias = 'nam'
+          FieldLength = 100
+          FieldName = 'nam'
+          SQLFieldName = 'nam'
+        end
+        object daField5: TdaField
+          Alias = 'tr_no'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'tr_no'
+          FieldLength = 0
+          FieldName = 'tr_no'
+          SQLFieldName = 'tr_no'
+        end
+        object daField6: TdaField
+          Alias = 'tr_dt'
+          DataType = dtDateTime
+          DisplayWidth = 18
+          FieldAlias = 'tr_dt'
+          FieldLength = 0
+          FieldName = 'tr_dt'
+          SQLFieldName = 'tr_dt'
+        end
+        object daField7: TdaField
+          Alias = 'tr_ty'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'tr_ty'
+          FieldLength = 0
+          FieldName = 'tr_ty'
+          SQLFieldName = 'tr_ty'
+        end
+        object daField8: TdaField
+          Alias = 'shft'
+          DataType = dtInteger
+          DisplayWidth = 10
+          FieldAlias = 'shft'
+          FieldLength = 0
+          FieldName = 'shft'
+          SQLFieldName = 'shft'
+        end
+        object daField9: TdaField
+          Alias = 'ca_cd'
+          DisplayWidth = 12
+          FieldAlias = 'ca_cd'
+          FieldLength = 12
+          FieldName = 'ca_cd'
+          SQLFieldName = 'ca_cd'
+        end
+        object daField10: TdaField
+          Alias = 'disc_vl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'disc_vl'
+          FieldLength = 0
+          FieldName = 'disc_vl'
+          SQLFieldName = 'disc_vl'
+        end
+        object daField11: TdaField
+          Alias = 'srv_cd'
+          DisplayWidth = 15
+          FieldAlias = 'srv_cd'
+          FieldLength = 15
+          FieldName = 'srv_cd'
+          SQLFieldName = 'srv_cd'
+        end
+        object daField12: TdaField
+          Alias = 'srv_by1'
+          DisplayWidth = 12
+          FieldAlias = 'srv_by1'
+          FieldLength = 12
+          FieldName = 'srv_by1'
+          SQLFieldName = 'srv_by1'
+        end
+        object daField13: TdaField
+          Alias = 'qty'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'qty'
+          FieldLength = 0
+          FieldName = 'qty'
+          SQLFieldName = 'qty'
+        end
+        object daField14: TdaField
+          Alias = 'prc'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'prc'
+          FieldLength = 0
+          FieldName = 'prc'
+          SQLFieldName = 'prc'
+        end
+        object daField15: TdaField
+          Alias = 'totl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'totl'
+          FieldLength = 0
+          FieldName = 'totl'
+          SQLFieldName = 'totl'
+        end
+        object daField16: TdaField
+          Alias = 'tot'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'tot'
+          FieldLength = 0
+          FieldName = 'tot'
+          SQLFieldName = 'tot'
+        end
+        object daField17: TdaField
+          Alias = 'pa_vl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'pa_vl'
+          FieldLength = 0
+          FieldName = 'pa_vl'
+          SQLFieldName = 'pa_vl'
+        end
+        object daField18: TdaField
+          Alias = 'ca_vl'
+          DataType = dtDouble
+          DisplayWidth = 10
+          FieldAlias = 'ca_vl'
+          FieldLength = 0
+          FieldName = 'ca_vl'
+          SQLFieldName = 'ca_vl'
+        end
+        object daField19: TdaField
+          Alias = 'enteredby'
+          DisplayWidth = 50
+          FieldAlias = 'enteredby'
+          FieldLength = 50
+          FieldName = 'enteredby'
+          SQLFieldName = 'enteredby'
+        end
+        object daField20: TdaField
+          Alias = 'dept_nm'
+          DisplayWidth = 50
+          FieldAlias = 'dept_nm'
+          FieldLength = 50
+          FieldName = 'dept_nm'
+          SQLFieldName = 'dept_nm'
+        end
+        object daField21: TdaField
+          Alias = 'srv_nm'
+          DisplayWidth = 255
+          FieldAlias = 'srv_nm'
+          FieldLength = 255
+          FieldName = 'srv_nm'
+          SQLFieldName = 'srv_nm'
+        end
+        object daField22: TdaField
+          Alias = 'ca_nm'
+          DisplayWidth = 100
+          FieldAlias = 'ca_nm'
+          FieldLength = 100
+          FieldName = 'ca_nm'
+          SQLFieldName = 'ca_nm'
+        end
+        object daField23: TdaField
+          Alias = 'shft_1'
+          DisplayWidth = 45
+          FieldAlias = 'shft_1'
+          FieldLength = 45
+          FieldName = 'shft_1'
+          SQLFieldName = 'shft_1'
+        end
+        object daField24: TdaField
+          Alias = 'TRTYN'
+          DisplayWidth = 5
+          FieldAlias = 'TRTYN'
+          FieldLength = 5
+          FieldName = 'TRTYN'
+          SQLFieldName = 'TRTYN'
+        end
+      end
+    end
+  end
+  object raCodeModule1: TraCodeModule
+    ProgramStream = {
+      01060A54726150726F6772616D094368696C645479706502150B50726F677261
+      6D4E616D65060B4E756D5F546F5F537472310B50726F6772616D54797065070B
+      747450726F63656475726506536F7572636514BF04000070726F636564757265
+      204E756D5F546F5F53747231287661722072763A2076617269616E743B207661
+      7220616363756D3A20737472696E67293B0D0A436F6E73740D0A202041484144
+      203D2027D988D8A7D8ADD980D980D8AFD8A7D8ABD986D980D8A7D986D8ABD984
+      D8A7D8ABD980D8A9D8A3D8B1D8A8D8B9D980D8A9D8AED985D8B3D980D980D8A9
+      D8B3D980D8AAD980D980D8A9D8B3D8A8D8B9D980D980D8A9D8ABD985D8A7D986
+      D98AD8A9D8AAD8B3D8B9D980D980D8A9D8B9D8B4D980D980D8B1D8A9D8A7D8AD
+      D980D980D8AFD989D8A7D8ABD986D980D980D98920273B0D0A20415348415241
+      54203D2027D8B9D8B4D980D8B1D988D986D8ABD984D8A7D8ABD988D986D8A3D8
+      B1D8A8D8B9D988D986D8AED985D8B3D980D988D986D8B3D980D8AAD980D988D9
+      86D8B3D8A8D8B9D980D988D986D8ABD985D8A7D986D988D986D8AAD8B3D8B9D9
+      80D988D98620273B0D0A20204D45414154203D2027D985D980D8A7D8A6D980D9
+      80D980D8A9D985D8A7D8A6D8AAD980D980D8A7D986D8ABD984D8A7D8ABD985D8
+      A7D8A6D8A9D8A3D8B1D8A8D8B9D985D8A7D8A6D8A9D8AED985D8B3D985D8A7D8
+      A6D980D8A9D8B3D980D8AAD985D8A7D8A6D980D8A9D8B3D8A8D8B9D985D8A7D8
+      A6D980D8A9D8ABD985D8A7D986D985D8A7D8A6D8A9D8AAD8B3D8B9D985D8A7D8
+      A6D980D8A920273B0D0A7661720D0A2020622C20633A20496E74656765723B0D
+      0A0D0A626567696E0D0A0D0A20206966207276203E3D20313030207468656E0D
+      0A2020626567696E0D0A2020202062203A3D207472756E63287276202F203130
+      30293B0D0A2020202069662062203C3E2030207468656E0D0A20202020202061
+      6363756D203A3D20616363756D202B20636F7079286D656161742C202862202D
+      203129202A2038202B20312C2038293B0D0A2020656E643B0D0A202062203A3D
+      207276202D207472756E63287276202F2031303029202A203130303B0D0A2020
+      6966202862203C3E20302920616E6420287276203E20393929207468656E0D0A
+      20202020616363756D203A3D20616363756D202B202720D988273B0D0A202063
+      203A3D2062202D207472756E632862202F20313029202A2031303B0D0A202069
+      66202862203C2031332920616E64202862203C3E203029207468656E0D0A2020
+      2020616363756D203A3D20616363756D202B20636F707928616861642C202862
+      202D203129202A2036202B20312C2036293B0D0A20206966202862203E203132
+      2920616E64202863203C3E203029207468656E0D0A20202020616363756D203A
+      3D20616363756D202B20636F707928616861642C202863202D203129202A2036
+      202B20312C2036293B0D0A20206966202862203E2031302920616E6420286220
+      3C20323029207468656E0D0A20202020616363756D203A3D20616363756D202B
+      202720D8B9D8B4D8B1273B0D0A0D0A202069662062203E203139207468656E0D
+      0A2020626567696E0D0A2020202069662063203C3E2030207468656E0D0A2020
+      20202020616363756D203A3D20616363756D202B202720D988273B0D0A202020
+      20616363756D203A3D20616363756D202B20636F707928415348415241542C20
+      287472756E632862202F20313029202D203229202A2036202B20312C2036293B
+      0D0A2020656E643B0D0A656E643B0D0A0D0A0D0A0D0A0001060A54726150726F
+      6772616D094368696C645479706502150E497346756E6374696F6E5479706509
+      0B50726F6772616D4E616D65060A4E756D5F546F5F5374720B50726F6772616D
+      54797065070A747446756E6374696F6E06536F7572636514FA0C000066756E63
+      74696F6E204E756D5F546F5F53747228505F4E756D313A2056617269616E7429
+      3A20737472696E673B0D0A7661720D0A2020505F6E756D3A20446F75626C653B
+      0D0A2020616363756D3A20737472696E673B0D0A202072763A2076617269616E
+      743B0D0A626567696E0D0A2020505F6E756D203A3D20505F4E756D313B0D0A20
+      20616363756D203A3D2027273B0D0A20207276203A3D207472756E6328505F6E
+      756D202F2031303030303030293B0D0A20206966207276203E2032207468656E
+      0D0A202020204E756D5F546F5F537472312872762C20616363756D293B0D0A20
+      69662072763C3D30207468656E0D0A202072763A3D72760D0A20656C73652069
+      662072763D31207468656E0D0A20202020616363756D203A3D20616363756D20
+      2B202720D985D984D98AD988D986270D0A20656C73652069662072763D322074
+      68656E0D0A202020616363756D203A3D20616363756D202B202720D985D984D9
+      8AD988D986D8A7D986270D0A20656C736520696620202872763E3D332920616E
+      64202872763C3D313029207468656E0D0A20202020616363756D203A3D206163
+      63756D202B202720D985D984D8A7D98AD98AD986270D0A20656C736520696620
+      202872763E3D31312920616E64202872763C3D39393929207468656E0D0A2020
+      2020616363756D203A3D20616363756D202B202720D985D984D98AD988D98627
+      203B0D0A20207276203A3D20505F6E756D202D207472756E6328505F6E756D20
+      2F203130303030303029202A20313030303030303B0D0A20207276203A3D2074
+      72756E63287276202F2031303030293B0D0A202069662028505F6E756D203C3E
+      20285472756E6328505F6E756D202F203130303030303029202A203130303030
+      3030292920616E642028505F6E756D203E203130303030303029207468656E0D
+      0A20202020616363756D203A3D20616363756D202B202720D988273B0D0A2020
+      6966207276203E2032207468656E0D0A202020204E756D5F546F5F5374723128
+      72762C20616363756D293B0D0A202069662072763C3D30207468656E0D0A2020
+      202072763A3D72760D0A2020656C73652069662072763D31207468656E0D0A20
+      20202020616363756D203A3D20616363756D202B202720D8A7D984D981270D0A
+      2020656C73652069662072763D32207468656E0D0A20202020616363756D203A
+      3D20616363756D202B202720D8A3D984D981D8A7D986270D0A20656C73652069
+      6620202872763E3D332920616E64202872763C3D313029207468656E0D0A2020
+      20616363756D203A3D20616363756D202B202720D8A2D984D8A7D981270D0A20
+      656C736520696620202872763E3D31312920616E64202872763C3D3939392920
+      7468656E0D0A20202020616363756D203A3D20616363756D202B202720D8A3D9
+      84D981D8A720273B0D0A0D0A20207276203A3D20505F6E756D202D207472756E
+      6328505F6E756D202F203130303029202A20313030303B0D0A20207276203A3D
+      207472756E63287276202B20302E30303031293B0D0A202069662028505F6E75
+      6D203C3E20285472756E6328505F6E756D202F203130303029202A2031303030
+      292920616E642028505F6E756D203E20313030302920616E6420287276203C3E
+      203029207468656E0D0A20202020616363756D203A3D20616363756D202B2027
+      20D98820273B0D0A2020696620287276203E3D20322920616E642028505F6E75
+      6D203C3E203229207468656E0D0A202020204E756D5F546F5F53747231287276
+      2C20616363756D293B0D0A20202020696620505F6E756D203E20302E39393920
+      7468656E0D0A20202020626567696E0D0A20202020202069662028505F6E756D
+      203C2031312920616E6420287276203E203229207468656E0D0A202020202020
+      2020616363756D203A3D20616363756D202B20272027202B2027D8ACD986D98A
+      D987270D0A202020202020656C736520696620505F6E756D203D203220746865
+      6E0D0A2020202020202020616363756D203A3D20616363756D202B2027202720
+      2B2027D8ACD986D98AD987D8A7D986270D0A202020202020656C73650D0A2020
+      202020202020616363756D203A3D20616363756D202B20272027202B2027D8AC
+      D986D98AD987D8A7273B0D0A20202020656E643B0D0A20207276203A3D20505F
+      6E756D202D205472756E6328505F6E756D202B20302E3030303129202B20302E
+      303030313B0D0A20207276203A3D205472756E63287276202A2031303030293B
+      0D0A20207B72656D6F7665206E657874206C696E6520666F72206B7577616974
+      7D0D0A20207276203A3D207276202F2031303B0D0A0D0A202069662028727620
+      3E3D20312920616E642028505F6E756D203E20302E393929207468656E0D0A20
+      202020616363756D203A3D20616363756D202B202720D988273B0D0A0D0A2020
+      6966207276203E20322E39207468656E0D0A202020204E756D5F546F5F537472
+      312872762C20616363756D293B0D0A202020206966207276203E3D2031207468
+      656E0D0A20202020626567696E0D0A202020202020696620287276203E20312E
+      39392920616E6420287276203C203329207468656E0D0A202020202020202061
+      6363756D203A3D20616363756D202B20272027202B2027D982D8B1D8B4270D0A
+      202020202020656C736520696620287276203C2031312920616E642028727620
+      3E20322E3929207468656E0D0A2020202020202020616363756D203A3D206163
+      63756D202B20272027202B2027D982D8B1D8B4270D0A202020202020656C7365
+      0D0A2020202020202020616363756D203A3D20616363756D202B20272027202B
+      2027D982D8B1D8B4273B0D0A202020656E643B0D0A2020726573756C74203A3D
+      2027D981D982D8B72027202B20616363756D3B0D0A656E643B0D0A70726F6365
+      64757265204E756D5F546F5F53747231287661722072763A2076617269616E74
+      3B2076617220616363756D3A20737472696E67293B0D0A436F6E73740D0A2020
+      41484144203D2027D988D8A7D8ADD980D980D8AFD8A7D8ABD986D980D8A7D986
+      D8ABD984D8A7D8ABD980D8A9D8A3D8B1D8A8D8B9D980D8A9D8AED985D8B3D980
+      D980D8A9D8B3D980D8AAD980D980D8A9D8B3D8A8D8B9D980D980D8A9D8ABD985
+      D8A7D986D98AD8A9D8AAD8B3D8B9D980D980D8A9D8B9D8B4D980D980D8B1D8A9
+      D8A7D8ADD980D980D8AFD989D8A7D8ABD986D980D980D98920273B0D0A204153
+      4841524154203D2027D8B9D8B4D980D8B1D988D986D8ABD984D8A7D8ABD988D9
+      86D8A3D8B1D8A8D8B9D988D986D8AED985D8B3D980D988D986D8B3D980D8AAD9
+      80D988D986D8B3D8A8D8B9D980D988D986D8ABD985D8A7D986D988D986D8AAD8
+      B3D8B9D980D988D98620273B0D0A20204D45414154203D2027D985D980D8A7D8
+      A6D980D980D980D8A9D985D8A7D8A6D8AAD980D980D8A7D986D8ABD984D8A7D8
+      ABD985D8A7D8A6D8A9D8A3D8B1D8A8D8B9D985D8A7D8A6D8A9D8AED985D8B3D9
+      85D8A7D8A6D980D8A9D8B3D980D8AAD985D8A7D8A6D980D8A9D8B3D8A8D8B9D9
+      85D8A7D8A6D980D8A9D8ABD985D8A7D986D985D8A7D8A6D8A9D8AAD8B3D8B9D9
+      85D8A7D8A6D980D8A920273B0D0A7661720D0A2020622C20633A20496E746567
+      65723B0D0A0D0A626567696E0D0A0D0A20206966207276203E3D203130302074
+      68656E0D0A2020626567696E0D0A2020202062203A3D207472756E6328727620
+      2F20313030293B0D0A2020202069662062203C3E2030207468656E0D0A202020
+      202020616363756D203A3D20616363756D202B20636F7079286D656161742C20
+      2862202D203129202A2038202B20312C2038293B0D0A2020656E643B0D0A2020
+      62203A3D207276202D207472756E63287276202F2031303029202A203130303B
+      0D0A20206966202862203C3E20302920616E6420287276203E20393929207468
+      656E0D0A20202020616363756D203A3D20616363756D202B202720D988273B0D
+      0A202063203A3D2062202D207472756E632862202F20313029202A2031303B0D
+      0A20206966202862203C2031332920616E64202862203C3E203029207468656E
+      0D0A20202020616363756D203A3D20616363756D202B20636F70792861686164
+      2C202862202D203129202A2036202B20312C2036293B0D0A2020696620286220
+      3E2031322920616E64202863203C3E203029207468656E0D0A20202020616363
+      756D203A3D20616363756D202B20636F707928616861642C202863202D203129
+      202A2036202B20312C2036293B0D0A20206966202862203E2031302920616E64
+      202862203C20323029207468656E0D0A20202020616363756D203A3D20616363
+      756D202B202720D8B9D8B4D8B1273B0D0A0D0A202069662062203E2031392074
+      68656E0D0A2020626567696E0D0A2020202069662063203C3E2030207468656E
+      0D0A202020202020616363756D203A3D20616363756D202B202720D988273B0D
+      0A20202020616363756D203A3D20616363756D202B20636F7079284153484152
+      41542C20287472756E632862202F20313029202D203229202A2036202B20312C
+      2036293B0D0A2020656E643B0D0A656E643B0D0A0D0A0001060F547261457665
+      6E7448616E646C65720B50726F6772616D4E616D65060F5661726961626C6531
+      4F6E43616C630B50726F6772616D54797065070B747450726F63656475726506
+      536F75726365066A70726F636564757265205661726961626C65314F6E43616C
+      63287661722056616C75653A2056617269616E74293B0D0A626567696E0D0A0D
+      0A202056616C7565203A3D2020204E756D5F546F5F53747228444243616C6333
+      2E56616C7565293B0D0A0D0A656E643B0D0A0D436F6D706F6E656E744E616D65
+      06095661726961626C6531094576656E744E616D6506064F6E43616C63074576
+      656E74494402210001060F5472614576656E7448616E646C65720B50726F6772
+      616D4E616D65060F5661726961626C65324F6E43616C630B50726F6772616D54
+      797065070B747450726F63656475726506536F75726365066970726F63656475
+      7265205661726961626C65324F6E43616C63287661722056616C75653A205661
+      7269616E74293B0D0A626567696E0D0A0D0A202056616C7565203A3D20204E75
+      6D5F546F5F53747228444243616C63342E56616C7565293B0D0A0D0A656E643B
+      0D0A0D436F6D706F6E656E744E616D6506095661726961626C6532094576656E
+      744E616D6506064F6E43616C63074576656E74494402210000}
+  end
+  object ppParameterList1: TppParameterList
+  end
+end

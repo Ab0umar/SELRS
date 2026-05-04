@@ -1799,6 +1799,7 @@ export const medicalRouter = router({
 
         return { success: true, patientId: created?.id ?? 0, patientCode: code, receiptNo: pushResult?.trNo ?? null };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create patient: ${error}`);
       }
     }),
@@ -2261,6 +2262,7 @@ export const medicalRouter = router({
 
         return { id: created?.id ?? 0, patientCode: code, fullName: input.fullName, receiptNo: pushResult?.trNo ?? null };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create patient: ${error}`);
       }
     }),

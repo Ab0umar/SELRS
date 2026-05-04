@@ -1,0 +1,140 @@
+آه فهمتك. ده Prompt لـ Codex عشان **يفتش في البرنامجين ويطلع تقرير فقط** بدون تعديل:
+
+```txt
+You are inside my project. I want you to inspect the current medical web app and the current accounting/SQL integration before making any changes.
+
+DO NOT modify any files.
+DO NOT refactor.
+DO NOT write code yet.
+Only inspect and produce a clear report.
+
+Context:
+- The current web app already exists and works.
+- It is currently medical-only.
+- Medical data uses MySQL.
+- Accounting data uses SQL Server.
+- I want to add accounting screens/modules later, but first I need you to understand the current system.
+- SQL Server patient code is PAT_CD.
+- MySQL patient.id is internal only.
+- Later, PAT_CD should be stored in MySQL as patientCode or mssqlPatientCode.
+- Accounting must stay in SQL Server.
+- Medical must stay in MySQL.
+
+Your inspection tasks:
+
+1. Project structure
+- Show the main folder structure.
+- Identify frontend folder.
+- Identify backend/server folder.
+- Identify routes/pages structure.
+- Identify database folders.
+- Identify config/env files.
+
+2. Medical app inspection
+- Find patient-related files.
+- Find patient model/schema/table definition.
+- Find create patient logic.
+- Find patient routes/API endpoints.
+- Find visit/examination/medical record logic.
+- Identify whether patient.id is auto-increment, UUID, or something else.
+
+3. MySQL inspection
+- Find ORM or DB library used.
+- Find MySQL connection setup.
+- Find schema/migrations if present.
+- Find patient table fields.
+- Check whether there is already a field suitable for PAT_CD, such as:
+  - patientCode
+  - mssqlPatientCode
+  - externalPatientCode
+  - externalId
+  - code
+
+4. SQL Server / accounting inspection
+- Find any existing MSSQL files.
+- Find mssqlPatients.ts or similar.
+- Find SQL Server connection code.
+- Find tables or queries related to:
+  - PAT_CD
+  - PAJRNRCVH
+  - PAPAT_SRV
+  - srv100
+  - doctorCode
+  - serviceCode
+  - SEC_CD
+- Identify what the current MSSQL integration does.
+- Identify which parts are reusable.
+
+5. Also inspect the accounting program folder:
+
+Accounting program name: OP
+Path: D:\OP
+
+Tasks:
+- Inspect D:\OP without modifying anything.
+- Identify whether it contains:
+  - config files
+  - database connection settings
+  - reports
+  - SQL scripts
+  - executable files
+  - logs
+  - export files
+- Search for references to:
+  - SQL Server
+  - PAT_CD
+  - PAJRNRCVH
+  - PAPAT_SRV
+  - SEC_CD
+  - srv100
+  - patient
+  - receipt
+  - service
+  - doctor
+
+Important:
+- Do NOT edit anything inside D:\OP.
+- Do NOT copy passwords or expose secrets.
+- If connection strings are found, redact passwords.
+- Output exact file paths and what each relevant file seems to do.
+- If D:\OP is only compiled EXE files and cannot be inspected, say that clearly.
+5. Existing routes/API
+- List current backend routes.
+- List current frontend pages.
+- Identify where a new accounting module can be added safely.
+
+7. Integration risk
+- Identify files that must NOT be touched.
+- Identify fragile areas.
+- Identify places where medical functionality may break if modified.
+- Identify whether adding SQL Server read-only APIs can be done independently.
+
+8. Recommended architecture based on actual project
+- Suggest exact folder names for:
+  - MSSQL core connection
+  - Accounting services
+  - Accounting routes
+  - Patient orchestration
+  - Frontend accounting pages
+
+9. Output required
+Produce a report with these sections:
+
+A. Project Summary
+B. Current Medical System
+C. Current MySQL Patient Structure
+D. Current SQL Server / MSSQL Integration
+E. Existing Patient Creation Flow
+F. Where to Add Accounting Safely
+G. Files Not To Touch
+H. Reusable Files/Functions
+I. Missing Information
+J. Recommended Next Step
+
+Important:
+- Do not guess. If something is not found, write "Not found".
+- Mention exact file paths.
+- Mention exact function names if found.
+- Mention exact table/field names if found.
+- Do not make changes.
+```
