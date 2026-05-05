@@ -35,6 +35,9 @@ import {
   sheetEntries,
   operationLists,
   operationListItems,
+  operationBookings,
+  OperationBooking,
+  InsertOperationBooking,
   diseases,
   userPageStates,
   patientPageStates,
@@ -4486,6 +4489,62 @@ export async function getOperationListsByDate(dateString: string) {
     ...list,
     items: byList.get(list.id) ?? [],
   }));
+}
+
+export async function getOperationBookingsByDateRange(
+  fromDate: string,
+  toDate: string,
+): Promise<OperationBooking[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const from = normalizeListDate(fromDate);
+  const to = normalizeListDate(toDate);
+  if (!from || !to) return [];
+  return await db
+    .select()
+    .from(operationBookings)
+    .where(and(gte(operationBookings.bookingDate, from as any), lte(operationBookings.bookingDate, to as any)))
+    .orderBy(operationBookings.bookingDate, operationBookings.bookingTime);
+}
+
+export async function createOperationBooking(data: InsertOperationBooking): Promise<OperationBooking> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const bookingDate = normalizeListDate(data.bookingDate as any);
+  if (!bookingDate) throw new Error("Invalid booking date");
+  const result: any = await db.insert(operationBookings).values({
+    ...data,
+    bookingDate: bookingDate as any,
+  });
+  const insertId = Number(result?.insertId ?? result?.[0]?.insertId ?? 0);
+  const rows = await db
+    .select()
+    .from(operationBookings)
+    .where(eq(operationBookings.id, insertId))
+    .limit(1);
+  if (!rows[0]) throw new Error("Failed to create operation booking");
+  return rows[0];
+}
+
+export async function updateOperationBooking(
+  id: number,
+  data: Partial<InsertOperationBooking>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updates: Partial<InsertOperationBooking> = { ...data };
+  if (updates.bookingDate != null) {
+    const bookingDate = normalizeListDate(updates.bookingDate as any);
+    if (!bookingDate) throw new Error("Invalid booking date");
+    updates.bookingDate = bookingDate as any;
+  }
+  await db.update(operationBookings).set(updates).where(eq(operationBookings.id, id));
+}
+
+export async function deleteOperationBooking(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(operationBookings).where(eq(operationBookings.id, id));
 }
 
 export async function getAutoOperationListsByDate(dateString: string) {

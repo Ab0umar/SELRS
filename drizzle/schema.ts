@@ -710,6 +710,43 @@ export const operationListItems = mysqlTable("operationListItems", {
 export type OperationListItem = typeof operationListItems.$inferSelect;
 export type InsertOperationListItem = typeof operationListItems.$inferInsert;
 
+export const operationBookings = mysqlTable(
+  "operationBookings",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    bookingDate: date("bookingDate").notNull(),
+    weekdayLabel: varchar("weekdayLabel", { length: 80 }),
+    bookingTime: varchar("bookingTime", { length: 20 }).notNull(),
+    doctorName: varchar("doctorName", { length: 255 }).notNull(),
+    operationType: varchar("operationType", { length: 100 }).notNull(),
+    casesCount: int("casesCount").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [index("idx_operation_booking_date").on(t.bookingDate)],
+);
+
+export type OperationBooking = typeof operationBookings.$inferSelect;
+export type InsertOperationBooking = typeof operationBookings.$inferInsert;
+
+export const services = mysqlTable("services", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 255 }),
+  serviceType: varchar("serviceType", { length: 64 }).notNull(),
+  srvTyp: varchar("srvTyp", { length: 4 }),
+  defaultSheet: varchar("defaultSheet", { length: 64 }),
+  locationType: varchar("locationType", { length: 32 }).default("center"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Service = typeof services.$inferSelect;
+export type InsertService = typeof services.$inferInsert;
+
 /**
  * Followup Sheets table - أوراق المتابعة
  * Stores each group of 4 followup tables as a separate sheet with version number

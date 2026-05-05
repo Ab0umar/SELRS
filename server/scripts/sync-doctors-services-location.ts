@@ -4,6 +4,7 @@
  */
 import { config } from "dotenv";
 import { eq, sql } from "drizzle-orm";
+import { pathToFileURL } from "node:url";
 import { getDb, getSystemSetting, updateSystemSettings } from "../db";
 
 // Load environment variables
@@ -27,6 +28,18 @@ interface ServiceEntry {
   srvTyp?: string; // "1" = center, "2" = external
   defaultSheet?: string;
   isActive?: boolean;
+}
+
+export function mapDoctorDirectoryRows(
+  rows: Array<{ code: string; name: string; [key: string]: unknown }>
+): Array<{ code: string; name: string }> {
+  return rows.map((r) => ({ ...r, name: r.name.trim() }));
+}
+
+export function mapServiceDirectoryRows(
+  rows: Array<{ code: string; name: string; price: number; [key: string]: unknown }>
+): Array<{ code: string; name: string; price: number }> {
+  return rows.map((r) => ({ ...r, name: r.name.trim() }));
 }
 
 async function syncDoctorsAndServices() {
@@ -189,6 +202,8 @@ async function syncDoctorsAndServices() {
 }
 
 // Run if executed directly
-syncDoctorsAndServices().then(() => process.exit(0)).catch(() => process.exit(1));
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  syncDoctorsAndServices().then(() => process.exit(0)).catch(() => process.exit(1));
+}
 
 export { syncDoctorsAndServices };

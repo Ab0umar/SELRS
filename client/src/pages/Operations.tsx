@@ -1,7 +1,9 @@
-import { Syringe, Trash2 } from "lucide-react";
+import { CalendarPlus, Syringe, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
+import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
 import { OperationsTabs } from "@/components/operations/OperationsTabs";
 import { OperationsTable } from "@/components/operations/OperationsTable";
 import { OperationTotals } from "@/components/operations/OperationTotals";
@@ -15,15 +17,31 @@ import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
 export default function Operations() {
   const operations = useOperations();
   const actions = useOperationsActions(operations);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   if (!operations.isAuthenticated) return null;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] print:max-w-none" dir="rtl">
+      <OperationsBookingQuickDialog
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        onSaved={() => {
+          void operations.historyQuery.refetch();
+          void operations.listQuery.refetch();
+        }}
+        initialDate={String(operations.listDate)}
+      />
       <PageHeader
         title="العمليات"
         subtitle="قوائم العمليات والحسابات والسجل المحفوظ"
         icon={<Syringe className="h-5 w-5" />}
+        actions={
+          <Button type="button" variant="outline" onClick={() => setBookingOpen(true)}>
+            <CalendarPlus className="ml-2 h-4 w-4" />
+            ةيلمع زجح
+          </Button>
+        }
       />
 
       <main className="mt-4 w-full space-y-4 print:p-0">

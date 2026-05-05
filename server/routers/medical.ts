@@ -5035,6 +5035,61 @@ export const medicalRouter = router({
       return { success: true };
     }),
 
+  getOperationBookings: protectedProcedure
+    .input(z.object({
+      fromDate: z.string().optional(),
+      toDate: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const today = new Date().toISOString().split("T")[0];
+      return await db.getOperationBookingsByDateRange(input.fromDate ?? today, input.toDate ?? input.fromDate ?? today);
+    }),
+
+  createOperationBooking: protectedProcedure
+    .input(z.object({
+      bookingDate: z.string(),
+      bookingTime: z.string(),
+      doctorName: z.string(),
+      operationType: z.string(),
+      casesCount: z.number().int().min(1),
+      weekdayLabel: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const booking = await db.createOperationBooking(input as any);
+      await db.logAuditEvent(ctx.user.id, "CREATE_OPERATION_BOOKING", "operationBooking", booking.id, {
+        bookingDate: input.bookingDate,
+        doctorName: input.doctorName,
+      });
+      return { success: true, id: booking.id };
+    }),
+
+  updateOperationBooking: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      bookingDate: z.string().optional(),
+      bookingTime: z.string().optional(),
+      doctorName: z.string().optional(),
+      operationType: z.string().optional(),
+      casesCount: z.number().int().min(1).optional(),
+      weekdayLabel: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...updates } = input;
+      await db.updateOperationBooking(id, updates as any);
+      await db.logAuditEvent(ctx.user.id, "UPDATE_OPERATION_BOOKING", "operationBooking", id, {
+        updates: Object.keys(updates),
+      });
+      return { success: true };
+    }),
+
+  deleteOperationBooking: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      await db.deleteOperationBooking(input.id);
+      await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_BOOKING", "operationBooking", input.id, {});
+      return { success: true };
+    }),
+
   // ============ PAGE STATE (USER/PATIENT) ============
 
   getUserPageState: protectedProcedure
