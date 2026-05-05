@@ -43,7 +43,7 @@ export default function LasikServices() {
   );
 
   const servicesQuery = trpc.accounting.lasikServices.useQuery(
-    { fromDate: filters.fromDate, toDate: filters.toDate },
+    { fromDate: filters.fromDate, toDate: filters.toDate, serviceCode: filters.serviceCode },
     { refetchOnWindowFocus: false }
   );
 
