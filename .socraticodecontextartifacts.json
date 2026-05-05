@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "name": "mssql-integration-core",
+      "path": "./server/integrations/mssqlPatients.ts",
+      "description": "Core logic for MSSQL connection pooling and patient data synchronization."
+    },
+    {
+      "name": "medical-core-logic",
+      "path": "./server/routers/medical.ts",
+      "description": "Main tRPC router for all medical operations, examinations, and records (MySQL-based)."
+    },
+    {
+      "name": "mssql-accounting-queries",
+      "path": "./server/services/accounting/sqlBuilders.ts",
+      "description": "Parameterized SQL fragments used for all accounting reports."
+    },
+    {
+      "name": "legacy-accounting-logic",
+      "path": "./Acc_SRV100",
+      "description": "Legacy SQL scripts (.txt) and report templates (.rtm) from the original system."
+    },
+    {
+      "name": "database-schema-local",
+      "path": "./drizzle",
+      "description": "Drizzle migrations defining the local MySQL medical database schema."
+    },
+    {
+      "name": "app-routes-frontend",
+      "path": "./client/src/App.tsx",
+      "description": "Main navigation map for the React frontend."
+    },
+    {
+      "name": "app-routes-backend",
+      "path": "./server/routers",
+      "description": "tRPC API endpoint definitions."
+    }
+  ]
+}
