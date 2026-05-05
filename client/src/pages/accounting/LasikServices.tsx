@@ -4,14 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AccountingShell from "./AccountingShell";
 import reportStyles from "./AccountingOpReport.module.css";
 import { formatCountAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
 
 const DEFAULT_SECTION_CODE = 15;
 
-function defaultDateRange() {
+type LasikServicesFilters = {
+  fromDate: string;
+  toDate: string;
+  serviceCode?: string;
+};
+
+function defaultDateRange(): LasikServicesFilters {
   const today = new Date();
   return {
     fromDate: today.toISOString().slice(0, 10),
@@ -37,7 +43,7 @@ export default function LasikServices() {
   );
 
   const servicesQuery = trpc.accounting.lasikServices.useQuery(
-    { fromDate: filters.fromDate, toDate: filters.toDate },
+    { fromDate: filters.fromDate, toDate: filters.toDate, serviceCode: filters.serviceCode },
     { refetchOnWindowFocus: false }
   );
 
