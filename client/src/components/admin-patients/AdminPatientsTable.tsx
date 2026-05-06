@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, memo, useMemo } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -91,7 +91,27 @@ const STATUS_LABEL_AR: Record<PatientStatus, string> = {
   archived: "أرشيف",
 };
 
-export function AdminPatientsTable({
+const SERVICE_TYPE_SELECT_CONTENT = (
+  <>
+    <SelectItem value="consultant">استشاري</SelectItem>
+    <SelectItem value="specialist">أخصائي</SelectItem>
+    <SelectItem value="lasik">ليزك</SelectItem>
+    <SelectItem value="external">خارجي</SelectItem>
+    <SelectItem value="surgery">عمليات مركزي</SelectItem>
+    <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
+    <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+    <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+    <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
+  </>
+);
+
+const STATUS_SELECT_CONTENT = (Object.entries(STATUS_LABEL_AR) as Array<[PatientStatus, string]>).map(([value, label]) => (
+  <SelectItem key={value} value={value}>
+    {label}
+  </SelectItem>
+));
+
+function AdminPatientsTableComponent({
   allVisibleSelected,
   currentPage,
   deletePatientPending,
@@ -123,6 +143,19 @@ export function AdminPatientsTable({
   visiblePatients,
 }: AdminPatientsTableProps) {
   const colSpan = 10;
+  const doctorSelectContent = useMemo(
+    () => (
+      <>
+        <SelectItem value="__empty__">—</SelectItem>
+        {doctorSelectOptions.map((name) => (
+          <SelectItem key={name} value={name}>
+            {name}
+          </SelectItem>
+        ))}
+      </>
+    ),
+    [doctorSelectOptions],
+  );
 
   return (
     <>
@@ -138,9 +171,7 @@ export function AdminPatientsTable({
             const rowKey = String(patient.__rowKey ?? patient.id);
             const status = rowSaveState[rowKey];
             const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
-            const doctorChoices = [...new Set([draft.treatingDoctor.trim(), ...doctorSelectOptions].filter(Boolean))].sort((a, b) =>
-              a.localeCompare(b, "ar"),
-            );
+            const manualLockEnabled = isManualLockEnabled(patient);
             const statusTone =
               draft.status === "followup"
                 ? "border-amber-300/70 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
@@ -197,12 +228,7 @@ export function AdminPatientsTable({
                       <SelectTrigger className="h-7 rounded-lg text-xs text-foreground">
                         <SelectValue placeholder="اختر طبيباً" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__empty__">—</SelectItem>
-                        {doctorChoices.map((name) => (
-                          <SelectItem key={name} value={name}>{name}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectContent>{doctorSelectContent}</SelectContent>
                     </Select>
                   </div>
                   <div className="text-muted-foreground">نوع الخدمة</div>
@@ -211,17 +237,7 @@ export function AdminPatientsTable({
                       <SelectTrigger className="h-7 rounded-lg text-xs text-foreground">
                         <SelectValue placeholder="نوع الشيت" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="consultant">استشاري</SelectItem>
-                        <SelectItem value="specialist">أخصائي</SelectItem>
-                        <SelectItem value="lasik">ليزك</SelectItem>
-                        <SelectItem value="external">خارجي</SelectItem>
-                        <SelectItem value="surgery">عمليات مركزي</SelectItem>
-                        <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
-                        <SelectItem value="pentacam_c">Pentacam C</SelectItem>
-                        <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
-                        <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
-                      </SelectContent>
+                      <SelectContent>{SERVICE_TYPE_SELECT_CONTENT}</SelectContent>
                     </Select>
                   </div>
                   <div className="text-muted-foreground">الحالة</div>
@@ -230,11 +246,7 @@ export function AdminPatientsTable({
                       <SelectTrigger className={cn("h-7 rounded-lg text-xs font-semibold", statusTone)}>
                         <SelectValue>{STATUS_LABEL_AR[draft.status]}</SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
-                        {(Object.entries(STATUS_LABEL_AR) as Array<[PatientStatus, string]>).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectContent>{STATUS_SELECT_CONTENT}</SelectContent>
                     </Select>
                   </div>
                 </div>
@@ -263,14 +275,14 @@ export function AdminPatientsTable({
                     size="sm"
                     variant="outline"
                     className={
-                      isManualLockEnabled(patient)
+                      manualLockEnabled
                         ? "rounded-lg border-orange-200 bg-orange-500 text-xs font-bold text-white shadow-sm hover:bg-orange-600"
                         : "rounded-lg border-amber-200 bg-amber-100 text-xs font-bold text-amber-900 hover:bg-amber-200"
                     }
                     onClick={() => onToggleManualLock(patient)}
                     disabled={savePatientPageStatePending}
                   >
-                    {isManualLockEnabled(patient) ? (
+                    {manualLockEnabled ? (
                       <>ON <Lock className="ms-1 h-3 w-3" aria-hidden /></>
                     ) : (
                       <>OFF <LockOpen className="ms-1 h-3 w-3" aria-hidden /></>
@@ -349,10 +361,7 @@ export function AdminPatientsTable({
                   const rowKey = String(patient.__rowKey ?? patient.id);
                   const status = rowSaveState[rowKey];
                   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
-                  const doctorChoices = [...new Set([draft.treatingDoctor.trim(), ...doctorSelectOptions].filter(Boolean))].sort((a, b) =>
-                    a.localeCompare(b, "ar"),
-                  );
-
+                  const manualLockEnabled = isManualLockEnabled(patient);
                   const statusTone =
                     draft.status === "followup"
                       ? "border-amber-300/70 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
@@ -418,14 +427,7 @@ export function AdminPatientsTable({
                             <SelectTrigger className="rounded-lg">
                               <SelectValue placeholder="اختر طبيباً" />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__empty__">—</SelectItem>
-                              {doctorChoices.map((name) => (
-                                <SelectItem key={name} value={name}>
-                                  {name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+                            <SelectContent>{doctorSelectContent}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell dir="ltr" className="tabular-nums">
@@ -449,17 +451,7 @@ export function AdminPatientsTable({
                             <SelectTrigger className="min-w-[150px] rounded-lg">
                               <SelectValue placeholder="نوع الشيت" />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="consultant">استشاري</SelectItem>
-                              <SelectItem value="specialist">أخصائي</SelectItem>
-                              <SelectItem value="lasik">ليزك</SelectItem>
-                              <SelectItem value="external">خارجي</SelectItem>
-                              <SelectItem value="surgery">عمليات مركزي</SelectItem>
-                              <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
-                              <SelectItem value="pentacam_c">Pentacam C</SelectItem>
-                              <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
-                              <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
-                            </SelectContent>
+                            <SelectContent>{SERVICE_TYPE_SELECT_CONTENT}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="min-w-[120px]">
@@ -467,13 +459,7 @@ export function AdminPatientsTable({
                             <SelectTrigger className={cn("h-10 justify-center rounded-lg font-semibold", statusTone)}>
                               <SelectValue>{STATUS_LABEL_AR[draft.status]}</SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
-                              {(Object.entries(STATUS_LABEL_AR) as Array<[PatientStatus, string]>).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+                            <SelectContent>{STATUS_SELECT_CONTENT}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell>
@@ -482,14 +468,14 @@ export function AdminPatientsTable({
                             size="sm"
                             variant="outline"
                             className={
-                              isManualLockEnabled(patient)
+                              manualLockEnabled
                                 ? "rounded-lg border-orange-200 bg-orange-500 font-bold text-white shadow-sm hover:bg-orange-600"
                                 : "rounded-lg border-amber-200 bg-amber-100 font-bold text-amber-900 hover:bg-amber-200"
                             }
                             onClick={() => onToggleManualLock(patient)}
                             disabled={savePatientPageStatePending}
                           >
-                            {isManualLockEnabled(patient) ? (
+                            {manualLockEnabled ? (
                               <>
                                 ON <Lock className="ms-2 h-3.5 w-3.5" aria-hidden />
                               </>
@@ -570,3 +556,5 @@ export function AdminPatientsTable({
     </>
   );
 }
+
+export const AdminPatientsTable = memo(AdminPatientsTableComponent);

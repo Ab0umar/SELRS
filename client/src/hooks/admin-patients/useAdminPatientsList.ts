@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { matchesDoctorFilter, matchesServiceCodeOrNameTerm, normalizeServiceCodeForSearch } from "@/lib/patientFiltering";
 import { trpc } from "@/lib/trpc";
@@ -149,11 +149,6 @@ export function useAdminPatientsList() {
     },
     { refetchOnWindowFocus: false },
   );
-  const mssqlSyncStatusQuery = trpc.medical.getMssqlSyncStatus.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    refetchInterval: 5000,
-  });
-
   const patientsPayload = (patientsQuery.data ?? { rows: [], hasMore: false, nextCursor: null }) as {
     rows: PatientRow[];
     hasMore: boolean;
@@ -382,18 +377,18 @@ export function useAdminPatientsList() {
     return { totalUnique: byId.size, center, external };
   }, [filteredPatients]);
 
-  const isExpanded = (patientId: number) => expandedPatients.has(patientId);
+  const isExpanded = useCallback((patientId: number) => expandedPatients.has(patientId), [expandedPatients]);
 
-  const toggleExpanded = (patientId: number) => {
+  const toggleExpanded = useCallback((patientId: number) => {
     setExpandedPatients((prev) => {
       const next = new Set(prev);
       if (next.has(patientId)) next.delete(patientId);
       else next.add(patientId);
       return next;
     });
-  };
+  }, []);
 
-  const getDraft = (patient: PatientRow): PatientDraft => {
+  const getDraft = useCallback((patient: PatientRow): PatientDraft => {
     const rowKey = getPatientRowKey(patient);
     const existing = drafts[rowKey];
     if (existing) return existing;
@@ -408,9 +403,9 @@ export function useAdminPatientsList() {
       serviceType: getRowSheetType(patient),
       status: (patient.status ?? "new") as PatientStatus,
     };
-  };
+  }, [drafts, getRowSheetType]);
 
-  const setDraftField = (patient: PatientRow, field: keyof PatientDraft, value: string) => {
+  const setDraftField = useCallback((patient: PatientRow, field: keyof PatientDraft, value: string) => {
     const rowKey = getPatientRowKey(patient);
     const base = getDraft(patient);
     setDrafts((prev) => ({
@@ -424,9 +419,9 @@ export function useAdminPatientsList() {
       ...prev,
       [rowKey]: { state: "unsaved", at: new Date().toISOString() },
     }));
-  };
+  }, [getDraft]);
 
-  const savePatientRow = async (patient: PatientRow, draft?: PatientDraft) => {
+  const savePatientRow = useCallback(async (patient: PatientRow, draft?: PatientDraft) => {
     const rowKey = getPatientRowKey(patient);
     const nextDraft = draft ?? getDraft(patient);
     try {
@@ -542,16 +537,25 @@ export function useAdminPatientsList() {
       }));
       toast.error(getTrpcErrorMessage(error, "Failed to update patient"));
     }
-  };
+  }, [
+    activeDoctors,
+    getDraft,
+    getRowServiceCode,
+    getRowSheetType,
+    savePatientPageStateMutation,
+    updatePatientMutation,
+    utils.medical.getAllPatients,
+    utils.medical.getPatientPageState,
+  ]);
 
-  const isManualLockEnabled = (patient: PatientRow) => {
+  const isManualLockEnabled = useCallback((patient: PatientRow) => {
     if (Object.prototype.hasOwnProperty.call(manualLockOverrides, patient.id)) {
       return Boolean(manualLockOverrides[patient.id]);
     }
     return Boolean(patient.syncLockManual) || String(patient.manualEditedAt ?? "").trim().length > 0;
-  };
+  }, [manualLockOverrides]);
 
-  const handleToggleManualLock = async (patient: PatientRow) => {
+  const handleToggleManualLock = useCallback(async (patient: PatientRow) => {
     const currentlyEnabled = isManualLockEnabled(patient);
     const nextEnabled = !currentlyEnabled;
     try {
@@ -579,7 +583,7 @@ export function useAdminPatientsList() {
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to toggle manual lock"));
     }
-  };
+  }, [isManualLockEnabled, savePatientPageStateMutation, utils.medical.getAllPatients, utils.medical.getPatientPageState]);
 
   const handleSaveAll = async () => {
     const changedRows = Object.keys(drafts);
@@ -610,7 +614,7 @@ export function useAdminPatientsList() {
     }
   };
 
-  const handleDeleteFromMssql = async (patient: PatientRow) => {
+  const handleDeleteFromMssql = useCallback(async (patient: PatientRow) => {
     const patientCode = String(patient.patientCode ?? "").trim();
     if (!patientCode) {
       toast.error("Patient code is missing");
@@ -628,9 +632,9 @@ export function useAdminPatientsList() {
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to delete patient from MSSQL"));
     }
-  };
+  }, [deletePatientFromMssqlMutation]);
 
-  const handleDeletePatient = async (patient: PatientRow) => {
+  const handleDeletePatient = useCallback(async (patient: PatientRow) => {
     const patientName = String(patient.fullName ?? "").trim();
     const patientCode = String(patient.patientCode ?? "").trim();
     const displayName = patientName || patientCode || `ID ${patient.id}`;
@@ -647,11 +651,11 @@ export function useAdminPatientsList() {
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to delete patient"));
     }
-  };
+  }, [deletePatientMutation]);
 
   const allVisibleSelected = visiblePatients.length > 0 && visiblePatients.every((patient) => selectedPatients.has(patient.id));
 
-  const toggleSelectAllVisible = (checked: boolean) => {
+  const toggleSelectAllVisible = useCallback((checked: boolean) => {
     setSelectedPatients((prev) => {
       const next = new Set(prev);
       if (checked) {
@@ -661,30 +665,30 @@ export function useAdminPatientsList() {
       }
       return next;
     });
-  };
+  }, [visiblePatients]);
 
-  const toggleSelectedPatient = (patientId: number, checked: boolean) => {
+  const toggleSelectedPatient = useCallback((patientId: number, checked: boolean) => {
     setSelectedPatients((prev) => {
       const next = new Set(prev);
       if (checked) next.add(patientId);
       else next.delete(patientId);
       return next;
     });
-  };
+  }, []);
 
-  const goToPreviousPage = () => {
+  const goToPreviousPage = useCallback(() => {
     if (cursorHistory.length === 0) return;
     const previous = [...cursorHistory];
     const previousCursor = previous.pop() ?? null;
     setCursorHistory(previous);
     setCursor(previousCursor);
-  };
+  }, [cursorHistory]);
 
-  const goToNextPage = () => {
+  const goToNextPage = useCallback(() => {
     if (!nextCursor) return;
     setCursorHistory((prev) => [...prev, cursor]);
     setCursor(nextCursor);
-  };
+  }, [cursor, nextCursor]);
 
   return {
     activeDoctors,
@@ -714,7 +718,6 @@ export function useAdminPatientsList() {
     isExpanded,
     isManualLockEnabled,
     monthStats,
-    mssqlSyncStatusQuery,
     nextCursor,
     normalizeTypedDateInput,
     pageSize,
