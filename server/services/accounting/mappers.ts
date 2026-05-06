@@ -245,7 +245,7 @@ export function mapServiceRevenueRows(rows: Row[]): ServiceRevenueOutput {
       price: numberValue(row.price),
       patientShare: numberValue(row.patientShare),
       discount: numberValue(row.discount),
-      patientTotal: numberValue(row.patientShare), // In this context, paid by patient
+      patientTotal: numberValue(row.patientShare) - numberValue(row.discount),
       companyTotal: numberValue(row.companyValue),
     };
 
@@ -253,12 +253,12 @@ export function mapServiceRevenueRows(rows: Row[]): ServiceRevenueOutput {
     service.rowCount += 1;
     service.totalGross += numberValue(row.lineGross);
     service.totalDiscount += detail.discount;
-    service.totalPaid += detail.patientShare;
+    service.totalPaid += detail.patientTotal;
 
     section.subtotal.rowCount += 1;
     section.subtotal.totalGross += numberValue(row.lineGross);
     section.subtotal.totalDiscount += detail.discount;
-    section.subtotal.totalPaid += detail.patientShare;
+    section.subtotal.totalPaid += detail.patientTotal;
   }
 
   const groupedSections = Array.from(sections.values()).sort(

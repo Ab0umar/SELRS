@@ -1,25 +1,54 @@
-import { Syringe, Trash2 } from "lucide-react";
+import { CalendarPlus, Syringe, Trash2 } from "lucide-react";
+import { useState, Fragment } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
+import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
 import { OperationsTabs } from "@/components/operations/OperationsTabs";
 import { OperationsTable } from "@/components/operations/OperationsTable";
 import { OperationTotals } from "@/components/operations/OperationTotals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { operationTypeLabel } from "@/lib/operationsPricing";
+import { TAB_OTHERS, operationTypeLabel } from "@/lib/operationsPricing";
 import { formatDayDate } from "@/hooks/operations/operationsShared";
 import { useOperations } from "@/hooks/operations/useOperations";
 import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
+import reportStyles from "@/pages/accounting/AccountingOpReport.module.css";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 export default function Operations() {
   const operations = useOperations();
   const actions = useOperationsActions(operations);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const utils = trpc.useUtils();
+
+  const deleteBookingMutation = trpc.medical.deleteOperationBooking.useMutation({
+    onSuccess: async () => {
+      await utils.medical.getOperationBookings.invalidate();
+      await utils.medical.getTodayOperationLists.invalidate();
+      toast.success("تم حذف الحجز بنجاح");
+    },
+    onError: (error) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر حذف الحجز"));
+    }
+  });
 
   if (!operations.isAuthenticated) return null;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] print:max-w-none" dir="rtl">
+      <OperationsBookingQuickDialog
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        onSaved={() => {
+          void operations.historyQuery.refetch();
+          void operations.listQuery.refetch();
+          void operations.operationBookingsQuery.refetch();
+        }}
+        initialDate={String(operations.listDate)}
+      />
       <PageHeader
         title="العمليات"
         subtitle="قوائم العمليات والحسابات والسجل المحفوظ"
@@ -27,6 +56,14 @@ export default function Operations() {
       />
 
       <main className="mt-4 w-full space-y-4 print:p-0">
+        {operations.activeTab === TAB_OTHERS && (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={() => setBookingOpen(true)}>
+              <CalendarPlus className="ml-2 h-4 w-4" />
+              حجز عملية
+            </Button>
+          </div>
+        )}
         {(operations.listQuery.isError ||
           operations.historyQuery.isError ||
           (operations.canOpenPricing && operations.pricingSettingQuery.isError) ||
@@ -54,6 +91,92 @@ export default function Operations() {
         />
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8 print:border-0 print:bg-transparent print:p-0 print:shadow-none">
+          {operations.activeTab === TAB_OTHERS && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold">حجوزات العمليات (MySQL)</h3>
+                <div className="text-xs text-muted-foreground tabular-nums">
+                  {formatDayDate(String(operations.listDate))}
+                </div>
+              </div>
+              {operations.operationBookingsQuery.isLoading ? (
+                <div className="text-sm text-muted-foreground animate-pulse">جاري تحميل الحجوزات...</div>
+              ) : (operations.operationBookingsQuery.data ?? []).length === 0 ? (
+                <div className={reportStyles.emptyHint}>لا توجد حجوزات مسجلة لهذا التاريخ.</div>
+              ) : (
+                <div className={reportStyles.reportBlock}>
+                  <table className={reportStyles.gridTable}>
+                    <thead>
+                      <tr>
+                        <th className="font-bold">نوع العملية / التفاصيل</th>
+                        <th className="font-bold text-center w-24">الوقت</th>
+                        <th className="font-bold text-center w-20">العدد</th>
+                        <th className="font-bold text-center w-16">إجراء</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const bookings = operations.operationBookingsQuery.data ?? [];
+                        const grouped: Record<string, typeof bookings> = {};
+                        for (const b of bookings) {
+                          const d = b.doctorName || "طبيب غير محدد";
+                          if (!grouped[d]) grouped[d] = [];
+                          grouped[d].push(b);
+                        }
+                        return Object.entries(grouped).map(([doctor, list]) => (
+                          <Fragment key={doctor}>
+                            <tr className={reportStyles.blockHeader}>
+                              <td colSpan={4} className="font-bold text-primary py-2.5">
+                                {doctor}
+                              </td>
+                            </tr>
+                            {list.map((booking: any) => (
+                              <tr key={booking.id} className="hover:bg-muted/10 transition-colors">
+                                <td className="px-8 text-muted-foreground whitespace-normal">
+                                  {operationTypeLabel(booking.operationType)}
+                                </td>
+                                <td className="text-center tabular-nums" dir="ltr">
+                                  {booking.bookingTime || "—"}
+                                </td>
+                                <td className="text-center font-bold tabular-nums">
+                                  {booking.casesCount}
+                                </td>
+                                <td className="text-center">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                    disabled={deleteBookingMutation.isPending}
+                                    onClick={() => {
+                                      if (window.confirm("هل أنت متأكد من حذف هذا الحجز؟")) {
+                                        deleteBookingMutation.mutate({ id: booking.id });
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </Fragment>
+                        ));
+                      })()}
+                    </tbody>
+                    <tfoot>
+                      <tr className={reportStyles.grandTotalRow}>
+                        <td className="font-bold px-4">إجمالي الحالات</td>
+                        <td />
+                        <td className="text-center font-bold tabular-nums">
+                          {(operations.operationBookingsQuery.data ?? []).reduce((acc: number, b: any) => acc + (b.casesCount || 0), 0)}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
           {(operations.viewMode === "list" || operations.viewMode === "table" || operations.viewMode === "accounts") && (
             <>
               {/* القائمة (list) = table only | اللست (table) = form + table | الحسابات (accounts) = form + totals */}

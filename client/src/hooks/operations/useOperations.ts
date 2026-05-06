@@ -101,6 +101,11 @@ export function useOperations() {
     { enabled: debouncedPatientSearch.trim().length >= 1, refetchOnWindowFocus: false }
   );
 
+  const operationBookingsQuery = trpc.medical.getOperationBookings.useQuery(
+    { fromDate: safeListDate, toDate: safeListDate },
+    { refetchOnWindowFocus: false, enabled: activeTab === TAB_OTHERS }
+  );
+
   const pricingConfig = useMemo(() => {
     if (!canOpenPricing) return EMPTY_APPOINTMENTS_PRICING;
     const value = (pricingSettingQuery.data as any)?.value;
@@ -327,6 +332,7 @@ export function useOperations() {
     listTime,
     lists,
     myPermissions,
+    operationBookingsQuery,
     operationOptions,
     operationType,
     operationTypeOther,

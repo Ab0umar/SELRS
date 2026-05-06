@@ -12,6 +12,33 @@
   overflow-x: auto;
 }
 
+.printScope {
+  position: relative;
+}
+
+.printMeta {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #000;
+  border-radius: 4px;
+  background: #fff;
+  color: #000;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.printMetaTitle {
+  margin: 0 0 2px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.printMeta p {
+  margin: 0;
+}
+
+.noPrint {}
+
 .serviceBlock {
   box-sizing: border-box;
   margin-bottom: 14px;
@@ -243,8 +270,98 @@
 .colStretch { width: auto; }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 5mm;
+  }
+
+  :global(html),
+  :global(body) {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  :global(body.print-service-revenue *) {
+    visibility: hidden !important;
+  }
+
+  :global(body.print-service-revenue) .printScope,
+  :global(body.print-service-revenue) .printScope * {
+    visibility: visible !important;
+  }
+
+  :global(body.print-service-revenue) .printScope {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  :global(body.print-service-revenue) .printScope [data-slot="card-header"] {
+    padding: 0 !important;
+  }
+
+  :global(body.print-service-revenue) .printScope [data-slot="card-content"] {
+    padding: 0 !important;
+  }
+
+  :global(body.print-service-revenue) .printScope,
+  .reportWrap {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
+  .printMeta {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .reportWrap {
+    overflow: visible !important;
+  }
+
   .gridTable {
+    display: table !important;
+    width: 100% !important;
+    max-width: 100% !important;
     font-size: 12.5px;
+    border-collapse: collapse !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .gridTable thead {
+    display: table-header-group;
+  }
+
+  .gridTable tfoot {
+    display: table-footer-group;
+  }
+
+  .gridTable tbody {
+    display: table-row-group;
+  }
+
+  .gridTable tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .serviceBlock {
@@ -262,6 +379,7 @@
     background: #e8e8e8 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    border: 1px solid #000 !important;
   }
 
   .serviceSubtotalRow td {
@@ -283,6 +401,20 @@
   }
 
   .periodTotalWrap {
+    border-color: #000 !important;
+  }
+
+  .gridTable th,
+  .gridTable td {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .groupBannerRow td,
+  .serviceSubtotalRow td,
+  .sectionTotalRow td,
+  .periodTotalRow td {
     border-color: #000 !important;
   }
 }
