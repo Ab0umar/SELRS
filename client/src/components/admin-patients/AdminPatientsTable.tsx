@@ -1,4 +1,5 @@
-import { Fragment, memo, useMemo } from "react";
+import { Fragment, memo, useMemo, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronDown,
   ChevronUp,
@@ -285,6 +286,7 @@ function AdminPatientsTableComponent({
   visiblePatients,
 }: AdminPatientsTableProps) {
   const colSpan = 10;
+  const desktopScrollRef = useRef<HTMLDivElement | null>(null);
   const doctorSelectContent = useMemo(
     () => (
       <>
@@ -298,6 +300,13 @@ function AdminPatientsTableComponent({
     ),
     [doctorSelectOptions],
   );
+  const rowVirtualizer = useVirtualizer({
+    count: visiblePatients.length,
+    getScrollElement: () => desktopScrollRef.current,
+    estimateSize: (index) => (isExpanded(visiblePatients[index]?.id ?? -1) ? 220 : 74),
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
 
   return (
     <>
@@ -341,7 +350,7 @@ function AdminPatientsTableComponent({
       </div>
 
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-border sm:block" dir="rtl">
+      <div ref={desktopScrollRef} className="hidden max-h-[70vh] overflow-auto rounded-xl border border-border sm:block" dir="rtl">
         <Table className="text-right">
           <TableHeader>
             <TableRow className="border-b bg-muted/40 hover:bg-muted/40">
@@ -374,8 +383,16 @@ function AdminPatientsTableComponent({
                 </TableCell>
               </TableRow>
             ) : null}
-            {!patientsLoading
-              ? visiblePatients.map((patient) => {
+            {!patientsLoading && visiblePatients.length > 0 ? (
+              <>
+                {virtualRows.length > 0 && virtualRows[0].start > 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={colSpan} style={{ height: virtualRows[0].start }} />
+                  </TableRow>
+                ) : null}
+                {virtualRows.map((virtualRow) => {
+                  const patient = visiblePatients[virtualRow.index];
+                  if (!patient) return null;
                   const draft = getDraft(patient);
                   const rowKey = String(patient.__rowKey ?? patient.id);
                   const status = rowSaveState[rowKey];
@@ -403,8 +420,17 @@ function AdminPatientsTableComponent({
                       onToggleSelectedPatient={onToggleSelectedPatient}
                     />
                   );
-                })
-              : null}
+                })}
+                {virtualRows.length > 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={colSpan}
+                      style={{ height: rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end }}
+                    />
+                  </TableRow>
+                ) : null}
+              </>
+            ) : null}
           </TableBody>
         </Table>
       </div>
