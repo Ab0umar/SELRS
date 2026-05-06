@@ -109,41 +109,10 @@ export function useAdminPatientsList() {
     ],
   );
 
-  const monthlyStatsQuery = trpc.medical.getPatientStats.useQuery(
+  const patientStatsBundleQuery = trpc.medical.getPatientStatsBundle.useQuery(
     {
       year: Number(statsYear),
       month: Number(statsMonth),
-      ...statsFilterInput,
-    },
-    { refetchOnWindowFocus: false },
-  );
-
-  const previousStatsPeriod = useMemo(() => {
-    let y = Number(statsYear);
-    let m = Number(statsMonth);
-    if (!Number.isFinite(y) || !Number.isFinite(m)) return { year: y, month: m };
-    m -= 1;
-    if (m < 1) {
-      m = 12;
-      y -= 1;
-    }
-    return { year: y, month: m };
-  }, [statsYear, statsMonth]);
-
-  const previousMonthlyStatsQuery = trpc.medical.getPatientStats.useQuery(
-    {
-      year: previousStatsPeriod.year,
-      month: previousStatsPeriod.month,
-      ...statsFilterInput,
-    },
-    {
-      refetchOnWindowFocus: false,
-      enabled: Number.isFinite(previousStatsPeriod.year) && Number.isFinite(previousStatsPeriod.month),
-    },
-  );
-  const yearlyStatsQuery = trpc.medical.getPatientStats.useQuery(
-    {
-      year: Number(statsYear),
       ...statsFilterInput,
     },
     { refetchOnWindowFocus: false },
@@ -173,8 +142,8 @@ export function useAdminPatientsList() {
     return Array.from(yearSet).sort((a, b) => Number(b) - Number(a));
   }, [patients]);
 
-  const monthStats = (monthlyStatsQuery.data ?? { total: 0, center: 0, external: 0, lasik: 0 }) as PatientStats;
-  const yearStats = (yearlyStatsQuery.data ?? { total: 0, center: 0, external: 0, lasik: 0 }) as PatientStats;
+  const monthStats = (patientStatsBundleQuery.data?.currentMonth ?? { total: 0, center: 0, external: 0, lasik: 0 }) as PatientStats;
+  const yearStats = (patientStatsBundleQuery.data?.yearly ?? { total: 0, center: 0, external: 0, lasik: 0 }) as PatientStats;
 
   const activeDoctors = useMemo(
     () =>
@@ -301,7 +270,7 @@ export function useAdminPatientsList() {
   const currentPage = cursorHistory.length + 1;
   const visiblePatients = filteredPatients;
 
-  const previousMonthStats = (previousMonthlyStatsQuery.data ?? {
+  const previousMonthStats = (patientStatsBundleQuery.data?.previousMonth ?? {
     total: 0,
     center: 0,
     external: 0,

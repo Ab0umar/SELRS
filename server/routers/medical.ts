@@ -2350,9 +2350,9 @@ export const medicalRouter = router({
       return await db.getAllPatients(input);
     }),
 
-  getPatientStats: adminProcedure
-    .input(
-      z.object({
+    getPatientStats: adminProcedure
+      .input(
+        z.object({
         year: z.number().int().min(1900).max(3000),
         month: z.number().int().min(1).max(12).optional(),
         searchTerm: z.string().optional(),
@@ -2364,15 +2364,57 @@ export const medicalRouter = router({
       })
     )
     .query(async ({ input }) => {
-      return await db.getPatientStats(input.year, input.month, {
-        searchTerm: input.searchTerm,
-        doctorName: input.doctorName,
-        serviceType: input.serviceType,
-        locationType: input.locationType,
-        dateFrom: input.dateFrom,
-        dateTo: input.dateTo,
-      });
-    }),
+        return await db.getPatientStats(input.year, input.month, {
+          searchTerm: input.searchTerm,
+          doctorName: input.doctorName,
+          serviceType: input.serviceType,
+          locationType: input.locationType,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+        });
+      }),
+  getPatientStatsBundle: adminProcedure
+      .input(
+        z.object({
+          year: z.number().int().min(1900).max(3000),
+          month: z.number().int().min(1).max(12),
+          searchTerm: z.string().optional(),
+          doctorName: z.string().optional(),
+          serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
+          locationType: z.enum(["center", "external"]).optional(),
+          dateFrom: z.string().optional(),
+          dateTo: z.string().optional(),
+        }),
+      )
+      .query(async ({ input }) => {
+        const filters = {
+          searchTerm: input.searchTerm,
+          doctorName: input.doctorName,
+          serviceType: input.serviceType,
+          locationType: input.locationType,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+        };
+
+        let previousYear = input.year;
+        let previousMonth = input.month - 1;
+        if (previousMonth < 1) {
+          previousMonth = 12;
+          previousYear -= 1;
+        }
+
+        const [currentMonth, previousMonthStats, yearly] = await Promise.all([
+          db.getPatientStats(input.year, input.month, filters),
+          db.getPatientStats(previousYear, previousMonth, filters),
+          db.getPatientStats(input.year, undefined, filters),
+        ]);
+
+        return {
+          currentMonth,
+          previousMonth: previousMonthStats,
+          yearly,
+        };
+      }),
 
   getTodayPatientsBySheet: protectedProcedure
     .input(z.object({ date: z.string().optional() }).optional())
