@@ -89,7 +89,6 @@ export function useAdminPatientsList() {
   const deleteAllPatientsMutation = trpc.medical.deleteAllPatients.useMutation();
   const statsFilterInput = useMemo(
     () => ({
-      searchTerm: debouncedSearchTerm || undefined,
       doctorName: doctorFilter === "all" ? undefined : doctorFilter,
       serviceType:
         serviceTypeFilter === "all" || serviceTypeFilter === "surgery" || serviceTypeFilter === "surgery_external"
@@ -100,7 +99,6 @@ export function useAdminPatientsList() {
       dateTo: toIsoDate(dateTo) || undefined,
     }),
     [
-      debouncedSearchTerm,
       doctorFilter,
       serviceTypeFilter,
       locationFilter,
@@ -123,8 +121,8 @@ export function useAdminPatientsList() {
     nextCursor: PatientCursor | null;
   };
   const patients = (patientsPayload.rows ?? []) as PatientRow[];
-  const hasMore = Boolean(patientsPayload.hasMore);
-  const nextCursor = patientsPayload.nextCursor ?? null;
+  const hasMore = doctorFilter === "all" ? Boolean(patientsPayload.hasMore) : false;
+  const nextCursor = doctorFilter === "all" ? patientsPayload.nextCursor ?? null : null;
 
   useEffect(() => {
     setCursor(null);

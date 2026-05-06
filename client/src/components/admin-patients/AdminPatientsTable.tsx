@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo, useRef } from "react";
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronDown,
@@ -286,6 +286,7 @@ function AdminPatientsTableComponent({
   visiblePatients,
 }: AdminPatientsTableProps) {
   const colSpan = 10;
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const desktopScrollRef = useRef<HTMLDivElement | null>(null);
   const doctorSelectContent = useMemo(
     () => (
@@ -300,10 +301,18 @@ function AdminPatientsTableComponent({
     ),
     [doctorSelectOptions],
   );
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 640px)");
+    const sync = () => setIsMobileViewport(mql.matches);
+    sync();
+    mql.addEventListener("change", sync);
+    return () => mql.removeEventListener("change", sync);
+  }, []);
+
   const rowVirtualizer = useVirtualizer({
     count: visiblePatients.length,
     getScrollElement: () => desktopScrollRef.current,
-    estimateSize: (index) => (isExpanded(visiblePatients[index]?.id ?? -1) ? 220 : 74),
+    estimateSize: () => 74,
     overscan: 8,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -311,6 +320,7 @@ function AdminPatientsTableComponent({
   return (
     <>
       {/* Mobile cards */}
+      {isMobileViewport ? (
       <div className="grid grid-cols-2 gap-2 sm:hidden" dir="rtl">
         {patientsLoading ? (
           <div className="py-10 text-center text-muted-foreground">جاري تحميل المرضى…</div>
@@ -348,8 +358,10 @@ function AdminPatientsTableComponent({
           })
         )}
       </div>
+      ) : null}
 
       {/* Desktop table */}
+      {!isMobileViewport ? (
       <div ref={desktopScrollRef} className="hidden max-h-[70vh] overflow-auto rounded-xl border border-border sm:block" dir="rtl">
         <Table className="text-right">
           <TableHeader>
@@ -434,6 +446,7 @@ function AdminPatientsTableComponent({
           </TableBody>
         </Table>
       </div>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/10 px-3 py-2" dir="rtl">
         <div className="text-sm tabular-nums text-muted-foreground">صفحة {currentPage}</div>
