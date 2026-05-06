@@ -293,14 +293,13 @@ export async function createUser(userData: InsertUser) {
     return undefined;
   }
 
-  const encoded: InsertUser = {
-    ...userData,
-    username: encodeForLegacySearch(String(userData.username ?? "")),
-    name: userData.name ? encodeForLegacySearch(String(userData.name)) : userData.name,
-  };
-
-  const result = await db.insert(users).values(encoded);
-  return result;
+  try {
+    const result = await db.insert(users).values(userData);
+    return result;
+  } catch (err: any) {
+    console.error("[createUser] MySQL error:", err?.code, err?.sqlMessage ?? err?.message, "| username:", userData.username);
+    throw err;
+  }
 }
 
 /**
@@ -358,11 +357,7 @@ export async function updateUser(userId: number, updates: Partial<InsertUser>) {
     return;
   }
 
-  const encoded: Partial<InsertUser> = { ...updates };
-  if (updates.username != null) encoded.username = encodeForLegacySearch(String(updates.username));
-  if (updates.name != null) encoded.name = encodeForLegacySearch(String(updates.name));
-
-  await db.update(users).set(encoded).where(eq(users.id, userId));
+  await db.update(users).set(updates).where(eq(users.id, userId));
 }
 
 /**

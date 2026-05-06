@@ -130,8 +130,11 @@ export function AppSidebar({
 
   useEffect(() => {
     const locBase = location.split("?")[0];
-    if (!locBase.startsWith("/accounting")) return;
-    setOpenNavGroups((prev) => (prev.accounting ? prev : { ...prev, accounting: true }));
+    if (locBase.startsWith("/accounting")) {
+      setOpenNavGroups((prev) => (prev.accounting ? prev : { ...prev, accounting: true }));
+    } else if (locBase === "/dashboard" || locBase === "/today") {
+      setOpenNavGroups((prev) => (prev.dashboard ? prev : { ...prev, dashboard: true }));
+    }
   }, [location]);
 
   useEffect(() => {

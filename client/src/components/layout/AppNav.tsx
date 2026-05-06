@@ -106,13 +106,34 @@ export const accountingNavGroup: NavGroupSection = {
 
 /** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
-  { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
-  { icon: Clock, label: "مرضى اليوم", path: "/today" },
+  {
+    label: "لوحة التحكم",
+    navKey: "dashboard",
+    items: [
+      { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
+      { icon: Clock, label: "مرضى اليوم", path: "/today" },
+    ],
+  },
   accountingNavGroup,
-  { icon: Syringe, label: "العمليات", path: "/operations" },
-  { icon: Network, label: "مركز المريض", path: "/patient-hub" },
+  {
+    label: "العمليات",
+    navKey: "operations",
+    groupPath: "/operations",
+    items: [
+      { icon: Syringe, label: "العمليات", path: "/operations" },
+    ],
+  },
+  {
+    label: "مركز المريض",
+    navKey: "patient-hub",
+    groupPath: "/patient-hub",
+    items: [
+      { icon: Network, label: "مركز المريض", path: "/patient-hub" },
+    ],
+  },
   {
     label: "العيادات",
+    navKey: "clinics",
     items: [
       { icon: Eye, label: "الفحوصات", path: "/examination" },
       { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
@@ -124,6 +145,7 @@ export const adminNavGroups: NavGroup[] = [
   },
   {
     label: "المرضى",
+    navKey: "patients",
     items: [
       { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
       { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
@@ -134,6 +156,7 @@ export const adminNavGroups: NavGroup[] = [
   },
   {
     label: "مركز الخدمات",
+    navKey: "services",
     items: [
       { icon: Pill, label: "الأدوية", path: "/medications" },
       { icon: FlaskConical, label: "تحاليل وأشعة", path: "/examinations/catalog" },
@@ -144,8 +167,10 @@ export const adminNavGroups: NavGroup[] = [
   },
   {
     label: "مركز الإدارة",
+    navKey: "admin",
     items: [
       { icon: LayoutGrid, label: "الرئيسية (كروت)", path: "/admin-hub" },
+      { icon: Users, label: "مرضى الإدارة", path: "/admin/patients" },
       { icon: Shield, label: "الصلاحيات", path: "/admin-hub/permissions" },
       { icon: Stethoscope, label: "الأطباء", path: "/admin-hub/doctors" },
       { icon: Users, label: "المستخدمين", path: "/admin-hub/users" },
@@ -160,7 +185,7 @@ export const adminNavGroups: NavGroup[] = [
       { icon: LayoutGrid, label: "ظهور الكروت", path: "/admin-hub/card-visibility" },
       { icon: Bell, label: "إخطارات التطبيق", path: "/admin-hub/notifications" },
       { icon: FileText, label: "النماذج", path: "/admin-hub/forms" },
-      { icon: FileSpreadsheet, label: "شيتات المرضى", path: "/admin-hub/sheets" },
+      { icon: FileSpreadsheet, label: "تثبيتات المرضى", path: "/admin-hub/sheets" },
       { icon: Paintbrush, label: "مصمم النماذج", path: "/admin-hub/sheet-designer" },
       { icon: Copy, label: "نسخ النماذج", path: "/admin-hub/sheet-copies" },
       { icon: AlertTriangle, label: "بنتكام الفاشل", path: "/admin-hub/pentacam-failed" },
