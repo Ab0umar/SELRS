@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from "react";
-import { BarChart3, Users } from "lucide-react";
+import { BarChart3, Users, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { BulkActionsBar } from "@/components/admin-patients/BulkActionsBar";
 import { AdminPatientsTable } from "@/components/admin-patients/AdminPatientsTable";
 import { AdminPatientsToolbar } from "@/components/admin-patients/AdminPatientsToolbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminPatientsBulk } from "@/hooks/admin-patients/useAdminPatientsBulk";
 import { useAdminPatientsList } from "@/hooks/admin-patients/useAdminPatientsList";
+import { trpc } from "@/lib/trpc";
 
 const MONTHS_AR = [
   "يناير",
@@ -33,6 +35,16 @@ export default function AdminPatients() {
     getRowServiceCode: list.getRowServiceCode,
     savePatientPageStateMutation: list.savePatientPageStateMutation,
     setManualLockOverrides: list.setManualLockOverrides,
+  });
+
+  const syncRegistrationCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
+    onSuccess: (data) => {
+      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب`);
+      list.utils.medical.getRegistrationCatalog.invalidate();
+    },
+    onError: (error) => {
+      toast.error("فشلت المزامنة: " + (error.message || "خطأ غير معروف"));
+    },
   });
 
   const handleApplyFilters = useCallback(async () => {
@@ -64,6 +76,17 @@ export default function AdminPatients() {
             </Badge>
           </div>
           <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => syncRegistrationCatalogMutation.mutate()}
+              disabled={syncRegistrationCatalogMutation.isPending}
+              title="مزامنة قائمة الخدمات والأطباء من MSSQL"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {syncRegistrationCatalogMutation.isPending ? "جاري المزامنة..." : "مزامنة الكتالوج"}
+            </Button>
             <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
               <SelectTrigger className="min-w-[130px] rounded-lg">
                 <SelectValue>{monthLabelShort}</SelectValue>

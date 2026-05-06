@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import PatientPicker from "@/components/PatientPicker";
 import SearchableCombobox from "@/components/SearchableCombobox";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,17 +23,14 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
     canEditPatientData,
     digitsOnly,
     selectedDoctorEntry,
+    doctorName,
     setDoctorName,
-    availableDoctors,
-    normalizeDoctorTypeToSheet,
+    sheetSelection,
     setSheetSelection,
     serviceCode,
     setServiceCode,
-    serviceOptions,
-    isPentacamService,
     serviceQty,
     setServiceQty,
-    sheetSelection,
     locationType,
     setLocationType,
     isFollowup,
@@ -41,361 +39,366 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
     setReceptionSignature,
     medicalChecklist,
     setMedicalChecklist,
+    servicePrice,
+    setServicePrice,
+    discountValue,
+    setDiscountValue,
+    visitDate,
+    setVisitDate,
+    doctorsCatalogQuery,
+    servicesCatalogQuery,
   } = form;
 
+  const mysqlServices = useMemo(() => (servicesCatalogQuery?.data ?? []) as any[], [servicesCatalogQuery?.data]);
+  const mysqlDoctors = useMemo(() => (doctorsCatalogQuery?.data ?? []) as any[], [doctorsCatalogQuery?.data]);
+
+  const selectedService = useMemo(
+    () => mysqlServices.find((s) => String(s.code).trim() === String(serviceCode).trim()),
+    [mysqlServices, serviceCode]
+  );
+
+  const { serviceTotalPrice, serviceTotal, patientShare } = useMemo(() => {
+    const price = selectedService && selectedService.price ? Number(selectedService.price) : 0;
+    const total = price * (Number(serviceQty) || 1);
+    return {
+      serviceTotalPrice: price,
+      serviceTotal: total,
+      patientShare: Math.max(0, total - discountValue),
+    };
+  }, [selectedService, serviceQty, discountValue]);
+
+  const serviceOptions = useMemo(
+    () => [
+      { value: "none", label: "— اختر الخدمة" },
+      ...mysqlServices.map((opt) => ({
+        value: opt.code,
+        label: `${opt.code} - ${opt.name}`,
+        keywords: `${opt.code} ${opt.name}`,
+      })),
+    ],
+    [mysqlServices]
+  );
+
   return (
-            <TabsContent value="patient-info">
-              <Card>
-                {/* no header */}
-                <CardContent>
-                  <div className="mb-4 flex justify-end">
-                    <PatientPicker onSelect={handleSelectPatient} />
-                  </div>
-                  <div className="space-y-3 text-xs" dir="rtl" style={{ textAlign: "center" }}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-name" className="font-bold">الاسم</Label>
-                        <Input
-                          name="patient-name"
-                          id="patient-name"
-                          value={patientInfo.name}
-                          onChange={(e) =>
-                            setPatientInfo((prev) => ({ ...prev, name: e.target.value }))
-                          }
-                          readOnly={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-dob" className="font-bold">تاريخ الميلاد</Label>
-                        <Input
-                          name="patient-dob"
-                          id="patient-dob"
-                          type="date"
-                          value={(() => {
-                            const dob = patientDetails.dateOfBirth;
-                            if (!dob) return "";
-                            // Convert to yyyy-MM-dd format if not already
-                            if (dob.match(/^\d{4}-\d{2}-\d{2}$/)) return dob;
-                            const date = new Date(dob);
-                            if (isNaN(date.getTime())) return "";
-                            return date.toISOString().split("T")[0];
-                          })()}
-                          onChange={(e) =>
-                            setPatientDetails((prev) => ({ ...prev, dateOfBirth: e.target.value }))
-                          }
-                          readOnly={!canEditPatientData}
-                          disabled={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-age" className="font-bold">السن</Label>
-                        <Input
-                          name="patient-age"
-                          id="patient-age"
-                          value={patientDetails.age}
-                          onChange={(e) =>
-                            setPatientDetails((prev) => ({ ...prev, age: digitsOnly(e.target.value) }))
-                          }
-                          readOnly={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                    </div>
+    <TabsContent value="patient-info" className="w-full">
+      <Card className="border-0 shadow-none">
+        <CardContent className="pt-6 space-y-4 px-6" dir="rtl">
+          {/* Top: Visit Date + Followup */}
+          <div className="flex gap-4 items-center justify-between bg-white p-4 rounded-lg border" dir="rtl">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={isFollowup}
+                onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
+                id="followup-main"
+              />
+              <Label htmlFor="followup-main" className="font-semibold cursor-pointer text-sm">متابعة</Label>
+            </div>
+            <div className="flex items-center gap-3 ml-auto">
+              <Input
+                type="date"
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
+                className="text-sm border rounded h-9 px-3 w-32"
+              />
+              <Label className="font-semibold whitespace-nowrap text-sm">تاريخ الزيارة</Label>
+            </div>
+          </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-address" className="font-bold">العنوان</Label>
-                        <Input
-                          name="patient-address"
-                          id="patient-address"
-                          value={patientDetails.address}
-                          onChange={(e) =>
-                            setPatientDetails((prev) => ({ ...prev, address: e.target.value }))
-                          }
-                          readOnly={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-phone" className="font-bold">الموبايل</Label>
-                        <Input
-                          name="patient-phone"
-                          id="patient-phone"
-                          value={patientDetails.phone}
-                          onChange={(e) =>
-                            setPatientDetails((prev) => ({ ...prev, phone: digitsOnly(e.target.value) }))
-                          }
-                          readOnly={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-code" className="font-bold">كود العميل</Label>
-                        <Input
-                          name="patient-code"
-                          id="patient-code"
-                          value={patientInfo.code}
-                          readOnly
-                          disabled
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="patient-job" className="font-bold">الوظيفة</Label>
-                        <Input
-                          name="patient-job"
-                          id="patient-job"
-                          placeholder=""
-                          value={patientDetails.job}
-                          onChange={(e) =>
-                            setPatientDetails((prev) => ({ ...prev, job: e.target.value }))
-                          }
-                          readOnly={!canEditPatientData}
-                          className="text-xs border-0 flex-1 min-w-0"
-                          style={{ textAlign: "right" }}
-                        />
-                      </div>
-                    </div>
+          {/* Patient Search */}
+          <div className="mb-4 flex gap-3 items-center p-3 bg-white rounded-lg border" dir="rtl">
+            <PatientPicker onSelect={handleSelectPatient} />
+          </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-bold text-sm">الطبيب</span>
-                        <SearchableCombobox
-                          value={String((selectedDoctorEntry as any)?.code ?? "")}
-                          onChange={(value) => {
-                            if (!value) {
-                              setDoctorName("");
-                              return;
+          {/* Patient Info Table */}
+          <div className="overflow-x-auto border rounded-lg bg-white">
+            <table className="w-full text-xs text-right border-collapse">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="p-2 font-semibold text-right">الاسم</th>
+                  <th className="p-2 font-semibold text-right border-l">تاريخ الميلاد</th>
+                  <th className="p-2 font-semibold text-right border-l">السن</th>
+                  <th className="p-2 font-semibold text-right border-l">الموبايل</th>
+                  <th className="p-2 font-semibold text-right border-l">كود العميل</th>
+                  <th className="p-2 font-semibold text-right border-l">العنوان</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="p-2">
+                    <Input
+                      value={patientInfo.name}
+                      onChange={(e) => setPatientInfo((prev) => ({ ...prev, name: e.target.value }))}
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2 text-right"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td className="p-2 border-l">
+                    <Input
+                      type="date"
+                      value={(() => {
+                        const dob = patientDetails.dateOfBirth;
+                        if (!dob) return "";
+                        if (dob.match(/^\d{4}-\d{2}-\d{2}$/)) return dob;
+                        const date = new Date(dob);
+                        if (isNaN(date.getTime())) return "";
+                        return date.toISOString().split("T")[0];
+                      })()}
+                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
+                      readOnly={!canEditPatientData}
+                      disabled={!canEditPatientData}
+                      className="text-xs border h-8 px-2"
+                    />
+                  </td>
+                  <td className="p-2 border-l">
+                    <Input
+                      value={patientDetails.age}
+                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, age: digitsOnly(e.target.value) }))}
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2 text-right"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td className="p-2 border-l">
+                    <Input
+                      value={patientDetails.phone}
+                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, phone: digitsOnly(e.target.value) }))}
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2 text-right"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td className="p-2 border-l">
+                    <Input
+                      value={patientInfo.code || "تلقائي"}
+                      readOnly
+                      className="text-xs border h-8 px-2 bg-gray-100 text-right"
+                    />
+                  </td>
+                  <td className="p-2 border-l">
+                    <Input
+                      value={patientDetails.address}
+                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, address: e.target.value }))}
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2 text-right"
+                      placeholder="—"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Doctor Selector */}
+          <div className="flex gap-3 items-center p-4 bg-white rounded-lg border text-sm" dir="rtl">
+            <Select
+              value={doctorName || ""}
+              onValueChange={(name) => setDoctorName(name)}
+            >
+              <SelectTrigger className="w-72 h-8 text-sm text-right">
+                <SelectValue placeholder="اختر الطبيب">
+                  {selectedDoctorEntry
+                    ? `${(selectedDoctorEntry as any).doctorType || "—"} - ${(selectedDoctorEntry as any).code || ""}`
+                    : "اختر الطبيب"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {mysqlDoctors.map((doc) => (
+                  <SelectItem key={`${(doc as any).id}`} value={String((doc as any)?.name ?? "")}>
+                    {`${String((doc as any)?.name ?? "")} (${String((doc as any)?.code ?? "")})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label className="font-semibold whitespace-nowrap text-sm">الطبيب</Label>
+          </div>
+
+          {/* Services Table */}
+          <div className="border-t pt-4">
+            <div className="bg-blue-900 text-white font-bold p-2 rounded-t text-sm text-right">خدمات الزيارة</div>
+            <div className="overflow-x-auto border border-t-0 rounded-b bg-white">
+              <table className="w-full text-xs text-right border-collapse">
+                <thead className="bg-blue-900 text-white border-b">
+                  <tr>
+                    <th className="p-2 font-bold">كود الخدمة</th>
+                    <th className="p-2 font-bold border-l">اسم الخدمة</th>
+                    <th className="p-2 font-bold border-l">الكمية</th>
+                    <th className="p-2 font-bold border-l">التاريخ</th>
+                    <th className="p-2 font-bold border-l">الوقت</th>
+                    <th className="p-2 font-bold border-l">السعر</th>
+                    <th className="p-2 font-bold border-l">الخصم</th>
+                    <th className="p-2 font-bold border-l">ما يخص المريض</th>
+                    <th className="p-2 font-bold border-l">إجمالي الجهة</th>
+                    <th className="p-2 font-bold border-l">كود الطبيب</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b hover:bg-gray-50">
+                    <td className="p-2 text-center">
+                      <SearchableCombobox
+                        value={serviceCode || ""}
+                        onChange={(value) => {
+                          if (value && value !== "none") {
+                            setServiceCode(value);
+                            const svc = mysqlServices.find((s) => s.code === value);
+                            if (svc) {
+                              setServicePrice(Number(svc.price || 0));
+                              setDiscountValue(0);
+                              setServiceQty("1");
                             }
-                            const doctor = availableDoctors.find((item) => String(item.code ?? "").trim() === value);
-                            setDoctorName(String(doctor?.name ?? ""));
-                            const defaultSheet = normalizeDoctorTypeToSheet(doctor?.doctorType ?? "");
-                            if (defaultSheet) setSheetSelection(defaultSheet);
-                          }}
-                          options={[
-                            { value: "", label: "—" },
-                            ...availableDoctors.map((doctor) => ({
-                              value: String(doctor.code ?? "").trim(),
-                              label: `${doctor.name}${doctor.code ? ` (${doctor.code})` : ""}`,
-                              keywords: `${doctor.name} ${doctor.username ?? ""} ${doctor.code ?? ""}`,
-                            })),
-                          ]}
-                          placeholder="اختر الطبيب"
-                          searchPlaceholder="ابحث عن طبيب..."
-                          className="border-0 w-full sm:w-48 min-w-0"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Label htmlFor="srv-code" className="font-bold">الخدمة</Label>
-                        <SearchableCombobox
-                          value={serviceCode}
-                          onChange={(value) => setServiceCode(value)}
-                          options={[
-                            { value: "", label: "—" },
-                            ...serviceOptions.map((opt) => ({
-                              value: opt.code,
-                              label: `${opt.code} - ${opt.name}`,
-                              keywords: `${opt.code} ${opt.name}`,
-                            })),
-                          ]}
-                          placeholder="اختر الخدمة"
-                          searchPlaceholder="ابحث عن خدمة..."
-                          emptyText="لا توجد خدمات مطابقة للطبيب"
-                          className="border-0 w-full sm:w-64 min-w-0"
-                        />
-                      </div>
-                      {isPentacamService ? (
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Label htmlFor="srv-qty" className="font-bold">الكمية</Label>
-                          <Select
-                            value={serviceQty || "2"}
-                            onValueChange={(value) => setServiceQty(value)}
-                          >
-                            <SelectTrigger id="srv-qty" className="text-xs border-0 w-full sm:w-32 min-w-0">
-                              <SelectValue placeholder="الكمية" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">1</SelectItem>
-                              <SelectItem value="2">2</SelectItem>
-                              <SelectItem value="3">3</SelectItem>
-                              <SelectItem value="4">4</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between gap-4 flex-wrap w-full">
-                    {[
-                      { type: "external", label: "خارجي" },
-                      { type: "lasik", label: "فحوصات الليزك" },
-                      { type: "specialist", label: "اخصائي" },
-                      { type: "consultant", label: "استشاري", isFirst: true },
-                    ].map((sheet) => (
-                      <label key={sheet.type} className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox
-                          checked={sheetSelection === sheet.type}
-                          onCheckedChange={(checked) => {
-                            if (!checked) return;
-                            setSheetSelection(sheet.type);
-                          }}
-                        />
-                        <span>{sheet.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-6 flex-wrap w-full">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={locationType === "center"}
-                        disabled={!canEditPatientData}
-                        onCheckedChange={(checked) => {
-                          if (!checked) return;
-                          setLocationType("center");
+                          } else if (value === "none" || !value) {
+                            setServiceCode("");
+                            setServicePrice(0);
+                            setDiscountValue(0);
+                            setServiceQty("");
+                          }
                         }}
+                        options={serviceOptions}
+                        placeholder="ابحث"
+                        searchPlaceholder="ابحث عن خدمة..."
+                        className="w-20"
                       />
-                      <span>مركز</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={locationType === "external"}
-                        disabled={!canEditPatientData}
-                        onCheckedChange={(checked) => {
-                          if (!checked) return;
-                          setLocationType("external");
-                        }}
-                      />
-                      <span>خارجي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={isFollowup}
-                        onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
-                      />
-                      <span>متابعة</span>
-                    </label>
-                  </div>
-                  
-                  <div className="mt-6">
-                    <div className="space-y-1 pr-6 flex flex-col items-end w-full">
-                      <Label htmlFor="reception-signature" className="font-bold text-right">توقيع الاستقبال</Label>
+                    </td>
+                    <td className="p-2 border-l">
+                      {selectedService?.name || "—"}
+                    </td>
+                    <td className="p-2 text-center border-l">
                       <Input
-                        id="reception-signature"
-                        name="reception-signature"
-                        value={receptionSignature}
-                        onChange={(e) => setReceptionSignature(e.target.value)}
-                        className="text-right w-full max-w-sm ms-auto"
+                        type="number"
+                        value={serviceQty || "1"}
+                        onChange={(e) => setServiceQty(e.target.value)}
+                        className="w-12 h-6 text-xs text-center border p-0"
+                        min="1"
                       />
-                    </div>
-                </div>
+                    </td>
+                    <td className="p-2 text-center border-l">
+                      <Input
+                        type="date"
+                        value={visitDate}
+                        onChange={(e) => setVisitDate(e.target.value)}
+                        className="w-20 h-6 text-xs border p-0"
+                      />
+                    </td>
+                    <td className="p-2 text-center border-l">
+                      <span className="text-gray-400">—</span>
+                    </td>
+                    <td className="p-2 text-center font-semibold border-l">
+                      {serviceTotalPrice.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center border-l">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={discountValue}
+                        onChange={(e) => {
+                          const value = Math.max(0, Number(e.target.value) || 0);
+                          setDiscountValue(Math.min(value, serviceTotal));
+                        }}
+                        className="w-16 h-6 text-xs text-center border p-0"
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="p-2 text-center font-semibold border-l">
+                      {patientShare.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center border-l">0</td>
+                    <td className="p-2 text-center border-l">
+                      {selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "") : "—"}
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-100 font-bold text-xs border-t-2 border-gray-300">
+                    <td colSpan={2} className="p-2 text-right">الإجمالي</td>
+                    <td className="p-2 border-l">1</td>
+                    <td className="p-2 border-l"></td>
+                    <td className="p-2 border-l"></td>
+                    <td className="p-2 text-center border-l">
+                      {serviceTotal.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center border-l">
+                      {discountValue.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center border-l">
+                      {patientShare.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center border-l">0</td>
+                    <td className="p-2 text-center border-l">
+                      {selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "") : "—"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-              </CardContent>
-            </Card>
-            {sheetSelection === "lasik" && (
-            <Card className="mt-4" dir="rtl">
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">هل سمعت عن مرض القرنية المخروطية في أحد أفراد العائلة؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.familyKeratoconus}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, familyKeratoconus: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">هل تستخدم بديل دموع / زيادة في إفراز الدموع / إحساس بالرمل؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.usesTearSubstituteOrExcessTearsOrSandySensation}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">هل تزيد هذه الأعراض عند وجود هواء أو تكييف؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.symptomsWorseWithAirOrAC}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, symptomsWorseWithAirOrAC: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2" dir="rtl">
-                      <span className="text-right flex-1">هل تعالج من ماء زرقاء؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.glaucomaTreatment}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, glaucomaTreatment: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                  </div>
+          {/* Sheet Type Checkboxes */}
+          <div className="flex flex-wrap gap-4 justify-end pt-3 text-sm">
+            {[
+              { type: "consultant", label: "استشاري" },
+              { type: "specialist", label: "اخصائي" },
+              { type: "lasik", label: "فحوصات الليزك" },
+              { type: "external", label: "خارجي" },
+            ].map((sheet) => (
+              <label key={sheet.type} className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={sheetSelection === sheet.type}
+                  onCheckedChange={(checked) => {
+                    if (checked) setSheetSelection(sheet.type);
+                  }}
+                />
+                <span>{sheet.label}</span>
+              </label>
+            ))}
+          </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">أمراض عامة؟ (ضغط / سكر / غدة)</span>
-                      <Checkbox
-                        checked={medicalChecklist.generalDiseases}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, generalDiseases: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">حمل أو رضاعة؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.pregnancyOrLactation}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, pregnancyOrLactation: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-b pb-1" dir="rtl">
-                      <span className="text-right flex-1">هل تستخدم مضادات حساسية أو مكملات غذائية/كورتيزون/أدوية ضغط؟</span>
-                      <Checkbox
-                        checked={medicalChecklist.usesAllergySupplementsSteroidsOrPressureMeds}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, usesAllergySupplementsSteroidsOrPressureMeds: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2" dir="rtl">
-                      <span className="text-right flex-1">هل تستخدم علاج لحب الشباب؟ (اسم العلاج)</span>
-                      <Checkbox
-                        checked={medicalChecklist.acneTreatment}
-                        onCheckedChange={(checked) =>
-                          setMedicalChecklist((prev) => ({ ...prev, acneTreatment: Boolean(checked) }))
-                        }
-                        className="border-2 border-gray-700"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            )}
-            </TabsContent>
+          {/* Location & Followup Checkboxes */}
+          <div className="flex flex-wrap gap-6 justify-end text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={locationType === "center"}
+                onCheckedChange={(checked) => {
+                  if (checked) setLocationType("center");
+                }}
+              />
+              <span>مركز</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={locationType === "external"}
+                onCheckedChange={(checked) => {
+                  if (checked) setLocationType("external");
+                }}
+              />
+              <span>خارجي</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={isFollowup}
+                onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
+              />
+              <span>متابعة</span>
+            </label>
+          </div>
+
+          {/* Reception Signature */}
+          <div className="border-t pt-3 text-sm">
+            <Label className="block font-semibold text-right mb-2">توقيع الاستقبال</Label>
+            <Input
+              value={receptionSignature}
+              onChange={(e) => setReceptionSignature(e.target.value)}
+              className="text-xs border h-8 p-2 w-full text-right"
+              placeholder="توقيع الاستقبال"
+            />
+          </div>
+
+          {/* Medical Checklist (hidden) */}
+          <div className="hidden">
+            {Object.entries(medicalChecklist).map(([key, value]) => (
+              <input key={key} type="hidden" value={String(value)} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
   );
 }
-

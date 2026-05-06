@@ -1,7 +1,24 @@
-import { eq, and, like, desc, or, sql, inArray, gte, lte, lt, getTableColumns, isNull } from "drizzle-orm";
+import {
+  eq,
+  and,
+  like,
+  desc,
+  or,
+  sql,
+  inArray,
+  gte,
+  lte,
+  lt,
+  getTableColumns,
+  isNull,
+  isNotNull,
+  asc,
+  ne,
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { exec as execCb } from "node:child_process";
 import { promisify } from "node:util";
 import {
@@ -49,6 +66,7 @@ import {
   followupSheets,
   followupItems,
   doctorsLookup,
+  services,
   visitScheduleRequests,
   InsertVisitScheduleRequest,
 } from "../drizzle/schema";
@@ -97,6 +115,123 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+/** Stable UUID-shaped id from a namespace + business key (deterministic upserts). */
+export function deterministicCatalogId(ns: string, key: string): string {
+  const h = createHash("sha1").update(`${ns}:${key}`).digest();
+  const hex = Buffer.from(h.subarray(0, 16)).toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+export async function getRegistrationCatalogFromDb(): Promise<{
+  services: Array<{ code: string; name: string; price: number }>;
+  doctors: Array<{ code: string; name: string }>;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return { services: [], doctors: [] };
+  }
+  const svcRows = await db
+    .select({
+      code: services.code,
+      name: services.name,
+      price: services.price,
+    })
+    .from(services)
+    .where(eq(services.isActive, true))
+    .orderBy(asc(services.code));
+  const docRows = await db
+    .select({
+      code: doctorsLookup.code,
+      name: doctorsLookup.name,
+    })
+    .from(doctorsLookup)
+    .where(and(isNotNull(doctorsLookup.code), ne(doctorsLookup.code, "")))
+    .orderBy(asc(doctorsLookup.code));
+  return {
+    services: svcRows.map((r) => ({
+      code: String(r.code ?? "").trim(),
+      name: String(r.name ?? "").trim(),
+      price: Number(r.price ?? 0),
+    })),
+    doctors: docRows.map((r) => ({
+      code: String(r.code ?? "").trim(),
+      name: String(r.name ?? "").trim(),
+    })),
+  };
+}
+
+const REG_CATALOG_BATCH = 50;
+
+export async function upsertRegistrationCatalogRows(params: {
+  mssqlServices: Array<{ code: string; name: string; price: number }>;
+  mssqlDoctors: Array<{ code: string; name: string }>;
+}): Promise<{ servicesUpserted: number; doctorsUpserted: number }> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  const now = new Date();
+  let servicesUpserted = 0;
+  for (let i = 0; i < params.mssqlServices.length; i += REG_CATALOG_BATCH) {
+    const chunk = params.mssqlServices.slice(i, i + REG_CATALOG_BATCH);
+    for (const row of chunk) {
+      const code = String(row.code ?? "").trim();
+      if (!code) continue;
+      const id = deterministicCatalogId("svc", code);
+      const priceStr = String(Number(row.price) || 0);
+      await db
+        .insert(services)
+        .values({
+          id,
+          code,
+          name: String(row.name ?? "").trim() || code,
+          category: null,
+          serviceType: "lasik",
+          srvTyp: null,
+          defaultSheet: "lasik",
+          locationType: "center",
+          price: priceStr,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            name: String(row.name ?? "").trim() || code,
+            price: priceStr,
+            isActive: true,
+            updatedAt: now,
+          },
+        });
+      servicesUpserted += 1;
+    }
+  }
+  let doctorsUpserted = 0;
+  for (let i = 0; i < params.mssqlDoctors.length; i += REG_CATALOG_BATCH) {
+    const chunk = params.mssqlDoctors.slice(i, i + REG_CATALOG_BATCH);
+    for (const row of chunk) {
+      const code = String(row.code ?? "").trim();
+      if (!code) continue;
+      const id = deterministicCatalogId("doc", code);
+      await db
+        .insert(doctorsLookup)
+        .values({
+          id,
+          code,
+          name: String(row.name ?? "").trim() || code,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            code,
+            name: String(row.name ?? "").trim() || code,
+          },
+        });
+      doctorsUpserted += 1;
+    }
+  }
+  return { servicesUpserted, doctorsUpserted };
 }
 
 // ============ USER OPERATIONS ============
@@ -158,7 +293,13 @@ export async function createUser(userData: InsertUser) {
     return undefined;
   }
 
-  const result = await db.insert(users).values(userData);
+  const encoded: InsertUser = {
+    ...userData,
+    username: encodeForLegacySearch(String(userData.username ?? "")),
+    name: userData.name ? encodeForLegacySearch(String(userData.name)) : userData.name,
+  };
+
+  const result = await db.insert(users).values(encoded);
   return result;
 }
 
@@ -217,7 +358,11 @@ export async function updateUser(userId: number, updates: Partial<InsertUser>) {
     return;
   }
 
-  await db.update(users).set(updates).where(eq(users.id, userId));
+  const encoded: Partial<InsertUser> = { ...updates };
+  if (updates.username != null) encoded.username = encodeForLegacySearch(String(updates.username));
+  if (updates.name != null) encoded.name = encodeForLegacySearch(String(updates.name));
+
+  await db.update(users).set(encoded).where(eq(users.id, userId));
 }
 
 /**
@@ -4545,6 +4690,26 @@ export async function deleteOperationBooking(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(operationBookings).where(eq(operationBookings.id, id));
+}
+
+export async function getTodayOperationBookingsGrouped(date: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const dateValue = normalizeListDate(date);
+  if (!dateValue) return [];
+
+  const results = await db
+    .select({
+      doctorName: operationBookings.doctorName,
+      operationType: operationBookings.operationType,
+      totalCount: sql<number>`sum(${operationBookings.casesCount})`,
+      bookingDate: operationBookings.bookingDate,
+    })
+    .from(operationBookings)
+    .where(eq(operationBookings.bookingDate, dateValue as any))
+    .groupBy(operationBookings.doctorName, operationBookings.operationType, operationBookings.bookingDate);
+
+  return results;
 }
 
 export async function getAutoOperationListsByDate(dateString: string) {

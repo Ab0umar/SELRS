@@ -13,6 +13,7 @@ import {
   FileText,
   Glasses,
   CircleDot,
+  Syringe,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,12 +32,14 @@ type QuickActionItem =
   | { label: string; icon: LucideIcon; color: string; kind: "quick-entry-dialog" }
   | { label: string; icon: LucideIcon; color: string; kind: "schedule-dialog" }
   | { label: string; icon: LucideIcon; color: string; kind: "measurements-panel" }
+  | { label: string; icon: LucideIcon; color: string; kind: "operations-booking-dialog" }
   | { label: string; icon: LucideIcon; color: string; kind: "pick-patient"; page: PageKey };
 
 const quickActions: QuickActionItem[] = [
   { label: "تسجيل مريض", icon: UserPlus, color: "bg-primary/10 text-primary hover:bg-primary/20", kind: "quick-entry-dialog" },
   { label: "حجز موعد", icon: CalendarPlus, color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400", kind: "schedule-dialog" },
   { label: "القياسات و الفحص", icon: Eye, color: "bg-primary/10 text-primary hover:bg-primary/15 dark:text-primary", kind: "measurements-panel" },
+  { label: "حجز العمليات", icon: Syringe, color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400", kind: "operations-booking-dialog" },
   { label: "مقاس النظارة", icon: Glasses, color: "bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20 dark:text-cyan-400", kind: "pick-patient", page: "refraction" },
   { label: "بنتاكام", icon: CircleDot, color: "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 dark:text-violet-400", kind: "pick-patient", page: "pentacam-sheet" },
   { label: "الروشتات", icon: Pill, color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400", kind: "pick-patient", page: "write-prescription" },
@@ -49,9 +52,11 @@ const quickActions: QuickActionItem[] = [
 export type QuickActionsProps = {
   /** «القياسات و الفحص»: فتح منتقي المريض ثم `MedicalFilePanel`. */
   onOpenMeasurementsMedicalFile?: () => void;
+  /** «حجز العمليات»: فتح نافذة حجز العمليات السريعة (موديال). */
+  onOpenOperationsBooking?: () => void;
 };
 
-export function QuickActions({ onOpenMeasurementsMedicalFile }: QuickActionsProps) {
+export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBooking }: QuickActionsProps) {
   const [, setLocation] = useLocation();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -108,6 +113,14 @@ export function QuickActions({ onOpenMeasurementsMedicalFile }: QuickActionsProp
                     return;
                   }
                   setLocation("/examination");
+                  return;
+                }
+                if (action.kind === "operations-booking-dialog") {
+                  if (onOpenOperationsBooking) {
+                    onOpenOperationsBooking();
+                    return;
+                  }
+                  setLocation("/operations");
                   return;
                 }
                 setPickPage(action.page);

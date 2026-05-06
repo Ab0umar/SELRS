@@ -79,6 +79,8 @@ export function useExaminationForm(
     job: "",
   });
   const [locationType, setLocationType] = useState<"center" | "external">("center");
+  const [servicePrice, setServicePrice] = useState(0);
+  const [discountValue, setDiscountValue] = useState(0);
   const lastAgeSyncRef = useRef<"dob" | "age" | null>(null);
   const [medicalChecklist, setMedicalChecklist] = useState({
     generalDiseases: false,
@@ -107,6 +109,15 @@ export function useExaminationForm(
   });
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
+  });
+  // MySQL catalog queries for patient registration
+  const doctorsCatalogQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  const servicesCatalogQuery = trpc.medical.getServicesCatalog.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
   const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -968,6 +979,8 @@ export function useExaminationForm(
           locationType,
           ...(doctorCode ? { doctorCode } : {}),
           ...(serviceCode ? { serviceCode } : {}),
+          ...(servicePrice > 0 ? { servicePrice } : {}),
+          ...(discountValue > 0 ? { discountValue } : {}),
         });
         effectivePatientId = created.id;
         setPatientInfo((prev) => ({
@@ -1087,7 +1100,29 @@ export function useExaminationForm(
       await syncSelectedSheets(effectivePatientId, allSheetTypes);
       toast.success("تم حفظ البيانات بنجاح");
       if (embedded) {
-        onEmbeddedClose?.();
+        // Clear the form for embedded mode (modal stays open)
+        setPatientInfo({ id: 0, name: "", code: "" });
+        setPatientDetails({ dateOfBirth: "", age: "", address: "", phone: "", job: "" });
+        setServiceCode("");
+        setServiceQty("1");
+        setDoctorName("");
+        setSheetSelection("");
+        setLocationType("center");
+        setIsFollowup(false);
+        setReceptionSignature("");
+        setServicePrice(0);
+        setDiscountValue(0);
+        setVisitDate(new Date().toISOString().split("T")[0]);
+        setMedicalChecklist({
+          generalDiseases: false,
+          pregnancyOrLactation: false,
+          usesAllergySupplementsSteroidsOrPressureMeds: false,
+          acneTreatment: false,
+          familyKeratoconus: false,
+          usesTearSubstituteOrExcessTearsOrSandySensation: false,
+          symptomsWorseWithAirOrAC: false,
+          glaucomaTreatment: false,
+        });
       } else if (sheetSelection) {
         const target = isFollowup ? "consultant" : sheetSelection;
         const suffix = isFollowup ? "?tab=followup" : "";
@@ -1134,6 +1169,10 @@ export function useExaminationForm(
     setPatientDetails,
     locationType,
     setLocationType,
+    servicePrice,
+    setServicePrice,
+    discountValue,
+    setDiscountValue,
     medicalChecklist,
     setMedicalChecklist,
     examData,
@@ -1160,6 +1199,8 @@ export function useExaminationForm(
     digitsOnly,
     normalizeDoctorTypeToSheet,
     patientQuery,
+    doctorsCatalogQuery,
+    servicesCatalogQuery,
   };
 }
 

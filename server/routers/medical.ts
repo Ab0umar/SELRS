@@ -7,6 +7,9 @@ import { router, protectedProcedure, doctorProcedure, nurseProcedure, technician
 import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
+import { eq } from "drizzle-orm";
+import { services } from "../../drizzle/schema";
+import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
 import {
@@ -1540,6 +1543,9 @@ async function pushNewPatientToMssql(patient: {
   doctorCode?: string | null;
   enteredBy?: string | null;
   serviceCode?: string | null;
+  servicePrice?: number | null;
+  discountValue?: number | null;
+  paValue?: number | null;
 }) {
   console.log(`[pushNewPatientToMssql] Patient ${patient.patientCode}, serviceType="${patient.serviceType}", providedServiceCode="${patient.serviceCode}"`);
 
@@ -1561,7 +1567,24 @@ async function pushNewPatientToMssql(patient: {
     enteredBy: patient.enteredBy ?? null,
     serviceCode: serviceCode || undefined,
     doctorCode: patient.doctorCode || undefined,
+    servicePrice: patient.servicePrice ?? undefined,
+    discountValue: patient.discountValue ?? undefined,
+    paValue: patient.paValue ?? undefined,
   });
+}
+
+/** When either field is present, compute clamped discount and net PA_VL for MSSQL PAPAT_SRV. */
+function registrationPricingPayload(input: {
+  servicePrice?: number | null;
+  discountValue?: number | null;
+}): { servicePrice: number; discountValue: number; paValue: number } | Record<string, never> {
+  if (input.servicePrice == null && input.discountValue == null) {
+    return {};
+  }
+  const gross = Math.max(0, Number(input.servicePrice ?? 0));
+  const disc = Math.min(Math.max(0, Number(input.discountValue ?? 0)), gross);
+  const paValue = Math.max(0, gross - disc);
+  return { servicePrice: gross, discountValue: disc, paValue };
 }
 
 async function canPushToMssql(user: { id: number; role: string }): Promise<boolean> {
@@ -1619,6 +1642,8 @@ export const medicalRouter = router({
       doctorCode: z.string().optional(),
       doctorName: z.string().optional(),
       serviceCode: z.string().optional(),
+      servicePrice: z.number().nonnegative().optional(),
+      discountValue: z.number().nonnegative().optional(),
       lastVisit: z.string().optional(),
       skipIfExists: z.boolean().optional(),
     }))
@@ -1661,6 +1686,10 @@ export const medicalRouter = router({
           if (!doctorCode) {
             doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
           }
+          const pricingPayload = registrationPricingPayload({
+            servicePrice: patientInput.servicePrice,
+            discountValue: patientInput.discountValue,
+          });
           pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
               fullName: String((existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "").trim(),
@@ -1681,6 +1710,9 @@ export const medicalRouter = router({
               doctorCode: doctorCode || null,
               enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
               serviceCode: patientInput.serviceCode || null,
+              servicePrice: pricingPayload.servicePrice,
+              discountValue: pricingPayload.discountValue,
+              paValue: pricingPayload.paValue,
             }).catch((error) => {
               mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
               console.warn("[mssql-push] createPatient(existing) failed", {
@@ -1747,6 +1779,10 @@ export const medicalRouter = router({
             doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
           }
           console.log(`[createPatient] Resolved doctorCode=${doctorCode}`);
+          const pricingPayload = registrationPricingPayload({
+            servicePrice: patientInput.servicePrice,
+            discountValue: patientInput.discountValue,
+          });
           pushResult = await pushNewPatientToMssql({
             patientCode: String(created.patientCode),
             fullName: String(created.fullName),
@@ -1761,6 +1797,9 @@ export const medicalRouter = router({
             doctorCode: doctorCode || null,
             enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
             serviceCode: patientInput.serviceCode || null,
+            servicePrice: pricingPayload.servicePrice,
+            discountValue: pricingPayload.discountValue,
+            paValue: pricingPayload.paValue,
           }).catch((error) => {
             console.warn("[mssql-push] createPatient failed", {
               patientCode: String(created.patientCode),
@@ -5006,16 +5045,33 @@ export const medicalRouter = router({
     }),
 
   getTodayOperationLists: protectedProcedure
-    .input(z.object({ date: z.string().optional() }))
-    .query(async ({ input }) => {
-      const date = input.date || new Date().toISOString().split("T")[0];
-      const [manualLists, autoLists] = await Promise.all([
-        db.getOperationListsByDate(date),
-        db.getAutoOperationListsByDate(date),
-      ]);
-      return [...manualLists, ...autoLists];
-    }),
+   .input(z.object({ date: z.string().optional() }))
+   .query(async ({ input }) => {
+     const date = input.date || new Date().toISOString().split("T")[0];
+     const [manualLists, bookings] = await Promise.all([
+       db.getOperationListsByDate(date),
+       db.getTodayOperationBookingsGrouped(date),
+     ]);
 
+     const mappedBookings = bookings.map((b, i) => ({
+       id: -(i + 1), // unique negative id for UI keys
+       doctorName: b.doctorName,
+       operationType: b.operationType,
+       listTime: null,
+       isBooking: true, // mark for frontend differentiation if needed
+       items: [
+         {
+           id: -(i + 1),
+           name: `حجز مسبق (${b.totalCount} حالة)`,
+           doctor: b.doctorName,
+           operation: b.operationType,
+           casesCount: b.totalCount,
+         },
+       ],
+     }));
+
+     return [...manualLists, ...mappedBookings];
+   }),
   deleteOperationList: protectedProcedure
     .input(z.object({
       doctorTab: z.string(),
@@ -5042,9 +5098,12 @@ export const medicalRouter = router({
     }))
     .query(async ({ input }) => {
       const today = new Date().toISOString().split("T")[0];
-      return await db.getOperationBookingsByDateRange(input.fromDate ?? today, input.toDate ?? input.fromDate ?? today);
+      const bookings = await db.getOperationBookingsByDateRange(input.fromDate ?? today, input.toDate ?? input.fromDate ?? today);
+      return bookings.map((b) => ({
+        ...b,
+        bookingDate: b.bookingDate instanceof Date ? b.bookingDate.toISOString().split("T")[0] : String(b.bookingDate),
+      }));
     }),
-
   createOperationBooking: protectedProcedure
     .input(z.object({
       bookingDate: z.string(),
@@ -5494,6 +5553,28 @@ export const medicalRouter = router({
     } catch {
       return [] as Array<z.infer<typeof serviceDirectoryEntrySchema>>;
     }
+  }),
+
+  getServicesCatalog: protectedProcedure.query(async () => {
+    const dbInstance = await db.getDb();
+    if (!dbInstance) return [];
+    const result = await dbInstance
+      .select({
+        id: services.id,
+        code: services.code,
+        name: services.name,
+        price: services.price,
+        serviceType: services.serviceType,
+        category: services.category,
+      })
+      .from(services)
+      .where(eq(services.isActive, true));
+    return result.map((s: any) => ({
+      ...s,
+      price: Number(s.price ?? 0),
+      code: decodeMojibake(String(s.code)),
+      name: decodeMojibake(String(s.name)),
+    }));
   }),
 
   updateServiceDirectory: adminProcedure
@@ -6709,6 +6790,78 @@ export const medicalRouter = router({
 
       return { success: true };
     }),
+
+  // Sync registration catalog (services + doctors) from MSSQL to MySQL
+  syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
+    try {
+      // Query SRVCMF + SRVLSTD (Lasik section SEC_CD=15) for services
+      const servicesQuery = `
+        SELECT DISTINCT
+          s.SRV_CD AS code,
+          s.SRV_NM AS name,
+          CAST(COALESCE(l.PR_VL, 0) AS DECIMAL(10, 2)) AS price
+        FROM SRVCMF s
+        LEFT JOIN SRVLSTD l ON s.SRV_CD = l.SRV_CD AND l.SEC_CD = 15
+        WHERE s.ACT_CD = 'A'
+        ORDER BY s.SRV_CD
+      `;
+      const mssqlServices = await mssqlQuery(servicesQuery, {});
+
+      // Query MDTEAM for doctors
+      const doctorsQuery = `
+        SELECT DISTINCT
+          DRS_CD AS code,
+          DRS_NM AS name
+        FROM MDTEAM
+        WHERE ACT_CD = 'A'
+        ORDER BY DRS_CD
+      `;
+      const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
+
+      // Upsert to MySQL services and doctorsLookup tables
+      const result = await db.upsertRegistrationCatalogRows({
+        mssqlServices: mssqlServices.map((row: any) => ({
+          code: String(row.code ?? "").trim(),
+          name: String(row.name ?? "").trim(),
+          price: Number(row.price ?? 0),
+        })),
+        mssqlDoctors: mssqlDoctors.map((row: any) => ({
+          code: String(row.code ?? "").trim(),
+          name: String(row.name ?? "").trim(),
+        })),
+      });
+
+      await db.logAuditEvent(ctx.user.id, "SYNC_REGISTRATION_CATALOG", "system", 0, {
+        servicesUpserted: result.servicesUpserted,
+        doctorsUpserted: result.doctorsUpserted,
+      });
+
+      return {
+        success: true,
+        servicesUpserted: result.servicesUpserted,
+        doctorsUpserted: result.doctorsUpserted,
+      };
+    } catch (error) {
+      console.error("syncRegistrationCatalogFromMssql error:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to sync registration catalog from MSSQL",
+      });
+    }
+  }),
+
+  // Get registration catalog (services + doctors) from MySQL
+  getRegistrationCatalog: protectedProcedure.query(async () => {
+    try {
+      return await db.getRegistrationCatalogFromDb();
+    } catch (error) {
+      console.error("getRegistrationCatalog error:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch registration catalog",
+      });
+    }
+  }),
 
   // ============ DOCTORS & SERVICES now use doctors and services tables directly ============
   // createDoctor, updateDoctor, deleteDoctor, getServices, createService, updateService, deleteService

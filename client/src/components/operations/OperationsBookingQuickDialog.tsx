@@ -77,7 +77,7 @@ export function OperationsBookingQuickDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg" dir="rtl">
+      <DialogContent className="max-h-[90vh] w-[96vw] overflow-y-auto sm:max-w-5xl" dir="rtl">
         <DialogHeader className="text-right">
           <DialogTitle className="text-right">حجز عملية</DialogTitle>
         </DialogHeader>

@@ -43,6 +43,9 @@ export type MssqlPatientInsertInput = {
   dueAmount?: number | string | null;
   enteredBy?: string | null;
   doctorCode?: string | null;
+  servicePrice?: number | null;
+  discountValue?: number | null;
+  paValue?: number | null;
 };
 
 type MssqlSyncState = {
@@ -445,7 +448,16 @@ async function applyPapatSrvDefaults(
   patientCode: string,
   serviceCode: string,
   desiredQty: number,
-  options?: { patientNameAr?: string | null; enteredBy?: string | null; entryDate?: string | null; trNo?: number | null }
+  options?: {
+    patientNameAr?: string | null;
+    enteredBy?: string | null;
+    entryDate?: string | null;
+    trNo?: number | null;
+    /** Gross line price before discount (maps to PRC when set). */
+    serviceLinePrice?: number | null;
+    discountValue?: number | null;
+    paValue?: number | null;
+  }
 ): Promise<void> {
   const qty = Math.max(1, Math.trunc(desiredQty || 1));
   const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
@@ -470,7 +482,14 @@ async function applyPapatSrvDefaults(
     );
   }
   if (cols.has("DISC_VL")) {
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC_VL = ISNULL(DISC_VL, 0) WHERE ${whereSrv}`);
+    const dv = options?.discountValue;
+    if (dv != null && Number.isFinite(Number(dv))) {
+      await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC_VL = @DISC_VL WHERE ${whereSrv}`, (req) =>
+        req.input("DISC_VL", Number(dv)),
+      );
+    } else {
+      await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC_VL = ISNULL(DISC_VL, 0) WHERE ${whereSrv}`);
+    }
   }
   let basePrice: number | null = null;
   try {
@@ -564,6 +583,10 @@ async function applyPapatSrvDefaults(
     const p = Number(rr?.P);
     if (Number.isFinite(p)) basePrice = p;
   }
+  const linePx = options?.serviceLinePrice;
+  if (linePx != null && Number.isFinite(Number(linePx)) && Number(linePx) >= 0) {
+    basePrice = Number(linePx);
+  }
   if (cols.has("PRC") && basePrice != null) {
     await run(
       `UPDATE op2026.dbo.PAPAT_SRV
@@ -590,26 +613,33 @@ async function applyPapatSrvDefaults(
     );
   }
   if (cols.has("PA_VL")) {
-    const discountExpr = cols.has("DISC_VL")
-      ? "CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END"
-      : "0";
-    const discReq = pool.request();
-    discReq.input("PAT_CD", patientCode);
-    discReq.input("SRV_CD", serviceCode);
-    if (hasScopedTrNo) discReq.input("TR_NO", Math.trunc(scopedTrNo));
-    const discRs = await discReq.query(`
+    const paOpt = options?.paValue;
+    if (paOpt != null && Number.isFinite(Number(paOpt))) {
+      await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
+        req.input("PA_VL", Number(paOpt)),
+      );
+    } else {
+      const discountExpr = cols.has("DISC_VL")
+        ? "CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END"
+        : "0";
+      const discReq = pool.request();
+      discReq.input("PAT_CD", patientCode);
+      discReq.input("SRV_CD", serviceCode);
+      if (hasScopedTrNo) discReq.input("TR_NO", Math.trunc(scopedTrNo));
+      const discRs = await discReq.query(`
       SELECT TOP 1
         ${discountExpr} AS D
       FROM op2026.dbo.PAPAT_SRV
       WHERE ${whereSrv}
     `);
-    const discRow = Array.isArray(discRs?.recordset) && discRs.recordset.length > 0 ? discRs.recordset[0] : {};
-    const disc = Number.isFinite(Number(discRow?.D)) ? Number(discRow?.D) : 0;
-    const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
-    const total = price * qty - disc;
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
-      req.input("PA_VL", total)
-    );
+      const discRow = Array.isArray(discRs?.recordset) && discRs.recordset.length > 0 ? discRs.recordset[0] : {};
+      const disc = Number.isFinite(Number(discRow?.D)) ? Number(discRow?.D) : 0;
+      const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
+      const total = price * qty - disc;
+      await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
+        req.input("PA_VL", total),
+      );
+    }
   }
 
   let patientNameForSrv = String(options?.patientNameAr ?? "").trim();
@@ -1746,6 +1776,9 @@ export async function insertPatientToMssql(
             enteredBy,
             entryDate: todayDateOnly,
             trNo: Number.isFinite(trNo) ? Math.trunc(trNo) : null,
+            serviceLinePrice: input.servicePrice ?? null,
+            discountValue: input.discountValue ?? null,
+            paValue: input.paValue ?? null,
           });
         });
         console.log(`[MSSQL Insert] ✅ Service row created successfully`);
@@ -2026,6 +2059,9 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
             patientNameAr: fullName,
             enteredBy,
             entryDate: todayDateOnly,
+            serviceLinePrice: input.servicePrice ?? null,
+            discountValue: input.discountValue ?? null,
+            paValue: input.paValue ?? null,
           });
         });
         await applyPajrnrCvhDefaults(pool, targetTable, patientCode, gender, payValue);

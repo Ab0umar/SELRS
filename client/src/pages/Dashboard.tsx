@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { useMedicalFileLauncher } from '@/hooks/useMedicalFileLauncher'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,6 +12,7 @@ import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
 import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
 import { cn } from '@/lib/utils'
+import { OperationsBookingQuickDialog } from '@/components/operations/OperationsBookingQuickDialog'
 
 const ChartLoading = () => <div className="h-[240px] bg-muted/30 animate-pulse rounded-lg" />
 const PatientTrendChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.PatientTrendChart })))
@@ -171,12 +172,24 @@ function MedicalStats() {
 export default function Dashboard() {
   const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } = useMedicalFileLauncher()
   const { user } = useAuth()
+  const [bookingOpen, setBookingOpen] = useState(false)
   const showAdminKpis = String(user?.role ?? '').toLowerCase() === 'admin'
+  const utils = trpc.useUtils()
 
   return (
     <div className="max-w-[1440px] mx-auto w-full space-y-3 sm:space-y-4">
       {medicalFilePortal}
-      <QuickActions onOpenMeasurementsMedicalFile={openMedicalFilePicker} />
+      <OperationsBookingQuickDialog
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        onSaved={() => {
+          void utils.medical.getTodayOperationLists.invalidate()
+        }}
+      />
+      <QuickActions
+        onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+        onOpenOperationsBooking={() => setBookingOpen(true)}
+      />
 
       {showAdminKpis ? (
       <CollapsibleSection

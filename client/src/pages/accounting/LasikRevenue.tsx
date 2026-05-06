@@ -26,10 +26,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
-import reportStyles from "./AccountingOpReport.module.css";
 import styles from "./LasikRevenue.module.css";
 import { formatCountAr, formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
-import { openPrint, type PrintPayload } from "./printUtils";
 
 type ServiceRevenueQuery = {
   data?: ServiceRevenueOutput;
@@ -254,82 +252,21 @@ export default function LasikRevenue() {
   };
 
   const printReport = () => {
-    const printRows: any[] = [];
-    sections.forEach(section => {
-      section.services.forEach(service => {
-        const details = service.details ?? [];
-        if (details.length > 0) {
-          const svcTotals = getServiceTotals(details);
-          printRows.push(...details.map(detail => ({
-            ...detail,
-            sectionCode: section.sectionCode,
-            serviceCode: service.serviceCode,
-            serviceName: service.serviceName,
-            trDate: detail.trDate,
-          })));
-          printRows.push({
-            isSubtotal: true,
-            trNo: 'إجمالي الخدمة',
-            quantity: svcTotals.quantity,
-            price: svcTotals.price,
-            patientShare: svcTotals.patientShare,
-            discount: svcTotals.discount,
-            patientTotal: svcTotals.patientTotal,
-            companyTotal: svcTotals.companyTotal,
-            sectionCode: section.sectionCode,
-            serviceCode: service.serviceCode,
-            serviceName: service.serviceName,
-          });
-        }
-      });
-    });
-
-    const payload: PrintPayload = {
-      title: "إيراد الخدمات",
-      meta: {
-        clinicName: "SRV100",
-        fromDate: filters.fromDate,
-        toDate: filters.toDate,
-        filters: {
-          "كود القسم": String(filters.sectionCode ?? DEFAULT_SECTION_CODE),
-          "كود الطبيب": filters.doctorCode ?? "",
-          "كود الخدمة": filters.serviceCode ?? "",
-        },
-      },
-      groupBy: ["section", "service"],
-      columns: [
-        { key: "trNo", label: "رقم الإيصال" },
-        { key: "trDate", label: "التاريخ" },
-        { key: "patientName", label: "المريض" },
-        { key: "quantity", label: "العدد", align: "right" },
-        { key: "price", label: "السعر", align: "right" },
-        { key: "patientShare", label: "ما يخص المريض", align: "right" },
-        { key: "discount", label: "الخصم", align: "right" },
-        { key: "patientTotal", label: "إجمالي المريض", align: "right" },
-        { key: "companyTotal", label: "إجمالي الجهة", align: "right" },
-      ],
-      rows: printRows,
-      totals: [
-        {
-          label: "الإجمالي العام",
-          values: {
-            quantity: frontendGrandTotal.quantity,
-            price: frontendGrandTotal.price,
-            patientShare: frontendGrandTotal.patientShare,
-            discount: frontendGrandTotal.discount,
-            patientTotal: frontendGrandTotal.patientTotal,
-            companyTotal: frontendGrandTotal.companyTotal,
-          },
-        },
-      ],
+    const printClass = "print-service-revenue";
+    const cleanup = () => {
+      document.body.classList.remove(printClass);
+      window.removeEventListener("afterprint", cleanup);
     };
-    openPrint(payload);
+    document.body.classList.add(printClass);
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+    setTimeout(cleanup, 1000);
   };
 
   return (
     <AccountingShell>
       <div className="space-y-4" dir="rtl">
-        <Card className="border-border/80 shadow-sm">
+        <Card className={`${styles.noPrint} border-border/80 shadow-sm`}>
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -451,7 +388,7 @@ export default function LasikRevenue() {
         </Card>
 
         {serviceRevenueQuery.isError ? (
-          <Card className="border-destructive/30 bg-destructive/5">
+          <Card className={`${styles.noPrint} border-destructive/30 bg-destructive/5`}>
             <CardContent className="flex items-start gap-3 py-5">
               <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
                 <CircleAlert className="h-5 w-5" />
@@ -469,11 +406,20 @@ export default function LasikRevenue() {
           </Card>
         ) : null}
 
-        <Card className="border-border/80 shadow-sm">
+        <Card className={`${styles.printScope} border-border/80 shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">تفاصيل إيرادات الأقسام والخدمات</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className={styles.printMeta}>
+              <p className={styles.printMetaTitle}>إيراد الخدمات</p>
+              <p>الفترة: من {formatDateAr(filters.fromDate)} إلى {formatDateAr(filters.toDate)}</p>
+              <p>
+                كود القسم: {toArabicDigits(String(filters.sectionCode ?? DEFAULT_SECTION_CODE))}
+                {filters.doctorCode ? ` | كود الطبيب: ${toArabicDigits(filters.doctorCode)}` : ""}
+                {filters.serviceCode ? ` | كود الخدمة: ${toArabicDigits(filters.serviceCode)}` : ""}
+              </p>
+            </div>
             <div className={styles.reportWrap}>
               {serviceRevenueQuery.isLoading ? <LoadingRows /> : null}
 
@@ -537,7 +483,7 @@ export default function LasikRevenue() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 shrink-0 px-2"
+                                  className={`${styles.noPrint} h-8 shrink-0 px-2`}
                                   onClick={() => toggleService(section.sectionCode, service.serviceCode)}
                                 >
                                   {collapsed ? (
