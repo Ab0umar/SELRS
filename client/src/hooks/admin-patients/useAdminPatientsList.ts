@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { matchesDoctorFilter, matchesServiceCodeOrNameTerm, normalizeServiceCodeForSearch } from "@/lib/patientFiltering";
+import { normalizeServiceCodeForSearch } from "@/lib/patientFiltering";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import {
@@ -13,7 +13,6 @@ import {
   type SheetTypeChoice,
   type PatientStatus,
   getPatientRowKey,
-  getServiceTypeLabel,
   getYearMonth,
   normalizeSheetTypeChoice,
   normalizeTypedDateInput,
@@ -51,17 +50,17 @@ export function useAdminPatientsList() {
   const patientsQuery = trpc.medical.getAllPatients.useQuery(
     {
       branch: undefined,
-      searchTerm: undefined,
+      searchTerm: debouncedSearchTerm || undefined,
       dateFrom: toIsoDate(dateFrom) || undefined,
       dateTo: toIsoDate(dateTo) || undefined,
-      doctorName: undefined,
+      doctorName: doctorFilter === "all" ? undefined : doctorFilter,
       serviceType:
         serviceTypeFilter === "all" || serviceTypeFilter === "surgery" || serviceTypeFilter === "surgery_external"
           ? undefined
           : toLegacyServiceType(serviceTypeFilter),
       locationType: locationFilter === "all" ? undefined : locationFilter,
-      limit: doctorFilter === "all" ? (debouncedSearchTerm ? 500 : pageSize) : 500,
-      cursor: doctorFilter === "all" ? cursor ?? undefined : undefined,
+      limit: pageSize,
+      cursor: cursor ?? undefined,
     },
     { refetchOnWindowFocus: false, staleTime: 30_000, refetchOnReconnect: false },
   );
@@ -155,8 +154,8 @@ export function useAdminPatientsList() {
     nextCursor: PatientCursor | null;
   };
   const patients = (patientsPayload.rows ?? []) as PatientRow[];
-  const hasMore = doctorFilter === "all" ? Boolean(patientsPayload.hasMore) : false;
-  const nextCursor = doctorFilter === "all" ? patientsPayload.nextCursor ?? null : null;
+  const hasMore = Boolean(patientsPayload.hasMore);
+  const nextCursor = patientsPayload.nextCursor ?? null;
 
   useEffect(() => {
     setCursor(null);
@@ -242,55 +241,14 @@ export function useAdminPatientsList() {
   };
 
   const filteredPatients = useMemo(() => {
-    const localTerm = debouncedSearchTerm.trim().toLowerCase();
     const selectedSheetType = serviceTypeFilter === "all" ? "" : serviceTypeFilter;
-    const selectedDoctor = doctorFilter === "all" ? "" : doctorFilter.trim().toLowerCase();
-    const selectedDoctorEntry =
-      doctorFilter === "all"
-        ? null
-        : activeDoctors.find((doctor) => String(doctor.name ?? "").trim() === doctorFilter) ?? null;
     const toSortableCode = (value: unknown) => {
       const raw = String(value ?? "").trim();
       const numeric = Number(raw.replace(/[^\d]/g, ""));
       return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
     };
 
-    const locallyFiltered = patients.filter((patient) => {
-      const patientCode = String(patient.patientCode ?? "").toLowerCase();
-      const fullName = String(patient.fullName ?? "").toLowerCase();
-      const doctorName = String(patient.treatingDoctor ?? "").toLowerCase();
-      const rawServiceCodes = [...(Array.isArray(patient.serviceCodes) ? patient.serviceCodes : []), patient.serviceCode]
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean);
-      const joinedServiceCodes = rawServiceCodes.join(" ").toLowerCase();
-      const mappedServiceName = rawServiceCodes
-        .map((serviceCode) => String(serviceCodeToLabel.get(normalizeServiceCodeForSearch(serviceCode)) ?? ""))
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const serviceTypeRaw = String(patient.serviceType ?? "").toLowerCase();
-      const serviceTypeLabel = getServiceTypeLabel(serviceTypeRaw).toLowerCase();
-
-      const matchesTerm =
-        !localTerm ||
-        patientCode.includes(localTerm) ||
-        fullName.includes(localTerm) ||
-        doctorName.includes(localTerm) ||
-        joinedServiceCodes.includes(localTerm) ||
-        mappedServiceName.includes(localTerm) ||
-        serviceTypeRaw.includes(localTerm) ||
-        serviceTypeLabel.includes(localTerm);
-
-      if (!matchesTerm) return false;
-      return matchesDoctorFilter({
-        doctorValue: doctorName,
-        selectedDoctor,
-        selectedDoctorName: String(selectedDoctorEntry?.name ?? ""),
-        selectedDoctorCode: String(selectedDoctorEntry?.code ?? ""),
-      });
-    });
-
-    const sorted = locallyFiltered.sort((a, b) => {
+    const sorted = [...patients].sort((a, b) => {
       const aNumber = toSortableCode(a.patientCode);
       const bNumber = toSortableCode(b.patientCode);
       if (aNumber !== bNumber) return aNumber - bNumber;
@@ -314,13 +272,7 @@ export function useAdminPatientsList() {
         return [{ ...patient, __rowKey: `${patient.id}-no-service` }];
       }
 
-      const rowCodes = (() => {
-        if (!localTerm) return codes;
-        const matched = codes.filter((serviceCode) =>
-          matchesServiceCodeOrNameTerm(localTerm, String(serviceCode ?? ""), String(serviceCodeToLabel.get(serviceCode) ?? "")),
-        );
-        return matched.length > 0 ? matched : codes;
-      })();
+      const rowCodes = codes;
 
       const filteredRowCodes = !selectedSheetType
         ? rowCodes
@@ -344,9 +296,9 @@ export function useAdminPatientsList() {
         },
       ];
     });
-  }, [patients, debouncedSearchTerm, doctorFilter, activeDoctors, serviceCodeToLabel, serviceCodeToType, serviceTypeFilter]);
+  }, [patients, serviceCodeToLabel, serviceCodeToType, serviceTypeFilter]);
 
-  const currentPage = doctorFilter === "all" ? cursorHistory.length + 1 : 1;
+  const currentPage = cursorHistory.length + 1;
   const visiblePatients = filteredPatients;
 
   const previousMonthStats = (previousMonthlyStatsQuery.data ?? {
