@@ -177,6 +177,4 @@ scripts/*.pdf
 scripts/New folder/
 scripts/New/
 .socraticodecontextartifacts.json
-scripts\deploy-web.cmd
-scripts\deploy-all.cmd
-scripts\deploy-apk.cmd
+scripts/*.cmd
