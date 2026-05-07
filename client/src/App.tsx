@@ -14,6 +14,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { applyMobileQaState, getMobileQaEnabled, markOverflowInSheets, startMobileQaWatcher } from "@/lib/mobileQa";
 import { toast } from "sonner";
+import { useTextZoom } from "@/hooks/useTextZoom";
+import { initFirebase, logEvent } from "@/lib/firebase";
 import {
   type ApiIssue,
   type BuildInfo,
@@ -387,6 +389,7 @@ const Router = memo(function Router() {
 function App() {
   const { user } = useAuth();
   const [currentPath] = useLocation();
+  const textZoom = useTextZoom();
   const isNativeShell = Capacitor.isNativePlatform();
   const isDesktopShell =
     typeof navigator !== "undefined" &&
@@ -402,6 +405,7 @@ function App() {
   const [apiIssue, setApiIssue] = useState<ApiIssue | null>(null);
   const [runtimeIssue, setRuntimeIssue] = useState<RuntimeIssue | null>(null);
   const [offlineCacheSummary, setOfflineCacheSummary] = useState(() => getOfflineCacheSummary());
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const initialBuildRef = useRef<BuildInfo | null>(null);
   const announcedOfflineRef = useRef(false);
   const nativeHealthFailureCountRef = useRef(0);
@@ -458,6 +462,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    void initFirebase();
+  }, []);
+
+  useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       void ensureNativeNotificationPermission(true).then((granted) => {
         if (!granted) {
@@ -465,6 +473,20 @@ function App() {
         }
       });
     }
+  }, []);
+
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setOrientation(isLandscape ? "landscape" : "portrait");
+    };
+    handleOrientationChange();
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.addEventListener("resize", handleOrientationChange);
+    return () => {
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      window.removeEventListener("resize", handleOrientationChange);
+    };
   }, []);
 
   useEffect(() => {

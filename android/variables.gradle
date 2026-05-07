@@ -1,4 +1,7 @@
 ext {
+    minSdk = 24
+    compileSdk = 37
+    targetSdk = 37
     minSdkVersion = 24
     compileSdkVersion = 37
     targetSdkVersion = 37

@@ -2,6 +2,9 @@
 
 buildscript {
   ext {
+    compileSdk = 37
+    targetSdk = 37
+    minSdk = 24
     compileSdkVersion = 37
     targetSdkVersion = 37
     minSdkVersion = 24
@@ -11,9 +14,9 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:9.2.0'
-    classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'
-    classpath 'com.google.gms:google-services:4.4.4'
+    classpath libs.gradle
+    classpath libs.kotlin.gradle.plugin
+    classpath libs.google.services
   }
 }
 
@@ -32,7 +35,7 @@ subprojects {
   afterEvaluate {
     if (it.hasProperty('android')) {
       android {
-        compileSdk rootProject.ext.compileSdkVersion
+        compileSdk = libs.versions.compileSdk.get().toInteger()
       }
     }
   }

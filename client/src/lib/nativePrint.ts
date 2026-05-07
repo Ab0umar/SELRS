@@ -1,14 +1,5 @@
-import { Capacitor, registerPlugin } from "@capacitor/core";
-
-type NativePrintResult = {
-  started?: boolean;
-};
-
-type NativePrintPlugin = {
-  printCurrentPage(options?: { jobName?: string }): Promise<NativePrintResult>;
-};
-
-const NativePrint = registerPlugin<NativePrintPlugin>("NativePrint");
+import { Capacitor } from "@capacitor/core";
+import { Printer } from "@bcyesil/capacitor-plugin-printer";
 
 export function canUseNativeAndroidPrint() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
@@ -19,9 +10,17 @@ export async function requestNativeAndroidPrint(jobName = "SELRS Print") {
     return { attempted: false, started: false };
   }
 
-  const result = await NativePrint.printCurrentPage({ jobName });
-  return {
-    attempted: true,
-    started: Boolean(result?.started ?? true),
-  };
+  try {
+    const htmlContent = document.documentElement.outerHTML;
+    await Printer.print({
+      printHTML: htmlContent,
+      name: jobName,
+    });
+    return { attempted: true, started: true };
+  } catch (e) {
+    console.debug("Native print failed:", e);
+    // Fallback to web print
+    window.print();
+    return { attempted: true, started: true };
+  }
 }
