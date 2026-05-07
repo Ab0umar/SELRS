@@ -122,6 +122,7 @@ tmp_*.txt
 /*.js
 /*.mjs
 /*.cjs
+/*.cmd
 !/capacitor.config.ts
 !/drizzle.config.ts
 !/playwright.config.ts
@@ -176,3 +177,6 @@ scripts/*.pdf
 scripts/New folder/
 scripts/New/
 .socraticodecontextartifacts.json
+scripts\deploy-web.cmd
+scripts\deploy-all.cmd
+scripts\deploy-apk.cmd
