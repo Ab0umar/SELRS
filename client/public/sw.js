@@ -42,7 +42,7 @@ self.addEventListener("notificationclick", (event) => {
       clients.matchAll({ type: "window" }).then((clientList) => {
         for (const client of clientList) {
           if (client.url.endsWith(path) && "focus" in client) {
-            return (client as WindowClient).focus();
+            return client.focus();
           }
         }
         if (clients.openWindow) {

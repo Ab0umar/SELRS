@@ -123,67 +123,84 @@ function AppNotificationsBridge() {
 
 function WebPushNotificationBridge() {
   const { isAuthenticated, user } = useAuth();
-  const registerPushTokenMutation = trpc.medical.registerPushDeviceToken.useMutation();
-  const unregisterPushTokenMutation = trpc.medical.unregisterPushDeviceToken.useMutation();
+  const registerPushTokenMutation =
+    trpc.medical.registerPushDeviceToken.useMutation();
+  const unregisterPushTokenMutation =
+    trpc.medical.unregisterPushDeviceToken.useMutation();
   const pushInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || pushInitializedRef.current) return;
+    console.log("[Push] WebPushNotificationBridge mounted,isAuthenticated:", isAuthenticated);
+
+    if (!isAuthenticated || pushInitializedRef.current) {
+      console.log("[Push] Skipping - isAuthenticated:", isAuthenticated,
+        "initialized:", pushInitializedRef.current);
+      return;
+    }
     pushInitializedRef.current = true;
 
     const setupWebPush = async () => {
-      const subscription = await getWebPushSubscription();
-      if (!subscription) {
-        const success = await registerWebPush();
-        if (success) {
-          const newSubscription = await getWebPushSubscription();
-          if (newSubscription) {
-            await registerPushTokenMutation.mutateAsync({
-              token: JSON.stringify(newSubscription),
-              platform: "web",
-              deviceId: `web-${window.location.hostname}`,
-              appVersion: "",
-              build: "",
-            });
-            window.localStorage.setItem(PUSH_TOKEN_KEY, JSON.stringify(newSubscription));
+      console.log("[Push] setupWebPush starting...");
+      try {
+        console.log("[Push] Calling getWebPushSubscription...");
+        const subscription = await getWebPushSubscription();
+        console.log("[Push] getWebPushSubscription completed, subscription:", subscription ?
+          "exists" : "none");
+
+        if (!subscription) {
+          console.log("[Push] No subscription, registering...");
+          const success = await registerWebPush();
+          console.log("[Push] registerWebPush result:", success);
+
+          if (success) {
+            const newSubscription = await getWebPushSubscription();
+            console.log("[Push] New subscription obtained:",
+              !!newSubscription);
+
+            if (newSubscription) {
+              console.log("[Push] Registering with server...");
+              await registerPushTokenMutation.mutateAsync({
+                token: JSON.stringify(newSubscription),
+                platform: "web",
+                deviceId: `web-${window.location.hostname}`,
+                appVersion: "",
+                build: "",
+              });
+              console.log("[Push] Server registration successful");
+              window.localStorage.setItem(PUSH_TOKEN_KEY,
+                JSON.stringify(newSubscription));
+            }
           }
+          return;
         }
-        return;
+
+        const storedToken = window.localStorage.getItem(PUSH_TOKEN_KEY);
+        const currentToken = JSON.stringify(subscription);
+        console.log("[Push] Token mismatch:", storedToken !==
+          currentToken);
+
+        if (storedToken === currentToken) {
+          console.log("[Push] Token already registered");
+          return;
+        }
+
+        console.log("[Push] Re-registering with server...");
+        await registerPushTokenMutation.mutateAsync({
+          token: currentToken,
+          platform: "web",
+          deviceId: `web-${window.location.hostname}`,
+          appVersion: "",
+          build: "",
+        });
+        window.localStorage.setItem(PUSH_TOKEN_KEY, currentToken);
+        console.log("[Push] Re-registration successful");
+      } catch (error) {
+        console.error("[Push] Setup failed:", error);
       }
-
-      const storedToken = window.localStorage.getItem(PUSH_TOKEN_KEY);
-      const currentToken = JSON.stringify(subscription);
-      if (storedToken === currentToken) return;
-
-      await registerPushTokenMutation.mutateAsync({
-        token: currentToken,
-        platform: "web",
-        deviceId: `web-${window.location.hostname}`,
-        appVersion: "",
-        build: "",
-      });
-      window.localStorage.setItem(PUSH_TOKEN_KEY, currentToken);
     };
 
     void setupWebPush();
   }, [isAuthenticated, registerPushTokenMutation, user?.id]);
-
-  useEffect(() => {
-    if (isAuthenticated) return;
-
-    const cleanupWebPush = async () => {
-      await unregisterWebPush();
-      window.localStorage.removeItem(PUSH_TOKEN_KEY);
-      const subscription = await getWebPushSubscription();
-      if (subscription) {
-        await unregisterPushTokenMutation.mutateAsync({
-          token: JSON.stringify(subscription),
-        });
-      }
-    };
-
-    void cleanupWebPush();
-  }, [isAuthenticated, unregisterPushTokenMutation]);
 
   return null;
 }

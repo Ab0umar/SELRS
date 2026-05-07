@@ -20,18 +20,24 @@ export async function registerWebPush(): Promise<boolean> {
     console.log("[Push] Service Worker registered");
 
     const permission = Notification.permission;
+    console.log("[Push] Current notification permission:", permission);
+
     if (permission === "denied") {
       console.warn("[Push] Notification permission denied");
       return false;
     }
 
     if (permission === "default") {
+      console.log("[Push] Requesting notification permission...");
       const result = await Notification.requestPermission();
+      console.log("[Push] Permission request result:", result);
       if (result !== "granted") {
-        console.warn("[Push] Notification permission not granted");
+        console.warn("[Push] Notification permission not granted, got:", result);
         return false;
       }
     }
+
+    console.log("[Push] VAPID Public Key:", import.meta.env.VITE_VAPID_PUBLIC_KEY ? "present" : "MISSING");
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -70,7 +76,11 @@ export async function getWebPushSubscription(): Promise<WebPushSubscription | nu
   if (!("serviceWorker" in navigator)) return null;
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      console.log("[Push] No service worker registered yet");
+      return null;
+    }
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
       return subscription.toJSON() as unknown as WebPushSubscription;

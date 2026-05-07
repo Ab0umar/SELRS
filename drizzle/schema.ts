@@ -397,7 +397,7 @@ export const pushDeviceRegistrations = mysqlTable("push_device_registrations", {
   userId: int("userId").notNull(),
   provider: mysqlEnum("provider", ["fcm"]).default("fcm").notNull(),
   platform: mysqlEnum("platform", ["android", "ios", "web"]).notNull(),
-  token: varchar("token", { length: 512 }).notNull(),
+  token: varchar("token", { length: 2048 }).notNull(),
   deviceId: varchar("deviceId", { length: 191 }),
   appVersion: varchar("appVersion", { length: 64 }),
   build: varchar("build", { length: 64 }),
@@ -406,7 +406,6 @@ export const pushDeviceRegistrations = mysqlTable("push_device_registrations", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
-  tokenUniqueIdx: uniqueIndex("ux_push_device_registrations_token").on(table.token),
   userDeviceIdx: index("idx_push_device_user_device").on(table.userId, table.deviceId),
   activeByUserIdx: index("idx_push_device_active_user").on(table.userId, table.disabledAt, table.lastSeenAt),
 }));
