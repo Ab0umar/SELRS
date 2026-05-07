@@ -1,3 +1,11 @@
+/**
+ * Accounting SQL Builders
+ *
+ * CNCL Filter Policy:
+ * - Daily Revenue, Service Revenue, Dashboard Summary, Receipts Inquiry all exclude cancelled (CNCL IS NULL)
+ * - This matches legacy OP behavior of excluding cancelled transactions from all reports
+ * - CNCL filters applied to both PAJRNRCVH headers and PAPAT_SRV lines where applicable
+ */
 export type SqlBuild = {
   sql: string;
   params: Record<string, unknown>;
@@ -350,6 +358,7 @@ export function buildReceiptsInquirySql(input: ReceiptsInquirySqlInput): SqlBuil
     ...sectionWhere(input.sectionCode, params),
     ...patientWhere(input.patientCode, params),
     ...doctorWhere(input.doctorCode, params),
+    "ISNULL(h.CNCL, 0) = 0",
   ];
 
   const trNoTrimmed =

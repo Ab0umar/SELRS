@@ -1381,6 +1381,26 @@ function normalizeVisitType(raw: string): "consultation" | "examination" | "surg
   }
 }
 
+/**
+ * Get fresh doctor name from patient record (not from cache)
+ * Called for notifications to ensure current doctor is displayed
+ */
+async function readFreshDoctorNameForPatient(patientId: number): Promise<string> {
+  try {
+    const patient = await db.getPatientById(patientId);
+    if (patient?.treatingDoctor) {
+      return String(patient.treatingDoctor).trim();
+    }
+  } catch {
+    // Fall back to empty string if query fails
+  }
+  return "";
+}
+
+/**
+ * @deprecated Use readFreshDoctorNameForPatient instead
+ * This function reads from patientPageStates cache and is no longer preferred
+ */
 function readDoctorNameFromStateData(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const payload = value as Record<string, any>;
@@ -5147,6 +5167,52 @@ export const medicalRouter = router({
         bookingDate: input.bookingDate,
         doctorName: input.doctorName,
       });
+
+      const notificationSettings = await getAppNotificationSettings().catch(() => ({
+        mssqlOwnerEnabled: true,
+        mssqlInAppEnabled: true,
+        manualPatientInAppEnabled: true,
+        operationsPushEnabled: false,
+        operationsPushUserIds: [],
+      }));
+
+      if (
+        notificationSettings.operationsPushEnabled &&
+        Array.isArray(notificationSettings.operationsPushUserIds) &&
+        notificationSettings.operationsPushUserIds.length > 0
+      ) {
+        const patientNumbersLabel = `${Math.max(1, Math.trunc(Number(input.casesCount) || 1))} حالة`;
+        const doctorName = String(input.doctorName ?? "").trim();
+        const operationName = String(input.operationType ?? "").trim();
+        const bookingDate = String(input.bookingDate ?? "").trim();
+        const bookingTime = String(input.bookingTime ?? "").trim();
+        const messageParts = [`${patientNumbersLabel} - ${doctorName || "غير محدد"}`];
+        if (operationName) messageParts.push(operationName);
+        if (bookingDate || bookingTime) messageParts.push([bookingDate, bookingTime].filter(Boolean).join(" "));
+
+        await pushAppNotification({
+          title: "تم حجز العملية",
+          message: messageParts.join(" - "),
+          kind: "success",
+          targetUserIds: notificationSettings.operationsPushUserIds,
+          source: "operation_booking_create",
+          entityType: "operationBooking",
+          entityId: booking.id,
+          meta: {
+            type: "operation_booking",
+            path: "/operations",
+            patientNumbers: patientNumbersLabel,
+            doctorName: doctorName || null,
+            operationName: operationName || null,
+            bookingDate: bookingDate || null,
+            bookingTime: bookingTime || null,
+            casesCount: Math.max(1, Math.trunc(Number(input.casesCount) || 1)),
+          },
+        }).catch((error) => {
+          console.warn("[operation-booking] Failed to append app notification:", error);
+        });
+      }
+
       return { success: true, id: booking.id };
     }),
 
@@ -5231,7 +5297,21 @@ export const medicalRouter = router({
     }),
 
   savePatientPageState: protectedProcedure
-    .input(z.object({ patientId: z.number(), page: z.string(), data: z.any() }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        page: z.string(),
+        data: z.object({
+          sheetSelection: z.string().optional(),
+          visitDate: z.string().optional(),
+          isFollowup: z.boolean().optional(),
+          activeTab: z.union([z.number(), z.string()]).optional(),
+          unsavedDraft: z.record(z.string(), z.any()).optional(),
+          syncLockManual: z.boolean().optional(),
+          // Allow other fields for different pages (patient-details, request-tests, etc)
+        }).catchall(z.any()),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const normalizedRole = String(ctx.user.role ?? "").trim().toLowerCase();
       const shouldNotifyRegistration =
@@ -5253,7 +5333,7 @@ export const medicalRouter = router({
           const patientCode = String((patient as any)?.patientCode ?? "").trim();
           const actorName =
             String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || nextSignature;
-          const doctorName = readDoctorNameFromStateData(input.data);
+          const doctorName = await readFreshDoctorNameForPatient(input.patientId);
           const roleLabel = role === "reception" ? "الاستقبال" : role === "nurse" ? "التمريض" : "الفني";
           const targetRoles = resolveNotificationTargetRolesByUserRole(role);
 
@@ -6322,6 +6402,15 @@ export const medicalRouter = router({
       }
 
       await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION_FORM", "examination", input.patientId, { message: "Saved examination form" });
+
+      // Clear examination cache so next open fetches fresh medical data
+      try {
+        await db.invalidatePatientPageStateCache([input.patientId]);
+      } catch (error) {
+        console.warn(`[Exam Save] Cache invalidation failed for patient ${input.patientId}:`, error);
+        // Non-blocking: exam already saved successfully
+      }
+
       return { success: true, examinationId: examinationId ?? null, visitId };
     }),
 

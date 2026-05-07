@@ -40,7 +40,7 @@ export function ImportDialog({
   return (
     <Dialog open={importPreviewOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger ?? <Button variant="outline" type="button">{triggerLabel}</Button>}</DialogTrigger>
-      <DialogContent className="max-w-4xl" dir="rtl">
+      <DialogContent className="max-h-[calc(100vh-60px)] max-w-4xl overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-right">Staged Import Preview</DialogTitle>
           <DialogDescription className="text-right">

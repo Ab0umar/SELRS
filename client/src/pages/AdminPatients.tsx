@@ -87,7 +87,7 @@ export default function AdminPatients() {
         </CardHeader>
         <CardContent className="space-y-4 p-3 sm:p-4 lg:p-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+            <div className="rounded-xl border border-border/80 bg-card p-2 sm:p-3 shadow-sm">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
                   <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -95,7 +95,7 @@ export default function AdminPatients() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
-                    <SelectTrigger className="h-8 min-w-[120px] rounded-lg">
+                    <SelectTrigger className="h-8 min-w-[100px] sm:min-w-[120px] rounded-lg">
                       <SelectValue>{monthLabelShort}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -110,7 +110,7 @@ export default function AdminPatients() {
                     </SelectContent>
                   </Select>
                   <Select value={list.statsYear} onValueChange={list.setStatsYear}>
-                    <SelectTrigger className="h-8 min-w-[94px] rounded-lg">
+                    <SelectTrigger className="h-8 min-w-[80px] sm:min-w-[94px] rounded-lg">
                       <SelectValue placeholder="السنة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -123,16 +123,16 @@ export default function AdminPatients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 text-center">
+              <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-center sm:grid-cols-4">
                 {monthlyBannerStats.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5">
-                    <p className="text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
-                    <p className="mt-0.5 text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
+                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1 sm:px-3 sm:py-1.5">
+                    <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
+                    <p className="mt-0.5 text-base sm:text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+            <div className="rounded-xl border border-border/80 bg-card p-2 sm:p-3 shadow-sm">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
                   <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -142,20 +142,20 @@ export default function AdminPatients() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-2 rounded-lg"
+                  className="h-8 gap-2 rounded-lg text-xs sm:text-sm"
                   onClick={() => syncRegistrationCatalogMutation.mutate()}
                   disabled={syncRegistrationCatalogMutation.isPending}
                   title="مزامنة قائمة الخدمات والأطباء من MSSQL"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  {syncRegistrationCatalogMutation.isPending ? "جاري المزامنة..." : "مزامنة الكتالوج"}
+                  {syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}
                 </Button>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 text-center">
+              <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-center sm:grid-cols-4">
                 {yearlyBannerStats.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5">
-                    <p className="text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
-                    <p className="mt-0.5 text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
+                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1 sm:px-3 sm:py-1.5">
+                    <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
+                    <p className="mt-0.5 text-base sm:text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
                   </div>
                 ))}
               </div>

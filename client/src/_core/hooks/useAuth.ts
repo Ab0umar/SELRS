@@ -1,5 +1,6 @@
 import { getLoginUrl } from "@/const";
 import { NATIVE_USER_SNAPSHOT_KEY, hydrateDurableValue, removeDurableValue, saveDurableValue } from "@/lib/nativeStorage";
+import { clearAllPatientCaches } from "@/lib/patientCacheCleanup";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { Capacitor } from "@capacitor/core";
@@ -89,6 +90,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      clearAllPatientCaches();
       await clearStoredSession();
       setStoredUser(null);
       utils.auth.me.setData(undefined, null);

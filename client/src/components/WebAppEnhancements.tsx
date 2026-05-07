@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { type NativeAppInfo } from "@/lib/appRuntime";
+import { registerWebPush, unregisterWebPush, getWebPushSubscription } from "@/lib/pushNotifications";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
+const PUSH_TOKEN_KEY = "selrs_web_push_token_v1";
 
 type AppNotificationItem = {
   id: string;
@@ -119,6 +121,73 @@ function AppNotificationsBridge() {
   return null;
 }
 
+function WebPushNotificationBridge() {
+  const { isAuthenticated, user } = useAuth();
+  const registerPushTokenMutation = trpc.medical.registerPushDeviceToken.useMutation();
+  const unregisterPushTokenMutation = trpc.medical.unregisterPushDeviceToken.useMutation();
+  const pushInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || pushInitializedRef.current) return;
+    pushInitializedRef.current = true;
+
+    const setupWebPush = async () => {
+      const subscription = await getWebPushSubscription();
+      if (!subscription) {
+        const success = await registerWebPush();
+        if (success) {
+          const newSubscription = await getWebPushSubscription();
+          if (newSubscription) {
+            await registerPushTokenMutation.mutateAsync({
+              token: JSON.stringify(newSubscription),
+              platform: "web",
+              deviceId: `web-${window.location.hostname}`,
+              appVersion: "",
+              build: "",
+            });
+            window.localStorage.setItem(PUSH_TOKEN_KEY, JSON.stringify(newSubscription));
+          }
+        }
+        return;
+      }
+
+      const storedToken = window.localStorage.getItem(PUSH_TOKEN_KEY);
+      const currentToken = JSON.stringify(subscription);
+      if (storedToken === currentToken) return;
+
+      await registerPushTokenMutation.mutateAsync({
+        token: currentToken,
+        platform: "web",
+        deviceId: `web-${window.location.hostname}`,
+        appVersion: "",
+        build: "",
+      });
+      window.localStorage.setItem(PUSH_TOKEN_KEY, currentToken);
+    };
+
+    void setupWebPush();
+  }, [isAuthenticated, registerPushTokenMutation, user?.id]);
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+
+    const cleanupWebPush = async () => {
+      await unregisterWebPush();
+      window.localStorage.removeItem(PUSH_TOKEN_KEY);
+      const subscription = await getWebPushSubscription();
+      if (subscription) {
+        await unregisterPushTokenMutation.mutateAsync({
+          token: JSON.stringify(subscription),
+        });
+      }
+    };
+
+    void cleanupWebPush();
+  }, [isAuthenticated, unregisterPushTokenMutation]);
+
+  return null;
+}
+
 function AppNotificationPanel() {
   const { user, isAuthenticated } = useAuth();
   const notificationsQuery = useAppNotificationFeed(isAuthenticated);
@@ -219,6 +288,7 @@ export default function WebAppEnhancements({ nativeAppInfo }: { nativeAppInfo: N
   void nativeAppInfo;
   return (
     <>
+      <WebPushNotificationBridge />
       <AppNotificationsBridge />
       <AppNotificationPanel />
     </>

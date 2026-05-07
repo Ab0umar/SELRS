@@ -22,7 +22,7 @@ export function QuickPatientEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] gap-4 overflow-y-auto sm:max-w-6xl" dir="rtl">
+      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] gap-4 overflow-x-hidden overflow-y-auto sm:max-w-6xl" dir="rtl">
         {open ? (
           <ExaminationPatientQuickDialogContent key={mountKey} onClose={() => onOpenChange(false)} />
         ) : null}

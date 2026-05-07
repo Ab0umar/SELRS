@@ -4,6 +4,7 @@ import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { deletePatientCachePages } from "@/lib/patientCacheCleanup";
 
 interface DoctorOption {
   id: string;
@@ -47,6 +48,13 @@ export type UseExaminationFormOptions = {
   onEmbeddedClose?: () => void;
 };
 
+/**
+ * Cache Ownership Policy (patientPageStates):
+ * - Allowed: sheetSelection, visitDate, isFollowup, temporary unsaved UI state
+ * - Forbidden: doctorCode, doctorName, serviceCode, serviceQty (always load fresh from MySQL)
+ * - Medical data is authoritative from normalized MySQL tables, never from cache
+ * - Cache invalidation deletes examination, quick-entry, medical-file pages after MSSQL sync
+ */
 export function useExaminationForm(
   patientDataEditPermission: string,
   options?: UseExaminationFormOptions,
@@ -381,6 +389,14 @@ export function useExaminationForm(
     fullName: string;
     patientCode?: string | null;
   }) => {
+    const previousPatientId = Number(patientInfo.id ?? 0);
+    const nextPatientId = Number(patient.id ?? 0);
+    if (previousPatientId > 0 && previousPatientId !== nextPatientId) {
+      void deletePatientCachePages(previousPatientId);
+    }
+    if (nextPatientId > 0) {
+      void deletePatientCachePages(nextPatientId);
+    }
     setPatientInfo({
       id: patient.id,
       name: patient.fullName ?? "",
@@ -502,7 +518,7 @@ export function useExaminationForm(
     }));
   }, [patientDetails.age]);
 
-  // Load cached patient state from localStorage
+  // Load cached patient state from localStorage (workflow state only, not medical data)
   useEffect(() => {
     if (!patientInfo.id) return;
     const raw = localStorage.getItem(`patient_state_examination_${patientInfo.id}`);
@@ -511,9 +527,6 @@ export function useExaminationForm(
       const data = JSON.parse(raw);
       if (data.sheetSelection) setSheetSelection(data.sheetSelection);
       if (data.visitDate) setVisitDate(data.visitDate);
-      if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
-      if (data.serviceCode !== undefined) setServiceCode(String(data.serviceCode ?? ""));
-      if (data.serviceQty !== undefined) setServiceQty(String(data.serviceQty ?? "2"));
       if (typeof data.isFollowup === "boolean") {
         setIsFollowup(data.isFollowup);
       }
@@ -527,16 +540,13 @@ export function useExaminationForm(
     hydratedPatientStateRef.current = null;
   }, [patientInfo.id]);
 
-  // Hydrate from server patient state
+  // Hydrate from server patient state (workflow state only, not medical data)
   useEffect(() => {
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (hydratedPatientStateRef.current === patientInfo.id) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
     if (data.visitDate) setVisitDate(data.visitDate);
-    if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
-    if (data.serviceCode !== undefined) setServiceCode(String(data.serviceCode ?? ""));
-    if (data.serviceQty !== undefined) setServiceQty(String(data.serviceQty ?? "2"));
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }
@@ -581,7 +591,7 @@ export function useExaminationForm(
     }
   }, [examinationChecklistQuery.data, patientStateQuery.data]);
 
-  // Auto-save patient state (debounced)
+  // Auto-save patient state (workflow state only, not medical data)
   useEffect(() => {
     if (!EXAM_AUTO_SAVE_ENABLED) return;
     if (!patientInfo.id) return;
@@ -589,9 +599,6 @@ export function useExaminationForm(
     const payload = {
       sheetSelection,
       visitDate,
-      doctorName,
-      serviceCode,
-      serviceQty,
       isFollowup,
     };
     localStorage.setItem(`patient_state_examination_${patientInfo.id}`, JSON.stringify(payload));
@@ -601,7 +608,7 @@ export function useExaminationForm(
     return () => {
       if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     };
-  }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, doctorName, serviceCode, serviceQty, isFollowup, savePatientStateMutation]);
+  }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, isFollowup, savePatientStateMutation]);
 
   // Duplicate patientDetails load from patientQuery (preserved from original)
   useEffect(() => {

@@ -258,6 +258,7 @@ function AdminPatientsTableComponent({
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window === "undefined" ? false : window.matchMedia("(max-width: 639px)").matches,
   );
+  const [mobileCardPage, setMobileCardPage] = useState(1);
   const [tableScrollMargin, setTableScrollMargin] = useState(0);
   const doctorSelectContent = useMemo(
     () => (
@@ -279,6 +280,10 @@ function AdminPatientsTableComponent({
     mql.addEventListener("change", sync);
     return () => mql.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    setMobileCardPage(1);
+  }, [visiblePatients.length]);
   useEffect(() => {
     if (isMobileViewport) return;
     const hostScrollElement = desktopTableRef.current?.closest("main");
@@ -312,17 +317,24 @@ function AdminPatientsTableComponent({
   const paddingTop = virtualRows.length > 0 ? Math.max(0, virtualRows[0].start - effectiveScrollMargin) : 0;
   const paddingBottom = virtualRows.length > 0 ? totalSize - virtualRows[virtualRows.length - 1].end : 0;
 
+  const MOBILE_CARDS_PER_PAGE = 20;
+  const mobileCardsTotalPages = Math.ceil(visiblePatients.length / MOBILE_CARDS_PER_PAGE);
+  const mobileCardsStartIdx = (mobileCardPage - 1) * MOBILE_CARDS_PER_PAGE;
+  const mobileCardsEndIdx = Math.min(mobileCardsStartIdx + MOBILE_CARDS_PER_PAGE, visiblePatients.length);
+  const paginatedMobileCards = visiblePatients.slice(mobileCardsStartIdx, mobileCardsEndIdx);
+
   return (
     <>
       {/* Mobile cards */}
       {isMobileViewport ? (
-      <div className="grid grid-cols-2 gap-2" dir="rtl">
-        {patientsLoading ? (
-          <div className="py-10 text-center text-muted-foreground">جاري تحميل المرضى…</div>
-        ) : visiblePatients.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground">لا توجد نتائج مطابقة.</div>
-        ) : (
-          visiblePatients.map((patient) => {
+      <div className="space-y-4" dir="rtl">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4" dir="rtl">
+          {patientsLoading ? (
+            <div className="col-span-full py-10 text-center text-muted-foreground">جاري تحميل المرضى…</div>
+          ) : visiblePatients.length === 0 ? (
+            <div className="col-span-full py-10 text-center text-muted-foreground">لا توجد نتائج مطابقة.</div>
+          ) : (
+            paginatedMobileCards.map((patient) => {
             const draft = getDraft(patient);
             const rowKey = String(patient.__rowKey ?? patient.id);
             const status = rowSaveState[rowKey];
@@ -350,7 +362,35 @@ function AdminPatientsTableComponent({
                 onToggleSelectedPatient={onToggleSelectedPatient}
               />
             );
-          })
+            })
+          )}
+        </div>
+        {visiblePatients.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/10 px-3 py-2" dir="rtl">
+            <div className="text-sm tabular-nums text-muted-foreground">صفحة {mobileCardPage} من {mobileCardsTotalPages}</div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                onClick={() => setMobileCardPage(Math.max(1, mobileCardPage - 1))}
+                disabled={mobileCardPage === 1}
+              >
+                السابق
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                onClick={() => setMobileCardPage(Math.min(mobileCardsTotalPages, mobileCardPage + 1))}
+                disabled={mobileCardPage === mobileCardsTotalPages}
+              >
+                التالي
+              </Button>
+            </div>
+          </div>
         )}
       </div>
       ) : null}

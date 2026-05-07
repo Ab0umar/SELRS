@@ -94,7 +94,7 @@ export function AdminPatientsToolbar({
 
       {filtersOpen ? (
         <div className="space-y-3 border-t border-border/50 pt-3">
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="flex w-full flex-wrap items-end gap-2">
             <SearchBar
               value={searchTerm}
               onChange={onSearchTermChange}
@@ -102,7 +102,7 @@ export function AdminPatientsToolbar({
               className="min-w-0 w-full flex-1 md:min-w-[220px]"
             />
             <Select value={doctorFilter} onValueChange={onDoctorFilterChange}>
-              <SelectTrigger className="min-w-[140px] flex-1 rounded-lg">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[140px]">
                 <SelectValue placeholder="كل الأطباء" />
               </SelectTrigger>
               <SelectContent>
@@ -115,7 +115,7 @@ export function AdminPatientsToolbar({
               </SelectContent>
             </Select>
             <Select value={serviceTypeFilter} onValueChange={(value) => onServiceTypeFilterChange(value as "all" | SheetTypeChoice)}>
-              <SelectTrigger className="min-w-[130px] flex-1 rounded-lg">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[130px]">
                 <SelectValue placeholder="كل الأنواع" />
               </SelectTrigger>
               <SelectContent>
@@ -130,7 +130,7 @@ export function AdminPatientsToolbar({
               </SelectContent>
             </Select>
             <Select value={locationFilter} onValueChange={(value) => onLocationFilterChange(value as "all" | "center" | "external")}>
-              <SelectTrigger className="min-w-[120px] flex-1 rounded-lg">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[120px]">
                 <SelectValue placeholder="كل الأماكن" />
               </SelectTrigger>
               <SelectContent>
@@ -140,27 +140,27 @@ export function AdminPatientsToolbar({
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">من:</span>
-            <div className="relative">
+            <div className="relative w-full max-w-full sm:w-auto">
               <Calendar className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40" aria-hidden />
               <Input
                 type="text"
                 value={dateFrom}
                 onChange={(event) => onDateFromChange(event.target.value)}
                 onBlur={(event) => onDateFromChange(normalizeTypedDateInput(event.target.value))}
-                className="w-[110px] pl-9 md:w-[120px]"
+                className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
               />
             </div>
             <span className="text-sm text-muted-foreground">إلى:</span>
-            <div className="relative">
+            <div className="relative w-full max-w-full sm:w-auto">
               <Calendar className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40" aria-hidden />
               <Input
                 type="text"
                 value={dateTo}
                 onChange={(event) => onDateToChange(event.target.value)}
                 onBlur={(event) => onDateToChange(normalizeTypedDateInput(event.target.value))}
-                className="w-[110px] pl-9 md:w-[120px]"
+                className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
               />

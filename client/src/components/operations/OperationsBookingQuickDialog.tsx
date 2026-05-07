@@ -8,7 +8,6 @@ import {
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 import { OperationsBookingFormContent } from "./OperationsBookingFormContent";
 
 type OperationsBookingDraft = {
@@ -52,7 +51,6 @@ export function OperationsBookingQuickDialog({
       await utils.medical.getOperationBookings.invalidate();
       onSaved();
       onOpenChange(false);
-      toast.success("تم حفظ حجز العملية");
     },
   });
 
@@ -77,7 +75,7 @@ export function OperationsBookingQuickDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[96vw] overflow-y-auto sm:max-w-5xl" dir="rtl">
+      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] w-[96vw] overflow-x-hidden overflow-y-auto sm:max-w-5xl" dir="rtl">
         <DialogHeader className="text-right">
           <DialogTitle className="text-right">حجز عملية</DialogTitle>
         </DialogHeader>

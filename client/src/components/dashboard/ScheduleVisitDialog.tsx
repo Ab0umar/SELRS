@@ -98,7 +98,7 @@ export function ScheduleVisitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg" dir="rtl">
+      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-lg" dir="rtl">
         <DialogHeader className="text-right">
           <DialogTitle className="text-right">تحديد موعد / كشف</DialogTitle>
           <DialogDescription className="text-right text-muted-foreground">

@@ -32,7 +32,7 @@ import {
 } from "./lib/appRuntime";
 import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "./lib/nativePrint";
 import { ensureNativeNotificationPermission } from "./lib/nativeNotifications";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "./hooks/useAuth"
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Home = lazy(() => import("./pages/Home"));

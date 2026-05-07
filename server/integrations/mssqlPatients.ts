@@ -2874,6 +2874,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
     lastMarker: incrementalSince,
   };
   const insertedPatientsSample: Array<{ patientCode: string; fullName: string }> = [];
+  const changedPatientIds = new Set<number>();
 
   const pool = await createMssqlPool();
 
@@ -3079,6 +3080,13 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
               locationType: isBlank(payload.locationType) ? null : String(payload.locationType),
               ...(isBlank(payload.treatingDoctor) ? {} : { treatingDoctor: String(payload.treatingDoctor) }),
             };
+            const oldDoctorCode = String(existing.doctorCode ?? "").trim();
+            const oldServiceCode = String(existing.serviceCode ?? "").trim();
+            const newDoctorCode = String(alwaysUpdates.doctorCode ?? "").trim();
+            const newServiceCode = String(alwaysUpdates.serviceCode ?? "").trim();
+            if (oldDoctorCode !== newDoctorCode || oldServiceCode !== newServiceCode) {
+              changedPatientIds.add(targetPatientId);
+            }
             await db.updatePatient(Number(existing.id), alwaysUpdates);
           }
 
@@ -3439,6 +3447,13 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           dryRun: false,
         },
       });
+      if (changedPatientIds.size > 0) {
+        try {
+          await db.invalidatePatientPageStateCache(Array.from(changedPatientIds));
+        } catch (error: any) {
+          console.warn("[MSSQL Sync] Cache invalidation failed (sync continues):", error?.message ?? error);
+        }
+      }
       if (result.inserted > 0) {
         const notificationSettings = await getAppNotificationSettings().catch(() => ({
           mssqlOwnerEnabled: true,

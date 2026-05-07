@@ -859,6 +859,18 @@ export async function searchPatients(
   return enriched.map((row) => decodePatientRow(row as any));
 }
 
+export async function invalidatePatientPageStateCache(patientIds: number[]): Promise<void> {
+  if (patientIds.length === 0) return;
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(patientPageStates).where(
+    and(
+      inArray(patientPageStates.patientId, patientIds),
+      inArray(patientPageStates.page, ["examination", "quick-entry", "medical-file"])
+    )
+  );
+}
+
 export async function resetMssqlSyncCodes(): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -4947,6 +4959,24 @@ export async function getActivePushDeviceRegistrations() {
     .select()
     .from(pushDeviceRegistrations)
     .where(sql`${pushDeviceRegistrations.disabledAt} IS NULL`)
+    .orderBy(desc(pushDeviceRegistrations.lastSeenAt), desc(pushDeviceRegistrations.id));
+}
+
+export async function getPushDeviceRegistrations(filter: {
+  platform?: "android" | "ios" | "web";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const conditions = [sql`${pushDeviceRegistrations.disabledAt} IS NULL`];
+  if (filter.platform) {
+    conditions.push(eq(pushDeviceRegistrations.platform, filter.platform));
+  }
+
+  return await db
+    .select()
+    .from(pushDeviceRegistrations)
+    .where(and(...conditions))
     .orderBy(desc(pushDeviceRegistrations.lastSeenAt), desc(pushDeviceRegistrations.id));
 }
 

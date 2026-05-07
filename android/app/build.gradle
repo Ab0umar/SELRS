@@ -3,11 +3,11 @@ apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace = "cc.selrs.app"
-    compileSdk 33
+    compileSdk 37
     defaultConfig {
         applicationId "cc.selrs.app"
         minSdkVersion 24
-        targetSdkVersion 33
+        targetSdkVersion 37
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
