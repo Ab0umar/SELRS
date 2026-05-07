@@ -5,7 +5,6 @@ import { AppointmentsSection } from "@/components/dashboard/appointments-activit
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
 import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
-import { BookingShortcutModule } from "@/components/dashboard/BookingShortcutModule";
 import { trpc } from "@/lib/trpc";
 
 /**
@@ -35,16 +34,10 @@ export default function TodayPatients() {
         }}
       />
       <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-6 sm:px-4">
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">مرضى اليوم و العمليات</h1>
-        
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <QuickActions onOpenMeasurementsMedicalFile={openMedicalFilePicker} />
-          </div>
-          <div className="flex flex-col">
-            <BookingShortcutModule onAddBooking={() => setBookingOpen(true)} />
-          </div>
-        </div>
+        <QuickActions
+          onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+          onOpenOperationsBooking={() => setBookingOpen(true)}
+        />
 
         <AppointmentsSection onOpenMeasurementsMedicalFile={openMedicalFileForPatient} />
       </main>

@@ -38,9 +38,10 @@ export function BulkActionsBar({
   onUndoLastBulkAction,
 }: BulkActionsBarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-dashed border-border/80 bg-muted/10 px-3 py-3" dir="rtl">
+    <div className="overflow-x-auto rounded-xl border border-dashed border-border/80 bg-muted/10 px-3 py-3" dir="rtl">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
       <Select value={bulkDoctorId} onValueChange={onBulkDoctorChange}>
-        <SelectTrigger className="min-w-[240px] rounded-lg">
+        <SelectTrigger className="min-w-[150px] rounded-lg sm:min-w-[190px]">
           <SelectValue placeholder="اختر طبيب" />
         </SelectTrigger>
         <SelectContent>
@@ -57,7 +58,7 @@ export function BulkActionsBar({
       </Button>
 
       <Select value={bulkSheetType} onValueChange={(value) => onBulkSheetTypeChange(value as "none" | SheetTypeChoice)}>
-        <SelectTrigger className="min-w-[200px] rounded-lg">
+        <SelectTrigger className="min-w-[130px] rounded-lg sm:min-w-[160px]">
           <SelectValue placeholder="اختر الشيت" />
         </SelectTrigger>
         <SelectContent>
@@ -76,7 +77,7 @@ export function BulkActionsBar({
       </Button>
 
       <Select value={bulkManualLock} onValueChange={(value) => onBulkManualLockChange(value as "none" | "on" | "off")}>
-        <SelectTrigger className="min-w-[180px] rounded-lg">
+        <SelectTrigger className="min-w-[120px] rounded-lg sm:min-w-[150px]">
           <SelectValue placeholder="القفل اليدوي" />
         </SelectTrigger>
         <SelectContent>
@@ -92,6 +93,7 @@ export function BulkActionsBar({
       <Button variant="outline" className="rounded-lg" onClick={onUndoLastBulkAction} disabled={isUndoPending || !canUndo}>
         تراجع
       </Button>
+      </div>
     </div>
   );
 }

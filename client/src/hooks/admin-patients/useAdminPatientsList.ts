@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { normalizeServiceCodeForSearch } from "@/lib/patientFiltering";
 import { trpc } from "@/lib/trpc";
@@ -113,7 +113,7 @@ export function useAdminPatientsList() {
       month: Number(statsMonth),
       ...statsFilterInput,
     },
-    { refetchOnWindowFocus: false },
+    { refetchOnWindowFocus: false, staleTime: 300000 },
   );
   const patientsPayload = (patientsQuery.data ?? { rows: [], hasMore: false, nextCursor: null }) as {
     rows: PatientRow[];
@@ -207,6 +207,8 @@ export function useAdminPatientsList() {
     return fallback || "consultant";
   };
 
+  const patientRowCache = useRef(new Map<string, PatientRow>()).current;
+
   const filteredPatients = useMemo(() => {
     const selectedSheetType = serviceTypeFilter === "all" ? "" : serviceTypeFilter;
     const toSortableCode = (value: unknown) => {
@@ -222,7 +224,9 @@ export function useAdminPatientsList() {
       return String(a.patientCode ?? "").localeCompare(String(b.patientCode ?? ""), "ar");
     });
 
-    return sorted.flatMap((patient) => {
+    const newVisibleKeys = new Set<string>();
+
+    const result = sorted.flatMap((patient) => {
       const codes = Array.from(
         new Set(
           [...(Array.isArray(patient.serviceCodes) ? patient.serviceCodes : []), patient.serviceCode]
@@ -236,7 +240,15 @@ export function useAdminPatientsList() {
           const fallback = normalizeSheetTypeChoice(patient.serviceType ?? "consultant");
           if (fallback !== selectedSheetType) return [];
         }
-        return [{ ...patient, __rowKey: `${patient.id}-no-service` }];
+        const rowKey = `${patient.id}-no-service`;
+        newVisibleKeys.add(rowKey);
+        const cached = patientRowCache.get(rowKey);
+        if (cached && (cached as any).patient === patient) {
+          return [cached];
+        }
+        const newRow = { ...patient, __rowKey: rowKey, patient };
+        patientRowCache.set(rowKey, newRow);
+        return [newRow];
       }
 
       const rowCodes = codes;
@@ -252,18 +264,37 @@ export function useAdminPatientsList() {
 
       if (filteredRowCodes.length === 0) return [];
       const primaryCode = filteredRowCodes[0];
+      const rowKey = `${patient.id}`;
+      newVisibleKeys.add(rowKey);
 
-      return [
-        {
-          ...patient,
-          __serviceCodeSingle: primaryCode,
-          __serviceNameSingle: String(serviceCodeToLabel.get(primaryCode) ?? "").trim(),
-          __serviceTypeSingle: String(serviceCodeToType.get(primaryCode) ?? "").trim().toLowerCase(),
-          __rowKey: `${patient.id}`,
-        },
-      ];
+      const serviceName = String(serviceCodeToLabel.get(primaryCode) ?? "").trim();
+      const serviceType = String(serviceCodeToType.get(primaryCode) ?? "").trim().toLowerCase();
+      
+      const cached = patientRowCache.get(rowKey) as any;
+      if (cached && cached.patient === patient && cached.__serviceCodeSingle === primaryCode) {
+        return [cached];
+      }
+
+      const newRow = {
+        ...patient,
+        __serviceCodeSingle: primaryCode,
+        __serviceNameSingle: serviceName,
+        __serviceTypeSingle: serviceType,
+        __rowKey: rowKey,
+        patient,
+      };
+      patientRowCache.set(rowKey, newRow);
+      return [newRow];
     });
-  }, [patients, serviceCodeToLabel, serviceCodeToType, serviceTypeFilter]);
+
+    for (const key of patientRowCache.keys()) {
+      if (!newVisibleKeys.has(key)) {
+        patientRowCache.delete(key);
+      }
+    }
+
+    return result;
+  }, [patientRowCache, patients, serviceCodeToLabel, serviceCodeToType, serviceTypeFilter]);
 
   const currentPage = cursorHistory.length + 1;
   const visiblePatients = filteredPatients;
@@ -326,18 +357,34 @@ export function useAdminPatientsList() {
 
   const setDraftField = useCallback((patient: PatientRow, field: keyof PatientDraft, value: string) => {
     const rowKey = getPatientRowKey(patient);
-    const base = getDraft(patient);
-    setDrafts((prev) => ({
-      ...prev,
-      [rowKey]: {
-        ...base,
-        [field]: value,
-      },
-    }));
-    setRowSaveState((prev) => ({
-      ...prev,
-      [rowKey]: { state: "unsaved", at: new Date().toISOString() },
-    }));
+    const currentDraft = getDraft(patient);
+    if (currentDraft[field] === value) return;
+
+    setDrafts((prev) => {
+      const current = prev[rowKey] ?? currentDraft;
+      if (current[field] === value) return prev;
+
+      const next = {
+        ...prev,
+        [rowKey]: {
+          ...current,
+          [field]: value,
+        },
+      };
+      console.log("[Draft Perf]", {
+        draftsCount: Object.keys(next).length,
+        changedRow: rowKey,
+      });
+      return next;
+    });
+    setRowSaveState((prev) => {
+      const current = prev[rowKey];
+      if (current?.state === "unsaved") return prev;
+      return {
+        ...prev,
+        [rowKey]: { state: "unsaved", at: new Date().toISOString() },
+      };
+    });
   }, [getDraft]);
 
   const savePatientRow = useCallback(async (patient: PatientRow, draft?: PatientDraft) => {
@@ -399,14 +446,6 @@ export function useAdminPatientsList() {
           ? ((existingState as { data: Record<string, unknown> }).data as Record<string, unknown>)
           : {};
 
-      const existingDoctorName = String(existingData.doctorName ?? "").trim();
-      const doctorNameForState = nextDoctor || existingDoctorName;
-      const existingDoctorSignature =
-        existingData.signatures && typeof existingData.signatures === "object"
-          ? String((existingData.signatures as Record<string, unknown>).doctor ?? "").trim()
-          : "";
-      const doctorSignatureForState = nextDoctor || existingDoctorSignature;
-
       await savePatientPageStateMutation.mutateAsync({
         patientId: patient.id,
         page: "examination",
@@ -424,13 +463,6 @@ export function useAdminPatientsList() {
                 },
               }
             : {}),
-          doctorName: doctorNameForState,
-          signatures: {
-            ...(existingData.signatures && typeof existingData.signatures === "object"
-              ? (existingData.signatures as Record<string, unknown>)
-              : {}),
-            doctor: doctorSignatureForState,
-          },
         },
       });
 

@@ -7,8 +7,8 @@ import { router, protectedProcedure, doctorProcedure, nurseProcedure, technician
 import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
-import { eq } from "drizzle-orm";
-import { services } from "../../drizzle/schema";
+import { eq, asc, desc, and } from "drizzle-orm";
+import { services, doctorsLookup, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -1544,6 +1544,7 @@ async function pushNewPatientToMssql(patient: {
   enteredBy?: string | null;
   serviceCode?: string | null;
   servicePrice?: number | null;
+  serviceQty?: number | null;
   discountValue?: number | null;
   paValue?: number | null;
 }) {
@@ -1568,6 +1569,7 @@ async function pushNewPatientToMssql(patient: {
     serviceCode: serviceCode || undefined,
     doctorCode: patient.doctorCode || undefined,
     servicePrice: patient.servicePrice ?? undefined,
+    serviceQty: patient.serviceQty ?? undefined,
     discountValue: patient.discountValue ?? undefined,
     paValue: patient.paValue ?? undefined,
   });
@@ -1576,15 +1578,18 @@ async function pushNewPatientToMssql(patient: {
 /** When either field is present, compute clamped discount and net PA_VL for MSSQL PAPAT_SRV. */
 function registrationPricingPayload(input: {
   servicePrice?: number | null;
+  serviceQty?: number | null;
   discountValue?: number | null;
-}): { servicePrice: number; discountValue: number; paValue: number } | Record<string, never> {
-  if (input.servicePrice == null && input.discountValue == null) {
+}): { servicePrice: number; serviceQty: number; discountValue: number; paValue: number } | Record<string, never> {
+  if (input.servicePrice == null && input.serviceQty == null && input.discountValue == null) {
     return {};
   }
-  const gross = Math.max(0, Number(input.servicePrice ?? 0));
+  const servicePrice = Math.max(0, Number(input.servicePrice ?? 0));
+  const serviceQty = Math.max(1, Math.trunc(Number(input.serviceQty ?? 1)) || 1);
+  const gross = servicePrice * serviceQty;
   const disc = Math.min(Math.max(0, Number(input.discountValue ?? 0)), gross);
   const paValue = Math.max(0, gross - disc);
-  return { servicePrice: gross, discountValue: disc, paValue };
+  return { servicePrice, serviceQty, discountValue: disc, paValue };
 }
 
 async function canPushToMssql(user: { id: number; role: string }): Promise<boolean> {
@@ -2133,6 +2138,9 @@ export const medicalRouter = router({
       doctorCode: z.string().optional(),
       doctorName: z.string().optional(),
       serviceCode: z.string().optional(),
+      servicePrice: z.number().optional(),
+      serviceQty: z.number().optional(),
+      discountValue: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -2160,6 +2168,11 @@ export const medicalRouter = router({
           if (!doctorCode) {
             doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
           }
+          const pricingPayload = registrationPricingPayload({
+            servicePrice: input.servicePrice ?? null,
+            serviceQty: input.serviceQty ?? null,
+            discountValue: input.discountValue ?? null,
+          });
           pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
               fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? "").trim(),
@@ -2180,6 +2193,10 @@ export const medicalRouter = router({
               doctorCode: doctorCode || null,
               enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
               serviceCode: input.serviceCode || null,
+              servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
+              serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
+              discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
+              paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
             });
           if (!pushResult?.inserted) {
             throw new TRPCError({
@@ -2249,6 +2266,11 @@ export const medicalRouter = router({
           if (!doctorCode) {
             doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
           }
+          const pricingPayload = registrationPricingPayload({
+            servicePrice: input.servicePrice ?? null,
+            serviceQty: input.serviceQty ?? null,
+            discountValue: input.discountValue ?? null,
+          });
           pushResult = await pushNewPatientToMssql({
             patientCode: String(created.patientCode),
             fullName: String(created.fullName),
@@ -2263,6 +2285,10 @@ export const medicalRouter = router({
             doctorCode: doctorCode || null,
             enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
             serviceCode: input.serviceCode || null,
+            servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
+            serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
+            discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
+            paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
           }).catch((error) => {
             console.warn("[mssql-push] createPatientFromExamination failed", {
               patientCode: String(created.patientCode),
@@ -2519,12 +2545,7 @@ export const medicalRouter = router({
       for (const patientId of uniqueIds) {
         const patient = await db.getPatientById(patientId);
         if (!patient) continue;
-        const existingState = await db.getPatientPageState(patientId, "examination");
-        const existingData =
-          existingState && typeof (existingState as any).data === "object" && (existingState as any).data
-            ? ((existingState as any).data as Record<string, any>)
-            : {};
-        const previousDoctorName = readDoctorNameFromStateData(existingData);
+        const previousDoctorName = String((patient as any).treatingDoctor ?? "").trim();
         snapshots.push({
           patientId,
           serviceType: (patient as any).serviceType ?? null,
@@ -2542,25 +2563,6 @@ export const medicalRouter = router({
           nextUpdates.serviceType = "external";
         }
         await db.updatePatient(patientId, nextUpdates);
-        await db.upsertPatientPageState(patientId, "examination", {
-          ...existingData,
-          doctorName: nextDoctorName,
-          doctorCode: nextDoctorCode,
-          doctorCodes: Array.from(
-            new Set(
-              [
-                ...((Array.isArray((existingData as any)?.doctorCodes) ? (existingData as any).doctorCodes : []) as unknown[]),
-                nextDoctorCode,
-              ]
-                .map((v) => String(v ?? "").trim())
-                .filter(Boolean)
-            )
-          ),
-          signatures: {
-            ...(existingData.signatures ?? {}),
-            doctor: nextDoctorName,
-          },
-        });
       }
 
       await db.logAuditEvent(ctx.user.id, "BULK_ASSIGN_DOCTOR", "patient", 0, {
@@ -2663,22 +2665,6 @@ export const medicalRouter = router({
           await db.updatePatient(snapshot.patientId, nextUpdates);
         }
 
-        if (snapshot.doctorName !== undefined) {
-          const existingState = await db.getPatientPageState(snapshot.patientId, "examination");
-          const existingData =
-            existingState && typeof (existingState as any).data === "object" && (existingState as any).data
-              ? ((existingState as any).data as Record<string, any>)
-              : {};
-          const doctorName = String(snapshot.doctorName ?? "").trim();
-          await db.upsertPatientPageState(snapshot.patientId, "examination", {
-            ...existingData,
-            doctorName,
-            signatures: {
-              ...(existingData.signatures ?? {}),
-              doctor: doctorName,
-            },
-          });
-        }
         restoredCount += 1;
       }
 
@@ -5212,6 +5198,38 @@ export const medicalRouter = router({
       return await db.getPatientPageState(input.patientId, input.page);
     }),
 
+  saveExaminationChecklist: protectedProcedure
+    .input(z.object({
+      examinationId: z.number().int().positive(),
+      patientId: z.number().int().positive(),
+      checklist: z.object({
+        generalDiseases: z.boolean().optional(),
+        pregnancyOrLactation: z.boolean().optional(),
+        usesAllergySupplementsSteroidsOrPressureMeds: z.boolean().optional(),
+        acneTreatment: z.boolean().optional(),
+        familyKeratoconus: z.boolean().optional(),
+        usesTearSubstituteOrExcessTearsOrSandySensation: z.boolean().optional(),
+        symptomsWorseWithAirOrAC: z.boolean().optional(),
+        glaucomaTreatment: z.boolean().optional(),
+      }),
+    }))
+    .mutation(async ({ input }) => {
+      await db.upsertExaminationChecklist({
+        examinationId: input.examinationId,
+        patientId: input.patientId,
+        checklist: input.checklist,
+      });
+      return { success: true };
+    }),
+
+  getExaminationChecklist: protectedProcedure
+    .input(z.object({
+      examinationId: z.number().int().positive(),
+    }))
+    .query(async ({ input }) => {
+      return await db.getExaminationChecklistByExaminationId(input.examinationId);
+    }),
+
   savePatientPageState: protectedProcedure
     .input(z.object({ patientId: z.number(), page: z.string(), data: z.any() }))
     .mutation(async ({ input, ctx }) => {
@@ -5537,42 +5555,46 @@ export const medicalRouter = router({
     }),
 
   getDoctorDirectory: protectedProcedure.query(async () => {
-    const row = await db.getSystemSetting("doctor_directory");
-    const fallbackFromUsers = async (): Promise<Array<z.infer<typeof doctorDirectoryEntrySchema>>> => {
-      const doctors = await db.getDoctors();
-      return doctors.map((doctor) => ({
-        id: String(doctor.id),
-        code: decodeMojibake(doctor.code),
-        name: decodeMojibake(doctor.name),
-        isActive: true,
-        locationType: "center" as const,
-        doctorType: "consultant" as const,
-      }));
-    };
-    if (!row?.value) return await fallbackFromUsers();
-    try {
-      const parsed = JSON.parse(row.value);
-      const normalized = z.array(doctorDirectoryEntrySchema).safeParse(parsed);
-      if (!normalized.success) return await fallbackFromUsers();
-      const rows = normalized.data.map((doctor) => ({
-        ...doctor,
-        code: decodeMojibake(doctor.code),
-        name: decodeMojibake(doctor.name),
-        locationType: doctor.locationType ?? "center",
-        doctorType: doctor.doctorType ?? "consultant",
-      }));
-      if (rows.length === 0) return await fallbackFromUsers();
-      return rows;
-    } catch {
-      return await fallbackFromUsers();
-    }
+    const dbInstance = await db.getDb();
+    if (!dbInstance) return [];
+    const rows = await dbInstance
+      .select({
+        id: doctorsLookup.id,
+        code: doctorsLookup.code,
+        name: doctorsLookup.name,
+        isActive: doctorsLookup.isActive,
+        locationType: doctorsLookup.locationType,
+        doctorType: doctorsLookup.doctorType,
+      })
+      .from(doctorsLookup)
+      .orderBy(asc(doctorsLookup.code));
+    return rows.map((doctor) => ({
+      id: doctor.id,
+      code: decodeMojibake(String(doctor.code ?? "")),
+      name: decodeMojibake(String(doctor.name ?? "")),
+      isActive: Boolean(doctor.isActive),
+      locationType: (String(doctor.locationType ?? "center") as "center" | "external"),
+      doctorType: (String(doctor.doctorType ?? "consultant") as "consultant" | "specialist" | "external"),
+    }));
   }),
 
   updateDoctorDirectory: adminProcedure
     .input(z.object({ doctors: z.array(doctorDirectoryEntrySchema) }))
     .mutation(async ({ input, ctx }) => {
-      await db.updateSystemSettings("doctor_directory", input.doctors);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_DOCTOR_DIRECTORY", "systemSetting", 0, {
+      const dbInstance = await db.getDb();
+      if (dbInstance) {
+        for (const doctor of input.doctors) {
+          await dbInstance.insert(doctorsLookup).values({
+            id: doctor.id,
+            code: doctor.code,
+            name: doctor.name,
+            isActive: doctor.isActive ? 1 : 0,
+            locationType: doctor.locationType,
+            doctorType: doctor.doctorType,
+          }).onDuplicateKeyUpdate({ set: { code: doctor.code, name: doctor.name, isActive: doctor.isActive ? 1 : 0, locationType: doctor.locationType, doctorType: doctor.doctorType } });
+        }
+      }
+      await db.logAuditEvent(ctx.user.id, "UPDATE_DOCTOR_DIRECTORY", "doctors", 0, {
         count: input.doctors.length,
       });
       return { success: true };
@@ -6300,7 +6322,7 @@ export const medicalRouter = router({
       }
 
       await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION_FORM", "examination", input.patientId, { message: "Saved examination form" });
-      return { success: true };
+      return { success: true, examinationId: examinationId ?? null, visitId };
     }),
 
   // Save medical visit data from dashboard patient medical file
@@ -6506,28 +6528,38 @@ export const medicalRouter = router({
         ...input.glasses,
       });
 
-      // Always save pentacam
-      await db.createPentacamResult({
-        visitId: visitId,
-        patientId: input.patientId,
-        rtK1: input.pentacam?.od?.k1,
-        rtK2: input.pentacam?.od?.k2,
-        rtAX: input.pentacam?.od?.axis || input.pentacam?.od?.ax1,
-        rtThinnestPoint: input.pentacam?.od?.thinnest,
-        rtApex: input.pentacam?.od?.apex,
-        rtResidual: input.pentacam?.od?.residual,
-        rtTTT: input.pentacam?.od?.ttt,
-        rtAblation: input.pentacam?.od?.ablation,
-        ltK1: input.pentacam?.os?.k1,
-        ltK2: input.pentacam?.os?.k2,
-        ltAX: input.pentacam?.os?.axis || input.pentacam?.os?.ax1,
-        ltThinnestPoint: input.pentacam?.os?.thinnest,
-        ltApex: input.pentacam?.os?.apex,
-        ltResidual: input.pentacam?.os?.residual,
-        ltTTT: input.pentacam?.os?.ttt,
-        ltAblation: input.pentacam?.os?.ablation,
-        techniciansNotes: input.radiologyLabs,
-      });
+      const hasPentacamValue = [
+        input.pentacam?.od?.k1,
+        input.pentacam?.od?.k2,
+        input.pentacam?.os?.k1,
+        input.pentacam?.os?.k2,
+        input.pentacam?.od?.thinnest,
+        input.pentacam?.os?.thinnest,
+      ].some((value) => String(value ?? "").trim().length > 0);
+
+      if (hasPentacamValue) {
+        await db.createPentacamResult({
+          visitId: visitId,
+          patientId: input.patientId,
+          rtK1: input.pentacam?.od?.k1,
+          rtK2: input.pentacam?.od?.k2,
+          rtAX: input.pentacam?.od?.axis || input.pentacam?.od?.ax1,
+          rtThinnestPoint: input.pentacam?.od?.thinnest,
+          rtApex: input.pentacam?.od?.apex,
+          rtResidual: input.pentacam?.od?.residual,
+          rtTTT: input.pentacam?.od?.ttt,
+          rtAblation: input.pentacam?.od?.ablation,
+          ltK1: input.pentacam?.os?.k1,
+          ltK2: input.pentacam?.os?.k2,
+          ltAX: input.pentacam?.os?.axis || input.pentacam?.os?.ax1,
+          ltThinnestPoint: input.pentacam?.os?.thinnest,
+          ltApex: input.pentacam?.os?.apex,
+          ltResidual: input.pentacam?.os?.residual,
+          ltTTT: input.pentacam?.os?.ttt,
+          ltAblation: input.pentacam?.os?.ablation,
+          techniciansNotes: input.radiologyLabs,
+        });
+      }
 
       // Always save doctor report
       await db.createDoctorReport({
@@ -6908,6 +6940,222 @@ export const medicalRouter = router({
   // ============ DOCTORS & SERVICES now use doctors and services tables directly ============
   // createDoctor, updateDoctor, deleteDoctor, getServices, createService, updateService, deleteService
   // can be added as admin endpoints when needed
+
+  // ============ DATA SOURCE AUDIT — admin debug endpoint ============
+  getDataSourceAuditStatus: adminProcedure
+    .input(z.object({ patientId: z.number().optional() }))
+    .query(async ({ input }) => {
+      if (!input.patientId) {
+        return { checked: false };
+      }
+
+      const patientId = input.patientId;
+      const dbConn = await db.getDb();
+      if (!dbConn) throw new Error("Database not available");
+
+      // 1. Patient row from patients table
+      const patientRow = await db.getPatientById(patientId);
+
+      // 2. Latest examination for this patient
+      const examinationRows = await dbConn
+        .select()
+        .from(examinations)
+        .where(eq(examinations.patientId, patientId))
+        .orderBy(desc(examinations.createdAt))
+        .limit(1);
+      const latestExam = examinationRows[0] ?? null;
+
+      // 3. Checklist from examination_checklist_items
+      let checklistNormalized: Record<string, boolean | null> | null = null;
+      if (latestExam) {
+        const checklistRows = await dbConn
+          .select()
+          .from(examinationChecklistItems)
+          .where(eq(examinationChecklistItems.examinationId, latestExam.id))
+          .limit(1);
+        if (checklistRows[0]) {
+          const row = checklistRows[0];
+          checklistNormalized = {
+            generalDiseases: row.generalDiseases ?? null,
+            pregnancyOrLactation: row.pregnancyOrLactation ?? null,
+            usesAllergySupplementsSteroidsOrPressureMeds: row.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
+            acneTreatment: row.acneTreatment ?? null,
+            familyKeratoconus: row.familyKeratoconus ?? null,
+            usesTearSubstituteOrExcessTearsOrSandySensation: row.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
+            symptomsWorseWithAirOrAC: row.symptomsWorseWithAirOrAC ?? null,
+            glaucomaTreatment: row.glaucomaTreatment ?? null,
+          };
+        }
+      }
+
+      // 4. patientPageStates for examination page
+      const pageStateRows = await dbConn
+        .select()
+        .from(patientPageStates)
+        .where(
+          and(
+            eq(patientPageStates.patientId, patientId),
+            eq(patientPageStates.page, "examination")
+          )
+        )
+        .orderBy(desc(patientPageStates.updatedAt))
+        .limit(1);
+      const pageStateData = (pageStateRows[0]?.data ?? null) as Record<string, unknown> | null;
+      const checklistInPageState = pageStateData
+        ? {
+            generalDiseases: pageStateData.generalDiseases ?? null,
+            pregnancyOrLactation: pageStateData.pregnancyOrLactation ?? null,
+            usesAllergySupplementsSteroidsOrPressureMeds: pageStateData.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
+            acneTreatment: pageStateData.acneTreatment ?? null,
+            familyKeratoconus: pageStateData.familyKeratoconus ?? null,
+            usesTearSubstituteOrExcessTearsOrSandySensation: pageStateData.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
+            symptomsWorseWithAirOrAC: pageStateData.symptomsWorseWithAirOrAC ?? null,
+            glaucomaTreatment: pageStateData.glaucomaTreatment ?? null,
+          }
+        : null;
+
+      // 5. Autorefractometry data (autoref + IOP)
+      const autorefRows = await dbConn
+        .select()
+        .from(autorefractometryData)
+        .where(eq(autorefractometryData.patientId, patientId))
+        .orderBy(desc(autorefractometryData.createdAt))
+        .limit(1);
+      const latestAutoref = autorefRows[0] ?? null;
+
+      // 6. After refraction data
+      const afterRefRows = latestExam
+        ? await dbConn
+            .select()
+            .from(afterRefractionData)
+            .where(eq(afterRefractionData.examinationId, latestExam.id))
+            .limit(1)
+        : [];
+      const afterRefData = afterRefRows[0] ?? null;
+
+      // 7. Glasses records
+      const glassesRows = await dbConn
+        .select()
+        .from(glassesRecords)
+        .where(eq(glassesRecords.patientId, patientId))
+        .orderBy(desc(glassesRecords.createdAt))
+        .limit(1);
+      const latestGlasses = glassesRows[0] ?? null;
+
+      // 8. Pentacam data
+      const pentacamRows = latestExam
+        ? await dbConn
+            .select()
+            .from(pentacamResults)
+            .where(eq(pentacamResults.visitId, latestExam.id))
+            .limit(1)
+        : [];
+      const pentacamData = pentacamRows[0] ?? null;
+
+      // 9. Doctor report (diagnosis, treatment)
+      const doctorReportRows = latestExam
+        ? await dbConn
+            .select()
+            .from(doctorReports)
+            .where(eq(doctorReports.visitId, latestExam.id))
+            .limit(1)
+        : [];
+      const doctorReportData = doctorReportRows[0] ?? null;
+
+      // 10. Test requests
+      const testReqRows = await dbConn
+        .select()
+        .from(testRequests)
+        .where(eq(testRequests.patientId, patientId))
+        .orderBy(desc(testRequests.createdAt))
+        .limit(1);
+      const latestTestRequest = testReqRows[0] ?? null;
+
+      return {
+        checked: true,
+        patientId,
+        patient: patientRow
+          ? {
+              id: patientRow.id,
+              fullName: patientRow.fullName,
+              patientCode: patientRow.patientCode,
+              phone: patientRow.phone,
+              doctorCode: patientRow.doctorCode,
+              serviceCode: patientRow.serviceCode,
+            }
+          : null,
+        latestExamId: latestExam?.id ?? null,
+        checklistNormalized,
+        checklistInPageState,
+        pageStateUpdatedAt: pageStateRows[0]?.updatedAt ?? null,
+        pageStateSessionFields: pageStateData
+          ? {
+              doctorName: pageStateData.doctorName ?? null,
+              visitDate: pageStateData.visitDate ?? null,
+              sheetSelection: pageStateData.sheetSelection ?? null,
+              serviceCode: pageStateData.serviceCode ?? null,
+            }
+          : null,
+        // Additional exam data
+        autoref: latestAutoref
+          ? {
+              sphereOD: latestAutoref.sphereOD ?? null,
+              cylinderOD: latestAutoref.cylinderOD ?? null,
+              axisOD: latestAutoref.axisOD ?? null,
+              sphereOS: latestAutoref.sphereOS ?? null,
+              cylinderOS: latestAutoref.cylinderOS ?? null,
+              axisOS: latestAutoref.axisOS ?? null,
+              iopOD: latestAutoref.iopOD ?? null,
+              iopOS: latestAutoref.iopOS ?? null,
+            }
+          : null,
+        afterRef: afterRefData
+          ? {
+              sphereOD: afterRefData.sphereOD ?? null,
+              cylinderOD: afterRefData.cylinderOD ?? null,
+              axisOD: afterRefData.axisOD ?? null,
+              sphereOS: afterRefData.sphereOS ?? null,
+              cylinderOS: afterRefData.cylinderOS ?? null,
+              axisOS: afterRefData.axisOS ?? null,
+            }
+          : null,
+        glasses: latestGlasses
+          ? {
+              sOD: latestGlasses.sOD ?? null,
+              cOD: latestGlasses.cOD ?? null,
+              axisOD: latestGlasses.axisOD ?? null,
+              sOS: latestGlasses.sOS ?? null,
+              cOS: latestGlasses.cOS ?? null,
+              axisOS: latestGlasses.axisOS ?? null,
+              pdOD: latestGlasses.pdOD ?? null,
+              addOD: latestGlasses.addOD ?? null,
+            }
+          : null,
+        pentacam: pentacamData
+          ? {
+              k1OD: pentacamData.k1OD ?? null,
+              k2OD: pentacamData.k2OD ?? null,
+              k1OS: pentacamData.k1OS ?? null,
+              k2OS: pentacamData.k2OS ?? null,
+              thinnestPointOD: pentacamData.thinnestPointOD ?? null,
+              thinnestPointOS: pentacamData.thinnestPointOS ?? null,
+            }
+          : null,
+        doctorReport: doctorReportData
+          ? {
+              diagnosis: doctorReportData.diagnosis ?? null,
+              treatment: doctorReportData.treatment ?? null,
+              recommendations: doctorReportData.recommendations ?? null,
+            }
+          : null,
+        testRequest: latestTestRequest
+          ? {
+              requestDate: latestTestRequest.requestDate ?? null,
+              status: latestTestRequest.status ?? null,
+            }
+          : null,
+      };
+    }),
 
 });
 

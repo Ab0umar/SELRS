@@ -56,118 +56,108 @@ export default function AdminPatients() {
   }, [list.utils]);
 
   const monthLabelShort = MONTHS_AR[Math.max(0, Math.min(11, Number(list.statsMonth) - 1))] ?? list.statsMonth;
-  const monthTitleKey = `${String(list.statsMonth).padStart(2, "0")}-${list.statsYear}`;
+  const monthTitleKey = `${String(list.statsMonth).padStart(2, "0")}/${list.statsYear}`;
+  const monthlyBannerStats = [
+    { label: "الليزك", value: list.monthStats.lasik },
+    { label: "المركز", value: list.monthStats.center },
+    { label: "خارجي", value: list.monthStats.external },
+    { label: "الإجمالي", value: list.monthStats.total },
+  ];
+  const yearlyBannerStats = [
+    { label: "الليزك", value: list.yearStats.lasik },
+    { label: "المركز", value: list.yearStats.center },
+    { label: "خارجي", value: list.yearStats.external },
+    { label: "الإجمالي", value: list.yearStats.total },
+  ];
 
   const doctorNamesForRows = useMemo(() => list.doctorOptions, [list.doctorOptions]);
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-2 text-right" dir="rtl">
-      <Card dir="rtl" className="overflow-hidden border-border/90 bg-card text-right shadow-sm">
+    <div className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4" dir="rtl">
+      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
         <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border/70 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Users className="h-5 w-5" />
             </div>
-            <div>
-              <h2 className="text-lg font-black tracking-tight">إدارة المرضى</h2>
-            </div>
             <Badge variant="secondary" className="tabular-nums">
               {list.patientDashboardRollup.totalUnique}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => syncRegistrationCatalogMutation.mutate()}
-              disabled={syncRegistrationCatalogMutation.isPending}
-              title="مزامنة قائمة الخدمات والأطباء من MSSQL"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {syncRegistrationCatalogMutation.isPending ? "جاري المزامنة..." : "مزامنة الكتالوج"}
-            </Button>
-            <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
-              <SelectTrigger className="min-w-[130px] rounded-lg">
-                <SelectValue>{monthLabelShort}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 12 }).map((_, idx) => {
-                  const value = String(idx + 1).padStart(2, "0");
-                  return (
-                    <SelectItem key={value} value={value}>
-                      {MONTHS_AR[idx] ?? value}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <Select value={list.statsYear} onValueChange={list.setStatsYear}>
-              <SelectTrigger className="min-w-[100px] rounded-lg">
-                <SelectValue placeholder="السنة" />
-              </SelectTrigger>
-              <SelectContent>
-                {list.years.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </CardHeader>
-        <CardContent className="space-y-4 p-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <CardContent className="space-y-4 p-3 sm:p-4 lg:p-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
-                  <span>إحصائيات شهرية ({monthTitleKey})</span>
+                  <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
+                  <span className="text-sm">إحصائيات شهرية ({monthTitleKey})</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
+                    <SelectTrigger className="h-8 min-w-[120px] rounded-lg">
+                      <SelectValue>{monthLabelShort}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }).map((_, idx) => {
+                        const value = String(idx + 1).padStart(2, "0");
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {MONTHS_AR[idx] ?? value}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Select value={list.statsYear} onValueChange={list.setStatsYear}>
+                    <SelectTrigger className="h-8 min-w-[94px] rounded-lg">
+                      <SelectValue placeholder="السنة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {list.years.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible">
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.total}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">المركز:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.center}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.external}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.monthStats.lasik}</p>
-                </div>
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                {monthlyBannerStats.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5">
+                    <p className="text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
+                    <p className="mt-0.5 text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+            <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
-                  <span>إحصائيات سنوية ({list.statsYear})</span>
+                  <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
+                  <span className="text-sm">إحصائيات سنوية ({list.statsYear})</span>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 rounded-lg"
+                  onClick={() => syncRegistrationCatalogMutation.mutate()}
+                  disabled={syncRegistrationCatalogMutation.isPending}
+                  title="مزامنة قائمة الخدمات والأطباء من MSSQL"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {syncRegistrationCatalogMutation.isPending ? "جاري المزامنة..." : "مزامنة الكتالوج"}
+                </Button>
               </div>
-              <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible">
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">الإجمالي:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.total}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">المركز:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.center}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">خارجي:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.external}</p>
-                </div>
-                <div className="min-w-[5.5rem] shrink-0 text-end sm:min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">ليزك:</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-foreground sm:text-2xl">{list.yearStats.lasik}</p>
-                </div>
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                {yearlyBannerStats.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5">
+                    <p className="text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
+                    <p className="mt-0.5 text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

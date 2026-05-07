@@ -9,6 +9,7 @@ import MobileAppEnhancements from "./components/MobileAppEnhancements";
 import WebAppEnhancements from "./components/WebAppEnhancements";
 import GlobalCommandPalette from "./components/GlobalCommandPalette";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { LidWipeLoader } from "./components/loaders/OrganicLoaders";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { applyMobileQaState, getMobileQaEnabled, markOverflowInSheets, startMobileQaWatcher } from "@/lib/mobileQa";
@@ -75,6 +76,7 @@ const AdminFormsHub = lazy(() => import("./pages/AdminFormsHub"));
 const AdminPatients = lazy(() => import("./pages/AdminPatients"));
 const AdminCardVisibility = lazy(() => import("./pages/AdminCardVisibility"));
 const AdminDiagnostics = lazy(() => import("./pages/AdminDiagnostics"));
+const AdminDataSourceAudit = lazy(() => import("./pages/AdminDataSourceAudit"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Profile = lazy(() => import("./pages/Profile"));
 const QuickPatientEntry = lazy(() => import("./pages/QuickPatientEntry"));
@@ -82,6 +84,9 @@ const NewCases = lazy(() => import("./pages/NewCases"));
 const FollowupForm = lazy(() => import("./pages/FollowupForm"));
 const DoctorPatientView = lazy(() => import("./pages/DoctorPatientView"));
 const PatientHubShell = lazy(() => import("./pages/PatientHubShell"));
+const ClinicsHubShell = lazy(() => import("./pages/ClinicsHubShell"));
+const PatientsHubShell = lazy(() => import("./pages/PatientsHubShell"));
+const ServicesHubShell = lazy(() => import("./pages/ServicesHubShell"));
 const WorkflowShell = lazy(() => import("./pages/WorkflowShell"));
 const AdminHubShell = lazy(() => import("./pages/AdminHubShell"));
 const Followups = lazy(() => import("./pages/Followups"));
@@ -250,6 +255,18 @@ const Router = memo(function Router() {
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
       <Route path={"/patient-hub/*?"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
 
+      {/* Clinics hub */}
+      <Route path={"/clinics-hub"} component={() => <ProtectedRoute><ClinicsHubShell /></ProtectedRoute>} />
+      <Route path={"/clinics-hub/*"} component={() => <ProtectedRoute><ClinicsHubShell /></ProtectedRoute>} />
+
+      {/* Patients hub */}
+      <Route path={"/patients-hub"} component={() => <ProtectedRoute><PatientsHubShell /></ProtectedRoute>} />
+      <Route path={"/patients-hub/*"} component={() => <ProtectedRoute><PatientsHubShell /></ProtectedRoute>} />
+
+      {/* Services hub */}
+      <Route path={"/services-hub"} component={() => <ProtectedRoute><ServicesHubShell /></ProtectedRoute>} />
+      <Route path={"/services-hub/*"} component={() => <ProtectedRoute><ServicesHubShell /></ProtectedRoute>} />
+
       {/* Workflow routes */}
       <Route path={"/examination/:id"} component={() => <ProtectedRoute><ExaminationForm /></ProtectedRoute>} />
       <Route path={"/examination"} component={() => <ProtectedRoute><ExaminationForm /></ProtectedRoute>} />
@@ -350,6 +367,7 @@ const Router = memo(function Router() {
       <Route path={"/admin/pentacam-failed"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamFailed /></ProtectedRoute>} />
       <Route path={"/admin/services"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminServices /></ProtectedRoute>} />
       <Route path={"/admin/tests"} component={() => <ProtectedRoute requiredRoles={["admin"]}><TestsManagement /></ProtectedRoute>} />
+      <Route path={"/admin/data-source-audit"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminDataSourceAudit /></ProtectedRoute>} />
 
       <Route path={"/showcase"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ComponentShowcase /></ProtectedRoute>} />
       <Route path={"/styleguide"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Styleguide /></ProtectedRoute>} />
@@ -817,11 +835,7 @@ function App() {
             <Suspense
               fallback={
                 <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(0,61,130,0.1),transparent_42%),linear-gradient(180deg,#ffffff_0%,var(--selrs-light-blue)_100%)] p-6">
-                  <div className="rounded-3xl border border-secondary/20 bg-white/90 px-6 py-5 text-center shadow-xl backdrop-blur">
-                    <div className="text-lg font-semibold text-slate-900">جاري التحميل…</div>
-                    <div className="mt-1 text-sm text-slate-600">Preparing mobile workspace...</div>
-                    <div className="mt-3 text-xs text-slate-500">{formatNativeAppLabel(nativeAppInfo)}</div>
-                  </div>
+                  <LidWipeLoader size={140} logo="eye" label="جاري التحميل..." />
                 </div>
               }
             >

@@ -91,7 +91,7 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-5 gap-1 sm:grid-cols-5 lg:grid-cols-10 sm:gap-2">
+      <div className="grid grid-cols-5 gap-1 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 sm:gap-1.5">
         {quickActions.map((action) => {
           const Icon = action.icon;
           return (
@@ -127,7 +127,7 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
               }}
               className={cn(
                 "flex flex-col items-center justify-center transition-all active:scale-95 cursor-pointer group",
-                "py-1 px-0.5 sm:gap-2 sm:rounded-xl sm:py-3 sm:px-1 sm:bg-muted/50 sm:hover:bg-muted sm:border sm:border-transparent sm:hover:border-border",
+                "py-0.5 px-0.5 sm:gap-1 sm:rounded-lg sm:py-1.5 sm:px-0.5",
               )}
             >
               <div

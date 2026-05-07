@@ -25,6 +25,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const isAdminPatientsRoute = location === "/admin/patients" || location === "/admin-patients";
+  const isDashboardLikeRoute =
+    location === "/dashboard" ||
+    location === "/today-patients" ||
+    location === "/today";
   const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -242,8 +247,12 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           />
         ) : null}
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-background p-2 sm:p-3 md:p-4">
-          <div className="mx-auto min-h-0 w-full max-w-[1600px] flex-1">{children}</div>
+        <main
+          className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} p-2 sm:p-3 md:p-4`}
+        >
+          <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
+            {children}
+          </div>
         </main>
       </div>
 

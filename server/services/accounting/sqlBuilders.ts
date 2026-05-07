@@ -276,8 +276,8 @@ export function buildDailyRevenueSql(input: DailyRevenueSqlInput): SqlBuild {
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCode, params),
     ...shiftWhere(input.shiftCode, params),
-    "h.CNCL IS NULL",
-    "s.CNCL IS NULL",
+    "ISNULL(h.CNCL, 0) = 0",
+    "ISNULL(s.CNCL, 0) = 0",
   ];
 
   const sql = `
@@ -304,8 +304,8 @@ export function buildServiceRevenueSql(input: ServiceRevenueSqlInput): SqlBuild 
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCode, params),
     ...serviceWhere(input.serviceCode, params),
-    "s.CNCL IS NULL",
-    "h.CNCL IS NULL",
+    "ISNULL(s.CNCL, 0) = 0",
+    "ISNULL(h.CNCL, 0) = 0",
   ];
 
   const sql = `

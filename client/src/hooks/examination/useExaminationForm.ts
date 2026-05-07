@@ -97,6 +97,19 @@ export function useExaminationForm(
     { patientId: patientInfo.id ?? 0, page: "examination" },
     { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false }
   );
+  const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
+    { patientId: patientInfo.id ?? 0 },
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false }
+  );
+  const latestExaminationId = useMemo(() => {
+    const rows = Array.isArray(examinationsQuery.data) ? (examinationsQuery.data as Array<{ id?: number }>) : [];
+    const firstId = Number(rows[0]?.id ?? 0);
+    return Number.isFinite(firstId) && firstId > 0 ? firstId : null;
+  }, [examinationsQuery.data]);
+  const examinationChecklistQuery = trpc.medical.getExaminationChecklist.useQuery(
+    { examinationId: latestExaminationId ?? 0 },
+    { enabled: Boolean(latestExaminationId), refetchOnWindowFocus: false }
+  );
   const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
@@ -120,6 +133,7 @@ export function useExaminationForm(
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
+  const saveExaminationChecklistMutation = trpc.medical.saveExaminationChecklist.useMutation();
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedPatientStateRef = useRef<number | null>(null);
 
@@ -158,11 +172,6 @@ export function useExaminationForm(
 
   const saveExamMutation = trpc.medical.saveExaminationForm.useMutation();
   const linkPatientServiceToMssqlMutation = trpc.medical.linkPatientServiceToMssql.useMutation();
-  const updatePatientMutation = trpc.medical.updatePatient.useMutation({
-    onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "فشل حفظ بيانات المريض"));
-    },
-  });
   const createPatientFromExamMutation = trpc.medical.createPatientFromExamination.useMutation({
     onError: (error: unknown) => {
       toast.error(getTrpcErrorMessage(error, "فشل إنشاء مريض جديد"));
@@ -505,9 +514,6 @@ export function useExaminationForm(
       if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
       if (data.serviceCode !== undefined) setServiceCode(String(data.serviceCode ?? ""));
       if (data.serviceQty !== undefined) setServiceQty(String(data.serviceQty ?? "2"));
-      if (data.medicalChecklist) {
-        setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
-      }
       if (typeof data.isFollowup === "boolean") {
         setIsFollowup(data.isFollowup);
       }
@@ -531,14 +537,49 @@ export function useExaminationForm(
     if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
     if (data.serviceCode !== undefined) setServiceCode(String(data.serviceCode ?? ""));
     if (data.serviceQty !== undefined) setServiceQty(String(data.serviceQty ?? "2"));
-    if (data.medicalChecklist) {
-      setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
-    }
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }
     hydratedPatientStateRef.current = patientInfo.id;
   }, [patientStateQuery.data, patientInfo.id]);
+
+  useEffect(() => {
+    const row = examinationChecklistQuery.data as Record<string, unknown> | null | undefined;
+    if (row) {
+      setMedicalChecklist((prev) => ({
+        ...prev,
+        generalDiseases: Boolean(row.generalDiseases),
+        pregnancyOrLactation: Boolean(row.pregnancyOrLactation),
+        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(row.usesAllergySupplementsSteroidsOrPressureMeds),
+        acneTreatment: Boolean(row.acneTreatment),
+        familyKeratoconus: Boolean(row.familyKeratoconus),
+        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(row.usesTearSubstituteOrExcessTearsOrSandySensation),
+        symptomsWorseWithAirOrAC: Boolean(row.symptomsWorseWithAirOrAC),
+        glaucomaTreatment: Boolean(row.glaucomaTreatment),
+      }));
+      return;
+    }
+
+    const pageState = (patientStateQuery.data as { data?: unknown } | null | undefined)?.data;
+    const stateData =
+      pageState && typeof pageState === "object"
+        ? (pageState as Record<string, unknown>)
+        : null;
+    if (stateData?.medicalChecklist && examinationChecklistQuery.data === null) {
+      const fallbackChecklist = stateData.medicalChecklist as Record<string, unknown>;
+      setMedicalChecklist((prev) => ({
+        ...prev,
+        generalDiseases: Boolean(fallbackChecklist.generalDiseases),
+        pregnancyOrLactation: Boolean(fallbackChecklist.pregnancyOrLactation),
+        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(fallbackChecklist.usesAllergySupplementsSteroidsOrPressureMeds),
+        acneTreatment: Boolean(fallbackChecklist.acneTreatment),
+        familyKeratoconus: Boolean(fallbackChecklist.familyKeratoconus),
+        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(fallbackChecklist.usesTearSubstituteOrExcessTearsOrSandySensation),
+        symptomsWorseWithAirOrAC: Boolean(fallbackChecklist.symptomsWorseWithAirOrAC),
+        glaucomaTreatment: Boolean(fallbackChecklist.glaucomaTreatment),
+      }));
+    }
+  }, [examinationChecklistQuery.data, patientStateQuery.data]);
 
   // Auto-save patient state (debounced)
   useEffect(() => {
@@ -551,7 +592,6 @@ export function useExaminationForm(
       doctorName,
       serviceCode,
       serviceQty,
-      medicalChecklist,
       isFollowup,
     };
     localStorage.setItem(`patient_state_examination_${patientInfo.id}`, JSON.stringify(payload));
@@ -561,7 +601,7 @@ export function useExaminationForm(
     return () => {
       if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     };
-  }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, doctorName, serviceCode, serviceQty, medicalChecklist, isFollowup, savePatientStateMutation]);
+  }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, doctorName, serviceCode, serviceQty, isFollowup, savePatientStateMutation]);
 
   // Duplicate patientDetails load from patientQuery (preserved from original)
   useEffect(() => {
@@ -803,15 +843,6 @@ export function useExaminationForm(
 
         const updated = {
           ...existing,
-          patient: {
-            name: patientInfo.name,
-            code: patientInfo.code,
-            dateOfBirth: patientDetails.dateOfBirth,
-            age: patientDetails.age,
-            address: patientDetails.address,
-            phone: patientDetails.phone,
-            job: patientDetails.job,
-          },
           medicalChecklist,
           examData: {
             autorefraction: {
@@ -979,6 +1010,7 @@ export function useExaminationForm(
           locationType,
           ...(doctorCode ? { doctorCode } : {}),
           ...(serviceCode ? { serviceCode } : {}),
+          ...(Number(serviceQty) > 0 ? { serviceQty: Number(serviceQty) } : {}),
           ...(servicePrice > 0 ? { servicePrice } : {}),
           ...(discountValue > 0 ? { discountValue } : {}),
         });
@@ -988,22 +1020,6 @@ export function useExaminationForm(
           id: effectivePatientId,
           code: created.patientCode || prev.code,
         }));
-      } else if (canEditPatientData) {
-        await updatePatientMutation.mutateAsync({
-          patientId: effectivePatientId,
-          updates: {
-            fullName: patientInfo.name,
-            patientCode: patientInfo.code,
-            dateOfBirth: patientDetails.dateOfBirth || null,
-            age: patientDetails.age ? Number(patientDetails.age) : null,
-            address: patientDetails.address,
-            phone: patientDetails.phone,
-            occupation: patientDetails.job,
-            serviceType: sheetSelection || undefined,
-            locationType,
-            status: isFollowup ? "followup" : undefined,
-          },
-        });
       }
       const form = formRef.current;
       const formData = form ? new FormData(form) : new FormData();
@@ -1042,7 +1058,6 @@ export function useExaminationForm(
           doctorName,
           serviceCode,
           serviceQty,
-          medicalChecklist,
           isFollowup,
         },
       });
@@ -1074,12 +1089,25 @@ export function useExaminationForm(
         }
       }
 
-      await saveExamMutation.mutateAsync({
+      const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
         visitDate: visitDate || new Date().toISOString().split("T")[0],
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
+      const savedExaminationId = Number((savedExam as { examinationId?: unknown } | null)?.examinationId ?? 0);
+      if (savedExaminationId > 0) {
+        try {
+          await saveExaminationChecklistMutation.mutateAsync({
+            examinationId: savedExaminationId,
+            patientId: effectivePatientId,
+            checklist: medicalChecklist,
+          });
+        } catch (error) {
+          console.warn("[Examination] Checklist save failed after exam save", error);
+          toast.warning("تم حفظ الفحص لكن فشل حفظ قائمة المرض. يرجى إعادة المحاولة.");
+        }
+      }
 
       const preferredType = (isFollowup
         ? "consultant"

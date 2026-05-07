@@ -252,9 +252,6 @@ const reportRuntimeIssue = (
   window.dispatchEvent(new CustomEvent("selrs-runtime-issue", { detail: issue }));
 };
 
-window.addEventListener("selrs-shell-ready", hideBootSplash, { once: true });
-document.addEventListener("DOMContentLoaded", hideBootSplash, { once: true });
-window.addEventListener("load", hideBootSplash, { once: true });
 try {
   const navEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
   const nav = navEntries?.[0];
@@ -280,7 +277,6 @@ try {
 } catch {
   // Ignore invalid reload trace payloads.
 }
-window.setTimeout(hideBootSplash, 6000);
 window.addEventListener("error", (event) => {
   const error = event.error instanceof Error ? event.error : null;
   reportRuntimeIssue("error", {
@@ -288,6 +284,11 @@ window.addEventListener("error", (event) => {
     stack: error?.stack,
   });
 });
+
+window.addEventListener("selrs-shell-ready", hideBootSplash, { once: true });
+document.addEventListener("DOMContentLoaded", hideBootSplash, { once: true });
+window.addEventListener("load", hideBootSplash, { once: true });
+window.setTimeout(hideBootSplash, 6000);
 window.addEventListener("unhandledrejection", (event) => {
   const reason = event.reason;
   if (reason instanceof TRPCClientError) return;

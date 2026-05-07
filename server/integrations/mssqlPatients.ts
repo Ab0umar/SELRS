@@ -44,6 +44,7 @@ export type MssqlPatientInsertInput = {
   enteredBy?: string | null;
   doctorCode?: string | null;
   servicePrice?: number | null;
+  serviceQty?: number | null;
   discountValue?: number | null;
   paValue?: number | null;
 };
@@ -1277,6 +1278,48 @@ async function applyPajrnrReportDefaults(
   }
 }
 
+async function applyPajrnrImmediateMonetaryValues(
+  pool: any,
+  targetTable: string,
+  patientCode: string,
+  trNo: number | null,
+  values: { grossValue: number; discountValue: number; netValue: number }
+): Promise<void> {
+  if (!Number.isFinite(Number(trNo))) return;
+  const cols = await getTableColumns(pool, targetTable);
+  const trNoCol = cols.has("TR_NO") ? "TR_NO" : cols.has("TR_NONEW") ? "tr_noNew" : "";
+  if (!trNoCol) return;
+
+  const run = async (sqlText: string, binder: (req: any) => void) => {
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    req.input("TR_NO", Math.trunc(Number(trNo)));
+    binder(req);
+    await req.query(sqlText);
+  };
+
+  const whereClause = `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`;
+  const safeGross = Number.isFinite(values.grossValue) ? values.grossValue : 0;
+  const safeDisc = Number.isFinite(values.discountValue) ? values.discountValue : 0;
+  const safeNet = Number.isFinite(values.netValue) ? values.netValue : safeGross - safeDisc;
+
+  if (cols.has("TOTL")) {
+    await run(`UPDATE ${targetTable} SET TOTL = @TOTL WHERE ${whereClause}`, (req) =>
+      req.input("TOTL", safeGross)
+    );
+  }
+  if (cols.has("DISC")) {
+    await run(`UPDATE ${targetTable} SET DISC = @DISC WHERE ${whereClause}`, (req) =>
+      req.input("DISC", safeDisc)
+    );
+  }
+  if (cols.has("PA_VL")) {
+    await run(`UPDATE ${targetTable} SET PA_VL = @PAVL WHERE ${whereClause}`, (req) =>
+      req.input("PAVL", safeNet)
+    );
+  }
+}
+
 async function loadDoubleEyeServiceCodes(): Promise<Set<string>> {
   const now = Date.now();
   if (pentacamServiceCodesCache && now - pentacamServiceCodesCache.at < 60_000) {
@@ -1451,6 +1494,12 @@ export async function insertPatientToMssql(
   const allowCreateFlowServiceInsert = asBool(process.env.MSSQL_PUSH_CREATE_SERVICE_ROW, false);
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
+  const desiredQty = serviceCode ? await getDesiredServiceQty(serviceCode) : 1;
+  const servicePriceValue = Number(input.servicePrice ?? NaN);
+  const discountValueNum = Number(input.discountValue ?? NaN);
+  const grossServiceValue = Number.isFinite(servicePriceValue) ? servicePriceValue * desiredQty : 0;
+  const discountServiceValue = Number.isFinite(discountValueNum) ? discountValueNum : 0;
+  const netServiceValue = grossServiceValue - discountServiceValue;
 
   const pool = await createMssqlPool();
   try {
@@ -1625,6 +1674,11 @@ export async function insertPatientToMssql(
         Array.isArray(headerInfoRs?.recordset) && headerInfoRs.recordset.length > 0 ? headerInfoRs.recordset[0] : {};
       headerVstNo = Number(hrow?.VST_NO);
       headerDt = hrow?.DT ? new Date(hrow.DT) : new Date(todayDateOnly);
+      await applyPajrnrImmediateMonetaryValues(pool, targetTable, patientCode, Number.isFinite(trNo) ? trNo : null, {
+        grossValue: grossServiceValue,
+        discountValue: discountServiceValue,
+        netValue: netServiceValue,
+      });
     }
     console.log(`[MSSQL Insert] Applying defaults to PAJRNRCVH...`);
     await applyPajrnrReportDefaults(pool, targetTable, patientCode, Number.isFinite(trNo) ? trNo : null);
@@ -1847,6 +1901,12 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
   const shft = resolveShiftNumber();
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
+  const desiredQty = serviceCode ? await getDesiredServiceQty(serviceCode) : 1;
+  const servicePriceValue = Number(input.servicePrice ?? NaN);
+  const discountValueNum = Number(input.discountValue ?? NaN);
+  const grossServiceValue = Number.isFinite(servicePriceValue) ? servicePriceValue * desiredQty : 0;
+  const discountServiceValue = Number.isFinite(discountValueNum) ? discountValueNum : 0;
+  const netServiceValue = grossServiceValue - discountServiceValue;
 
   const pool = await createMssqlPool();
   try {
@@ -1914,6 +1974,35 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
       const insertReq = pool.request();
       bindPatientInputs(insertReq);
       await insertReq.query(insertSql);
+
+      const insertedHeaderReq = pool.request();
+      insertedHeaderReq.input("PAT_CD", patientCode);
+      const insertedHeaderRs = await insertedHeaderReq.query(`
+        SELECT TOP 1
+          ${trNoCol
+            ? `CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${trNoCol})) = 1 THEN CAST(CONVERT(varchar(50), ${trNoCol}) AS INT) ELSE NULL END AS TR_NO`
+            : "NULL AS TR_NO"}
+        FROM ${targetTable}
+        WHERE PAT_CD = @PAT_CD
+        ORDER BY
+          CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+          CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+      `);
+      const insertedHeader =
+        Array.isArray(insertedHeaderRs?.recordset) && insertedHeaderRs.recordset.length > 0
+          ? insertedHeaderRs.recordset[0]
+          : {};
+      await applyPajrnrImmediateMonetaryValues(
+        pool,
+        targetTable,
+        patientCode,
+        Number.isFinite(Number(insertedHeader?.TR_NO)) ? Math.trunc(Number(insertedHeader.TR_NO)) : null,
+        {
+          grossValue: grossServiceValue,
+          discountValue: discountServiceValue,
+          netValue: netServiceValue,
+        }
+      );
     }
     await applyPajrnrCvhDefaults(pool, targetTable, patientCode, gender, payValue, doctorCode);
     const latestHeaderReq = pool.request();

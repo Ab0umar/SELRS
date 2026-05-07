@@ -37,7 +37,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[] };
+export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
 
 /** Collapsible sidebar section (optional module home via groupPath). */
 export type NavGroupSection = {
@@ -47,6 +47,7 @@ export type NavGroupSection = {
   groupPath?: string;
   /** Stable key for expand/collapse state (defaults to `g-${index}` in the sidebar). */
   navKey?: string;
+  isMain?: boolean;
 };
 
 export type NavGroup = NavGroupSection | NavLeaf;
@@ -106,34 +107,15 @@ export const accountingNavGroup: NavGroupSection = {
 
 /** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
-  {
-    label: "لوحة التحكم",
-    navKey: "dashboard",
-    items: [
-      { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
-      { icon: Clock, label: "مرضى اليوم", path: "/today" },
-    ],
-  },
+  { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
+  { icon: Clock, label: "مرضى اليوم", path: "/today", isMain: true },
   accountingNavGroup,
-  {
-    label: "العمليات",
-    navKey: "operations",
-    groupPath: "/operations",
-    items: [
-      { icon: Syringe, label: "العمليات", path: "/operations" },
-    ],
-  },
-  {
-    label: "مركز المريض",
-    navKey: "patient-hub",
-    groupPath: "/patient-hub",
-    items: [
-      { icon: Network, label: "مركز المريض", path: "/patient-hub" },
-    ],
-  },
+  { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },
+  { icon: Network, label: "مركز المريض", path: "/patient-hub", isMain: true },
   {
     label: "العيادات",
     navKey: "clinics",
+    groupPath: "/clinics-hub",
     items: [
       { icon: Eye, label: "الفحوصات", path: "/examination" },
       { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
@@ -146,6 +128,7 @@ export const adminNavGroups: NavGroup[] = [
   {
     label: "المرضى",
     navKey: "patients",
+    groupPath: "/patients-hub",
     items: [
       { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
       { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
@@ -157,6 +140,7 @@ export const adminNavGroups: NavGroup[] = [
   {
     label: "مركز الخدمات",
     navKey: "services",
+    groupPath: "/services-hub",
     items: [
       { icon: Pill, label: "الأدوية", path: "/medications" },
       { icon: FlaskConical, label: "تحاليل وأشعة", path: "/examinations/catalog" },
@@ -168,6 +152,7 @@ export const adminNavGroups: NavGroup[] = [
   {
     label: "مركز الإدارة",
     navKey: "admin",
+    groupPath: "/admin-hub",
     items: [
       { icon: LayoutGrid, label: "الرئيسية (كروت)", path: "/admin-hub" },
       { icon: Users, label: "مرضى الإدارة", path: "/admin/patients" },

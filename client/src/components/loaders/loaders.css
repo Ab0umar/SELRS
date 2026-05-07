@@ -1,0 +1,113 @@
+.organic-loader-stage {
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.organic-loader-logo {
+  width: 80%;
+  height: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: block;
+  will-change: transform, filter, opacity, clip-path;
+  position: relative;
+  z-index: 2;
+}
+
+.organic-loader-logo.eye {
+  background-image: url("/logos/eye.png");
+}
+
+.organic-loader-logo.arabic {
+  background-image: url("/logos/arabic.png");
+}
+
+.organic-loader-logo.full {
+  background-image: url("/logos/full.png");
+}
+
+.organic-loader-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 12px;
+  text-align: center;
+  color: rgba(12, 31, 74, 0.65);
+}
+
+.organic-loader-a4 .organic-loader-logo,
+.organic-loader-lid-wipe .organic-loader-logo {
+  animation: organic-a4-wipe 2.6s ease-in-out infinite;
+}
+
+@keyframes organic-a4-wipe {
+  0% {
+    clip-path: ellipse(70% 4% at 50% 50%);
+    filter: blur(0);
+  }
+  25% {
+    clip-path: ellipse(72% 36% at 50% 50%);
+  }
+  50% {
+    clip-path: ellipse(72% 60% at 50% 50%);
+  }
+  75% {
+    clip-path: ellipse(72% 36% at 50% 50%);
+  }
+  100% {
+    clip-path: ellipse(70% 4% at 50% 50%);
+  }
+}
+
+.organic-loader-b4 .organic-loader-logo,
+.organic-loader-c4 .organic-loader-logo {
+  position: relative;
+  z-index: 1;
+}
+
+.organic-loader-b4::after,
+.organic-loader-c4::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0.85) 60deg,
+    rgba(255, 255, 255, 0) 120deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  mix-blend-mode: overlay;
+  animation: organic-b4-sweep 1.8s linear infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+
+@keyframes organic-b4-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.organic-loader-overlay {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .organic-loader-logo {
+    animation: none !important;
+  }
+
+  .organic-loader-b4::after,
+  .organic-loader-c4::after {
+    animation: none !important;
+  }
+}

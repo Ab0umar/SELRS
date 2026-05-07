@@ -13,6 +13,7 @@ import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged
 import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
 import { cn } from '@/lib/utils'
 import { OperationsBookingQuickDialog } from '@/components/operations/OperationsBookingQuickDialog'
+import { B4Loader } from '@/components/loaders/OrganicLoaders'
 
 const ChartLoading = () => <div className="h-[240px] bg-muted/30 animate-pulse rounded-lg" />
 const PatientTrendChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.PatientTrendChart })))
@@ -33,7 +34,9 @@ function TodayActivitySummary() {
   if (isLoading) {
     return (
       <div className="space-y-4 py-2">
-        <p className="text-center text-xs text-muted-foreground">جاري التحميل…</p>
+        <div className="flex justify-center">
+          <B4Loader label="جاري التحميل..." size={96} />
+        </div>
         <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-3 sm:gap-3')}>
           {['a', 'b', 'c'].map((k) => (
             <div key={k} className="h-14 min-w-[28%] shrink-0 animate-pulse rounded-lg bg-muted/40 sm:min-w-0" />
@@ -82,7 +85,11 @@ function ServiceTypeBreakdown() {
   const { merged, isLoading } = useTodayQueuePatientsMerged()
 
   if (isLoading) {
-    return <p className="py-4 text-center text-xs text-muted-foreground">جاري التحميل…</p>
+    return (
+      <div className="py-2">
+        <B4Loader label="جاري التحميل..." size={96} />
+      </div>
+    )
   }
 
   const serviceCounts = merged.reduce<Record<string, number>>((acc, p) => {

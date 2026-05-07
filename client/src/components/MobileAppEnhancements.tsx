@@ -383,6 +383,7 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
         if (!active) return;
         const value = String(token.value ?? "").trim();
         if (!value) return;
+        console.log("[Push] Device token received:", value.substring(0, 20) + "...");
         await registerDeviceToken(value).catch((error) => {
           console.error("[Push] Failed to register device token", error);
         });
@@ -390,7 +391,7 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
 
       await PushNotifications.addListener("registrationError", (error) => {
         console.error("[Push] Registration error", error);
-        toast.error("Push registration failed");
+        toast.error("فشلت تسجيل الإشعارات");
       });
 
       await PushNotifications.addListener("pushNotificationReceived", (notification) => {
@@ -417,6 +418,7 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
             ? await PushNotifications.requestPermissions()
             : currentPermission;
         if (permission.receive !== "granted") {
+          console.warn("[Push] Notification permission denied", currentPermission);
           return;
         }
         await PushNotifications.register();

@@ -12,7 +12,6 @@ import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
-import { tabLabelByKey } from "@/lib/operationsPricing";
 
 type MainTab = "patients" | "operations";
 type QueueFilter = "all" | QueueStatus;
@@ -126,6 +125,21 @@ export function AppointmentsSection({
     { date: selectedDate },
     { staleTime: 60 * 1000, refetchOnWindowFocus: false },
   );
+  const doctorsDirectoryQuery = trpc.medical.getDoctors.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const doctorNameByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    const doctors = (doctorsDirectoryQuery.data ?? []) as Array<{ code?: string | null; name?: string | null }>;
+    for (const doctor of doctors) {
+      const code = String(doctor.code ?? "").trim().toLowerCase();
+      const name = String(doctor.name ?? "").trim();
+      if (code && name) map.set(code, name);
+    }
+    return map;
+  }, [doctorsDirectoryQuery.data]);
 
   const todayOperationsFlat = useMemo(() => {
     type OpItem = {
@@ -376,7 +390,7 @@ export function AppointmentsSection({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {todayOperationsFlat.map((row) => (
-                <TodayOperationListItemCard key={row.key} row={row} />
+                <TodayOperationListItemCard key={row.key} row={row} doctorNameByCode={doctorNameByCode} />
               ))}
             </div>
           )}
@@ -471,6 +485,7 @@ function QueuePatientCard({
 
 function TodayOperationListItemCard({
   row,
+  doctorNameByCode,
 }: {
   row: {
     doctorTab: string;
@@ -488,9 +503,15 @@ function TodayOperationListItemCard({
       payment?: string | null;
     };
   };
+  doctorNameByCode: Map<string, string>;
 }) {
-  const tabLabel = tabLabelByKey(row.doctorTab);
   const accent = row.isAutoFromMssql ? "border-s-violet-500" : "border-s-rose-500";
+  const rawDoctor = String(row.item.doctor ?? row.listDoctorName ?? "").trim();
+  const doctorDisplay = (() => {
+    if (!rawDoctor) return "طبيب غير محدد";
+    const byCode = doctorNameByCode.get(rawDoctor.toLowerCase());
+    return byCode || rawDoctor;
+  })();
 
   return (
     <div
@@ -513,8 +534,8 @@ function TodayOperationListItemCard({
               مزامنة
             </Badge>
           ) : null}
-          <Badge variant="outline" className="max-w-[9rem] truncate text-[10px] sm:text-xs" title={tabLabel}>
-            {tabLabel}
+          <Badge variant="outline" className="max-w-[9rem] truncate text-[10px] sm:text-xs" title={doctorDisplay}>
+            {doctorDisplay}
           </Badge>
         </div>
       </div>

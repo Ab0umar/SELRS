@@ -227,6 +227,9 @@ export function AppSidebar({
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-3 scrollbar-none bg-sidebar">
         {menuItems.map((item, idx) => {
+          if (collapsed && !isMobile && !item.isMain) {
+            return null;
+          }
           if (isNavGroup(item)) {
             const navKey = item.navKey ?? `g-${idx}`;
             const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(navKey);
@@ -267,7 +270,7 @@ export function AppSidebar({
                         }
                       }}
                       className={cn(
-                        "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-muted/50",
+                        "flex min-w-0 flex-1 items-center rounded-lg px-2 py-2 text-right text-sm font-medium transition-colors hover:bg-muted/50",
                         headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
                         headerActive
                           ? "selrs-active-nav font-medium text-foreground"

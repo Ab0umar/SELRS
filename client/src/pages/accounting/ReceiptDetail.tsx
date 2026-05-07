@@ -20,6 +20,7 @@ import AccountingShell from "./AccountingShell";
 import { formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
 import { openPrint, type PrintPayload } from "./printUtils";
+import { LidWipeLoader } from "@/components/loaders/OrganicLoaders";
 
 type ReceiptDetailQuery = {
   data?: ReceiptDetailOutput;
@@ -248,10 +249,8 @@ export default function ReceiptDetail() {
             ) : null}
 
             {detailQuery.isLoading ? (
-              <div className="grid gap-3 md:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <Skeleton key={index} className="h-16 w-full" />
-                ))}
+              <div className="py-6">
+                <LidWipeLoader label="جاري التحميل..." logo="eye" size={120} />
               </div>
             ) : null}
 

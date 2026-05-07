@@ -40,5 +40,9 @@ export function shouldRegisterNativePush(): boolean {
           .trim()
           .toLowerCase();
 
+  if (!(enable === "1" || enable === "true")) {
+    console.warn("[PushConfig] Push registration disabled: set VITE_ENABLE_ANDROID_FCM=1 to enable");
+  }
+
   return enable === "1" || enable === "true";
 }

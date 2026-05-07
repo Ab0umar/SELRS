@@ -525,6 +525,30 @@ export type MedicalHistoryChecklist = typeof medicalHistoryChecklist.$inferSelec
 export type InsertMedicalHistoryChecklist = typeof medicalHistoryChecklist.$inferInsert;
 
 /**
+ * Examination Checklist Items - checklist per examination (normalized)
+ */
+export const examinationChecklistItems = mysqlTable("examination_checklist_items", {
+  id: int("id").autoincrement().primaryKey(),
+  examinationId: int("examinationId").notNull().references(() => examinations.id, { onDelete: "cascade" }),
+  patientId: int("patientId").notNull(),
+  generalDiseases: boolean("generalDiseases").default(false),
+  pregnancyOrLactation: boolean("pregnancyOrLactation").default(false),
+  usesAllergySupplementsSteroidsOrPressureMeds: boolean("usesAllergySupplementsSteroidsOrPressureMeds").default(false),
+  acneTreatment: boolean("acneTreatment").default(false),
+  familyKeratoconus: boolean("familyKeratoconus").default(false),
+  usesTearSubstituteOrExcessTearsOrSandySensation: boolean("usesTearSubstituteOrExcessTearsOrSandySensation").default(false),
+  symptomsWorseWithAirOrAC: boolean("symptomsWorseWithAirOrAC").default(false),
+  glaucomaTreatment: boolean("glaucomaTreatment").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  examChecklistUniqueIdx: uniqueIndex("ux_exam_checklist").on(table.examinationId),
+}));
+
+export type ExaminationChecklistItem = typeof examinationChecklistItems.$inferSelect;
+export type InsertExaminationChecklistItem = typeof examinationChecklistItems.$inferInsert;
+
+/**
  * Audit Logs table - ط³ط¬ظ„ ط§ظ„طھط¯ظ‚ظٹظ‚
  */
 export const auditLog = mysqlTable("auditLog", {
@@ -837,6 +861,11 @@ export const doctorsLookup = mysqlTable("doctors", {
   id: varchar("id", { length: 36 }).primaryKey(),
   code: varchar("code", { length: 64 }),
   name: varchar("name", { length: 255 }),
+  isActive: int("isActive").default(1),
+  locationType: varchar("locationType", { length: 32 }).default("center"),
+  doctorType: varchar("doctorType", { length: 32 }).default("consultant"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
 
 

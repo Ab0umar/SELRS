@@ -362,7 +362,6 @@ export default function ExaminationForm() {
       sheetSelection,
       visitDate,
       doctorName,
-      medicalChecklist,
       isFollowup,
     };
     localStorage.setItem(`patient_state_examination_${patientInfo.id}`, JSON.stringify(payload));
@@ -372,7 +371,7 @@ export default function ExaminationForm() {
     return () => {
       if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
     };
-  }, [patientInfo.id, sheetSelection, visitDate, doctorName, medicalChecklist, isFollowup, savePatientStateMutation]);
+  }, [patientInfo.id, sheetSelection, visitDate, doctorName, isFollowup, savePatientStateMutation]);
 
   const currentSheetType = normalizeSheetType((patientQuery.data as any)?.serviceType);
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(

@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { requestAppReload } from "@/lib/appRuntime";
 import { AppShell } from "@/components/layout/AppShell";
+import { LidWipeLoader } from "@/components/loaders/OrganicLoaders";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -170,13 +171,7 @@ export default function ProtectedRoute({
   if (loading || (userRole !== "admin" && permissionsQuery.isLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-        <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/5 text-primary">
-            <ShieldCheck className="h-6 w-6 animate-pulse" />
-          </div>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري التحميل...</p>
-        </div>
+        <LidWipeLoader size={140} logo="eye" label="جاري التحميل..." />
       </div>
     );
   }

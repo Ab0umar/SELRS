@@ -27,6 +27,7 @@ import AdminSheetCopies from "./AdminSheetCopies";
 import AdminFormsHub from "./AdminFormsHub";
 import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
+import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,6 +90,7 @@ const MAIN_MODULES: HubModuleCard[] = [
 
 const MORE_LINKS: { href: string; label: string }[] = [
   { href: "/admin-hub/diagnostics", label: "🔧 التشخيص والإصلاح" },
+  { href: "/admin-hub/data-source-audit", label: "مصدر البيانات — تدقيق" },
   { href: "/admin-hub/settings", label: "الإعدادات العامة" },
   { href: "/admin-hub/settings/pricing-rules", label: "تسعير المواعيد" },
   { href: "/admin-hub/api-tools", label: "أدوات API" },
@@ -128,6 +130,7 @@ export default function AdminHubShell() {
     if (location === "/admin-hub/services" || location === "/admin/services") return <AdminServices />;
     if (location === "/admin-hub/tests" || location === "/admin/tests") return <TestsManagement />;
     if (location === "/admin-hub/diagnostics") return <AdminDiagnostics />;
+    if (location === "/admin-hub/data-source-audit" || location === "/admin/data-source-audit") return <AdminDataSourceAudit />;
     if (location === "/admin-hub/notifications" || location === "/admin/notifications") return <AdminNotificationSettings />;
 
     return (

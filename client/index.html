@@ -33,7 +33,6 @@
         background:
           radial-gradient(circle at top, rgba(0, 61, 130, 0.18), transparent 42%),
           linear-gradient(135deg, #ffffff 0%, #e8f0f8 100%);
-        color: #001f47;
         transition: opacity 220ms ease, visibility 220ms ease;
       }
 
@@ -42,54 +41,42 @@
         visibility: hidden;
       }
 
-      .boot-splash-card {
-        width: min(88vw, 420px);
-        border: 1px solid rgba(0, 61, 130, 0.14);
-        border-radius: 28px;
-        padding: 28px 24px;
-        background: rgba(255, 255, 255, 0.88);
-        box-shadow: 0 24px 60px rgba(0, 31, 71, 0.14);
-        text-align: center;
-        backdrop-filter: blur(12px);
+      .boot-splash-stage {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        display: grid;
+        place-items: center;
       }
 
       .boot-splash-logo {
-        width: 88px;
-        height: 88px;
-        object-fit: contain;
-        filter: drop-shadow(0 8px 20px rgba(0, 61, 130, 0.22));
+        position: absolute;
+        width: 160px;
+        height: 160px;
+        background-image: url("/logos/full.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        display: block;
+        will-change: transform, filter, opacity, clip-path;
+        z-index: 2;
+        animation: boot-a4-wipe 2.6s ease-in-out infinite;
       }
 
-      .boot-splash-line {
-        width: 84px;
-        height: 4px;
-        margin: 18px auto 0;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(0, 61, 130, 0.2), #003d82 38%, #ff9500 72%, rgba(255, 149, 0, 0.2));
-        animation: bootPulse 1.4s ease-in-out infinite;
-      }
-
-      @keyframes bootPulse {
-        0%, 100% { transform: scaleX(0.75); opacity: 0.55; }
-        50% { transform: scaleX(1); opacity: 1; }
+      @keyframes boot-a4-wipe {
+        0%   { clip-path: ellipse(70% 4% at 50% 50%); filter: blur(0); }
+        25%  { clip-path: ellipse(72% 36% at 50% 50%); }
+        50%  { clip-path: ellipse(72% 60% at 50% 50%); }
+        75%  { clip-path: ellipse(72% 36% at 50% 50%); }
+        100% { clip-path: ellipse(70% 4% at 50% 50%); }
       }
     </style>
   </head>
 
   <body>
     <div id="boot-splash" aria-hidden="true">
-      <div class="boot-splash-card">
-        <img
-          class="boot-splash-logo"
-          src="/center-logo.png"
-          alt="شعار عيون الشروق"
-          onerror="this.onerror=null;this.src='/brand-fallback.svg'"
-        />
-        <div style="margin-top: 18px; font-size: 1.35rem; font-weight: 700;">عيون الشروق</div>
-        <div style="margin-top: 8px; color: #475569; font-size: 0.95rem;">
-          جاري التحميل…
-        </div>
-        <div class="boot-splash-line"></div>
+      <div class="boot-splash-stage" aria-label="b4-loader">
+        <div class="boot-splash-logo" role="img" aria-label="شعار عيون الشروق"></div>
       </div>
     </div>
     <div id="root"></div>

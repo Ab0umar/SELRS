@@ -41,6 +41,7 @@ import {
   postOpFollowups,
   consentForms,
   medicalHistoryChecklist,
+  examinationChecklistItems,
   auditLog,
   auditLogs,
   medications,
@@ -668,25 +669,6 @@ export async function applyPatientImportBatch(batchId: string) {
         const owner = await getUserById(Number(row.doctorId));
         doctorName = String(owner?.name ?? owner?.username ?? "").trim();
       }
-      if (doctorName) {
-        const savedPatient = await getPatientByCode(patientCode);
-        if (savedPatient?.id) {
-          const existingState = await getPatientPageState(savedPatient.id, "examination");
-          const existingData =
-            existingState && typeof (existingState as any).data === "object" && (existingState as any).data
-              ? ((existingState as any).data as Record<string, any>)
-              : {};
-          await upsertPatientPageState(savedPatient.id, "examination", {
-            ...existingData,
-            doctorName,
-            signatures: {
-              ...(existingData.signatures ?? {}),
-              doctor: doctorName,
-            },
-          });
-        }
-      }
-
       await db
         .update(patientImportStaging)
         .set({ status: "applied" as any, errors: null, updatedAt: new Date() })
@@ -3707,6 +3689,54 @@ export async function getMedicalHistoryByPatient(patientId: number) {
   if (!db) throw new Error("Database not available");
 
   return await db.select().from(medicalHistoryChecklist).where(eq(medicalHistoryChecklist.patientId, patientId));
+}
+
+export async function getExaminationChecklistByExaminationId(examinationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select()
+    .from(examinationChecklistItems)
+    .where(eq(examinationChecklistItems.examinationId, examinationId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function upsertExaminationChecklist(input: {
+  examinationId: number;
+  patientId: number;
+  checklist: {
+    generalDiseases?: boolean;
+    pregnancyOrLactation?: boolean;
+    usesAllergySupplementsSteroidsOrPressureMeds?: boolean;
+    acneTreatment?: boolean;
+    familyKeratoconus?: boolean;
+    usesTearSubstituteOrExcessTearsOrSandySensation?: boolean;
+    symptomsWorseWithAirOrAC?: boolean;
+    glaucomaTreatment?: boolean;
+  };
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await getExaminationChecklistByExaminationId(input.examinationId);
+  if (existing?.id) {
+    await db
+      .update(examinationChecklistItems)
+      .set({
+        ...input.checklist,
+        updatedAt: new Date(),
+      })
+      .where(eq(examinationChecklistItems.id, existing.id));
+    return { success: true, mode: "updated" as const };
+  }
+
+  await db.insert(examinationChecklistItems).values({
+    examinationId: input.examinationId,
+    patientId: input.patientId,
+    ...input.checklist,
+  });
+  return { success: true, mode: "inserted" as const };
 }
 
 // ============ AUDIT LOG OPERATIONS ============

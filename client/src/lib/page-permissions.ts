@@ -72,6 +72,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin/api-tools", label: "أدوات API" },
   { id: "/admin/card-visibility", label: "ظهور البطاقات" },
   { id: "/admin/tests", label: "إدارة الاختبارات (/admin/tests)" },
+  { id: "/admin/data-source-audit", label: "مصدر البيانات — تدقيق" },
   { id: "/admin/pentacam-failed", label: "فشل البنتكام (إداري)" },
   { id: "/ops/mssql-add", label: "كتابة MSSQL (مزامنة)" },
 ] as const satisfies readonly PagePermissionEntry[];
