@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Printer, Search, ChevronRight, ChevronLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { PatientMedicalStatusStrip, PatientMedicalStatusDots, type PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
 import { patientSheetPathByServiceType } from "@/lib/patientNavPaths";
 import { type PatientRow, type SheetTypeChoice, type ServiceType, normalizeSheetTypeChoice, toLegacyServiceType } from "@/hooks/admin-patients/adminPatientsShared";
@@ -126,7 +124,6 @@ export default function PatientsHubList() {
   const [cursorHistory, setCursorHistory] = useState<unknown[]>([]);
   const [pageSize, setPageSize] = useState(50);
   const [isMobile, setIsMobile] = useState(false);
-  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -174,25 +171,18 @@ export default function PatientsHubList() {
   );
   const statuses = statusQuery.data as Record<number, PatientMedicalStatus> | undefined;
 
-  /* virtual desktop rows */
-  const virtualizer = useVirtualizer({
-    count: allRows.length,
-    getScrollElement: () => tableRef.current,
-    estimateSize: () => 44,
-    overscan: 10,
-    enabled: !isMobile && allRows.length > 60,
-  });
-
   const goNext = () => {
     if (!nextCursor) return;
     setCursorHistory((h) => [...h, cursor]);
     setCursor(nextCursor);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const goPrev = () => {
     const history = [...cursorHistory];
     const prev = history.pop() ?? null;
     setCursorHistory(history);
     setCursor(prev);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -252,41 +242,23 @@ export default function PatientsHubList() {
         </div>
       ) : (
         <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
-          <div ref={tableRef} className="w-full overflow-auto" style={{ maxHeight: "72vh" }}>
+          <div className="w-full overflow-x-auto">
             <table className="min-w-[720px] w-full table-auto text-center text-xs sm:text-sm" dir="rtl">
-              <thead className="sticky top-0 z-10 bg-slate-50/95 shadow-[0_1px_0_rgba(148,163,184,0.25)] backdrop-blur">
+              <thead className="bg-slate-50/95 shadow-[0_1px_0_rgba(148,163,184,0.25)]">
                 <tr className="border-b border-slate-200">
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">الكود</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap text-right">الاسم</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">الخدمة</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">الطبيب</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">الهاتف</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">البيانات</th>
-                  <th className="bg-slate-50/95 py-2 px-2 whitespace-nowrap">طباعة</th>
+                  <th className="py-2 px-2 whitespace-nowrap">الكود</th>
+                  <th className="py-2 px-2 whitespace-nowrap text-right">الاسم</th>
+                  <th className="py-2 px-2 whitespace-nowrap">الخدمة</th>
+                  <th className="py-2 px-2 whitespace-nowrap">الطبيب</th>
+                  <th className="py-2 px-2 whitespace-nowrap">الهاتف</th>
+                  <th className="py-2 px-2 whitespace-nowrap">البيانات</th>
+                  <th className="py-2 px-2 whitespace-nowrap">طباعة</th>
                 </tr>
               </thead>
               <tbody>
-                {allRows.length > 60 ? (
-                  <>
-                    {virtualizer.getVirtualItems()[0]?.start > 0 && (
-                      <tr aria-hidden><td colSpan={7} style={{ height: virtualizer.getVirtualItems()[0]?.start ?? 0 }} /></tr>
-                    )}
-                    {virtualizer.getVirtualItems().map((vr) => {
-                      const patient = allRows[vr.index];
-                      return patient ? <HubPatientRow key={String(patient.__rowKey ?? patient.id)} patient={patient} status={statuses?.[patient.id]} /> : null;
-                    })}
-                    {(() => {
-                      const items = virtualizer.getVirtualItems();
-                      const last = items[items.length - 1];
-                      const bottomSpacer = last ? virtualizer.getTotalSize() - last.end : 0;
-                      return bottomSpacer > 0 ? <tr aria-hidden><td colSpan={7} style={{ height: bottomSpacer }} /></tr> : null;
-                    })()}
-                  </>
-                ) : (
-                  allRows.map((patient) => (
-                    <HubPatientRow key={String(patient.__rowKey ?? patient.id)} patient={patient} status={statuses?.[patient.id]} />
-                  ))
-                )}
+                {allRows.map((patient) => (
+                  <HubPatientRow key={String(patient.__rowKey ?? patient.id)} patient={patient} status={statuses?.[patient.id]} />
+                ))}
               </tbody>
             </table>
           </div>

@@ -6958,27 +6958,57 @@ export const medicalRouter = router({
   syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
     const stageStats: Record<string, unknown> = {};
     try {
-      // Query SRVCMF for services (price not available from MSSQL catalog)
+      // Discover actual column names from INFORMATION_SCHEMA to handle naming variations
+      const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`, {},
+      );
+      const mdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MDTEAM'`, {},
+      );
+      const srvCols = new Set(srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
+      const mdCols = new Set(mdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
+      stageStats.srvcmfCols = [...srvCols];
+      stageStats.mdteamCols = [...mdCols];
+
+      const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
+        candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
+
+      const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
+      const srvNameCol = pickCol(srvCols, ["SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
+      const srvActiveCol = pickCol(srvCols, ["ACT_CD", "ACTIVE", "IS_ACTIVE"]);
+      const drsCodeCol = pickCol(mdCols, ["DRS_CD", "DRSCOD", "DRS_CODE", "CODE"]);
+      const drsNameCol = pickCol(mdCols, ["DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
+      const drsActiveCol = pickCol(mdCols, ["ACT_CD", "ACTIVE", "IS_ACTIVE"]);
+
+      if (!srvCodeCol || !srvNameCol) {
+        throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
+      }
+      if (!drsCodeCol || !drsNameCol) {
+        throw new Error(`Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`);
+      }
+
+      const activeFilter = (activeCol: string | null) =>
+        activeCol ? `WHERE ${activeCol} = 'A'` : "";
+
       const servicesQuery = `
         SELECT DISTINCT
-          SRV_CD AS code,
-          SRV_NM AS name,
+          ${srvCodeCol} AS code,
+          ${srvNameCol} AS name,
           0 AS price
         FROM SRVCMF
-        WHERE ACT_CD = 'A'
-        ORDER BY SRV_CD
+        ${activeFilter(srvActiveCol)}
+        ORDER BY ${srvCodeCol}
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
 
-      // Query MDTEAM for doctors
       const doctorsQuery = `
         SELECT DISTINCT
-          DRS_CD AS code,
-          DRS_NM AS name
+          ${drsCodeCol} AS code,
+          ${drsNameCol} AS name
         FROM MDTEAM
-        WHERE ACT_CD = 'A'
-        ORDER BY DRS_CD
+        ${activeFilter(drsActiveCol)}
+        ORDER BY ${drsCodeCol}
       `;
       const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
       stageStats.doctorsRows = mssqlDoctors.length;
