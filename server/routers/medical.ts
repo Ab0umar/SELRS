@@ -6974,11 +6974,12 @@ export const medicalRouter = router({
         candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
 
       const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
-      const srvNameCol = pickCol(srvCols, ["SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
-      const srvActiveCol = pickCol(srvCols, ["ACT_CD", "ACTIVE", "IS_ACTIVE"]);
-      const drsCodeCol = pickCol(mdCols, ["DRS_CD", "DRSCOD", "DRS_CODE", "CODE"]);
-      const drsNameCol = pickCol(mdCols, ["DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
-      const drsActiveCol = pickCol(mdCols, ["ACT_CD", "ACTIVE", "IS_ACTIVE"]);
+      const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
+      const srvActiveCol = pickCol(srvCols, ["STAT", "ACT_CD", "ACTIVE", "IS_ACTIVE"]);
+      const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC_VL", "PRICE", "PR_VL", "PRC2"]);
+      const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
+      const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
+      const drsActiveCol = pickCol(mdCols, ["STAT", "ACT_CD", "ACTIVE", "IS_ACTIVE"]);
 
       if (!srvCodeCol || !srvNameCol) {
         throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
@@ -6990,11 +6991,15 @@ export const medicalRouter = router({
       const activeFilter = (activeCol: string | null) =>
         activeCol ? `WHERE ${activeCol} = 'A'` : "";
 
+      const priceExpr = srvPriceCol
+        ? `ISNULL(CASE WHEN ISNUMERIC(${srvPriceCol}) = 1 THEN CAST(${srvPriceCol} AS DECIMAL(10,2)) ELSE 0 END, 0)`
+        : "0";
+
       const servicesQuery = `
         SELECT DISTINCT
           ${srvCodeCol} AS code,
           ${srvNameCol} AS name,
-          0 AS price
+          ${priceExpr} AS price
         FROM SRVCMF
         ${activeFilter(srvActiveCol)}
         ORDER BY ${srvCodeCol}
