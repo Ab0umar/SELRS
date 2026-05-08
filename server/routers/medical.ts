@@ -6958,16 +6958,15 @@ export const medicalRouter = router({
   syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
     const stageStats: Record<string, unknown> = {};
     try {
-      // Query SRVCMF + SRVLSTD (Lasik section SEC_CD=15) for services
+      // Query SRVCMF for services (price not available from MSSQL catalog)
       const servicesQuery = `
         SELECT DISTINCT
-          s.SRV_CD AS code,
-          s.SRV_NM AS name,
-          COALESCE(TRY_CAST(l.PR_VL AS DECIMAL(10, 2)), 0) AS price
-        FROM SRVCMF s
-        LEFT JOIN SRVLSTD l ON s.SRV_CD = l.SRV_CD AND l.SEC_CD = 15
-        WHERE s.ACT_CD = 'A'
-        ORDER BY s.SRV_CD
+          SRV_CD AS code,
+          SRV_NM AS name,
+          0 AS price
+        FROM SRVCMF
+        WHERE ACT_CD = 'A'
+        ORDER BY SRV_CD
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
