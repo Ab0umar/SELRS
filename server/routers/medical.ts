@@ -7023,9 +7023,11 @@ export const medicalRouter = router({
           ? err.precedingErrors.map((e: any) => e?.message ?? String(e))
           : null,
       });
+      const errMsg = err?.message ?? String(err);
+      const originalMsg = err?.originalError?.message ?? null;
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to sync registration catalog from MSSQL",
+        message: `Failed to sync registration catalog from MSSQL: ${originalMsg ?? errMsg} (stage: ${JSON.stringify(stageStats)})`,
       });
     }
   }),

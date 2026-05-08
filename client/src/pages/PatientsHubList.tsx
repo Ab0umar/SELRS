@@ -148,7 +148,7 @@ export default function PatientsHubList() {
       dateFrom: toIsoDate(dateFrom) || undefined,
       dateTo: toIsoDate(dateTo) || undefined,
       serviceType: serviceTypeFilter === "all" ? undefined : toLegacyServiceType(serviceTypeFilter) as ServiceType,
-      cursor: cursor as any,
+      cursor: (cursor as any) ?? undefined,
       limit: pageSize,
     },
     { staleTime: 30_000, refetchOnWindowFocus: false },
