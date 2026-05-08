@@ -2,6 +2,9 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capacitor+android@8.3.1_@capacitor+core@8.3.1/node_modules/@capacitor/android/capacitor')
 
+include ':bcyesil-capacitor-plugin-printer'
+project(':bcyesil-capacitor-plugin-printer').projectDir = new File('../node_modules/.pnpm/@bcyesil+capacitor-plugin-p_b56a29761d88a1d39ffc829be0f9bf8d/node_modules/@bcyesil/capacitor-plugin-printer/android')
+
 include ':capacitor-action-sheet'
 project(':capacitor-action-sheet').projectDir = new File('../node_modules/.pnpm/@capacitor+action-sheet@8.1.1_@capacitor+core@8.3.1/node_modules/@capacitor/action-sheet/android')
 
@@ -46,6 +49,3 @@ project(':capacitor-splash-screen').projectDir = new File('../node_modules/.pnpm
 
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@capacitor+status-bar@8.0.2_@capacitor+core@8.3.1/node_modules/@capacitor/status-bar/android')
-
-include ':bcyesil-capacitor-plugin-printer'
-project(':bcyesil-capacitor-plugin-printer').projectDir = new File('../node_modules/.pnpm/@bcyesil+capacitor-plugin-p_b56a29761d88a1d39ffc829be0f9bf8d/node_modules/@bcyesil/capacitor-plugin-printer/android')
