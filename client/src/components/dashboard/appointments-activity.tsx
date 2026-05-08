@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Calendar, Check, CheckCircle2, Clock, Syringe, Users } from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
 import { useTodayQueuePatientsMerged, type TodayQueuePatient } from "@/hooks/useTodayQueuePatientsMerged";
+import { PatientMedicalStatusStrip, type PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
@@ -241,6 +242,13 @@ export function AppointmentsSection({
     return merged.filter((p) => p.queueStatus === queueFilter);
   }, [queueFilter, merged]);
 
+  const todayPatientIds = useMemo(() => merged.map((p) => p.id).filter(Boolean), [merged]);
+  const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
+    { patientIds: todayPatientIds },
+    { enabled: todayPatientIds.length > 0, staleTime: 120_000, refetchOnWindowFocus: false },
+  );
+  const medicalStatuses = medicalStatusQuery.data as Record<number, PatientMedicalStatus> | undefined;
+
   return (
     <div className="space-y-4">
       <TodayPatientShortcutsDialog
@@ -351,6 +359,7 @@ export function AppointmentsSection({
                 <QueuePatientCard
                   key={`${patient.id}-${patient.queueStatus}`}
                   patient={patient}
+                  medicalStatus={medicalStatuses?.[patient.id]}
                   onSelectPatient={() => setShortcutPatient(patient)}
                   markVisitTreatedPendingVisitId={
                     markVisitTreated.isPending ? markVisitTreated.variables?.visitId ?? null : null
@@ -402,11 +411,13 @@ export function AppointmentsSection({
 
 function QueuePatientCard({
   patient,
+  medicalStatus,
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
 }: {
   patient: TodayQueuePatient;
+  medicalStatus?: PatientMedicalStatus;
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
@@ -428,7 +439,7 @@ function QueuePatientCard({
         }
       }}
       className={cn(
-        "rounded-xl border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md sm:p-4",
+        "overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md",
         "border-s-4",
         st === "checkedIn" && "border-s-primary",
         st === "next" && "border-s-amber-500",
@@ -437,6 +448,8 @@ function QueuePatientCard({
         "cursor-pointer",
       )}
     >
+      <PatientMedicalStatusStrip status={medicalStatus} />
+      <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">{patient.fullName ?? "—"}</p>
@@ -478,6 +491,7 @@ function QueuePatientCard({
             {patient.checkedInTime ?? "—"}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

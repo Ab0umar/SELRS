@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, FileText, Printer, Edit, Trash2 } from "lucide-
 import { normalizeServiceCode, normalizeSheetType } from "@/lib/patientsHelpers";
 import { PatientTransactions } from "./PatientTransactions";
 import { PatientRowActions } from "./PatientRowActions";
+import { PatientMedicalStatusStrip, PatientMedicalStatusDots, type PatientMedicalStatus } from "./PatientMedicalStatusBadges";
 
 interface PatientsTableProps {
   patients: any[];
@@ -22,6 +23,7 @@ interface PatientsTableProps {
   onOpenDetails: (patientId: number) => void;
   user: any;
   canBulkManage: boolean;
+  medicalStatuses?: Record<number, PatientMedicalStatus>;
   selectedRowKeys: Set<string>;
   onToggleSelect: (rowKey: string, checked: boolean) => void;
 }
@@ -43,6 +45,7 @@ export const PatientsTable = memo(function PatientsTable({
   canBulkManage,
   selectedRowKeys,
   onToggleSelect,
+  medicalStatuses,
 }: PatientsTableProps) {
   const [isMobile, setIsMobile] = useState(false);
   const desktopTableRef = useRef<HTMLDivElement | null>(null);
@@ -222,7 +225,7 @@ export const PatientsTable = memo(function PatientsTable({
   const desktopPatients = shouldVirtualizeDesktop
     ? patients.slice(visibleDesktopRange.start, visibleDesktopRange.end)
     : patients;
-  const desktopColSpan = canBulkManage ? 9 : 8;
+  const desktopColSpan = canBulkManage ? 10 : 9;
 
   const formatDisplayDate = (value: any) => {
     if (!value) return "";
@@ -250,6 +253,7 @@ export const PatientsTable = memo(function PatientsTable({
               className="cursor-pointer overflow-hidden border-border/80 bg-card shadow-sm transition-colors hover:border-primary/25 hover:bg-accent/30"
               onClick={() => onOpenDetails(patient.id)}
             >
+              <PatientMedicalStatusStrip status={medicalStatuses?.[patient.id]} />
               <CardContent className="space-y-3 p-3">
                 <div className="flex items-center justify-between gap-2">
                   {canBulkManage ? (
@@ -404,6 +408,7 @@ export const PatientsTable = memo(function PatientsTable({
                 <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الخدمة</th>
                 <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">نوع الشيت</th>
                 <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">تاريخ فتح الملف</th>
+                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">البيانات</th>
                 <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الإجراءات</th>
               </tr>
             </thead>
@@ -472,6 +477,9 @@ export const PatientsTable = memo(function PatientsTable({
                     </td>
                     <td className="py-0 px-0.5 text-center" dir="ltr">
                       {patient.lastVisit ? formatDisplayDate(patient.lastVisit) : ""}
+                    </td>
+                    <td className="py-0 px-1 text-center">
+                      <PatientMedicalStatusDots status={medicalStatuses?.[patient.id]} />
                     </td>
                     <td className="py-0 px-0.5">
                       <PatientRowActions

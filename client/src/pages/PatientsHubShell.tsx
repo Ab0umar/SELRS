@@ -8,7 +8,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import Patients from "./Patients";
+import PatientsHubList from "./PatientsHubList";
 import QuickPatientEntry from "./QuickPatientEntry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,7 +64,7 @@ export default function PatientsHubShell() {
 
   const renderComponent = () => {
     if (isHubHome) return null;
-    if (location === "/patients-hub/list") return <Patients />;
+    if (location === "/patients-hub/list") return <PatientsHubList />;
     if (location === "/patients-hub/quick") return <QuickPatientEntry />;
 
     return (

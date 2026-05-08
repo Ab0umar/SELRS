@@ -7,8 +7,8 @@ import { router, protectedProcedure, doctorProcedure, nurseProcedure, technician
 import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
-import { eq, asc, desc, and } from "drizzle-orm";
-import { services, doctorsLookup, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests } from "../../drizzle/schema";
+import { eq, asc, desc, and, inArray } from "drizzle-orm";
+import { services, doctorsLookup, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -6956,19 +6956,21 @@ export const medicalRouter = router({
 
   // Sync registration catalog (services + doctors) from MSSQL to MySQL
   syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
+    const stageStats: Record<string, unknown> = {};
     try {
       // Query SRVCMF + SRVLSTD (Lasik section SEC_CD=15) for services
       const servicesQuery = `
         SELECT DISTINCT
           s.SRV_CD AS code,
           s.SRV_NM AS name,
-          CAST(COALESCE(l.PR_VL, 0) AS DECIMAL(10, 2)) AS price
+          COALESCE(TRY_CAST(l.PR_VL AS DECIMAL(10, 2)), 0) AS price
         FROM SRVCMF s
         LEFT JOIN SRVLSTD l ON s.SRV_CD = l.SRV_CD AND l.SEC_CD = 15
         WHERE s.ACT_CD = 'A'
         ORDER BY s.SRV_CD
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
+      stageStats.servicesRows = mssqlServices.length;
 
       // Query MDTEAM for doctors
       const doctorsQuery = `
@@ -6980,6 +6982,7 @@ export const medicalRouter = router({
         ORDER BY DRS_CD
       `;
       const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
+      stageStats.doctorsRows = mssqlDoctors.length;
 
       // Upsert to MySQL services and doctorsLookup tables
       const result = await db.upsertRegistrationCatalogRows({
@@ -6993,6 +6996,8 @@ export const medicalRouter = router({
           name: String(row.name ?? "").trim(),
         })),
       });
+      stageStats.servicesUpserted = result.servicesUpserted;
+      stageStats.doctorsUpserted = result.doctorsUpserted;
 
       await db.logAuditEvent(ctx.user.id, "SYNC_REGISTRATION_CATALOG", "system", 0, {
         servicesUpserted: result.servicesUpserted,
@@ -7005,7 +7010,19 @@ export const medicalRouter = router({
         doctorsUpserted: result.doctorsUpserted,
       };
     } catch (error) {
-      console.error("syncRegistrationCatalogFromMssql error:", error);
+      const err = error as any;
+      console.error("syncRegistrationCatalogFromMssql error:", {
+        stageStats,
+        message: err?.message ?? String(err),
+        code: err?.code,
+        name: err?.name,
+        state: err?.state,
+        number: err?.number,
+        originalError: err?.originalError?.message ?? null,
+        precedingErrors: Array.isArray(err?.precedingErrors)
+          ? err.precedingErrors.map((e: any) => e?.message ?? String(e))
+          : null,
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to sync registration catalog from MSSQL",
@@ -7244,6 +7261,48 @@ export const medicalRouter = router({
             }
           : null,
       };
+    }),
+
+  getPatientMedicalStatusBatch: protectedProcedure
+    .input(z.object({ patientIds: z.array(z.number().int().positive()).max(500) }))
+    .query(async ({ input }) => {
+      const ids = input.patientIds;
+      if (ids.length === 0) return {} as Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }>;
+
+      const dbInstance = await db.getDb();
+      if (!dbInstance) return {} as Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }>;
+
+      const [autorefRows, afterRefRows, glassesRows, pentacamRows, prescriptionRows, testRows, reportRows] = await Promise.all([
+        dbInstance.selectDistinct({ patientId: autorefractometryData.patientId }).from(autorefractometryData).where(inArray(autorefractometryData.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: afterRefractionData.patientId }).from(afterRefractionData).where(inArray(afterRefractionData.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: glassesRecords.patientId }).from(glassesRecords).where(inArray(glassesRecords.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: pentacamResults.patientId }).from(pentacamResults).where(inArray(pentacamResults.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: prescriptions.patientId }).from(prescriptions).where(inArray(prescriptions.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: testRequests.patientId }).from(testRequests).where(inArray(testRequests.patientId, ids)),
+        dbInstance.selectDistinct({ patientId: doctorReports.patientId }).from(doctorReports).where(inArray(doctorReports.patientId, ids)),
+      ]);
+
+      const withAutoref = new Set(autorefRows.map((r) => r.patientId));
+      const withAfterRef = new Set(afterRefRows.map((r) => r.patientId));
+      const withGlasses = new Set(glassesRows.map((r) => r.patientId));
+      const withPentacam = new Set(pentacamRows.map((r) => r.patientId));
+      const withPrescription = new Set(prescriptionRows.map((r) => r.patientId));
+      const withTests = new Set(testRows.map((r) => r.patientId));
+      const withReports = new Set(reportRows.map((r) => r.patientId));
+
+      const result: Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }> = {};
+      for (const id of ids) {
+        result[id] = {
+          autoref: withAutoref.has(id),
+          afterRef: withAfterRef.has(id),
+          glasses: withGlasses.has(id),
+          pentacam: withPentacam.has(id),
+          prescription: withPrescription.has(id),
+          tests: withTests.has(id),
+          reports: withReports.has(id),
+        };
+      }
+      return result;
     }),
 
 });

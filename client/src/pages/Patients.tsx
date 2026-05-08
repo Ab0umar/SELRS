@@ -70,6 +70,12 @@ export default function Patients() {
     doctorsLoading,
   } = usePatientsList(isAuthenticated);
 
+  const visiblePatientIds = filteredPatients.map((p: any) => Number(p.id)).filter(Boolean);
+  const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
+    { patientIds: visiblePatientIds },
+    { enabled: visiblePatientIds.length > 0, staleTime: 60_000 },
+  );
+
   const {
     createPatientMutation,
     updatePatientMutation,
@@ -207,6 +213,7 @@ export default function Patients() {
                 onOpenDetails={(patientId) => setLocation(patientDetailPath(patientId))}
                 user={user}
                 canBulkManage={isAdmin}
+                medicalStatuses={medicalStatusQuery.data ?? undefined}
                 selectedRowKeys={selectedRowKeys}
                 onToggleSelect={(rowKey, checked) => {
                   setSelectedRowKeys((prev) => {

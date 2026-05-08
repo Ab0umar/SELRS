@@ -2,15 +2,19 @@ param(
     [string]$VersionName,
     [int]$VersionCode,
     [switch]$SkipWebBuild,
-    [switch]$SkipCapSync
+    [switch]$SkipCapSync,
+    [string]$ApkOutputDir,
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$packageJsonPath = "D:\C\SRV100\package.json"
+$packageJsonPath = Join-Path $repoRoot "package.json"
 $androidDir = Join-Path $repoRoot "android"
-$apkOutputDir = "C:\Users\drels\OneDrive\SELRS.cc"
+$defaultApkOutputDir = Join-Path $androidDir "app\build\outputs\apk\release"
+$resolvedApkOutputDir = if ($ApkOutputDir) { $ApkOutputDir } else { $defaultApkOutputDir }
+$maxAndroidVersionCode = 2100000000
 
 function Write-Step {
     param([string]$Message)
@@ -18,56 +22,83 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
+function Require-Command {
+    param([string]$Name)
+    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+        throw "Required command '$Name' was not found in PATH."
+    }
+}
+
+function Save-PackageJson {
+    param(
+        [string]$Path,
+        [object]$Object
+    )
+    $json = $Object | ConvertTo-Json -Depth 100
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, "$json`n", $utf8NoBom)
+}
+
 if (-not (Test-Path $packageJsonPath)) {
     throw "package.json not found at $packageJsonPath"
 }
 
+Require-Command "pnpm"
+Require-Command "npx"
+
 # Read current version from package.json
 $packageJsonObj = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
 $projectVersion = [string]$packageJsonObj.version
+$semverPattern = '^\d+\.\d+\.\d+$'
 
-if (-not $VersionName) {
-    # Auto-increment patch version
-    $parts = $projectVersion -split '\.'
-    if ($parts.Length -eq 3) {
-        $parts[2] = [int]$parts[2] + 1
-        $VersionName = $parts -join '.'
-    }
-    else {
-        $VersionName = $projectVersion
-    }
+if ($projectVersion -notmatch $semverPattern) {
+    throw "package.json version '$projectVersion' is not in expected x.y.z format."
 }
 
-# Update package.json version (simple text replacement)
+if (-not $PSBoundParameters.ContainsKey("VersionName") -or [string]::IsNullOrWhiteSpace($VersionName)) {
+    # Auto-increment patch version
+    $parts = $projectVersion -split '\.'
+    $parts[2] = [int]$parts[2] + 1
+    $VersionName = $parts -join '.'
+}
+
+if ($VersionName -notmatch $semverPattern) {
+    throw "VersionName '$VersionName' is invalid. Expected format: x.y.z"
+}
+
+# Update package.json version (structured update)
 $oldVersion = $projectVersion
 $newVersion = $VersionName
 if ($oldVersion -ne $newVersion) {
     Write-Step "Updating version: $oldVersion → $newVersion"
-    $content = Get-Content -Raw $packageJsonPath
-    # Simple text replacement: "version": "1.0.55" → "version": "1.0.56"
-    $content = $content -replace "`"version`":\s*`"$([regex]::Escape($oldVersion))`"", "`"version`": `"$newVersion`""
-
-    # Write with UTF8 without BOM
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($packageJsonPath, $content, $utf8NoBom)
+    $packageJsonObj.version = $newVersion
+    if (-not $DryRun) {
+        Save-PackageJson -Path $packageJsonPath -Object $packageJsonObj
+    }
+    $confirmedVersion = if ($DryRun) { $newVersion } else { [string]((Get-Content -Raw $packageJsonPath | ConvertFrom-Json).version) }
+    if ($confirmedVersion -ne $newVersion) {
+        throw "Failed to update package.json version. Expected '$newVersion', found '$confirmedVersion'."
+    }
 }
 
 # Auto-increment Android version code based on patch version
-if (-not $VersionCode) {
+if (-not $PSBoundParameters.ContainsKey("VersionCode")) {
     $parts = $VersionName -split '\.'
-    if ($parts.Length -eq 3) {
-        $patchVersion = [int]$parts[2]
-        $VersionCode = 50 + $patchVersion  # Base version 50 + patch number
-    }
-    else {
-        $VersionCode = 50
-    }
+    $patchVersion = [int]$parts[2]
+    $VersionCode = 50 + $patchVersion  # Base version 50 + patch number
 }
 
+if ($VersionCode -lt 1 -or $VersionCode -gt $maxAndroidVersionCode) {
+    throw "VersionCode '$VersionCode' is out of valid range (1..$maxAndroidVersionCode)."
+}
 
 Write-Step "Building Android release"
 Write-Host "VersionName: $VersionName"
 Write-Host "VersionCode: $VersionCode"
+Write-Host "APK output directory: $resolvedApkOutputDir"
+if ($DryRun) {
+    Write-Host "DryRun: enabled (no file writes or build commands will execute)." -ForegroundColor Yellow
+}
 
 Push-Location $repoRoot
 try {
@@ -82,25 +113,31 @@ try {
             Remove-Item Env:VITE_ENABLE_ANDROID_FCM -ErrorAction SilentlyContinue
             Write-Host "google-services.json not found — web bundle will skip Android FCM registration (no crash)." -ForegroundColor Yellow
         }
-        pnpm build
+        if (-not $DryRun) {
+            pnpm build
+        }
     }
 
     if (-not $SkipCapSync) {
         Write-Step "Syncing Capacitor Android"
-        npx cap sync android
+        if (-not $DryRun) {
+            npx cap sync android
+        }
     }
 
     Push-Location $androidDir
     try {
         Write-Step "Running Gradle assembleRelease"
-        Write-Host "VersionCode will be: $VersionCode (auto-calculated from version patch)"
+        Write-Host "VersionCode: $VersionCode"
 
         # Set environment variable so build.gradle can read it
         $env:APP_VERSION_CODE = [string]$VersionCode
         [System.Environment]::SetEnvironmentVariable("APP_VERSION_CODE", [string]$VersionCode, "Process")
 
-        # Run Gradle with explicit property (as fallback)
-        .\gradlew assembleRelease
+        # Prefer explicit Gradle property and keep env var as fallback.
+        if (-not $DryRun) {
+            .\gradlew assembleRelease "-PversionCode=$VersionCode"
+        }
     }
     finally {
         Pop-Location
@@ -111,10 +148,23 @@ finally {
 }
 
 Write-Step "Done"
-$apkFile = Get-ChildItem -Path $apkOutputDir -Filter "SELRS*.apk" -ErrorAction SilentlyContinue | Select-Object -First 1
+$gradleApkDir = Join-Path $androidDir "app\build\outputs\apk\release"
+$apkFile = Get-ChildItem -Path $gradleApkDir -Filter "*.apk" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($apkFile) {
-    Write-Host "APK: $($apkFile.FullName)" -ForegroundColor Green
+    if (-not (Test-Path $resolvedApkOutputDir)) {
+        if (-not $DryRun) {
+            New-Item -ItemType Directory -Path $resolvedApkOutputDir -Force | Out-Null
+        }
+    }
+    $copiedApkPath = Join-Path $resolvedApkOutputDir $apkFile.Name
+    if (-not $DryRun) {
+        Copy-Item -Path $apkFile.FullName -Destination $copiedApkPath -Force
+        Write-Host "APK: $copiedApkPath" -ForegroundColor Green
+    }
+    else {
+        Write-Host "DryRun: APK would be copied from '$($apkFile.FullName)' to '$copiedApkPath'." -ForegroundColor Yellow
+    }
 }
 else {
-    Write-Host "APK not found at $apkOutputDir. Check Gradle output." -ForegroundColor Yellow
+    Write-Host "APK not found in $gradleApkDir. Check Gradle output." -ForegroundColor Yellow
 }

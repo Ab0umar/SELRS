@@ -192,7 +192,6 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
     <div
       className="flex h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden selrs-page-bg md:flex-row"
       dir="rtl"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {!hideSidebar && !isMobile ? (
         <AppSidebar
@@ -248,7 +247,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
         ) : null}
 
         <main
-          className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} p-2 sm:p-3 md:p-4`}
+          className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-2 pt-1.5 pb-2 sm:p-3 md:p-4`}
         >
           <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
             {children}

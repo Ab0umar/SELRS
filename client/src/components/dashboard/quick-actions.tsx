@@ -91,8 +91,8 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-5 gap-1 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 sm:gap-1.5">
-        {quickActions.map((action) => {
+      <div className="grid grid-cols-6 gap-0.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 sm:gap-1.5">
+        {quickActions.map((action, index) => {
           const Icon = action.icon;
           return (
             <button
@@ -127,17 +127,18 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
               }}
               className={cn(
                 "flex flex-col items-center justify-center transition-all active:scale-95 cursor-pointer group",
-                "py-0.5 px-0.5 sm:gap-1 sm:rounded-lg sm:py-1.5 sm:px-0.5",
+                "py-0.5 px-0 sm:gap-1 sm:rounded-lg sm:py-1.5 sm:px-0.5",
+                index >= 10 && "max-sm:hidden",
               )}
             >
               <div
                 className={cn(
                   "flex items-center justify-center rounded-xl transition-colors shrink-0",
-                  "h-10 w-10 sm:h-9 sm:w-9 sm:rounded-lg",
+                  "h-9 w-9 sm:h-9 sm:w-9 sm:rounded-lg",
                   action.color,
                 )}
               >
-                <Icon className="h-5 w-5 sm:h-[18px] sm:w-[18px]" />
+                <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
               </div>
               <span className="hidden sm:block text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center truncate w-full">
                 {action.label}
