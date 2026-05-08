@@ -6992,6 +6992,7 @@ export const medicalRouter = router({
           0 AS price
         FROM SRVCMF
         WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
+          AND SRV_TY = '15'
         ORDER BY ${srvCodeCol}
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});

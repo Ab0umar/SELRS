@@ -201,8 +201,6 @@ export async function upsertRegistrationCatalogRows(params: {
         .onDuplicateKeyUpdate({
           set: {
             name: String(row.name ?? "").trim() || code,
-            price: priceStr,
-            isActive: true,
             updatedAt: now,
           },
         });
@@ -215,21 +213,12 @@ export async function upsertRegistrationCatalogRows(params: {
     for (const row of chunk) {
       const code = String(row.code ?? "").trim();
       if (!code) continue;
-      const id = deterministicCatalogId("doc", code);
-      await db
-        .insert(doctorsLookup)
-        .values({
-          id,
-          code,
-          name: String(row.name ?? "").trim() || code,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            code,
-            name: String(row.name ?? "").trim() || code,
-          },
-        });
-      doctorsUpserted += 1;
+      const name = String(row.name ?? "").trim() || code;
+      const updated = await db
+        .update(doctorsLookup)
+        .set({ name })
+        .where(eq(doctorsLookup.code, code));
+      if ((updated as any)?.[0]?.affectedRows > 0) doctorsUpserted += 1;
     }
   }
   return { servicesUpserted, doctorsUpserted };
