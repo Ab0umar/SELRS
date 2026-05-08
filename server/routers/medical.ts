@@ -6975,10 +6975,8 @@ export const medicalRouter = router({
 
       const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
       const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
-      const srvActiveCol = pickCol(srvCols, ["STAT", "ACT_CD", "ACTIVE", "IS_ACTIVE"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
-      const drsActiveCol = pickCol(mdCols, ["STAT", "ACT_CD", "ACTIVE", "IS_ACTIVE"]);
 
       if (!srvCodeCol || !srvNameCol) {
         throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
@@ -6987,16 +6985,13 @@ export const medicalRouter = router({
         throw new Error(`Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`);
       }
 
-      const activeFilter = (activeCol: string | null) =>
-        activeCol ? `WHERE ${activeCol} = 'A'` : "";
-
       const servicesQuery = `
         SELECT DISTINCT
           ${srvCodeCol} AS code,
           ${srvNameCol} AS name,
           0 AS price
         FROM SRVCMF
-        ${activeFilter(srvActiveCol)}
+        WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
         ORDER BY ${srvCodeCol}
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
@@ -7007,7 +7002,7 @@ export const medicalRouter = router({
           ${drsCodeCol} AS code,
           ${drsNameCol} AS name
         FROM MDTEAM
-        ${activeFilter(drsActiveCol)}
+        WHERE ${drsCodeCol} IS NOT NULL AND ${drsCodeCol} <> ''
         ORDER BY ${drsCodeCol}
       `;
       const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
