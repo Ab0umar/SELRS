@@ -156,7 +156,10 @@ export default function PatientsHubList() {
 
   const allRows = useMemo<PatientRow[]>(() => {
     const raw = (patientsQuery.data as any);
-    const items = Array.isArray(raw?.patients) ? raw.patients : Array.isArray(raw) ? raw : [];
+    const items = Array.isArray(raw?.rows) ? raw.rows
+      : Array.isArray(raw?.patients) ? raw.patients
+      : Array.isArray(raw) ? raw
+      : [];
     return items as PatientRow[];
   }, [patientsQuery.data]);
 
