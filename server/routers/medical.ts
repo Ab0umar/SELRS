@@ -7001,8 +7001,10 @@ export const medicalRouter = router({
           AND DPT_NO = 15
         ORDER BY ${srvCodeCol}
       `;
+      stageStats.srvPriceCol = srvPriceCol;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
+      stageStats.samplePrices = (mssqlServices as any[]).slice(0, 5).map((r: any) => ({ code: r.code, price: r.price }));
 
       if (mssqlServices.length === 0) {
         const dptValues = await mssqlQuery<{ DPT_NO: unknown }>(
@@ -7051,7 +7053,7 @@ export const medicalRouter = router({
         success: true,
         servicesUpserted: result.servicesUpserted,
         doctorsUpserted: result.doctorsUpserted,
-        debug: result.servicesUpserted === 0 ? stageStats : undefined,
+        debug: stageStats,
       };
     } catch (error) {
       const err = error as any;
