@@ -54,6 +54,10 @@ function reportThClass(col: { key: string; align?: string }, isReceiptPrint: boo
   return styles.reportThText;
 }
 
+function subtotalLabelSpan(cols: { key: string; align?: "left" | "right" | "center" }[]): number {
+  return Math.max(1, firstNumericColumnIndex(cols));
+}
+
 function reportTdClass(col: { key: string; align?: string }, isReceiptPrint: boolean): string {
   if (isReceiptPrint) return receiptDataCellClass(col.key);
   if (col.align === "center") return "text-center";
@@ -126,7 +130,7 @@ export default function PrintPreview() {
 
   const isReceiptPrint = payload.printLayout === "receipt";
   const cols = payload.columns;
-  const labelSpan = firstNumericColumnIndex(cols);
+  const labelSpan = subtotalLabelSpan(cols);
 
   const renderTotalsFoot = () => {
     if (!payload.totals || payload.totals.length === 0) return null;
