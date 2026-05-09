@@ -247,7 +247,7 @@ export default function AdminServices() {
     onSuccess: (data) => {
       toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
       pendingAutoRecategorize.current = true;
-      utils.medical.getServicesFromDb.invalidate();
+      void servicesQuery.refetch();
     },
     onError: (err) => {
       toast.error("فشلت المزامنة: " + (err.message || "خطأ غير معروف"));
@@ -262,6 +262,11 @@ export default function AdminServices() {
 
   // Load services from DB table
   useEffect(() => {
+    if (servicesQuery.error) {
+      toast.error("خطأ في تحميل الخدمات: " + (servicesQuery.error.message || "خطأ غير معروف"));
+      setIsInitialized(true);
+      return;
+    }
     if (!servicesQuery.data) return;
     const rows = servicesQuery.data;
     const normalized = rows.map((item: any) => {
@@ -301,7 +306,7 @@ export default function AdminServices() {
       setServices(normalized);
     }
     setIsInitialized(true);
-  }, [servicesQuery.data]);
+  }, [servicesQuery.data, servicesQuery.error]);
 
   useEffect(() => {
     if (isMappingsInitialized || !mappingsQuery.data) return;

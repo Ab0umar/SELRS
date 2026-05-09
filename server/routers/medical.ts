@@ -7093,7 +7093,7 @@ export const medicalRouter = router({
         });
       }
       await mssqlQuery(
-        `UPDATE op2026.dbo.SRVLSTD SET ${lstdPriceCol} = @price WHERE ${lstdCodeCol} = @code`,
+        `UPDATE op2026.dbo.SRVLSTD SET ${lstdPriceCol} = @price WHERE ${lstdCodeCol} = @code AND CA_CD = '000000'`,
         { price: input.price, code: input.code },
       );
       return { success: true };

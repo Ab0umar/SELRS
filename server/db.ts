@@ -276,7 +276,7 @@ export async function upsertRegistrationCatalogRows(params: {
       sql`, `,
     );
     const result = await db.execute(
-      sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END, updatedAt = ${now} WHERE code IN (${codeList})`,
+      sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END WHERE code IN (${codeList})`,
     );
     doctorsUpserted = (result as any)?.[0]?.affectedRows ?? doctorRows.length;
   }
