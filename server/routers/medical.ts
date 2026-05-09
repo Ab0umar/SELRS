@@ -6997,13 +6997,10 @@ export const medicalRouter = router({
         SELECT
           s.${srvCodeCol} AS code,
           s.${srvNameCol} AS name,
-          CAST(ISNULL(TRY_CAST(l.max_price AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
+          CAST(ISNULL(TRY_CAST(l.${lstdPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
         FROM SRVCMF s
-        LEFT JOIN (
-          SELECT ${lstdCodeCol}, MAX(${lstdPriceCol}) AS max_price
-          FROM op2026.dbo.SRVLSTD
-          GROUP BY ${lstdCodeCol}
-        ) l ON l.${lstdCodeCol} = s.${srvCodeCol}
+        LEFT JOIN op2026.dbo.SRVLSTD l
+          ON l.${lstdCodeCol} = s.${srvCodeCol} AND l.CA_CD = '00000'
         WHERE s.${srvCodeCol} IS NOT NULL AND s.${srvCodeCol} <> ''
           AND s.DPT_NO = 15
         ORDER BY s.${srvCodeCol}
