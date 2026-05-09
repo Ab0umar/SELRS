@@ -1,4 +1,4 @@
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, Redirect } from "wouter";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -62,6 +62,19 @@ export default function ServicesHubShell() {
 
   const renderComponent = () => {
     if (isHubHome) return null;
+
+    if (location === "/services-hub/medications") {
+      return <Redirect to="/medications" />;
+    }
+    if (location === "/services-hub/catalog") {
+      return <Redirect to="/examinations/catalog" />;
+    }
+    if (location === "/services-hub/registry") {
+      return <Redirect to="/medications/registry" />;
+    }
+    if (location === "/services-hub/txhub") {
+      return <Redirect to="/txhub" />;
+    }
 
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
