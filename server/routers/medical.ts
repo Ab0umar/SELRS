@@ -7001,6 +7001,7 @@ export const medicalRouter = router({
         FROM op2026.dbo.SRVLSTD l
         JOIN SRVCMF s ON s.${srvCodeCol} = l.${lstdCodeCol}
         WHERE l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
+          AND s.DPT_NO = 15
         GROUP BY l.${lstdCodeCol}
         ORDER BY l.${lstdCodeCol}
       `;
