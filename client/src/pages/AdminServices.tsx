@@ -218,10 +218,8 @@ export default function AdminServices() {
   const [doctorServiceMatches, setDoctorServiceMatches] = useState<DoctorServiceSheetMatch[]>([]);
   const [isMappingsInitialized, setIsMappingsInitialized] = useState(false);
 
-  const servicesQuery = trpc.medical.getSystemSetting.useQuery({ key: "service_directory" }, {
+  const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
     refetchOnWindowFocus: false,
-    staleTime: 0,  // Always consider data stale
-    gcTime: 0,  // Don't cache
   });
   const doctorDirectoryQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -231,10 +229,8 @@ export default function AdminServices() {
     { refetchOnWindowFocus: false, staleTime: 0, gcTime: 0 }
   );
   const utils = trpc.useUtils();
-  const updateServicesMutation = trpc.medical.updateSystemSetting.useMutation({
-    onSuccess: async () => {
-      await utils.medical.getSystemSetting.invalidate({ key: "service_directory" });
-    },
+  const updateServiceInDbMutation = trpc.medical.updateServiceInDb.useMutation({
+    onError: (err) => toast.error("فشل حفظ الخدمة: " + (err.message || "خطأ")),
   });
   const saveMappingsMutation = trpc.medical.updateSystemSetting.useMutation({
     onSuccess: async () => {
@@ -249,7 +245,7 @@ export default function AdminServices() {
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
       toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
-      utils.medical.getRegistrationCatalog.invalidate();
+      utils.medical.getServicesFromDb.invalidate();
     },
     onError: (err) => {
       toast.error("فشلت المزامنة: " + (err.message || "خطأ غير معروف"));
@@ -262,12 +258,10 @@ export default function AdminServices() {
     if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
 
-  // Load services from backend (only on first load, never again)
+  // Load services from DB table
   useEffect(() => {
-    if (isInitialized || !servicesQuery.data) return;
-
-    const raw = (servicesQuery.data as any)?.value;
-    const rows = Array.isArray(raw) ? raw : [];
+    if (!servicesQuery.data) return;
+    const rows = servicesQuery.data;
     const normalized = rows.map((item: any) => {
       const code = String(item?.code ?? "").trim();
       const name = String(item?.name ?? "").trim();
@@ -278,7 +272,6 @@ export default function AdminServices() {
         : inferred;
       const storedDefaultSheet = normalizeStoredDefaultSheet(item?.defaultSheet, "consultant");
       const storedSrvTyp = normalizeSrvTyp(item?.srvTyp, storedServiceType, storedDefaultSheet);
-
       return {
         id: String(item?.id ?? makeId()),
         code,
@@ -293,7 +286,7 @@ export default function AdminServices() {
     });
     setServices(normalized);
     setIsInitialized(true);
-  }, [servicesQuery.data, isInitialized]);
+  }, [servicesQuery.data]);
 
   useEffect(() => {
     if (isMappingsInitialized || !mappingsQuery.data) return;
@@ -410,21 +403,28 @@ export default function AdminServices() {
 
   const updateService = (id: string, updates: Partial<ServiceEntry>) => {
     setServices((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+    const dbUpdates: Record<string, any> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.category !== undefined) dbUpdates.category = updates.category ?? null;
+    if (updates.serviceType !== undefined) dbUpdates.serviceType = updates.serviceType;
+    if (updates.srvTyp !== undefined) dbUpdates.srvTyp = updates.srvTyp ?? null;
+    if (updates.defaultSheet !== undefined) dbUpdates.defaultSheet = updates.defaultSheet;
+    if (updates.isActive !== undefined) dbUpdates.isActive = updates.isActive;
+    if (updates.price !== undefined) dbUpdates.price = String(updates.price);
+    if (Object.keys(dbUpdates).length > 0) {
+      updateServiceInDbMutation.mutate({ id, ...dbUpdates });
+    }
   };
 
   const deleteService = (id: string) => {
+    updateServiceInDbMutation.mutate({ id, isActive: false });
     setServices((prev) => prev.filter((s) => s.id !== id));
     setSelectedIds((prev) => prev.filter((sid) => sid !== id));
     toast.success("تم حذف الخدمة");
   };
 
   const saveServices = async () => {
-    try {
-      await updateServicesMutation.mutateAsync({ key: "service_directory", value: services });
-      toast.success("تم حفظ الخدمات بنجاح ✓");
-    } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل حفظ الخدمات"));
-    }
+    toast.success("التغييرات تحفظ تلقائياً في الجدول ✓");
   };
 
   const saveDoctorServiceMatches = async () => {
@@ -715,7 +715,7 @@ export default function AdminServices() {
           </div>
 
           <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-            <Button type="button" onClick={() => void saveServices()} disabled={updateServicesMutation.isPending}>
+            <Button type="button" onClick={() => void saveServices()} disabled={updateServiceInDbMutation.isPending}>
               💾 حفظ التغييرات
             </Button>
             <Button type="button" onClick={() => void syncPatients()} disabled={syncPatientsMutation.isPending}>
@@ -729,7 +729,7 @@ export default function AdminServices() {
             >
               🔄 {syncCatalogMutation.isPending ? "جاري..." : "مزامنة الخدمات والأسعار"}
             </Button>
-            <Button type="button" variant="secondary" onClick={autoRecategorize} disabled={updateServicesMutation.isPending}>
+            <Button type="button" variant="secondary" onClick={autoRecategorize} disabled={updateServiceInDbMutation.isPending}>
               🔄 إعادة تصنيف تلقائي
             </Button>
             <input

@@ -7099,6 +7099,28 @@ export const medicalRouter = router({
       return { success: true };
     }),
 
+  getServicesFromDb: managerProcedure.query(async () => {
+    return db.getAllServicesFromDb();
+  }),
+
+  updateServiceInDb: managerProcedure
+    .input(z.object({
+      id: z.string().min(1),
+      name: z.string().optional(),
+      category: z.string().nullable().optional(),
+      serviceType: z.string().optional(),
+      srvTyp: z.string().nullable().optional(),
+      defaultSheet: z.string().optional(),
+      locationType: z.string().optional(),
+      price: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...updates } = input;
+      await db.updateServiceInDb(id, updates);
+      return { success: true };
+    }),
+
   // Get registration catalog (services + doctors) from MySQL
   getRegistrationCatalog: protectedProcedure.query(async () => {
     try {

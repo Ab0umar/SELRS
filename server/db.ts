@@ -125,6 +125,30 @@ export function deterministicCatalogId(ns: string, key: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+export async function getAllServicesFromDb() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(services).orderBy(asc(services.code));
+}
+
+export async function updateServiceInDb(
+  id: string,
+  updates: Partial<{
+    name: string;
+    category: string | null;
+    serviceType: string;
+    srvTyp: string | null;
+    defaultSheet: string;
+    locationType: string;
+    price: string;
+    isActive: boolean;
+  }>,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(services).set({ ...updates, updatedAt: new Date() }).where(eq(services.id, id));
+}
+
 export async function getRegistrationCatalogFromDb(): Promise<{
   services: Array<{ code: string; name: string; price: number }>;
   doctors: Array<{ code: string; name: string }>;
