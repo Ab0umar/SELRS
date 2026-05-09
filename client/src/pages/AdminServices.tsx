@@ -210,7 +210,7 @@ export default function AdminServices() {
   const [moveTarget, setMoveTarget] = useState<ServiceCategory>("examination");
   const [sheetTarget, setSheetTarget] = useState<SheetType>("consultant");
   const [isInitialized, setIsInitialized] = useState(false);
-  const [pendingAutoRecategorize, setPendingAutoRecategorize] = useState(false);
+  const pendingAutoRecategorize = useRef(false);
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
   const [mappingSheetType, setMappingSheetType] = useState<SheetType>("consultant");
@@ -246,7 +246,7 @@ export default function AdminServices() {
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
       toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
-      setPendingAutoRecategorize(true);
+      pendingAutoRecategorize.current = true;
       utils.medical.getServicesFromDb.invalidate();
     },
     onError: (err) => {
@@ -286,8 +286,8 @@ export default function AdminServices() {
         price: item?.price != null ? Number(item.price) : undefined,
       } as ServiceEntry;
     });
-    if (pendingAutoRecategorize) {
-      setPendingAutoRecategorize(false);
+    if (pendingAutoRecategorize.current) {
+      pendingAutoRecategorize.current = false;
       const recategorized = normalized.map((s) => ({
         ...s,
         category: categorizeService(s.code, s.name, s.serviceType) as ServiceCategory,
