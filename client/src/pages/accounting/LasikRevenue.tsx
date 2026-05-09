@@ -295,7 +295,6 @@ export default function LasikRevenue() {
         { key: "patientShare", label: "ما يخص المريض", align: "right" },
         { key: "discount", label: "الخصم", align: "right" },
         { key: "patientTotal", label: "إجمالي المريض", align: "right" },
-        { key: "companyTotal", label: "إجمالي الجهة", align: "right" },
       ],
       rows: payloadRows,
       totals: [
@@ -307,7 +306,6 @@ export default function LasikRevenue() {
             patientShare: frontendGrandTotal.patientShare,
             discount: frontendGrandTotal.discount,
             patientTotal: frontendGrandTotal.patientTotal,
-            companyTotal: frontendGrandTotal.companyTotal,
           },
         },
       ],

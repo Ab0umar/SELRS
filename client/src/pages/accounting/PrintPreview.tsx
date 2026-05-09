@@ -51,23 +51,13 @@ function receiptFilterValueUseRtl(filterKey: string): boolean {
 function reportThClass(col: { key: string; align?: string }, isReceiptPrint: boolean): string {
   if (isReceiptPrint) return styles.receiptTh;
   if (col.align === "center") return "text-center";
-  const compact =
-    col.align === "right" ||
-    col.key === "serviceCode" ||
-    col.key === "doctorCode" ||
-    col.key === "sectionCode";
-  return compact ? styles.reportThNum : styles.reportThText;
+  return styles.reportThText;
 }
 
 function reportTdClass(col: { key: string; align?: string }, isReceiptPrint: boolean): string {
   if (isReceiptPrint) return receiptDataCellClass(col.key);
   if (col.align === "center") return "text-center";
-  const compact =
-    col.align === "right" ||
-    col.key === "serviceCode" ||
-    col.key === "doctorCode" ||
-    col.key === "sectionCode";
-  return compact ? styles.reportTdNum : styles.reportTdText;
+  return styles.reportTdText;
 }
 
 export default function PrintPreview() {
@@ -384,21 +374,7 @@ export default function PrintPreview() {
             <table className={styles.table}>
               <colgroup>
                 {cols.map((col) => (
-                  <col
-                    key={col.key}
-                    className={
-                      col.align === "right" ||
-                      col.key === "serviceCode" ||
-                      col.key === "doctorCode" ||
-                      col.key === "sectionCode" ||
-                      col.key === "trNo" ||
-                      col.key === "trDate" ||
-                      col.key === "transactionDate" ||
-                      col.key === "date"
-                        ? styles.colCompact
-                        : styles.colStretch
-                    }
-                  />
+                  <col key={col.key} />
                 ))}
               </colgroup>
               <thead>

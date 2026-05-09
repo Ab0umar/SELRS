@@ -151,6 +151,7 @@
   margin-top: 0.5rem;
   margin-bottom: 1.25rem;
   font-size: 0.8125rem;
+  direction: rtl;
 }
 
 .colCompact {
@@ -190,11 +191,11 @@
 }
 
 .reportThNum {
-  text-align: left;
-  direction: ltr;
+  text-align: right;
+  direction: rtl;
   white-space: nowrap;
   width: 1%;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: normal;
 }
 
 .reportTdText {
@@ -206,11 +207,11 @@
 }
 
 .reportTdNum {
-  text-align: left;
-  direction: ltr;
+  text-align: right;
+  direction: rtl;
   white-space: nowrap;
   width: 1%;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: normal;
 }
 
 .table th,
