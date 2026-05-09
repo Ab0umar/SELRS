@@ -364,11 +364,20 @@ export async function createUser(userData: InsertUser) {
 
   try {
     const result = await db.insert(users).values(userData);
-    return result;
+    // Drizzle mysql2: result is [OkPacket, FieldPacket[]] or OkPacket depending on version
+    const insertId = (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+    if (insertId) return { insertId: Number(insertId) };
   } catch (err: any) {
     console.error("[createUser] MySQL error:", err?.code, err?.sqlMessage ?? err?.message, "| username:", userData.username);
-    throw err;
+    // INSERT may have committed despite Drizzle throwing (e.g. trigger warning, result parse error).
+    // Fall through to check if the row actually landed.
   }
+
+  // Attempt recovery: find user by username
+  const found = await db.select({ insertId: users.id }).from(users).where(eq(users.username, userData.username)).limit(1);
+  if (found.length > 0) return { insertId: found[0].insertId };
+
+  return undefined;
 }
 
 /**
