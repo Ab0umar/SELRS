@@ -125,6 +125,34 @@ export function deterministicCatalogId(ns: string, key: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+export async function addServiceInDb(row: {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  serviceType: string;
+  srvTyp: string;
+  defaultSheet: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = new Date();
+  await db.insert(services).values({
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    category: row.category,
+    serviceType: row.serviceType,
+    srvTyp: row.srvTyp,
+    defaultSheet: row.defaultSheet,
+    locationType: "center",
+    price: "0",
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 export async function getAllServicesFromDb() {
   const db = await getDb();
   if (!db) return [];

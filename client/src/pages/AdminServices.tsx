@@ -210,6 +210,7 @@ export default function AdminServices() {
   const [moveTarget, setMoveTarget] = useState<ServiceCategory>("examination");
   const [sheetTarget, setSheetTarget] = useState<SheetType>("consultant");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [pendingAutoRecategorize, setPendingAutoRecategorize] = useState(false);
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
   const [mappingSheetType, setMappingSheetType] = useState<SheetType>("consultant");
@@ -245,6 +246,7 @@ export default function AdminServices() {
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
       toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
+      setPendingAutoRecategorize(true);
       utils.medical.getServicesFromDb.invalidate();
     },
     onError: (err) => {
@@ -284,7 +286,20 @@ export default function AdminServices() {
         price: item?.price != null ? Number(item.price) : undefined,
       } as ServiceEntry;
     });
-    setServices(normalized);
+    if (pendingAutoRecategorize) {
+      setPendingAutoRecategorize(false);
+      const recategorized = normalized.map((s) => ({
+        ...s,
+        category: categorizeService(s.code, s.name, s.serviceType) as ServiceCategory,
+      }));
+      setServices(recategorized);
+      recategorized.forEach((s) =>
+        updateServiceInDbMutation.mutate({ id: s.id, category: s.category ?? null }),
+      );
+      toast.success(`تم إعادة تصنيف ${recategorized.length} خدمة تلقائياً`);
+    } else {
+      setServices(normalized);
+    }
     setIsInitialized(true);
   }, [servicesQuery.data]);
 
@@ -372,6 +387,11 @@ export default function AdminServices() {
   const allVisibleServicesSelected =
     visibleServiceCodes.length > 0 && visibleServiceCodes.every((code) => selectedServiceCodes.includes(code));
 
+  const addServiceInDbMutation = trpc.medical.addServiceInDb.useMutation({
+    onSuccess: () => utils.medical.getServicesFromDb.invalidate(),
+    onError: (err) => toast.error("فشل إضافة الخدمة: " + (err.message || "خطأ")),
+  });
+
   const addService = () => {
     const code = newService.code.trim();
     const name = newService.name.trim();
@@ -383,19 +403,16 @@ export default function AdminServices() {
       toast.error("Service code already exists");
       return;
     }
-
-    const newEntry: ServiceEntry = {
-      id: makeId(),
+    const id = makeId();
+    addServiceInDbMutation.mutate({
+      id,
       code,
       name,
       category: newService.category,
       serviceType: newService.serviceType,
       srvTyp: "1",
       defaultSheet: newService.defaultSheet,
-      isActive: true,
-    };
-
-    setServices((prev) => [...prev, newEntry]);
+    });
     setNewService({ code: "", name: "", category: "examination", serviceType: "consultant", defaultSheet: "consultant" });
     setAddOpen(false);
     toast.success("تم إضافة الخدمة");
@@ -458,11 +475,14 @@ export default function AdminServices() {
   };
 
   const autoRecategorize = () => {
-    const updated = services.map((s) => {
-      const inferred = categorizeService(s.code, s.name, s.serviceType);
-      return { ...s, category: inferred };
-    });
+    const updated = services.map((s) => ({
+      ...s,
+      category: categorizeService(s.code, s.name, s.serviceType) as ServiceCategory,
+    }));
     setServices(updated);
+    updated.forEach((s) =>
+      updateServiceInDbMutation.mutate({ id: s.id, category: s.category ?? null }),
+    );
     toast.success(`تم إعادة تصنيف ${updated.length} خدمة`);
   };
 

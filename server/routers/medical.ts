@@ -7099,6 +7099,21 @@ export const medicalRouter = router({
       return { success: true };
     }),
 
+  addServiceInDb: managerProcedure
+    .input(z.object({
+      id: z.string().min(1),
+      code: z.string().min(1),
+      name: z.string().min(1),
+      category: z.string(),
+      serviceType: z.string(),
+      srvTyp: z.string(),
+      defaultSheet: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      await db.addServiceInDb(input);
+      return { success: true };
+    }),
+
   getServicesFromDb: managerProcedure.query(async () => {
     return db.getAllServicesFromDb();
   }),
