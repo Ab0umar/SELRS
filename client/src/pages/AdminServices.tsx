@@ -245,7 +245,7 @@ export default function AdminServices() {
 
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
-      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
+      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب (MSSQL: ${(data as any).mssqlServicesRows ?? "?"} خدمة، ${(data as any).mssqlDoctorsRows ?? "?"} طبيب)`);
       pendingAutoRecategorize.current = true;
       void servicesQuery.refetch();
     },

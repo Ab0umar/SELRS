@@ -7049,6 +7049,8 @@ export const medicalRouter = router({
         success: true,
         servicesUpserted: result.servicesUpserted,
         doctorsUpserted: result.doctorsUpserted,
+        mssqlServicesRows: mssqlServices.length,
+        mssqlDoctorsRows: mssqlDoctors.length,
       };
     } catch (error) {
       const err = error as any;
