@@ -7002,7 +7002,6 @@ export const medicalRouter = router({
         JOIN SRVCMF s ON s.${srvCodeCol} = l.${lstdCodeCol}
         WHERE l.CA_CD = '000000'
           AND l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
-          AND s.DPT_NO = 15
         ORDER BY l.${lstdCodeCol}
       `;
 
