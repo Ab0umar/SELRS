@@ -6995,15 +6995,15 @@ export const medicalRouter = router({
 
       const servicesQuery = `
         SELECT
-          s.${srvCodeCol} AS code,
+          l.${lstdCodeCol} AS code,
           s.${srvNameCol} AS name,
           CAST(ISNULL(TRY_CAST(l.${lstdPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
-        FROM SRVCMF s
-        LEFT JOIN op2026.dbo.SRVLSTD l
-          ON l.${lstdCodeCol} = s.${srvCodeCol} AND l.CA_CD = '00000'
-        WHERE s.${srvCodeCol} IS NOT NULL AND s.${srvCodeCol} <> ''
+        FROM op2026.dbo.SRVLSTD l
+        JOIN SRVCMF s ON s.${srvCodeCol} = l.${lstdCodeCol}
+        WHERE l.CA_CD = '000000'
+          AND l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
           AND s.DPT_NO = 15
-        ORDER BY s.${srvCodeCol}
+        ORDER BY l.${lstdCodeCol}
       `;
 
       const mssqlServices = await mssqlQuery(servicesQuery, {});
