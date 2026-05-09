@@ -215,8 +215,6 @@ export async function getRegistrationCatalogFromDb(): Promise<{
   };
 }
 
-const REG_CATALOG_BATCH = 50;
-
 export async function upsertRegistrationCatalogRows(params: {
   mssqlServices: Array<{ code: string; name: string; price: number }>;
   mssqlDoctors: Array<{ code: string; name: string }>;
@@ -226,54 +224,63 @@ export async function upsertRegistrationCatalogRows(params: {
     throw new Error("Database not available");
   }
   const now = new Date();
-  let servicesUpserted = 0;
-  for (let i = 0; i < params.mssqlServices.length; i += REG_CATALOG_BATCH) {
-    const chunk = params.mssqlServices.slice(i, i + REG_CATALOG_BATCH);
-    for (const row of chunk) {
+
+  // Build service rows, one INSERT for all (ON DUPLICATE KEY UPDATE uses VALUES() ref)
+  const serviceRows = params.mssqlServices
+    .map((row) => {
       const code = String(row.code ?? "").trim();
-      if (!code) continue;
+      if (!code) return null;
       const id = deterministicCatalogId("svc", code);
       const priceStr = String(Number(row.price) || 0);
-      await db
-        .insert(services)
-        .values({
-          id,
-          code,
-          name: String(row.name ?? "").trim() || code,
-          category: null,
-          serviceType: "lasik",
-          srvTyp: null,
-          defaultSheet: "lasik",
-          locationType: "center",
-          price: priceStr,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            name: String(row.name ?? "").trim() || code,
-            price: priceStr,
-            updatedAt: now,
-          },
-        });
-      servicesUpserted += 1;
-    }
+      return {
+        id,
+        code,
+        name: String(row.name ?? "").trim() || code,
+        category: null,
+        serviceType: "lasik" as const,
+        srvTyp: null,
+        defaultSheet: "lasik" as const,
+        locationType: "center" as const,
+        price: priceStr,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  if (serviceRows.length > 0) {
+    await db.insert(services).values(serviceRows).onDuplicateKeyUpdate({
+      set: {
+        name: sql`VALUES(name)`,
+        price: sql`VALUES(price)`,
+        updatedAt: now,
+      },
+    });
   }
+  const servicesUpserted = serviceRows.length;
+
+  // Batch UPDATE doctors using CASE WHEN (one query instead of N sequential UPDATEs)
+  const doctorRows = params.mssqlDoctors
+    .map((row) => ({ code: String(row.code ?? "").trim(), name: String(row.name ?? "").trim() || String(row.code ?? "").trim() }))
+    .filter((r) => r.code);
+
   let doctorsUpserted = 0;
-  for (let i = 0; i < params.mssqlDoctors.length; i += REG_CATALOG_BATCH) {
-    const chunk = params.mssqlDoctors.slice(i, i + REG_CATALOG_BATCH);
-    for (const row of chunk) {
-      const code = String(row.code ?? "").trim();
-      if (!code) continue;
-      const name = String(row.name ?? "").trim() || code;
-      const updated = await db
-        .update(doctorsLookup)
-        .set({ name })
-        .where(eq(doctorsLookup.code, code));
-      if ((updated as any)?.[0]?.affectedRows > 0) doctorsUpserted += 1;
-    }
+  if (doctorRows.length > 0) {
+    const caseWhen = sql.join(
+      doctorRows.map((r) => sql`WHEN ${r.code} THEN ${r.name}`),
+      sql` `,
+    );
+    const codeList = sql.join(
+      doctorRows.map((r) => sql`${r.code}`),
+      sql`, `,
+    );
+    const result = await db.execute(
+      sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END, updatedAt = ${now} WHERE code IN (${codeList})`,
+    );
+    doctorsUpserted = (result as any)?.[0]?.affectedRows ?? doctorRows.length;
   }
+
   return { servicesUpserted, doctorsUpserted };
 }
 
