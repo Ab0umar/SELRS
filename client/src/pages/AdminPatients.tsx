@@ -47,6 +47,7 @@ export default function AdminPatients() {
     },
   });
 
+
   const handleApplyFilters = useCallback(async () => {
     await Promise.all([
       list.utils.medical.getAllPatients.invalidate(),

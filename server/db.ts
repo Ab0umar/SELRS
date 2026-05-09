@@ -201,6 +201,7 @@ export async function upsertRegistrationCatalogRows(params: {
         .onDuplicateKeyUpdate({
           set: {
             name: String(row.name ?? "").trim() || code,
+            price: priceStr,
             updatedAt: now,
           },
         });
@@ -222,6 +223,25 @@ export async function upsertRegistrationCatalogRows(params: {
     }
   }
   return { servicesUpserted, doctorsUpserted };
+}
+
+export async function updateServicePrices(
+  rows: Array<{ code: string; price: number }>,
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let updated = 0;
+  for (const row of rows) {
+    const code = String(row.code ?? "").trim();
+    if (!code) continue;
+    const priceStr = String(Number(row.price) || 0);
+    const result = await db
+      .update(services)
+      .set({ price: priceStr, updatedAt: new Date() })
+      .where(eq(services.code, code));
+    if ((result as any)?.[0]?.affectedRows > 0) updated += 1;
+  }
+  return updated;
 }
 
 // ============ USER OPERATIONS ============

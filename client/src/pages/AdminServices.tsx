@@ -41,6 +41,7 @@ type ServiceEntry = {
   srvTyp: "1" | "2";
   defaultSheet: SheetType;
   isActive: boolean;
+  price?: number;
 };
 
 type DoctorEntry = {
@@ -241,6 +242,19 @@ export default function AdminServices() {
     },
   });
   const syncPatientsMutation = trpc.medical.syncPatientsFromMssql.useMutation();
+  const updateMssqlPriceMutation = trpc.medical.updateServicePriceInMssql.useMutation({
+    onError: (err) => toast.error("فشل تحديث السعر في MSSQL: " + (err.message || "خطأ")),
+  });
+
+  const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
+    onSuccess: (data) => {
+      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
+      utils.medical.getRegistrationCatalog.invalidate();
+    },
+    onError: (err) => {
+      toast.error("فشلت المزامنة: " + (err.message || "خطأ غير معروف"));
+    },
+  });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -274,6 +288,7 @@ export default function AdminServices() {
         defaultSheet: storedDefaultSheet,
         srvTyp: storedSrvTyp,
         isActive: item?.isActive !== false,
+        price: item?.price != null ? Number(item.price) : undefined,
       } as ServiceEntry;
     });
     setServices(normalized);
@@ -706,6 +721,14 @@ export default function AdminServices() {
             <Button type="button" onClick={() => void syncPatients()} disabled={syncPatientsMutation.isPending}>
               🔄 مزامنة المرضى
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => syncCatalogMutation.mutate()}
+              disabled={syncCatalogMutation.isPending}
+            >
+              🔄 {syncCatalogMutation.isPending ? "جاري..." : "مزامنة الخدمات والأسعار"}
+            </Button>
             <Button type="button" variant="secondary" onClick={autoRecategorize} disabled={updateServicesMutation.isPending}>
               🔄 إعادة تصنيف تلقائي
             </Button>
@@ -903,6 +926,23 @@ export default function AdminServices() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="text-muted-foreground">السعر</div>
+                    <div className="text-right">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        className="h-7 w-24 text-center tabular-nums text-xs"
+                        defaultValue={service.price ?? 0}
+                        key={service.id + "-price-m"}
+                        onBlur={(e) => {
+                          const val = Number(e.target.value);
+                          if (val === (service.price ?? 0)) return;
+                          updateService(service.id, { price: val });
+                          updateMssqlPriceMutation.mutate({ code: service.code, price: val });
+                        }}
+                      />
+                    </div>
                     <div className="text-muted-foreground">المركز / خارجي</div>
                     <div className="flex items-center gap-3 text-right">
                       <label className="flex items-center gap-1 whitespace-nowrap text-xs">
@@ -963,6 +1003,7 @@ export default function AdminServices() {
                   <TableHead className="font-semibold">الفئة</TableHead>
                   <TableHead className="font-semibold">نوع الشيت</TableHead>
                   <TableHead className="font-semibold">المركز / الخارجي</TableHead>
+                  <TableHead className="font-semibold">السعر</TableHead>
                   <TableHead className="font-semibold">الحالة</TableHead>
                   <TableHead className="w-[100px] text-center font-semibold">إجراءات</TableHead>
                 </TableRow>
@@ -1054,6 +1095,22 @@ export default function AdminServices() {
                               خارجي
                             </label>
                           </div>
+                        </TableCell>
+                        <TableCell className="align-middle">
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            className="h-8 w-24 text-center tabular-nums"
+                            defaultValue={service.price ?? 0}
+                            key={service.id + "-price"}
+                            onBlur={(e) => {
+                              const val = Number(e.target.value);
+                              if (val === (service.price ?? 0)) return;
+                              updateService(service.id, { price: val });
+                              updateMssqlPriceMutation.mutate({ code: service.code, price: val });
+                            }}
+                          />
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
                           <Button

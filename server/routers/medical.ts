@@ -6975,6 +6975,7 @@ export const medicalRouter = router({
 
       const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
       const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
+      const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
 
@@ -6985,11 +6986,15 @@ export const medicalRouter = router({
         throw new Error(`Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`);
       }
 
+      const priceExpr = srvPriceCol
+        ? `CAST(ISNULL(TRY_CAST(${srvPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2))`
+        : `0`;
+
       const servicesQuery = `
         SELECT DISTINCT
           ${srvCodeCol} AS code,
           ${srvNameCol} AS name,
-          0 AS price
+          ${priceExpr} AS price
         FROM SRVCMF
         WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
           AND SRV_TY = '15'
@@ -7056,6 +7061,32 @@ export const medicalRouter = router({
       });
     }
   }),
+
+
+
+  updateServicePriceInMssql: managerProcedure
+    .input(z.object({ code: z.string().min(1), price: z.number().min(0) }))
+    .mutation(async ({ input }) => {
+      const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`, {},
+      );
+      const srvCols = new Set(srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
+      const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
+        candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
+      const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
+      const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
+      if (!srvCodeCol || !srvPriceCol) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Cannot find code/price columns in SRVCMF. Available: ${[...srvCols].join(", ")}`,
+        });
+      }
+      await mssqlQuery(
+        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code`,
+        { price: input.price, code: input.code },
+      );
+      return { success: true };
+    }),
 
   // Get registration catalog (services + doctors) from MySQL
   getRegistrationCatalog: protectedProcedure.query(async () => {
