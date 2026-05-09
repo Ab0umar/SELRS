@@ -6978,7 +6978,7 @@ export const medicalRouter = router({
       const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
-      const drsDeptCol = pickCol(mdCols, ["DPT_NO", "DEPT_NO", "DEPT", "DPT", "DRS_TY", "SRV_TY", "TYPE", "TY"]);
+      const drsDeptCol = pickCol(mdCols, ["DPT_NO", "DEPT_NO", "DEPT", "DPT", "DRS_TY", "TYPE", "TY"]);
 
       if (!srvCodeCol || !srvNameCol) {
         throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
@@ -6998,21 +6998,21 @@ export const medicalRouter = router({
           ${priceExpr} AS price
         FROM SRVCMF
         WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
-          AND CAST(SRV_TY AS VARCHAR(20)) = '15'
+          AND DPT_NO = 15
         ORDER BY ${srvCodeCol}
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
 
       if (mssqlServices.length === 0) {
-        const srvTypValues = await mssqlQuery<{ SRV_TY: unknown }>(
-          `SELECT DISTINCT TOP 20 SRV_TY FROM SRVCMF WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''`, {},
+        const dptValues = await mssqlQuery<{ DPT_NO: unknown }>(
+          `SELECT DISTINCT TOP 20 DPT_NO FROM SRVCMF WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''`, {},
         );
-        stageStats.distinctSrvTyValues = srvTypValues.map((r) => r.SRV_TY);
+        stageStats.distinctSrvTyValues = dptValues.map((r) => r.DPT_NO);
       }
 
       const drsDeptFilter = drsDeptCol
-        ? `AND CAST(${drsDeptCol} AS VARCHAR(20)) = '15'`
+        ? `AND ${drsDeptCol} = 15`
         : `/* dept col not found: ${[...mdCols].join(",")} */`;
 
       const doctorsQuery = `
@@ -7096,7 +7096,7 @@ export const medicalRouter = router({
         });
       }
       await mssqlQuery(
-        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code AND CAST(SRV_TY AS VARCHAR(20)) = '15'`,
+        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code AND DPT_NO = 15`,
         { price: input.price, code: input.code },
       );
       return { success: true };
