@@ -6978,6 +6978,7 @@ export const medicalRouter = router({
       const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
+      const drsDeptCol = pickCol(mdCols, ["DPT_NO", "DEPT_NO", "DEPT", "DPT", "DRS_TY", "SRV_TY", "TYPE", "TY"]);
 
       if (!srvCodeCol || !srvNameCol) {
         throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
@@ -6997,11 +6998,15 @@ export const medicalRouter = router({
           ${priceExpr} AS price
         FROM SRVCMF
         WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
-          AND SRV_TY = '15'
+          AND CAST(SRV_TY AS VARCHAR(20)) = '15'
         ORDER BY ${srvCodeCol}
       `;
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
+
+      const drsDeptFilter = drsDeptCol
+        ? `AND CAST(${drsDeptCol} AS VARCHAR(20)) = '15'`
+        : `/* dept col not found: ${[...mdCols].join(",")} */`;
 
       const doctorsQuery = `
         SELECT DISTINCT
@@ -7009,6 +7014,7 @@ export const medicalRouter = router({
           ${drsNameCol} AS name
         FROM MDTEAM
         WHERE ${drsCodeCol} IS NOT NULL AND ${drsCodeCol} <> ''
+          ${drsDeptFilter}
         ORDER BY ${drsCodeCol}
       `;
       const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
@@ -7082,7 +7088,7 @@ export const medicalRouter = router({
         });
       }
       await mssqlQuery(
-        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code`,
+        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code AND CAST(SRV_TY AS VARCHAR(20)) = '15'`,
         { price: input.price, code: input.code },
       );
       return { success: true };
