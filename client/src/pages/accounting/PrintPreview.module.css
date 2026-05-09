@@ -366,7 +366,7 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 2mm;
   }
 
   :global(html),
@@ -466,8 +466,8 @@
     max-height: none !important;
     height: auto !important;
     min-height: auto !important;
-    padding-top: 0;
-    padding-bottom: 8mm;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     padding-left: 0;
     padding-right: 0;
   }

@@ -1,0 +1,4 @@
+allowBuilds:
+  '@vscode/sqlite3': true
+  esbuild: true
+  msnodesqlv8: true
