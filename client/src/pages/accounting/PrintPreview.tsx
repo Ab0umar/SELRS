@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, CircleAlert } from "lucide-react";
 import styles from "./PrintPreview.module.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { BRAND_LOGO_PNG_FALLBACK_URL, BRAND_LOGO_URL } from "@/lib/brand";
+import { printOrExportPdf } from "@/lib/nativePdf";
 import {
   firstNumericColumnIndex,
   formatPrintCellValue,
@@ -187,6 +189,16 @@ export default function PrintPreview() {
     );
   };
 
+  const handlePrint = async () => {
+    if (Capacitor.isNativePlatform()) {
+      await printOrExportPdf(`${payload.title}.pdf`, {
+        selector: "[data-accounting-print-root]",
+      });
+      return;
+    }
+    window.print();
+  };
+
   let bodyRows: React.ReactNode[] = [];
 
   const hasDoctorGroup = payload.groupBy?.includes("doctor");
@@ -358,13 +370,16 @@ export default function PrintPreview() {
             <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
             رجوع
           </Button>
-          <Button type="button" onClick={() => window.print()}>
+          <Button type="button" onClick={() => void handlePrint()}>
             <Printer className="ml-2 h-4 w-4" />
             طباعة التقرير
           </Button>
         </div>
 
-        <div className={`${styles.reportPaper}${isReceiptPrint ? ` ${styles.receiptPrint}` : ""}`}>
+        <div
+          data-accounting-print-root
+          className={`${styles.reportPaper}${isReceiptPrint ? ` ${styles.receiptPrint}` : ""}`}
+        >
           <div className={styles.printSurface}>
             <table className={styles.table}>
               <colgroup>

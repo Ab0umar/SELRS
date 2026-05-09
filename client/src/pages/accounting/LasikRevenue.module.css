@@ -289,12 +289,12 @@
     visibility: hidden !important;
   }
 
-  :global(body.print-service-revenue) .printScope,
-  :global(body.print-service-revenue) .printScope * {
+  :global(body.print-service-revenue [data-print-service-revenue-table]),
+  :global(body.print-service-revenue [data-print-service-revenue-table] *) {
     visibility: visible !important;
   }
 
-  :global(body.print-service-revenue) .printScope {
+  :global(body.print-service-revenue [data-print-service-revenue-table]) {
     position: absolute !important;
     top: 0 !important;
     right: 0 !important;
@@ -308,11 +308,11 @@
     background: #fff !important;
   }
 
-  :global(body.print-service-revenue) .printScope [data-slot="card-header"] {
+  :global(body.print-service-revenue [data-print-service-revenue-table] [data-slot="card-header"]) {
     padding: 0 !important;
   }
 
-  :global(body.print-service-revenue) .printScope [data-slot="card-content"] {
+  :global(body.print-service-revenue [data-print-service-revenue-table] [data-slot="card-content"]) {
     padding: 0 !important;
   }
 

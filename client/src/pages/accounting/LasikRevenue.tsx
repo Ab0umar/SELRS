@@ -28,6 +28,7 @@ import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
 import styles from "./LasikRevenue.module.css";
 import { formatCountAr, formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
+import { openPrint, type PrintPayload } from "./printUtils";
 
 type ServiceRevenueQuery = {
   data?: ServiceRevenueOutput;
@@ -252,15 +253,66 @@ export default function LasikRevenue() {
   };
 
   const printReport = () => {
-    const printClass = "print-service-revenue";
-    const cleanup = () => {
-      document.body.classList.remove(printClass);
-      window.removeEventListener("afterprint", cleanup);
+    const payloadRows = sections.flatMap((section) =>
+      section.services.flatMap((service) =>
+        (service.details ?? []).map((detail) => ({
+          serviceCode: service.serviceCode,
+          serviceName: service.serviceName ?? "",
+          trNo: detail.trNo,
+          trDate: detail.trDate,
+          patientName: detail.patientName || "-",
+          quantity: detail.quantity,
+          price: detail.price,
+          patientShare: detail.patientShare,
+          discount: detail.discount,
+          patientTotal: detail.patientTotal,
+          companyTotal: detail.companyTotal,
+        })),
+      ),
+    );
+
+    const payload: PrintPayload = {
+      title: "إيراد الخدمات",
+      meta: {
+        clinicName: "SRV100",
+        fromDate: filters.fromDate,
+        toDate: filters.toDate,
+        filters: {
+          "كود القسم": String(filters.sectionCode ?? DEFAULT_SECTION_CODE),
+          "كود الطبيب": filters.doctorCode ?? "",
+          "كود الخدمة": filters.serviceCode ?? "",
+        },
+      },
+      groupBy: ["service"],
+      columns: [
+        { key: "serviceCode", label: "كود الخدمة" },
+        { key: "serviceName", label: "الخدمة" },
+        { key: "trNo", label: "رقم الإيصال", align: "right" },
+        { key: "trDate", label: "تاريخ الإيصال" },
+        { key: "patientName", label: "المريض" },
+        { key: "quantity", label: "العدد", align: "right" },
+        { key: "price", label: "السعر", align: "right" },
+        { key: "patientShare", label: "ما يخص المريض", align: "right" },
+        { key: "discount", label: "الخصم", align: "right" },
+        { key: "patientTotal", label: "إجمالي المريض", align: "right" },
+        { key: "companyTotal", label: "إجمالي الجهة", align: "right" },
+      ],
+      rows: payloadRows,
+      totals: [
+        {
+          label: "الإجمالي العام",
+          values: {
+            quantity: frontendGrandTotal.quantity,
+            price: frontendGrandTotal.price,
+            patientShare: frontendGrandTotal.patientShare,
+            discount: frontendGrandTotal.discount,
+            patientTotal: frontendGrandTotal.patientTotal,
+            companyTotal: frontendGrandTotal.companyTotal,
+          },
+        },
+      ],
     };
-    document.body.classList.add(printClass);
-    window.addEventListener("afterprint", cleanup);
-    window.print();
-    setTimeout(cleanup, 1000);
+    openPrint(payload);
   };
 
   return (
@@ -406,7 +458,7 @@ export default function LasikRevenue() {
           </Card>
         ) : null}
 
-        <Card className={`${styles.printScope} border-border/80 shadow-sm`}>
+        <Card data-print-service-revenue-table className={`${styles.printScope} border-border/80 shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">تفاصيل إيرادات الأقسام والخدمات</CardTitle>
           </CardHeader>

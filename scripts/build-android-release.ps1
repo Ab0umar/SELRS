@@ -9,11 +9,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# إعداد المسارات الأساسية
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $packageJsonPath = Join-Path $repoRoot "package.json"
 $androidDir = Join-Path $repoRoot "android"
-$defaultApkOutputDir = Join-Path $androidDir "app\build\outputs\apk\release"
-$resolvedApkOutputDir = if ($ApkOutputDir) { $ApkOutputDir } else { $defaultApkOutputDir }
+
+# المسار الافتراضي للنسخ (OneDrive)
+$defaultDestination = "C:\Users\drels\OneDrive\SELRS.cc"
+$resolvedDestDir = if ($ApkOutputDir) { $ApkOutputDir } else { $defaultDestination }
+
 $maxAndroidVersionCode = 2100000000
 
 function Write-Step {
@@ -22,10 +26,12 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
-function Require-Command {
-    param([string]$Name)
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw "Required command '$Name' was not found in PATH."
+function Assert-Command {
+    param([string[]]$Names)
+    foreach ($Name in $Names) {
+        if (-not (Get-Command $Name -ErrorAction Ignore)) {
+            throw "Required command '$Name' was not found in PATH."
+        }
     }
 }
 
@@ -43,10 +49,9 @@ if (-not (Test-Path $packageJsonPath)) {
     throw "package.json not found at $packageJsonPath"
 }
 
-Require-Command "pnpm"
-Require-Command "npx"
+Assert-Command "pnpm", "npx", "java"
 
-# Read current version from package.json
+# 1. قراءة وتحديد الإصدار
 $packageJsonObj = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
 $projectVersion = [string]$packageJsonObj.version
 $semverPattern = '^\d+\.\d+\.\d+$'
@@ -56,115 +61,86 @@ if ($projectVersion -notmatch $semverPattern) {
 }
 
 if (-not $PSBoundParameters.ContainsKey("VersionName") -or [string]::IsNullOrWhiteSpace($VersionName)) {
-    # Auto-increment patch version
     $parts = $projectVersion -split '\.'
     $parts[2] = [int]$parts[2] + 1
     $VersionName = $parts -join '.'
 }
 
-if ($VersionName -notmatch $semverPattern) {
-    throw "VersionName '$VersionName' is invalid. Expected format: x.y.z"
-}
-
-# Update package.json version (structured update)
-$oldVersion = $projectVersion
-$newVersion = $VersionName
-if ($oldVersion -ne $newVersion) {
-    Write-Step "Updating version: $oldVersion → $newVersion"
-    $packageJsonObj.version = $newVersion
+# تحديث package.json
+if ($projectVersion -ne $VersionName) {
+    Write-Step "Updating version: $projectVersion → $VersionName"
+    $packageJsonObj.version = $VersionName
     if (-not $DryRun) {
         Save-PackageJson -Path $packageJsonPath -Object $packageJsonObj
     }
-    $confirmedVersion = if ($DryRun) { $newVersion } else { [string]((Get-Content -Raw $packageJsonPath | ConvertFrom-Json).version) }
-    if ($confirmedVersion -ne $newVersion) {
-        throw "Failed to update package.json version. Expected '$newVersion', found '$confirmedVersion'."
-    }
 }
 
-# Auto-increment Android version code based on patch version
+# حساب الـ VersionCode
 if (-not $PSBoundParameters.ContainsKey("VersionCode")) {
     $parts = $VersionName -split '\.'
-    $patchVersion = [int]$parts[2]
-    $VersionCode = 50 + $patchVersion  # Base version 50 + patch number
+    $VersionCode = ([int]$parts[0] * 1000000) + ([int]$parts[1] * 10000) + [int]$parts[2]
 }
 
-if ($VersionCode -lt 1 -or $VersionCode -gt $maxAndroidVersionCode) {
-    throw "VersionCode '$VersionCode' is out of valid range (1..$maxAndroidVersionCode)."
+if ($VersionCode -gt $maxAndroidVersionCode) {
+    throw "VersionCode ($VersionCode) exceeds the Android maximum limit of $maxAndroidVersionCode."
 }
 
 Write-Step "Building Android release"
 Write-Host "VersionName: $VersionName"
 Write-Host "VersionCode: $VersionCode"
-Write-Host "APK output directory: $resolvedApkOutputDir"
-if ($DryRun) {
-    Write-Host "DryRun: enabled (no file writes or build commands will execute)." -ForegroundColor Yellow
-}
 
 Push-Location $repoRoot
 try {
     if (-not $SkipWebBuild) {
         Write-Step "Running web build"
-        $gsPath = Join-Path $repoRoot "android\app\google-services.json"
-        if (Test-Path $gsPath) {
-            $env:VITE_ENABLE_ANDROID_FCM = "1"
-            Write-Host "VITE_ENABLE_ANDROID_FCM=1 (google-services.json present)."
-        }
-        else {
-            Remove-Item Env:VITE_ENABLE_ANDROID_FCM -ErrorAction SilentlyContinue
-            Write-Host "google-services.json not found — web bundle will skip Android FCM registration (no crash)." -ForegroundColor Yellow
-        }
-        if (-not $DryRun) {
-            pnpm build
-        }
+        if (-not $DryRun) { pnpm build }
     }
 
     if (-not $SkipCapSync) {
-        Write-Step "Syncing Capacitor Android"
-        if (-not $DryRun) {
-            npx cap sync android
-        }
+        Write-Step "Syncing Capacitor"
+        if (-not $DryRun) { npx cap sync android }
     }
 
     Push-Location $androidDir
     try {
         Write-Step "Running Gradle assembleRelease"
-        Write-Host "VersionCode: $VersionCode"
-
-        # Set environment variable so build.gradle can read it
         $env:APP_VERSION_CODE = [string]$VersionCode
-        [System.Environment]::SetEnvironmentVariable("APP_VERSION_CODE", [string]$VersionCode, "Process")
-
-        # Prefer explicit Gradle property and keep env var as fallback.
         if (-not $DryRun) {
             .\gradlew assembleRelease "-PversionCode=$VersionCode"
         }
     }
-    finally {
-        Pop-Location
-    }
+    finally { Pop-Location }
 }
-finally {
-    Pop-Location
-}
+finally { Pop-Location }
 
-Write-Step "Done"
+# 2. تسمية الملف النهائي بنظام SELRS + VersionName
+Write-Step "Finalizing APK"
 $gradleApkDir = Join-Path $androidDir "app\build\outputs\apk\release"
-$apkFile = Get-ChildItem -Path $gradleApkDir -Filter "*.apk" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$apkFile = Get-ChildItem -Path $gradleApkDir -Filter "*.apk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
 if ($apkFile) {
-    if (-not (Test-Path $resolvedApkOutputDir)) {
-        if (-not $DryRun) {
-            New-Item -ItemType Directory -Path $resolvedApkOutputDir -Force | Out-Null
-        }
-    }
-    $copiedApkPath = Join-Path $resolvedApkOutputDir $apkFile.Name
+    # تعديل الاسم هنا ليصبح SELRS_1.0.115.apk مثلاً
+    $newApkName = "SELRS_$VersionName.apk"
+    $copiedApkPath = Join-Path $resolvedDestDir $newApkName
+
     if (-not $DryRun) {
+        if (-not (Test-Path $resolvedDestDir)) {
+            New-Item -ItemType Directory -Path $resolvedDestDir -Force | Out-Null
+        }
+
+        # تنفيذ النسخ مع تغيير الاسم
+        Write-Host "Source: $($apkFile.FullName)"
+        Write-Host "Dest:   $copiedApkPath"
         Copy-Item -Path $apkFile.FullName -Destination $copiedApkPath -Force
-        Write-Host "APK: $copiedApkPath" -ForegroundColor Green
+        
+        Write-Host "Successfully generated: $newApkName" -ForegroundColor Green
     }
     else {
-        Write-Host "DryRun: APK would be copied from '$($apkFile.FullName)' to '$copiedApkPath'." -ForegroundColor Yellow
+        Write-Host "DryRun: APK would be saved as '$newApkName' in '$resolvedDestDir'." -ForegroundColor Yellow
     }
 }
 else {
-    Write-Host "APK not found in $gradleApkDir. Check Gradle output." -ForegroundColor Yellow
+    Write-Host "APK not found. Check Gradle logs." -ForegroundColor Red
 }
+
+Write-Step "Process Complete"
