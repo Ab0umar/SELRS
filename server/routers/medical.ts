@@ -7005,8 +7005,16 @@ export const medicalRouter = router({
         ORDER BY s.${srvCodeCol}
       `;
 
+      const srvlstdSample = await mssqlQuery(
+        `SELECT TOP 5 ${lstdCodeCol} AS code, ${lstdPriceCol} AS price FROM op2026.dbo.SRVLSTD`, {},
+      );
+      stageStats.srvlstdSample = srvlstdSample;
+      stageStats.lstdCodeCol = lstdCodeCol;
+      stageStats.lstdPriceCol = lstdPriceCol;
+
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
+      stageStats.samplePrices = (mssqlServices as any[]).slice(0, 5).map((r: any) => ({ code: r.code, price: r.price }));
 
       const drsDeptFilter = drsDeptCol
         ? `AND ${drsDeptCol} = 15`
@@ -7048,6 +7056,7 @@ export const medicalRouter = router({
         success: true,
         servicesUpserted: result.servicesUpserted,
         doctorsUpserted: result.doctorsUpserted,
+        debug: stageStats,
       };
     } catch (error) {
       const err = error as any;
