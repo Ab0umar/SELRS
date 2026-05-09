@@ -26,7 +26,6 @@ import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
-import { openPrint, type PrintPayload } from "./printUtils";
 
 type DailyRevenueQuery = {
   data?: DailyRevenueOutput;
@@ -165,44 +164,21 @@ export default function DailyRevenue() {
   };
 
   const printReport = () => {
-    const payload: PrintPayload = {
-      title: "الإيراد اليومي",
-      meta: {
-        clinicName: "SRV100",
-        fromDate: filters.fromDate,
-        toDate: filters.toDate,
-        filters: {
-          "كود القسم":
-            filters.sectionCode !== DEFAULT_SECTION_CODE
-              ? String(filters.sectionCode)
-              : "",
-          "الوردية": filters.shiftCode ?? "",
-        },
-      },
-      columns: [
-        { key: "date", label: "التاريخ" },
-        { key: "totalReceipts", label: "عدد الإيصالات", align: "right" },
-        { key: "totalGross", label: "الإجمالي", align: "right" },
-        { key: "totalDiscount", label: "الخصم", align: "right" },
-        { key: "totalCash", label: "نقدي", align: "right" },
-        { key: "totalPaid", label: "المدفوع", align: "right" },
-        { key: "netAfterDiscount", label: "الصافي", align: "right" },
-      ],
-      rows: rows.map((row) => ({ ...row })),
-      totals: [
-        {
-          label: "الإجمالي العام",
-          values: { ...totals },
-        },
-      ],
+    const printClass = "print-daily-revenue";
+    const cleanup = () => {
+      document.body.classList.remove(printClass);
+      window.removeEventListener("afterprint", cleanup);
     };
-    openPrint(payload);
+    document.body.classList.add(printClass);
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+    setTimeout(cleanup, 1000);
   };
 
   return (
     <AccountingShell>
       <div className="space-y-4" dir="rtl">
-        <Card className="border-border/80 shadow-sm">
+        <Card className={`${reportStyles.noPrint} border-border/80 shadow-sm`}>
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -316,7 +292,7 @@ export default function DailyRevenue() {
           </Card>
         ) : null}
 
-        <Card className="border-border/80 shadow-sm">
+        <Card className={`${reportStyles.printScope} border-border/80 shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">البيانات اليومية</CardTitle>
           </CardHeader>

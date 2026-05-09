@@ -185,7 +185,63 @@
 .colCompact { width: 1%; }
 .colStretch { width: auto; }
 
+.printScope {
+  position: relative;
+}
+
+.noPrint {}
+
 @media print {
+  @page {
+    size: A4;
+    margin: 5mm;
+  }
+
+  :global(html),
+  :global(body) {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  :global(body.print-daily-revenue *) {
+    visibility: hidden !important;
+  }
+
+  :global(body.print-daily-revenue) .printScope,
+  :global(body.print-daily-revenue) .printScope * {
+    visibility: visible !important;
+  }
+
+  :global(body.print-daily-revenue) .printScope {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  :global(body.print-daily-revenue) .printScope [data-slot="card-header"] {
+    padding: 0 !important;
+  }
+
+  :global(body.print-daily-revenue) .printScope [data-slot="card-content"] {
+    padding: 0 !important;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
   .gridTable {
     font-size: 12.5px;
   }
