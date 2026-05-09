@@ -6958,27 +6958,30 @@ export const medicalRouter = router({
   syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
     const stageStats: Record<string, unknown> = {};
     try {
-      // Discover actual column names from INFORMATION_SCHEMA to handle naming variations
+      // Discover column names via INFORMATION_SCHEMA
       const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`, {},
       );
       const mdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MDTEAM'`, {},
       );
+      const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`, {},
+      );
       const srvCols = new Set(srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
       const mdCols = new Set(mdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
-      stageStats.srvcmfCols = [...srvCols];
-      stageStats.mdteamCols = [...mdCols];
+      const lstdCols = new Set(lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
 
       const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
         candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
 
       const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
       const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
-      const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
       const drsDeptCol = pickCol(mdCols, ["DPT_NO", "DEPT_NO", "DEPT", "DPT", "DRS_TY", "TYPE", "TY"]);
+      const lstdCodeCol = pickCol(lstdCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
+      const lstdPriceCol = pickCol(lstdCols, ["PR_VL", "PRC1", "PRC", "PRC_VL", "PRICE", "PRCVL", "DISC_VL", "SRVRAT"]);
 
       if (!srvCodeCol || !srvNameCol) {
         throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
@@ -6986,32 +6989,24 @@ export const medicalRouter = router({
       if (!drsCodeCol || !drsNameCol) {
         throw new Error(`Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`);
       }
-
-      const priceExpr = srvPriceCol
-        ? `CAST(ISNULL(TRY_CAST(${srvPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2))`
-        : `0`;
+      if (!lstdCodeCol || !lstdPriceCol) {
+        throw new Error(`Cannot find code/price columns in SRVLSTD. Available: ${[...lstdCols].join(", ")}`);
+      }
 
       const servicesQuery = `
-        SELECT DISTINCT
-          ${srvCodeCol} AS code,
-          ${srvNameCol} AS name,
-          ${priceExpr} AS price
-        FROM SRVCMF
-        WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''
-          AND DPT_NO = 15
-        ORDER BY ${srvCodeCol}
+        SELECT
+          s.${srvCodeCol} AS code,
+          s.${srvNameCol} AS name,
+          CAST(ISNULL(TRY_CAST(l.${lstdPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
+        FROM SRVCMF s
+        LEFT JOIN op2026.dbo.SRVLSTD l ON l.${lstdCodeCol} = s.${srvCodeCol}
+        WHERE s.${srvCodeCol} IS NOT NULL AND s.${srvCodeCol} <> ''
+          AND s.DPT_NO = 15
+        ORDER BY s.${srvCodeCol}
       `;
-      stageStats.srvPriceCol = srvPriceCol;
+
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
-      stageStats.samplePrices = (mssqlServices as any[]).slice(0, 5).map((r: any) => ({ code: r.code, price: r.price }));
-
-      if (mssqlServices.length === 0) {
-        const dptValues = await mssqlQuery<{ DPT_NO: unknown }>(
-          `SELECT DISTINCT TOP 20 DPT_NO FROM SRVCMF WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''`, {},
-        );
-        stageStats.distinctSrvTyValues = dptValues.map((r) => r.DPT_NO);
-      }
 
       const drsDeptFilter = drsDeptCol
         ? `AND ${drsDeptCol} = 15`
@@ -7053,7 +7048,6 @@ export const medicalRouter = router({
         success: true,
         servicesUpserted: result.servicesUpserted,
         doctorsUpserted: result.doctorsUpserted,
-        debug: stageStats,
       };
     } catch (error) {
       const err = error as any;
@@ -7083,22 +7077,22 @@ export const medicalRouter = router({
   updateServicePriceInMssql: managerProcedure
     .input(z.object({ code: z.string().min(1), price: z.number().min(0) }))
     .mutation(async ({ input }) => {
-      const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`, {},
+      const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`, {},
       );
-      const srvCols = new Set(srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
+      const lstdCols = new Set(lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
       const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
         candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
-      const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
-      const srvPriceCol = pickCol(srvCols, ["PRC1", "PRC", "PRC_VL", "PRICE", "PR_VL", "PRCVL", "DISC_VL", "SRVRAT"]);
-      if (!srvCodeCol || !srvPriceCol) {
+      const lstdCodeCol = pickCol(lstdCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
+      const lstdPriceCol = pickCol(lstdCols, ["PR_VL", "PRC1", "PRC", "PRC_VL", "PRICE", "PRCVL", "DISC_VL", "SRVRAT"]);
+      if (!lstdCodeCol || !lstdPriceCol) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Cannot find code/price columns in SRVCMF. Available: ${[...srvCols].join(", ")}`,
+          message: `Cannot find code/price columns in SRVLSTD. Available: ${[...lstdCols].join(", ")}`,
         });
       }
       await mssqlQuery(
-        `UPDATE SRVCMF SET ${srvPriceCol} = @price WHERE ${srvCodeCol} = @code AND DPT_NO = 15`,
+        `UPDATE op2026.dbo.SRVLSTD SET ${lstdPriceCol} = @price WHERE ${lstdCodeCol} = @code`,
         { price: input.price, code: input.code },
       );
       return { success: true };

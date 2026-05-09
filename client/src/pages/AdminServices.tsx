@@ -248,8 +248,7 @@ export default function AdminServices() {
 
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
-      const d = data.debug as any;
-      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب — عمود السعر: ${d?.srvPriceCol ?? "غير موجود"} — أمثلة: ${JSON.stringify(d?.samplePrices ?? [])}`);
+      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
       utils.medical.getRegistrationCatalog.invalidate();
     },
     onError: (err) => {
