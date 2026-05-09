@@ -248,7 +248,11 @@ export default function AdminServices() {
 
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
-      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
+      if (data.servicesUpserted === 0 && data.debug) {
+        toast.warning(`0 خدمة — قيم SRV_TY الموجودة: ${JSON.stringify((data.debug as any).distinctSrvTyValues ?? [])}`);
+      } else {
+        toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة (مع الأسعار)، ${data.doctorsUpserted} طبيب`);
+      }
       utils.medical.getRegistrationCatalog.invalidate();
     },
     onError: (err) => {

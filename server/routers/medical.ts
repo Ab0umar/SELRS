@@ -7004,6 +7004,13 @@ export const medicalRouter = router({
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
 
+      if (mssqlServices.length === 0) {
+        const srvTypValues = await mssqlQuery<{ SRV_TY: unknown }>(
+          `SELECT DISTINCT TOP 20 SRV_TY FROM SRVCMF WHERE ${srvCodeCol} IS NOT NULL AND ${srvCodeCol} <> ''`, {},
+        );
+        stageStats.distinctSrvTyValues = srvTypValues.map((r) => r.SRV_TY);
+      }
+
       const drsDeptFilter = drsDeptCol
         ? `AND CAST(${drsDeptCol} AS VARCHAR(20)) = '15'`
         : `/* dept col not found: ${[...mdCols].join(",")} */`;
@@ -7044,6 +7051,7 @@ export const medicalRouter = router({
         success: true,
         servicesUpserted: result.servicesUpserted,
         doctorsUpserted: result.doctorsUpserted,
+        debug: result.servicesUpserted === 0 ? stageStats : undefined,
       };
     } catch (error) {
       const err = error as any;
