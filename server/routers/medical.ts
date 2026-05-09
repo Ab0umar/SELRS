@@ -6996,12 +6996,12 @@ export const medicalRouter = router({
       const servicesQuery = `
         SELECT
           l.${lstdCodeCol} AS code,
-          s.${srvNameCol} AS name,
-          CAST(ISNULL(TRY_CAST(l.${lstdPriceCol} AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
+          MAX(s.${srvNameCol}) AS name,
+          CAST(ISNULL(TRY_CAST(MAX(l.${lstdPriceCol}) AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
         FROM op2026.dbo.SRVLSTD l
         JOIN SRVCMF s ON s.${srvCodeCol} = l.${lstdCodeCol}
-        WHERE l.CA_CD = '000000'
-          AND l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
+        WHERE l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
+        GROUP BY l.${lstdCodeCol}
         ORDER BY l.${lstdCodeCol}
       `;
 
