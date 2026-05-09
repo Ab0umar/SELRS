@@ -285,8 +285,6 @@ export default function LasikRevenue() {
       },
       groupBy: ["service"],
       columns: [
-        { key: "serviceCode", label: "كود الخدمة" },
-        { key: "serviceName", label: "الخدمة" },
         { key: "trNo", label: "رقم الإيصال", align: "right" },
         { key: "trDate", label: "تاريخ الإيصال" },
         { key: "patientName", label: "المريض" },
