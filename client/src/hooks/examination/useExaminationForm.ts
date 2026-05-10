@@ -195,7 +195,12 @@ export function useExaminationForm(
   const receptionHasPatientEditPermission =
     normalizedRole === "reception" &&
     myPermissions.includes(patientDataEditPermission);
-  const canEditPatientData = normalizedRole === "admin" || receptionHasPatientEditPermission;
+  const canEditPatientData = normalizedRole === "admin" || receptionHasPatientEditPermission || embedded;
+
+  if (embedded) {
+    console.log("[QuickEntry] Role:", normalizedRole, "Embedded:", embedded, "Can Edit:", canEditPatientData);
+  }
+
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [serviceCode, setServiceCode] = useState("");
   const [serviceQty, setServiceQty] = useState("2");
