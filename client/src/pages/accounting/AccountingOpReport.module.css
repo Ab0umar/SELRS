@@ -281,3 +281,15 @@
     print-color-adjust: exact;
   }
 }
+
+@media print and (max-width: 768px) {
+  :global(html),
+  :global(body) {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+}

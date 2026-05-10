@@ -54,7 +54,7 @@ function reportThClass(col: { key: string; align?: string }, isReceiptPrint: boo
   return styles.reportThText;
 }
 
-function subtotalLabelSpan(cols: { key: string; align?: "left" | "right" | "center" }[]): number {
+function subtotalLabelSpan(cols: { key: string; label: string; align?: "left" | "right" | "center" }[]): number {
   return Math.max(1, firstNumericColumnIndex(cols));
 }
 
