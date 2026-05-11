@@ -110,13 +110,14 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                 />
                 <Label className="font-semibold whitespace-nowrap text-sm">تاريخ الزيارة</Label>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 shadow-sm">
                 <Checkbox
                   checked={isFollowup}
                   onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
                   id="followup-main"
+                  className="h-5 w-5 border-2 border-amber-600 data-[state=checked]:bg-amber-600 data-[state=checked]:text-white"
                 />
-                <Label htmlFor="followup-main" className="font-semibold cursor-pointer text-sm">متابعة</Label>
+                <Label htmlFor="followup-main" className="cursor-pointer text-base font-extrabold text-amber-900">متابعة</Label>
               </label>
             </div>
 

@@ -1106,9 +1106,20 @@ export default function MedicalFilePanel({
 
         {/* Followup Checkbox */}
         <div className="px-6 py-3 border-b bg-slate-50 flex-shrink-0">
-          <label className={hubRo ? "flex items-center gap-2 opacity-70" : "flex items-center gap-2 cursor-pointer"}>
-            <Checkbox checked={isFollowup} disabled={hubRo} onCheckedChange={(checked) => setIsFollowup(Boolean(checked))} />
-            <span className="text-sm font-medium">متابعه</span>
+          <label
+            className={
+              hubRo
+                ? "inline-flex items-center gap-3 rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 opacity-70"
+                : "inline-flex cursor-pointer items-center gap-3 rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 shadow-sm"
+            }
+          >
+            <Checkbox
+              checked={isFollowup}
+              disabled={hubRo}
+              onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
+              className="h-5 w-5 border-2 border-amber-600 data-[state=checked]:bg-amber-600 data-[state=checked]:text-white"
+            />
+            <span className="text-base font-extrabold text-amber-900">متابعه</span>
           </label>
         </div>
 

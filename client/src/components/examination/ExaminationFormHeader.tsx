@@ -25,12 +25,15 @@ export default function ExaminationFormHeader({ form }: ExaminationFormHeaderPro
             className="text-sm border px-2 py-1"
           />
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox checked={isFollowup} onCheckedChange={(checked) => setIsFollowup(Boolean(checked))} />
-          <span className="font-bold">متابعة</span>
+        <label className="flex items-center gap-3 cursor-pointer rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 shadow-sm">
+          <Checkbox
+            checked={isFollowup}
+            onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
+            className="h-5 w-5 border-2 border-amber-600 data-[state=checked]:bg-amber-600 data-[state=checked]:text-white"
+          />
+          <span className="text-base font-extrabold text-amber-900">متابعة</span>
         </label>
       </div>
     </div>
   );
 }
-
