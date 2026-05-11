@@ -69,6 +69,7 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
   const reception = [
     ...byKind("quick-entry-dialog"),
     ...byKind("schedule-dialog"),
+    ...byKind("operations-booking-dialog"),
   ];
 
   const nurse = [
@@ -146,8 +147,9 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 sm:gap-2">
         {visibleActions.map((action) => {
+          const Icon = action.icon;
           return (
             <button
               key={action.label}
@@ -180,11 +182,21 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
                 setPickPage(action.page);
               }}
               className={cn(
-                "flex min-h-10 items-center justify-center rounded-lg border border-border bg-card px-3 py-2 text-center transition-colors",
-                "text-sm font-semibold text-foreground hover:bg-muted/60 active:scale-[0.99]",
+                "flex flex-col items-center justify-center rounded-xl border border-transparent bg-muted/40 px-1 py-2 transition-all",
+                "hover:border-border hover:bg-muted/70 active:scale-95",
               )}
             >
-              <span className="leading-tight">{action.label}</span>
+              <div
+                className={cn(
+                  "mb-1.5 flex h-9 w-9 items-center justify-center rounded-lg transition-colors shrink-0",
+                  action.color,
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+              </div>
+              <span className="text-center text-xs font-semibold leading-tight text-foreground">
+                {action.label}
+              </span>
             </button>
           );
         })}
