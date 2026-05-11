@@ -108,9 +108,18 @@ export const appRouter = router({
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      ctx.res.clearCookie(AUTH_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      ctx.res.clearCookie(LEGACY_AUTH_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      const clearVariants = [
+        { ...cookieOptions, sameSite: "lax" as const },
+        { ...cookieOptions, sameSite: "none" as const, secure: true },
+        { ...cookieOptions },
+        { ...cookieOptions, secure: false },
+        { path: "/" as const },
+      ];
+      for (const options of clearVariants) {
+        ctx.res.clearCookie(COOKIE_NAME, { ...options, maxAge: -1 });
+        ctx.res.clearCookie(AUTH_COOKIE_NAME, { ...options, maxAge: -1 });
+        ctx.res.clearCookie(LEGACY_AUTH_COOKIE_NAME, { ...options, maxAge: -1 });
+      }
       return {
         success: true,
       } as const;

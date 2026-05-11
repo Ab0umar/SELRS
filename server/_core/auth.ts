@@ -228,8 +228,28 @@ export function registerAuthRoutes(app: Express) {
 
   // Logout route
   app.post("/api/auth/logout", (req: Request, res: Response) => {
-    res.clearCookie(AUTH_COOKIE_NAME);
-    res.clearCookie(LEGACY_AUTH_COOKIE_NAME);
+    const forwardedProtoHeader = req.headers["x-forwarded-proto"];
+    const forwardedProto = Array.isArray(forwardedProtoHeader)
+      ? forwardedProtoHeader[0]
+      : forwardedProtoHeader;
+    const isHttps =
+      req.secure ||
+      String(forwardedProto || "")
+        .toLowerCase()
+        .includes("https");
+
+    const clearVariants = [
+      { path: "/", httpOnly: true as const, sameSite: "lax" as const, secure: isHttps },
+      { path: "/", httpOnly: true as const, sameSite: "none" as const, secure: true },
+      { path: "/", httpOnly: true as const, secure: isHttps },
+      { path: "/", httpOnly: true as const, secure: false },
+      { path: "/" },
+    ];
+
+    for (const options of clearVariants) {
+      res.clearCookie(AUTH_COOKIE_NAME, options);
+      res.clearCookie(LEGACY_AUTH_COOKIE_NAME, options);
+    }
     res.json({ success: true });
   });
 
