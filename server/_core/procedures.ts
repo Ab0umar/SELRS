@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import * as db from "../db";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -111,6 +112,43 @@ export const managerProcedure = t.procedure.use(
 
     if (!["manager", "admin", "accountant"].includes(ctx.user.role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Only managers can access this resource" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+// Accounting procedure - الحسابات عبر صلاحيات الصفحات
+export const accountingProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+    }
+
+    if (ctx.user.role === "admin") {
+      return next({
+        ctx: {
+          ...ctx,
+          user: ctx.user,
+        },
+      });
+    }
+
+    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const canAccessAccounting = permissions.some((p) => {
+      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      return clean === "/accounting" || clean.startsWith("/accounting/");
+    });
+
+    if (!canAccessAccounting) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Accounting access required" });
     }
 
     return next({

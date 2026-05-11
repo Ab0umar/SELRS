@@ -52,8 +52,6 @@ export type NavGroupSection = {
 
 export type NavGroup = NavGroupSection | NavLeaf;
 
-const ACCOUNTING_NAV_ROLES = ["admin", "manager", "accountant"];
-
 /** الحسابات — روابط متداخلة؛ عنوان القسم يفتح لوحة الحسابات */
 export const accountingNavGroup: NavGroupSection = {
   label: "الحسابات",
@@ -64,43 +62,36 @@ export const accountingNavGroup: NavGroupSection = {
       icon: CalendarDays,
       label: "الإيراد اليومي",
       path: "/accounting/daily-revenue",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: Banknote,
       label: "إيراد الخدمات",
       path: "/accounting/service-revenue",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: ReceiptText,
       label: "الإيصالات",
       path: "/accounting/receipts",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: ClipboardList,
       label: "الخدمات",
       path: "/accounting/services",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: Users,
       label: "استعلام المرضى",
       path: "/accounting/patients",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: UserRound,
       label: "حساب مريض",
       path: "/accounting/patient",
-      roles: ACCOUNTING_NAV_ROLES,
     },
     {
       icon: Stethoscope,
       label: "حساب طبيب",
       path: "/accounting/doctor",
-      roles: ACCOUNTING_NAV_ROLES,
     },
   ],
 };

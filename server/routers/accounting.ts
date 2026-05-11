@@ -20,7 +20,7 @@ import {
   serviceRevenueInputSchema,
   serviceRevenueOutputSchema,
 } from "../../shared/accounting/contracts";
-import { managerProcedure, router } from "../_core/procedures";
+import { accountingProcedure, router } from "../_core/procedures";
 import { getDailyRevenue } from "../services/accounting/dailyRevenue.service";
 import { getDashboardSummary } from "../services/accounting/dashboardSummary.service";
 import {
@@ -49,70 +49,70 @@ async function accountingQuery<T>(operation: string, run: () => Promise<T>): Pro
 }
 
 export const accountingRouter = router({
-  dashboardSummary: managerProcedure
+  dashboardSummary: accountingProcedure
     .input(dashboardSummaryInputSchema)
     .output(dashboardSummaryOutputSchema)
     .query(({ input }) =>
       accountingQuery("dashboardSummary", () => getDashboardSummary(input)),
     ),
 
-  dailyRevenue: managerProcedure
+  dailyRevenue: accountingProcedure
     .input(dailyRevenueInputSchema)
     .output(dailyRevenueOutputSchema)
     .query(({ input }) =>
       accountingQuery("dailyRevenue", () => getDailyRevenue(input)),
     ),
 
-  serviceRevenue: managerProcedure
+  serviceRevenue: accountingProcedure
     .input(serviceRevenueInputSchema)
     .output(serviceRevenueOutputSchema)
     .query(({ input }) =>
       accountingQuery("serviceRevenue", () => getServiceRevenue(input)),
     ),
 
-  receiptsInquiry: managerProcedure
+  receiptsInquiry: accountingProcedure
     .input(receiptsInquiryInputSchema)
     .output(receiptsInquiryOutputSchema)
     .query(({ input }) =>
       accountingQuery("receiptsInquiry", () => getReceiptsInquiry(input)),
     ),
 
-  receiptDetail: managerProcedure
+  receiptDetail: accountingProcedure
     .input(receiptDetailInputSchema)
     .output(receiptDetailOutputSchema)
     .query(({ input }) =>
       accountingQuery("receiptDetail", () => getReceiptDetail(input)),
     ),
 
-  lasikReceipts: managerProcedure
+  lasikReceipts: accountingProcedure
     .input(lasikReceiptsInputSchema)
     .output(lasikReceiptsOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikReceipts", () => getLasikReceipts(input)),
     ),
 
-  lasikServices: managerProcedure
+  lasikServices: accountingProcedure
     .input(lasikServicesInputSchema)
     .output(lasikServicesOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikServices", () => getLasikServices(input)),
     ),
 
-  lasikRevenueSummary: managerProcedure
+  lasikRevenueSummary: accountingProcedure
     .input(lasikRevenueSummaryInputSchema)
     .output(lasikRevenueSummaryOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikRevenueSummary", () => getLasikRevenueSummary(input)),
     ),
 
-  patientLasikSummary: managerProcedure
+  patientLasikSummary: accountingProcedure
     .input(patientLasikSummaryInputSchema)
     .output(patientLasikSummaryOutputSchema)
     .query(({ input }) =>
       accountingQuery("patientLasikSummary", () => getPatientLasikSummary(input)),
     ),
 
-  patientLookup: managerProcedure
+  patientLookup: accountingProcedure
     .input(z.object({ patientCode: z.string() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ PAT_CD: string; NAM: string }>(
@@ -122,7 +122,7 @@ export const accountingRouter = router({
       return rows[0] ? { patientCode: rows[0].PAT_CD, patientName: rows[0].NAM } : null;
     }),
 
-  doctorLookup: managerProcedure
+  doctorLookup: accountingProcedure
     .input(z.object({ doctorCode: z.string() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ CODE: string; PHNM_AR: string }>(
@@ -132,7 +132,7 @@ export const accountingRouter = router({
       return rows[0] ? { doctorCode: rows[0].CODE, doctorName: rows[0].PHNM_AR } : null;
     }),
 
-  serviceLookup: managerProcedure
+  serviceLookup: accountingProcedure
     .input(z.object({ serviceCode: z.string(), sectionCode: z.number().optional() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ SRV_CD: string; SRV_NM_AR: string }>(
