@@ -113,6 +113,7 @@ const PatientAccount = lazy(() => import("./pages/accounting/PatientAccount"));
 const DoctorAccount = lazy(() => import("./pages/accounting/DoctorAccount"));
 const PrintPreview = lazy(() => import("./pages/accounting/PrintPreview"));
 const RUNTIME_ISSUE_STORAGE_KEY = "selrs:last-runtime-issue";
+const ACCOUNTING_ROLES = ["admin", "manager", "accountant"];
 const HEALTH_POLL_MS = 60_000;
 const NATIVE_HEALTH_POLL_MS = 5 * 60_000;
 const NATIVE_HEALTH_FAILURE_THRESHOLD = 3;
@@ -237,21 +238,21 @@ const Router = memo(function Router() {
       <Route path={"/dashboard"} component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
       {/* Accounting routes */}
-      <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
-      <Route path={"/accounting/daily-revenue"} component={() => <ProtectedRoute><DailyRevenue /></ProtectedRoute>} />
-      <Route path={"/accounting/service-revenue"} component={() => <ProtectedRoute><LasikRevenue /></ProtectedRoute>} />
-      <Route path={"/accounting/receipts/:secCd/:trTy/:trNo"} component={() => <ProtectedRoute><ReceiptDetail /></ProtectedRoute>} />
-      <Route path={"/accounting/receipts"} component={() => <ProtectedRoute><ReceiptsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/services"} component={() => <ProtectedRoute><LasikServices /></ProtectedRoute>} />
-      <Route path={"/accounting/patients-inquiry"} component={() => <ProtectedRoute><AccountingPatientsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/patients"} component={() => <ProtectedRoute><AccountingPatientsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/patient/:patientCode"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/patient"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/patient-account"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor-account"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor/:doctorCode"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/print"} component={() => <ProtectedRoute><PrintPreview /></ProtectedRoute>} />
+      <Route path={"/accounting"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><AccountingHome /></ProtectedRoute>} />
+      <Route path={"/accounting/daily-revenue"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><DailyRevenue /></ProtectedRoute>} />
+      <Route path={"/accounting/service-revenue"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><LasikRevenue /></ProtectedRoute>} />
+      <Route path={"/accounting/receipts/:secCd/:trTy/:trNo"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><ReceiptDetail /></ProtectedRoute>} />
+      <Route path={"/accounting/receipts"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><ReceiptsInquiry /></ProtectedRoute>} />
+      <Route path={"/accounting/services"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><LasikServices /></ProtectedRoute>} />
+      <Route path={"/accounting/patients-inquiry"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><AccountingPatientsInquiry /></ProtectedRoute>} />
+      <Route path={"/accounting/patients"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><AccountingPatientsInquiry /></ProtectedRoute>} />
+      <Route path={"/accounting/patient/:patientCode"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><PatientAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/patient"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><PatientAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/patient-account"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><PatientAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/doctor"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><DoctorAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/doctor-account"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><DoctorAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/doctor/:doctorCode"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><DoctorAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/print"} component={() => <ProtectedRoute requiredRoles={ACCOUNTING_ROLES}><PrintPreview /></ProtectedRoute>} />
 
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
       <Route path={"/patient-hub/*?"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
