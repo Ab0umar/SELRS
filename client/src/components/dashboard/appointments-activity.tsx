@@ -88,16 +88,22 @@ function isYmd(s: string) {
 
 export function AppointmentsSection({
   onOpenMeasurementsMedicalFile,
+  selectedDate: controlledSelectedDate,
+  onSelectedDateChange,
 }: {
   onOpenMeasurementsMedicalFile?: (patientId: number) => void;
+  selectedDate?: string;
+  onSelectedDateChange?: (date: string) => void;
 } = {}) {
   const [shortcutPatient, setShortcutPatient] = useState<TodayQueuePatient | null>(null);
   /** Same calendar-day default as Operations list (`getLocalDateIso`), not UTC midnight. */
-  const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
+  const [internalSelectedDate, setInternalSelectedDate] = useState(getLocalDateIso);
+  const selectedDate = controlledSelectedDate ?? internalSelectedDate;
 
   const setTodayPatientsDate = (ymd: string) => {
     if (!isYmd(ymd)) return;
-    setSelectedDate(ymd);
+    if (onSelectedDateChange) onSelectedDateChange(ymd);
+    else setInternalSelectedDate(ymd);
   };
 
   const [mainTab, setMainTab] = useState<MainTab>("patients");

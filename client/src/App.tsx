@@ -225,6 +225,19 @@ function PrescriptionsWriterDeepLinkRedirect() {
   return <Redirect to={`/prescription/${id}`} />;
 }
 
+function DashboardRouteGate() {
+  const { user } = useAuth();
+  const role = String(user?.role ?? "").toLowerCase();
+  if (user && role !== "admin") {
+    return <Redirect to="/today" />;
+  }
+  return (
+    <ProtectedRoute requiredRoles={["admin"]}>
+      <Dashboard />
+    </ProtectedRoute>
+  );
+}
+
 const Router = memo(function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -234,7 +247,7 @@ const Router = memo(function Router() {
       <Route path={"/profile"} component={() => <ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path={"/"} component={Home} />
 
-      <Route path={"/dashboard"} component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path={"/dashboard"} component={DashboardRouteGate} />
 
       {/* Accounting routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />

@@ -14,6 +14,7 @@ import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
 import { cn } from '@/lib/utils'
 import { OperationsBookingQuickDialog } from '@/components/operations/OperationsBookingQuickDialog'
 import { B4Loader } from '@/components/loaders/OrganicLoaders'
+import { getLocalDateIso } from '@/hooks/operations/operationsShared'
 
 const ChartLoading = () => <div className="h-[240px] bg-muted/30 animate-pulse rounded-lg" />
 const PatientTrendChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.PatientTrendChart })))
@@ -24,8 +25,8 @@ const IconWrap = ({ children, color }: { children: React.ReactNode; color: strin
   <div className={`h-6 w-6 rounded-md flex items-center justify-center ${color}`}>{children}</div>
 );
 
-function TodayActivitySummary() {
-  const { merged, isLoading } = useTodayQueuePatientsMerged()
+function TodayActivitySummary({ selectedDate }: { selectedDate: string }) {
+  const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate)
   const total = merged.length
   const treated = merged.filter((p) => p.queueStatus === 'treated').length
   const waiting = total - treated
@@ -81,8 +82,8 @@ function TodayActivitySummary() {
   )
 }
 
-function ServiceTypeBreakdown() {
-  const { merged, isLoading } = useTodayQueuePatientsMerged()
+function ServiceTypeBreakdown({ selectedDate }: { selectedDate: string }) {
+  const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate)
 
   if (isLoading) {
     return (
@@ -180,6 +181,7 @@ export default function Dashboard() {
   const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } = useMedicalFileLauncher()
   const { user } = useAuth()
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [selectedTodayDate, setSelectedTodayDate] = useState(getLocalDateIso)
   const showAdminKpis = String(user?.role ?? '').toLowerCase() === 'admin'
   const utils = trpc.useUtils()
 
@@ -252,7 +254,7 @@ export default function Dashboard() {
                   </IconWrap>
                   <h3 className="text-sm font-semibold">نشاط اليوم</h3>
                 </div>
-                <TodayActivitySummary />
+                <TodayActivitySummary selectedDate={selectedTodayDate} />
               </div>
             </div>
           </section>
@@ -265,7 +267,7 @@ export default function Dashboard() {
                 </IconWrap>
                 <h3 className="text-sm font-semibold">توزيع الخدمات</h3>
               </div>
-              <ServiceTypeBreakdown />
+              <ServiceTypeBreakdown selectedDate={selectedTodayDate} />
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
@@ -287,7 +289,11 @@ export default function Dashboard() {
         defaultOpen={true}
       >
         <div className="px-1.5 sm:px-2 md:px-3 pb-1.5 sm:pb-2 md:pb-3">
-          <AppointmentsSection onOpenMeasurementsMedicalFile={openMedicalFileForPatient} />
+          <AppointmentsSection
+            selectedDate={selectedTodayDate}
+            onSelectedDateChange={setSelectedTodayDate}
+            onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
+          />
         </div>
       </CollapsibleSection>
     </div>
