@@ -24,14 +24,16 @@ export type OperationsBookingQuickDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   initialDate?: string;
+  initialDoctorName?: string;
 };
 
-function defaultDraft(initialDate?: string): OperationsBookingDraft {
+function defaultDraft(initialDate?: string, initialDoctorName?: string): OperationsBookingDraft {
   const now = new Date();
+  const doctorName = String(initialDoctorName ?? "").trim() || TAB_CONFIG[0]?.doctor || "طبيب غير محدد";
   return {
     bookingDate: initialDate || getLocalDateIso(),
     bookingTime: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
-    doctorName: TAB_CONFIG[0]?.doctor ?? "",
+    doctorName,
     operationType: "PRK",
     casesCount: 1,
     weekdayLabel: "",
@@ -43,8 +45,9 @@ export function OperationsBookingQuickDialog({
   onOpenChange,
   onSaved,
   initialDate,
+  initialDoctorName,
 }: OperationsBookingQuickDialogProps) {
-  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultDraft(initialDate));
+  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultDraft(initialDate, initialDoctorName));
   const utils = trpc.useUtils();
   const createBooking = trpc.medical.createOperationBooking.useMutation({
     onSuccess: async () => {
@@ -55,18 +58,20 @@ export function OperationsBookingQuickDialog({
   });
 
   useEffect(() => {
-    if (open) setDraft(defaultDraft(initialDate));
-  }, [initialDate, open]);
+    if (open) setDraft(defaultDraft(initialDate, initialDoctorName));
+  }, [initialDate, initialDoctorName, open]);
 
   const handleChange = (field: string, value: string | number) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
+    const fallbackDoctor = String(initialDoctorName ?? "").trim() || TAB_CONFIG[0]?.doctor || "طبيب غير محدد";
+    const doctorName = String(draft.doctorName ?? "").trim() || fallbackDoctor;
     createBooking.mutate({
       bookingDate: draft.bookingDate,
       bookingTime: draft.bookingTime,
-      doctorName: draft.doctorName,
+      doctorName,
       operationType: draft.operationType,
       casesCount: Math.max(1, Math.trunc(Number(draft.casesCount) || 1)),
       weekdayLabel: draft.weekdayLabel?.trim() || undefined,

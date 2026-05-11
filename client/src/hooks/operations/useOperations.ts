@@ -54,7 +54,7 @@ export function useOperations() {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   });
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [lists, setLists] = useState<Record<string, ListData[]>>({
     [TAB_SAADANY]: [],
     [TAB_SAWAF]: [],
@@ -121,7 +121,11 @@ export function useOperations() {
 
   useEffect(() => {
     if (!canOpenAccounts && viewMode === "accounts") {
-      setViewMode("list");
+      setViewMode("table");
+      return;
+    }
+    if (viewMode === "list") {
+      setViewMode("table");
     }
   }, [canOpenAccounts, viewMode]);
 

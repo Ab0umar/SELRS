@@ -48,6 +48,7 @@ export default function Operations() {
           void operations.operationBookingsQuery.refetch();
         }}
         initialDate={String(operations.listDate)}
+        initialDoctorName={operations.doctorName}
       />
       <PageHeader
         title="العمليات"

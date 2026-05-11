@@ -39,9 +39,6 @@ export function OperationsTabs({ activeTab, canOpenAccounts, onActiveTabChange, 
 
       {/* View mode tabs */}
       <div className="mb-4 flex gap-1 rounded-lg bg-muted/50 p-1 print:hidden">
-        <button type="button" onClick={() => onViewModeChange("list")} className={tabBtn(viewMode === "list")}>
-          القائمة
-        </button>
         <button type="button" onClick={() => onViewModeChange("table")} className={tabBtn(viewMode === "table")}>
           اللست
         </button>
