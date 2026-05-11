@@ -383,6 +383,22 @@ export default function AdminUsers() {
     }
   };
 
+  const handleResetUserPermissionsToRole = async (u: User) => {
+    if (!window.confirm(`Reset permissions for "${u.name ?? u.username}" to role defaults?`)) return;
+    try {
+      await setUserPermissionsMutation.mutateAsync({
+        userId: u.id,
+        pageIds: [],
+        whenEmpty: "inherit",
+      });
+      toast.success("User permissions were reset to role defaults.");
+      await utils.medical.getUserPermissionState.invalidate();
+      await utils.medical.getMyPermissions.invalidate();
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "Failed to reset user permissions."));
+    }
+  };
+
   useEffect(() => {
     if (!isEditOpen || !permissionStateQuery.data) return;
     const incomingPages = normalizePermissionIdsForCheckbox(permissionStateQuery.data.pageIds);
@@ -660,6 +676,17 @@ export default function AdminUsers() {
                 <div key={u.id} className="rounded-xl border border-border/80 bg-card p-2.5" dir="rtl">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex shrink-0 items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="استعادة صلاحيات الدور"
+                        disabled={setUserPermissionsMutation.isPending}
+                        onClick={() => void handleResetUserPermissionsToRole(u)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
                       <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
@@ -816,6 +843,17 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell className="text-center align-middle">
                         <div className="flex justify-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="استعادة صلاحيات الدور"
+                            disabled={setUserPermissionsMutation.isPending}
+                            onClick={() => void handleResetUserPermissionsToRole(u)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
                           <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
                             <Edit2 className="h-3.5 w-3.5" />
                           </Button>
@@ -1148,7 +1186,6 @@ export default function AdminUsers() {
     </div>
   );
 }
-
 
 
 

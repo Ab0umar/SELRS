@@ -48,6 +48,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/patient-hub", label: "مركز المريض (Patient hub)", group: "مركز المريض" },
 
   // ── العيادات ──
+  { id: "/clinics-hub", label: "مركز العيادات (Clinics hub)", group: "العيادات" },
   { id: "/examination", label: "الفحوصات", group: "العيادات" },
   { id: "/sheets/pentacam/dashboard", label: "نتائج البنتكام (لوحة)", group: "العيادات" },
   { id: "/sheets/pentacam/:id", label: "شيت البنتكام", group: "العيادات" },
@@ -64,6 +65,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/doctor/patient/:id", label: "عرض الطبيب للمريض", group: "العيادات" },
 
   // ── المرضى ──
+  { id: "/patients-hub", label: "مركز المرضى (Patients hub)", group: "المرضى" },
   { id: "/patients", label: "المرضى", group: "المرضى" },
   { id: "/patients/:id", label: "تفاصيل المريض", group: "المرضى" },
   { id: "/patient-file", label: "الملف الطبي", group: "المرضى" },
@@ -75,6 +77,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/sheet-copies", label: "نسخ الشيتات", group: "المرضى" },
 
   // ── مركز الخدمات ──
+  { id: "/services-hub", label: "مركز الخدمات (Services hub)", group: "مركز الخدمات" },
   { id: "/medications", label: "كتالوج الأدوية", group: "مركز الخدمات" },
   { id: "/medications/registry", label: "سجل الأدوية (إدارة)", group: "مركز الخدمات" },
   { id: "/medications-tests", label: "الأدوية والفحوصات (مجمّع)", group: "مركز الخدمات" },

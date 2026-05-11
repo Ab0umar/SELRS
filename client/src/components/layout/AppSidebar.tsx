@@ -98,7 +98,7 @@ export function AppSidebar({
       if (isAdmin) return true;
       const roleAllowed = canShowNavLeaf(leaf, userRole);
       const pathAllowed = leafPassesEffectivePaths(leaf);
-      if (permissionsQuery.isSuccess) return roleAllowed || pathAllowed;
+      if (permissionsQuery.isSuccess) return pathAllowed;
       return roleAllowed;
     };
 
