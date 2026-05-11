@@ -210,7 +210,7 @@ export default function AdminServices() {
   const [moveTarget, setMoveTarget] = useState<ServiceCategory>("examination");
   const [sheetTarget, setSheetTarget] = useState<SheetType>("consultant");
   const [isInitialized, setIsInitialized] = useState(false);
-  const pendingAutoRecategorize = useRef(false);
+  const [servicesPage, setServicesPage] = useState(1);
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
   const [mappingSheetType, setMappingSheetType] = useState<SheetType>("consultant");
@@ -218,6 +218,10 @@ export default function AdminServices() {
   const [selectedServiceCodes, setSelectedServiceCodes] = useState<string[]>([]);
   const [doctorServiceMatches, setDoctorServiceMatches] = useState<DoctorServiceSheetMatch[]>([]);
   const [isMappingsInitialized, setIsMappingsInitialized] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(max-width: 639px)").matches
+  );
+  const [showMappingsSection, setShowMappingsSection] = useState(false);
 
   const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -246,7 +250,6 @@ export default function AdminServices() {
   const syncCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
     onSuccess: (data) => {
       toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب (MSSQL: ${(data as any).mssqlServicesRows ?? "?"} خدمة، ${(data as any).mssqlDoctorsRows ?? "?"} طبيب)`);
-      pendingAutoRecategorize.current = true;
       void servicesQuery.refetch();
     },
     onError: (err) => {
@@ -259,6 +262,19 @@ export default function AdminServices() {
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const apply = () => setIsMobileViewport(mq.matches);
+    apply();
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", apply);
+      return () => mq.removeEventListener("change", apply);
+    }
+    mq.addListener(apply);
+    return () => mq.removeListener(apply);
+  }, []);
 
   // Load services from DB table
   useEffect(() => {
@@ -291,20 +307,7 @@ export default function AdminServices() {
         price: item?.price != null ? Number(item.price) : undefined,
       } as ServiceEntry;
     });
-    if (pendingAutoRecategorize.current) {
-      pendingAutoRecategorize.current = false;
-      const recategorized = normalized.map((s) => ({
-        ...s,
-        category: categorizeService(s.code, s.name, s.serviceType) as ServiceCategory,
-      }));
-      setServices(recategorized);
-      recategorized.forEach((s) =>
-        updateServiceInDbMutation.mutate({ id: s.id, category: s.category ?? null }),
-      );
-      toast.success(`تم إعادة تصنيف ${recategorized.length} خدمة تلقائياً`);
-    } else {
-      setServices(normalized);
-    }
+    setServices(normalized);
     setIsInitialized(true);
   }, [servicesQuery.data, servicesQuery.error]);
 
@@ -380,7 +383,20 @@ export default function AdminServices() {
     });
   }, [serviceSearchTerm, sortedServices]);
 
-  const visibleIds = useMemo(() => hubFilteredServices.map((s) => s.id), [hubFilteredServices]);
+  const SERVICES_PAGE_SIZE = 40;
+  const servicesTotalPages = Math.max(1, Math.ceil(hubFilteredServices.length / SERVICES_PAGE_SIZE));
+  useEffect(() => {
+    setServicesPage(1);
+  }, [hubSearch, hubStatus, hubCategory]);
+  useEffect(() => {
+    if (servicesPage > servicesTotalPages) setServicesPage(servicesTotalPages);
+  }, [servicesPage, servicesTotalPages]);
+  const pagedHubServices = useMemo(() => {
+    const start = (servicesPage - 1) * SERVICES_PAGE_SIZE;
+    return hubFilteredServices.slice(start, start + SERVICES_PAGE_SIZE);
+  }, [hubFilteredServices, servicesPage]);
+
+  const visibleIds = useMemo(() => pagedHubServices.map((s) => s.id), [pagedHubServices]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const visibleDoctorCodes = useMemo(() => filteredDoctors.map((doctor) => doctor.code), [filteredDoctors]);
   const allVisibleDoctorsSelected =
@@ -526,7 +542,7 @@ export default function AdminServices() {
     const doctorByCode = new Map(doctors.map((doctor) => [doctor.code, doctor]));
     const serviceByCode = new Map(sortedServices.map((service) => [service.code, service]));
     const existingKey = new Set(
-      doctorServiceMatches.map((item) => `${item.doctorCode}::${item.serviceCode}::${item.sheetType}`)
+      doctorServiceMatches.map((item) => `${item.doctorCode}::${item.serviceCode}`)
     );
 
     const additions: DoctorServiceSheetMatch[] = [];
@@ -536,7 +552,7 @@ export default function AdminServices() {
       for (const serviceCode of selectedServiceCodes) {
         const service = serviceByCode.get(serviceCode);
         if (!service) continue;
-        const key = `${doctorCode}::${serviceCode}::${mappingSheetType}`;
+        const key = `${doctorCode}::${serviceCode}`;
         if (existingKey.has(key)) continue;
         existingKey.add(key);
         additions.push({
@@ -571,7 +587,7 @@ export default function AdminServices() {
     let removed = 0;
 
     for (const row of doctorServiceMatches) {
-      const key = `${String(row.doctorCode).trim()}::${String(row.serviceCode).trim()}::${String(row.sheetType).trim()}`;
+      const key = `${String(row.doctorCode).trim()}::${String(row.serviceCode).trim()}`;
       if (seen.has(key)) {
         removed += 1;
         continue;
@@ -587,6 +603,27 @@ export default function AdminServices() {
 
     setDoctorServiceMatches(next);
     toast.success(`تم حذف ${removed} تكرار`);
+  };
+
+  const deleteAllMatches = async () => {
+    if (doctorServiceMatches.length === 0) {
+      toast.success("لا توجد مطابقات للحذف");
+      return;
+    }
+    const confirmed = window.confirm("حذف كل مطابقات الأطباء والخدمات؟ لا يمكن التراجع.");
+    if (!confirmed) return;
+    try {
+      await saveMappingsMutation.mutateAsync({
+        key: "doctor_service_sheet_match_v1",
+        value: [],
+      });
+      setDoctorServiceMatches([]);
+      setSelectedDoctorCodes([]);
+      setSelectedServiceCodes([]);
+      toast.success("تم حذف كل المطابقات");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حذف كل المطابقات"));
+    }
   };
 
   const getCategoryLabel = (cat: ServiceCategory): string => {
@@ -870,14 +907,14 @@ export default function AdminServices() {
           <CardTitle className="text-base">قائمة الخدمات ({hubFilteredServices.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0 sm:p-0">
-          {/* Mobile cards */}
-          <div className="space-y-2 p-3 sm:hidden">
-            {!isInitialized ? (
-              <div className="py-10 text-center text-muted-foreground">جاري التحميل…</div>
-            ) : hubFilteredServices.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground">لا توجد خدمات مطابقة للتصفية.</div>
-            ) : (
-              hubFilteredServices.map((service) => (
+          {isMobileViewport ? (
+            <div className="space-y-2 p-3">
+              {!isInitialized ? (
+                <div className="py-10 text-center text-muted-foreground">جاري التحميل…</div>
+              ) : hubFilteredServices.length === 0 ? (
+                <div className="py-10 text-center text-muted-foreground">لا توجد خدمات مطابقة للتصفية.</div>
+              ) : (
+                pagedHubServices.map((service) => (
                 <div key={service.id} className="rounded-xl border border-border/80 bg-card p-3" dir="rtl">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5">
@@ -1015,11 +1052,11 @@ export default function AdminServices() {
                     </div>
                   ) : null}
                 </div>
-              ))
-            )}
-          </div>
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto sm:block">
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
             <Table dir="rtl" className="min-w-[960px] text-right">
               <TableHeader>
                 <TableRow className="bg-muted/40">
@@ -1047,7 +1084,7 @@ export default function AdminServices() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  hubFilteredServices.map((service) => (
+                  pagedHubServices.map((service) => (
                     <Fragment key={service.id}>
                       <TableRow className="hover:bg-primary/[0.04]">
                         <TableCell className="px-3 align-middle">
@@ -1210,9 +1247,37 @@ export default function AdminServices() {
                 )}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+      <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/10 px-3 py-2 text-xs sm:text-sm">
+        <span className="text-muted-foreground">
+          صفحة {servicesPage} من {servicesTotalPages}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => setServicesPage((p) => Math.max(1, p - 1))}
+            disabled={servicesPage === 1}
+          >
+            السابق
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => setServicesPage((p) => Math.min(servicesTotalPages, p + 1))}
+            disabled={servicesPage >= servicesTotalPages}
+          >
+            التالي
+          </Button>
+        </div>
+      </div>
 
       <Dialog
         open={addOpen}
@@ -1247,8 +1312,19 @@ export default function AdminServices() {
 
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <CardHeader>
-          <CardTitle>مطابقة الأطباء مع الخدمات والشيت</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>مطابقة الأطباء مع الخدمات والشيت</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMappingsSection((v) => !v)}
+            >
+              {showMappingsSection ? "إخفاء" : "إظهار"}
+            </Button>
+          </div>
         </CardHeader>
+        {showMappingsSection ? (
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             اختر أكثر من طبيب وأكثر من خدمة، ثم اضغط "مطابقة" لإنشاء كل التركيبات. نفس الخدمة يمكن مشاركتها بين أطباء متعددين.
@@ -1365,6 +1441,14 @@ export default function AdminServices() {
             <Button type="button" variant="secondary" onClick={deduplicateMatches}>
               🧹 حذف التكرارات
             </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void deleteAllMatches()}
+              disabled={saveMappingsMutation.isPending}
+            >
+              🗑️ حذف الكل
+            </Button>
             <Button variant="outline" onClick={saveDoctorServiceMatches} disabled={saveMappingsMutation.isPending}>
               💾 حفظ المطابقات
             </Button>
@@ -1410,6 +1494,11 @@ export default function AdminServices() {
             </div>
           </div>
         </CardContent>
+        ) : (
+          <CardContent>
+            <p className="text-sm text-muted-foreground">تم إخفاء القسم لتحسين الأداء. اضغط "إظهار" عند الحاجة.</p>
+          </CardContent>
+        )}
       </Card>
     </div>
   );

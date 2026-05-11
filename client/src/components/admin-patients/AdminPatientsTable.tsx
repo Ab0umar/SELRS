@@ -23,7 +23,6 @@ type AdminPatientsTableProps = {
   currentPage: number;
   deletePatientPending: boolean;
   deletePatientFromMssqlPending: boolean;
-  doctorSelectOptions: string[];
   getDraft: (patient: PatientRow) => PatientDraft;
   hasMore: boolean;
   isExpanded: (patientId: number) => boolean;
@@ -49,7 +48,6 @@ type AdminPatientsTableProps = {
   updatePatientPending: boolean;
   visiblePatients: PatientRow[];
 };
-type DoctorSelectContentNode = React.ReactNode;
 
 function AdminPatientTransactions({ patientId, serviceCodeToLabel }: { patientId: number; serviceCodeToLabel: Map<string, string> }) {
   const entriesQuery = trpc.medical.getPatientServiceEntries.useQuery(
@@ -108,7 +106,6 @@ type AdminPatientItemProps = {
   selected: boolean;
   expanded: boolean;
   manualLockEnabled: boolean;
-  doctorSelectContent: DoctorSelectContentNode;
   deletePatientPending: boolean;
   deletePatientFromMssqlPending: boolean;
   savePatientPageStatePending: boolean;
@@ -135,11 +132,10 @@ const arePatientItemPropsEqual = (prev: AdminPatientItemProps, next: AdminPatien
   prev.status?.state === next.status?.state &&
   prev.draft.fullName === next.draft.fullName &&
   prev.draft.treatingDoctor === next.draft.treatingDoctor &&
-  prev.draft.serviceType === next.draft.serviceType &&
-  prev.doctorSelectContent === next.doctorSelectContent;
+  prev.draft.serviceType === next.draft.serviceType;
 
 const AdminPatientCard = memo(function AdminPatientCard({
-  patient, draft, status, selected, expanded, manualLockEnabled, doctorSelectContent, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
+  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
 }: AdminPatientItemProps) {
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
   return (
@@ -159,10 +155,12 @@ const AdminPatientCard = memo(function AdminPatientCard({
       <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-2 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
         <div className="text-muted-foreground">الطبيب</div>
         <div className="text-foreground">
-          <Select value={draft.treatingDoctor || "__empty__"} onValueChange={(value) => onSetDraftField(patient, "treatingDoctor", value === "__empty__" ? "" : value)}>
-            <SelectTrigger className="h-7 rounded-lg text-xs text-foreground"><SelectValue placeholder="اختر طبيباً" /></SelectTrigger>
-            <SelectContent>{doctorSelectContent}</SelectContent>
-          </Select>
+          <Input
+            value={draft.treatingDoctor}
+            onChange={(event) => onSetDraftField(patient, "treatingDoctor", event.target.value)}
+            className="h-7 rounded-lg text-xs text-foreground"
+            placeholder="اسم الطبيب"
+          />
         </div>
         <div className="text-muted-foreground">نوع الخدمة</div>
         <div className="text-foreground">
@@ -194,9 +192,8 @@ const AdminPatientCard = memo(function AdminPatientCard({
 }, arePatientItemPropsEqual);
 
 const AdminPatientRow = memo(function AdminPatientRow({
-  patient, draft, status, selected, expanded, manualLockEnabled, doctorSelectContent, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
+  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
 }: AdminPatientItemProps) {
-  console.count("[AdminPatientRow Render]");
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
   return (
     <Fragment>
@@ -212,7 +209,7 @@ const AdminPatientRow = memo(function AdminPatientRow({
             {expanded ? <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2"><AdminPatientTransactions patientId={patient.id} serviceCodeToLabel={serviceCodeToLabel} /><Button type="button" variant="outline" size="sm" className="w-full rounded-lg text-xs" disabled={deletePatientFromMssqlPending} onClick={() => onDeleteFromMssql(patient)}>حذف من MSSQL</Button></div> : null}
           </div>
         </TableCell>
-        <TableCell className="min-w-[210px]"><Select value={draft.treatingDoctor || "__empty__"} onValueChange={(value) => onSetDraftField(patient, "treatingDoctor", value === "__empty__" ? "" : value)}><SelectTrigger className="rounded-lg"><SelectValue placeholder="اختر طبيباً" /></SelectTrigger><SelectContent>{doctorSelectContent}</SelectContent></Select></TableCell>
+        <TableCell className="min-w-[210px]"><Input value={draft.treatingDoctor} onChange={(event) => onSetDraftField(patient, "treatingDoctor", event.target.value)} className="rounded-lg text-right" placeholder="اسم الطبيب" /></TableCell>
         <TableCell><Select value={draft.serviceType} onValueChange={(value) => onSetDraftField(patient, "serviceType", value)}><SelectTrigger className="min-w-[150px] rounded-lg"><SelectValue placeholder="نوع الشيت" /></SelectTrigger><SelectContent>{SERVICE_TYPE_SELECT_CONTENT}</SelectContent></Select></TableCell>
         <TableCell><Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-orange-200 bg-orange-500 font-bold text-white shadow-sm hover:bg-orange-600" : "rounded-lg border-amber-200 bg-amber-100 font-bold text-amber-900 hover:bg-amber-200"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>{manualLockEnabled ? <>ON <Lock className="ms-2 h-3.5 w-3.5" aria-hidden /></> : <>OFF <LockOpen className="ms-2 h-3.5 w-3.5" aria-hidden /></>}</Button></TableCell>
         <TableCell><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center gap-2"><Button variant="outline" className="gap-2 rounded-lg border-primary/30 bg-primary/5 px-4 text-primary hover:bg-primary/10" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>{status?.state === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}حفظ</Button><Button variant="destructive" size="sm" className="rounded-lg px-4" onClick={() => onDeletePatient(patient)} disabled={deletePatientPending}><Trash2 className="me-2 h-4 w-4" aria-hidden />حذف</Button></div></div></TableCell>
@@ -226,7 +223,6 @@ function AdminPatientsTableComponent({
   currentPage,
   deletePatientPending,
   deletePatientFromMssqlPending,
-  doctorSelectOptions,
   getDraft,
   hasMore,
   isExpanded,
@@ -260,19 +256,6 @@ function AdminPatientsTableComponent({
   );
   const [mobileCardPage, setMobileCardPage] = useState(1);
   const [tableScrollMargin, setTableScrollMargin] = useState(0);
-  const doctorSelectContent = useMemo(
-    () => (
-      <>
-        <SelectItem value="__empty__">—</SelectItem>
-        {doctorSelectOptions.map((name) => (
-          <SelectItem key={name} value={name}>
-            {name}
-          </SelectItem>
-        ))}
-      </>
-    ),
-    [doctorSelectOptions],
-  );
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 639px)");
     const sync = () => setIsMobileViewport(mql.matches);
@@ -347,7 +330,6 @@ function AdminPatientsTableComponent({
                 selected={selectedPatients.has(patient.id)}
                 expanded={isExpanded(patient.id)}
                 manualLockEnabled={isManualLockEnabled(patient)}
-                doctorSelectContent={doctorSelectContent}
                 deletePatientPending={deletePatientPending}
                 deletePatientFromMssqlPending={deletePatientFromMssqlPending}
                 savePatientPageStatePending={savePatientPageStatePending}
@@ -455,7 +437,6 @@ function AdminPatientsTableComponent({
                       selected={selectedPatients.has(patient.id)}
                       expanded={isExpanded(patient.id)}
                       manualLockEnabled={isManualLockEnabled(patient)}
-                      doctorSelectContent={doctorSelectContent}
                       deletePatientPending={deletePatientPending}
                       deletePatientFromMssqlPending={deletePatientFromMssqlPending}
                       savePatientPageStatePending={savePatientPageStatePending}

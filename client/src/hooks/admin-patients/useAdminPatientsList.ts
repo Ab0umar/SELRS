@@ -28,7 +28,7 @@ export function useAdminPatientsList() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [cursor, setCursor] = useState<PatientCursor | null>(null);
   const [cursorHistory, setCursorHistory] = useState<Array<PatientCursor | null>>([]);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const [statsYear, setStatsYear] = useState(String(new Date().getFullYear()));
   const [statsMonth, setStatsMonth] = useState(String(new Date().getMonth() + 1).padStart(2, "0"));
   const [dateFrom, setDateFrom] = useState("");
@@ -371,10 +371,6 @@ export function useAdminPatientsList() {
           [field]: value,
         },
       };
-      console.log("[Draft Perf]", {
-        draftsCount: Object.keys(next).length,
-        changedRow: rowKey,
-      });
       return next;
     });
     setRowSaveState((prev) => {

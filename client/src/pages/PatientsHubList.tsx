@@ -29,6 +29,25 @@ function serviceLabel(raw: string | undefined) {
   return SERVICE_TYPE_LABELS[String(raw ?? "").toLowerCase()] ?? raw ?? "—";
 }
 
+function formatVisitDateTime(patient: PatientRow): string {
+  const raw =
+    (patient as any).lastVisit ??
+    (patient as any).visitDate ??
+    (patient as any).createdAt ??
+    (patient as any).updatedAt ??
+    null;
+  if (!raw) return "—";
+  const dt = raw instanceof Date ? raw : new Date(raw);
+  if (Number.isNaN(dt.valueOf())) return "—";
+  return dt.toLocaleString("ar-EG", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function printPatient(patient: PatientRow) {
   const serviceType = String(normalizeSheetTypeChoice(patient.__serviceCodeSingle ?? patient.serviceType ?? "consultant") || "consultant");
   const path = patientSheetPathByServiceType(serviceType, patient.id);
@@ -65,8 +84,12 @@ const HubPatientCard = memo(function HubPatientCard({
         <div className="grid grid-cols-2 gap-0.5 rounded-xl border border-border/50 bg-muted/30 px-2.5 py-2 text-xs">
           <span className="text-muted-foreground">الكود</span>
           <span dir="ltr" className="text-right text-foreground">{code}</span>
+          <span className="text-muted-foreground">نوع الخدمة</span>
+          <span className="text-right text-foreground">{serviceLabel(patient.__serviceCodeSingle ?? patient.serviceType)}</span>
           <span className="text-muted-foreground">الطبيب</span>
           <span className="text-right text-foreground">{patient.treatingDoctor || "—"}</span>
+          <span className="text-muted-foreground">الوقت</span>
+          <span className="text-right text-foreground">{formatVisitDateTime(patient)}</span>
           {patient.phone ? (
             <>
               <span className="text-muted-foreground">الهاتف</span>

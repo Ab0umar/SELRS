@@ -432,6 +432,9 @@ function QueuePatientCard({
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = st !== "treated" && visitId != null;
   const markingThis = markVisitTreatedPendingVisitId != null && markVisitTreatedPendingVisitId === visitId;
+  const serviceTypeText = serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
+  const doctorText = String(patient.doctorName ?? "").trim() || "—";
+  const timeText = String(patient.checkedInTime ?? "").trim() || "—";
 
   return (
     <div
@@ -459,7 +462,6 @@ function QueuePatientCard({
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">{patient.fullName ?? "—"}</p>
-          <p className="mt-0.5 line-clamp-1 text-[11px] text-foreground/80 sm:text-xs sm:text-muted-foreground">{patient.doctorName ?? "—"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {st === "treated" ? (
@@ -470,10 +472,19 @@ function QueuePatientCard({
           </Badge>
         </div>
       </div>
-      <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border/50 pt-2 text-xs sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
-        <Badge variant="outline" className={cn("w-fit max-w-full truncate text-[10px]", serviceTypeStyles[patient.serviceType ?? ""])}>
-          {serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—"}
-        </Badge>
+      <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-xs">
+        <span className="text-muted-foreground">الطبيب</span>
+        <span className="text-right text-foreground break-words">{doctorText}</span>
+        <span className="text-muted-foreground">نوع الخدمة</span>
+        <span className="text-right">
+          <Badge variant="outline" className={cn("max-w-full text-[10px]", serviceTypeStyles[patient.serviceType ?? ""])}>
+            {serviceTypeText}
+          </Badge>
+        </span>
+        <span className="text-muted-foreground">الوقت</span>
+        <span className="text-right text-foreground tabular-nums">{timeText}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-1.5">
           {canMarkTreated ? (
             <Button
@@ -492,10 +503,6 @@ function QueuePatientCard({
               <Check className="h-3.5 w-3.5" aria-hidden />
             </Button>
           ) : null}
-          <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
-            <Clock className="h-3 w-3 shrink-0" />
-            {patient.checkedInTime ?? "—"}
-          </span>
         </div>
       </div>
       </div>

@@ -3107,6 +3107,9 @@ export const medicalRouter = router({
     .query(async ({ input }) => {
       return await db.getAppointmentsByPatient(input.patientId);
     }),
+  getMedicalTotals: protectedProcedure.query(async () => {
+    return await db.getMedicalTotals();
+  }),
   // Get all operations
   getOperations: protectedProcedure
     .query(async () => {
@@ -6875,6 +6878,9 @@ export const medicalRouter = router({
       try {
         const dateIso = input.date || new Date().toISOString().split("T")[0];
 
+        // Daily rollover: carry forward unfinished old queues as treated.
+        await db.rolloverPreviousQueueVisitsAsTreated(dateIso);
+
         // Auto-advance patients through queue
         await db.autoAdvanceQueuePatients(dateIso);
 
@@ -6986,7 +6992,7 @@ export const medicalRouter = router({
       const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
       const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
       const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
-      const drsDeptCol = pickCol(mdCols, ["DPT_NO", "DEPT_NO", "DEPT", "DPT", "DRS_TY", "TYPE", "TY"]);
+      const drsDeptNoCol = mdCols.has("DPT_NO") ? "DPT_NO" : null;
       const lstdCodeCol = pickCol(lstdCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
       const lstdPriceCol = pickCol(lstdCols, ["PR_VL", "PRC1", "PRC", "PRC_VL", "PRICE", "PRCVL", "DISC_VL", "SRVRAT"]);
 
@@ -7016,9 +7022,9 @@ export const medicalRouter = router({
       const mssqlServices = await mssqlQuery(servicesQuery, {});
       stageStats.servicesRows = mssqlServices.length;
 
-      const drsDeptFilter = drsDeptCol
-        ? `AND ${drsDeptCol} = 15`
-        : `/* dept col not found: ${[...mdCols].join(",")} */`;
+      if (!drsDeptNoCol) {
+        throw new Error(`DPT_NO column not found in MDTEAM. Available: ${[...mdCols].join(", ")}`);
+      }
 
       const doctorsQuery = `
         SELECT DISTINCT
@@ -7026,7 +7032,7 @@ export const medicalRouter = router({
           ${drsNameCol} AS name
         FROM MDTEAM
         WHERE ${drsCodeCol} IS NOT NULL AND ${drsCodeCol} <> ''
-          ${drsDeptFilter}
+          AND ${drsDeptNoCol} = 15
         ORDER BY ${drsCodeCol}
       `;
       const mssqlDoctors = await mssqlQuery(doctorsQuery, {});

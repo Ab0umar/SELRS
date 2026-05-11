@@ -6,7 +6,7 @@ import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { AppointmentsSection } from '@/components/dashboard/appointments-activity'
 import { CollapsibleSection } from '@/components/shared/CollapsibleSection'
 import { CardContent } from '@/components/ui/card'
-import { Calendar, Clock, Activity, Eye, Stethoscope, FileText, Syringe, TrendingUp, BarChart3, PieChart } from 'lucide-react'
+import { Calendar, Clock, Activity, Eye, Stethoscope, FileText, TrendingUp, BarChart3, PieChart, CircleDot, Glasses, Users, Syringe } from 'lucide-react'
 import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
@@ -146,22 +146,25 @@ function ServiceTypeBreakdown({ selectedDate }: { selectedDate: string }) {
 }
 
 function MedicalStats() {
-  const examsQuery = trpc.medical.getAllExaminations.useQuery()
-  const opsQuery = trpc.medical.getOperations.useQuery()
+  const totalsQuery = trpc.medical.getMedicalTotals.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  })
 
   const fmt = (n: number | undefined, loading: boolean) =>
     loading ? '—' : (n ?? 0).toLocaleString('ar-EG')
 
-  const examsCount = Array.isArray(examsQuery.data) ? examsQuery.data.length : undefined
-  const opsCount = Array.isArray(opsQuery.data) ? opsQuery.data.length : undefined
+  const totals = totalsQuery.data
 
   const stats = [
-    { label: 'إجمالي الفحوصات', value: fmt(examsCount, examsQuery.isLoading), icon: Eye, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'إجمالي العمليات', value: fmt(opsCount, opsQuery.isLoading), icon: Syringe, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-950' },
+    { label: 'إجمالي المرضى', value: fmt(totals?.patients, totalsQuery.isLoading), icon: Users, color: 'text-slate-700 dark:text-slate-200', bg: 'bg-slate-100 dark:bg-slate-800' },
+    { label: 'إجمالي Autoref', value: fmt(totals?.autoref, totalsQuery.isLoading), icon: Eye, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'إجمالي Refraction', value: fmt(totals?.refraction, totalsQuery.isLoading), icon: Glasses, color: 'text-cyan-700 dark:text-cyan-300', bg: 'bg-cyan-100 dark:bg-cyan-950' },
+    { label: 'إجمالي البنتاكام', value: fmt(totals?.pentacam, totalsQuery.isLoading), icon: CircleDot, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-950' },
+    { label: 'إجمالي العمليات', value: fmt(totals?.operations, totalsQuery.isLoading), icon: Syringe, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-950' },
   ]
 
   return (
-    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-3')}>
+    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-5')}>
       {stats.map((s) => (
         <div key={s.label} className="flex min-w-[46%] shrink-0 items-center gap-2 rounded-lg bg-muted/30 p-2 sm:min-w-0 sm:gap-3 sm:p-2.5">
           <div className={`h-9 w-9 rounded-lg ${s.bg} flex items-center justify-center shrink-0`}>
@@ -207,7 +210,7 @@ export default function Dashboard() {
         defaultOpen={false}
       >
         <CardContent className="space-y-8 p-3 sm:p-4">
-          <KpiCards />
+          <KpiCards key={`kpi-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="space-y-3 lg:col-span-2">
@@ -254,7 +257,7 @@ export default function Dashboard() {
                   </IconWrap>
                   <h3 className="text-sm font-semibold">نشاط اليوم</h3>
                 </div>
-                <TodayActivitySummary selectedDate={selectedTodayDate} />
+                <TodayActivitySummary key={`today-activity-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
               </div>
             </div>
           </section>
@@ -267,7 +270,7 @@ export default function Dashboard() {
                 </IconWrap>
                 <h3 className="text-sm font-semibold">توزيع الخدمات</h3>
               </div>
-              <ServiceTypeBreakdown selectedDate={selectedTodayDate} />
+              <ServiceTypeBreakdown key={`service-breakdown-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">

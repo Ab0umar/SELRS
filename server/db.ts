@@ -252,33 +252,63 @@ export async function upsertRegistrationCatalogRows(params: {
   if (serviceRows.length > 0) {
     await db.insert(services).values(serviceRows).onDuplicateKeyUpdate({
       set: {
-        name: sql`VALUES(name)`,
-        price: sql`VALUES(price)`,
-        updatedAt: now,
+        // Strictly preserve local edits for existing services.
+        // Keep duplicate-key branch as a no-op so sync only inserts missing services.
+        id: sql`id`,
       },
     });
   }
   const servicesUpserted = serviceRows.length;
 
-  // Batch UPDATE doctors using CASE WHEN (one query instead of N sequential UPDATEs)
+  // Upsert doctors by code:
+  // - INSERT missing codes
+  // - UPDATE names for existing codes
   const doctorRows = params.mssqlDoctors
     .map((row) => ({ code: String(row.code ?? "").trim(), name: String(row.name ?? "").trim() || String(row.code ?? "").trim() }))
     .filter((r) => r.code);
 
   let doctorsUpserted = 0;
   if (doctorRows.length > 0) {
-    const caseWhen = sql.join(
-      doctorRows.map((r) => sql`WHEN ${r.code} THEN ${r.name}`),
-      sql` `,
-    );
-    const codeList = sql.join(
-      doctorRows.map((r) => sql`${r.code}`),
-      sql`, `,
-    );
-    const result = await db.execute(
-      sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END WHERE code IN (${codeList})`,
-    );
-    doctorsUpserted = (result as any)?.[0]?.affectedRows ?? doctorRows.length;
+    const doctorCodes = doctorRows.map((r) => r.code);
+    const existingRows = await db
+      .select({ code: doctorsLookup.code })
+      .from(doctorsLookup)
+      .where(inArray(doctorsLookup.code, doctorCodes));
+    const existingCodes = new Set(existingRows.map((row) => String(row.code ?? "").trim()));
+
+    const toInsert = doctorRows
+      .filter((row) => !existingCodes.has(row.code))
+      .map((row) => ({
+        id: deterministicCatalogId("doc", row.code),
+        code: row.code,
+        name: row.name,
+        isActive: 1,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+    if (toInsert.length > 0) {
+      await db.insert(doctorsLookup).values(toInsert);
+    }
+
+    const toUpdate = doctorRows.filter((row) => existingCodes.has(row.code));
+    let updatedCount = 0;
+    if (toUpdate.length > 0) {
+      const caseWhen = sql.join(
+        toUpdate.map((row) => sql`WHEN ${row.code} THEN ${row.name}`),
+        sql` `,
+      );
+      const codeList = sql.join(
+        toUpdate.map((row) => sql`${row.code}`),
+        sql`, `,
+      );
+      const result = await db.execute(
+        sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END, isActive = 1, updatedAt = ${now} WHERE code IN (${codeList})`,
+      );
+      updatedCount = Number((result as any)?.[0]?.affectedRows ?? toUpdate.length);
+    }
+
+    doctorsUpserted = toInsert.length + updatedCount;
   }
 
   return { servicesUpserted, doctorsUpserted };
@@ -5305,6 +5335,104 @@ export async function getTodayVisitsByQueueStatus(dateIso: string, queueStatus?:
     patientFullName: decodeMojibake(row.patientFullName),
     doctorName: row.doctorName ?? null,
   }));
+}
+
+export async function getMedicalTotals() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [patientsRows, autorefRows, refractionRows, pentacamRows, operationsRows] = await Promise.all([
+    db.select({ c: sql<number>`COUNT(*)` }).from(patients),
+    db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(autorefractometryData)
+      .where(sql`(
+        NULLIF(TRIM(COALESCE(${autorefractometryData.sphereOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.cylinderOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.axisOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.ucvaOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.bcvaOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.iopOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.sphereOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.cylinderOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.axisOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.ucvaOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.bcvaOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${autorefractometryData.iopOS}, '')), '') IS NOT NULL
+      )`),
+    db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(glassesRecords)
+      .where(sql`(
+        NULLIF(TRIM(COALESCE(${glassesRecords.sOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.cOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.axisOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.pdOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.sOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.cOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.axisOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.pdOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.addOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${glassesRecords.addOS}, '')), '') IS NOT NULL
+      )`),
+    db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(pentacamResults)
+      .where(sql`(
+        NULLIF(TRIM(COALESCE(${pentacamResults.pachymetryOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.pachymetryOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.k1OD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.k2OD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.axisOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.thinnestPointOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.apexOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.residualOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.tttOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.ablationOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.k1OS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.k2OS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.axisOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.thinnestPointOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.apexOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.residualOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.tttOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.ablationOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.keratometryOD}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.keratometryOS}, '')), '') IS NOT NULL OR
+        NULLIF(TRIM(COALESCE(${pentacamResults.notes}, '')), '') IS NOT NULL
+      )`),
+    db.select({ c: sql<number>`COUNT(*)` }).from(appointments),
+  ]);
+
+  return {
+    patients: Number(patientsRows[0]?.c ?? 0),
+    autoref: Number(autorefRows[0]?.c ?? 0),
+    refraction: Number(refractionRows[0]?.c ?? 0),
+    pentacam: Number(pentacamRows[0]?.c ?? 0),
+    operations: Number(operationsRows[0]?.c ?? 0),
+  };
+}
+
+/**
+ * Daily rollover: mark all previous-day non-treated queue visits as treated.
+ * This keeps each new day queue clean without manual cleanup.
+ */
+export async function rolloverPreviousQueueVisitsAsTreated(dateIso: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(visits)
+    .set({
+      queueStatus: "treated",
+      treatedAt: sql`CURRENT_TIMESTAMP`,
+    })
+    .where(
+      and(
+        sql`DATE(${visits.visitDate}) < ${dateIso}`,
+        sql`${visits.queueStatus} IN ('checkedIn', 'next', 'clinic')`,
+      ),
+    );
 }
 
 /**

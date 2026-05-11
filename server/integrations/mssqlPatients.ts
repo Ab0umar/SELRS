@@ -2743,6 +2743,22 @@ async function loadServiceTypeMap(): Promise<Map<string, "consultant" | "special
   const map = new Map<string, "consultant" | "specialist" | "lasik" | "surgery" | "external">();
 
   try {
+    const servicesRows = await db.getAllServicesFromDb();
+    if (Array.isArray(servicesRows)) {
+      for (const entry of servicesRows) {
+        const code = normalizeServiceCode((entry as any)?.code);
+        const active = (entry as any)?.isActive !== false;
+        const normalized =
+          normalizeServiceType((entry as any)?.serviceType) ??
+          normalizeSheetType((entry as any)?.defaultSheet);
+        if (code && active && normalized) map.set(code, normalized);
+      }
+    }
+  } catch {
+    // Continue with settings/csv fallback.
+  }
+
+  try {
     const setting = await db.getSystemSetting("service_directory");
     if (setting?.value) {
       const parsed = JSON.parse(String(setting.value));
@@ -3076,10 +3092,10 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
               doctorCode: isBlank(payload.doctorCode) ? null : String(payload.doctorCode),
               doctorId: isBlank(payload.doctorId) ? null : String(payload.doctorId),
               serviceCode: isBlank(payload.serviceCode) ? null : String(payload.serviceCode),
-              serviceType: isBlank(payload.serviceType) ? null : String(payload.serviceType),
-              locationType: isBlank(payload.locationType) ? null : String(payload.locationType),
               ...(isBlank(payload.treatingDoctor) ? {} : { treatingDoctor: String(payload.treatingDoctor) }),
             };
+            if (!isBlank(payload.serviceType)) alwaysUpdates.serviceType = String(payload.serviceType);
+            if (!isBlank(payload.locationType)) alwaysUpdates.locationType = String(payload.locationType);
             const oldDoctorCode = String(existing.doctorCode ?? "").trim();
             const oldServiceCode = String(existing.serviceCode ?? "").trim();
             const newDoctorCode = String(alwaysUpdates.doctorCode ?? "").trim();
@@ -3188,10 +3204,14 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
             ? new Date(String(mssqlVisitDate))
             : (payload.lastVisit ? new Date(String(payload.lastVisit)) : registrationDate);
 
+          const resolvedCreateServiceType =
+            (payload.serviceType ? String(payload.serviceType) : "") ||
+            (serviceType ? String(serviceType) : "") ||
+            (payload.locationType === "external" ? "external" : "specialist");
           const createPayload = {
             ...payload,
             branch: payload.branch ?? "examinations",
-            serviceType: payload.serviceType ?? "consultant",
+            serviceType: resolvedCreateServiceType,
             locationType: payload.locationType ?? "center",
             status: "new",
             lastVisit: payload.lastVisit ?? examinationDate.toISOString().slice(0, 10),

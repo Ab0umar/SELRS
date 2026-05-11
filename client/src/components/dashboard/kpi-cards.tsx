@@ -33,34 +33,29 @@ type Kpi = {
   loading?: boolean
 }
 
-export function KpiCards() {
-  const { merged, isLoading: todayQueueLoading } = useTodayQueuePatientsMerged()
-  const operationsQuery = trpc.medical.getOperations.useQuery()
-  const allPatientsQuery = trpc.medical.getAllPatients.useQuery({ limit: 500 })
+export function KpiCards({ selectedDate }: { selectedDate: string }) {
+  const { merged, isLoading: todayQueueLoading } = useTodayQueuePatientsMerged(selectedDate)
+  const operationsQuery = trpc.medical.getTodayOperationLists.useQuery(
+    { date: selectedDate },
+    { refetchOnWindowFocus: false },
+  )
 
   const todayTotal = merged.length
   const treatedToday = merged.filter((p) => p.queueStatus === 'treated').length
   const inProgressToday = merged.filter((p) => p.queueStatus !== 'treated').length
 
   const opsCount = Array.isArray(operationsQuery.data)
-    ? operationsQuery.data.length
+    ? operationsQuery.data.reduce((acc: number, row: any) => acc + ((row?.items?.length ?? 0) as number), 0)
     : 0
-  const patientRows = allPatientsQuery.data?.rows ?? []
-  const patientsCount = patientRows.length
-  const patientsCapped = Boolean(allPatientsQuery.data?.hasMore)
 
   const kpis: Kpi[] = [
     {
       title: 'إجمالي المرضى',
-      value: allPatientsQuery.isLoading
-        ? '—'
-        : patientsCapped
-          ? '500+'
-          : patientsCount.toLocaleString('ar-EG'),
+      value: todayQueueLoading ? '—' : todayTotal.toLocaleString('ar-EG'),
       icon: 'users',
       iconComponent: Users,
-      description: patientsCapped ? 'أحدث 500 سجل' : 'إجمالي السجلات',
-      loading: allPatientsQuery.isLoading,
+      description: 'حسب تاريخ مرضى اليوم المحدد',
+      loading: todayQueueLoading,
     },
     {
       title: 'مرضى اليوم',
@@ -89,7 +84,7 @@ export function KpiCards() {
         : opsCount.toLocaleString('ar-EG'),
       icon: 'stethoscope',
       iconComponent: Stethoscope,
-      description: 'إجمالي العمليات',
+      description: 'عمليات نفس التاريخ المحدد',
       loading: operationsQuery.isLoading,
     },
   ]

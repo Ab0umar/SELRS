@@ -71,8 +71,6 @@ export default function AdminPatients() {
     { label: "الإجمالي", value: list.yearStats.total },
   ];
 
-  const doctorNamesForRows = useMemo(() => list.doctorOptions, [list.doctorOptions]);
-
   return (
     <div className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4" dir="rtl">
       <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
@@ -220,7 +218,6 @@ export default function AdminPatients() {
             currentPage={list.currentPage}
             deletePatientPending={list.deletePatientMutation.isPending}
             deletePatientFromMssqlPending={list.deletePatientFromMssqlMutation.isPending}
-            doctorSelectOptions={doctorNamesForRows}
             getDraft={list.getDraft}
             hasMore={list.hasMore}
             isExpanded={list.isExpanded}

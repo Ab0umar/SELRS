@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Activity, CheckCircle2, MoreVertical, Plus, Stethoscope, Trash2, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, MoreVertical, Plus, RefreshCw, Stethoscope, Trash2, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -111,7 +111,21 @@ export default function AdminDoctors() {
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
+  const utils = trpc.useUtils();
   const updateDoctorsMutation = trpc.medical.updateDoctorDirectory.useMutation();
+  const syncRegistrationCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
+    onSuccess: async (data) => {
+      toast.success(`تمت المزامنة: ${data.doctorsUpserted} طبيب`);
+      await Promise.all([
+        utils.medical.getDoctorDirectory.invalidate(),
+        utils.medical.getRegistrationCatalog.invalidate(),
+      ]);
+      void doctorsQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error("فشلت المزامنة: " + (error.message || "خطأ غير معروف"));
+    },
+  });
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
@@ -364,10 +378,23 @@ export default function AdminDoctors() {
         subtitle="ربط الأطباء بالخدمات والمواعيد — بدون إنشاء مستخدم نظام"
         icon={<Stethoscope className="h-5 w-5" />}
         action={
-          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" />
-            <span className="text-xs sm:text-sm">إضافة طبيب</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() => syncRegistrationCatalogMutation.mutate()}
+              disabled={syncRegistrationCatalogMutation.isPending}
+            >
+              <RefreshCw className={cn("h-4 w-4", syncRegistrationCatalogMutation.isPending && "animate-spin")} />
+              <span className="text-xs sm:text-sm">{syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}</span>
+            </Button>
+            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">إضافة طبيب</span>
+            </Button>
+          </div>
         }
       />
 
