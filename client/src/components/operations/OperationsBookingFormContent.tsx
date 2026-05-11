@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OPERATION_LABELS, TAB_CONFIG } from "@/lib/operationsPricing";
+import { OPERATION_LABELS } from "@/lib/operationsPricing";
 
 export type OperationsBookingFormContentProps = {
   draft: {
@@ -67,17 +67,11 @@ export function OperationsBookingFormContent({
         </Label>
         <Input
           id="operation-booking-doctor"
-          list="operation-booking-doctors"
           value={draft.doctorName}
           onChange={(event) => onChange("doctorName", event.target.value)}
           placeholder="اسم الطبيب"
           className="flex-1"
         />
-        <datalist id="operation-booking-doctors">
-          {TAB_CONFIG.map((tab) =>
-            tab.doctor ? <option key={tab.key} value={tab.doctor} /> : null,
-          )}
-        </datalist>
       </div>
 
       <div className="flex items-center gap-3">

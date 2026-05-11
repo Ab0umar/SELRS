@@ -15,6 +15,7 @@ import {
   CircleDot,
   Syringe,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,57 @@ const quickActions: QuickActionItem[] = [
   { label: "تقرير المريض", icon: FileSpreadsheet, color: "bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-300 dark:bg-slate-400/10", kind: "pick-patient", page: "patient-summary" },
 ];
 
+type UserRole =
+  | "admin"
+  | "manager"
+  | "reception"
+  | "nurse"
+  | "technician"
+  | "doctor"
+  | "accountant"
+  | "";
+
+function actionsForRole(userRole: UserRole): QuickActionItem[] {
+  const all = quickActions;
+  const byKind = <K extends QuickActionItem["kind"]>(kind: K) =>
+    all.filter((a) => a.kind === kind);
+  const byPage = (page: PageKey) => all.find((a) => a.kind === "pick-patient" && a.page === page);
+
+  const reception = [
+    ...byKind("quick-entry-dialog"),
+    ...byKind("schedule-dialog"),
+  ];
+
+  const nurse = [
+    ...byKind("measurements-panel"),
+    byPage("refraction"),
+  ].filter(Boolean) as QuickActionItem[];
+
+  const technician = [
+    ...byKind("measurements-panel"),
+    byPage("refraction"),
+    byPage("pentacam-sheet"),
+  ].filter(Boolean) as QuickActionItem[];
+
+  const doctor = [
+    ...byKind("measurements-panel"),
+    byPage("refraction"),
+    byPage("pentacam-sheet"),
+    byPage("write-prescription"),
+    byPage("request-tests"),
+    byPage("medical-reports"),
+    byPage("patient-details"),
+    byPage("patient-summary"),
+  ].filter(Boolean) as QuickActionItem[];
+
+  if (userRole === "admin" || userRole === "manager") return all;
+  if (userRole === "reception") return reception;
+  if (userRole === "nurse") return nurse;
+  if (userRole === "technician") return technician;
+  if (userRole === "doctor") return doctor;
+  return all;
+}
+
 export type QuickActionsProps = {
   /** «القياسات و الفحص»: فتح منتقي المريض ثم `MedicalFilePanel`. */
   onOpenMeasurementsMedicalFile?: () => void;
@@ -57,10 +109,13 @@ export type QuickActionsProps = {
 };
 
 export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBooking }: QuickActionsProps) {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [pickPage, setPickPage] = useState<PageKey | null>(null);
+  const userRole = String(user?.role ?? "").toLowerCase() as UserRole;
+  const visibleActions = actionsForRole(userRole);
 
   const navigateForPatient = (page: PageKey, patientId: number) => {
     const path = patientNavPathForPageKey(page, patientId);
@@ -91,9 +146,8 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-6 gap-0.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 sm:gap-1.5">
-        {quickActions.map((action, index) => {
-          const Icon = action.icon;
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {visibleActions.map((action) => {
           return (
             <button
               key={action.label}
@@ -126,23 +180,11 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
                 setPickPage(action.page);
               }}
               className={cn(
-                "flex flex-col items-center justify-center transition-all active:scale-95 cursor-pointer group",
-                "py-0.5 px-0 sm:gap-1 sm:rounded-lg sm:py-1.5 sm:px-0.5",
-                index >= 10 && "max-sm:hidden",
+                "flex min-h-10 items-center justify-center rounded-lg border border-border bg-card px-3 py-2 text-center transition-colors",
+                "text-sm font-semibold text-foreground hover:bg-muted/60 active:scale-[0.99]",
               )}
             >
-              <div
-                className={cn(
-                  "flex items-center justify-center rounded-xl transition-colors shrink-0",
-                  "h-9 w-9 sm:h-9 sm:w-9 sm:rounded-lg",
-                  action.color,
-                )}
-              >
-                <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-              </div>
-              <span className="hidden sm:block text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center truncate w-full">
-                {action.label}
-              </span>
+              <span className="leading-tight">{action.label}</span>
             </button>
           );
         })}

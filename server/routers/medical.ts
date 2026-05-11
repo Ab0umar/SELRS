@@ -1678,8 +1678,15 @@ export const medicalRouter = router({
 
       // Check permission for creating/editing patient data
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
-      if (!permissions.includes("/patient-data/edit")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to create patient records. Contact admin to enable /patient-data/edit permission." });
+      const canCreatePatient =
+        permissions.includes("/patient-data/edit") ||
+        permissions.includes("/quick-entry") ||
+        permissions.includes("/new-cases");
+      if (!canCreatePatient) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to create patient records. Contact admin to enable /patient-data/edit or patient intake permissions.",
+        });
       }
       try {
         const { skipIfExists, ...patientInput } = input;

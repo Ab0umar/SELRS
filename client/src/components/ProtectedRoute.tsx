@@ -146,8 +146,10 @@ export default function ProtectedRoute({
       return;
     }
 
-    // Check role permission
-    if (requiredRoles && !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole)) {
+    const roleMismatch =
+      requiredRoles &&
+      !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
+    if (roleMismatch && !(userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed)) {
       setLocation("/");
       return;
     }
@@ -204,7 +206,12 @@ export default function ProtectedRoute({
     );
   }
 
-  if (requiredRoles && !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole)) {
+  const roleMismatch =
+    requiredRoles &&
+    !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
+  const roleOverrideByPermission = userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed;
+
+  if (roleMismatch && !roleOverrideByPermission) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
         <div className="rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">

@@ -22,17 +22,12 @@ import {
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
 import {
-  accountingNavGroup,
   adminNavGroups,
   staffNavGroups,
   type NavGroup,
   type NavGroupSection,
   type NavLeaf,
 } from "./AppNav";
-
-const ACCOUNTING_SIDEBAR_BASE_PATHS = new Set(
-  accountingNavGroup.items.map((leaf) => normalizeNavPath(leaf.path.split("?")[0])),
-);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width-v2";
 const COLLAPSED_KEY = "selrs:sidebar-collapsed";
@@ -95,20 +90,25 @@ export function AppSidebar({
     const leafPassesEffectivePaths = (leaf: NavLeaf): boolean => {
       if (isAdmin) return true;
       const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
-      if (!ACCOUNTING_SIDEBAR_BASE_PATHS.has(cleanPath)) return true;
       if (!permissionsQuery.isSuccess) return true;
       return pathGrantedByRoots(cleanPath, allowedRoots);
+    };
+
+    const leafVisible = (leaf: NavLeaf): boolean => {
+      if (isAdmin) return true;
+      const roleAllowed = canShowNavLeaf(leaf, userRole);
+      const pathAllowed = leafPassesEffectivePaths(leaf);
+      if (permissionsQuery.isSuccess) return roleAllowed || pathAllowed;
+      return roleAllowed;
     };
 
     return (isAdmin ? adminNavGroups : staffNavGroups)
       .map((item) => {
         if (!isNavGroup(item)) {
-          return canShowNavLeaf(item, userRole) ? item : null;
+          return leafVisible(item) ? item : null;
         }
 
-        const items = item.items.filter(
-          (leaf) => canShowNavLeaf(leaf, userRole) && leafPassesEffectivePaths(leaf),
-        );
+        const items = item.items.filter((leaf) => leafVisible(leaf));
         return items.length > 0 ? { ...item, items } : null;
       })
       .filter((item): item is NavGroup => Boolean(item));
