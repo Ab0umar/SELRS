@@ -1,4 +1,4 @@
-name: SRV100 CI
+name: SRV100_Acc CI
 
 on:
   push:
@@ -15,24 +15,30 @@ jobs:
         node-version: [20.x]
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
+      - uses: actions/checkout@v4
 
-    - name: Install pnpm
-      run: npm install -g pnpm
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
-    - name: Run TypeScript Check
-      run: pnpm check
+      - name: Verify pnpm
+        run: pnpm --version
 
-    - name: Run Tests
-      run: pnpm test
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Run Build
-      run: pnpm build
+      - name: Run TypeScript Check
+        run: pnpm check
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Run Build
+        run: pnpm build
