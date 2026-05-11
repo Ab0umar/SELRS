@@ -292,7 +292,9 @@ export default function Operations() {
                   {(() => {
                     const needle = operations.historySearch.trim().toLowerCase();
                     const normalized = (value: unknown) => String(value ?? "").toLowerCase();
-                    const itemsWithMatches = (operations.historyQuery.data ?? []).map((item: any) => {
+                    const itemsWithMatches = (operations.historyQuery.data ?? [])
+                      .filter((item: any) => item.doctorTab === operations.activeTab)
+                      .map((item: any) => {
                       const names = (item.items ?? []).map((entry: any) => String(entry.name ?? ""));
                       const matches = needle ? names.filter((name: string) => normalized(name).includes(needle)) : names;
                       return { item, matches, hasMatch: needle ? matches.length > 0 : true };
