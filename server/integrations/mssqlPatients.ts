@@ -2749,8 +2749,8 @@ async function loadServiceTypeMap(): Promise<Map<string, "consultant" | "special
         const code = normalizeServiceCode((entry as any)?.code);
         const active = (entry as any)?.isActive !== false;
         const normalized =
-          normalizeServiceType((entry as any)?.serviceType) ??
-          normalizeSheetType((entry as any)?.defaultSheet);
+          normalizeSheetType((entry as any)?.defaultSheet) ??
+          normalizeServiceType((entry as any)?.serviceType);
         if (code && active && normalized) map.set(code, normalized);
       }
     }
@@ -3027,10 +3027,13 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         // 1) explicit doctor+service mapping from admin settings
         // 2) service directory mapping by code
         // 3) MSSQL row serviceType/serviceName fallback
-        const serviceType =
+        const serviceTypeFromCode =
           (mappedSheet ? normalizeServiceType(mappedSheet) : undefined) ||
-          (primaryServiceCode ? serviceTypeMap.get(primaryServiceCode) : undefined) ||
-          normalizeServiceType(source.serviceType ?? source.serviceName);
+          (primaryServiceCode ? serviceTypeMap.get(primaryServiceCode) : undefined);
+        const serviceTypeFallback = primaryServiceCode
+          ? undefined
+          : normalizeServiceType(source.serviceType ?? source.serviceName);
+        const serviceType = serviceTypeFromCode || serviceTypeFallback;
         if (serviceType) {
           // console.log(`[mssql-sync] Patient ${patientCode}: Auto-set serviceType="${serviceType}" from serviceCode="${primaryServiceCode}"`);
           payload.serviceType = serviceType;

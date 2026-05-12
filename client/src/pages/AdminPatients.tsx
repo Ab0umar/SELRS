@@ -46,6 +46,7 @@ export default function AdminPatients() {
       toast.error("فشلت المزامنة: " + (error.message || "خطأ غير معروف"));
     },
   });
+  const resetPatientServiceTypesMutation = trpc.medical.resetPatientServiceTypesFromServiceCode.useMutation();
 
 
   const handleApplyFilters = useCallback(async () => {
@@ -148,6 +149,51 @@ export default function AdminPatients() {
                 >
                   <RefreshCw className="h-4 w-4" />
                   {syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg text-xs sm:text-sm"
+                  disabled={resetPatientServiceTypesMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      const out = await resetPatientServiceTypesMutation.mutateAsync({
+                        dryRun: true,
+                        onlyConsultant: true,
+                      });
+                      toast.success(`فحص جاهز: سيتم تعديل ${out.updated} من أصل ${out.scanned}`);
+                    } catch (error: any) {
+                      toast.error("فشل الفحص: " + (error?.message || "خطأ غير معروف"));
+                    }
+                  }}
+                  title="فحص (بدون تعديل) لتحويل consultant الخاطئة حسب كود الخدمة"
+                >
+                  فحص التصحيح
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg text-xs sm:text-sm border-amber-300 text-amber-800 hover:bg-amber-50"
+                  disabled={resetPatientServiceTypesMutation.isPending}
+                  onClick={async () => {
+                    const confirmed = window.confirm("تشغيل تصحيح serviceType لكل المرضى consultant حسب كود الخدمة؟");
+                    if (!confirmed) return;
+                    try {
+                      const out = await resetPatientServiceTypesMutation.mutateAsync({
+                        dryRun: false,
+                        onlyConsultant: true,
+                      });
+                      toast.success(`تم تصحيح ${out.updated} مريض`);
+                      await list.utils.medical.getAllPatients.invalidate();
+                    } catch (error: any) {
+                      toast.error("فشل التصحيح: " + (error?.message || "خطأ غير معروف"));
+                    }
+                  }}
+                  title="تطبيق التصحيح الفعلي"
+                >
+                  تطبيق التصحيح
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-center sm:grid-cols-4">

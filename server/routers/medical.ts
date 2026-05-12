@@ -8,7 +8,7 @@ import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
 import { eq, asc, desc, and, inArray } from "drizzle-orm";
-import { services, doctorsLookup, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions } from "../../drizzle/schema";
+import { services, doctorsLookup, patients, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -485,6 +485,48 @@ const normalizeServiceDefaultSheet = (
   if (raw === "pentacam_external") return "pentacam_ex";
   return raw;
 };
+
+const serviceTypeFromSheetOrType = (
+  defaultSheetRaw: unknown,
+  serviceTypeRaw: unknown
+): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
+  const sheet = String(defaultSheetRaw ?? "").trim().toLowerCase();
+  const type = String(serviceTypeRaw ?? "").trim().toLowerCase();
+  if (
+    sheet === "external" ||
+    sheet === "surgery_external" ||
+    sheet === "pentacam_external" ||
+    sheet === "pentacam_ex" ||
+    sheet === "pentacam_ex_c" ||
+    sheet === "radiology_external"
+  ) {
+    return "external";
+  }
+  if (sheet === "surgery" || sheet === "surgery_center") return "surgery";
+  if (sheet === "specialist") return "specialist";
+  if (
+    sheet === "lasik" ||
+    sheet === "pentacam" ||
+    sheet === "pentacam_center" ||
+    sheet === "pentacam_c" ||
+    sheet === "radiology_center"
+  ) {
+    return "lasik";
+  }
+  if (sheet === "consultant") return "consultant";
+  if (type === "external") return "external";
+  if (type === "surgery") return "surgery";
+  if (type === "specialist") return "specialist";
+  if (type === "lasik") return "lasik";
+  return "consultant";
+};
+
+const normalizeServiceCodeKey = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/\.0+$/g, "")
+    .toLowerCase();
 
 const MOJIBAKE_HINT = /[ØÙÃÂ]/;
 const decodeMojibake = (value: unknown) => {
@@ -2011,6 +2053,152 @@ export const medicalRouter = router({
         lastMarker: result.lastMarker,
       });
       return result;
+    }),
+
+  resetPatientServiceTypesFromServiceCode: adminProcedure
+    .input(
+      z
+        .object({
+          dryRun: z.boolean().optional(),
+          onlyConsultant: z.boolean().optional(),
+        })
+        .optional()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const dbConn = await db.getDb();
+      if (!dbConn) throw new Error("Database not available");
+
+      const dryRun = Boolean(input?.dryRun);
+      const onlyConsultant = input?.onlyConsultant !== false;
+
+      const svcRows = await dbConn
+        .select({
+          code: services.code,
+          serviceType: services.serviceType,
+          defaultSheet: services.defaultSheet,
+        })
+        .from(services)
+        .where(eq(services.isActive, true));
+      const svcMap = new Map<
+        string,
+        { serviceType: string | null; defaultSheet: string | null }
+      >();
+      for (const row of svcRows) {
+        const code = normalizeServiceCodeKey(row.code);
+        if (!code) continue;
+        svcMap.set(code, {
+          serviceType: (row.serviceType as string | null) ?? null,
+          defaultSheet: (row.defaultSheet as string | null) ?? null,
+        });
+      }
+
+      const pageStateRows = await dbConn
+        .select({
+          patientId: patientPageStates.patientId,
+          data: patientPageStates.data,
+        })
+        .from(patientPageStates)
+        .where(eq(patientPageStates.page, "examination"));
+      const sheetTypeByPatientId = new Map<number, Record<string, string>>();
+      for (const row of pageStateRows) {
+        const patientId = Number(row.patientId ?? 0);
+        if (!patientId) continue;
+        const rawData = row.data as any;
+        const dataObj =
+          rawData && typeof rawData === "object"
+            ? rawData
+            : (() => {
+                try {
+                  return JSON.parse(String(rawData ?? "{}"));
+                } catch {
+                  return {};
+                }
+              })();
+        const rawMap =
+          dataObj && typeof dataObj.serviceSheetTypeByCode === "object"
+            ? (dataObj.serviceSheetTypeByCode as Record<string, unknown>)
+            : {};
+        const normalizedMap: Record<string, string> = {};
+        for (const [k, v] of Object.entries(rawMap)) {
+          const nk = normalizeServiceCodeKey(k);
+          const sv = String(v ?? "").trim();
+          if (nk && sv) normalizedMap[nk] = sv;
+        }
+        if (Object.keys(normalizedMap).length > 0) sheetTypeByPatientId.set(patientId, normalizedMap);
+      }
+
+      const patientRows = await dbConn
+        .select({
+          id: patients.id,
+          serviceCode: patients.serviceCode,
+          serviceType: patients.serviceType,
+        })
+        .from(patients);
+
+      let scanned = 0;
+      let updated = 0;
+      let withCode = 0;
+      let mappedFromServices = 0;
+      let mappedFromPageState = 0;
+      let unresolved = 0;
+      const changedSample: Array<{ id: number; from: string; to: string; code: string }> = [];
+
+      for (const row of patientRows) {
+        scanned += 1;
+        const id = Number(row.id ?? 0);
+        const code = normalizeServiceCodeKey(row.serviceCode);
+        const currentType = String(row.serviceType ?? "").trim().toLowerCase();
+        if (!id || !code) continue;
+        withCode += 1;
+        if (onlyConsultant && currentType !== "consultant") continue;
+
+        const svc = svcMap.get(code);
+        const stateMap = sheetTypeByPatientId.get(id) ?? {};
+        const sheetHint = String(stateMap[code] ?? "").trim();
+        const nextType =
+          (sheetHint ? serviceTypeFromSheetOrType(sheetHint, null) : null) ??
+          (svc ? serviceTypeFromSheetOrType(svc.defaultSheet, svc.serviceType) : null);
+        if (sheetHint) mappedFromPageState += 1;
+        else if (svc) mappedFromServices += 1;
+        else {
+          unresolved += 1;
+        }
+        if (!nextType || nextType === currentType) continue;
+
+        if (!dryRun) {
+          await dbConn
+            .update(patients)
+            .set({
+              serviceType: nextType as any,
+              ...(nextType === "external" ? { locationType: "external" as const } : {}),
+              updatedAt: new Date(),
+            })
+            .where(eq(patients.id, id));
+        }
+        updated += 1;
+        if (changedSample.length < 20) {
+          changedSample.push({ id, from: currentType || "-", to: nextType, code });
+        }
+      }
+
+      await db.logAuditEvent(ctx.user.id, "RESET_PATIENT_SERVICE_TYPES_FROM_SERVICE_CODE", "patient", 0, {
+        scanned,
+        updated,
+        dryRun,
+        onlyConsultant,
+      });
+
+      return {
+        scanned,
+        withCode,
+        updated,
+        dryRun,
+        onlyConsultant,
+        mappedFromServices,
+        mappedFromPageState,
+        unresolved,
+        sample: changedSample,
+      };
     }),
 
   resetMssqlSyncCodes: adminProcedure
