@@ -7,6 +7,7 @@ import { Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 const App = lazy(() => import("./App"));
+import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import { getApiUrl, getLoginUrl } from "./const";
 import {
   dispatchApiIssue,
@@ -135,7 +136,7 @@ const headersToObject = (headers: Headers) => {
 };
 
 const MAX_NATIVE_FETCH_ATTEMPTS = 2;
-const NATIVE_HTTP_TIMEOUT_MS = 30_000;
+const NATIVE_HTTP_TIMEOUT_MS = 600_000; // 10 minutes for long-running operations like patient sync
 
 const attemptNativeFetch = async (requestUrl: string, options: { method: string; headers: Headers; init?: Omit<RequestInit, "headers"> }) => {
   const { method, headers, init } = options;
@@ -476,7 +477,7 @@ if (!Capacitor.isNativePlatform() && !isDesktopShell) {
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<AppShellSkeleton />}>
         <App />
       </Suspense>
     </QueryClientProvider>

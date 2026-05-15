@@ -87,6 +87,9 @@ async function syncDoctorsAndServices() {
     let doctorSyncCount = 0;
     for (const doc of systemDoctors) {
       const locationType = doc.locationType || "center";
+      // Use serviceType as doctorType instead of hardcoded "consultant"
+      // Services in systemServices have serviceType; derive doctor type from them
+      const doctorServiceType = doc.doctorType || "specialist";
 
       try {
         const existing = await db.select().from(doctors).where(eq(doctors.code, doc.code)).limit(1);
@@ -99,11 +102,11 @@ async function syncDoctorsAndServices() {
               name: doc.name,
               isActive: doc.isActive !== false,
               locationType: locationType,
-              doctorType: doc.doctorType || "consultant",
+              doctorType: doctorServiceType,
               updatedAt: new Date(),
             })
             .where(eq(doctors.code, doc.code));
-          console.log(`[SyncScript] Updated doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}`);
+          console.log(`[SyncScript] Updated doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`);
         } else {
           // Insert new
           await db.insert(doctors).values({
@@ -112,9 +115,9 @@ async function syncDoctorsAndServices() {
             name: doc.name,
             isActive: doc.isActive !== false,
             locationType: locationType,
-            doctorType: doc.doctorType || "consultant",
+            doctorType: doctorServiceType,
           });
-          console.log(`[SyncScript] Inserted doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}`);
+          console.log(`[SyncScript] Inserted doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`);
         }
         doctorSyncCount++;
       } catch (err) {

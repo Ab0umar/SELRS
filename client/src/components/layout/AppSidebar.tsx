@@ -29,11 +29,8 @@ import {
   type NavLeaf,
 } from "./AppNav";
 
-const SIDEBAR_WIDTH_KEY = "sidebar-width-v2";
 const COLLAPSED_KEY = "selrs:sidebar-collapsed";
-const DEFAULT_WIDTH = 210;
-const MIN_WIDTH = 170;
-const MAX_WIDTH = 480;
+const DEFAULT_WIDTH = 220;
 
 function isNavGroup(item: NavGroup): item is NavGroupSection {
   return "items" in item && Array.isArray((item as NavGroupSection).items);
@@ -114,13 +111,8 @@ export function AppSidebar({
       .filter((item): item is NavGroup => Boolean(item));
   }, [allowedRoots, isAdmin, permissionsQuery.isSuccess, userRole]);
 
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
-  });
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "1");
   const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({});
-  const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const navGroupExpanded = (navKey: string) => openNavGroups[navKey] ?? false;
@@ -138,37 +130,10 @@ export function AppSidebar({
   }, [location]);
 
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
-  }, [sidebarWidth]);
-
-  useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const rect = sidebarRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const newWidth = e.clientX - rect.left;
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) setSidebarWidth(newWidth);
-    };
-    const onUp = () => setIsResizing(false);
-    if (isResizing) {
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing]);
-
-  const renderNavButton = (sub: NavLeaf, isActive: boolean) => (
+  const renderNavButton = (sub: NavLeaf, isActive: boolean, isMainItem?: boolean) => (
     <button
       key={sub.path}
       type="button"
@@ -178,13 +143,15 @@ export function AppSidebar({
         if (isMobile) onMobileOpenChange(false);
       }}
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium transition-colors",
+        "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
         collapsed && !isMobile ? "justify-center px-0 py-2.5" : "text-right",
-        isActive ? "selrs-active-nav font-medium text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        isActive
+          ? "bg-primary/10 text-primary font-semibold"
+          : "font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       {(!collapsed || isMobile) && <span className="min-w-0 flex-1 truncate">{sub.label}</span>}
-      <sub.icon className="h-[18px] w-[18px] shrink-0" />
+      <sub.icon className={cn("shrink-0", isMainItem ? "h-6 w-6" : "h-[18px] w-[18px]")} />
     </button>
   );
 
@@ -192,7 +159,7 @@ export function AppSidebar({
     <div
       dir="rtl"
       className="flex h-full min-h-0 flex-col overflow-hidden border-e border-border/80 bg-sidebar text-sidebar-foreground"
-      style={{ width: isMobile ? "max-content" : collapsed ? 56 : sidebarWidth }}
+      style={{ width: isMobile ? "max-content" : collapsed ? 56 : DEFAULT_WIDTH }}
     >
       <div className="h-1 selrs-gradient-bar shrink-0" aria-hidden />
       <div className={cn("flex h-14 shrink-0 items-center border-b border-border/80 bg-sidebar", collapsed && !isMobile ? "justify-center px-1" : "justify-between gap-1 px-3")}>
@@ -225,94 +192,108 @@ export function AppSidebar({
         )}
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-3 scrollbar-none bg-sidebar">
-        {menuItems.map((item, idx) => {
-          if (collapsed && !isMobile && !item.isMain) {
-            return null;
-          }
-          if (isNavGroup(item)) {
-            const navKey = item.navKey ?? `g-${idx}`;
-            const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(navKey);
-            const locBase = location.split("?")[0];
-            const groupPathBase =
-              typeof item.groupPath === "string" ? item.groupPath.split("?")[0] : "";
-            const groupPathClean = groupPathBase ? normalizeNavPath(groupPathBase) : "";
-            const groupNavigateAllowed =
-              !item.groupPath ||
-              isAdmin ||
-              !permissionsQuery.isSuccess ||
-              pathGrantedByRoots(groupPathClean, allowedRoots);
-            const headerNavDisabled = Boolean(item.groupPath) && !groupNavigateAllowed;
-            const headerActive =
-              groupPathBase.length > 1 &&
-              locBase === groupPathBase &&
-              !item.items.some((sub) => navLeafActive(location, sub.path));
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-2 scrollbar-none bg-sidebar">
+        {(() => {
+          let firstGroupSeen = false;
+          return menuItems.map((item, idx) => {
+            if (collapsed && !isMobile && !item.isMain) {
+              return null;
+            }
+            if (isNavGroup(item)) {
+              const needsSeparator = !firstGroupSeen && !collapsed;
+              firstGroupSeen = true;
+              const navKey = item.navKey ?? `g-${idx}`;
+              const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(navKey);
+              const locBase = location.split("?")[0];
+              const groupPathBase =
+                typeof item.groupPath === "string" ? item.groupPath.split("?")[0] : "";
+              const groupPathClean = groupPathBase ? normalizeNavPath(groupPathBase) : "";
+              const groupNavigateAllowed =
+                !item.groupPath ||
+                isAdmin ||
+                !permissionsQuery.isSuccess ||
+                pathGrantedByRoots(groupPathClean, allowedRoots);
+              const headerNavDisabled = Boolean(item.groupPath) && !groupNavigateAllowed;
+              const headerActive =
+                groupPathBase.length > 1 &&
+                locBase === groupPathBase &&
+                !item.items.some((sub) => navLeafActive(location, sub.path));
 
+              return (
+                <Fragment key={navKey}>
+                  {needsSeparator && (
+                    <div className="my-1.5 mx-1 border-t border-border/50" />
+                  )}
+                  <div className="mb-1">
+                    {(!collapsed || isMobile) ? (
+                      <div
+                        className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
+                        role="group"
+                        aria-expanded={sectionOpen}
+                      >
+                        <button
+                          type="button"
+                          disabled={headerNavDisabled}
+                          onClick={() => {
+                            if (item.groupPath) {
+                              if (!groupNavigateAllowed) return;
+                              onNavigate(item.groupPath);
+                              setOpenNavGroups((prev) => ({ ...prev, [navKey]: true }));
+                              if (isMobile) onMobileOpenChange(false);
+                            } else {
+                              toggleNavGroup(navKey);
+                            }
+                          }}
+                          className={cn(
+                            "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-sm transition-colors hover:bg-muted/50",
+                            headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
+                            headerActive
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "font-medium text-muted-foreground",
+                          )}
+                        >
+                          <span className="min-w-0 truncate">{item.label}</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={sectionOpen ? "طي القسم" : "توسيع القسم"}
+                          title={sectionOpen ? "طي القسم" : "توسيع القسم"}
+                          onClick={() => toggleNavGroup(navKey)}
+                          className={cn(
+                            "shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/50",
+                            headerActive && "text-primary",
+                          )}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 transition-transform duration-200",
+                              sectionOpen ? "rotate-0" : "-rotate-90",
+                            )}
+                          />
+                        </button>
+                      </div>
+                    ) : null}
+                    {sectionOpen ? (
+                      <div className="max-h-80 space-y-0.5 overflow-y-auto">
+                        {item.items.map((sub) => {
+                          const isActive = navLeafActive(location, sub.path);
+                          return renderNavButton(sub, isActive, false);
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                </Fragment>
+              );
+            }
+            const leaf = item as NavLeaf;
+            const isActive = navLeafActive(location, leaf.path);
             return (
-              <div key={navKey} className="mb-3">
-                {(!collapsed || isMobile) ? (
-                  <div
-                    className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
-                    role="group"
-                    aria-expanded={sectionOpen}
-                  >
-                    <button
-                      type="button"
-                      disabled={headerNavDisabled}
-                      onClick={() => {
-                        if (item.groupPath) {
-                          if (!groupNavigateAllowed) return;
-                          onNavigate(item.groupPath);
-                          setOpenNavGroups((prev) => ({ ...prev, [navKey]: true }));
-                          if (isMobile) onMobileOpenChange(false);
-                        } else {
-                          toggleNavGroup(navKey);
-                        }
-                      }}
-                      className={cn(
-                        "flex min-w-0 flex-1 items-center rounded-lg px-2 py-2 text-right text-sm font-medium transition-colors hover:bg-muted/50",
-                        headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
-                        headerActive
-                          ? "selrs-active-nav font-medium text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      <span className="min-w-0 truncate">{item.label}</span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={sectionOpen ? "طي القسم" : "توسيع القسم"}
-                      title={sectionOpen ? "طي القسم" : "توسيع القسم"}
-                      onClick={() => toggleNavGroup(navKey)}
-                      className={cn(
-                        "shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/50",
-                        headerActive && "text-foreground",
-                      )}
-                    >
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 transition-transform duration-200",
-                          sectionOpen ? "rotate-0" : "-rotate-90",
-                        )}
-                      />
-                    </button>
-                  </div>
-                ) : null}
-                {sectionOpen ? (
-                  <div className="space-y-0.5">
-                    {item.items.map((sub) => {
-                      const isActive = navLeafActive(location, sub.path);
-                      return renderNavButton(sub, isActive);
-                    })}
-                  </div>
-                ) : null}
+              <div key={leaf.path} className="mb-0.5">
+                {renderNavButton(leaf, isActive, leaf.isMain)}
               </div>
             );
-          }
-          const leaf = item as NavLeaf;
-          const isActive = navLeafActive(location, leaf.path);
-          return <div key={leaf.path}>{renderNavButton(leaf, isActive)}</div>;
-        })}
+          });
+        })()}
       </nav>
 
       <div className="shrink-0 border-t border-border/80 p-2">
@@ -421,14 +402,6 @@ export function AppSidebar({
   return (
     <div ref={sidebarRef} className="relative flex h-full shrink-0 print:hidden">
       {sidebarInner}
-      {!collapsed ? (
-        <button
-          type="button"
-          aria-label="تغيير عرض القائمة"
-          className="absolute end-0 top-0 z-10 h-full w-1 cursor-col-resize hover:bg-primary/20"
-          onMouseDown={() => setIsResizing(true)}
-        />
-      ) : null}
     </div>
   );
 }

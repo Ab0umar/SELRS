@@ -4,11 +4,12 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import AdminStatus from "./AdminStatus";
 import AdminApiTools from "./AdminApiTools";
 import AdminMigrations from "./AdminMigrations";
@@ -16,6 +17,7 @@ import AdminPentacamFailed from "./AdminPentacamFailed";
 import AdminCardVisibility from "./AdminCardVisibility";
 import AdminNotificationSettings from "./AdminNotificationSettings";
 import { DEFAULT_APPOINTMENTS_PRICING } from "@/lib/operationsPricing";
+import { Activity } from "lucide-react";
 
 const KEY = "selrs_preferred_url";
 const PRICING_SETTING_KEY = "appointments_pricing_v1";
@@ -105,10 +107,6 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
             : undefined,
         }
       : DEFAULT_APP_NOTIFICATION_SETTINGS;
-  const appNotificationFeedRaw = (appNotificationFeedQuery.data as any)?.value;
-  const appNotificationFeed = Array.isArray(appNotificationFeedRaw)
-    ? (appNotificationFeedRaw as AppNotificationItem[])
-    : [];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -200,18 +198,6 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       toast.error(getTrpcErrorMessage(error, "Failed to update notification settings"));
     }
   };
-  const handleClearNotificationFeed = async () => {
-    try {
-      await updateSettingMutation.mutateAsync({
-        key: APP_NOTIFICATION_FEED_KEY,
-        value: [],
-      });
-      await appNotificationFeedQuery.refetch();
-      toast.success("Notification history cleared");
-    } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to clear notification history"));
-    }
-  };
 
   const savePricingSetting = async (value: PricingConfig) => {
     await updateSettingMutation.mutateAsync({
@@ -221,20 +207,6 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     await pricingSettingQuery.refetch();
   };
 
-  const handleSavePricing = async () => {
-    try {
-      const parsed = JSON.parse(pricingJson) as PricingConfig;
-      setPricingForm(clonePricing(parsed));
-      await savePricingSetting(parsed);
-      toast.success("Appointments pricing saved");
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        toast.error("Invalid JSON format");
-        return;
-      }
-      toast.error(getTrpcErrorMessage(error, "Failed to save appointments pricing"));
-    }
-  };
   const handleSavePricingForm = async () => {
     try {
       await savePricingSetting(pricingForm);
@@ -242,15 +214,6 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       toast.success("Appointments pricing saved");
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to save appointments pricing"));
-    }
-  };
-  const handleApplyJsonToForm = () => {
-    try {
-      const parsed = JSON.parse(pricingJson) as PricingConfig;
-      setPricingForm(clonePricing(parsed));
-      toast.success("JSON applied to form");
-    } catch {
-      toast.error("Invalid JSON format");
     }
   };
 
@@ -276,254 +239,181 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     value: number;
     onChange: (value: number) => void;
   }) => (
-    <label className="grid grid-cols-[1fr_150px] items-center gap-3 text-sm">
-      <span className="text-gray-900 font-medium">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40 last:border-0 group/field">
+      <span className="text-[11px] text-muted-foreground font-medium group-hover/field:text-foreground transition-colors">{label}</span>
       <Input
         type="number"
+        className="h-8 w-24 text-center tabular-nums text-xs font-bold border-muted-foreground/20 focus:border-primary/50 bg-white/50"
         value={String(value)}
         onChange={(e) => onChange(toSafeNumber(e.target.value))}
       />
-    </label>
+    </div>
   );
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-0 pb-6 text-right" dir="rtl">
       <Tabs defaultValue="settings" persistKey="admin-settings" className="w-full">
-        <TabsList
-          className="sticky top-0 z-[5] mb-6 flex w-full flex-wrap gap-1 rounded-lg bg-muted/50 p-1 sm:flex-nowrap sm:overflow-x-auto"
-        >
-          <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="settings">
-            الإعدادات العامة
-          </TabsTrigger>
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="status">
-              حالة النظام
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 pt-1">
+          <TabsList
+            className="flex w-full flex-wrap gap-1 rounded-xl bg-muted/40 p-1 sm:flex-nowrap sm:overflow-x-auto border"
+          >
+            <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm" value="settings">
+              الإعدادات العامة
             </TabsTrigger>
-          ) : null}
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="api">
-              أدوات API
-            </TabsTrigger>
-          ) : null}
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="migrations">
-              الهجرات
-            </TabsTrigger>
-          ) : null}
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="pentacam">
-              بنتاكام الفاشل
-            </TabsTrigger>
-          ) : null}
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="cards">
-              ظهور الكروت
-            </TabsTrigger>
-          ) : null}
-          {!isPricingOnlyMode ? (
-            <TabsTrigger className="flex-none rounded-md px-3.5 py-1.5 text-sm font-semibold" value="notifications">
-              إخطارات التطبيق
-            </TabsTrigger>
-          ) : null}
-        </TabsList>
+            {!isPricingOnlyMode && (
+              <>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="status">حالة النظام</TabsTrigger>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="api">أدوات API</TabsTrigger>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="migrations">الهجرات</TabsTrigger>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="pentacam">بنتاكام</TabsTrigger>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="cards">الظهور</TabsTrigger>
+                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="notifications">الإخطارات</TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </div>
 
-      <TabsContent value="settings">
-      {!isPricingOnlyMode ? (
-      <>
-      <Card className="max-w-3xl mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>Preferred Server URL</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="text-sm text-muted-foreground">Current URL: {window.location.origin}</div>
-          <Input
-            value={preferredUrl}
-            onChange={(e) => setPreferredUrl(e.target.value)}
-            placeholder="https://app.example.com"
-            dir="ltr"
-          />
-          <Button onClick={handleSave} className="bg-primary">
-            Save
-          </Button>
-        </CardContent>
-      </Card>
-      <Card className="max-w-3xl mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="font-medium">MSSQL owner notification</div>
-              <div className="text-sm text-muted-foreground">Notify the owner when MSSQL sync adds new patients.</div>
-            </div>
-            <Switch
-              checked={appNotificationSettings.mssqlOwnerEnabled}
-              onCheckedChange={(checked) => void handleToggleAppNotificationSetting("mssqlOwnerEnabled", checked)}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="font-medium">MSSQL in-app notification</div>
-              <div className="text-sm text-muted-foreground">Show in-app notifications when MSSQL sync adds new patients.</div>
-            </div>
-            <Switch
-              checked={appNotificationSettings.mssqlInAppEnabled}
-              onCheckedChange={(checked) => void handleToggleAppNotificationSetting("mssqlInAppEnabled", checked)}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="font-medium">Manual patient in-app notification</div>
-              <div className="text-sm text-muted-foreground">Show in-app notifications when staff create patients manually.</div>
-            </div>
-            <Switch
-              checked={appNotificationSettings.manualPatientInAppEnabled}
-              onCheckedChange={(checked) => void handleToggleAppNotificationSetting("manualPatientInAppEnabled", checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-      <Card className="max-w-3xl mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle>Notification History</CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void handleClearNotificationFeed()}
-              disabled={updateSettingMutation.isPending}
-            >
-              Clear Feed
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {appNotificationFeed.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No notifications yet.</div>
-          ) : (
-            appNotificationFeed.slice(0, 30).map((item) => (
-              <div key={item.id} className="rounded-md border p-3 space-y-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">{item.title}</div>
-                    <div className="text-sm text-muted-foreground">{item.message}</div>
+        <TabsContent value="settings" className="mt-2 space-y-6">
+          {!isPricingOnlyMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="border-border/60 bg-card shadow-sm h-full">
+                <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    تكوين السيرفر والواجهة
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">عنوان السيرفر المفضل (Local Storage)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={preferredUrl}
+                        onChange={(e) => setPreferredUrl(e.target.value)}
+                        placeholder="https://app.example.com"
+                        className="h-9 text-xs font-mono"
+                        dir="ltr"
+                      />
+                      <Button onClick={handleSave} size="sm" className="bg-primary text-white h-9 px-4">
+                        حفظ
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic px-1">العنوان الحالي النشط: {window.location.origin}</p>
                   </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    <div>{new Date(item.createdAt).toLocaleString()}</div>
-                    <div className="mt-1 uppercase">{item.kind ?? "info"}</div>
+
+                  <div className="pt-4 border-t border-dashed space-y-4">
+                    <div className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-bold">وضع الشيت للموبايل</div>
+                        <div className="text-[10px] text-muted-foreground">تحسين تخطيط النماذج الطبية للشاشات الصغيرة.</div>
+                      </div>
+                      <Switch
+                        checked={mobileSheetModeEnabled}
+                        onCheckedChange={handleToggleMobileSheetMode}
+                        disabled={updateSettingMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-card shadow-sm h-full">
+                <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-600" />
+                    إعدادات الإخطارات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { key: "mssqlOwnerEnabled", label: "إخطار المالك (MSSQL Sync)", desc: "إرسال إشعار عند إضافة مرضى عبر المزامنة." },
+                    { key: "mssqlInAppEnabled", label: "إخطار داخل التطبيق (MSSQL)", desc: "إظهار تنبيه داخلي لعمليات المزامنة." },
+                    { key: "manualPatientInAppEnabled", label: "إخطار الإضافة اليدوية", desc: "تنبيه الطاقم عند تسجيل مريض جديد يدوياً." }
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-bold">{s.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+                      </div>
+                      <Switch
+                        checked={(appNotificationSettings as any)[s.key]}
+                        onCheckedChange={(checked) => void handleToggleAppNotificationSetting(s.key as any, checked)}
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
+
+          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+            <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-primary/5">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  قواعد تسعير المواعيد
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={handleResetPricing}>
+                    إعادة ضبط
+                  </Button>
+                  <Button onClick={handleSavePricingForm} size="sm" className="h-8 text-[10px] font-bold bg-primary text-white" disabled={updateSettingMutation.isPending}>
+                    حفظ القواعد
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <h4 className="text-[11px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">أسعار الكشوفات (Amount)</h4>
+                    <div className="space-y-1">
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
+                      <PriceField label="د. السعدني" value={pricingForm.amount.prk.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultantSaadany = v; })} />
+                      <PriceField label="استشاري" value={pricingForm.amount.prk.saadanyConsultant} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultant = v; })} />
+                      <PriceField label="أخصائي" value={pricingForm.amount.prk.saadanySpecialist} onChange={(v) => setField((d) => { d.amount.prk.saadanySpecialist = v; })} />
+                    </div>
+                    <div className="space-y-1 pt-2">
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— LASIK —</div>
+                      <PriceField label="د. السعدني" value={pricingForm.amount.lasik.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.lasik.saadanyConsultantSaadany = v; })} />
+                      <PriceField label="د. صواف" value={pricingForm.amount.lasik.sawaf} onChange={(v) => setField((d) => { d.amount.lasik.sawaf = v; })} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <h4 className="text-[11px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded">حساب المركز (Doctor Account)</h4>
+                    <div className="space-y-1">
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
+                      <PriceField label="د. السعدني" value={pricingForm.doctorAccount.prk.saadany} onChange={(v) => setField((d) => { d.doctorAccount.prk.saadany = v; })} />
+                      <PriceField label="استشاري" value={pricingForm.doctorAccount.prk.consultant} onChange={(v) => setField((d) => { d.doctorAccount.prk.consultant = v; })} />
+                      <PriceField label="د. صواف" value={pricingForm.doctorAccount.prk.sawaf} onChange={(v) => setField((d) => { d.doctorAccount.prk.sawaf = v; })} />
+                    </div>
+                    <div className="space-y-1 pt-2">
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— LASIK —</div>
+                      <PriceField label="د. السعدني" value={pricingForm.doctorAccount.lasik.saadany} onChange={(v) => setField((d) => { d.doctorAccount.lasik.saadany = v; })} />
+                      <PriceField label="د. صواف (Moria)" value={pricingForm.doctorAccount.lasik.sawafMoria} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMoria = v; })} />
+                      <PriceField label="د. صواف (Metal)" value={pricingForm.doctorAccount.lasik.sawafMetal} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMetal = v; })} />
+                    </div>
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-      <Card className="max-w-3xl mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>Mobile Sheet Mode</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm">
-              Enable mobile-safe sheet layout tweaks (sheets pages only).
-            </div>
-            <Switch
-              checked={mobileSheetModeEnabled}
-              onCheckedChange={handleToggleMobileSheetMode}
-              disabled={updateSettingMutation.isPending}
-            />
-          </div>
-          <div className="text-xs text-muted-foreground">
-            DB-backed setting. Applies to Consultant, Specialist, Lasik, and External sheets.
-          </div>
-        </CardContent>
-      </Card>
-      </>
-      ) : null}
-      <Card className="max-w-3xl mb-6 border-slate-200/80 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle>Appointments Pricing Rules</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-            Pricing UI Version: 2026-02-17-02
-          </div>
-          <div className="text-sm font-semibold">Form Editor</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-md border p-3 space-y-2">
-              <div className="text-sm font-semibold">Amount - PRK</div>
-              <PriceField label="Dr. Saadany (Consultant Saadany)" value={pricingForm.amount.prk.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultantSaadany = v; })} />
-              <PriceField label="Consultant" value={pricingForm.amount.prk.saadanyConsultant} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultant = v; })} />
-              <PriceField label="Specialist" value={pricingForm.amount.prk.saadanySpecialist} onChange={(v) => setField((d) => { d.amount.prk.saadanySpecialist = v; })} />
-              <PriceField label="Fallback (other cases)" value={pricingForm.amount.prk.fallback} onChange={(v) => setField((d) => { d.amount.prk.fallback = v; })} />
-            </div>
-            <div className="rounded-md border p-3 space-y-2">
-              <div className="text-sm font-semibold">Amount - Lasik</div>
-              <PriceField label="Dr. Saadany (Consultant Saadany)" value={pricingForm.amount.lasik.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.lasik.saadanyConsultantSaadany = v; })} />
-              <PriceField label="Consultant" value={pricingForm.amount.lasik.saadanyConsultant} onChange={(v) => setField((d) => { d.amount.lasik.saadanyConsultant = v; })} />
-              <PriceField label="Dr. Sawaf" value={pricingForm.amount.lasik.sawaf} onChange={(v) => setField((d) => { d.amount.lasik.sawaf = v; })} />
-              <PriceField label="Fallback (other cases)" value={pricingForm.amount.lasik.fallback} onChange={(v) => setField((d) => { d.amount.lasik.fallback = v; })} />
-            </div>
-            <div className="rounded-md border p-3 space-y-2">
-              <div className="text-sm font-semibold">Center Account (Paid by Doctor) - PRK</div>
-              <PriceField label="Dr. Saadany" value={pricingForm.doctorAccount.prk.saadany} onChange={(v) => setField((d) => { d.doctorAccount.prk.saadany = v; })} />
-              <PriceField label="Consultant" value={pricingForm.doctorAccount.prk.consultant} onChange={(v) => setField((d) => { d.doctorAccount.prk.consultant = v; })} />
-              <PriceField label="Specialist" value={pricingForm.doctorAccount.prk.specialist} onChange={(v) => setField((d) => { d.doctorAccount.prk.specialist = v; })} />
-              <PriceField label="Dr. Sawaf" value={pricingForm.doctorAccount.prk.sawaf} onChange={(v) => setField((d) => { d.doctorAccount.prk.sawaf = v; })} />
-              <PriceField label="Others" value={pricingForm.doctorAccount.prk.others} onChange={(v) => setField((d) => { d.doctorAccount.prk.others = v; })} />
-            </div>
-            <div className="rounded-md border p-3 space-y-2">
-              <div className="text-sm font-semibold">Center Account (Paid by Doctor) - Lasik</div>
-              <PriceField label="Dr. Saadany" value={pricingForm.doctorAccount.lasik.saadany} onChange={(v) => setField((d) => { d.doctorAccount.lasik.saadany = v; })} />
-              <PriceField label="Consultant" value={pricingForm.doctorAccount.lasik.consultant} onChange={(v) => setField((d) => { d.doctorAccount.lasik.consultant = v; })} />
-              <PriceField label="Dr. Sawaf (Moria/Lasik)" value={pricingForm.doctorAccount.lasik.sawafMoria} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMoria = v; })} />
-              <PriceField label="Dr. Sawaf (Metal)" value={pricingForm.doctorAccount.lasik.sawafMetal} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMetal = v; })} />
-              <PriceField label="Others (Moria/Lasik)" value={pricingForm.doctorAccount.lasik.othersMoria} onChange={(v) => setField((d) => { d.doctorAccount.lasik.othersMoria = v; })} />
-              <PriceField label="Others (Metal)" value={pricingForm.doctorAccount.lasik.othersMetal} onChange={(v) => setField((d) => { d.doctorAccount.lasik.othersMetal = v; })} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSavePricingForm} disabled={updateSettingMutation.isPending}>
-              Save From Form
-            </Button>
-            <Button type="button" variant="outline" onClick={handleResetPricing}>
-              Reset To Defaults
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      </TabsContent>
-
-      {!isPricingOnlyMode ? <TabsContent value="status">
-        <AdminStatus />
-      </TabsContent> : null}
-
-      {!isPricingOnlyMode ? <TabsContent value="api">
-        <AdminApiTools />
-      </TabsContent> : null}
-
-      {!isPricingOnlyMode ? <TabsContent value="migrations">
-        <AdminMigrations />
-      </TabsContent> : null}
-
-      {!isPricingOnlyMode ? (
-        <TabsContent value="pentacam">
-          <AdminPentacamFailed />
+            </CardContent>
+          </Card>
         </TabsContent>
-      ) : null}
 
-      {!isPricingOnlyMode ? (
-        <TabsContent value="cards">
-          <AdminCardVisibility />
-        </TabsContent>
-      ) : null}
-
-      {!isPricingOnlyMode ? (
-        <TabsContent value="notifications">
-          <AdminNotificationSettings />
-        </TabsContent>
-      ) : null}
+        {!isPricingOnlyMode && (
+          <>
+            <TabsContent value="status" className="mt-2"><AdminStatus /></TabsContent>
+            <TabsContent value="api" className="mt-2"><AdminApiTools /></TabsContent>
+            <TabsContent value="migrations" className="mt-2"><AdminMigrations /></TabsContent>
+            <TabsContent value="pentacam" className="mt-2"><AdminPentacamFailed /></TabsContent>
+            <TabsContent value="cards" className="mt-2"><AdminCardVisibility /></TabsContent>
+            <TabsContent value="notifications" className="mt-2"><AdminNotificationSettings /></TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   );

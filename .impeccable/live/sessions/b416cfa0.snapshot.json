@@ -1,0 +1,67 @@
+{
+  "id": "b416cfa0",
+  "phase": "agent_error",
+  "pageUrl": "/today",
+  "sourceFile": null,
+  "expectedVariants": 4,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {
+    "density": 0.7
+  },
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 27,
+  "activeOwner": "a34d4917",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 1
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 2
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 4
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 3
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 5
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 6
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 7
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 8
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 9
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 10
+    },
+    {
+      "error": "agent_error",
+      "message": "Session markers not found for id: b416cfa0"
+    }
+  ],
+  "updatedAt": "2026-05-15T08:38:21.408Z"
+}

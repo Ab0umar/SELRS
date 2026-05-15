@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
@@ -241,20 +242,22 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8" dir="rtl">
         <PageHeader
-          title={isTx ? "TXhub" : "إدارة الفحوصات"}
+          title={isTx ? "ربط النتائج الخارجية" : "إدارة الفحوصات"}
           description={
             isTx
-              ? "مرجع طبي شامل للتحاليل والأشعة: أضف الفحص وأرقام الطبيعي ليتم تعليم نتائج المرضى خارج المدى."
+              ? "استيراد تحاليل وأشعة من الأنظمة الخارجية، ثم ربطها بمدى طبيعي ليظهر التنبيه عند الخروج عنه."
               : "إدارة جميع الفحوصات الطبية والمرجع الطبيعي لكل فحص."
           }
           icon={<FlaskConical className="h-5 w-5 text-primary" />}
           action={
             <Button type="button" variant="outline" className="gap-1 font-semibold" onClick={resetForm}>
               <Plus className="h-4 w-4" />
-              إنشاء
+              {isTx ? "إضافة مرجع" : "إنشاء"}
             </Button>
           }
         />
+
+        <ServicesHubNav active={isTx ? "txhub" : "catalog"} className="mb-4" />
 
         <div
           className={cn(
@@ -263,9 +266,9 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
             isTx ? "sm:grid sm:grid-cols-2 lg:grid-cols-4" : "sm:grid sm:grid-cols-3",
           )}
         >
-          <StatCard title={isTx ? "إجمالي التحاليل والأشعة" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary/10 text-primary" />
-          <StatCard title="فعالة" value={stats.active} icon={CheckCircle2} iconColor="bg-emerald-500/10 text-emerald-600" />
-          <StatCard title="معطلة" value={stats.inactive} icon={XCircle} iconColor="bg-red-500/10 text-red-600" />
+          <StatCard title={isTx ? "المرجع الخارجي" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary/10 text-primary" />
+          <StatCard title={isTx ? "مفعلة" : "فعالة"} value={stats.active} icon={CheckCircle2} iconColor="bg-emerald-500/10 text-emerald-600" />
+          <StatCard title={isTx ? "غير مرتبطة" : "معطلة"} value={stats.inactive} icon={XCircle} iconColor="bg-red-500/10 text-red-600" />
           {isTx ? (
             <StatCard title="بلا مدى طبيعي" value={stats.missingRef} icon={AlertTriangle} iconColor="bg-amber-500/10 text-amber-700 dark:text-amber-400" />
           ) : null}
@@ -283,7 +286,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
               <SearchBar
                 value={search}
                 onChange={setSearch}
-                placeholder={isTx ? "بحث بالاسم أو التصنيف أو المدى..." : "بحث عن فحص..."}
+                placeholder={isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."}
                 className="md:order-1 md:max-w-md md:flex-1"
               />
             </div>
@@ -291,7 +294,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
             {isTx ? (
               <div className="mb-4 rounded-lg border border-dashed border-border/80 bg-muted/20 px-3 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
                 <span className="font-semibold text-foreground">طريقة الاستخدام: </span>
-                أضف اسم الفحص مثل K1 أو IOP أو CCT، ثم ضع أقل وأعلى قيمة طبيعية والوحدة. أي نتيجة مريض أقل أو أعلى من هذا المدى يمكن تعليمها بالأحمر في شاشات النتائج.
+                هذا القسم لنتائج الأنظمة الخارجية فقط، أضف اسم المرجع مثل K1 أو IOP أو CCT، ثم ضع أقل وأعلى قيمة طبيعية والوحدة. أي نتيجة مريض أقل أو أعلى من هذا المدى يمكن تعليمها بالأحمر في شاشات النتائج.
               </div>
             ) : null}
 
@@ -299,9 +302,9 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
               <table className="w-full min-w-[820px] text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/40 text-[11px] font-semibold text-muted-foreground">
-                    <th className="p-3 text-right">اسم الفحص</th>
-                    <th className="p-3 text-right">التصنيف</th>
-                    <th className="p-3 text-right">النوع</th>
+                    <th className="p-3 text-right">{isTx ? "اسم المرجع" : "اسم الفحص"}</th>
+                    <th className="p-3 text-right">{isTx ? "الوصف / التصنيف" : "التصنيف"}</th>
+                    <th className="p-3 text-right">{isTx ? "النوع الخارجي" : "النوع"}</th>
                     <th className="p-3 text-right">المدى الطبيعي</th>
                     <th className="p-3 text-right">الحالة</th>
                     <th className="w-24 p-3 text-center">إجراءات</th>
@@ -381,16 +384,18 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
             </div>
           </section>
 
-          <aside className="rounded-xl border bg-card p-4 shadow-sm lg:sticky lg:top-4 lg:self-start">
-            <h2 className="mb-4 text-base font-bold">{editingId ? "تعديل فحص" : "إضافة فحص جديد"}</h2>
-            <div className="grid gap-3">
+            <aside className="rounded-xl border bg-card p-4 shadow-sm lg:sticky lg:top-4 lg:self-start">
+              <h2 className="mb-4 text-base font-bold">
+                {editingId ? (isTx ? "تعديل مرجع" : "تعديل فحص") : (isTx ? "إضافة مرجع جديد" : "إضافة فحص جديد")}
+              </h2>
+              <div className="grid gap-3">
               <div className="space-y-1">
-                <Label>اسم الفحص</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="مثال: K1 أو ضغط العين" />
+                <Label>{isTx ? "اسم المرجع" : "اسم الفحص"}</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={isTx ? "مثال: K1 أو ضغط العين" : "مثال: K1 أو ضغط العين"} />
               </div>
 
               <div className="space-y-1">
-                <Label>نوع الفحص</Label>
+                <Label>{isTx ? "نوع المرجع" : "نوع الفحص"}</Label>
                 <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as TestType })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -398,8 +403,8 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                   <SelectContent>
                     {isTx ? (
                       <>
-                        <SelectItem value="lab">تحاليل</SelectItem>
-                        <SelectItem value="imaging">أشعة</SelectItem>
+                        <SelectItem value="lab">تحاليل خارجية</SelectItem>
+                        <SelectItem value="imaging">أشعة خارجية</SelectItem>
                       </>
                     ) : (
                       <>
@@ -414,7 +419,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
               </div>
 
               <div className="space-y-1">
-                <Label>التصنيف</Label>
+                <Label>{isTx ? "المصدر / التصنيف" : "التصنيف"}</Label>
                 <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="مثال: بنتاكام، جلوكوما، شبكية" />
               </div>
 
@@ -429,10 +434,10 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label>الوحدة</Label>
-                <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="D، µm، mmHg، mg/dL..." />
-              </div>
+                <div className="space-y-1">
+                  <Label>{isTx ? "الوحدة الخارجية" : "الوحدة"}</Label>
+                  <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="D، µm، mmHg، mg/dL..." />
+                </div>
 
               <div className="space-y-1">
                 <Label>مدى نصي بديل</Label>
@@ -458,23 +463,28 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <Label>الوصف</Label>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="وصف مختصر للفحص..." className="min-h-[88px]" />
-              </div>
+                <div className="space-y-1">
+                  <Label>{isTx ? "ملاحظات الربط" : "الوصف"}</Label>
+                  <Textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder={isTx ? "ملاحظات الربط أو المصدر الخارجي..." : "وصف مختصر للفحص..."}
+                    className="min-h-[88px]"
+                  />
+                </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button type="button" className="flex-1 gap-1 font-semibold" onClick={() => void save()} disabled={createMutation.isPending || updateMutation.isPending}>
-                  حفظ
-                </Button>
-                {editingId ? (
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    إلغاء
+                <div className="flex gap-2 pt-1">
+                  <Button type="button" className="flex-1 gap-1 font-semibold" onClick={() => void save()} disabled={createMutation.isPending || updateMutation.isPending}>
+                    حفظ
                   </Button>
-                ) : null}
+                  {editingId ? (
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      إلغاء
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </aside>
+            </aside>
         </div>
       </div>
     </div>

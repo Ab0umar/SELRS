@@ -853,6 +853,95 @@ export const visitScheduleRequests = mysqlTable("visit_schedule_requests", {
 export type VisitScheduleRequest = typeof visitScheduleRequests.$inferSelect;
 export type InsertVisitScheduleRequest = typeof visitScheduleRequests.$inferInsert;
 
+// ============ ACCESS DB SYNC TABLES ============
+
+export const accLedger = mysqlTable("accLedger", {
+  id: int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  total: decimal("total", { precision: 15, scale: 2 }),
+  balance: decimal("balance", { precision: 15, scale: 2 }),
+  income: decimal("income", { precision: 15, scale: 2 }),
+  expense: decimal("expense", { precision: 15, scale: 2 }),
+  txDate: date("txDate").notNull(),
+  notes: varchar("notes", { length: 500 }),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: index("accLedger_accessId").on(t.accessId) }));
+
+export const accAdvances = mysqlTable("accAdvances", {
+  id: int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  txDate: date("txDate").notNull(),
+  advance: decimal("advance", { precision: 15, scale: 2 }),
+  repayment: decimal("repayment", { precision: 15, scale: 2 }),
+  notes: varchar("notes", { length: 500 }),
+  employee: varchar("employee", { length: 200 }),
+  total: decimal("total", { precision: 15, scale: 2 }),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: index("accAdvances_accessId").on(t.accessId) }));
+
+export const accLoans = mysqlTable("accLoans", {
+  id: int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  name: varchar("name", { length: 200 }),
+  amount: decimal("amount", { precision: 15, scale: 2 }),
+  repayment: decimal("repayment", { precision: 15, scale: 2 }),
+  remaining: decimal("remaining", { precision: 15, scale: 2 }),
+  txDate: date("txDate").notNull(),
+  notes: text("notes"),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: index("accLoans_accessId").on(t.accessId) }));
+
+export const accHome = mysqlTable("accHome", {
+  id: int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  txDate: date("txDate").notNull(),
+  total: decimal("total", { precision: 15, scale: 2 }),
+  balance: decimal("balance", { precision: 15, scale: 2 }),
+  inAmount: decimal("inAmount", { precision: 15, scale: 2 }),
+  outAmount: decimal("outAmount", { precision: 15, scale: 2 }),
+  notes: varchar("notes", { length: 500 }),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: index("accHome_accessId").on(t.accessId) }));
+
+export const accInstagram = mysqlTable("accInstagram", {
+  id: int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  txDate: date("txDate").notNull(),
+  total: decimal("total", { precision: 15, scale: 2 }),
+  balance: decimal("balance", { precision: 15, scale: 2 }),
+  inAmount: decimal("inAmount", { precision: 15, scale: 2 }),
+  outAmount: decimal("outAmount", { precision: 15, scale: 2 }),
+  notes: varchar("notes", { length: 500 }),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: index("accInstagram_accessId").on(t.accessId) }));
+
+export const accEmployees = mysqlTable("accEmployees", {
+  id:       int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  name:     varchar("name", { length: 200 }).notNull(),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: uniqueIndex("accEmployees_accessId").on(t.accessId) }));
+
+export const accCategories = mysqlTable("accCategories", {
+  id:       int("id").autoincrement().primaryKey(),
+  accessId: int("accessId").notNull(),
+  name:     varchar("name", { length: 200 }),
+  entity:   varchar("entity", { length: 200 }),
+  isPaid:   boolean("isPaid").default(false),
+  syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: uniqueIndex("accCategories_accessId").on(t.accessId) }));
+
+export const accSaadany = mysqlTable("accSaadany", {
+  id:          int("id").autoincrement().primaryKey(),
+  accessId:    int("accessId").notNull(),
+  txDate:      date("txDate").notNull(),
+  withdrawals: decimal("withdrawals", { precision: 15, scale: 2 }),
+  repayment:   decimal("repayment",   { precision: 15, scale: 2 }),
+  notes:       varchar("notes", { length: 500 }),
+  total:       decimal("total",       { precision: 15, scale: 2 }),
+  syncedAt:    timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ uniq: uniqueIndex("accSaadany_accessId").on(t.accessId) }));
+
 /**
  * Doctors lookup table (synced from MSSQL via code)
  */

@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { getApiUrl } from "@/const";
 import { Capacitor } from "@capacitor/core";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Activity, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/BrandLogo";
-import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
-import {
-  getOfflineCacheSummary,
-  subscribeNetworkStatus } from "@/lib/appRuntime";
+import { getApiUrl } from "@/const";
+import { useAuth } from "@/hooks/useAuth";
+import { getOfflineCacheSummary, subscribeNetworkStatus } from "@/lib/appRuntime";
+import { BRAND_NAME_AR } from "@/lib/brand";
 import { NATIVE_LAST_USERNAME_KEY, hydrateDurableValue, saveDurableValue } from "@/lib/nativeStorage";
 
 export default function Home() {
@@ -30,19 +28,16 @@ export default function Home() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
+    typeof navigator !== "undefined" ? navigator.onLine : true,
   );
   const offlineCacheSummary = getOfflineCacheSummary();
 
   useEffect(() => {
     if (loading || !user) return;
-    // If user is already authenticated, redirect to dashboard
     setLocation("/dashboard");
   }, [loading, user, setLocation]);
 
-  useEffect(() => {
-    return subscribeNetworkStatus((status) => setIsOnline(status.connected));
-  }, []);
+  useEffect(() => subscribeNetworkStatus((status) => setIsOnline(status.connected)), []);
 
   useEffect(() => {
     void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then((stored) => {
@@ -67,7 +62,7 @@ export default function Home() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data?.error || "Failed to sign in");
+        setError(data?.error || "فشل تسجيل الدخول");
         return;
       }
 
@@ -93,9 +88,9 @@ export default function Home() {
       setLocation("/dashboard");
     } catch (error) {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setError("No internet connection. Reconnect, then try again.");
+        setError("لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة.");
       } else {
-        setError(error instanceof Error ? error.message : "Failed to sign in");
+        setError(error instanceof Error ? error.message : "فشل تسجيل الدخول");
       }
     } finally {
       setSubmitting(false);
@@ -104,149 +99,166 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f8fb] px-4 text-center text-slate-600">
+        <div className="space-y-3">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-primary" />
+          <p className="text-sm font-medium">جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div dir="rtl" className="selrs-login-bg relative min-h-dvh overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-[48vh] bg-[radial-gradient(circle_at_62%_20%,rgba(0,61,130,0.10),transparent_30%),radial-gradient(circle_at_12%_30%,rgba(255,149,0,0.15),transparent_28%),linear-gradient(180deg,var(--background)_0%,color-mix(in_oklch,var(--muted)_55%,var(--background))_100%)] dark:bg-[radial-gradient(circle_at_62%_20%,rgba(0,61,130,0.22),transparent_32%),radial-gradient(circle_at_12%_30%,rgba(255,149,0,0.14),transparent_30%),linear-gradient(180deg,var(--background)_0%,color-mix(in_oklch,var(--muted)_35%,var(--background))_100%)]" />
-        <div className="absolute left-[-5rem] top-24 h-48 w-48 rounded-full bg-secondary/25 blur-3xl dark:bg-secondary/15" />
-        <div className="absolute right-[-5rem] top-36 h-56 w-56 rounded-full bg-primary/20 blur-3xl dark:bg-primary/30" />
-        <Eye className="absolute left-1/2 top-20 h-44 w-44 -translate-x-1/2 text-primary/[0.045] dark:text-primary/[0.08]" />
+    <div
+      dir="rtl"
+      className="relative min-h-dvh overflow-hidden bg-[linear-gradient(180deg,#fbfcfe_0%,#f5f7fb_100%)] text-slate-800 selection:bg-primary/10"
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute left-[-6rem] top-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.07)_0%,transparent_72%)] blur-3xl" />
+        <div className="absolute right-[-6rem] bottom-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,107,53,0.08)_0%,transparent_72%)] blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-between pt-[max(env(safe-area-inset-top),1rem)] lg:grid lg:grid-cols-[1fr_28rem] lg:items-center lg:gap-8 lg:px-8 lg:py-10">
-        <header className="px-5 pb-8 lg:px-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[0_14px_40px_rgba(0,61,130,0.12)] dark:border-border dark:shadow-[0_14px_40px_rgba(0,0,0,0.35)]">
-                <BrandLogo className="h-full w-full" imgClassName="p-1" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-2xl font-black leading-tight text-primary sm:text-3xl">{BRAND_NAME_AR}</h1>
-                <p className="mt-1 truncate text-sm font-semibold text-muted-foreground">{BRAND_TAGLINE_AR}</p>
-              </div>
+      <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <section className="w-full max-w-[26rem]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-400">
+                SELRS
+              </p>
+              <h1 className="mt-1 text-sm font-medium tracking-wide text-slate-600">
+                بوابة الطاقم الطبي
+              </h1>
             </div>
-            <div className="rounded-full border border-primary/20 bg-card/90 px-3 py-1.5 text-sm font-black tracking-[0.18em] text-primary shadow-sm dark:border-border">
-              SELRS
+
+            <div
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                isOnline
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              {!isOnline ? <WifiOff className="h-3.5 w-3.5" /> : null}
+              {isOnline ? "متصل" : `غير متصل (${offlineCacheSummary.count})`}
             </div>
           </div>
 
-          <div className="mt-8 hidden max-w-xl lg:block">
-            <h2 className="text-4xl font-black leading-tight text-foreground">تسجيل دخول أسرع وأوضح للعيادة</h2>
-            <p className="mt-4 text-lg leading-8 text-muted-foreground">
-              واجهة مناسبة للموبايل والويب مع حالة اتصال واضحة وتجربة دخول بسيطة.
-            </p>
-          </div>
-        </header>
-
-        <Card className="relative mx-0 rounded-t-[2rem] rounded-b-none border-x-0 border-b-0 border-t border-border/80 bg-card/95 text-card-foreground shadow-[0_-18px_60px_rgba(15,23,42,0.14)] backdrop-blur dark:shadow-[0_-18px_60px_rgba(0,0,0,0.45)] lg:mx-0 lg:rounded-[2rem] lg:border lg:border-border lg:shadow-[0_24px_70px_rgba(15,23,42,0.14)] dark:lg:shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
-          <div className="absolute inset-x-10 top-0 h-1 rounded-b-full bg-gradient-to-r from-primary via-primary to-secondary" />
-          <CardContent className="px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-8 sm:px-7 sm:pb-7">
-            <div className="mb-6 text-center">
-              <h2 className="text-3xl font-black tracking-tight text-primary">تسجيل الدخول</h2>
-              <p className="mt-2 text-sm font-medium text-muted-foreground">أدخل بياناتك للمتابعة إلى النظام</p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4 text-right">
-              {!isOnline ? (
-                <Alert className="border-amber-200 bg-amber-50/90 text-amber-950">
-                  <WifiOff className="h-4 w-4" />
-                  <AlertDescription>
-                    الجهاز غير متصل بالإنترنت. بيانات الإعدادات المخزنة محليًا المتاحة الآن: {offlineCacheSummary.count}.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              {error ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              <div className="space-y-2">
-                <label htmlFor="username" className="block text-sm font-bold text-foreground">
-                  اسم المستخدم
-                </label>
-                <div className="relative">
-                  <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="اسم المستخدم أو البريد الإلكتروني"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="h-14 rounded-2xl border-border bg-background pr-12 text-left text-base shadow-sm"
-                    dir="ltr"
-                    disabled={submitting}
-                    required
-                  />
+          <Card className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+            <CardContent className="space-y-5 px-6 py-7 sm:px-7">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-slate-200 bg-[#fffaf6]">
+                  <BrandLogo className="h-8 w-8" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    {BRAND_NAME_AR}
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black tracking-tight text-[#001F47]">
+                    تسجيل الدخول
+                  </h2>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-bold text-foreground">
-                  كلمة المرور
-                </label>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-14 rounded-2xl border-border bg-background pr-12 text-left text-base shadow-sm"
-                    dir="ltr"
-                    disabled={submitting}
-                    required
-                  />
-                </div>
-              </div>
+              <form onSubmit={handleLogin} className="space-y-4">
+                {error ? (
+                  <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
+                    <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+                  </Alert>
+                ) : null}
 
-              <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/50 px-4 py-3 dark:bg-muted/30">
-                <div className="text-right">
-                  <div className="text-sm font-bold text-foreground">تذكرني</div>
-                  <div className="text-xs text-muted-foreground">{rememberMe ? "سيتم حفظ الجلسة" : "جلسة مؤقتة"}</div>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="peer sr-only"
-                    disabled={submitting}
-                  />
-                  <span className="h-8 w-14 rounded-full bg-muted-foreground/25 transition-colors peer-checked:bg-primary" />
-                  <span className="absolute left-1 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-6" />
-                </label>
-              </div>
+                {!isOnline ? (
+                  <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+                    <AlertDescription className="text-sm font-medium">
+                      أنت تعمل في وضع عدم الاتصال، سيتم حفظ آخر اسم مستخدم فقط ({offlineCacheSummary.count} ملف مخزن)
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
 
-              <Button
-                type="submit"
-                className="h-14 w-full rounded-2xl bg-gradient-to-l from-primary to-[#0067d6] text-base font-black text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-95"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  "جاري تسجيل الدخول..."
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <LogIn className="h-5 w-5" />
-                    دخول إلى النظام
-                  </span>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="space-y-2">
+                  <label htmlFor="username" className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    اسم المستخدم
+                  </label>
+                  <div className="relative">
+                    <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="اسم المستخدم"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="h-14 rounded-[1rem] border-slate-200 bg-slate-50/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                      dir="ltr"
+                      disabled={submitting}
+                      required
+                      autoComplete="username"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    كلمة المرور
+                  </label>
+                  <div className="relative">
+                    <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-14 rounded-[1rem] border-slate-200 bg-slate-50/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                      dir="ltr"
+                      disabled={submitting}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-[1rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                  <div className="space-y-1">
+                    <div className="text-sm font-semibold text-slate-800">تذكرني</div>
+                    <div className="text-[11px] text-slate-500">
+                      {rememberMe ? "يبقى الدخول محفوظًا على هذا الجهاز" : "جلسة مؤقتة"}
+                    </div>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="peer sr-only"
+                      disabled={submitting}
+                    />
+                    <div className="h-7 w-12 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary" />
+                    <div className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="h-14 w-full rounded-[1rem] bg-[#001F47] text-[15px] font-bold text-white shadow-[0_14px_28px_rgba(0,31,71,0.14)] transition-colors hover:bg-[#00316e] disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    "جاري تسجيل الدخول..."
+                  ) : (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      تسجيل الدخول
+                      <LogIn className="h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
+                <Activity className="h-3.5 w-3.5 text-primary" />
+                <span>{isOnline ? "متصل بالإنترنت" : `مخزن محليًا (${offlineCacheSummary.count})`}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
     </div>
   );
 }
-

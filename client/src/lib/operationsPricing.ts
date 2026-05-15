@@ -3,9 +3,9 @@ export const TAB_SAWAF = "sawaf";
 export const TAB_OTHERS = "others";
 
 export const TAB_CONFIG = [
-  { key: TAB_SAADANY, label: "د/سعدني", doctor: "د. محمد السعدني" },
-  { key: TAB_SAWAF, label: "د/صواف", doctor: "د. أحمد الصواف" },
-  { key: TAB_OTHERS, label: "آخرون", doctor: "" },
+  { key: TAB_SAADANY, label: "د. محمد السعدني", doctor: "د. محمد السعدني" },
+  { key: TAB_SAWAF, label: "د.احمد الصواف", doctor: "د. أحمد الصواف" },
+  { key: TAB_OTHERS, label: "خارجي", doctor: "" },
 ] as const;
 
 export const normalizeTabKey = (value: unknown): string => {

@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,12 @@ import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-type TodayPatientRecord = any
+interface TodayPatientRecord {
+  patientName: string
+  doctorName: string
+  serviceType: string
+  checkInTime: string
+}
 
 /* ─── Mock medical data ─── */
 const mockExaminations = [
@@ -118,8 +123,23 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
   const [medSearch, setMedSearch] = useState('')
   const [selectedMeds, setSelectedMeds] = useState<string[]>(['Artificial Tears', 'Tobramycin 0.3%'])
 
-  const toggleItem = (list: string[], item: string) =>
-    list.includes(item) ? list.filter((i) => i !== item) : [...list, item]
+  const toggleItem = useCallback((list: string[], item: string) =>
+    list.includes(item) ? list.filter((i) => i !== item) : [...list, item], [])
+
+  const filteredTests = useMemo(
+    () => mockTests.filter((t) => t.toLowerCase().includes(testSearch.toLowerCase()) && !selectedTests.includes(t)),
+    [testSearch, selectedTests]
+  )
+
+  const filteredDiseases = useMemo(
+    () => mockDiseases.filter((d) => d.toLowerCase().includes(diseaseSearch.toLowerCase()) && !selectedDiseases.includes(d)),
+    [diseaseSearch, selectedDiseases]
+  )
+
+  const filteredMeds = useMemo(
+    () => mockMedications.filter((m) => m.toLowerCase().includes(medSearch.toLowerCase()) && !selectedMeds.includes(m)),
+    [medSearch, selectedMeds]
+  )
 
   if (!patient) return null
 
@@ -152,8 +172,9 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
             <button
               onClick={onClose}
               className="h-8 w-8 flex items-center justify-center rounded-lg border bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+              aria-label="إغلاق الملف الطبي"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </DialogHeader>
@@ -166,11 +187,13 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
           </label>
           <Separator orientation="vertical" className="h-5 hidden sm:block" />
           <div className="flex items-center gap-2 text-sm min-w-0">
-            <span className="font-medium text-muted-foreground shrink-0">الفحص:</span>
+            <label htmlFor="exam-select" className="font-medium text-muted-foreground shrink-0">الفحص:</label>
             <select
+              id="exam-select"
               value={selectedExamId}
               onChange={(e) => setSelectedExamId(e.target.value)}
               className="h-8 text-sm border rounded-md px-2 bg-background flex-1 min-w-0 max-w-[200px]"
+              aria-label="اختر الفحص السابق"
             >
               {mockExaminations.map((exam) => (
                 <option key={exam.id} value={String(exam.id)}>
@@ -216,7 +239,7 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
             <TabsContent value="medical-history" className="mt-0 space-y-6">
               {/* Profile Data */}
               <div>
-                <h3 className="text-base font-semibold mb-4">Profile Data</h3>
+                <h3 className="text-base font-semibold mb-4">بيانات المريض</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-xs text-muted-foreground">الاسم</Label>
@@ -241,13 +264,15 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
               {/* Medical History Text */}
               <div>
-                <h3 className="text-base font-semibold mb-4">التاريخ المرضي</h3>
+                <Label htmlFor="medical-history" className="text-base font-semibold block mb-4">التاريخ المرضي</Label>
                 <Textarea
+                  id="medical-history"
                   value={medicalHistory}
                   onChange={(e) => setMedicalHistory(e.target.value)}
                   placeholder="اكتب التاريخ المرضي هنا..."
                   className="mt-1 text-sm"
                   rows={6}
+                  aria-label="التاريخ المرضي للمريض"
                 />
               </div>
             </TabsContent>
@@ -269,16 +294,16 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                 {/* Desktop table */}
                 <div className="hidden md:block rounded-xl border overflow-hidden">
-                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr" aria-label="القياسات الضوئية والضغط">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="border px-3 py-2 font-semibold">Eye</th>
-                        <th className="border px-3 py-2 font-semibold">UCVA</th>
-                        <th className="border px-3 py-2 font-semibold">BCVA</th>
-                        <th className="border px-3 py-2 font-semibold">S</th>
-                        <th className="border px-3 py-2 font-semibold">C</th>
-                        <th className="border px-3 py-2 font-semibold">Axis</th>
-                        <th className="border px-3 py-2 font-semibold">IOP</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Eye</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">UCVA</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">BCVA</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">S</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">C</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Axis</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">IOP</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -319,13 +344,13 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
               <div>
                 <h3 className="text-base font-semibold mb-4">After Refraction</h3>
                 <div className="hidden md:block rounded-xl border overflow-hidden">
-                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr" aria-label="القياسات بعد الانكسار">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="border px-3 py-2 font-semibold">Eye</th>
-                        <th className="border px-3 py-2 font-semibold">S</th>
-                        <th className="border px-3 py-2 font-semibold">C</th>
-                        <th className="border px-3 py-2 font-semibold">Axis</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Eye</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">S</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">C</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Axis</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -356,17 +381,17 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
               {/* Refraction (Glasses) */}
               <div>
-                <h3 className="text-base font-semibold mb-4">👓 Refraction</h3>
+                <h3 className="text-base font-semibold mb-4">الانكسار (النظارة)</h3>
                 <div className="hidden md:block rounded-xl border overflow-hidden">
-                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr" aria-label="بيانات النظارة الطبية">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="border px-3 py-2 font-semibold">Type</th>
-                        <th className="border px-3 py-2 font-semibold">Eye</th>
-                        <th className="border px-3 py-2 font-semibold">S</th>
-                        <th className="border px-3 py-2 font-semibold">C</th>
-                        <th className="border px-3 py-2 font-semibold">Axis</th>
-                        <th className="border px-3 py-2 font-semibold">PD</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Type</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Eye</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">S</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">C</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Axis</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">PD</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -400,16 +425,16 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
               {/* Fundus */}
               <div>
-                <h3 className="text-base font-semibold mb-4">👁️ Fundus Examination</h3>
+                <h3 className="text-base font-semibold mb-4">فحص قاع العين</h3>
                 <div className="hidden md:block rounded-xl border overflow-hidden">
-                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr" aria-label="فحص قاع العين">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="border px-3 py-2 font-semibold">Eye</th>
-                        <th className="border px-3 py-2 font-semibold">Disc</th>
-                        <th className="border px-3 py-2 font-semibold">Cup/Disc</th>
-                        <th className="border px-3 py-2 font-semibold">Macula</th>
-                        <th className="border px-3 py-2 font-semibold">Vessels</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Eye</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Disc</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Cup/Disc</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Macula</th>
+                        <th scope="col" className="border px-3 py-2 font-semibold">Vessels</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -444,26 +469,26 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
             {/* ════════════════ Tab 3: بنتاكام ════════════════ */}
             <TabsContent value="pentacam" className="mt-0 space-y-5">
               <div>
-                <h3 className="text-base font-semibold mb-4">🔬 بنتاكام</h3>
-                <Button variant="outline" className="mb-4 gap-2" onClick={() => toast.info('البنتاكام', { description: 'عرض صور البنتاكام — قريباً' })}>
-                  <Eye className="h-4 w-4" />
+                <h3 className="text-base font-semibold mb-4">بنتاكام</h3>
+                <Button variant="outline" className="mb-4 gap-2" onClick={() => toast.info('البنتاكام', { description: 'عرض صور البنتاكام — قريباً' })} aria-label="عرض صور البنتاكام">
+                  <Eye className="h-4 w-4" aria-hidden />
                   عرض صور البنتاكام
                 </Button>
 
                 {/* Desktop table */}
                 <div className="hidden md:block rounded-xl border overflow-hidden">
-                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr" aria-label="قياسات البنتاكام">
                     <thead className="bg-muted/60 uppercase tracking-wider text-muted-foreground">
                       <tr>
-                        <th className="border px-3 py-2.5">Eye</th>
-                        <th className="border px-3 py-2.5">K1</th>
-                        <th className="border px-3 py-2.5">K2</th>
-                        <th className="border px-3 py-2.5">Axis</th>
-                        <th className="border px-3 py-2.5">Thinnest</th>
-                        <th className="border px-3 py-2.5">Apex</th>
-                        <th className="border px-3 py-2.5">Residual</th>
-                        <th className="border px-3 py-2.5">TTT</th>
-                        <th className="border px-3 py-2.5">Ablation</th>
+                        <th scope="col" className="border px-3 py-2.5">Eye</th>
+                        <th scope="col" className="border px-3 py-2.5">K1</th>
+                        <th scope="col" className="border px-3 py-2.5">K2</th>
+                        <th scope="col" className="border px-3 py-2.5">Axis</th>
+                        <th scope="col" className="border px-3 py-2.5">Thinnest</th>
+                        <th scope="col" className="border px-3 py-2.5">Apex</th>
+                        <th scope="col" className="border px-3 py-2.5">Residual</th>
+                        <th scope="col" className="border px-3 py-2.5">TTT</th>
+                        <th scope="col" className="border px-3 py-2.5">Ablation</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -509,12 +534,16 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
                 {selectedTests.length > 0 && (
                   <div className="mb-4 p-3 rounded-lg border bg-muted/30">
                     <div className="text-xs font-semibold mb-2 text-muted-foreground">الفحوصات المطلوبة:</div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                       {selectedTests.map((test) => (
                         <Badge key={test} variant="secondary" className="text-xs gap-1 px-2.5 py-1">
                           {test}
-                          <button onClick={() => setSelectedTests((p) => toggleItem(p, test))} className="hover:text-destructive">
-                            <X className="h-3 w-3" />
+                          <button
+                            onClick={() => setSelectedTests((p) => toggleItem(p, test))}
+                            className="hover:text-error transition-colors"
+                            aria-label={`إزالة ${test}`}
+                          >
+                            <X className="h-3 w-3" aria-hidden />
                           </button>
                         </Badge>
                       ))}
@@ -524,25 +553,24 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                 {/* Search tests */}
                 <div className="relative mb-3">
-                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
                   <Input
                     placeholder="ابحث عن الفحوصات..."
                     value={testSearch}
                     onChange={(e) => setTestSearch(e.target.value)}
                     className="pr-9 text-sm h-9"
+                    aria-label="ابحث عن الفحوصات والتحاليل"
                   />
                 </div>
 
                 {testSearch && (
                   <div className="space-y-1.5 max-h-[240px] overflow-y-auto border rounded-lg p-2">
-                    {mockTests
-                      .filter((t) => t.toLowerCase().includes(testSearch.toLowerCase()) && !selectedTests.includes(t))
-                      .map((test) => (
-                        <label key={test} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
-                          <Checkbox checked={selectedTests.includes(test)} onCheckedChange={() => setSelectedTests((p) => toggleItem(p, test))} />
-                          <span className="flex-1">{test}</span>
-                        </label>
-                      ))}
+                    {filteredTests.map((test) => (
+                      <label key={test} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                        <Checkbox checked={selectedTests.includes(test)} onCheckedChange={() => setSelectedTests((p) => toggleItem(p, test))} />
+                        <span className="flex-1">{test}</span>
+                      </label>
+                    ))}
                   </div>
                 )}
               </div>
@@ -553,13 +581,15 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Diagnosis */}
                 <div>
-                  <h3 className="text-base font-semibold mb-4">التشخيص</h3>
+                  <Label htmlFor="diagnosis-field" className="text-base font-semibold block mb-4">التشخيص</Label>
                   <Textarea
+                    id="diagnosis-field"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
-                    placeholder="Enter diagnosis details..."
+                    placeholder="أدخل تفاصيل التشخيص..."
                     className="text-sm min-h-[140px]"
                     rows={6}
+                    aria-label="تفاصيل التشخيص الطبي"
                   />
                 </div>
 
@@ -569,12 +599,16 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                   {/* Selected diseases tags */}
                   {selectedDiseases.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
                       {selectedDiseases.map((d) => (
-                        <Badge key={d} variant="secondary" className="text-xs gap-1 px-2.5 py-1 bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                        <Badge key={d} variant="secondary" className="text-xs gap-1 px-2.5 py-1 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary border-primary/20 dark:border-primary/30">
                           {d}
-                          <button onClick={() => setSelectedDiseases((p) => toggleItem(p, d))} className="hover:text-destructive">
-                            <X className="h-3 w-3" />
+                          <button
+                            onClick={() => setSelectedDiseases((p) => toggleItem(p, d))}
+                            className="hover:text-error transition-colors"
+                            aria-label={`إزالة ${d}`}
+                          >
+                            <X className="h-3 w-3" aria-hidden />
                           </button>
                         </Badge>
                       ))}
@@ -583,37 +617,38 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                   {/* Disease search */}
                   <div className="relative mb-3">
-                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
                     <Input
                       placeholder="ابحث عن الأمراض..."
                       value={diseaseSearch}
                       onChange={(e) => setDiseaseSearch(e.target.value)}
                       className="pr-9 text-sm h-9"
+                      aria-label="ابحث عن الأمراض والحالات المرضية"
                     />
                   </div>
 
                   {diseaseSearch && (
                     <div className="space-y-1.5 max-h-[200px] overflow-y-auto border rounded-lg p-2">
-                      {mockDiseases
-                        .filter((d) => d.toLowerCase().includes(diseaseSearch.toLowerCase()) && !selectedDiseases.includes(d))
-                        .map((d) => (
-                          <label key={d} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
-                            <Checkbox checked={selectedDiseases.includes(d)} onCheckedChange={() => setSelectedDiseases((p) => toggleItem(p, d))} />
-                            <span className="flex-1">{d}</span>
-                          </label>
-                        ))}
+                      {filteredDiseases.map((d) => (
+                        <label key={d} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                          <Checkbox checked={selectedDiseases.includes(d)} onCheckedChange={() => setSelectedDiseases((p) => toggleItem(p, d))} />
+                          <span className="flex-1">{d}</span>
+                        </label>
+                      ))}
                     </div>
                   )}
 
                   {/* Recommendations */}
                   <div className="mt-5">
-                    <Label className="text-sm font-medium block mb-2">التوصيات</Label>
+                    <Label htmlFor="recommendations-field" className="text-sm font-medium block mb-2">التوصيات</Label>
                     <Textarea
+                      id="recommendations-field"
                       value={recommendations}
                       onChange={(e) => setRecommendations(e.target.value)}
-                      placeholder="Enter recommendations..."
+                      placeholder="أدخل التوصيات والملاحظات..."
                       className="text-sm min-h-[100px]"
                       rows={4}
+                      aria-label="التوصيات الطبية"
                     />
                   </div>
                 </div>
@@ -627,14 +662,18 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                 {/* Selected medications */}
                 {selectedMeds.length > 0 && (
-                  <div className="mb-4 p-3 rounded-lg border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-                    <div className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-300">الأدوية المختارة:</div>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mb-4 p-3 rounded-lg border bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30">
+                    <div className="text-xs font-semibold mb-2 text-primary dark:text-primary">الأدوية المختارة:</div>
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                       {selectedMeds.map((med) => (
-                        <Badge key={med} variant="outline" className="text-xs gap-1 px-2.5 py-1 border-blue-300 dark:border-blue-700">
+                        <Badge key={med} variant="outline" className="text-xs gap-1 px-2.5 py-1 border-primary/30 dark:border-primary/40">
                           {med}
-                          <button onClick={() => setSelectedMeds((p) => toggleItem(p, med))} className="text-destructive hover:text-destructive/80">
-                            <X className="h-3 w-3" />
+                          <button
+                            onClick={() => setSelectedMeds((p) => toggleItem(p, med))}
+                            className="text-error hover:text-error/80 transition-colors"
+                            aria-label={`إزالة ${med}`}
+                          >
+                            <X className="h-3 w-3" aria-hidden />
                           </button>
                         </Badge>
                       ))}
@@ -644,25 +683,24 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                 {/* Medication search */}
                 <div className="relative mb-3">
-                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
                   <Input
                     placeholder="ابحث عن الأدوية..."
                     value={medSearch}
                     onChange={(e) => setMedSearch(e.target.value)}
                     className="pr-9 text-sm h-9"
+                    aria-label="ابحث عن الأدوية والعلاجات"
                   />
                 </div>
 
                 {medSearch && (
                   <div className="space-y-1.5 max-h-[280px] overflow-y-auto border rounded-lg p-2">
-                    {mockMedications
-                      .filter((m) => m.toLowerCase().includes(medSearch.toLowerCase()) && !selectedMeds.includes(m))
-                      .map((med) => (
-                        <label key={med} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
-                          <Checkbox checked={selectedMeds.includes(med)} onCheckedChange={() => setSelectedMeds((p) => toggleItem(p, med))} />
-                          <span className="flex-1">{med}</span>
-                        </label>
-                      ))}
+                    {filteredMeds.map((med) => (
+                      <label key={med} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                        <Checkbox checked={selectedMeds.includes(med)} onCheckedChange={() => setSelectedMeds((p) => toggleItem(p, med))} />
+                        <span className="flex-1">{med}</span>
+                      </label>
+                    ))}
                   </div>
                 )}
               </div>

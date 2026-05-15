@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Zap, Activity, Info } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { cn } from "@/lib/utils";
 
 export default function AdminDiagnostics() {
   const { user } = useAuth();
@@ -17,10 +20,10 @@ export default function AdminDiagnostics() {
 
   if (user?.role !== "admin") {
     return (
-      <div className="space-y-6 p-6">
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 p-6" dir="rtl">
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+          <AlertDescription className="text-red-800 font-bold">
             صلاحيات غير كافية. فقط المسؤولون يمكنهم الوصول إلى هذه الصفحة.
           </AlertDescription>
         </Alert>
@@ -29,80 +32,79 @@ export default function AdminDiagnostics() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">🔧 أدوات التشخيص والإصلاح</h1>
-        <p className="text-slate-600">
-          إصلاح شامل لجميع مشاكل البيانات بضغطة زر واحدة
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
+      <PageHeader
+        title="التشخيص والإصلاح"
+        subtitle="أدوات ذكية لفحص ومعالجة مشاكل سلامة البيانات وتكامل السجلات تلقائياً."
+        icon={<Activity className="h-5 w-5 text-primary" />}
+      />
 
       {/* AUTO-FIX ALL */}
-      <Card className="border-green-200 bg-green-50/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-900">
-            ⚡ إصلاح شامل فوري
-          </CardTitle>
-          <CardDescription className="text-green-800">
-            إصلاح جميع مشاكل البيانات في لحظة واحدة
-          </CardDescription>
+      <Card className="overflow-hidden border-emerald-200/60 bg-emerald-50/20 shadow-sm">
+        <CardHeader className="border-b border-emerald-100 bg-emerald-50/40 py-5 px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-emerald-900 font-black">
+                <Zap className="h-5 w-5 text-emerald-600" />
+                إصلاح شامل فوري
+              </CardTitle>
+              <CardDescription className="text-emerald-800/80 font-medium">
+                معالجة ذكية لجميع التناقضات المعروفة في قاعدة البيانات بضغطة زر واحدة.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-100/50 text-emerald-700 font-bold">
+              موصى به دورياً
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 space-y-6">
           <Button
             onClick={handleAutoFixAll}
             disabled={autoFixAllMutation.isPending}
             size="lg"
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full h-14 text-lg font-black bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200/50 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            {autoFixAllMutation.isPending && (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            {autoFixAllMutation.isPending ? (
+              <Loader2 className="ml-3 h-6 w-6 animate-spin" />
+            ) : (
+              "✨ بدء الإصلاح التلقائي الآن"
             )}
-            ✨ إصلاح كل شيء الآن
           </Button>
 
           {autoFixAllMutation.data && (
-            <div className="space-y-3 rounded-lg bg-white p-4">
-              <Alert className="border-green-300 bg-green-100">
-                <CheckCircle2 className="h-4 w-4 text-green-700" />
-                <AlertDescription className="text-green-900 font-semibold">
-                  ✅ اكتمل الإصلاح الشامل!
-                </AlertDescription>
-              </Alert>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-600">visitId = 0</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {autoFixAllMutation.data.fixExamsWithVisitId0.fixed}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-600">اليتيمة</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {autoFixAllMutation.data.fixOrphanedExaminations.fixed}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-600">بدون موعد</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {autoFixAllMutation.data.fixVisitsWithoutAppointmentId.fixed}
-                  </p>
-                </div>
+            <div className="space-y-4 rounded-2xl bg-white/60 p-5 border border-emerald-100 shadow-inner">
+              <div className="flex items-center gap-3 text-emerald-700">
+                <CheckCircle2 className="h-6 w-6" />
+                <span className="text-base font-black">اكتملت عملية الإصلاح الشامل بنجاح!</span>
               </div>
 
-              <div className="rounded-lg bg-green-50 p-3">
-                <p className="text-sm font-semibold text-green-900">
-                  إجمالي المُصلح: <span className="text-2xl">{autoFixAllMutation.data.totalFixed}</span>
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { label: "سجلات visitId = 0", value: autoFixAllMutation.data.fixExamsWithVisitId0.fixed, color: "text-emerald-600" },
+                  { label: "الفحوصات اليتيمة", value: autoFixAllMutation.data.fixOrphanedExaminations.fixed, color: "text-blue-600" },
+                  { label: "زيارات بلا موعد", value: autoFixAllMutation.data.fixVisitsWithoutAppointmentId.fixed, color: "text-violet-600" }
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-xl border border-border/50 bg-background p-4 shadow-sm">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{stat.label}</p>
+                    <p className={cn("text-3xl font-black tabular-nums", stat.color)}>
+                      {stat.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-xl bg-emerald-600 p-4 text-white flex items-center justify-between">
+                <span className="font-bold">إجمالي السجلات التي تم تصحيحها:</span>
+                <span className="text-3xl font-black tabular-nums">{autoFixAllMutation.data.totalFixed}</span>
               </div>
             </div>
           )}
 
           {autoFixAllMutation.error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-900">
-                ❌ خطأ: {autoFixAllMutation.error.message}
+            <Alert variant="destructive" className="rounded-xl border-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-bold">
+                فشلت العملية: {autoFixAllMutation.error.message}
               </AlertDescription>
             </Alert>
           )}
@@ -110,25 +112,43 @@ export default function AdminDiagnostics() {
       </Card>
 
       {/* INFO CARD */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ماذا يفعل هذا الإصلاح؟</CardTitle>
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardHeader className="border-b bg-muted/5 py-4 px-6">
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-muted-foreground">
+            <Info className="h-4 w-4" />
+            نطاق عمل أدوات الإصلاح
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm">
-            <li className="flex gap-2">
-              <span className="font-bold text-green-600">✓</span>
-              <span>يحل مشكلة حذف جميع الزيارات من نفس التاريخ</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="font-bold text-blue-600">✓</span>
-              <span>يربط الفحوصات اليتيمة بالزيارات الصحيحة</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="font-bold text-purple-600">✓</span>
-              <span>يربط الزيارات بالمواعيد المطابقة</span>
-            </li>
-          </ul>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-bold text-emerald-700">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                تكامل الزيارات
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                إعادة بناء الروابط المفقودة بين الفحوصات الطبية والزيارات المسجلة، وحل مشكلة المعرفات الصفرية الناتجة عن أخطاء المزامنة.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-bold text-blue-700">
+                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                ربط الفحوصات
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                البحث عن "الفحوصات الأيتام" (التي لا تنتمي لمريض محدد) ومطابقتها مع سجلات المرضى الصحيحة بناءً على التوقيت والرموز.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-bold text-violet-700">
+                <div className="h-2 w-2 rounded-full bg-violet-500" />
+                توافق المواعيد
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                التأكد من أن كل زيارة فعلية مرتبطة بموعد مسبق في النظام لضمان دقة التقارير الإحصائية والمالية.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

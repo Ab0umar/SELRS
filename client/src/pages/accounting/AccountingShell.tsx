@@ -1,14 +1,12 @@
 import type { ReactNode } from "react";
 
-type AccountingShellProps = {
-  children: ReactNode;
-};
-
-/** Layout wrapper for accounting pages (navigation lives in the main sidebar). */
-export default function AccountingShell({ children }: AccountingShellProps) {
+export default function AccountingShell({ children }: { children: ReactNode }) {
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4 pt-2" dir="rtl">
-      <div className="min-h-0 flex-1">{children}</div>
-    </section>
+    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="h-1 w-full bg-slate-200" />
+      <main className="mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-5">
+        {children}
+      </main>
+    </div>
   );
 }

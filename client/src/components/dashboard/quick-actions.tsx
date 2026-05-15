@@ -38,16 +38,16 @@ type QuickActionItem =
 
 const quickActions: QuickActionItem[] = [
   { label: "تسجيل مريض", icon: UserPlus, color: "bg-primary/10 text-primary hover:bg-primary/20", kind: "quick-entry-dialog" },
-  { label: "حجز موعد", icon: CalendarPlus, color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400", kind: "schedule-dialog" },
-  { label: "القياسات و الفحص", icon: Eye, color: "bg-primary/10 text-primary hover:bg-primary/15 dark:text-primary", kind: "measurements-panel" },
-  { label: "حجز العمليات", icon: Syringe, color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400", kind: "operations-booking-dialog" },
-  { label: "مقاس النظارة", icon: Glasses, color: "bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20 dark:text-cyan-400", kind: "pick-patient", page: "refraction" },
-  { label: "بنتاكام", icon: CircleDot, color: "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 dark:text-violet-400", kind: "pick-patient", page: "pentacam-sheet" },
-  { label: "الروشتات", icon: Pill, color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400", kind: "pick-patient", page: "write-prescription" },
-  { label: "تحاليل و اشعه", icon: FlaskConical, color: "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400", kind: "pick-patient", page: "request-tests" },
-  { label: "تشخيص / تقرير", icon: FileText, color: "bg-primary/10 text-primary hover:bg-primary/20 dark:text-primary", kind: "pick-patient", page: "medical-reports" },
-  { label: "الملف الطبي", icon: FileHeart, color: "bg-pink-500/10 text-pink-600 hover:bg-pink-500/20 dark:text-pink-400", kind: "pick-patient", page: "patient-details" },
-  { label: "تقرير المريض", icon: FileSpreadsheet, color: "bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 dark:text-slate-300 dark:bg-slate-400/10", kind: "pick-patient", page: "patient-summary" },
+  { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary/10 text-primary hover:bg-primary/20", kind: "schedule-dialog" },
+  { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary/10 text-secondary hover:bg-secondary/20", kind: "measurements-panel" },
+  { label: "حجز العمليات", icon: Syringe, color: "bg-success/10 text-success hover:bg-success/20", kind: "operations-booking-dialog" },
+  { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary/10 text-secondary hover:bg-secondary/20", kind: "pick-patient", page: "refraction" },
+  { label: "بنتاكام", icon: CircleDot, color: "bg-secondary/10 text-secondary hover:bg-secondary/20", kind: "pick-patient", page: "pentacam-sheet" },
+  { label: "الروشتات", icon: Pill, color: "bg-warning/10 text-warning hover:bg-warning/20", kind: "pick-patient", page: "write-prescription" },
+  { label: "تحاليل و اشعه", icon: FlaskConical, color: "bg-secondary/10 text-secondary hover:bg-secondary/20", kind: "pick-patient", page: "request-tests" },
+  { label: "تشخيص / تقرير", icon: FileText, color: "bg-primary/10 text-primary hover:bg-primary/20", kind: "pick-patient", page: "medical-reports" },
+  { label: "الملف الطبي", icon: FileHeart, color: "bg-primary/10 text-primary hover:bg-primary/20", kind: "pick-patient", page: "patient-details" },
+  { label: "تقرير المريض", icon: FileSpreadsheet, color: "bg-muted/60 text-muted-foreground hover:bg-muted/80", kind: "pick-patient", page: "patient-summary" },
 ];
 
 type UserRole =
@@ -147,60 +147,98 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 sm:gap-2">
-        {visibleActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <button
-              key={action.label}
-              type="button"
-              onClick={() => {
-                if (action.kind === "quick-entry-dialog") {
-                  setQuickEntryOpen(true);
-                  return;
-                }
-                if (action.kind === "schedule-dialog") {
-                  setScheduleOpen(true);
-                  return;
-                }
-                if (action.kind === "measurements-panel") {
-                  if (onOpenMeasurementsMedicalFile) {
-                    onOpenMeasurementsMedicalFile();
+      {/* Primary CTAs: Register, Schedule & Operations */}
+      {visibleActions.filter((a) => ["quick-entry-dialog", "schedule-dialog", "operations-booking-dialog"].includes(a.kind)).length > 0 && (
+        <div className="flex gap-3">
+          {visibleActions.filter((a) => ["quick-entry-dialog", "schedule-dialog", "operations-booking-dialog"].includes(a.kind)).map((action, i) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                type="button"
+                aria-label={action.label}
+                onClick={() => {
+                  if (action.kind === "quick-entry-dialog") { setQuickEntryOpen(true); return; }
+                  if (action.kind === "schedule-dialog") { setScheduleOpen(true); return; }
+                  if (action.kind === "operations-booking-dialog") {
+                    if (onOpenOperationsBooking) { onOpenOperationsBooking(); return; }
+                    setLocation("/operations");
                     return;
                   }
-                  setLocation("/examination");
-                  return;
-                }
-                if (action.kind === "operations-booking-dialog") {
-                  if (onOpenOperationsBooking) {
-                    onOpenOperationsBooking();
-                    return;
-                  }
-                  setLocation("/operations");
-                  return;
-                }
-                setPickPage(action.page);
-              }}
-              className={cn(
-                "flex flex-col items-center justify-center rounded-xl border border-transparent bg-muted/40 px-1 py-2 transition-all",
-                "hover:border-border hover:bg-muted/70 active:scale-95",
-              )}
-            >
-              <div
+                }}
                 className={cn(
-                  "mb-1.5 flex h-9 w-9 items-center justify-center rounded-lg transition-colors shrink-0",
-                  action.color,
+                  "flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-[background-color,transform] active:scale-[0.97]",
+                  i === 0
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-primary/8 text-primary hover:bg-primary/15"
                 )}
               >
-                <Icon className="h-[18px] w-[18px]" />
-              </div>
-              <span className="text-center text-xs font-semibold leading-tight text-foreground">
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {action.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Clinical tools: Measurements, refraction, pentacam, tests */}
+      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {visibleActions
+            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
+            .map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  aria-label={action.label}
+                  onClick={() => {
+                    if (action.kind === "measurements-panel") {
+                      if (onOpenMeasurementsMedicalFile) { onOpenMeasurementsMedicalFile(); return; }
+                      setLocation("/examination");
+                      return;
+                    }
+                    if (action.kind === "pick-patient") { setPickPage(action.page); }
+                  }}
+                  className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-[border-color,background-color,transform] hover:border-border hover:bg-muted/60 active:scale-[0.97]"
+                >
+                  <div className={cn("flex h-6 w-6 items-center justify-center rounded", action.color)}>
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  </div>
+                  {action.label}
+                </button>
+              );
+            })}
+        </div>
+      )}
+
+      {/* Admin/report links: Prescriptions, reports, file, summary */}
+      {visibleActions.some((a) => a.kind === "pick-patient" && ["write-prescription", "medical-reports", "patient-details", "patient-summary"].includes(("page" in a) ? a.page : "")) && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {visibleActions
+            .filter((a) =>
+              (a.kind === "pick-patient" && ["write-prescription", "medical-reports", "patient-details", "patient-summary"].includes(("page" in a) ? a.page : ""))
+            )
+            .map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  aria-label={action.label}
+                  onClick={() => {
+                    if (action.kind === "pick-patient") { setPickPage(action.page); }
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-[color,background-color,transform] hover:bg-muted/40 hover:text-foreground active:scale-[0.97]"
+                >
+                  <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {action.label}
+                </button>
+              );
+            })}
+        </div>
+      )}
     </>
   );
 }

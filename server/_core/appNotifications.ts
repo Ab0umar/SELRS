@@ -135,6 +135,7 @@ export async function pushAppNotification(input: PushAppNotificationInput): Prom
     body: entry.message,
     kind: entry.kind,
     targetRoles: entry.targetRoles ?? null,
+    targetUserIds: entry.targetUserIds ?? null,
     path: entry.meta?.path ? String(entry.meta.path) : null,
     entityType: entry.entityType ?? null,
     entityId: entry.entityId ?? null,

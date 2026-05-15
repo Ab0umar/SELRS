@@ -184,7 +184,7 @@ export default function ReceiptDetail() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -201,8 +201,9 @@ export default function ReceiptDetail() {
                   type="button"
                   variant="outline"
                   onClick={() => setLocation("/accounting/receipts")}
+                  aria-label="العودة إلى الإيصالات"
                 >
-                  <ArrowLeft className="ml-2 h-4 w-4" />
+                  <ArrowLeft className="ml-2 h-4 w-4" aria-hidden />
                   الإيصالات
                 </Button>
                 <Button
@@ -210,16 +211,18 @@ export default function ReceiptDetail() {
                   variant="outline"
                   onClick={() => void detailQuery.refetch()}
                   disabled={!input || detailQuery.isFetching}
+                  aria-label="تحديث تفاصيل الإيصال"
                 >
-                  <RefreshCw className={detailQuery.isFetching ? "animate-spin ml-2" : "ml-2"} />
+                  <RefreshCw className={detailQuery.isFetching ? "animate-spin ml-2" : "ml-2"} aria-hidden />
                   تحديث
                 </Button>
                 <Button
                   type="button"
                   onClick={printReceipt}
                   disabled={detailQuery.isLoading || !header || lines.length === 0}
+                  aria-label="طباعة الإيصال"
                 >
-                  <Printer className="ml-2 h-4 w-4" />
+                  <Printer className="ml-2 h-4 w-4" aria-hidden />
                   طباعة
                 </Button>
               </div>
@@ -227,15 +230,15 @@ export default function ReceiptDetail() {
           </CardHeader>
           <CardContent>
             {!input ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              <div className="rounded-lg border border-error/30 bg-error/5 p-4 text-sm text-error">
                 بارامترات مسار الإيصال غير صالحة.
               </div>
             ) : null}
 
             {detailQuery.isError ? (
-              <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
-                  <CircleAlert className="h-5 w-5" />
+              <div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/5 p-4">
+                <div className="rounded-lg bg-error/10 p-2 text-error">
+                  <CircleAlert className="h-5 w-5" aria-hidden />
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">
@@ -344,15 +347,15 @@ export default function ReceiptDetail() {
                       {!detailQuery.isLoading
                         ? lines.map((line, index) => (
                             <tr key={`${line.serviceCode}-${line.entryDate}-${index}`}>
-                              <td className={reportStyles.numeric}>{toArabicDigits(line.serviceCode)}</td>
-                              <td>{line.serviceName || "خدمة غير مسمى"}</td>
-                              <td>
+                              <td data-label="كود الخدمة" className={reportStyles.numeric}>{toArabicDigits(line.serviceCode)}</td>
+                              <td data-label="الخدمة">{line.serviceName || "خدمة غير مسمى"}</td>
+                              <td data-label="الطبيب">
                                 {line.doctorName || line.doctorCode || line.serviceBy1 || "غير معين"}
                               </td>
-                              <td className={reportStyles.numeric}>{formatDateAr(line.entryDate)}</td>
-                              <td className={reportStyles.numeric}>{formatMoney(line.price)}</td>
-                              <td className={reportStyles.numeric}>{formatMoney(line.discountValue)}</td>
-                              <td className={reportStyles.numeric}>{formatMoney(line.paidValue)}</td>
+                              <td data-label="التاريخ" className={reportStyles.numeric}>{formatDateAr(line.entryDate)}</td>
+                              <td data-label="السعر" className={reportStyles.numeric}>{formatMoney(line.price)}</td>
+                              <td data-label="الخصم" className={reportStyles.numeric}>{formatMoney(line.discountValue)}</td>
+                              <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoney(line.paidValue)}</td>
                             </tr>
                           ))
                         : null}

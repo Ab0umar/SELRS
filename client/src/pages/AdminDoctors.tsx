@@ -1,8 +1,8 @@
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -16,9 +16,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Activity, CheckCircle2, MoreVertical, Plus, RefreshCw, Stethoscope, Trash2, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, Edit2, MoreVertical, Plus, RefreshCw, Settings, Stethoscope, Trash2, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -82,10 +91,10 @@ function doctorTypeLabel(t: DoctorEntry["doctorType"]) {
 
 function doctorTypeBadgeClass(t: DoctorEntry["doctorType"]) {
   if (t === "specialist")
-    return "bg-amber-100 text-amber-900 dark:bg-amber-950/55 dark:text-amber-100 border-0 font-semibold";
+    return "bg-amber-50 text-amber-700 border-0 font-bold";
   if (t === "external")
-    return "bg-muted text-muted-foreground border border-border font-semibold";
-  return "bg-sky-100 text-sky-900 dark:bg-sky-950/55 dark:text-sky-50 border-0 font-semibold";
+    return "bg-muted text-muted-foreground border-0 font-bold";
+  return "bg-sky-50 text-sky-700 border-0 font-bold";
 }
 
 function locationLabel(lt: DoctorEntry["locationType"]) {
@@ -307,48 +316,50 @@ export default function AdminDoctors() {
     idPrefix: string,
   ) => (
     <>
-      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-        <label htmlFor={`${idPrefix}-code`} className="text-xs font-semibold text-muted-foreground">
+      <div className="space-y-1.5">
+        <label htmlFor={`${idPrefix}-code`} className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
           الكود (اختياري)
         </label>
         <Input
           id={`${idPrefix}-code`}
-          placeholder="يُولَّد تلقائياً إن تركت فارغاً"
+          placeholder="تلقائي"
           value={draft.code}
           onChange={(e) => setDraft((prev) => ({ ...prev, code: e.target.value }))}
           dir="ltr"
+          className="h-9 text-xs font-mono"
         />
       </div>
-      <div className="space-y-2 sm:col-span-2 lg:col-span-2">
-        <label htmlFor={`${idPrefix}-name`} className="text-xs font-semibold text-muted-foreground">
+      <div className="space-y-1.5 sm:col-span-2">
+        <label htmlFor={`${idPrefix}-name`} className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
           اسم الطبيب
         </label>
         <Input
           id={`${idPrefix}-name`}
-          placeholder="الاسم الظاهر في النظام"
+          placeholder="الاسم الكامل..."
           value={draft.name}
           onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+          className="h-9 text-sm font-medium"
         />
       </div>
-      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-        <span className="text-xs font-semibold text-muted-foreground">المقر</span>
+      <div className="space-y-1.5">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">المقر</span>
         <Select
           value={draft.locationType}
           onValueChange={(value) =>
             setDraft((prev) => ({ ...prev, locationType: value as "center" | "external" }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-9 text-xs bg-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="center">المركز</SelectItem>
-            <SelectItem value="external">خارجي</SelectItem>
+            <SelectItem value="center" className="text-xs">المركز</SelectItem>
+            <SelectItem value="external" className="text-xs">خارجي</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-        <span className="text-xs font-semibold text-muted-foreground">النوع</span>
+      <div className="space-y-1.5">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">النوع</span>
         <Select
           value={draft.doctorType}
           onValueChange={(value) =>
@@ -358,13 +369,13 @@ export default function AdminDoctors() {
             }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-9 text-xs bg-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="consultant">استشاري</SelectItem>
-            <SelectItem value="specialist">أخصائي</SelectItem>
-            <SelectItem value="external">طبيب خارجي</SelectItem>
+            <SelectItem value="consultant" className="text-xs">استشاري</SelectItem>
+            <SelectItem value="specialist" className="text-xs">أخصائي</SelectItem>
+            <SelectItem value="external" className="text-xs">طبيب خارجي</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -376,23 +387,23 @@ export default function AdminDoctors() {
       <PageHeader
         title="الأطباء"
         subtitle="ربط الأطباء بالخدمات والمواعيد — بدون إنشاء مستخدم نظام"
-        icon={<Stethoscope className="h-5 w-5" />}
+        icon={<Stethoscope className="h-5 w-5 text-primary" />}
         action={
           <div className="flex items-center gap-2">
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="gap-2"
+              className="gap-2 h-9 rounded-lg border-border/60 hover:bg-background"
               onClick={() => syncRegistrationCatalogMutation.mutate()}
               disabled={syncRegistrationCatalogMutation.isPending}
             >
-              <RefreshCw className={cn("h-4 w-4", syncRegistrationCatalogMutation.isPending && "animate-spin")} />
-              <span className="text-xs sm:text-sm">{syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}</span>
+              <RefreshCw className={cn("h-4 w-4 text-primary", syncRegistrationCatalogMutation.isPending && "animate-spin")} />
+              <span className="text-[11px] font-bold uppercase tracking-tight">{syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة السجل"}</span>
             </Button>
-            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setAddOpen(true)}>
+            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white h-9 px-4 rounded-lg shadow-sm" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" />
-              <span className="text-xs sm:text-sm">إضافة طبيب</span>
+              <span className="text-xs sm:text-sm font-bold">إضافة طبيب</span>
             </Button>
           </div>
         }
@@ -420,13 +431,13 @@ export default function AdminDoctors() {
       </div>
 
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <CardContent className="space-y-4 p-4 sm:p-5">
+        <CardContent className="space-y-4 p-4 sm:p-5 lg:p-6 bg-muted/5">
           <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
             <div className="w-full lg:max-w-md">
               <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="بحث عن طبيب أو كود..." />
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <Button type="button" onClick={() => void saveDoctors()} disabled={updateDoctorsMutation.isPending}>
+              <Button type="button" variant="secondary" className="h-9 px-5 font-bold text-xs" onClick={() => void saveDoctors()} disabled={updateDoctorsMutation.isPending}>
                 حفظ التغييرات
               </Button>
               <input
@@ -441,13 +452,14 @@ export default function AdminDoctors() {
                   await importDoctorsCsv(file);
                 }}
               />
-              <Button type="button" variant="outline" disabled={isImporting} onClick={() => fileInputRef.current?.click()}>
+              <Button type="button" variant="outline" className="h-9 text-xs border-border/60" disabled={isImporting} onClick={() => fileInputRef.current?.click()}>
                 استيراد CSV
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="border-dashed text-destructive hover:bg-destructive/10 hover:text-destructive"
+                size="sm"
+                className="h-9 px-3 border-dashed text-destructive hover:bg-destructive/10 hover:text-destructive text-[11px] font-bold"
                 onClick={() => {
                   if (
                     doctors.length === 0 ||
@@ -464,174 +476,205 @@ export default function AdminDoctors() {
         </CardContent>
       </Card>
 
-      {doctorsQuery.isLoading ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 py-14 text-center text-sm text-muted-foreground">
-          جاري التحميل…
-        </div>
-      ) : filteredDoctors.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 py-14 text-center text-sm text-muted-foreground">
-          لا توجد نتائج مطابقة.
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredDoctors.map((doctor) => (
-            <Card
-              key={doctor.id}
-              className={cn(
-                "overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm transition-shadow hover:shadow-md",
-                !doctor.isActive && "border-dashed bg-muted/25 opacity-90",
-              )}
-              dir="rtl"
-            >
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <Avatar className="h-12 w-12 shrink-0 border border-border/60 bg-primary/10 text-sm font-black text-primary">
-                      <AvatarFallback className="bg-primary/10 text-primary">{doctorArabicInitials(doctor.name)}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <CardTitle className="truncate text-base font-black leading-snug">{doctor.name}</CardTitle>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Badge className={cn("text-[11px]", doctorTypeBadgeClass(doctor.doctorType))}>
-                          {doctorTypeLabel(doctor.doctorType)}
-                        </Badge>
-                        {!doctor.isActive ? (
-                          <Badge variant="outline" className="border-red-400/60 text-[11px] font-semibold text-red-700">
-                            غير فعال
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-emerald-500/50 text-[11px] font-semibold text-emerald-800">
-                            فعّال
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {locationLabel(doctor.locationType)}
-                        <span className="mx-1 opacity-60">·</span>
-                        <span dir="ltr" className="tabular-nums">
-                          {doctor.code}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" title="مزيد">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-[10rem]">
-                      <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setExpandedId((id) => (id === doctor.id ? null : doctor.id))}>
-                        {expandedId === doctor.id ? "إخفاء التحرير" : "تحرير الحقول"}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                        onClick={() => removeDoctor(doctor.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        حذف من القائمة
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold">
-                    <Checkbox
-                      checked={doctor.isActive}
-                      onCheckedChange={(checked) =>
-                        setDoctors((prev) =>
-                          prev.map((d) => (d.id === doctor.id ? { ...d, isActive: Boolean(checked) } : d)),
-                        )
-                      }
-                    />
-                    نشط في النظام
-                  </label>
-                </div>
-
-                {expandedId === doctor.id && (
-                  <div className="space-y-3 rounded-lg border border-border/80 bg-muted/15 p-3">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                        <span className="text-xs font-semibold text-muted-foreground">الكود</span>
-                        <Input
-                          value={doctor.code}
-                          dir="ltr"
-                          onChange={(e) =>
-                            setDoctors((prev) =>
-                              prev.map((d) => (d.id === doctor.id ? { ...d, code: e.target.value } : d)),
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                        <span className="text-xs font-semibold text-muted-foreground">الاسم</span>
-                        <Input
-                          value={doctor.name}
-                          onChange={(e) =>
-                            setDoctors((prev) =>
-                              prev.map((d) => (d.id === doctor.id ? { ...d, name: e.target.value } : d)),
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <span className="text-xs font-semibold text-muted-foreground">المقر</span>
-                        <Select
-                          value={doctor.locationType}
-                          onValueChange={(value) =>
-                            setDoctors((prev) =>
-                              prev.map((d) =>
-                                d.id === doctor.id ? { ...d, locationType: value as "center" | "external" } : d,
-                              ),
-                            )
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="center">المركز</SelectItem>
-                            <SelectItem value="external">خارجي</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <span className="text-xs font-semibold text-muted-foreground">النوع</span>
-                        <Select
-                          value={doctor.doctorType}
-                          onValueChange={(value) =>
-                            setDoctors((prev) =>
-                              prev.map((d) =>
-                                d.id === doctor.id
-                                  ? { ...d, doctorType: value as "consultant" | "specialist" | "external" }
-                                  : d,
-                              ),
-                            )
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="consultant">استشاري</SelectItem>
-                            <SelectItem value="specialist">أخصائي</SelectItem>
-                            <SelectItem value="external">خارجي</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <CardContent className="p-0">
+          <div className="overflow-hidden">
+            <Table className="min-w-[900px] text-right" dir="rtl">
+              <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm shadow-sm">
+                <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
+                  <TableHead className="text-right font-bold text-sky-900">الطبيب والتخصص</TableHead>
+                  <TableHead className="text-right font-bold text-sky-900">الكود</TableHead>
+                  <TableHead className="text-right font-bold text-sky-900">النوع</TableHead>
+                  <TableHead className="text-right font-bold text-sky-900">المقر</TableHead>
+                  <TableHead className="text-right font-bold text-sky-900">الحالة</TableHead>
+                  <TableHead className="w-[120px] text-center font-bold text-sky-900">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {doctorsQuery.isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-20 text-center text-muted-foreground animate-pulse">
+                      جاري تحميل بيانات الأطباء…
+                    </TableCell>
+                  </TableRow>
                 )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                {!doctorsQuery.isLoading && filteredDoctors.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-20 text-center text-muted-foreground bg-muted/20">
+                      لا توجد نتائج مطابقة لبحثك.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filteredDoctors.map((doctor, idx) => {
+                  const initials = doctorArabicInitials(doctor.name);
+                  return (
+                    <Fragment key={doctor.id}>
+                      <TableRow className={cn(
+                        "group transition-colors hover:bg-primary/[0.03]",
+                        idx % 2 === 0 ? "bg-white" : "bg-muted/10",
+                        !doctor.isActive && "opacity-60 bg-muted/5 grayscale-[0.3]"
+                      )}>
+                        <TableCell className="align-middle py-3">
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="min-w-0 text-right">
+                              <div className="font-bold text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors">
+                                {doctor.name}
+                              </div>
+                              <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground font-medium">
+                                <span>{doctorTypeLabel(doctor.doctorType)}</span>
+                              </div>
+                            </div>
+                            <Avatar className="h-9 w-9 shrink-0 border border-border/60 bg-primary/10 text-[11px] font-black text-primary shadow-inner">
+                              <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                            </Avatar>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-mono font-medium text-muted-foreground tabular-nums py-3">
+                          {doctor.code}
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap py-3">
+                          <Badge className={cn("font-bold text-[10px] px-2 py-0.5 shadow-none border-0", doctorTypeBadgeClass(doctor.doctorType))}>
+                            {doctorTypeLabel(doctor.doctorType)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-semibold text-muted-foreground py-3">
+                          {locationLabel(doctor.locationType)}
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className={cn("text-[10px] font-bold", doctor.isActive ? "text-emerald-600" : "text-muted-foreground")}>
+                              {doctor.isActive ? "نشط" : "معطل"}
+                            </span>
+                            <Checkbox
+                              className="h-3.5 w-3.5"
+                              checked={doctor.isActive}
+                              onCheckedChange={(checked) =>
+                                setDoctors((prev) =>
+                                  prev.map((d) => (d.id === doctor.id ? { ...d, isActive: Boolean(checked) } : d)),
+                                )
+                              }
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center align-middle py-3">
+                          <div className="flex justify-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              onClick={() => setExpandedId((id) => (id === doctor.id ? null : doctor.id))}
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                              onClick={() => removeDoctor(doctor.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedId === doctor.id && (
+                        <TableRow key={`${doctor.id}-edit`} className="bg-primary/[0.02] border-b shadow-inner">
+                          <TableCell colSpan={6} className="py-4 px-12">
+                            <div className="rounded-xl border border-primary/20 bg-background p-5 shadow-lg space-y-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Settings className="h-4 w-4 text-primary" />
+                                <span className="text-xs font-bold text-primary">تعديل بيانات الطبيب</span>
+                              </div>
+                              <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 items-end">
+                                <div className="space-y-1.5">
+                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">الكود</span>
+                                  <Input
+                                    value={doctor.code}
+                                    dir="ltr"
+                                    className="h-9 text-xs font-mono bg-muted/20"
+                                    onChange={(e) =>
+                                      setDoctors((prev) =>
+                                        prev.map((d) => (d.id === doctor.id ? { ...d, code: e.target.value } : d)),
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-1">
+                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">الاسم</span>
+                                  <Input
+                                    value={doctor.name}
+                                    className="h-9 text-sm font-medium"
+                                    onChange={(e) =>
+                                      setDoctors((prev) =>
+                                        prev.map((d) => (d.id === doctor.id ? { ...d, name: e.target.value } : d)),
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">المقر</span>
+                                  <Select
+                                    value={doctor.locationType}
+                                    onValueChange={(value) =>
+                                      setDoctors((prev) =>
+                                        prev.map((d) =>
+                                          d.id === doctor.id ? { ...d, locationType: value as "center" | "external" } : d,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9 bg-white text-xs border-primary/10">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="center" className="text-xs">المركز</SelectItem>
+                                      <SelectItem value="external" className="text-xs">خارجي</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">النوع</span>
+                                  <Select
+                                    value={doctor.doctorType}
+                                    onValueChange={(value) =>
+                                      setDoctors((prev) =>
+                                        prev.map((d) =>
+                                          d.id === doctor.id
+                                            ? { ...d, doctorType: value as "consultant" | "specialist" | "external" }
+                                            : d,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9 bg-white text-xs border-primary/10">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="consultant" className="text-xs">استشاري</SelectItem>
+                                      <SelectItem value="specialist" className="text-xs">أخصائي</SelectItem>
+                                      <SelectItem value="external" className="text-xs">طبيب خارجي</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2 pt-2 border-t border-dashed mt-2">
+                                <Button variant="ghost" size="sm" className="h-8 text-[11px] font-bold text-muted-foreground" onClick={() => setExpandedId(null)}>إلغاء</Button>
+                                <Button size="sm" className="h-8 text-[11px] font-bold bg-primary text-white shadow-sm" onClick={() => setExpandedId(null)}>تم التعديل محلياً</Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog
         open={addOpen}
@@ -641,23 +684,27 @@ export default function AdminDoctors() {
             setNewDoctor({ code: "", name: "", locationType: "center", doctorType: "consultant" });
         }}
       >
-        <DialogContent className="max-w-lg text-right sm:max-w-xl" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>إضافة طبيب</DialogTitle>
+        <DialogContent className="max-w-lg text-right sm:max-w-xl p-0 overflow-hidden border-none shadow-2xl" dir="rtl">
+          <DialogHeader className="p-5 border-b bg-muted/10">
+            <DialogTitle className="text-lg font-bold">إضافة طبيب جديد</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {formFieldsUi(newDoctor, setNewDoctor, "add")}
+          <div className="p-6 bg-background space-y-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
+              {formFieldsUi(newDoctor, setNewDoctor, "add")}
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed italic bg-muted/20 p-2 rounded-lg border border-dashed">
+              * ملاحظة: بعد الإضافة إلى القائمة المحلية، يجب الضغط على «حفظ التغييرات» في الصفحة الرئيسية لمزامنة البيانات مع السيرفر بشكل دائم.
+            </p>
           </div>
-          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-            <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+          <DialogFooter className="p-4 bg-muted/5 border-t flex flex-col-reverse gap-2 sm:flex-row sm:justify-between sm:items-center">
+            <Button type="button" variant="ghost" className="h-9 text-xs font-bold" onClick={() => setAddOpen(false)}>
               إلغاء
             </Button>
-            <Button type="button" className="selrs-gradient-btn gap-2 text-white" onClick={addDoctor}>
+            <Button type="button" className="selrs-gradient-btn text-white gap-2 h-9 px-6 rounded-lg font-bold" onClick={addDoctor}>
               <Plus className="h-4 w-4" />
               إدراج في القائمة
             </Button>
           </DialogFooter>
-          <p className="text-xs text-muted-foreground">بعد الإضافة استخدم «حفظ التغييرات» في الصفحة لتطبيقها على الخادم.</p>
         </DialogContent>
       </Dialog>
     </div>

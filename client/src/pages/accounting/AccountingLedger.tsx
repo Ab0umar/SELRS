@@ -87,106 +87,104 @@ export default function AccountingLedger() {
 
   return (
     <AccountingShell>
-      <div className="space-y-5" dir="rtl">
+      <div className="space-y-4" dir="rtl">
 
-        {/* Top section */}
-        <section className="rounded-lg border border-slate-300 bg-white p-4 lg:p-5">
-          <div className="flex gap-4">
+        {/* Summary cards */}
+        <div className="grid gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">الإجماليات</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
-            {/* Left: الإجماليات + إضافة قيد stacked — fills remaining space */}
-            <div className="flex flex-1 flex-col gap-4 min-w-0">
-
-              {/* الإجماليات */}
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">الإجماليات</h3>
-                <div className="flex gap-2">
-                  {([
-                    { label: "إجمالي الإيراد", val: s?.totalIncome,    cls: "text-emerald-700", icon: TrendingUp   },
-                    { label: "إجمالي المصروف", val: s?.totalExpense,   cls: "text-red-700",    icon: TrendingDown },
-                    { label: "رصيد الخزنة",    val: s?.currentBalance, cls: (s?.currentBalance ?? 0) >= 0 ? "text-blue-700" : "text-red-700", icon: Wallet },
-                  ] as const).map((m) => {
-                    const Icon = m.icon;
-                    return (
-                      <div key={m.label} className="flex flex-1 flex-col gap-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-slate-700">{m.label}</span>
-                          <Icon className={cn("h-4 w-4 shrink-0", m.cls)} />
-                        </div>
-                        <span className={cn("text-lg font-bold tabular-nums leading-none", m.cls)}>
-                          {summaryQ.isLoading ? "..." : fmt(m.val)}
-                        </span>
-                      </div>
-                    );
-                  })}
+            {([
+              { label: "إجمالي الإيراد", val: s?.totalIncome,    cls: "text-emerald-700", icon: TrendingUp   },
+              { label: "إجمالي المصروف", val: s?.totalExpense,   cls: "text-red-700",    icon: TrendingDown },
+              { label: "رصيد الخزنة",    val: s?.currentBalance, cls: (s?.currentBalance ?? 0) >= 0 ? "text-blue-700" : "text-red-700", icon: Wallet },
+            ] as const).map((m) => {
+              const Icon = m.icon;
+              return (
+                <div key={m.label} className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-slate-700">{m.label}</span>
+                    <Icon className={cn("h-4 w-4", m.cls)} />
+                  </div>
+                  <span className={cn("text-2xl font-bold tabular-nums", m.cls)}>
+                    {summaryQ.isLoading ? "..." : fmt(m.val)}
+                  </span>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Entry form */}
+        <section className="rounded-lg border border-slate-300 bg-white p-4 lg:p-5" dir="rtl">
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-sm font-semibold text-slate-900">إضافة قيد جديد</legend>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="txDate" className="text-xs font-medium text-slate-700">التاريخ</label>
+                <input id="txDate" type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
               </div>
-
-              {/* إضافة قيد */}
-              <fieldset className="flex flex-col gap-2" dir="rtl">
-                <legend className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">إضافة قيد</legend>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="income" className="text-xs font-medium text-emerald-700">إيراد</label>
+                <input id="income" type="number" min="0" value={income} onChange={(e) => setIncome(e.target.value)} placeholder="0"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tabular-nums text-emerald-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="expense" className="text-xs font-medium text-red-700">مصروف</label>
+                <input id="expense" type="number" min="0" value={expense} onChange={(e) => setExpense(e.target.value)} placeholder="0"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tabular-nums text-red-700 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="notes" className="text-xs font-medium text-slate-700">البيان</label>
                 <div className="flex gap-2">
-                  <div className="flex flex-col gap-1 flex-1">
-                    <label htmlFor="txDate" className="text-xs font-medium text-slate-700">التاريخ</label>
-                    <input id="txDate" type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 w-full" />
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1">
-                    <label htmlFor="income" className="text-xs font-medium text-emerald-700">إيراد</label>
-                    <input id="income" type="number" min="0" value={income} onChange={(e) => setIncome(e.target.value)} placeholder="0"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tabular-nums text-emerald-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 w-full" />
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1">
-                    <label htmlFor="expense" className="text-xs font-medium text-red-700">مصروف</label>
-                    <input id="expense" type="number" min="0" value={expense} onChange={(e) => setExpense(e.target.value)} placeholder="0"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tabular-nums text-red-700 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 w-full" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="البيان..."
+                  <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظات..."
                     className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
                   <button type="button" disabled={busy || !txDate} onClick={() => void handleSave()}
                     aria-label={entrySaved ? "تم الحفظ" : "إضافة قيد"}
-                    className={cn("flex h-11 min-h-11 min-w-11 w-11 shrink-0 items-center justify-center rounded-lg text-white transition-colors font-medium",
+                    className={cn("flex items-center justify-center rounded-lg text-white transition-colors font-medium h-11 w-11 min-h-11 min-w-11 flex-shrink-0",
                       entrySaved ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed")}>
-                    {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : entrySaved ? <Check className="h-5 w-5" /> : <span className="text-base font-bold leading-none">+</span>}
+                    {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : entrySaved ? <Check className="h-5 w-5" /> : <span className="text-lg font-bold">+</span>}
                   </button>
                 </div>
-                {addErr && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{addErr}</p>}
-              </fieldset>
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="w-px self-stretch bg-slate-100" />
+            {addErr && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{addErr}</p>}
+          </fieldset>
+        </section>
 
-            {/* Right: Year filter + categories — fit to content */}
-            <div className="flex w-fit flex-col gap-2" dir="rtl">
-              <legend className="text-xs font-semibold uppercase tracking-wider text-slate-700">السنة</legend>
-              <fieldset className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">
-                {YEARS.map(y => (
-                  <button key={y} type="button" onClick={() => { setYear(y); setPage(1); }}
-                    className={cn("px-4 py-2.5 text-sm font-medium transition-colors min-h-10",
-                      year === y ? "bg-blue-600 text-white" : "bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset")}>
-                    {y}
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-700">السنة</label>
+            <fieldset className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">
+              {YEARS.map(y => (
+                <button key={y} type="button" onClick={() => { setYear(y); setPage(1); }}
+                  className={cn("flex-1 px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
+                    year === y ? "bg-blue-600 text-white" : "bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset")}>
+                  {y}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+
+          {cats.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-700">التصنيف</label>
+              <div className="flex flex-wrap gap-2">
+                {cats.map(c => (
+                  <button key={c.id} type="button" onClick={() => setNotes(notes.trim() === c.name ? "" : c.name)}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      notes.trim() === c.name ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1")}>
+                    {c.name}
                   </button>
                 ))}
-              </fieldset>
-              {cats.length > 0 && (
-                <>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-700">التصنيف</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cats.map(c => (
-                      <button key={c.id} type="button" onClick={() => setNotes(notes.trim() === c.name ? "" : c.name)}
-                        className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                          notes.trim() === c.name ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2")}>
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+              </div>
             </div>
-          </div>
-        </section>
+          )}
+        </div>
 
         {/* Ledger table */}
         <div className="overflow-hidden rounded-lg border border-slate-300 bg-white">

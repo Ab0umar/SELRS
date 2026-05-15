@@ -17,10 +17,10 @@ import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
 
 const iconBgMap = {
-  users: 'bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary',
-  calendar: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-  heart: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
-  stethoscope: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  users: 'bg-primary/10 text-primary',
+  calendar: 'bg-warning/15 text-warning',
+  heart: 'bg-secondary/15 text-secondary',
+  stethoscope: 'bg-primary/8 text-primary/80',
 } as const
 
 type IconKey = keyof typeof iconBgMap
@@ -90,22 +90,22 @@ export function KpiCards({ selectedDate }: { selectedDate: string }) {
   ]
 
   return (
-    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4')}>
+    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4')}>
       {kpis.map((item) => {
         const Icon = item.iconComponent
         return (
           <Card key={item.title} className="relative min-w-[9rem] shrink-0 overflow-hidden border-border sm:min-w-0">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 {item.title}
               </CardTitle>
               <div
                 className={cn(
-                  'flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg',
+                  'flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-lg shrink-0',
                   iconBgMap[item.icon]
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden />
               </div>
             </CardHeader>
             <CardContent>
@@ -117,7 +117,7 @@ export function KpiCards({ selectedDate }: { selectedDate: string }) {
                 </div>
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="text-[11px] sm:text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {item.description}
                 </span>
               </div>

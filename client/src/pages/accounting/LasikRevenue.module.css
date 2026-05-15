@@ -430,3 +430,97 @@
     background: #fff !important;
   }
 }
+
+/* ── Mobile: stack table rows as key-value cards ── */
+@media screen and (max-width: 640px) {
+  .gridTable {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .gridTable thead {
+    display: none;
+  }
+
+  .gridTable tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    background: #f5f5f5;
+  }
+
+  .gridTable tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .gridTable tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+    border-right: none;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 7px 8px;
+    min-width: 0;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .gridTable tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #777;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+
+  .gridTable tbody td.numeric {
+    direction: ltr;
+    text-align: left;
+  }
+
+  .gridTable tbody td.numeric[data-label]::before {
+    direction: rtl;
+    text-align: right;
+    display: block;
+  }
+
+  .groupBannerRow {
+    grid-column: 1 / -1 !important;
+    display: block !important;
+  }
+
+  .groupBannerRow td {
+    border-right: none;
+    white-space: normal;
+  }
+
+  .serviceSubtotalRow,
+  .sectionTotalRow,
+  .periodTotalRow {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .serviceSubtotalRow td,
+  .sectionTotalRow td,
+  .periodTotalRow td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 8px;
+    border-right: 1px solid #aaa;
+    min-width: 0;
+    white-space: normal;
+  }
+}

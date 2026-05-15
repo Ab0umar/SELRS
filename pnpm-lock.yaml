@@ -245,6 +245,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      node-adodb:
+        specifier: ^5.0.3
+        version: 5.0.3
       node-windows:
         specifier: 1.0.0-beta.8
         version: 1.0.0-beta.8
@@ -2754,6 +2757,9 @@ packages:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
 
+  arch@2.2.0:
+    resolution: {integrity: sha512-Of/R0wqp83cgHozfIYLbBMnej79U/SVGOOyuB3VVFv1NRM/PSFMK12x9KVtiYzJqmnU5WR2qp0Z5rHb7sWGnFQ==}
+
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
@@ -4226,6 +4232,11 @@ packages:
   node-addon-api@8.7.0:
     resolution: {integrity: sha512-9MdFxmkKaOYVTV+XVRG8ArDwwQ77XIgIPyKASB1k3JPq3M8fGQQQE3YpMOrKm6g//Ktx8ivZr8xo1Qmtqub+GA==}
     engines: {node: ^18 || ^20 || >= 21}
+
+  node-adodb@5.0.3:
+    resolution: {integrity: sha512-xQnoe7mx3b7B0QeW6visiQ2VxlX6rYaol20Ka5jZVKcetxOsXM4lsxfEZDmlOOoVJq/6BeoqPJHm3aZ4vjY+Bg==}
+    engines: {node: '>=6.0.0'}
+    os: [win32]
 
   node-releases@2.0.38:
     resolution: {integrity: sha512-3qT/88Y3FbH/Kx4szpQQ4HzUbVrHPKTLVpVocKiLfoYvw9XSGOX2FmD2d6DrXbVYyAQTF2HeF6My8jmzx7/CRw==}
@@ -7793,6 +7804,8 @@ snapshots:
     dependencies:
       color-convert: 2.0.1
 
+  arch@2.2.0: {}
+
   aria-hidden@1.2.6:
     dependencies:
       tslib: 2.8.1
@@ -9455,6 +9468,13 @@ snapshots:
       semver: 7.7.4
 
   node-addon-api@8.7.0: {}
+
+  node-adodb@5.0.3:
+    dependencies:
+      arch: 2.2.0
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   node-releases@2.0.38: {}
 

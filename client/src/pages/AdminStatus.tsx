@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { getMobileQaEnabled, setMobileQaEnabled } from "@/lib/mobileQa";
 import { getApiOrigin, getApiUrl } from "@/const";
-import { Activity, CheckCircle2, Database, HardDrive, RefreshCw, Server, Timer, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, Database, HardDrive, RefreshCw, Server, Timer, XCircle, Settings } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { requestAppReload } from "@/lib/appRuntime";
@@ -224,253 +224,214 @@ export default function AdminStatus() {
   const tunnelOk = Boolean(health?.tunnelConnected);
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-8 text-right" dir="rtl">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
       <PageHeader
         title="حالة النظام"
-        subtitle="مراقبة الاتصال بالخادم وقاعدة البيانات وزمن الاستجابة والنسخ الاحتياطي"
-        icon={<Activity className="h-5 w-5" />}
-        actions={
+        subtitle="مراقبة الاتصال، زمن الاستجابة، وصحة الخدمات الحيوية."
+        icon={<Activity className="h-5 w-5 text-primary" />}
+        action={
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2 border-primary/25 bg-primary/5"
+            className="gap-2 h-9 border-border/60 hover:bg-background shadow-sm font-bold"
             onClick={() => requestAppReload("admin-status")}
           >
             <RefreshCw className="h-4 w-4" />
-            تحديث الصفحة
+            تحديث البيانات
           </Button>
         }
       />
 
       <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
         <StatCard
-          title="حالة الخادم"
+          title="خادم التطبيق"
           value={opsHealthQuery.isLoading ? "…" : serverOk ? "متصل" : "غير متصل"}
           icon={Server}
-          iconColor={serverOk ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-destructive/10 text-destructive"}
-          description={health?.env ? `بيئة: ${health.env}` : undefined}
+          iconColor={serverOk ? "bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100" : "bg-destructive/10 text-destructive"}
+          description={health?.env ? `البيئة: ${health.env}` : "جاري التحقق…"}
         />
         <StatCard
-          title="استجابة API"
+          title="سرعة الاستجابة"
           value={healthLatencyMs != null ? `${healthLatencyMs} ms` : "—"}
           icon={Timer}
-          iconColor="bg-primary/10 text-primary"
-          description="قياس من المتصفح إلى /healthz"
+          iconColor="bg-sky-50 text-sky-600 shadow-sm shadow-sky-100"
+          description="زمن جولة المتصفح"
         />
         <StatCard
           title="قاعدة البيانات"
-          value={opsHealthQuery.isLoading ? "…" : dbOk ? "متصلة" : "غير متصلة"}
+          value={opsHealthQuery.isLoading ? "…" : dbOk ? "مستقرة" : "خطأ اتصال"}
           icon={Database}
-          iconColor={dbOk ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-destructive/10 text-destructive"}
-          description={health?.patientsCount != null ? `مرضى (عيّنة): ${health.patientsCount}` : undefined}
+          iconColor={dbOk ? "bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100" : "bg-destructive/10 text-destructive"}
+          description={health?.patientsCount != null ? `السجلات: ${health.patientsCount}` : "لا توجد بيانات"}
         />
         <StatCard
           title="النسخ الاحتياطي"
-          value={backupOk ? "متوفر" : "—"}
+          value={backupOk ? "مفعل" : "معطل"}
           icon={HardDrive}
-          iconColor={backupOk ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground"}
-          description={health?.latestBackupAt ? String(health.latestBackupAt).slice(0, 40) : "لا يعرض الخادم تفاصيل مساحة القرص حالياً"}
+          iconColor={backupOk ? "bg-amber-50 text-amber-700 shadow-sm shadow-amber-100" : "bg-muted text-muted-foreground"}
+          description={health?.latestBackupAt ? "تتوفر نسخ حديثة" : "يتطلب فحص يدوي"}
         />
       </div>
 
-      <Card className="border-border/80 bg-card shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">فحص صحة الخدمات</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              {apiLineOk ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600 shrink-0" /> : <XCircle className="mt-0.5 h-5 w-5 text-destructive shrink-0" />}
-              <div>
-                <div className="font-semibold">خادم API</div>
-                <p className="text-sm text-muted-foreground">
-                  {serverOk ? "الخدمة تردّ وفق تقرير الخادم." : "التقرير غير سليم أو بانتظار الاتصال."}{" "}
-                  {healthLatencyMs != null ? `زمن جولة المتصفح: ${healthLatencyMs} ms.` : ""}
-                </p>
-              </div>
-            </div>
-            <Badge variant={apiLineOk ? "secondary" : "destructive"} className="shrink-0 w-fit">
-              {apiLineOk ? "طبيعي" : "يتطلب انتباهاً"}
-            </Badge>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Service Health Checklist */}
+        <div className="lg:col-span-8 space-y-6">
+          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-muted/5 py-4">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                فحص تكامل الخدمات
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              {[
+                { 
+                  id: "api", 
+                  label: "خادم API", 
+                  ok: apiLineOk, 
+                  desc: serverOk ? "الخدمة تستجيب بشكل سليم للطلبات الخارجية." : "تعذر الحصول على استجابة من الخادم.",
+                  latency: healthLatencyMs,
+                  variant: apiLineOk ? "secondary" : "destructive" as const
+                },
+                { 
+                  id: "db", 
+                  label: "قاعدة البيانات (Local)", 
+                  ok: dbOk, 
+                  desc: dbOk ? "اتصال Drizzle/MySQL نشط ومستقر حالياً." : "فشل الاتصال بقاعدة البيانات المحلية.",
+                  error: health?.dbError,
+                  variant: dbOk ? "secondary" : "destructive" as const
+                },
+                { 
+                  id: "backup", 
+                  label: "نظام الأرشفة والنسخ", 
+                  ok: backupOk, 
+                  desc: backupOk ? "تقارير النسخ الاحتياطي تشير إلى توفر ملفات الأرشفة." : "لا تتوفر تقارير حديثة عن النسخ الاحتياطي.",
+                  tunnel: tunnelOk,
+                  variant: backupOk ? "secondary" : "outline" as const
+                }
+              ].map((s) => (
+                <div key={s.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className={cn("p-2 rounded-lg bg-background shadow-sm border", s.ok ? "text-emerald-600 border-emerald-100" : "text-destructive border-destructive/20")}>
+                      {s.ok ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-foreground/90">{s.label}</div>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground max-w-md">
+                        {s.desc} {s.latency && `زمن الاستجابة: ${s.latency} ms.`}
+                        {s.error && <span className="block mt-1 font-mono text-destructive/80">{s.error}</span>}
+                        {s.id === "backup" && <span className="block mt-1">نفق المزامنة: {s.tunnel ? "متصل" : "غير متصل"}</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={s.variant as any} className="shrink-0 font-bold px-3 py-0.5 text-[10px]">
+                    {s.ok ? "مستقر" : "تنبيه"}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-          <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              {dbOk ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600 shrink-0" /> : <XCircle className="mt-0.5 h-5 w-5 text-destructive shrink-0" />}
-              <div>
-                <div className="font-semibold">قاعدة البيانات</div>
-                <p className="text-sm text-muted-foreground">
-                  {dbOk ? "الاتصال متاح حسب تقرير الخادم." : "غير متصلة أو بلا تقرير."}
-                  {health?.dbError ? ` — ${health.dbError}` : ""}
-                </p>
-              </div>
-            </div>
-            <Badge variant={dbOk ? "secondary" : "destructive"} className="shrink-0 w-fit">
-              {dbOk ? "مستقر" : "خطأ"}
-            </Badge>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              {backupOk ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600 shrink-0" /> : <XCircle className="mt-0.5 h-5 w-5 text-muted-foreground shrink-0" />}
-              <div>
-                <div className="font-semibold">التخزين / النسخ الاحتياطي</div>
-                <p className="text-sm text-muted-foreground">
-                  {backupOk
-                    ? "تتوفر معلومات آخر نسخة من الخادم (لا يشمل نسبة امتلاء القرص)."
-                    : "لا توجد بيانات نسخ احتياطي من التقرير الحالي."}
-                  {health?.tunnelInfo ? ` — ${health.tunnelInfo}` : ""}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Tunnel: {tunnelOk ? "متصل" : "غير متصل"}
-                </p>
-              </div>
-            </div>
-            <Badge variant={backupOk ? "secondary" : "outline"} className="shrink-0 w-fit">
-              {backupOk ? "متوفر" : "غير مُبلَّغ"}
-            </Badge>
-          </div>
-
-          <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-3 text-xs text-muted-foreground leading-relaxed">
-            Web / منفذ dev (4000 أو 5173)، ومسار API المنفصل (3000)، يظهران في تقرير الخادم تحت الحقول web4000 / api3000 عند تشغيل بيئة التطوير المزدوجة.
-            <div className="mt-1">
-              Web: {health?.web4000 ? "نعم" : "لا"} · API مستقل: {health?.api3000 ? "نعم" : "لا"}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="border-border/80 bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">معلومات النظام</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              <div className="text-xs text-muted-foreground">الإصدار</div>
-              <div className="font-semibold dir-ltr text-right">{buildInfo.version}</div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              <div className="text-xs text-muted-foreground">وقت البناء</div>
-              <div className="font-semibold break-all">{buildInfo.buildTime}</div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              <div className="text-xs text-muted-foreground">مدة الجلسة (المتصفح)</div>
-              <div className="font-semibold">{formatSessionDuration(sessionMs)}</div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              <div className="text-xs text-muted-foreground">آخر نسخ احتياطي (تقرير)</div>
-              <div className="font-semibold break-all">{health?.latestBackupAt || "—"}</div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 sm:col-span-2">
-              <div className="text-xs text-muted-foreground">المنشأ / API</div>
-              <div className="break-all dir-ltr text-right text-xs">{buildInfo.origin} · {getApiOrigin()}</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80 bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">سجل مختصر (من بيانات هذه الشاشة)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-lg border border-border/70">
-              <Table dir="rtl">
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="text-right font-bold">التوقيت / المصدر</TableHead>
-                    <TableHead className="text-right font-bold">الحدث</TableHead>
-                    <TableHead className="text-center font-bold w-24">الحالة</TableHead>
+          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-muted/5 py-4">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Timer className="h-4 w-4 text-sky-600" />
+                سجل مختصر للأحداث
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table dir="rtl" className="text-right">
+                <TableHeader className="bg-sky-50/50">
+                  <TableRow className="hover:bg-transparent h-10">
+                    <TableHead className="text-right font-bold text-sky-900 text-xs">التوقيت</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 text-xs">الحدث</TableHead>
+                    <TableHead className="text-center font-bold text-sky-900 text-xs w-24">الحالة</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activityRows.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="max-w-[140px] text-xs text-muted-foreground break-all">{row.at}</TableCell>
-                      <TableCell className="text-sm">{row.label}</TableCell>
+                    <TableRow key={i} className="hover:bg-primary/[0.02]">
+                      <TableCell className="max-w-[140px] text-[10px] text-muted-foreground tabular-nums">{row.at}</TableCell>
+                      <TableCell className="text-xs font-medium">{row.label}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={row.ok ? "secondary" : "destructive"}>{row.ok ? "نجاح" : "تنبيه"}</Badge>
+                        <Badge variant={row.ok ? "secondary" : "destructive"} className="h-5 text-[9px] px-2">
+                          {row.ok ? "نجاح" : "فشل"}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border-border/80 bg-card shadow-sm md:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">ترحيلات قاعدة البيانات</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-sm">العدد: {migrationCount}</div>
-            <div className="text-sm text-muted-foreground">
-              {migrationsQuery.isLoading ? "جارٍ التحميل…" : migrationsQuery.isError ? "تعذّر الجلب" : "جاهز"}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Info Sidebar */}
+        <div className="lg:col-span-4 space-y-6">
+          <Card className="border-border/60 bg-card shadow-sm h-fit">
+            <CardHeader className="border-b bg-muted/5 py-4">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                بيانات البناء
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+               <div className="grid grid-cols-2 gap-3">
+                 {[
+                   { label: "الإصدار", value: buildInfo.version, mono: true },
+                   { label: "الجلسة", value: formatSessionDuration(sessionMs) },
+                   { label: "الترحيلات", value: migrationCount },
+                   { label: "البيئة", value: health?.env ?? "—" }
+                 ].map((i) => (
+                   <div key={i.label} className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                     <div className="text-[10px] text-muted-foreground font-bold mb-0.5">{i.label}</div>
+                     <div className={cn("text-xs font-bold truncate", i.mono && "font-mono")}>{i.value}</div>
+                   </div>
+                 ))}
+               </div>
+               <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                 <div className="text-[10px] text-muted-foreground font-bold mb-0.5">وقت البناء</div>
+                 <div className="text-xs font-mono break-all">{buildInfo.buildTime}</div>
+               </div>
+               <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                 <div className="text-[10px] text-muted-foreground font-bold mb-0.5">المنشأ / API</div>
+                 <div className="text-[10px] font-mono break-all" dir="ltr">{buildInfo.origin}</div>
+               </div>
+               <div className="pt-2 flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" className="flex-1 h-8 text-[11px] font-bold" onClick={() => void runApiProbe()}>فحص API يدوياً</Button>
+                  <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] font-bold" onClick={() => void copyBuildInfo()}>نسخ التقرير</Button>
+               </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-border/80 bg-card shadow-sm md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">تفاصيل البناء والفحص</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-xs break-all text-muted-foreground space-y-1">
-              <div>Health URL: {getApiUrl("/healthz")}</div>
-              <div>Viewport: {buildInfo.viewport}</div>
-              <div>CSS: {buildInfo.cssAsset}</div>
-              <div>UA: {buildInfo.userAgent}</div>
-              <div>API Probe: {probeResult}</div>
-              <div>Native Probe: {nativeProbeResult}</div>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <Card className="border-border/60 bg-card shadow-sm h-fit">
+            <CardHeader className="border-b bg-muted/5 py-4">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                تحكم الأدوات
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold">وضع فحص الموبايل</div>
+                  <div className="text-[10px] text-muted-foreground">تمييز التجاوزات في النماذج.</div>
+                </div>
+                <Switch checked={qaEnabled} onCheckedChange={toggleQa} />
+              </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-primary/25 bg-primary/5 text-primary"
-                onClick={() => void runApiProbe()}
+                className="w-full h-9 text-xs font-bold border-dashed text-amber-800 border-amber-200 bg-amber-50 hover:bg-amber-100"
+                onClick={() => void resetAppCache()}
               >
-                فحص API يدوياً
+                إعادة ضبط ذاكرة الكاش
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-amber-200 bg-amber-50 text-amber-800 dark:text-amber-950"
-                onClick={() => void copyBuildInfo()}
-              >
-                نسخ معلومات البناء
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      <Card className="border-border/80 bg-card shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">ضبط الجودة (موبايل)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm">إبراز التجاوز الأفقي في صفحات الشيتات</div>
-            <Switch checked={qaEnabled} onCheckedChange={toggleQa} />
-          </div>
-          <div className="text-xs text-muted-foreground">
-            عند التفعيل يُعلَّم تجاوز العرض بإطار أحمر منقط أثناء تصفّح الشيتات.
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-amber-200 bg-amber-50 text-amber-800 dark:text-amber-950"
-            onClick={() => void resetAppCache()}
-          >
-            إعادة ضبط كاش التطبيق
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

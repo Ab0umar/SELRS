@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
@@ -231,6 +232,8 @@ export default function MedicationsCatalogPage() {
             </Button>
           }
         />
+
+        <ServicesHubNav active="medications" className="mb-4" />
 
         <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-3 sm:gap-4")}>
           <StatCard

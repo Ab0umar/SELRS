@@ -1,18 +1,22 @@
+import { useMemo } from "react";
 import { useLocation, Link, Redirect } from "wouter";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
-  FileText,
   FlaskConical,
   LayoutGrid,
   Network,
   Pill,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
+import { SectionHeader } from "@/components/shared/SectionHeader";
+import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
+import { StatCard } from "@/components/shared/StatCard";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 
 type HubModuleCard = {
   href: string;
@@ -46,8 +50,8 @@ const MAIN_MODULES: HubModuleCard[] = [
   },
   {
     href: "/services-hub/txhub",
-    title: "TXhub تحاليل",
-    description: "ربط وإدارة نظام التحاليل الخارجي.",
+    title: "ربط النتائج الخارجية",
+    description: "استيراد نتائج المختبر والأشعة وربطها بالمدى الطبيعي.",
     icon: Network,
     iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
   },
@@ -57,8 +61,25 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ServicesHubShell() {
   const [location] = useLocation();
+  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, { refetchOnWindowFocus: false });
+  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, { refetchOnWindowFocus: false });
+  const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, { refetchOnWindowFocus: false });
 
   const isHubHome = location === "/services-hub" || location === "/services-hub/";
+  const stats = useMemo(() => {
+    const meds = medicationsQuery.data ?? [];
+    const tests = testsQuery.data ?? [];
+    const services = servicesQuery.data ?? [];
+    const txhub = tests.filter((row: any) => row.type === "lab" || row.type === "imaging");
+    return {
+      meds: meds.length,
+      tests: tests.length,
+      services: services.length,
+      txhub: txhub.length,
+    };
+  }, [medicationsQuery.data, testsQuery.data, servicesQuery.data]);
+
+  const loading = medicationsQuery.isLoading || testsQuery.isLoading || servicesQuery.isLoading;
 
   const renderComponent = () => {
     if (isHubHome) return null;
@@ -91,63 +112,104 @@ export default function ServicesHubShell() {
     <>
       <PageHeader
         title="مركز الخدمات"
-        subtitle="إدارة الخدمات الطبية والأدوية والفحوصات والتحاليل."
+        subtitle="مركز مرجعي للخدمات والأدوية والفحوصات والتحاليل. افتح الوحدة المناسبة ثم عد للمركز عند الحاجة."
         icon={<LayoutGrid className="h-5 w-5" />}
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.map((mod) => {
-          const Icon = mod.icon;
-          return (
-            <Card
-              key={mod.href}
-              className={cn(
-                "border-border/80 bg-card shadow-sm transition-all hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md",
-              )}
-            >
-              <CardContent className="flex h-full flex-col gap-4 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1 text-right">
-                    <h3 className="font-black text-base tracking-tight">{mod.title}</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{mod.description}</p>
-                  </div>
+      <ServicesHubNav active="hub" className="mb-4" />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="rounded-xl border border-border/80 bg-card shadow-sm">
+          <CardContent className="space-y-4 p-4 sm:p-5">
+            <SectionHeader
+              title="الوحدات المتصلة"
+              badge={<Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] font-bold">{MAIN_MODULES.length} صفحات</Badge>}
+            />
+
+            <div className="space-y-2">
+              {MAIN_MODULES.map((mod) => {
+                const Icon = mod.icon;
+                return (
                   <div
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
-                      mod.iconWrap,
-                    )}
+                    key={mod.href}
+                    className="flex flex-col gap-3 rounded-xl border border-border/80 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <Icon className="h-6 w-6" />
+                    <div className="flex min-w-0 items-start gap-3 text-right">
+                      <div
+                        className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", mod.iconWrap)}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-bold text-foreground">{mod.title}</h3>
+                          <span className="text-[11px] font-semibold text-muted-foreground">
+                            {mod.href.replace("/services-hub", "") || "/"}
+                          </span>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">{mod.description}</p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" className="w-full gap-2 rounded-lg sm:w-auto">
+                      <Link href={mod.href}>
+                        فتح
+                        <ArrowRight className="h-4 w-4 rotate-180" />
+                      </Link>
+                    </Button>
                   </div>
-                </div>
-                <div className="mt-auto pt-2">
-                  <Button asChild className="w-full selrs-gradient-btn text-white hover:opacity-95 gap-2">
-                    <Link href={mod.href}>
-                      <LayoutGrid className="h-4 w-4" />
-                      فتح الموديول
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                );
+              })}
+            </div>
+          </CardContent>
+        </section>
+
+        <aside className="space-y-4">
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1 text-right">
+                <h2 className="text-sm font-bold">لقطة مباشرة</h2>
+                <p className="text-[12px] leading-relaxed text-muted-foreground">
+                  الأرقام التالية تساعدك على معرفة أين تبدأ قبل فتح أي صفحة.
+                </p>
+              </div>
+              <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-bold">
+                مباشر
+              </Badge>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <StatCard title="الأدوية" value={loading ? "…" : stats.meds} />
+              <StatCard title="الفحوصات" value={loading ? "…" : stats.tests} />
+              <StatCard title="الخدمات" value={loading ? "…" : stats.services} />
+              <StatCard title="النتائج الخارجية" value={loading ? "…" : stats.txhub} />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/80 bg-muted/20 p-4 shadow-sm">
+            <div className="space-y-2 text-right">
+              <h2 className="text-sm font-bold">كيف يُستخدم</h2>
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                ابدأ من الأدوية أو السجل عندما تحتاج تعديل بيانات مرجعية، واستخدم كتالوج الفحوصات وTXhub عندما تعمل على
+                المعايير والنتائج.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {MORE_LINKS.length > 0 && (
-        <CollapsibleSection
-          title="روابط إضافية"
-          defaultOpen={false}
-          className="mt-8 border-border/80 bg-muted/20 shadow-sm"
-        >
-          <div className="flex flex-wrap gap-2 border-t border-border/60 px-4 py-4 justify-end bg-card/80">
-            {MORE_LINKS.map((item) => (
-              <Button key={item.href} variant="outline" size="sm" asChild className="rounded-full">
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
-            ))}
-          </div>
-        </CollapsibleSection>
+        <Card className="mt-4 border-border/80 bg-muted/20 shadow-sm">
+          <CardContent className="space-y-3 p-4">
+            <SectionHeader title="روابط إضافية" />
+            <div className="flex flex-wrap gap-2 justify-end">
+              {MORE_LINKS.map((item) => (
+                <Button key={item.href} variant="outline" size="sm" asChild className="rounded-full">
+                  <Link href={item.href}>{item.label}</Link>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </>
   );

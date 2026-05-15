@@ -8,6 +8,7 @@ export type FcmPushPayload = {
   body: string;
   kind?: "info" | "success" | "warning" | "error";
   targetRoles?: string[] | null;
+  targetUserIds?: number[] | null;
   path?: string | null;
   entityType?: string | null;
   entityId?: number | null;
@@ -151,6 +152,15 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
         )
       )
     : [];
+  const normalizedTargetUserIds = Array.isArray(payload.targetUserIds)
+    ? Array.from(
+        new Set(
+          payload.targetUserIds
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        )
+      )
+    : [];
   const userRoleCache = new Map<number, string>();
   let sent = 0;
   let skipped = 0;
@@ -161,8 +171,14 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
       skipped += 1;
       continue;
     }
+    const registrationUserId = Number((registration as any).userId ?? 0);
+    if (normalizedTargetUserIds.length > 0) {
+      if (!Number.isFinite(registrationUserId) || !normalizedTargetUserIds.includes(registrationUserId)) {
+        skipped += 1;
+        continue;
+      }
+    }
     if (normalizedTargetRoles.length > 0) {
-      const registrationUserId = Number((registration as any).userId ?? 0);
       if (!Number.isFinite(registrationUserId) || registrationUserId <= 0) {
         skipped += 1;
         continue;
@@ -198,6 +214,7 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
               notificationId: payload.notificationId,
               kind: payload.kind ?? "info",
               targetRoles: normalizedTargetRoles.join(","),
+              targetUserIds: normalizedTargetUserIds.join(","),
               path: payload.path ?? "",
               entityType: payload.entityType ?? "",
               entityId: payload.entityId == null ? "" : String(payload.entityId),

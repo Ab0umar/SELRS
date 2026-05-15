@@ -1,202 +1,125 @@
-import { CalendarPlus, Syringe, Trash2 } from "lucide-react";
-import { useState, Fragment } from "react";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { History, Syringe } from "lucide-react";
+import { useMemo, useState } from "react";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
-import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
+import { OperationsBookingInlinePanel } from "@/components/operations/OperationsBookingInlinePanel";
+import { OperationsSettlementRail } from "@/components/operations/OperationsSettlementRail";
 import { OperationsTabs } from "@/components/operations/OperationsTabs";
 import { OperationsTable } from "@/components/operations/OperationsTable";
-import { OperationTotals } from "@/components/operations/OperationTotals";
+import { OperationsHistoryDrawer } from "@/components/operations/OperationsHistoryDrawer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { TAB_OTHERS, operationTypeLabel } from "@/lib/operationsPricing";
 import { formatDayDate } from "@/hooks/operations/operationsShared";
 import { useOperations } from "@/hooks/operations/useOperations";
 import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
-import reportStyles from "@/pages/accounting/AccountingOpReport.module.css";
-import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+
+type SettlementFilter = "open" | "settled" | "all";
 
 export default function Operations() {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [settlementFilter, setSettlementFilter] = useState<SettlementFilter>("open");
+  const [settlementRailOpen, setSettlementRailOpen] = useState(false);
+
   const operations = useOperations();
   const actions = useOperationsActions(operations);
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const utils = trpc.useUtils();
 
-  const deleteBookingMutation = trpc.medical.deleteOperationBooking.useMutation({
-    onSuccess: async () => {
-      await utils.medical.getOperationBookings.invalidate();
-      await utils.medical.getTodayOperationLists.invalidate();
-      toast.success("تم حذف الحجز بنجاح");
-    },
-    onError: (error) => {
-      toast.error(getTrpcErrorMessage(error, "تعذر حذف الحجز"));
-    }
-  });
+  const decoratedRows = useMemo(() => {
+    return operations.currentList.map((row) => {
+      const values = operations.computeAccounting(row);
+      return {
+        row,
+        values,
+        isSettled: Math.abs(values.remainingAmount) < 0.01,
+      };
+    });
+  }, [operations.currentList, operations.computeAccounting]);
+
+  const openRows = decoratedRows.filter((entry) => !entry.isSettled).map((entry) => entry.row);
+  const settledRows = decoratedRows.filter((entry) => entry.isSettled).map((entry) => entry.row);
+  const visibleRows =
+    settlementFilter === "all" ? operations.currentList : settlementFilter === "open" ? openRows : settledRows;
 
   if (!operations.isAuthenticated) return null;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] print:max-w-none" dir="rtl">
-      <OperationsBookingQuickDialog
-        open={bookingOpen}
-        onOpenChange={setBookingOpen}
-        onSaved={() => {
-          void operations.historyQuery.refetch();
-          void operations.listQuery.refetch();
-          void operations.operationBookingsQuery.refetch();
-        }}
-        initialDate={String(operations.listDate)}
-        initialDoctorName={operations.doctorName}
-      />
-      <PageHeader
-        title="العمليات"
-        subtitle="قوائم العمليات والحسابات والسجل المحفوظ"
-        icon={<Syringe className="h-5 w-5" />}
+      <OperationsHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        historySearch={operations.historySearch}
+        onHistorySearchChange={operations.setHistorySearch}
+        activeTab={operations.activeTab}
+        historyQuery={operations.historyQuery}
+        onLoadListById={actions.handleLoadListById}
+      onDeleteListById={(args) => actions.deleteListByIdMutation.mutate(args)}
+        canManageList={operations.canManageList}
+        tabLabelByKey={operations.tabLabelByKey}
       />
 
-      <main className="mt-4 w-full space-y-4 print:p-0">
-        {operations.activeTab === TAB_OTHERS && (
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={() => setBookingOpen(true)}>
-              <CalendarPlus className="ml-2 h-4 w-4" />
-              حجز عملية
-            </Button>
+      {(operations.listQuery.isError ||
+        operations.historyQuery.isError ||
+        (operations.canOpenPricing && operations.pricingSettingQuery.isError) ||
+        operations.permissionsQuery.isError) && (
+        <div className="mb-4">
+          <OfflinePageState
+            title="تعذر مزامنة قوائم العمليات"
+            body="قد لا تكون آخر القوائم أو التسعير أو الصلاحيات محدثة الآن. أعد المحاولة بعد استقرار الاتصال."
+            onRetry={() => {
+              void operations.listQuery.refetch();
+              void operations.historyQuery.refetch();
+              void operations.pricingSettingQuery.refetch();
+              void operations.permissionsQuery.refetch();
+            }}
+          />
+        </div>
+      )}
+
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Syringe className="h-5 w-5" aria-hidden />
           </div>
-        )}
-        {(operations.listQuery.isError ||
-          operations.historyQuery.isError ||
-          (operations.canOpenPricing && operations.pricingSettingQuery.isError) ||
-          operations.permissionsQuery.isError) && (
-          <div className="mb-4">
-            <OfflinePageState
-              title="تعذر مزامنة قوائم العمليات"
-              body="قد لا تكون آخر القوائم أو التسعير أو الصلاحيات محدثة الآن. أعد المحاولة بعد استقرار الاتصال."
-              onRetry={() => {
-                void operations.listQuery.refetch();
+          <div className="min-w-0">
+            <div className="text-xs text-muted-foreground">العمليات</div>
+            <h1 className="text-base font-semibold text-foreground">العمليات</h1>
+            <div className="text-[11px] text-muted-foreground">
+              {formatDayDate(String(operations.listDate))} | {operations.currentList.length} حالة
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <OperationsTabs activeTab={operations.activeTab} onActiveTabChange={operations.setActiveTab} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-8"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History className="h-3.5 w-3.5" />
+            السجل
+          </Button>
+        </div>
+      </div>
+
+      <main className="space-y-4 print:p-0 print:space-y-0">
+        <div
+          className={[
+            "grid gap-4 xl:items-start xl:[direction:ltr]",
+            settlementRailOpen ? "xl:grid-cols-[minmax(0,1fr)_380px]" : "xl:grid-cols-[minmax(0,1fr)_56px]",
+          ].join(" ")}
+        >
+          <div className="space-y-4" dir="rtl">
+            <OperationsBookingInlinePanel
+              initialDate={String(operations.listDate)}
+              initialDoctorName={operations.doctorName}
+              onSaved={() => {
                 void operations.historyQuery.refetch();
-                void operations.pricingSettingQuery.refetch();
-                void operations.permissionsQuery.refetch();
+                void operations.listQuery.refetch();
+                void operations.operationBookingsQuery.refetch();
               }}
             />
-          </div>
-        )}
 
-        <OperationsTabs
-          activeTab={operations.activeTab}
-          canOpenAccounts={operations.canOpenAccounts}
-          onActiveTabChange={operations.setActiveTab}
-          onViewModeChange={operations.setViewMode}
-          viewMode={operations.viewMode}
-        />
-
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8 print:border-0 print:bg-transparent print:p-0 print:shadow-none">
-          {operations.activeTab === TAB_OTHERS && (
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold">حجوزات العمليات (MySQL)</h3>
-                <div className="text-xs text-muted-foreground tabular-nums">
-                  {formatDayDate(String(operations.listDate))}
-                </div>
-              </div>
-              {operations.operationBookingsQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground animate-pulse">جاري تحميل الحجوزات...</div>
-              ) : (operations.operationBookingsQuery.data ?? []).length === 0 ? (
-                <div className={reportStyles.emptyHint}>لا توجد حجوزات مسجلة لهذا التاريخ.</div>
-              ) : (
-                <div className={reportStyles.reportBlock}>
-                  <table className={reportStyles.gridTable}>
-                    <thead>
-                      <tr>
-                        <th className="font-bold">نوع العملية / التفاصيل</th>
-                        <th className="font-bold text-center w-24">الوقت</th>
-                        <th className="font-bold text-center w-20">العدد</th>
-                        <th className="font-bold text-center w-16">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const bookings = operations.operationBookingsQuery.data ?? [];
-                        const grouped: Record<string, typeof bookings> = {};
-                        for (const b of bookings) {
-                          const d = b.doctorName || "طبيب غير محدد";
-                          if (!grouped[d]) grouped[d] = [];
-                          grouped[d].push(b);
-                        }
-                        return Object.entries(grouped).map(([doctor, list]) => (
-                          <Fragment key={doctor}>
-                            <tr className={reportStyles.blockHeader}>
-                              <td colSpan={4} className="font-bold text-primary py-2.5">
-                                {doctor}
-                              </td>
-                            </tr>
-                            {list.map((booking: any) => (
-                              <tr key={booking.id} className="hover:bg-muted/10 transition-colors">
-                                <td className="px-8 text-muted-foreground whitespace-normal">
-                                  {operationTypeLabel(booking.operationType)}
-                                </td>
-                                <td className="text-center tabular-nums" dir="ltr">
-                                  {booking.bookingTime || "—"}
-                                </td>
-                                <td className="text-center font-bold tabular-nums">
-                                  {booking.casesCount}
-                                </td>
-                                <td className="text-center">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                    disabled={deleteBookingMutation.isPending}
-                                    onClick={() => {
-                                      if (window.confirm("هل أنت متأكد من حذف هذا الحجز؟")) {
-                                        deleteBookingMutation.mutate({ id: booking.id });
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </Fragment>
-                        ));
-                      })()}
-                    </tbody>
-                    <tfoot>
-                      <tr className={reportStyles.grandTotalRow}>
-                        <td className="font-bold px-4">إجمالي الحالات</td>
-                        <td />
-                        <td className="text-center font-bold tabular-nums">
-                          {(operations.operationBookingsQuery.data ?? []).reduce((acc: number, b: any) => acc + (b.casesCount || 0), 0)}
-                        </td>
-                        <td />
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-          {(operations.viewMode === "list" || operations.viewMode === "table" || operations.viewMode === "accounts") && (
-            <>
-              {/* القائمة (list) = table only | اللست (table) = form + table | الحسابات (accounts) = form + totals */}
-
-              {operations.viewMode === "list" && (
-                <OperationsTable
-                  canManageList={operations.canManageList}
-                  currentList={operations.currentList}
-                  exportDateLabel={operations.exportDateLabel}
-                  exportDoctorLabel={operations.exportDoctorLabel}
-                  exportTimeLabel={operations.exportTimeLabel}
-                  onDeleteRow={actions.handleDeleteRow}
-                  onUpdateRow={actions.handleUpdateRow}
-                  operationOptions={operations.operationOptions}
-                  operationType={operations.operationType}
-                />
-              )}
-
-              {(operations.viewMode === "table" || operations.viewMode === "accounts") && (
+            <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
+              <div className="border-b border-border/50 px-4 py-3">
                 <OperationDialog
                   activeTab={operations.activeTab}
                   compact={false}
@@ -229,12 +152,57 @@ export default function Operations() {
                   patientSearchQuery={operations.patientSearchQuery}
                   patientSearchTerm={operations.patientSearchTerm}
                 />
-              )}
+              </div>
+            </section>
 
-              {operations.viewMode === "table" && (
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                ["open", "المفتوحة", openRows.length],
+                ["settled", "المسددة", settledRows.length],
+                ["all", "الكل", operations.currentList.length],
+              ] as const).map(([key, label, count]) => {
+                const isActive = settlementFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSettlementFilter(key)}
+                    className={[
+                      "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                      isActive
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border/50 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40",
+                    ].join(" ")}
+                  >
+                    <span>{label}</span>
+                    <span className="rounded bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
+              <div className="border-b border-border/50 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold">قائمة العمليات</h2>
+                    <p className="text-[11px] text-muted-foreground">
+                      {settlementFilter === "open"
+                        ? "تظهر العناصر المفتوحة فقط"
+                        : settlementFilter === "settled"
+                          ? "تظهر العناصر المسددة فقط"
+                          : "تظهر كل العناصر"}
+                    </p>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground tabular-nums">
+                    المعروض: {visibleRows.length} / {operations.currentList.length}
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-3">
                 <OperationsTable
                   canManageList={operations.canManageList}
-                  currentList={operations.currentList}
+                  currentList={visibleRows}
                   exportDateLabel={operations.exportDateLabel}
                   exportDoctorLabel={operations.exportDoctorLabel}
                   exportTimeLabel={operations.exportTimeLabel}
@@ -243,102 +211,37 @@ export default function Operations() {
                   operationOptions={operations.operationOptions}
                   operationType={operations.operationType}
                 />
-              )}
-
-              {operations.viewMode === "accounts" && (
-                <OperationTotals
-                  accountingTotals={operations.accountingTotals}
-                  accountsAdjustmentInputs={operations.accountsAdjustmentInputs}
-                  accountsAdjustmentsTotal={operations.accountsAdjustmentsTotal}
-                  accountsNetAfterAdjustments={operations.accountsNetAfterAdjustments}
-                  canManageList={operations.canManageList}
-                  computeAccounting={operations.computeAccounting}
-                  currentList={operations.currentList}
-                  exportDateLabel={operations.exportDateLabel}
-                  exportDoctorLabel={operations.exportDoctorLabel}
-                  exportOperationLabel={operations.exportOperationLabel}
-                  exportTimeLabel={operations.exportTimeLabel}
-                  filteredSavedSummaries={operations.filteredSavedSummaries}
-                  onAccountsAdjustmentBlur={actions.handleAccountsAdjustmentInputBlur}
-                  onAccountsAdjustmentChange={actions.handleAccountsAdjustmentInputChange}
-                  onDeleteSavedSummary={actions.handleDeleteSavedSummary}
-                  onEditSavedSummary={actions.handleEditSavedSummary}
-                  onUpdateRow={actions.handleUpdateRow}
-                  operationType={operations.operationType}
-                  showSawafAdjustments={operations.showSawafAdjustments}
-                />
-              )}
-            </>
-          )}
-
-          {operations.viewMode === "history" && (
-            <div className="mt-6 border-t pt-4 print:hidden">
-              <h3 className="mb-3 text-sm font-bold">السجل السابق لقوائم العمليات</h3>
-              <div className="mb-3 flex justify-end">
-                <Input
-                  value={operations.historySearch}
-                  onChange={(event) => operations.setHistorySearch(event.target.value)}
-                  placeholder="ابحث داخل السجل باسم المريض"
-                  className="ml-auto w-full max-w-sm text-right"
-                  dir="rtl"
-                />
               </div>
-              {operations.historyQuery.isLoading && <div className="text-sm text-muted-foreground">جاري تحميل السجل...</div>}
-              {!operations.historyQuery.isLoading && (operations.historyQuery.data ?? []).length === 0 && (
-                <div className="text-sm text-muted-foreground">لا يوجد سجل محفوظ حالياً.</div>
-              )}
-              {!operations.historyQuery.isLoading && (operations.historyQuery.data ?? []).length > 0 && (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                  {(() => {
-                    const needle = operations.historySearch.trim().toLowerCase();
-                    const normalized = (value: unknown) => String(value ?? "").toLowerCase();
-                    const itemsWithMatches = (operations.historyQuery.data ?? [])
-                      .filter((item: any) => item.doctorTab === operations.activeTab)
-                      .map((item: any) => {
-                      const names = (item.items ?? []).map((entry: any) => String(entry.name ?? ""));
-                      const matches = needle ? names.filter((name: string) => normalized(name).includes(needle)) : names;
-                      return { item, matches, hasMatch: needle ? matches.length > 0 : true };
-                    });
-                    if (needle && itemsWithMatches.every(({ item }) => (item.items ?? []).length === 0)) {
-                      return <div className="text-sm text-muted-foreground">لا توجد نتائج مطابقة في السجل.</div>;
-                    }
-                    return [
-                      { key: "PRK / ليزك", match: ["PRK", "Lasik"] },
-                      { key: "مياه بيضاء", match: ["Cataract"] },
-                      { key: "أخرى", match: [null, "", "Other"] },
-                    ].map((group) => (
-                      <div key={group.key} className="rounded-md border p-2">
-                        <div className="mb-2 text-sm font-bold">{group.key}</div>
-                        <div className="flex flex-col gap-1">
-                          {itemsWithMatches
-                            .filter(({ item, hasMatch }) => hasMatch && group.match.includes(item.operationType ?? "Other"))
-                            .map(({ item, matches }) => (
-                              <div key={`${item.id}`} className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-muted/40">
-                                <button type="button" className="flex-1 text-right" onClick={() => actions.handleLoadListById(item.id)}>
-                                  <div className="text-sm font-medium">{item.doctorName ?? operations.tabLabelByKey(item.doctorTab)}</div>
-                                  <div className="text-xs text-muted-foreground" dir="ltr">
-                                    {formatDayDate(item.listDate)} {operationTypeLabel(item.operationType ?? "Other")} {matches[0] ?? item.items?.[0]?.name ?? " "}
-                                  </div>
-                                </button>
-                                <Button variant="outline" size="sm" onClick={() => actions.handleLoadListById(item.id)}>
-                                  تحميل
-                                </Button>
-                                <Button variant="destructive" size="sm" onClick={() => actions.deleteListByIdMutation.mutate({ listId: item.id })} disabled={!operations.canManageList}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          {itemsWithMatches.filter(({ item, hasMatch }) => hasMatch && group.match.includes(item.operationType ?? "Other")).length === 0 && (
-                            <div className="text-xs text-muted-foreground">لا توجد نتائج في هذا القسم</div>
-                          )}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          )}
+            </section>
+          </div>
+
+          <div className="xl:sticky xl:top-4" dir="rtl">
+            <OperationsSettlementRail
+              open={settlementRailOpen}
+              accountingTotals={operations.accountingTotals}
+              accountsAdjustmentInputs={operations.accountsAdjustmentInputs}
+              accountsAdjustmentsTotal={operations.accountsAdjustmentsTotal}
+              accountsNetAfterAdjustments={operations.accountsNetAfterAdjustments}
+              canManageList={operations.canManageList}
+              computeAccounting={operations.computeAccounting}
+              currentList={operations.currentList}
+              exportDateLabel={operations.exportDateLabel}
+              exportDoctorLabel={operations.exportDoctorLabel}
+              exportOperationLabel={operations.exportOperationLabel}
+              exportTimeLabel={operations.exportTimeLabel}
+              filteredSavedSummaries={operations.filteredSavedSummaries}
+              onAccountsAdjustmentBlur={actions.handleAccountsAdjustmentInputBlur}
+              onAccountsAdjustmentChange={actions.handleAccountsAdjustmentInputChange}
+              onDeleteSavedSummary={actions.handleDeleteSavedSummary}
+              onEditSavedSummary={actions.handleEditSavedSummary}
+              onUpdateRow={actions.handleUpdateRow}
+              operationType={operations.operationType}
+              showSawafAdjustments={operations.showSawafAdjustments}
+              openCount={openRows.length}
+              settledCount={settledRows.length}
+              onOpenChange={setSettlementRailOpen}
+            />
+          </div>
         </div>
       </main>
     </div>

@@ -3,15 +3,96 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Settings } from "lucide-react";
+import { Settings, LayoutDashboard, Users, FileHeart, Zap, Pill } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { cn } from "@/lib/utils";
+
+const VISIBILITY_GROUPS = [
+  {
+    title: "لوحات المعلومات العلوية",
+    description: "الكروت الرئيسية التي تظهر فوق الداشبورد الأساسي.",
+    color: "bg-sky-50 text-sky-700",
+    icon: LayoutDashboard,
+    options: [
+      { key: "showPatientDataPanel", label: "بيانات المريض" },
+      { key: "showMedicalFileCard", label: "ملف المريض" },
+      { key: "showTodayPatientsPanel", label: "مرضى اليوم" },
+    ],
+  },
+  {
+    title: "كروت الإدارة الأساسية",
+    description: "كروت الوصول السريع للمرضى، الفحوصات، والعمليات.",
+    color: "bg-primary/5 text-primary",
+    icon: Users,
+    options: [
+      { key: "showPatients", label: "المرضى" },
+      { key: "showExaminations", label: "الفحوصات" },
+      { key: "showAppointments", label: "العمليات" },
+      { key: "showVisits", label: "الزيارات" },
+      { key: "showFollowups", label: "المتابعات" },
+    ],
+  },
+  {
+    title: "كروت الفحوصات المتخصصة",
+    description: "كروت الوصول إلى أنواع معينة من الفحوصات والتقارير.",
+    color: "bg-emerald-50 text-emerald-700",
+    icon: FileHeart,
+    options: [
+      { key: "showPentacam", label: "بنتاكام" },
+      { key: "showRefraction", label: "مقاس النظارة" },
+      { key: "showMedicalReports", label: "التقارير الطبية" },
+      { key: "showPatientSummary", label: "التقرير المجمع" },
+    ],
+  },
+  {
+    title: "كروت مهام سير العمل",
+    description: "أدوات الإدخال السريع والمهام التشغيلية اليومية.",
+    color: "bg-amber-50 text-amber-700",
+    icon: Zap,
+    options: [
+      { key: "showQuickEntry", label: "إدخال سريع" },
+      { key: "showNewCases", label: "الحالات الجديدة" },
+      { key: "showFollowupForm", label: "نموذج المتابعة" },
+      { key: "showDoctorView", label: "رؤية الطبيب" },
+    ],
+  },
+  {
+    title: "كروت الأدوية والروشتات",
+    description: "الوصول السريع إلى الروشتات، الأدوية، والتحاليل.",
+    color: "bg-violet-50 text-violet-600",
+    icon: Pill,
+    options: [
+      { key: "showPrescription", label: "الروشتة" },
+      { key: "showRequestTests", label: "طلب الفحوصات" },
+      { key: "showMedicationsTests", label: "الأدوية والفحوصات" },
+    ],
+  },
+  {
+    title: "كروت إدارية متقدمة",
+    description: "أدوات إدارية خاصة بالتسعير والنسخ.",
+    color: "bg-muted text-muted-foreground",
+    icon: Settings,
+    options: [
+      { key: "showPricingRules", label: "تسعير العمليات" },
+      { key: "showSheetCopies", label: "نسخة الشيتات" },
+    ],
+  },
+];
+
+type VisibilityState = Record<(typeof VISIBILITY_GROUPS)[number]["options"][number]["key"], boolean>;
+
+const defaultVisibilityState: VisibilityState = VISIBILITY_GROUPS.flatMap(g => g.options).reduce((acc, opt) => {
+  acc[opt.key as keyof VisibilityState] = true;
+  return acc;
+}, {} as VisibilityState);
+
 
 export default function AdminCardVisibility() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
-  // Card visibility settings
   const cardVisibilityQuery = trpc.medical.getDashboardCardVisibility.useQuery(undefined, {
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
@@ -28,87 +109,39 @@ export default function AdminCardVisibility() {
     },
   });
 
-  // Local state for all visibility flags
-  const [showPatientDataPanel, setShowPatientDataPanel] = useState(true);
-  const [showMedicalFileCard, setShowMedicalFileCard] = useState(true);
-  const [showTodayPatientsPanel, setShowTodayPatientsPanel] = useState(true);
-  const [showPatients, setShowPatients] = useState(true);
-  const [showPatientFile, setShowPatientFile] = useState(true);
-  const [showExaminations, setShowExaminations] = useState(true);
-  const [showPentacam, setShowPentacam] = useState(true);
-  const [showAppointments, setShowAppointments] = useState(true);
-  const [showPricingRules, setShowPricingRules] = useState(true);
-  const [showMedicalReports, setShowMedicalReports] = useState(true);
-  const [showPatientSummary, setShowPatientSummary] = useState(true);
-  const [showPrescription, setShowPrescription] = useState(true);
-  const [showRefraction, setShowRefraction] = useState(true);
-  const [showRequestTests, setShowRequestTests] = useState(true);
-  const [showMedicationsTests, setShowMedicationsTests] = useState(true);
-  const [showVisits, setShowVisits] = useState(true);
-  const [showFollowups, setShowFollowups] = useState(true);
-  const [showQuickEntry, setShowQuickEntry] = useState(true);
-  const [showNewCases, setShowNewCases] = useState(true);
-  const [showFollowupForm, setShowFollowupForm] = useState(true);
-  const [showDoctorView, setShowDoctorView] = useState(true);
-  const [showSheetCopies, setShowSheetCopies] = useState(true);
-
-  // Load visibility from server
-  useEffect(() => {
-    if (cardVisibilityQuery.data) {
-      setShowPatientDataPanel(cardVisibilityQuery.data.showPatientDataPanel);
-      setShowMedicalFileCard(cardVisibilityQuery.data.showMedicalFileCard);
-      setShowTodayPatientsPanel(cardVisibilityQuery.data.showTodayPatientsPanel);
-      setShowPatients(cardVisibilityQuery.data.showPatients);
-      setShowPatientFile(cardVisibilityQuery.data.showPatientFile);
-      setShowExaminations(cardVisibilityQuery.data.showExaminations);
-      setShowPentacam(cardVisibilityQuery.data.showPentacam);
-      setShowAppointments(cardVisibilityQuery.data.showAppointments);
-      setShowPricingRules(cardVisibilityQuery.data.showPricingRules);
-      setShowMedicalReports(cardVisibilityQuery.data.showMedicalReports);
-      setShowPatientSummary(cardVisibilityQuery.data.showPatientSummary);
-      setShowPrescription(cardVisibilityQuery.data.showPrescription);
-      setShowRefraction(cardVisibilityQuery.data.showRefraction);
-      setShowRequestTests(cardVisibilityQuery.data.showRequestTests);
-      setShowMedicationsTests(cardVisibilityQuery.data.showMedicationsTests);
-      setShowVisits(cardVisibilityQuery.data.showVisits);
-      setShowFollowups(cardVisibilityQuery.data.showFollowups);
-      setShowQuickEntry(cardVisibilityQuery.data.showQuickEntry);
-      setShowNewCases(cardVisibilityQuery.data.showNewCases);
-      setShowFollowupForm(cardVisibilityQuery.data.showFollowupForm);
-      setShowDoctorView(cardVisibilityQuery.data.showDoctorView);
-      setShowSheetCopies(cardVisibilityQuery.data.showSheetCopies);
+  const [visibilityState, setVisibilityState] = useState<VisibilityState>(defaultVisibilityState);
+  
+  const serverState = useMemo<VisibilityState | null>(() => {
+    if(!cardVisibilityQuery.data) return null;
+    const state: Partial<VisibilityState> = {};
+    for (const key in defaultVisibilityState) {
+      if (typeof (cardVisibilityQuery.data as any)[key] === 'boolean') {
+        (state as any)[key] = (cardVisibilityQuery.data as any)[key];
+      } else {
+        (state as any)[key] = true; // Default to true if missing from server
+      }
     }
+    return state as VisibilityState;
   }, [cardVisibilityQuery.data]);
+  
+  useEffect(() => {
+    if (serverState) {
+      setVisibilityState(serverState);
+    }
+  }, [serverState]);
 
-  const handleSave = () => {
-    const newVisibility = {
-      showPatientDataPanel,
-      showMedicalFileCard,
-      showTodayPatientsPanel,
-      showPatients,
-      showPatientFile,
-      showExaminations,
-      showPentacam,
-      showAppointments,
-      showPricingRules,
-      showMedicalReports,
-      showPatientSummary,
-      showPrescription,
-      showRefraction,
-      showRequestTests,
-      showMedicationsTests,
-      showVisits,
-      showFollowups,
-      showQuickEntry,
-      showNewCases,
-      showFollowupForm,
-      showDoctorView,
-      showSheetCopies,
-    };
-
-    updateCardVisibilityMutation.mutate(newVisibility);
+  const handleToggle = (key: keyof VisibilityState, checked: boolean) => {
+    setVisibilityState(prev => ({ ...prev, [key]: checked }));
   };
 
+  const handleSave = () => {
+    const payload: Partial<Record<keyof VisibilityState, boolean>> = {};
+    for (const key in visibilityState) {
+      payload[key as keyof VisibilityState] = visibilityState[key as keyof VisibilityState];
+    }
+    updateCardVisibilityMutation.mutate(payload as any);
+  };
+  
   if (user?.role !== "admin") {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -120,225 +153,53 @@ export default function AdminCardVisibility() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-right">إعدادات عرض الكروت</h1>
-        <p className="text-right text-slate-600">إدارة ظهور وإخفاء الكروت في الداشبورد</p>
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
+      <PageHeader
+        title="إعدادات عرض الكروت"
+        subtitle="إدارة ظهور وإخفاء الكروت في الداشبورد الرئيسي لتحسين تركيز المستخدم."
+        icon={<Settings className="h-5 w-5 text-primary" />}
+        action={
+          <Button
+            onClick={handleSave}
+            disabled={updateCardVisibilityMutation.isPending || cardVisibilityQuery.isLoading}
+            size="sm"
+            className="selrs-gradient-btn text-white h-9 px-6 font-bold shadow-sm"
+          >
+            {updateCardVisibilityMutation.isPending ? "جاري الحفظ..." : "حفظ الإعدادات"}
+          </Button>
+        }
+      />
+      
+      <div className="space-y-6">
+        {VISIBILITY_GROUPS.map(group => {
+          const Icon = group.icon;
+          return (
+            <Card key={group.title} className="border-border/60 bg-card shadow-sm overflow-hidden">
+              <CardHeader className={cn("border-b py-4", group.color, "bg-opacity-20")}>
+                <div className="flex items-center gap-3">
+                  <Icon className="h-5 w-5" />
+                  <CardTitle className="text-sm font-bold">{group.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {group.options.map(option => (
+                    <label key={option.key} className="flex items-center gap-3 cursor-pointer rounded-lg border p-3 bg-background hover:bg-muted/40 transition-colors">
+                      <Checkbox
+                        checked={visibilityState[option.key as keyof VisibilityState]}
+                        onCheckedChange={(checked) => handleToggle(option.key as keyof VisibilityState, Boolean(checked))}
+                        disabled={updateCardVisibilityMutation.isPending}
+                        className="h-5 w-5 border-2"
+                      />
+                      <span className="text-xs font-bold text-foreground/80">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
-
-      <Card>
-        <CardHeader className="text-right">
-          <div className="flex items-center justify-end gap-2">
-            <Settings className="h-5 w-5" />
-            <CardTitle>الكروت المتاحة</CardTitle>
-          </div>
-          <CardDescription className="text-right">
-            اختر الكروت التي تريد عرضها في الداشبورد
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Panel Cards */}
-          <div className="space-y-3 border-b pb-4">
-            <h3 className="font-semibold text-right text-sm">كروت اللوحة العلوية</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPatientDataPanel}
-                  onCheckedChange={(checked) => setShowPatientDataPanel(Boolean(checked))}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">بيانات المريض</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showMedicalFileCard}
-                  onCheckedChange={(checked) => setShowMedicalFileCard(Boolean(checked))}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">ملف المريض</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showTodayPatientsPanel}
-                  onCheckedChange={(checked) => setShowTodayPatientsPanel(Boolean(checked))}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">مرضى اليوم</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Dashboard Cards */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-right text-sm">كروت الداشبورد</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPatients}
-                  onCheckedChange={(checked) => setShowPatients(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">المرضى</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPatientFile}
-                  onCheckedChange={(checked) => setShowPatientFile(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">ملف المريض 2</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showExaminations}
-                  onCheckedChange={(checked) => setShowExaminations(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">الفحوصات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPentacam}
-                  onCheckedChange={(checked) => setShowPentacam(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">بنتاكام</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showAppointments}
-                  onCheckedChange={(checked) => setShowAppointments(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">العمليات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPricingRules}
-                  onCheckedChange={(checked) => setShowPricingRules(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">تسعير العمليات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showMedicalReports}
-                  onCheckedChange={(checked) => setShowMedicalReports(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">التقارير</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPatientSummary}
-                  onCheckedChange={(checked) => setShowPatientSummary(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">التقرير المجمع</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showPrescription}
-                  onCheckedChange={(checked) => setShowPrescription(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">الروشتة</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showRefraction}
-                  onCheckedChange={(checked) => setShowRefraction(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">مقاس النظاره</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showRequestTests}
-                  onCheckedChange={(checked) => setShowRequestTests(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">طلب الفحوصات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showMedicationsTests}
-                  onCheckedChange={(checked) => setShowMedicationsTests(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">الأدوية والفحوصات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showVisits}
-                  onCheckedChange={(checked) => setShowVisits(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">الزيارات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showFollowups}
-                  onCheckedChange={(checked) => setShowFollowups(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">المتابعات</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showQuickEntry}
-                  onCheckedChange={(checked) => setShowQuickEntry(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">إدخال سريع</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showNewCases}
-                  onCheckedChange={(checked) => setShowNewCases(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">الحالات الجديدة</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showFollowupForm}
-                  onCheckedChange={(checked) => setShowFollowupForm(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">نموذج المتابعة</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showDoctorView}
-                  onCheckedChange={(checked) => setShowDoctorView(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">رؤية الطبيب</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={showSheetCopies}
-                  onCheckedChange={(checked) => setShowSheetCopies(checked as boolean)}
-                  disabled={updateCardVisibilityMutation.isPending}
-                />
-                <span className="text-sm">نسخة الشيتات</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              onClick={handleSave}
-              disabled={updateCardVisibilityMutation.isPending || cardVisibilityQuery.isLoading}
-              size="lg"
-            >
-              {updateCardVisibilityMutation.isPending ? "جاري الحفظ..." : "حفظ الإعدادات"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

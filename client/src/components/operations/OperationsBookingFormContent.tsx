@@ -16,6 +16,8 @@ export type OperationsBookingFormContentProps = {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  submitLabel?: string;
+  cancelLabel?: string;
 };
 
 export function OperationsBookingFormContent({
@@ -24,6 +26,8 @@ export function OperationsBookingFormContent({
   onSubmit,
   onCancel,
   isSubmitting,
+  submitLabel = "حفظ الحجز",
+  cancelLabel = "إلغاء",
 }: OperationsBookingFormContentProps) {
   return (
     <form
@@ -34,101 +38,94 @@ export function OperationsBookingFormContent({
         onSubmit();
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex items-center gap-3">
-          <Label htmlFor="operation-booking-date" className="w-24 shrink-0 text-right">
-            تاريخ الحجز
-          </Label>
-          <Input
-            id="operation-booking-date"
-            type="date"
-            value={draft.bookingDate}
-            onChange={(event) => onChange("bookingDate", event.target.value)}
-            className="flex-1"
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Right Column: Doctor & Date */}
+        <div className="space-y-3">
+          <div>
+            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الطبيب المعالج</Label>
+            <Input
+              value={draft.doctorName}
+              onChange={(event) => onChange("doctorName", event.target.value)}
+              placeholder="اسم الطبيب..."
+              className="h-9 text-sm font-medium bg-white"
+            />
+          </div>
+          <div>
+            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">تاريخ العملية</Label>
+            <Input
+              type="date"
+              value={draft.bookingDate}
+              onChange={(event) => onChange("bookingDate", event.target.value)}
+              className="h-9 text-sm font-mono bg-white"
+            />
+          </div>
+          <div>
+            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">اليوم (اختياري)</Label>
+            <Input
+              value={draft.weekdayLabel ?? ""}
+              onChange={(event) => onChange("weekdayLabel", event.target.value)}
+              placeholder="السبت، الأحد..."
+              className="h-9 text-sm bg-white"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Label htmlFor="operation-booking-time" className="w-24 shrink-0 text-right">
-            الوقت
-          </Label>
-          <Input
-            id="operation-booking-time"
-            type="time"
-            value={draft.bookingTime}
-            onChange={(event) => onChange("bookingTime", event.target.value)}
-            className="flex-1"
-          />
-        </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        <Label htmlFor="operation-booking-doctor" className="w-24 shrink-0 text-right">
-          الطبيب
-        </Label>
-        <Input
-          id="operation-booking-doctor"
-          value={draft.doctorName}
-          onChange={(event) => onChange("doctorName", event.target.value)}
-          placeholder="اسم الطبيب"
-          className="flex-1"
-        />
-      </div>
+        {/* Left Column: Operation Details */}
+        <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100 space-y-3 h-full">
+          <div>
+            <Label className="font-bold text-[11px] text-emerald-900 mb-1 block">نوع العملية</Label>
+            <Input
+              list="operation-booking-types"
+              value={draft.operationType}
+              onChange={(event) => onChange("operationType", event.target.value)}
+              placeholder="ابحث عن العملية..."
+              className="h-9 text-sm font-semibold bg-white border-emerald-200"
+            />
+            <datalist id="operation-booking-types">
+              {Object.keys(OPERATION_LABELS).map((key) => (
+                <option key={key} value={key}>
+                  {OPERATION_LABELS[key]}
+                </option>
+              ))}
+            </datalist>
+          </div>
 
-      <div className="flex items-center gap-3">
-        <Label htmlFor="operation-booking-type" className="w-24 shrink-0 text-right">
-          نوع العملية
-        </Label>
-        <Input
-          id="operation-booking-type"
-          list="operation-booking-types"
-          value={draft.operationType}
-          onChange={(event) => onChange("operationType", event.target.value)}
-          placeholder="نوع العملية"
-          className="flex-1"
-        />
-        <datalist id="operation-booking-types">
-          {Object.keys(OPERATION_LABELS).map((key) => (
-            <option key={key} value={key}>
-              {OPERATION_LABELS[key]}
-            </option>
-          ))}
-        </datalist>
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="font-bold text-[11px] text-emerald-900 mb-1 block">الوقت</Label>
+              <Input
+                type="time"
+                value={draft.bookingTime}
+                onChange={(event) => onChange("bookingTime", event.target.value)}
+                className="h-9 text-sm font-mono bg-white border-emerald-200"
+              />
+            </div>
+            <div>
+              <Label className="font-bold text-[11px] text-emerald-900 mb-1 block">عدد الحالات</Label>
+              <Input
+                type="number"
+                min={1}
+                value={draft.casesCount}
+                onChange={(event) => onChange("casesCount", Number(event.target.value) || 1)}
+                className="h-9 text-sm text-center font-bold bg-white border-emerald-200"
+              />
+            </div>
+          </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex items-center gap-3">
-          <Label htmlFor="operation-booking-cases" className="w-24 shrink-0 text-right">
-            عدد الحالات
-          </Label>
-          <Input
-            id="operation-booking-cases"
-            type="number"
-            min={1}
-            value={draft.casesCount}
-            onChange={(event) => onChange("casesCount", Number(event.target.value) || 1)}
-            className="flex-1"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <Label htmlFor="operation-booking-weekday" className="w-24 shrink-0 text-right">
-            اليوم
-          </Label>
-          <Input
-            id="operation-booking-weekday"
-            value={draft.weekdayLabel ?? ""}
-            onChange={(event) => onChange("weekdayLabel", event.target.value)}
-            placeholder="اختياري"
-            className="flex-1"
-          />
+          <div className="pt-2">
+            <p className="text-[10px] text-emerald-800 leading-tight">
+              * سيتم حجز غرفة العمليات للطبيب في الموعد المحدد.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          إلغاء
+      <div className="flex justify-end gap-2 pt-2 border-t mt-4">
+        <Button type="button" variant="ghost" className="h-9 text-sm" onClick={onCancel} disabled={isSubmitting}>
+          {cancelLabel}
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          حفظ الحجز
+        <Button type="submit" className="h-9 text-sm px-8 font-bold bg-emerald-600 hover:bg-emerald-700" disabled={isSubmitting}>
+          {isSubmitting ? "جاري الحفظ..." : submitLabel}
         </Button>
       </div>
     </form>

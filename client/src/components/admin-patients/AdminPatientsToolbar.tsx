@@ -102,7 +102,7 @@ export function AdminPatientsToolbar({
               className="min-w-0 w-full flex-1 md:min-w-[220px]"
             />
             <Select value={doctorFilter} onValueChange={onDoctorFilterChange}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[140px]">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[140px]" aria-label="تصفية حسب الطبيب">
                 <SelectValue placeholder="كل الأطباء" />
               </SelectTrigger>
               <SelectContent>
@@ -115,7 +115,7 @@ export function AdminPatientsToolbar({
               </SelectContent>
             </Select>
             <Select value={serviceTypeFilter} onValueChange={(value) => onServiceTypeFilterChange(value as "all" | SheetTypeChoice)}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[130px]">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[130px]" aria-label="تصفية حسب نوع الخدمة">
                 <SelectValue placeholder="كل الأنواع" />
               </SelectTrigger>
               <SelectContent>
@@ -130,7 +130,7 @@ export function AdminPatientsToolbar({
               </SelectContent>
             </Select>
             <Select value={locationFilter} onValueChange={(value) => onLocationFilterChange(value as "all" | "center" | "external")}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[120px]">
+              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[120px]" aria-label="تصفية حسب المكان">
                 <SelectValue placeholder="كل الأماكن" />
               </SelectTrigger>
               <SelectContent>
@@ -150,6 +150,7 @@ export function AdminPatientsToolbar({
                 className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
+                aria-label="تاريخ البداية"
               />
             </div>
             <span className="text-sm text-muted-foreground">إلى:</span>
@@ -163,6 +164,7 @@ export function AdminPatientsToolbar({
                 className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
+                aria-label="تاريخ النهاية"
               />
             </div>
             <Button

@@ -4,12 +4,55 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit2, Shield, UserCheck, UserRound, UserX, RotateCcw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Shield,
+  UserCheck,
+  UserRound,
+  UserX,
+  RotateCcw,
+} from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -17,8 +60,22 @@ import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { PAGE_PERMISSION_DEFINITIONS, getPagePermissionGroup } from "@/lib/page-permissions";
-type UserRole = "admin" | "doctor" | "nurse" | "technician" | "reception" | "manager" | "accountant";
+import {
+  PAGE_PERMISSION_DEFINITIONS,
+  getPagePermissionGroup,
+} from "@/lib/page-permissions";
+import {
+  getUserRiskActionCopy,
+  type UserRiskAction,
+} from "./admin-users-actions";
+type UserRole =
+  | "admin"
+  | "doctor"
+  | "nurse"
+  | "technician"
+  | "reception"
+  | "manager"
+  | "accountant";
 type UserBranch = "examinations" | "surgery" | "both";
 type TeamPermissionsMap = Record<UserRole, string[]>;
 
@@ -83,13 +140,20 @@ function roleLabelAr(role: UserRole): string {
 
 function roleBadgeClass(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    manager: "bg-rose-100 text-rose-900 border-0 dark:bg-rose-950/50 dark:text-rose-100",
-    doctor: "bg-sky-100 text-sky-900 border-0 dark:bg-sky-950/55 dark:text-sky-100",
-    reception: "bg-emerald-100 text-emerald-900 border-0 dark:bg-emerald-950/55 dark:text-emerald-100",
-    nurse: "bg-violet-100 text-violet-900 border-0 dark:bg-violet-950/55 dark:text-violet-100",
-    technician: "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-100",
-    accountant: "bg-cyan-100 text-cyan-900 border-0 dark:bg-cyan-950/50 dark:text-cyan-100",
-    admin: "bg-slate-200 text-slate-900 border-0 dark:bg-slate-800 dark:text-slate-100",
+    manager:
+      "bg-rose-100 text-rose-900 border-0 dark:bg-rose-950/50 dark:text-rose-100",
+    doctor:
+      "bg-sky-100 text-sky-900 border-0 dark:bg-sky-950/55 dark:text-sky-100",
+    reception:
+      "bg-emerald-100 text-emerald-900 border-0 dark:bg-emerald-950/55 dark:text-emerald-100",
+    nurse:
+      "bg-violet-100 text-violet-900 border-0 dark:bg-violet-950/55 dark:text-violet-100",
+    technician:
+      "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-100",
+    accountant:
+      "bg-cyan-100 text-cyan-900 border-0 dark:bg-cyan-950/50 dark:text-cyan-100",
+    admin:
+      "bg-slate-200 text-slate-900 border-0 dark:bg-slate-800 dark:text-slate-100",
   };
   return map[role] ?? "bg-muted text-foreground border-0";
 }
@@ -118,7 +182,7 @@ function shiftLabelAr(s: 1 | 2): string {
   return s === 2 ? "مساء (2)" : "صباح (1)";
 }
 
-/** Checkbox list — synced with Admin Permissions (`lib/page-permissions`). */
+/** Checkbox list synced with Admin Permissions (`lib/page-permissions`). */
 const PAGE_PERMISSIONS = PAGE_PERMISSION_DEFINITIONS;
 
 const DEFAULT_ROLE: UserRole = "doctor";
@@ -140,6 +204,15 @@ function permissionBaseSet(paths: string[]): Set<string> {
   return new Set(normalizePermissionIdsForCheckbox(paths));
 }
 
+function getUserDisplayName(u: Pick<User, "name" | "username">): string {
+  return String(u.name?.trim() || u.username || "المستخدم");
+}
+
+type PendingRiskAction = {
+  action: UserRiskAction;
+  user: User;
+};
+
 export default function AdminUsers() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -147,9 +220,12 @@ export default function AdminUsers() {
   const usersQuery = trpc.medical.getAllUsers.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
-  const teamPermissionsQuery = trpc.medical.getTeamPermissions.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
+  const teamPermissionsQuery = trpc.medical.getTeamPermissions.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const createUserMutation = trpc.medical.createUser.useMutation({
     onSuccess: () => {
@@ -165,16 +241,17 @@ export default function AdminUsers() {
     },
   });
 
-  const setUserPermissionsMutation = trpc.medical.setUserPermissions.useMutation({
-    onSuccess: () => {
-      toast.success("Permissions updated successfully.");
-      // Invalidate all users' permission caches so they get updated permissions on next query
-      utils.medical.getMyPermissions.invalidate();
-      utils.medical.getUserPermissionState.invalidate();
-      // Invalidate system settings so pricing and other permission-checked settings reload
-      utils.medical.getSystemSetting.invalidate();
-    },
-  });
+  const setUserPermissionsMutation =
+    trpc.medical.setUserPermissions.useMutation({
+      onSuccess: () => {
+        toast.success("Permissions updated successfully.");
+        // Invalidate all users' permission caches so they get updated permissions on next query
+        utils.medical.getMyPermissions.invalidate();
+        utils.medical.getUserPermissionState.invalidate();
+        // Invalidate system settings so pricing and other permission-checked settings reload
+        utils.medical.getSystemSetting.invalidate();
+      },
+    });
 
   const deleteUserMutation = trpc.medical.deleteUser.useMutation({
     onSuccess: () => {
@@ -210,25 +287,32 @@ export default function AdminUsers() {
   });
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [pendingRiskAction, setPendingRiskAction] =
+    useState<PendingRiskAction | null>(null);
   const userStateQuery = trpc.medical.getUserPageState.useQuery(
     { page: "admin-users" },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didHydrateUserStateRef = useRef(false);
   const lastPermissionSyncRef = useRef("");
-  const isSaving = createUserMutation.isPending || updateUserMutation.isPending || setUserPermissionsMutation.isPending;
+  const isSaving =
+    createUserMutation.isPending ||
+    updateUserMutation.isPending ||
+    setUserPermissionsMutation.isPending;
 
   const permissionStateQuery = trpc.medical.getUserPermissionState.useQuery(
     { userId: editUserId ?? 0 },
     {
       enabled: Boolean(editUserId) && isEditOpen,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const roleDefaults = useMemo<TeamPermissionsMap>(() => {
@@ -258,7 +342,8 @@ export default function AdminUsers() {
     if (!data) return;
     if (didHydrateUserStateRef.current) return;
     if (data.searchTerm !== undefined) setSearchTerm(data.searchTerm ?? "");
-    if (data.statusFilter !== undefined) setStatusFilter(data.statusFilter ?? "all");
+    if (data.statusFilter !== undefined)
+      setStatusFilter(data.statusFilter ?? "all");
     if (data.roleFilter !== undefined && data.roleFilter !== null) {
       const rf = String(data.roleFilter);
       const allowed = new Set(ROLE_TABS.map((r) => r.value));
@@ -291,13 +376,19 @@ export default function AdminUsers() {
 
   if (user?.role !== "admin") {
     return (
-      <div className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-right sm:px-0" dir="rtl">
+      <div
+        className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-right sm:px-0"
+        dir="rtl"
+      >
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-700">Access Denied</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-600">You do not have permission to access this page. Admin role is required.</p>
+            <p className="text-red-600">
+              You do not have permission to access this page. Admin role is
+              required.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -364,7 +455,6 @@ export default function AdminUsers() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await deleteUserMutation.mutateAsync({ userId: id });
     } catch (error) {
@@ -384,7 +474,6 @@ export default function AdminUsers() {
   };
 
   const handleResetUserPermissionsToRole = async (u: User) => {
-    if (!window.confirm(`Reset permissions for "${u.name ?? u.username}" to role defaults?`)) return;
     try {
       await setUserPermissionsMutation.mutateAsync({
         userId: u.id,
@@ -395,19 +484,41 @@ export default function AdminUsers() {
       await utils.medical.getUserPermissionState.invalidate();
       await utils.medical.getMyPermissions.invalidate();
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to reset user permissions."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to reset user permissions."),
+      );
     }
+  };
+
+  const requestRiskAction = (action: UserRiskAction, targetUser: User) => {
+    setPendingRiskAction({ action, user: targetUser });
+  };
+
+  const confirmPendingRiskAction = async () => {
+    if (!pendingRiskAction) return;
+    const { action, user: targetUser } = pendingRiskAction;
+    if (action === "delete") {
+      await handleDelete(targetUser.id);
+    } else if (action === "reset-permissions") {
+      await handleResetUserPermissionsToRole(targetUser);
+    } else {
+      await handleToggleActive(targetUser);
+    }
+    setPendingRiskAction(null);
   };
 
   useEffect(() => {
     if (!isEditOpen || !permissionStateQuery.data) return;
-    const incomingPages = normalizePermissionIdsForCheckbox(permissionStateQuery.data.pageIds);
+    const incomingPages = normalizePermissionIdsForCheckbox(
+      permissionStateQuery.data.pageIds,
+    );
     const signature = JSON.stringify({
       userId: editUserId,
       role: editUser.role,
       hasOverride: permissionStateQuery.data.hasOverride,
       hasInheritExtrasMarker: permissionStateQuery.data.hasInheritExtrasMarker,
-      hasExplicitEmptyOverride: permissionStateQuery.data.hasExplicitEmptyOverride,
+      hasExplicitEmptyOverride:
+        permissionStateQuery.data.hasExplicitEmptyOverride,
       pages: incomingPages.slice().sort(),
     });
     if (lastPermissionSyncRef.current === signature) return;
@@ -415,34 +526,51 @@ export default function AdminUsers() {
 
     if (permissionStateQuery.data.hasExplicitEmptyOverride) {
       setEditPermissions([]);
-      setEditUser((prev) => (prev.writeToMssql ? { ...prev, writeToMssql: false } : prev));
+      setEditUser((prev) =>
+        prev.writeToMssql ? { ...prev, writeToMssql: false } : prev,
+      );
       return;
     }
 
     if (!permissionStateQuery.data.hasOverride) {
       const defaults = getRoleDefaults(editUser.role);
       const nextWriteToMssql = defaults.includes(MSSQL_WRITE_PERMISSION);
-      setEditPermissions((prev) => (permissionListsEqual(prev, defaults) ? prev : defaults));
+      setEditPermissions((prev) =>
+        permissionListsEqual(prev, defaults) ? prev : defaults,
+      );
       setEditUser((prev) =>
-        prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
+        prev.writeToMssql === nextWriteToMssql
+          ? prev
+          : { ...prev, writeToMssql: nextWriteToMssql },
       );
       return;
     }
 
     if (permissionStateQuery.data.hasInheritExtrasMarker) {
-      const merged = normalizePermissionIdsForCheckbox([...getRoleDefaults(editUser.role), ...incomingPages]);
+      const merged = normalizePermissionIdsForCheckbox([
+        ...getRoleDefaults(editUser.role),
+        ...incomingPages,
+      ]);
       const nextWriteToMssql = merged.includes(MSSQL_WRITE_PERMISSION);
-      setEditPermissions((prev) => (permissionListsEqual(prev, merged) ? prev : merged));
+      setEditPermissions((prev) =>
+        permissionListsEqual(prev, merged) ? prev : merged,
+      );
       setEditUser((prev) =>
-        prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
+        prev.writeToMssql === nextWriteToMssql
+          ? prev
+          : { ...prev, writeToMssql: nextWriteToMssql },
       );
       return;
     }
 
     const nextWriteToMssql = incomingPages.includes(MSSQL_WRITE_PERMISSION);
-    setEditPermissions((prev) => (permissionListsEqual(prev, incomingPages) ? prev : incomingPages));
+    setEditPermissions((prev) =>
+      permissionListsEqual(prev, incomingPages) ? prev : incomingPages,
+    );
     setEditUser((prev) =>
-      prev.writeToMssql === nextWriteToMssql ? prev : { ...prev, writeToMssql: nextWriteToMssql },
+      prev.writeToMssql === nextWriteToMssql
+        ? prev
+        : { ...prev, writeToMssql: nextWriteToMssql },
     );
   }, [permissionStateQuery.data, isEditOpen, editUserId, editUser.role]);
 
@@ -450,7 +578,7 @@ export default function AdminUsers() {
     setEditPermissions((prev) =>
       prev.includes(pageId)
         ? prev.filter((id) => id !== pageId)
-        : [...prev, pageId]
+        : [...prev, pageId],
     );
   };
 
@@ -467,13 +595,17 @@ export default function AdminUsers() {
       lastPermissionSyncRef.current = "";
       setEditPermissions(defaults);
       setEditUser((prev) =>
-        prev.writeToMssql === nextMssql ? prev : { ...prev, writeToMssql: nextMssql },
+        prev.writeToMssql === nextMssql
+          ? prev
+          : { ...prev, writeToMssql: nextMssql },
       );
       await utils.medical.getUserPermissionState.invalidate();
       await permissionStateQuery.refetch();
       toast.success("تمت استعادة صلاحيات الدور الافتراضية لهذا المستخدم.");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "تعذر استعادة الصلاحيات الافتراضية."));
+      toast.error(
+        getTrpcErrorMessage(error, "تعذر استعادة الصلاحيات الافتراضية."),
+      );
     }
   };
 
@@ -517,7 +649,8 @@ export default function AdminUsers() {
       const roleBases = permissionBaseSet(defaultsNorm);
       const editBases = permissionBaseSet(finalPermissions);
       const sameAsRole =
-        roleBases.size === editBases.size && [...roleBases].every((b) => editBases.has(b));
+        roleBases.size === editBases.size &&
+        [...roleBases].every((b) => editBases.has(b));
 
       if (sameAsRole) {
         await setUserPermissionsMutation.mutateAsync({
@@ -527,10 +660,13 @@ export default function AdminUsers() {
         });
       } else {
         const roleSubsetOfEdit = [...roleBases].every((x) => editBases.has(x));
-        const strictSuperset = roleSubsetOfEdit && editBases.size > roleBases.size;
+        const strictSuperset =
+          roleSubsetOfEdit && editBases.size > roleBases.size;
 
         if (strictSuperset) {
-          const extras = finalPermissions.filter((id) => !roleBases.has(stripPermissionAccessSuffix(id)));
+          const extras = finalPermissions.filter(
+            (id) => !roleBases.has(stripPermissionAccessSuffix(id)),
+          );
           await setUserPermissionsMutation.mutateAsync({
             userId: editUserId,
             pageIds: extras,
@@ -585,12 +721,22 @@ export default function AdminUsers() {
   const usersTotal = users.length;
   const usersActive = users.filter((u) => u.isActive).length;
   const usersInactive = usersTotal - usersActive;
+  const pendingRiskCopy = pendingRiskAction
+    ? getUserRiskActionCopy({
+        action: pendingRiskAction.action,
+        displayName: getUserDisplayName(pendingRiskAction.user),
+        isActive: pendingRiskAction.user.isActive,
+      })
+    : null;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right"
+      dir="rtl"
+    >
       <PageHeader
         title="المستخدمين"
-        subtitle="User Management — إضافة حسابات وإدارة الأدوار والصلاحيات"
+        subtitle="إضافة حسابات الموظفين وإدارة الأدوار والصلاحيات"
         icon={<Shield className="h-5 w-5" />}
         action={
           <Button
@@ -604,7 +750,12 @@ export default function AdminUsers() {
           </Button>
         }
       />
-      <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-3 sm:gap-4")}>
+      <div
+        className={cn(
+          STAT_CARDS_MOBILE_ROW,
+          "gap-2 sm:grid sm:grid-cols-3 sm:gap-3",
+        )}
+      >
         <StatCard
           title="إجمالي المستخدمين"
           value={usersTotal}
@@ -625,259 +776,327 @@ export default function AdminUsers() {
         />
       </div>
 
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <Card className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <CardHeader className="space-y-1 border-b border-border/70 pb-4">
-          <CardTitle className="text-base">المستخدمين</CardTitle>
-          <CardDescription>عرض وفلترة وفق الدور وحالة النشاط</CardDescription>
+          <CardTitle className="text-base">قائمة المستخدمين</CardTitle>
+          <CardDescription>
+            {filteredUsers.length} من {usersTotal} حساب حسب البحث والفلاتر
+            الحالية.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="w-full lg:max-w-sm">
-              <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="بحث بالاسم أو البريد أو اسم المستخدم…" />
+          <div className="grid gap-4 xl:grid-cols-[minmax(220px,0.45fr)_minmax(0,1fr)]">
+            <div className="space-y-1 text-sm">
+              <div className="font-semibold">تصفية الحسابات</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                ابدأ بالبحث، ثم ضيق النتائج بالحالة أو الدور عند الحاجة.
+              </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as "all" | "active" | "inactive")}
-              >
-                <SelectTrigger className="h-10 w-full border-muted bg-background sm:w-[160px]" dir="rtl">
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل الحالات</SelectItem>
-                  <SelectItem value="active">نشط فقط</SelectItem>
-                  <SelectItem value="inactive">غير نشط</SelectItem>
-                </SelectContent>
-              </Select>
-              <FilterBar
-                filters={ROLE_TABS}
-                selected={roleFilter}
-                onSelect={(v) => setRoleFilter(v as UserRole | "all")}
-                className="max-w-[min(100%,640px)] sm:justify-end"
-              />
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="w-full lg:max-w-sm">
+                <SearchBar
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  placeholder="بحث بالاسم أو البريد أو اسم المستخدم…"
+                />
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setStatusFilter(value as "all" | "active" | "inactive")
+                  }
+                >
+                  <SelectTrigger
+                    className="h-10 w-full border-muted bg-background sm:w-[160px]"
+                    dir="rtl"
+                  >
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الحالات</SelectItem>
+                    <SelectItem value="active">نشط فقط</SelectItem>
+                    <SelectItem value="inactive">غير نشط</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FilterBar
+                  filters={ROLE_TABS}
+                  selected={roleFilter}
+                  onSelect={(v) => setRoleFilter(v as UserRole | "all")}
+                  className="max-w-[min(100%,640px)] sm:justify-end"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Mobile cards — hidden on sm+ */}
+          {/* Mobile cards, hidden on sm+ */}
           <div className="sm:hidden">
             {usersQuery.isLoading && (
-              <div className="py-10 text-center text-muted-foreground">جاري تحميل المستخدمين…</div>
+              <div className="py-10 text-center text-muted-foreground">
+                جاري تحميل المستخدمين…
+              </div>
             )}
             {!usersQuery.isLoading && filteredUsers.length === 0 && (
-              <div className="py-10 text-center text-muted-foreground">لا توجد نتائج مطابقة.</div>
+              <div className="py-10 text-center text-muted-foreground">
+                لا توجد نتائج مطابقة.
+              </div>
             )}
             <div className="grid grid-cols-1 gap-2">
-            {filteredUsers.map((u) => {
-              const initials = initialsFromUser(u.name, u.username);
-              const lastRaw = u.lastSignedIn as unknown;
-              const lastKey = toDateKey(lastRaw);
-              const createdKey = toDateKey(u.createdAt as unknown);
-              return (
-                <div key={u.id} className="rounded-xl border border-border/80 bg-card p-2.5" dir="rtl">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="استعادة صلاحيات الدور"
-                        disabled={setUserPermissionsMutation.isPending}
-                        onClick={() => void handleResetUserPermissionsToRole(u)}
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        title="حذف"
-                        onClick={() => void handleDelete(u.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="min-w-0 text-right">
-                        <div className="truncate font-semibold leading-tight">{u.name ?? u.username}</div>
-                        <div className="mt-0.5 truncate text-[11px] text-muted-foreground tabular-nums" dir="ltr">
-                          @{u.username}
-                        </div>
-                      </div>
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
-                        aria-hidden
-                      >
-                        {initials}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "h-8 w-full max-w-[9.5rem] text-xs font-semibold",
-                        u.isActive
-                          ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
-                          : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
-                      )}
-                      onClick={() => void handleToggleActive(u)}
-                    >
-                      {u.isActive ? "نشط" : "غير نشط"}
-                    </Button>
-                  </div>
-                  <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
-                    <div className="text-muted-foreground">البريد</div>
-                    <div className="truncate text-right" dir="ltr">{u.email?.trim() ? u.email : "—"}</div>
-                    <div className="text-muted-foreground">الدور</div>
-                    <div className="text-right">
-                      <Badge className={cn("font-semibold text-[10px]", roleBadgeClass(u.role))}>{roleLabelAr(u.role)}</Badge>
-                    </div>
-                    <div className="text-muted-foreground">الفرع / الوردية</div>
-                    <div className="text-right">{branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}</div>
-                    <div className="text-muted-foreground">آخر دخول</div>
-                    <div className="text-right tabular-nums">{lastKey ? formatDateLabel(lastKey) : "—"}</div>
-                    <div className="text-muted-foreground">تاريخ الإنشاء</div>
-                    <div className="text-right tabular-nums">{createdKey ? formatDateLabel(createdKey) : "—"}</div>
-                  </div>
-                </div>
-              );
-            })}
-            </div>
-          </div>
-
-          {/* Desktop table — hidden on mobile */}
-          <div className="hidden overflow-x-auto rounded-lg border border-border/80 sm:block">
-            <Table className="min-w-[900px] text-right">
-              <TableHeader>
-                <TableRow className="bg-muted/40">
-                  <TableHead className="text-right font-semibold">الاسم</TableHead>
-                  <TableHead className="text-right font-semibold">البريد</TableHead>
-                  <TableHead className="text-right font-semibold">الدور</TableHead>
-                  <TableHead className="text-right font-semibold">الحالة</TableHead>
-                  <TableHead className="text-right font-semibold">آخر دخول</TableHead>
-                  <TableHead className="text-right font-semibold whitespace-nowrap">تاريخ الإنشاء</TableHead>
-                  <TableHead className="w-[120px] text-center font-semibold">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {usersQuery.isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      جاري تحميل المستخدمين…
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!usersQuery.isLoading && filteredUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      لا توجد نتائج مطابقة.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filteredUsers.map((u) => {
-                  const initials = initialsFromUser(u.name, u.username);
-                  const lastRaw = u.lastSignedIn as unknown;
-                  const lastKey = toDateKey(lastRaw);
-                  const createdKey = toDateKey(u.createdAt as unknown);
-                  return (
-                    <TableRow key={u.id} className="hover:bg-primary/[0.04]">
-                      <TableCell className="align-middle">
-                        <div className="flex items-center justify-end gap-3">
-                          <div className="min-w-0 text-right">
-                            <div className="font-semibold leading-tight">{u.name ?? u.username}</div>
-                            <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums" dir="ltr">
-                              @{u.username}
-                              <span className="mx-1 text-border">·</span>
-                              {branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}
-                            </div>
-                          </div>
-                          <div
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
-                            aria-hidden
-                          >
-                            {initials}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] align-middle">
-                        <span className="block truncate text-sm" dir="ltr" title={u.email ?? ""}>
-                          {u.email?.trim() ? u.email : "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="align-middle whitespace-nowrap">
-                        <Badge className={cn("font-semibold", roleBadgeClass(u.role))}>{roleLabelAr(u.role)}</Badge>
-                      </TableCell>
-                      <TableCell className="align-middle whitespace-nowrap">
+              {filteredUsers.map((u) => {
+                const initials = initialsFromUser(u.name, u.username);
+                const lastRaw = u.lastSignedIn as unknown;
+                const lastKey = toDateKey(lastRaw);
+                const createdKey = toDateKey(u.createdAt as unknown);
+                return (
+                  <div
+                    key={u.id}
+                    className="rounded-lg border border-border/80 bg-card p-2.5"
+                    dir="rtl"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
-                          className={cn(
-                            "h-8 font-semibold",
-                            u.isActive
-                              ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
-                              : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
-                          )}
-                          title="تبديل حالة النشاط"
-                          onClick={() => void handleToggleActive(u)}
+                          size="icon"
+                          className="h-10 w-10"
+                          title="استعادة صلاحيات الدور"
+                          disabled={setUserPermissionsMutation.isPending}
+                          onClick={() =>
+                            requestRiskAction("reset-permissions", u)
+                          }
                         >
-                          {u.isActive ? "نشط" : "غير نشط"}
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                      <TableCell className="align-middle whitespace-nowrap text-sm tabular-nums">
-                        {lastKey ? (
-                          formatDateLabel(lastKey)
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="align-middle whitespace-nowrap text-sm tabular-nums">
-                        {createdKey ? formatDateLabel(createdKey) : "—"}
-                      </TableCell>
-                      <TableCell className="text-center align-middle">
-                        <div className="flex justify-center gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="استعادة صلاحيات الدور"
-                            disabled={setUserPermissionsMutation.isPending}
-                            onClick={() => void handleResetUserPermissionsToRole(u)}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10"
+                          title="تعديل"
+                          onClick={() => handleEdit(u)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          title="حذف"
+                          onClick={() => requestRiskAction("delete", u)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0 text-right">
+                          <div className="truncate font-semibold leading-tight">
+                            {u.name ?? u.username}
+                          </div>
+                          <div
+                            className="mt-0.5 truncate text-[11px] text-muted-foreground tabular-nums"
+                            dir="ltr"
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="تعديل" onClick={() => handleEdit(u)}>
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            title="حذف"
-                            onClick={() => void handleDelete(u.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                            @{u.username}
+                          </div>
                         </div>
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
+                          aria-hidden
+                        >
+                          {initials}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 w-full max-w-[9.5rem] text-xs font-semibold",
+                          u.isActive
+                            ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
+                            : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
+                        )}
+                        onClick={() => requestRiskAction("toggle-active", u)}
+                      >
+                        {u.isActive ? "نشط" : "غير نشط"}
+                      </Button>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+                      <div className="text-muted-foreground">البريد</div>
+                      <div className="truncate text-right" dir="ltr">
+                        {u.email?.trim() ? u.email : "غير محدد"}
+                      </div>
+                      <div className="text-muted-foreground">الدور</div>
+                      <div className="text-right">
+                        <Badge
+                          className={cn(
+                            "font-semibold text-[10px]",
+                            roleBadgeClass(u.role),
+                          )}
+                        >
+                          {roleLabelAr(u.role)}
+                        </Badge>
+                      </div>
+                      <div className="text-muted-foreground">
+                        الفرع / الوردية
+                      </div>
+                      <div className="text-right">
+                        {branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}
+                      </div>
+                      <div className="text-muted-foreground">آخر دخول</div>
+                      <div className="text-right tabular-nums">
+                        {lastKey ? formatDateLabel(lastKey) : "غير محدد"}
+                      </div>
+                      <div className="text-muted-foreground">تاريخ الإنشاء</div>
+                      <div className="text-right tabular-nums">
+                        {createdKey ? formatDateLabel(createdKey) : "غير محدد"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop table, hidden on mobile */}
+          <div className="hidden overflow-hidden rounded-xl border border-border/80 bg-background sm:block">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[1000px] text-right">
+                <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm">
+                  <TableRow className="hover:bg-transparent border-b-primary/10">
+                    <TableHead className="text-right font-bold text-sky-900 h-11">الاسم والمهمة</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 h-11">البريد الإلكتروني</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 h-11">الدور الوظيفي</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 h-11">الحالة</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 h-11">آخر نشاط</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900 h-11 whitespace-nowrap">تاريخ الإنشاء</TableHead>
+                    <TableHead className="w-[140px] text-center font-bold text-sky-900 h-11">إجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usersQuery.isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-12 text-center text-muted-foreground animate-pulse">
+                        جاري تحميل بيانات المستخدمين…
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  )}
+                  {!usersQuery.isLoading && filteredUsers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-12 text-center text-muted-foreground bg-muted/20">
+                        لا توجد نتائج مطابقة لبحثك.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filteredUsers.map((u, idx) => {
+                    const initials = initialsFromUser(u.name, u.username);
+                    const lastRaw = u.lastSignedIn as unknown;
+                    const lastKey = toDateKey(lastRaw);
+                    const createdKey = toDateKey(u.createdAt as unknown);
+                    return (
+                      <TableRow key={u.id} className={cn(
+                        "group transition-colors hover:bg-primary/[0.03]",
+                        idx % 2 === 0 ? "bg-white" : "bg-muted/15"
+                      )}>
+                        <TableCell className="align-middle py-3">
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="min-w-0 text-right">
+                              <div className="font-bold text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors">
+                                {u.name ?? u.username}
+                              </div>
+                              <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground tabular-nums" dir="ltr">
+                                <span>{shiftLabelAr(u.shift)}</span>
+                                <span className="opacity-30">|</span>
+                                <span>{branchLabelAr(u.branch)}</span>
+                                <span className="opacity-30">|</span>
+                                <span className="font-medium text-foreground/60">@{u.username}</span>
+                              </div>
+                            </div>
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[11px] font-black text-primary shadow-inner">
+                              {initials}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] align-middle py-3">
+                          <span className="block truncate text-xs font-medium text-muted-foreground/80 hover:text-foreground transition-colors" dir="ltr" title={u.email ?? ""}>
+                            {u.email?.trim() ? u.email : "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap py-3">
+                          <Badge className={cn("font-bold text-[10px] px-2 py-0.5 shadow-sm", roleBadgeClass(u.role))}>
+                            {roleLabelAr(u.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap py-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "h-7 text-[10px] font-bold px-3 transition-all",
+                              u.isActive
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
+                                : "border-muted-foreground/20 bg-muted/40 text-muted-foreground hover:bg-muted/60",
+                            )}
+                            onClick={() => requestRiskAction("toggle-active", u)}
+                          >
+                            {u.isActive ? "نشط" : "غير نشط"}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
+                          {lastKey ? formatDateLabel(lastKey) : <span className="opacity-40 italic">لم يدخل بعد</span>}
+                        </TableCell>
+                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
+                          {createdKey ? formatDateLabel(createdKey) : "—"}
+                        </TableCell>
+                        <TableCell className="text-center align-middle py-3">
+                          <div className="flex justify-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              title="استعادة صلاحيات الدور"
+                              disabled={setUserPermissionsMutation.isPending}
+                              onClick={() => requestRiskAction("reset-permissions", u)}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              title="تعديل البيانات"
+                              onClick={() => handleEdit(u)}
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                              title="حذف الحساب"
+                              onClick={() => requestRiskAction("delete", u)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
-
 
       <Dialog
         open={isCreateOpen}
@@ -908,7 +1127,9 @@ export default function AdminUsers() {
                 placeholder="اسم الدخول (إنجليزي)"
                 value={newUser.username}
                 className="text-right"
-                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, username: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2 sm:col-span-2 md:col-span-1">
@@ -918,7 +1139,9 @@ export default function AdminUsers() {
                 placeholder="••••••••"
                 value={newUser.password}
                 className="text-right"
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, password: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2 sm:col-span-2 md:col-span-1">
@@ -927,7 +1150,9 @@ export default function AdminUsers() {
                 placeholder="اسم الموظف"
                 value={newUser.name}
                 className="text-right"
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2 sm:col-span-2 md:col-span-1">
@@ -938,12 +1163,19 @@ export default function AdminUsers() {
                 value={newUser.email}
                 className="text-right"
                 dir="ltr"
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, email: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2 sm:col-span-2 md:col-span-1">
               <label className="text-sm font-semibold">الدور</label>
-              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}>
+              <Select
+                value={newUser.role}
+                onValueChange={(value) =>
+                  setNewUser({ ...newUser, role: value as UserRole })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر الدور" />
                 </SelectTrigger>
@@ -960,7 +1192,12 @@ export default function AdminUsers() {
             </div>
             <div className="space-y-2 sm:col-span-2 md:col-span-1">
               <label className="text-sm font-semibold">الفرع</label>
-              <Select value={newUser.branch} onValueChange={(value) => setNewUser({ ...newUser, branch: value as UserBranch })}>
+              <Select
+                value={newUser.branch}
+                onValueChange={(value) =>
+                  setNewUser({ ...newUser, branch: value as UserBranch })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر الفرع" />
                 </SelectTrigger>
@@ -975,7 +1212,9 @@ export default function AdminUsers() {
               <label className="text-sm font-semibold">الوردية</label>
               <Select
                 value={String(newUser.shift)}
-                onValueChange={(value) => setNewUser({ ...newUser, shift: Number(value) === 2 ? 2 : 1 })}
+                onValueChange={(value) =>
+                  setNewUser({ ...newUser, shift: Number(value) === 2 ? 2 : 1 })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر الوردية" />
@@ -989,20 +1228,33 @@ export default function AdminUsers() {
             <div className="flex items-center gap-2 sm:col-span-2">
               <Checkbox
                 checked={newUser.writeToMssql}
-                onCheckedChange={(checked) => setNewUser({ ...newUser, writeToMssql: Boolean(checked) })}
+                onCheckedChange={(checked) =>
+                  setNewUser({ ...newUser, writeToMssql: Boolean(checked) })
+                }
               />
               <label className="text-sm font-medium">كتابة على MSSQL</label>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            الصلاحيات الافتراضية للدور <strong>{roleLabelAr(newUser.role)}</strong>: عدد الشاشات {getRoleDefaults(newUser.role).length}
+            الصلاحيات الافتراضية للدور{" "}
+            <strong>{roleLabelAr(newUser.role)}</strong>: عدد الشاشات{" "}
+            {getRoleDefaults(newUser.role).length}
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button type="button" className="selrs-gradient-btn text-white gap-2" disabled={isSaving} onClick={() => void handleSaveUser()}>
+            <Button
+              type="button"
+              className="selrs-gradient-btn text-white gap-2"
+              disabled={isSaving}
+              onClick={() => void handleSaveUser()}
+            >
               <Plus className="h-4 w-4" />
               إضافة
             </Button>
-            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCreateOpen(false)}
+            >
               إلغاء
             </Button>
           </div>
@@ -1016,31 +1268,43 @@ export default function AdminUsers() {
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-semibold mb-2">اسم المستخدم</label>
+              <label className="block text-sm font-semibold mb-2">
+                اسم المستخدم
+              </label>
               <Input
                 placeholder="اسم الدخول"
                 value={editUser.username}
                 className="text-right"
-                onChange={(e) => setEditUser({ ...editUser, username: e.target.value })}
+                onChange={(e) =>
+                  setEditUser({ ...editUser, username: e.target.value })
+                }
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2">كلمة المرور</label>
+              <label className="block text-sm font-semibold mb-2">
+                كلمة المرور
+              </label>
               <Input
                 type="password"
                 placeholder="اتركها فارغة إن لم يتغير"
                 value={editUser.password}
                 className="text-right"
-                onChange={(e) => setEditUser({ ...editUser, password: e.target.value })}
+                onChange={(e) =>
+                  setEditUser({ ...editUser, password: e.target.value })
+                }
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold mb-2">الاسم الكامل</label>
+              <label className="block text-sm font-semibold mb-2">
+                الاسم الكامل
+              </label>
               <Input
                 placeholder="اسم الموظف"
                 value={editUser.name}
                 className="text-right"
-                onChange={(e) => setEditUser({ ...editUser, name: e.target.value })}
+                onChange={(e) =>
+                  setEditUser({ ...editUser, name: e.target.value })
+                }
               />
             </div>
             <div className="md:col-span-2">
@@ -1051,7 +1315,9 @@ export default function AdminUsers() {
                 value={editUser.email}
                 className="text-right"
                 dir="ltr"
-                onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                onChange={(e) =>
+                  setEditUser({ ...editUser, email: e.target.value })
+                }
               />
             </div>
             <div>
@@ -1097,11 +1363,16 @@ export default function AdminUsers() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2">الوردية</label>
+              <label className="block text-sm font-semibold mb-2">
+                الوردية
+              </label>
               <Select
                 value={String(editUser.shift)}
                 onValueChange={(value) =>
-                  setEditUser({ ...editUser, shift: Number(value) === 2 ? 2 : 1 })
+                  setEditUser({
+                    ...editUser,
+                    shift: Number(value) === 2 ? 2 : 1,
+                  })
                 }
               >
                 <SelectTrigger>
@@ -1126,10 +1397,14 @@ export default function AdminUsers() {
 
           <div className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <label className="block text-sm font-semibold">الصلاحيات (الشاشات)</label>
+              <label className="block text-sm font-semibold">
+                الصلاحيات (الشاشات)
+              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {permissionStateQuery.isLoading ? "…" : editPermissions.length}
+                  {permissionStateQuery.isLoading
+                    ? "…"
+                    : editPermissions.length}
                 </span>
                 <Button
                   type="button"
@@ -1146,10 +1421,15 @@ export default function AdminUsers() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 border rounded-lg p-3 max-h-56 overflow-y-auto">
               {PAGE_PERMISSIONS.map((page, idx) => {
-                const prevEntry = idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
-                const prevGroup = prevEntry ? getPagePermissionGroup(prevEntry) : undefined;
+                const prevEntry =
+                  idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
+                const prevGroup = prevEntry
+                  ? getPagePermissionGroup(prevEntry)
+                  : undefined;
                 const groupLabel = getPagePermissionGroup(page);
-                const showGroupHeader = Boolean(groupLabel && groupLabel !== prevGroup);
+                const showGroupHeader = Boolean(
+                  groupLabel && groupLabel !== prevGroup,
+                );
                 return (
                   <Fragment key={page.id}>
                     {showGroupHeader ? (
@@ -1174,7 +1454,11 @@ export default function AdminUsers() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => void handleSaveEdit()} className="selrs-gradient-btn text-white" disabled={isSaving}>
+            <Button
+              onClick={() => void handleSaveEdit()}
+              className="selrs-gradient-btn text-white"
+              disabled={isSaving}
+            >
               حفظ
             </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
@@ -1183,11 +1467,50 @@ export default function AdminUsers() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(pendingRiskAction)}
+        onOpenChange={(open) => {
+          if (!open) setPendingRiskAction(null);
+        }}
+      >
+        <AlertDialogContent className="text-right" dir="rtl">
+          <AlertDialogHeader className="text-right">
+            <AlertDialogTitle>{pendingRiskCopy?.title}</AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              {pendingRiskCopy?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pendingRiskAction ? (
+            <div className="rounded-lg border border-border bg-muted/35 px-3 py-2 text-sm">
+              <div className="font-semibold">
+                {getUserDisplayName(pendingRiskAction.user)}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {roleLabelAr(pendingRiskAction.user.role)}،{" "}
+                {branchLabelAr(pendingRiskAction.user.branch)}،{" "}
+                {shiftLabelAr(pendingRiskAction.user.shift)}
+              </div>
+            </div>
+          ) : null}
+          <AlertDialogFooter className="sm:justify-start">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className={cn(
+                pendingRiskCopy?.tone === "danger"
+                  ? "bg-destructive text-white hover:bg-destructive/90"
+                  : pendingRiskCopy?.tone === "warning"
+                    ? "bg-amber-600 text-white hover:bg-amber-700"
+                    : "selrs-gradient-btn text-white",
+              )}
+              disabled={isSaving}
+              onClick={() => void confirmPendingRiskAction()}
+            >
+              {pendingRiskCopy?.confirmLabel ?? "تأكيد"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-
-
-

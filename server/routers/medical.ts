@@ -7,8 +7,8 @@ import { router, protectedProcedure, doctorProcedure, nurseProcedure, technician
 import { authService } from "../_core/auth";
 import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
 import * as db from "../db";
-import { eq, asc, desc, and, inArray } from "drizzle-orm";
-import { services, doctorsLookup, patients, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions } from "../../drizzle/schema";
+import { eq, asc, desc, and, inArray, sql } from "drizzle-orm";
+import { services, doctorsLookup, patients, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions, patientServiceEntries } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -2069,7 +2069,7 @@ export const medicalRouter = router({
       if (!dbConn) throw new Error("Database not available");
 
       const dryRun = Boolean(input?.dryRun);
-      const onlyConsultant = input?.onlyConsultant !== false;
+      const onlyConsultant = Boolean(input?.onlyConsultant);
 
       const svcRows = await dbConn
         .select({
@@ -2091,6 +2091,7 @@ export const medicalRouter = router({
           defaultSheet: (row.defaultSheet as string | null) ?? null,
         });
       }
+      console.log(`[resetPatientServiceTypes] Loaded ${svcMap.size} services. Sample codes:`, Array.from(svcMap.keys()).slice(0, 10));
 
       const pageStateRows = await dbConn
         .select({
@@ -2127,13 +2128,48 @@ export const medicalRouter = router({
         if (Object.keys(normalizedMap).length > 0) sheetTypeByPatientId.set(patientId, normalizedMap);
       }
 
-      const patientRows = await dbConn
+      // Get all patients with their current service type
+      const allPatients = await dbConn
         .select({
           id: patients.id,
-          serviceCode: patients.serviceCode,
           serviceType: patients.serviceType,
         })
         .from(patients);
+
+      // Get all service entries ordered by date (latest first per patient)
+      const allServiceEntries = await dbConn
+        .select({
+          patientId: patientServiceEntries.patientId,
+          serviceCode: patientServiceEntries.serviceCode,
+          serviceDate: patientServiceEntries.serviceDate,
+          id: patientServiceEntries.id,
+        })
+        .from(patientServiceEntries)
+        .orderBy(desc(patientServiceEntries.serviceDate), desc(patientServiceEntries.id));
+
+      // Build map of patient ID -> latest service code
+      const latestServiceByPatient = new Map<number, { serviceCode: string | null; currentType: string | null }>();
+      for (const p of allPatients) {
+        latestServiceByPatient.set(p.id, {
+          serviceCode: null,
+          currentType: p.serviceType,
+        });
+      }
+
+      // For each patient, find their latest service entry
+      const seenPatients = new Set<number>();
+      let withServiceEntry = 0;
+      for (const entry of allServiceEntries) {
+        const patientId = Number(entry.patientId ?? 0);
+        if (!patientId || seenPatients.has(patientId)) continue;
+        seenPatients.add(patientId);
+        withServiceEntry++;
+        latestServiceByPatient.set(patientId, {
+          serviceCode: entry.serviceCode,
+          currentType: latestServiceByPatient.get(patientId)?.currentType ?? null,
+        });
+      }
+      console.log(`[resetPatientServiceTypes] Found ${allServiceEntries.length} total service entries, ${withServiceEntry} patients with latest service entries`);
 
       let scanned = 0;
       let updated = 0;
@@ -2143,27 +2179,39 @@ export const medicalRouter = router({
       let unresolved = 0;
       const changedSample: Array<{ id: number; from: string; to: string; code: string }> = [];
 
-      for (const row of patientRows) {
+      let filteredByConsultant = 0;
+      for (const [id, { serviceCode, currentType }] of latestServiceByPatient.entries()) {
         scanned += 1;
-        const id = Number(row.id ?? 0);
-        const code = normalizeServiceCodeKey(row.serviceCode);
-        const currentType = String(row.serviceType ?? "").trim().toLowerCase();
+        const code = normalizeServiceCodeKey(serviceCode);
+        const normalizedCurrentType = String(currentType ?? "").trim().toLowerCase();
         if (!id || !code) continue;
         withCode += 1;
-        if (onlyConsultant && currentType !== "consultant") continue;
+        if (onlyConsultant && normalizedCurrentType !== "consultant") {
+          filteredByConsultant++;
+          continue;
+        }
 
         const svc = svcMap.get(code);
-        const stateMap = sheetTypeByPatientId.get(id) ?? {};
-        const sheetHint = String(stateMap[code] ?? "").trim();
-        const nextType =
-          (sheetHint ? serviceTypeFromSheetOrType(sheetHint, null) : null) ??
-          (svc ? serviceTypeFromSheetOrType(svc.defaultSheet, svc.serviceType) : null);
-        if (sheetHint) mappedFromPageState += 1;
-        else if (svc) mappedFromServices += 1;
-        else {
+        let nextType: string | null = null;
+
+        // Map service's defaultSheet directly to patient serviceType
+        if (svc && svc.defaultSheet) {
+          const sheet = String(svc.defaultSheet).trim().toLowerCase();
+          // Direct sheet-to-type mapping
+          if (sheet === "external") nextType = "external";
+          else if (sheet === "surgery") nextType = "surgery";
+          else if (sheet === "specialist") nextType = "specialist";
+          else if (sheet === "lasik") nextType = "lasik";
+          else if (sheet === "consultant") nextType = "consultant";
+          mappedFromServices += 1;
+        } else {
           unresolved += 1;
         }
-        if (!nextType || nextType === currentType) continue;
+
+        if (id % 500 === 0 || code === "1586" || (code === "1521" && id < 1000) || (code === "1572" && id < 1000)) {
+          console.log(`[resetPatientServiceTypes] Patient ${id}: code="${code}", currentType="${normalizedCurrentType}", svc=${svc ? `{defaultSheet:"${svc.defaultSheet}"}` : "null"}, nextType="${nextType}", willUpdate=${!nextType || nextType === normalizedCurrentType ? "NO" : "YES"}`);
+        }
+        if (!nextType || nextType === normalizedCurrentType) continue;
 
         if (!dryRun) {
           await dbConn
@@ -2177,9 +2225,11 @@ export const medicalRouter = router({
         }
         updated += 1;
         if (changedSample.length < 20) {
-          changedSample.push({ id, from: currentType || "-", to: nextType, code });
+          changedSample.push({ id, from: normalizedCurrentType || "-", to: nextType, code });
         }
       }
+
+      console.log(`[resetPatientServiceTypes] SUMMARY: scanned=${scanned}, withCode=${withCode}, filteredByConsultant=${filteredByConsultant}, mappedFromServices=${mappedFromServices}, mappedFromPageState=${mappedFromPageState}, unresolved=${unresolved}, updated=${updated}, dryRun=${dryRun}, onlyConsultant=${onlyConsultant}`);
 
       await db.logAuditEvent(ctx.user.id, "RESET_PATIENT_SERVICE_TYPES_FROM_SERVICE_CODE", "patient", 0, {
         scanned,
@@ -2356,14 +2406,34 @@ export const medicalRouter = router({
       servicePrice: z.number().optional(),
       serviceQty: z.number().optional(),
       discountValue: z.number().optional(),
+      services: z.array(z.object({
+        code: z.string(),
+        qty: z.union([z.string(), z.number()]),
+        price: z.number(),
+        discount: z.number(),
+      })).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
         const existingByIdentity = await findExistingPatientByNameOrPhone(input.fullName, input.phone ?? "");
+        
+        // Resolve doctor code
+        let doctorCode = String(input.doctorCode ?? "").trim() || null;
+        if (!doctorCode) {
+          doctorCode = await resolveDoctorCodeById(input.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
+        }
+        if (!doctorCode) {
+          doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
+        }
+
+        const processServices = input.services && input.services.length > 0 
+          ? input.services 
+          : input.serviceCode ? [{ code: input.serviceCode, qty: input.serviceQty ?? 1, price: input.servicePrice ?? 0, discount: input.discountValue ?? 0 }] : [];
+
         if (existingByIdentity) {
           const existingId = Number((existingByIdentity as any)?.id ?? 0);
           const existingCode = String((existingByIdentity as any)?.patientCode ?? "").trim();
-          let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
+          
           if (existingId > 0) {
             await db.updatePatient(existingId, {
               lastVisit: new Date(),
@@ -2372,23 +2442,23 @@ export const medicalRouter = router({
               ...(input.doctorId ? { doctorId: input.doctorId } : {}),
             }).catch(() => null);
           }
+
           if (!existingCode) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Existing patient has no patientCode" });
           }
-          // Prefer explicit doctorCode, then doctorId, then doctorName.
-          let doctorCode = String(input.doctorCode ?? "").trim() || null;
-          if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById(input.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
-          }
-          if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
-          }
-          const pricingPayload = registrationPricingPayload({
-            servicePrice: input.servicePrice ?? null,
-            serviceQty: input.serviceQty ?? null,
-            discountValue: input.discountValue ?? null,
-          });
-          pushResult = await pushNewPatientToMssql({
+
+          let firstTrNo: number | null = null;
+
+          // Push all services
+          for (let i = 0; i < processServices.length; i++) {
+            const srv = processServices[i];
+            const pricingPayload = registrationPricingPayload({
+              servicePrice: srv.price,
+              serviceQty: Number(srv.qty) || 1,
+              discountValue: srv.discount,
+            });
+
+            const pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
               fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? "").trim(),
               phone: String((existingByIdentity as any)?.phone ?? input.phone ?? "").trim() || null,
@@ -2407,27 +2477,26 @@ export const medicalRouter = router({
                 (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
               doctorCode: doctorCode || null,
               enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-              serviceCode: input.serviceCode || null,
+              serviceCode: srv.code,
               servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
               serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
               discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
               paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
             });
-          if (!pushResult?.inserted) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Failed to create new receipt in MSSQL for existing patient ${existingCode}${pushResult?.note ? `: ${pushResult.note}` : ""}`,
-            });
+
+            if (i === 0) firstTrNo = pushResult?.trNo ?? null;
           }
-          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_RECEIPT_EXISTING", "patient", existingId, {
-            message: `Created new receipt for existing patient (name/phone match): ${String((existingByIdentity as any)?.fullName ?? "")}`,
+
+          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_RECEIPT_EXISTING_MULTI", "patient", existingId, {
+            message: `Created ${processServices.length} receipts for existing patient`,
             patientCode: existingCode,
           });
+
           return {
             id: existingId,
             patientCode: existingCode,
             fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? ""),
-            receiptNo: pushResult?.trNo ?? null,
+            receiptNo: firstTrNo,
           };
         }
 
@@ -2449,104 +2518,109 @@ export const medicalRouter = router({
           phone: input.phone || "",
           address: input.address || "",
           occupation: input.occupation || "",
+          gender: null,
           branch: "examinations",
           serviceType: input.serviceType || "consultant",
-          locationType: input.serviceType === "external" ? "external" : input.locationType,
-          doctorId: input.doctorId ?? null,
-          lastVisit: new Date(),
-          status: "new",
+          locationType: input.locationType || "center",
+          doctorId: input.doctorId || null,
         });
 
-        const created = await db.getPatientByCode(code);
-        let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
-
-        // First, try to sync data from MSSQL if patient exists there
-        if (created?.id && created?.patientCode) {
-          try {
-            await syncSinglePatientFromMssql(String(created.patientCode));
-          } catch (error) {
-            console.warn("[mssql-sync] Failed to sync patient data from MSSQL", {
-              patientCode: String(created.patientCode),
-              message: String((error as any)?.message ?? error ?? "unknown"),
-            });
-          }
+        const newPatient = await db.getPatientByCode(code);
+        if (!newPatient) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create patient record" });
         }
 
-        if (created?.patientCode && created?.fullName) {
-          // Prefer explicit doctorCode, then doctorId, then doctorName.
-          let doctorCode = String(input.doctorCode ?? "").trim() || null;
-          if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById((created as any).doctorId) ?? null;
-          }
-          if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
-          }
+        let firstTrNo: number | null = null;
+        for (let i = 0; i < processServices.length; i++) {
+          const srv = processServices[i];
           const pricingPayload = registrationPricingPayload({
-            servicePrice: input.servicePrice ?? null,
-            serviceQty: input.serviceQty ?? null,
-            discountValue: input.discountValue ?? null,
+            servicePrice: srv.price,
+            serviceQty: Number(srv.qty) || 1,
+            discountValue: srv.discount,
           });
-          pushResult = await pushNewPatientToMssql({
-            patientCode: String(created.patientCode),
-            fullName: String(created.fullName),
-            phone: created.phone,
-            address: created.address,
-            age: created.age,
-            gender: (created as any).gender ?? null,
-            dateOfBirth: (created as any).dateOfBirth ?? null,
-            branch: (created as any).branch ?? "examinations",
-            serviceType: (created as any).serviceType ?? null,
-            locationType: (created as any).locationType ?? "center",
+
+          const pushResult = await pushNewPatientToMssql({
+            patientCode: code,
+            fullName: input.fullName,
+            phone: input.phone || null,
+            address: input.address || null,
+            age: input.age ?? null,
+            dateOfBirth: input.dateOfBirth || null,
+            branch: "examinations",
+            serviceType: input.serviceType || "consultant",
+            locationType: input.locationType,
             doctorCode: doctorCode || null,
             enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-            serviceCode: input.serviceCode || null,
+            serviceCode: srv.code,
             servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
             serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
             discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
             paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
-          }).catch((error) => {
-            console.warn("[mssql-push] createPatientFromExamination failed", {
-              patientCode: String(created.patientCode),
-              message: String((error as any)?.message ?? error ?? "unknown"),
-            });
-            return null;
           });
-        }
-        await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
-          message: `Created patient: ${input.fullName}`,
-        });
-        const notificationSettings = await getAppNotificationSettings().catch(() => ({
-          mssqlOwnerEnabled: true,
-          mssqlInAppEnabled: true,
-          manualPatientInAppEnabled: true,
-        }));
-        if (notificationSettings.manualPatientInAppEnabled) {
-          const targetRoles = resolveNotificationTargetRolesByUserRole((ctx.user as any)?.role);
-          await pushAppNotification({
-            title: "تمت إضافة مريض جديد",
-            message: `${input.fullName} (${code})`,
-            kind: "success",
-            targetRoles,
-            source: "examination_patient_create",
-            entityType: "patient",
-            entityId: Number(created?.id ?? 0) || null,
-            meta: {
-              patientCode: code,
-              fullName: input.fullName,
-              createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-            },
-          }).catch((error) => {
-            console.warn("[patient-create] Failed to append app notification:", error);
-          });
+          if (i === 0) firstTrNo = pushResult?.trNo ?? null;
         }
 
-        return { id: created?.id ?? 0, patientCode: code, fullName: input.fullName, receiptNo: pushResult?.trNo ?? null };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new Error(`Failed to create patient: ${error}`);
+        await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_MULTI_SRV", "patient", Number(newPatient.id), {
+          message: `Registered new patient with ${processServices.length} services`,
+          patientCode: code,
+        });
+
+        return {
+          id: Number(newPatient.id),
+          patientCode: code,
+          fullName: input.fullName,
+          receiptNo: firstTrNo,
+        };
+      } catch (error: any) {
+        console.error("[medical:createPatientFromExamination]", error);
+        throw new TRPCError({
+          code: error.code || "INTERNAL_SERVER_ERROR",
+          message: error.message || "Failed to create patient and receipts",
+        });
       }
     }),
 
+  linkMultipleServicesToMssql: protectedProcedure
+    .input(z.object({
+      patientId: z.number(),
+      services: z.array(z.object({
+        code: z.string().min(1),
+        quantity: z.number().int().min(1).max(10).optional(),
+        doctorCode: z.string().optional(),
+        doctorName: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const allowed = await canPushToMssql(ctx.user);
+      if (!allowed) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No permission for MSSQL adding" });
+      }
+      const patient = await db.getPatientById(input.patientId);
+      const patientCode = String((patient as any)?.patientCode ?? "").trim();
+      if (!patientCode) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Patient code missing" });
+      }
+
+      const results = [];
+      for (const srv of input.services) {
+        const res = await ensurePatientServiceInMssql(
+          patientCode,
+          srv.code,
+          srv.quantity ?? null,
+          String(srv.doctorCode ?? "").trim() || null,
+          String(srv.doctorName ?? "").trim() || null
+        );
+        results.push({ serviceCode: srv.code, linked: res.linked, note: res.note });
+      }
+
+      await db.logAuditEvent(ctx.user.id, "LINK_MULTIPLE_SERVICES_MSSQL", "patient", input.patientId, {
+        patientCode,
+        count: input.services.length,
+        results,
+      });
+
+      return { success: true, results };
+    }),
 
   getPatientServiceEntries: protectedProcedure
     .input(z.object({ patientId: z.number() }))
@@ -2559,11 +2633,12 @@ export const medicalRouter = router({
     .input(
       z.object({
         searchTerm: z.string(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]).optional(),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "external", "pentacam"]).optional(),
+        locationType: z.enum(["center", "external"]).optional(),
       })
     )
     .query(async ({ input }) => {
-      return await db.searchPatients(input.searchTerm, input.sheetType);
+      return await db.searchPatients(input.searchTerm, input.sheetType, input.locationType);
     }),
 
   // Get all patients
@@ -3422,6 +3497,24 @@ export const medicalRouter = router({
       return await db.getAutorefractometryByPatient(input.patientId);
     }),
 
+  getAutorefractometryOverview: protectedProcedure
+    .input(z.object({
+      page: z.number().min(1).optional(),
+      pageSize: z.number().min(1).max(200).optional(),
+      search: z.string().optional(),
+      statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+      locationType: z.enum(["center", "external"]).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return await db.getAutorefractometryOverviewRows({
+        page: input?.page,
+        pageSize: input?.pageSize,
+        search: input?.search,
+        statusFilter: input?.statusFilter,
+        locationType: input?.locationType,
+      });
+    }),
+
   getGlassesRecordsByPatient: protectedProcedure
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
@@ -3686,6 +3779,24 @@ export const medicalRouter = router({
       return await db.getAllExaminations();
     }),
 
+  getRefractionsOverview: protectedProcedure
+    .input(z.object({
+      page: z.number().min(1).optional(),
+      pageSize: z.number().min(1).max(200).optional(),
+      search: z.string().optional(),
+      statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+      locationType: z.enum(["center", "external"]).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return await db.getRefractionsOverviewRows({
+        page: input?.page,
+        pageSize: input?.pageSize,
+        search: input?.search,
+        statusFilter: input?.statusFilter,
+        locationType: input?.locationType,
+      });
+    }),
+
   // Update examination
   updateExamination: medicalStaffProcedure
     .input(z.object({
@@ -3854,6 +3965,7 @@ export const medicalRouter = router({
         fromDate: z.string().optional(),
         toDate: z.string().optional(),
         search: z.string().optional(),
+        locationType: z.enum(["center", "external"]).optional(),
         eye: z.enum(["all", "OD", "OS"]).optional(),
         quality: z.enum(["all", "accepted", "repeat"]).optional(),
         limit: z.number().int().min(1).max(500).optional(),
@@ -3869,6 +3981,7 @@ export const medicalRouter = router({
         fromDate: input.fromDate,
         toDate: input.toDate,
         search: input.search,
+        locationType: input.locationType,
         limit: input.limit,
         offset: input.offset,
       });
@@ -3884,10 +3997,12 @@ export const medicalRouter = router({
       return { rows: expanded };
     }),
 
-  getPentacamDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+  getPentacamDashboardStats: protectedProcedure
+    .input(z.object({ locationType: z.enum(["center", "external"]).optional() }).optional())
+    .query(async ({ input, ctx }) => {
     await assertPentacamViewPermission(ctx.user);
-    const days = await db.getPentacamDashboardDayStats();
-    const sample = await db.getPentacamResultsForDashboard({ limit: 400, offset: 0 });
+    const days = await db.getPentacamDashboardDayStats(input?.locationType);
+    const sample = await db.getPentacamResultsForDashboard({ limit: 400, offset: 0, locationType: input?.locationType });
     const expanded = expandPentacamDashboardRows(sample);
     const needsRepeatEyes = expanded.filter((r) => r.quality === "repeat").length;
     return {
@@ -5070,10 +5185,21 @@ export const medicalRouter = router({
 
   /** Recent prescriptions list for prescriptions hub (جدول نظرة عامة). */
   getPrescriptionsOverview: protectedProcedure
-    .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
+    .input(z.object({
+      page: z.number().min(1).optional(),
+      pageSize: z.number().min(1).max(200).optional(),
+      search: z.string().optional(),
+      statusFilter: z.enum(["all", "active", "completed", "expired"]).optional(),
+      locationType: z.enum(["center", "external"]).optional(),
+    }).optional())
     .query(async ({ input }) => {
-      const limit = input?.limit ?? 250;
-      return await db.getPrescriptionsOverviewRows(limit);
+      return await db.getPrescriptionsOverviewRows({
+        page: input?.page,
+        pageSize: input?.pageSize,
+        search: input?.search,
+        statusFilter: input?.statusFilter,
+        locationType: input?.locationType,
+      });
     }),
 
   getPrescriptionsWithItemsByVisit: protectedProcedure
@@ -6238,6 +6364,20 @@ export const medicalRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions for examination form" });
       }
 
+      // Guard: reject saves when input.data carries no real clinical values
+      const _hasRealData = (val: unknown): boolean => {
+        if (val === null || val === undefined) return false;
+        if (typeof val === "string") return val.trim().length > 0;
+        if (typeof val === "number") return true;
+        if (typeof val === "boolean") return val;
+        if (Array.isArray(val)) return val.length > 0;
+        if (typeof val === "object") return Object.values(val as Record<string, unknown>).some(_hasRealData);
+        return false;
+      };
+      if (!_hasRealData(input.data)) {
+        return { success: true, examinationId: null, visitId: null };
+      }
+
       // Parse visitDate to avoid timezone issues
       const [year, month, day] = input.visitDate.split('-');
       const visitDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -6363,7 +6503,7 @@ export const medicalRouter = router({
       }
 
       // Save autorefraction to separate table
-      if (examinationId && (autorefractionOd || autorefractionOs)) {
+      if (examinationId && (_hasRealData(autorefractionOd) || _hasRealData(autorefractionOs))) {
         await db.saveAutorefractometryData({
           examinationId,
           patientId: input.patientId,
@@ -6436,7 +6576,7 @@ export const medicalRouter = router({
       }
 
       // Save glasses to separate table
-      if (examinationId && glassesPayload && typeof glassesPayload === 'object' && (glassesPayload.od || glassesPayload.os)) {
+      if (examinationId && glassesPayload && typeof glassesPayload === 'object' && (_hasRealData(glassesPayload.od) || _hasRealData(glassesPayload.os))) {
         await db.saveGlassesRecord({
           examinationId,
           patientId: input.patientId,
@@ -6457,7 +6597,7 @@ export const medicalRouter = router({
 
       // Extract pentacam data if present
       const pentacamPayload = input.data["pentacam"];
-      if (pentacamPayload && typeof pentacamPayload === 'object' && (pentacamPayload.od || pentacamPayload.os)) {
+      if (pentacamPayload && typeof pentacamPayload === 'object' && (_hasRealData(pentacamPayload.od) || _hasRealData(pentacamPayload.os))) {
         const odData = pentacamPayload.od || {};
         const osData = pentacamPayload.os || {};
 
@@ -6530,10 +6670,13 @@ export const medicalRouter = router({
         clinicalOpinion: additionalNotesText || null,
       };
 
-      if ((existingReports ?? []).length > 0) {
-        await db.updateDoctorReport(existingReports[0].id, doctorReportData);
-      } else {
-        await db.createDoctorReport(doctorReportData);
+      const _hasReportData = diagnosisText || treatmentText || recommendationsText || additionalNotesText || diseasesArray.length > 0;
+      if (_hasReportData) {
+        if ((existingReports ?? []).length > 0) {
+          await db.updateDoctorReport(existingReports[0].id, doctorReportData);
+        } else {
+          await db.createDoctorReport(doctorReportData);
+        }
       }
 
       // Upsert tests from payload (expected IDs array).
@@ -6689,6 +6832,29 @@ export const medicalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
       }
 
+      // Guard: reject saves with no real clinical data to prevent empty visit/exam rows
+      const _hasVal = (v: string | undefined): boolean => Boolean(v && String(v).trim().length > 0);
+      const _hasObjData = (obj: Record<string, string | undefined> | undefined): boolean =>
+        Boolean(obj && Object.values(obj).some((v) => _hasVal(v as string | undefined)));
+      const _hasMeasurements =
+        _hasObjData(input.autoref?.od) || _hasObjData(input.autoref?.os) ||
+        _hasVal(input.iop?.od) || _hasVal(input.iop?.os) ||
+        _hasObjData(input.after?.od) || _hasObjData(input.after?.os) ||
+        _hasObjData(input.glasses?.od) || _hasObjData(input.glasses?.os) ||
+        _hasObjData(input.fundus?.od as any) || _hasObjData(input.fundus?.os as any) ||
+        _hasObjData(input.pentacam?.od as any) || _hasObjData(input.pentacam?.os as any);
+      const _hasClinicalText =
+        _hasVal(input.symptoms) || _hasVal(input.diagnosis) || _hasVal(input.treatment) ||
+        _hasVal(input.report) || _hasVal(input.diseases) || _hasVal(input.recommendations) ||
+        _hasVal(input.radiologyLabs);
+      const _hasTests = (() => {
+        try { const t = JSON.parse(input.tests ?? "[]"); return Array.isArray(t) && t.length > 0; }
+        catch { return false; }
+      })();
+      if (!_hasMeasurements && !_hasClinicalText && !_hasTests) {
+        return { success: true, examinationId: null, visitId: null };
+      }
+
       // Parse visitDate to avoid timezone issues
       let visitDate: Date;
       if (input.visitDate) {
@@ -6794,26 +6960,32 @@ export const medicalRouter = router({
       const examResult = await db.createExamination(examinationData);
       const examinationId: number = (examResult as any)?.insertId || (examResult as any)?.id;
 
-      // Always save autoref
-      await db.saveAutorefractometryData({
-        examinationId,
-        patientId: input.patientId,
-        ...input.autoref,
-      });
+      // Save autoref only when at least one eye has real data
+      if (_hasObjData(input.autoref?.od) || _hasObjData(input.autoref?.os)) {
+        await db.saveAutorefractometryData({
+          examinationId,
+          patientId: input.patientId,
+          ...input.autoref,
+        });
+      }
 
-      // Save AFTER to dedicated table (separate from autoref)
-      await db.saveAfterRefractionData({
-        examinationId,
-        patientId: input.patientId,
-        ...input.after,
-      });
+      // Save AFTER refraction only when at least one eye has real data
+      if (_hasObjData(input.after?.od) || _hasObjData(input.after?.os)) {
+        await db.saveAfterRefractionData({
+          examinationId,
+          patientId: input.patientId,
+          ...input.after,
+        });
+      }
 
-      // Always save glasses
-      await db.saveGlassesRecord({
-        examinationId,
-        patientId: input.patientId,
-        ...input.glasses,
-      });
+      // Save glasses only when at least one eye has real data
+      if (_hasObjData(input.glasses?.od) || _hasObjData(input.glasses?.os)) {
+        await db.saveGlassesRecord({
+          examinationId,
+          patientId: input.patientId,
+          ...input.glasses,
+        });
+      }
 
       const hasPentacamValue = [
         input.pentacam?.od?.k1,
@@ -6848,18 +7020,24 @@ export const medicalRouter = router({
         });
       }
 
-      // Always save doctor report
-      await db.createDoctorReport({
-        visitId: visitId,
-        patientId: input.patientId,
-        doctorId: ctx.user.id,
-        diagnosis: input.diagnosis,
-        treatment: input.treatment,
-        recommendations: input.recommendations || input.report,
-        diseases: input.diseases,
-        additionalNotes: input.radiologyLabs,
-        clinicalOpinion: input.symptoms,
-      });
+      // Save doctor report only when at least one clinical field has real data
+      if (
+        _hasVal(input.diagnosis) || _hasVal(input.treatment) ||
+        _hasVal(input.recommendations) || _hasVal(input.report) ||
+        _hasVal(input.symptoms) || _hasVal(input.diseases) || _hasVal(input.radiologyLabs)
+      ) {
+        await db.createDoctorReport({
+          visitId: visitId,
+          patientId: input.patientId,
+          doctorId: ctx.user.id,
+          diagnosis: input.diagnosis,
+          treatment: input.treatment,
+          recommendations: input.recommendations || input.report,
+          diseases: input.diseases,
+          additionalNotes: input.radiologyLabs,
+          clinicalOpinion: input.symptoms,
+        });
+      }
 
       // Log audit event
       await db.logAuditEvent(ctx.user.id, "SAVE_MEDICAL_VISIT", "visit", input.patientId, {

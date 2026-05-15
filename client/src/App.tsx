@@ -9,7 +9,7 @@ import MobileAppEnhancements from "./components/MobileAppEnhancements";
 import WebAppEnhancements from "./components/WebAppEnhancements";
 import GlobalCommandPalette from "./components/GlobalCommandPalette";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { LidWipeLoader } from "./components/loaders/OrganicLoaders";
+import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { applyMobileQaState, getMobileQaEnabled, markOverflowInSheets, startMobileQaWatcher } from "@/lib/mobileQa";
@@ -51,6 +51,9 @@ const LasikExamSheet = lazy(() => import("./pages/LasikExamSheet"));
 const LasikFollowupPage = lazy(() => import("./pages/LasikFollowupPage"));
 const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 const PentacamResultsDashboard = lazy(() => import("./pages/PentacamResultsDashboard"));
+const RefractionsDashboard = lazy(() => import("./pages/RefractionsDashboard"));
+const AutorefsDashboard = lazy(() => import("./pages/AutorefsDashboard"));
+const PrescriptionsDashboard = lazy(() => import("./pages/PrescriptionsDashboard"));
 const ExternalOperationSheet = lazy(() => import("./pages/ExternalOperationSheet"));
 const RefractionPage = lazy(() => import("./pages/RefractionPage"));
 const PatientSummary = lazy(() => import("./pages/PatientSummary"));
@@ -103,6 +106,13 @@ const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
+const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
+const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
+const AccountingLedger  = lazy(() => import("./pages/accounting/AccountingLedger"));
+const AccountingAdvances = lazy(() => import("./pages/accounting/AccountingAdvances"));
+const AccountingLoans = lazy(() => import("./pages/accounting/AccountingLoans"));
+const AccountingHomeFund = lazy(() => import("./pages/accounting/AccountingHomeFund"));
+const AccountingInstagram = lazy(() => import("./pages/accounting/AccountingInstagram"));
 const DailyRevenue = lazy(() => import("./pages/accounting/DailyRevenue"));
 const LasikRevenue = lazy(() => import("./pages/accounting/LasikRevenue"));
 const ReceiptsInquiry = lazy(() => import("./pages/accounting/ReceiptsInquiry"));
@@ -130,6 +140,9 @@ const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/followups", label: "المتابعات" },
   { pathPrefix: "/visits", label: "الزيارات" },
   { pathPrefix: "/sheets/pentacam/dashboard", label: "نتائج البنتكام" },
+  { pathPrefix: "/sheets/refractions/dashboard", label: "لوحة الانكسارات" },
+  { pathPrefix: "/sheets/autorefs/dashboard", label: "لوحة Autoref" },
+  { pathPrefix: "/sheets/prescriptions/dashboard", label: "لوحة الروشتات" },
   { pathPrefix: "/today", label: "مرضى اليوم" },
   { pathPrefix: "/operations", label: "العمليات" },
   { pathPrefix: "/prescriptions", label: "الروشتات" },
@@ -251,6 +264,7 @@ const Router = memo(function Router() {
 
       {/* Accounting routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
+      <Route path={"/accounting/prototypes"} component={() => <ProtectedRoute><AccountingPrototypes /></ProtectedRoute>} />
       <Route path={"/accounting/daily-revenue"} component={() => <ProtectedRoute><DailyRevenue /></ProtectedRoute>} />
       <Route path={"/accounting/service-revenue"} component={() => <ProtectedRoute><LasikRevenue /></ProtectedRoute>} />
       <Route path={"/accounting/receipts/:secCd/:trTy/:trNo"} component={() => <ProtectedRoute><ReceiptDetail /></ProtectedRoute>} />
@@ -264,6 +278,12 @@ const Router = memo(function Router() {
       <Route path={"/accounting/doctor"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
       <Route path={"/accounting/doctor-account"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
       <Route path={"/accounting/doctor/:doctorCode"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
+      <Route path={"/accounting/cashbook"} component={() => <ProtectedRoute><AccountingCashbook /></ProtectedRoute>} />
+      <Route path={"/accounting/ledger"}   component={() => <ProtectedRoute><AccountingLedger  /></ProtectedRoute>} />
+      <Route path={"/accounting/advances"} component={() => <ProtectedRoute><AccountingAdvances /></ProtectedRoute>} />
+      <Route path={"/accounting/loans"} component={() => <ProtectedRoute><AccountingLoans /></ProtectedRoute>} />
+      <Route path={"/accounting/home-fund"} component={() => <ProtectedRoute><AccountingHomeFund /></ProtectedRoute>} />
+      <Route path={"/accounting/instagram"} component={() => <ProtectedRoute><AccountingInstagram /></ProtectedRoute>} />
       <Route path={"/accounting/print"} component={() => <ProtectedRoute><PrintPreview /></ProtectedRoute>} />
 
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
@@ -321,6 +341,54 @@ const Router = memo(function Router() {
         component={() => (
           <ProtectedRoute>
             <PentacamResultsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/refractions/dashboard"}
+        component={() => (
+          <ProtectedRoute>
+            <RefractionsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/refractions"}
+        component={() => (
+          <ProtectedRoute>
+            <RefractionsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/autorefs/dashboard"}
+        component={() => (
+          <ProtectedRoute>
+            <AutorefsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/autorefs"}
+        component={() => (
+          <ProtectedRoute>
+            <AutorefsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/prescriptions/dashboard"}
+        component={() => (
+          <ProtectedRoute>
+            <PrescriptionsDashboard />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/prescriptions"}
+        component={() => (
+          <ProtectedRoute>
+            <PrescriptionsDashboard />
           </ProtectedRoute>
         )}
       />
@@ -867,11 +935,7 @@ function App() {
           <Toaster />
           <div className="page-layout" dir="rtl">
             <Suspense
-              fallback={
-                <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(0,61,130,0.1),transparent_42%),linear-gradient(180deg,#ffffff_0%,var(--selrs-light-blue)_100%)] p-6">
-                  <LidWipeLoader size={140} logo="eye" label="جاري التحميل..." />
-                </div>
-              }
+              fallback={<AppShellSkeleton />}
             >
               <Router />
             </Suspense>

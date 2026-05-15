@@ -30,9 +30,10 @@
         z-index: 9999;
         display: grid;
         place-items: center;
+        overflow: hidden;
         background:
-          radial-gradient(circle at top, rgba(0, 61, 130, 0.18), transparent 42%),
-          linear-gradient(135deg, #ffffff 0%, #e8f0f8 100%);
+          radial-gradient(circle at top left, rgba(0, 61, 130, 0.08), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%);
         transition: opacity 220ms ease, visibility 220ms ease;
       }
 
@@ -41,42 +42,60 @@
         visibility: hidden;
       }
 
-      .boot-splash-stage {
+      .boot-splash-logo-frame {
         position: relative;
-        width: 200px;
-        height: 200px;
-        display: grid;
-        place-items: center;
+        width: clamp(196px, 28vw, 248px);
+        height: clamp(196px, 28vw, 248px);
+        border-radius: 52px;
+        border: 1px solid rgba(229, 231, 235, 0.95);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 240, 248, 0.95));
+        overflow: hidden;
+        box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
       }
 
-      .boot-splash-logo {
+      .boot-splash-logo-frame::before {
+        content: "";
         position: absolute;
-        width: 160px;
-        height: 160px;
+        inset: 0;
         background-image: url("/logos/full.png");
         background-position: center;
         background-repeat: no-repeat;
-        background-size: contain;
-        display: block;
-        will-change: transform, filter, opacity, clip-path;
-        z-index: 2;
-        animation: boot-a4-wipe 2.6s ease-in-out infinite;
+        background-size: clamp(138px, 20vw, 184px) clamp(138px, 20vw, 184px);
+        will-change: clip-path, filter, opacity;
+        animation: boot-lid-wipe 2.7s ease-in-out infinite;
       }
 
-      @keyframes boot-a4-wipe {
-        0%   { clip-path: ellipse(70% 4% at 50% 50%); filter: blur(0); }
-        25%  { clip-path: ellipse(72% 36% at 50% 50%); }
-        50%  { clip-path: ellipse(72% 60% at 50% 50%); }
-        75%  { clip-path: ellipse(72% 36% at 50% 50%); }
-        100% { clip-path: ellipse(70% 4% at 50% 50%); }
+      @keyframes boot-lid-wipe {
+        0% {
+          clip-path: ellipse(70% 5% at 50% 50%);
+          opacity: 0.6;
+          filter: blur(0.3px);
+        }
+        18% {
+          clip-path: ellipse(72% 18% at 50% 50%);
+          opacity: 0.86;
+        }
+        40% {
+          clip-path: ellipse(72% 62% at 50% 50%);
+          opacity: 1;
+          filter: blur(0);
+        }
+        58% {
+          clip-path: ellipse(72% 18% at 50% 50%);
+          opacity: 0.86;
+        }
+        100% {
+          clip-path: ellipse(70% 5% at 50% 50%);
+          opacity: 0.6;
+          filter: blur(0.3px);
+        }
       }
     </style>
   </head>
 
   <body>
-    <div id="boot-splash" aria-hidden="true">
-      <div class="boot-splash-stage" aria-label="b4-loader">
-        <div class="boot-splash-logo" role="img" aria-label="شعار عيون الشروق"></div>
+    <div id="boot-splash" aria-busy="true" aria-label="جاري تحميل واجهة النظام" role="status">
+      <div class="boot-splash-logo-frame" aria-hidden="true"></div>
       </div>
     </div>
     <div id="root"></div>

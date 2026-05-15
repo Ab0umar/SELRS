@@ -5,20 +5,25 @@ import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { evaluateMedicalReference, findMedicalReference, medicalReferenceClass, type MedicalReference } from "@/lib/medical-reference";
-import { Activity, AlertTriangle, Eye, Upload } from "lucide-react";
+import { Activity, AlertTriangle, Eye } from "lucide-react";
 
 const filterTabs = [
   { value: "all", label: "الكل" },
-  { value: "OD", label: "يمين" },
-  { value: "OS", label: "يسار" },
+  { value: "OD", label: "RT" },
+  { value: "OS", label: "LT" },
   { value: "accepted", label: "مقبول" },
   { value: "repeat", label: "يحتاج تكرار" },
+];
+
+const locationFilterTabs = [
+  { value: "all", label: "الكل" },
+  { value: "center", label: "المركز" },
+  { value: "external", label: "الخارجي" },
 ];
 
 function formatVisitDateAr(value: Date | string | null | undefined): string {
@@ -30,6 +35,13 @@ function formatVisitDateAr(value: Date | string | null | undefined): string {
   } catch {
     return d.toLocaleDateString("ar-EG");
   }
+}
+
+function parsePositiveNumber(value: string): number | undefined {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function parseInitialQuery(): {
@@ -61,6 +73,80 @@ function parseInitialQuery(): {
   }
 }
 
+type PentacamDashboardRow = {
+  resultId: number;
+  visitId: number;
+  patientId: number;
+  patientName: string;
+  doctorName: string;
+  visitDate: Date | string | null;
+  eye: "OD" | "OS";
+  k1: string | null;
+  k2: string | null;
+  axis: string | null;
+  thinnest: string | null;
+  quality: "accepted" | "repeat";
+};
+
+type RowAttention = {
+  severity: "normal" | "repeat" | "abnormal";
+  reasons: string[];
+};
+
+type DashboardEntry = {
+  row: PentacamDashboardRow;
+  attention: RowAttention;
+};
+
+type PatientGroupedRow = {
+  patientId: number;
+  patientName: string;
+  doctorName: string;
+  visitDate: Date | string | null;
+  entries: Partial<Record<"OD" | "OS", DashboardEntry>>;
+  attention: RowAttention;
+};
+
+function getPentacamRowAttention(
+  row: PentacamDashboardRow,
+  refs: {
+    k1: MedicalReference | null;
+    k2: MedicalReference | null;
+    thinnest: MedicalReference | null;
+  },
+): RowAttention {
+  const reasons: string[] = [];
+
+  if (row.quality === "repeat") {
+    reasons.push("بحاجة لتكرار");
+  }
+
+  const metrics: Array<{ label: string; value: string | null; reference: MedicalReference | null }> = [
+    { label: "K1", value: row.k1, reference: refs.k1 },
+    { label: "K2", value: row.k2, reference: refs.k2 },
+    { label: "Thinnest", value: row.thinnest, reference: refs.thinnest },
+  ];
+
+  for (const metric of metrics) {
+    const state = evaluateMedicalReference(metric.value, metric.reference);
+    if (state === "low" || state === "high") {
+      reasons.push(`${metric.label} ${state === "low" ? "منخفض" : "مرتفع"}`);
+    }
+  }
+
+  if (reasons.some((reason) => /منخفض|مرتفع/u.test(reason))) {
+    return { severity: "abnormal", reasons };
+  }
+  if (row.quality === "repeat") {
+    return { severity: "repeat", reasons };
+  }
+  return { severity: "normal", reasons: [] };
+}
+
+function formatReasonBadge(reason: string): string {
+  return reason.replace(/^Thinnest\b/i, "Thinnest").trim();
+}
+
 export type PentacamResultsDashboardProps = {
   embeddedPatientId?: number;
   hidePageChrome?: boolean;
@@ -82,6 +168,7 @@ export default function PentacamResultsDashboard({
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
   const [visitId, setVisitId] = useState<string>(initial.visitId != null ? String(initial.visitId) : "");
   const [resultId, setResultId] = useState<string>(initial.resultId != null ? String(initial.resultId) : "");
   const [patientId, setPatientId] = useState<string>(initial.patientId != null ? String(initial.patientId) : "");
@@ -101,9 +188,10 @@ export default function PentacamResultsDashboard({
   const listInput = useMemo(
     () => ({
       search: search.trim() || undefined,
-      visitId: visitId.trim() ? Number(visitId) : undefined,
-      resultId: resultId.trim() ? Number(resultId) : undefined,
-      patientId: patientId.trim() ? Number(patientId) : undefined,
+      locationType: locationFilter === "center" || locationFilter === "external" ? (locationFilter as "center" | "external") : undefined,
+      visitId: parsePositiveNumber(visitId),
+      resultId: parsePositiveNumber(resultId),
+      patientId: parsePositiveNumber(patientId),
       fromDate: fromDate.trim() || undefined,
       toDate: toDate.trim() || undefined,
       eye: eyeFilter,
@@ -111,7 +199,7 @@ export default function PentacamResultsDashboard({
       limit: 200,
       offset: 0,
     }),
-    [search, visitId, resultId, patientId, fromDate, toDate, eyeFilter, qualityFilter],
+    [search, locationFilter, visitId, resultId, patientId, fromDate, toDate, eyeFilter, qualityFilter],
   );
 
   const listQuery = trpc.medical.listPentacamDashboard.useQuery(listInput, {
@@ -119,10 +207,13 @@ export default function PentacamResultsDashboard({
     refetchOnWindowFocus: false,
   });
 
-  const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(undefined, {
-    enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
-  });
+  const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(
+    locationFilter === "center" || locationFilter === "external" ? { locationType: locationFilter as "center" | "external" } : undefined,
+    {
+      enabled: isAuthenticated,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const refsQuery = trpc.medical.getAllTests.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -153,7 +244,7 @@ export default function PentacamResultsDashboard({
   }, [statsQuery.data?.examsToday, statsQuery.data?.examsYesterday]);
 
   const pentacamRefs = useMemo(() => {
-    const rows = ((refsQuery.data ?? []) as Record<string, unknown>[]);
+    const rows = (refsQuery.data ?? []) as Record<string, unknown>[];
     return {
       k1: findMedicalReference(rows, ["K1", "Pentacam K1", "بنتاكام K1"]),
       k2: findMedicalReference(rows, ["K2", "Pentacam K2", "بنتاكام K2"]),
@@ -161,7 +252,132 @@ export default function PentacamResultsDashboard({
     };
   }, [refsQuery.data]);
 
-  const RefValue = ({ value, reference, suffix = "" }: { value: unknown; reference: MedicalReference | null; suffix?: string }) => {
+  const dashboardRows = (listQuery.data?.rows ?? []) as PentacamDashboardRow[];
+
+  const rowsWithAttention = useMemo(
+    () =>
+      dashboardRows.map((row) => ({
+        row,
+        attention: getPentacamRowAttention(row, pentacamRefs),
+      })),
+    [dashboardRows, pentacamRefs],
+  );
+
+  const groupedPatientRows = useMemo(() => {
+    const byPatient = new Map<number, PatientGroupedRow>();
+
+    for (const entry of rowsWithAttention) {
+      const key = entry.row.patientId;
+      const existing = byPatient.get(key);
+      if (!existing) {
+        byPatient.set(key, {
+          patientId: entry.row.patientId,
+          patientName: entry.row.patientName,
+          doctorName: entry.row.doctorName,
+          visitDate: entry.row.visitDate,
+          entries: { [entry.row.eye]: entry },
+          attention: entry.attention,
+        });
+        continue;
+      }
+
+      existing.entries[entry.row.eye] = entry;
+      if (existing.doctorName === "—" && entry.row.doctorName) {
+        existing.doctorName = entry.row.doctorName;
+      }
+      if (!existing.visitDate) {
+        existing.visitDate = entry.row.visitDate;
+      }
+      if (existing.attention.severity === "normal" && entry.attention.severity !== "normal") {
+        existing.attention = entry.attention;
+      } else if (existing.attention.severity === "repeat" && entry.attention.severity === "abnormal") {
+        existing.attention = entry.attention;
+      }
+      if (entry.attention.severity === "abnormal") {
+        existing.attention = entry.attention;
+      }
+    }
+
+    return Array.from(byPatient.values());
+  }, [rowsWithAttention]);
+
+  const summaryStats = useMemo(() => {
+    const total = rowsWithAttention.length;
+    const abnormal = rowsWithAttention.filter((entry) => entry.attention.severity === "abnormal").length;
+    const repeat = rowsWithAttention.filter((entry) => entry.attention.severity === "repeat").length;
+    const accepted = rowsWithAttention.filter((entry) => entry.attention.severity === "normal").length;
+    return { total, abnormal, repeat, accepted };
+  }, [rowsWithAttention]);
+
+  const alertRows = useMemo(
+    () => rowsWithAttention.filter((entry) => entry.attention.severity !== "normal").slice(0, 6),
+    [rowsWithAttention],
+  );
+
+  const visibleRowCount = activeFilter === "all" ? groupedPatientRows.length : rowsWithAttention.length;
+
+  const renderEyeCell = (entry: DashboardEntry | undefined) => {
+    if (!entry) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    return (
+      <div className="space-y-1.5 rounded-lg border border-border/70 bg-background px-2.5 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              entry.row.eye === "OD" ? "bg-blue-100 text-blue-800" : "bg-violet-100 text-violet-800",
+            )}
+          >
+            {entry.row.eye === "OD" ? "RT" : "LT"}
+          </span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              entry.row.quality === "accepted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+            )}
+          >
+            {entry.row.quality === "accepted" ? "مقبول" : "تكرار"}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between gap-2">
+            <span>K1</span>
+            <span className="font-mono text-foreground">
+              <RefValue value={entry.row.k1} reference={pentacamRefs.k1} />
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span>K2</span>
+            <span className="font-mono text-foreground">
+              <RefValue value={entry.row.k2} reference={pentacamRefs.k2} />
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span>Axis</span>
+            <span className="font-mono text-foreground">{entry.row.axis != null && entry.row.axis !== "" ? `${entry.row.axis}°` : "—"}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span>Thinnest</span>
+            <span className="font-mono text-foreground">
+              <RefValue value={entry.row.thinnest} reference={pentacamRefs.thinnest} suffix=" µm" />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const RefValue = ({
+    value,
+    reference,
+    suffix = "",
+  }: {
+    value: unknown;
+    reference: MedicalReference | null;
+    suffix?: string;
+  }) => {
     const state = evaluateMedicalReference(value, reference);
     const empty = value == null || value === "";
     return (
@@ -177,54 +393,20 @@ export default function PentacamResultsDashboard({
   if (!isAuthenticated) return null;
 
   return (
-    <div
-      className={cn(
-        hidePageChrome ? "prescription-root bg-background min-h-0" : "bg-muted/30 min-h-screen",
-      )}
-    >
+    <div className={cn(hidePageChrome ? "prescription-root bg-background min-h-0" : "bg-muted/30 min-h-screen")}>
       <div
         className={cn(
           "mx-auto w-full",
-          hidePageChrome
-            ? "max-w-none px-2 pb-4 pt-1"
-            : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
+          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
         )}
         dir="rtl"
       >
         {!hidePageChrome ? (
-          <>
-            <PageHeader
-              title="بنتكام"
-              description="نتائج فحص البنتكام"
-              icon={<Eye className="h-5 w-5 text-primary" />}
-              action={
-                <Button variant="default" size="sm" className="gap-1.5 font-semibold" asChild>
-                  <Link href="/sheets/pentacam">
-                    <Upload className="h-4 w-4" />
-                    استيراد نتائج
-                  </Link>
-                </Button>
-              }
-            />
-
-            <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-2 sm:gap-4")}>
-              <StatCard
-                title="فحوصات اليوم"
-                value={statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
-                icon={Activity}
-                iconColor="bg-emerald-500/10 text-emerald-600"
-                trend={trendDelta >= 0 ? "up" : "down"}
-                change={statsQuery.isLoading ? "…" : `${Math.abs(trendDelta)} مقارنة بالأمس`}
-              />
-              <StatCard
-                title="بحاجة لتكرار"
-                value={statsQuery.isLoading ? "…" : (statsQuery.data?.needsRepeatEyes ?? 0)}
-                icon={AlertTriangle}
-                iconColor="bg-amber-500/10 text-amber-600"
-                description="جودة غير مقبولة"
-              />
-            </div>
-          </>
+          <PageHeader
+            title="بنتكام"
+            description="مراجعة النتائج، اكتشاف التكرار، والتنبيه على الحالات الشاذة"
+            icon={<Eye className="h-5 w-5 text-primary" />}
+          />
         ) : null}
 
         {hidePageChrome && patientHubReadOnly ? (
@@ -233,169 +415,449 @@ export default function PentacamResultsDashboard({
           </div>
         ) : null}
 
-        <div className="rounded-xl border bg-card p-3 sm:p-4 shadow-sm space-y-4 mb-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">رقم السجل (ID)</Label>
-              <Input
-                dir="ltr"
-                className="h-9 text-sm"
-                placeholder="pentacam result id"
-                value={resultId}
-                disabled={patientHubReadOnly}
-                onChange={(e) => setResultId(e.target.value.replace(/[^\d]/g, ""))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">رقم الزيارة</Label>
-              <Input
-                dir="ltr"
-                className="h-9 text-sm"
-                placeholder="visit id"
-                value={visitId}
-                disabled={patientHubReadOnly}
-                onChange={(e) => setVisitId(e.target.value.replace(/[^\d]/g, ""))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">من تاريخ</Label>
-              <Input
-                type="date"
-                className="h-9 text-sm"
-                value={fromDate}
-                disabled={patientHubReadOnly}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">إلى تاريخ</Label>
-              <Input type="date" className="h-9 text-sm" value={toDate} disabled={patientHubReadOnly} onChange={(e) => setToDate(e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">المريض (اختياري)</Label>
-            <Input
-              dir="ltr"
-              className="h-9 text-sm"
-              placeholder="patient id"
-              value={patientId}
-              disabled={patientHubReadOnly}
-              onChange={(e) => setPatientId(e.target.value.replace(/[^\d]/g, ""))}
-            />
-          </div>
-        </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex flex-col gap-4">
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="ابحث بكود المريض أو الاسم أو الطبيب..."
+                  className="w-full lg:max-w-2xl"
+                  disabled={patientHubReadOnly}
+                />
 
-        <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between mb-4">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="بحث باسم المريض أو الطبيب..."
-            className="lg:max-w-xl w-full"
-            disabled={patientHubReadOnly}
-          />
-          <div className={cn("lg:justify-end", patientHubReadOnly && "pointer-events-none opacity-60")}>
-            <FilterBar filters={filterTabs} selected={activeFilter} onSelect={setActiveFilter} className="lg:justify-end" />
-          </div>
-        </div>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className={cn("w-full", patientHubReadOnly && "pointer-events-none opacity-60")}>
+                    <FilterBar filters={locationFilterTabs} selected={locationFilter} onSelect={setLocationFilter} className="w-full flex-wrap" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {statsQuery.isLoading ? "جارٍ تحديث الملخص..." : `${statsQuery.data?.examsToday ?? 0} نتيجة لليوم`}
+                  </div>
+                </div>
 
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right min-w-[960px]">
-              <thead>
-                <tr className="border-b bg-muted/40 text-[11px] sm:text-xs font-semibold text-muted-foreground">
-                  <th className="p-2.5 whitespace-nowrap">المريض</th>
-                  <th className="p-2.5 whitespace-nowrap">الطبيب</th>
-                  <th className="p-2.5 whitespace-nowrap">التاريخ</th>
-                  <th className="p-2.5 whitespace-nowrap">العين</th>
-                  <th className="p-2.5 whitespace-nowrap">K1</th>
-                  <th className="p-2.5 whitespace-nowrap">K2</th>
-                  <th className="p-2.5 whitespace-nowrap">Axis</th>
-                  <th className="p-2.5 whitespace-nowrap">Thinnest</th>
-                  <th className="p-2.5 whitespace-nowrap">الجودة</th>
-                  <th className="p-2.5 whitespace-nowrap w-14">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className={cn("w-full", patientHubReadOnly && "pointer-events-none opacity-60")}>
+                    <FilterBar filters={filterTabs} selected={activeFilter} onSelect={setActiveFilter} className="w-full flex-wrap" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {listQuery.isLoading ? "جارٍ تحديث النتائج..." : `${visibleRowCount} نتيجة ظاهرة الآن`}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium text-blue-700">فحوصات اليوم</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-blue-950">
+                          {statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
+                        </p>
+                        <p className="mt-1 text-xs text-blue-700/80">
+                          {statsQuery.isLoading ? "..." : `${Math.abs(trendDelta)} مقارنة بالأمس`}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-blue-100 p-2 text-blue-700">
+                        <Activity className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium text-emerald-700">مقبولة</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-950">
+                          {listQuery.isLoading ? "…" : summaryStats.accepted}
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-700/80">جاهزة للمراجعة السريعة</p>
+                      </div>
+                      <span className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                        <Eye className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium text-amber-700">بحاجة لتكرار</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-950">
+                          {listQuery.isLoading ? "…" : summaryStats.repeat}
+                        </p>
+                        <p className="mt-1 text-xs text-amber-700/80">جودة أو اكتمال يحتاج مراجعة</p>
+                      </div>
+                      <span className="rounded-full bg-amber-100 p-2 text-amber-700">
+                        <AlertTriangle className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-red-200 bg-red-50/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium text-red-700">شاذة</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-red-950">
+                          {listQuery.isLoading ? "…" : summaryStats.abnormal}
+                        </p>
+                        <p className="mt-1 text-xs text-red-700/80">قيم خارجة عن المرجع</p>
+                      </div>
+                      <span className="rounded-full bg-red-100 p-2 text-red-700">
+                        <AlertTriangle className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">رقم السجل (ID)</Label>
+                    <Input
+                      dir="ltr"
+                      className="h-9 text-sm"
+                      placeholder="pentacam result id"
+                      value={resultId}
+                      disabled={patientHubReadOnly}
+                      onChange={(e) => setResultId(e.target.value.replace(/[^\d]/g, ""))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">رقم الزيارة</Label>
+                    <Input
+                      dir="ltr"
+                      className="h-9 text-sm"
+                      placeholder="visit id"
+                      value={visitId}
+                      disabled={patientHubReadOnly}
+                      onChange={(e) => setVisitId(e.target.value.replace(/[^\d]/g, ""))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">المريض</Label>
+                    <Input
+                      dir="ltr"
+                      className="h-9 text-sm"
+                      placeholder="patient id"
+                      value={patientId}
+                      disabled={patientHubReadOnly}
+                      onChange={(e) => setPatientId(e.target.value.replace(/[^\d]/g, ""))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">من تاريخ</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-sm"
+                      value={fromDate}
+                      disabled={patientHubReadOnly}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">إلى تاريخ</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-sm"
+                      value={toDate}
+                      disabled={patientHubReadOnly}
+                      onChange={(e) => setToDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1100px] text-right text-sm">
+                  <thead>
+                    <tr className="border-b bg-blue-100 text-[11px] font-semibold text-blue-900 sm:text-xs">
+                      <th className="p-2.5 whitespace-nowrap">المريض</th>
+                      <th className="p-2.5 whitespace-nowrap">الطبيب</th>
+                      <th className="p-2.5 whitespace-nowrap">التاريخ</th>
+                      {activeFilter === "all" ? (
+                        <>
+                          <th className="p-2.5 whitespace-nowrap">RT</th>
+                          <th className="p-2.5 whitespace-nowrap">LT</th>
+                          <th className="p-2.5 whitespace-nowrap">الحالة</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="p-2.5 whitespace-nowrap">K1</th>
+                          <th className="p-2.5 whitespace-nowrap">K2</th>
+                          <th className="p-2.5 whitespace-nowrap">Axis</th>
+                          <th className="p-2.5 whitespace-nowrap">Thinnest</th>
+                          <th className="p-2.5 whitespace-nowrap">الحالة</th>
+                        </>
+                      )}
+                      <th className="p-2.5 whitespace-nowrap w-14">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listQuery.isLoading ? (
+                      <tr>
+                        <td colSpan={activeFilter === "all" ? 7 : 9} className="p-8 text-center text-muted-foreground">
+                          جارٍ التحميل...
+                        </td>
+                      </tr>
+                    ) : (
+                      (() => {
+                        if (activeFilter === "all") {
+                          if (groupedPatientRows.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                  لا توجد نتائج مطابقة.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return groupedPatientRows.map((group) => (
+                            <tr
+                              key={`patient-${group.patientId}`}
+                              className={cn(
+                                "border-b last:border-0 transition-colors hover:bg-blue-50/60",
+                                group.attention.severity === "abnormal"
+                                  ? "bg-red-50/70 hover:bg-red-50"
+                                  : group.attention.severity === "repeat"
+                                    ? "bg-amber-50/70 hover:bg-amber-50"
+                                    : "",
+                              )}
+                            >
+                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">{group.patientName}</td>
+                              <td className="max-w-[180px] p-2.5 whitespace-nowrap truncate text-muted-foreground">
+                                {group.doctorName || "—"}
+                              </td>
+                              <td className="p-2.5 whitespace-nowrap tabular-nums">{formatVisitDateAr(group.visitDate)}</td>
+                              <td className="p-2.5 align-top">{renderEyeCell(group.entries.OD)}</td>
+                              <td className="p-2.5 align-top">{renderEyeCell(group.entries.OS)}</td>
+                              <td className="p-2.5">
+                                <div className="flex flex-wrap gap-1.5">
+                                  <span
+                                    className={cn(
+                                      "rounded-full px-2 py-0.5 text-xs font-semibold",
+                                      group.attention.severity === "normal"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : group.attention.severity === "repeat"
+                                          ? "bg-amber-100 text-amber-700"
+                                          : "bg-red-100 text-red-700",
+                                    )}
+                                  >
+                                    {group.attention.severity === "normal"
+                                      ? "مقبول"
+                                      : group.attention.severity === "repeat"
+                                        ? "يحتاج تكرار"
+                                        : "شاذة"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-2.5 text-center">
+                                {patientHubReadOnly ? (
+                                  <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
+                                    <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+                                  </span>
+                                ) : (
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
+                                    <Link href={`/sheets/pentacam/${group.patientId}`}>
+                                      <Eye className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ));
+                        }
+
+                        if (dashboardRows.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                                لا توجد نتائج مطابقة.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return rowsWithAttention.map(({ row, attention }, idx) => (
+                            <tr
+                              key={`${row.resultId}-${row.eye}-${idx}`}
+                              className={cn(
+                                "border-b last:border-0 transition-colors",
+                                attention.severity === "abnormal"
+                                  ? "bg-red-50/70 hover:bg-red-50"
+                                  : attention.severity === "repeat"
+                                    ? "bg-amber-50/70 hover:bg-amber-50"
+                                    : "hover:bg-blue-50/60",
+                              )}
+                            >
+                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">{row.patientName}</td>
+                              <td className="max-w-[180px] p-2.5 whitespace-nowrap truncate text-muted-foreground">
+                                {row.doctorName || "—"}
+                              </td>
+                              <td className="p-2.5 whitespace-nowrap tabular-nums">{formatVisitDateAr(row.visitDate)}</td>
+                              <td className="p-2.5 font-mono text-xs tabular-nums">
+                                <RefValue value={row.k1} reference={pentacamRefs.k1} />
+                              </td>
+                              <td className="p-2.5 font-mono text-xs tabular-nums">
+                                <RefValue value={row.k2} reference={pentacamRefs.k2} />
+                              </td>
+                              <td className="p-2.5 font-mono text-xs tabular-nums">
+                                {row.axis != null && row.axis !== "" ? `${row.axis}°` : "—"}
+                              </td>
+                              <td className="p-2.5 font-mono text-xs tabular-nums">
+                                <RefValue value={row.thinnest} reference={pentacamRefs.thinnest} suffix=" µm" />
+                              </td>
+                              <td className="p-2.5">
+                                <div className="flex flex-wrap gap-1.5">
+                                  <span
+                                    className={cn(
+                                      "rounded-full px-2 py-0.5 text-xs font-semibold",
+                                      row.quality === "accepted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+                                    )}
+                                  >
+                                    {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
+                                  </span>
+                                  {attention.severity === "abnormal" ? (
+                                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                      شاذة
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="p-2.5 text-center">
+                                {patientHubReadOnly ? (
+                                  <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
+                                    <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+                                  </span>
+                                ) : (
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
+                                    <Link href={`/sheets/pentacam/${row.patientId}`}>
+                                      <Eye className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                        ));
+                      })()
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {listQuery.error ? <p className="text-center text-sm text-destructive">{String(listQuery.error.message)}</p> : null}
+          </div>
+
+          <aside className="space-y-4 lg:sticky lg:top-4 self-start">
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">شريط التنبيه</h2>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    الحالات الشاذة أو التي تحتاج تكرار تبقى هنا حتى لا تضيع أثناء التصفح.
+                  </p>
+                </div>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">مراجعة</span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                  <p className="text-[11px] font-medium text-amber-700">بحاجة لتكرار</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-amber-950">
+                    {listQuery.isLoading ? "…" : summaryStats.repeat}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50/70 p-3">
+                  <p className="text-[11px] font-medium text-red-700">شاذة</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-red-950">
+                    {listQuery.isLoading ? "…" : summaryStats.abnormal}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">القائمة الحرجة</h3>
+                <span className="text-xs text-muted-foreground">{alertRows.length} عناصر</span>
+              </div>
+
+              <div className="mt-4 space-y-3">
                 {listQuery.isLoading ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-muted-foreground">
-                      جاري التحميل…
-                    </td>
-                  </tr>
-                ) : listQuery.data?.rows?.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-muted-foreground">
-                      لا توجد نتائج مطابقة.
-                    </td>
-                  </tr>
+                  <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                    جارٍ تحميل التنبيهات...
+                  </div>
+                ) : alertRows.length === 0 ? (
+                  <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                    لا توجد حالات حرجة في النتائج الحالية.
+                  </div>
                 ) : (
-                  listQuery.data?.rows?.map((row, idx) => (
-                    <tr key={`${row.resultId}-${row.eye}-${idx}`} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="p-2.5 font-semibold whitespace-nowrap max-w-[200px] truncate">{row.patientName}</td>
-                      <td className="p-2.5 text-muted-foreground whitespace-nowrap max-w-[180px] truncate">
-                        {row.doctorName || "—"}
-                      </td>
-                      <td className="p-2.5 whitespace-nowrap tabular-nums">{formatVisitDateAr(row.visitDate)}</td>
-                      <td className="p-2.5">
+                  alertRows.map(({ row, attention }) => (
+                    <div
+                      key={`alert-${row.resultId}-${row.eye}`}
+                      className={cn(
+                        "rounded-lg border p-3",
+                        attention.severity === "abnormal"
+                          ? "border-red-200 bg-red-50/70"
+                          : "border-amber-200 bg-amber-50/70",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{row.patientName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {row.doctorName || "—"} • {formatVisitDateAr(row.visitDate)}
+                          </p>
+                        </div>
                         <span
                           className={cn(
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                            row.eye === "OD"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-200"
-                              : "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200",
+                            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                            attention.severity === "abnormal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
                           )}
                         >
-                          {row.eye === "OD" ? "يمين" : "يسار"}
+                          {attention.severity === "abnormal" ? "شاذة" : "تكرار"}
                         </span>
-                      </td>
-                      <td className="p-2.5 tabular-nums font-mono text-xs">
-                        <RefValue value={row.k1} reference={pentacamRefs.k1} />
-                      </td>
-                      <td className="p-2.5 tabular-nums font-mono text-xs">
-                        <RefValue value={row.k2} reference={pentacamRefs.k2} />
-                      </td>
-                      <td className="p-2.5 tabular-nums font-mono text-xs">
-                        {row.axis != null && row.axis !== "" ? `${row.axis}°` : "—"}
-                      </td>
-                      <td className="p-2.5 tabular-nums font-mono text-xs">
-                        <RefValue value={row.thinnest} reference={pentacamRefs.thinnest} suffix=" µm" />
-                      </td>
-                      <td className="p-2.5">
-                        <span
-                          className={cn(
-                            "text-xs font-semibold",
-                            row.quality === "accepted"
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-amber-600 dark:text-amber-400",
-                          )}
-                        >
-                          {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
+                      </div>
+
+                      {attention.reasons.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {attention.reasons.map((reason) => (
+                            <span
+                              key={`${row.resultId}-${row.eye}-${reason}`}
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                attention.severity === "abnormal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
+                              )}
+                            >
+                              {formatReasonBadge(reason)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {row.eye === "OD" ? "يمين" : "يسار"} • {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
                         </span>
-                      </td>
-                      <td className="p-2.5 text-center">
                         {patientHubReadOnly ? (
-                          <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
-                            <Eye className="h-4 w-4 text-muted-foreground opacity-50" aria-hidden />
+                          <span className="text-xs text-muted-foreground" title={patientHubViewOnlyHint}>
+                            عرض فقط
                           </span>
                         ) : (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
-                            <Link href={`/sheets/pentacam/${row.patientId}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
+                          <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
+                            <Link href={`/sheets/pentacam/${row.patientId}`}>عرض</Link>
                           </Button>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          </aside>
         </div>
-
-        {listQuery.error ? (
-          <p className="mt-3 text-sm text-destructive text-center">{String(listQuery.error.message)}</p>
-        ) : null}
       </div>
     </div>
   );

@@ -18,10 +18,10 @@ export default function PatientsInquiry() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">استعلام المرضى</CardTitle>
+            <CardTitle className="text-xl tracking-tight">استعلام المرضى</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-2">
             <Input 
@@ -30,7 +30,7 @@ export default function PatientsInquiry() {
               onChange={(e) => setPatientCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button onClick={handleSearch}><Search className="ml-2" /> بحث</Button>
+            <Button onClick={handleSearch} aria-label="بحث عن مريض"><Search className="ml-2" aria-hidden /> بحث</Button>
           </CardContent>
         </Card>
       </div>

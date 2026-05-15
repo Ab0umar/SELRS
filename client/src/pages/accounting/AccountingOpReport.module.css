@@ -1,12 +1,12 @@
 /**
- * Shared OP-style report tables (black borders, RTL-safe, print-friendly).
- * Used by Daily Revenue and Receipts Inquiry.
+ * Shared accounting report tables, tuned for screen and print.
+ * Used across revenue, receipts, account, and lookup pages.
  */
 
 .reportShell {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
   min-width: 0;
 }
@@ -14,36 +14,37 @@
 /** Period / filters summary — show once above tables (screen + print). */
 .reportMeta {
   box-sizing: border-box;
-  margin-bottom: 4px;
-  padding: 10px 12px;
-  border: 1px solid #000;
-  border-radius: 4px;
-  background: #fff;
+  margin-bottom: 2px;
+  padding: 11px 14px;
+  border: 1px solid #c7d7ee;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
   font-size: 0.875rem;
   line-height: 1.4;
-  color: #000;
+  color: #1f2937;
   text-align: right;
   direction: rtl;
 }
 
 .reportBlock {
   box-sizing: border-box;
-  border: 2px solid #000;
-  border-radius: 4px;
+  border: 1px solid #dbe4f0;
+  border-radius: 18px;
   overflow: hidden;
   background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   min-width: 0;
   max-width: 100%;
 }
 
 .blockHeader {
-  padding: 10px 12px;
+  padding: 11px 14px;
   font-weight: 700;
   font-size: 0.95rem;
   line-height: 1.35;
-  color: #000;
-  background: #dde8f5;
-  border-bottom: 2px solid #000;
+  color: #1e3a8a;
+  background: linear-gradient(180deg, #e0ecff 0%, #dbeafe 100%);
+  border-bottom: 1px solid #c7d7ee;
   text-align: right;
 }
 
@@ -59,12 +60,12 @@
 .gridTable th,
 .gridTable td {
   box-sizing: border-box;
-  padding: 6px 8px;
+  padding: 7px 10px;
   text-align: right;
   vertical-align: middle;
-  color: #000;
-  border-bottom: 1px solid #000;
-  border-right: 1px solid #000;
+  color: #111827;
+  border-bottom: 1px solid #dbe4f0;
+  border-right: 1px solid #dbe4f0;
   min-width: 0;
   white-space: nowrap;
   font-size: 0.8125rem;
@@ -73,8 +74,9 @@
 
 .gridTable thead th {
   font-weight: 700;
-  background: #e8e8e8;
-  border-bottom: 1px solid #000;
+  background: #f8fbff;
+  color: #334155;
+  border-bottom: 1px solid #c7d7ee;
 }
 
 .gridTable th:first-child,
@@ -103,10 +105,10 @@
 
 .grandTotalRow td {
   font-weight: 700;
-  background: #bfbfbf;
-  border-top: 2px solid #000;
-  border-bottom: 2px solid #000;
-  border-right: 1px solid #000;
+  background: #dbeafe;
+  border-top: 1px solid #bfdbfe;
+  border-bottom: 1px solid #bfdbfe;
+  border-right: 1px solid #bfdbfe;
 }
 
 .grandTotalRow td:first-child {
@@ -115,10 +117,10 @@
 
 .detailFooterRow td {
   font-weight: 700;
-  background: #ffe6cc;
-  border-top: 2px solid #000;
-  border-bottom: 2px solid #000;
-  border-right: 1px solid #000;
+  background: #ffedd5;
+  border-top: 1px solid #fdba74;
+  border-bottom: 1px solid #fdba74;
+  border-right: 1px solid #fdba74;
 }
 
 .detailFooterRow td:first-child {
@@ -126,7 +128,7 @@
 }
 
 .rowSelected td {
-  background: #e3edf9;
+  background: #eff6ff;
 }
 
 .rowClickable {
@@ -134,25 +136,28 @@
 }
 
 .rowClickable:hover td {
-  background: #f0f4fa;
+  background: #f0f9ff;
 }
 
 .rowSelected.rowClickable:hover td {
-  background: #d9e8f8;
+  background: #dbeafe;
 }
 
 .loadingTable {
   width: 100%;
   max-width: 100%;
   border-collapse: collapse;
-  border: 2px solid #000;
+  border: 1px solid #dbe4f0;
+  border-radius: 18px;
+  overflow: hidden;
   table-layout: auto;
+  background: #fff;
 }
 
 .loadingTable td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #000;
-  border-inline-start: 1px solid #000;
+  padding: 7px 10px;
+  border-bottom: 1px solid #dbe4f0;
+  border-inline-start: 1px solid #dbe4f0;
   min-width: 0;
 }
 
@@ -161,25 +166,27 @@
 }
 
 .emptyState {
-  padding: 24px;
+  padding: 24px 20px;
   text-align: center;
-  border: 2px solid #000;
-  border-radius: 4px;
-  background: #fafafa;
+  border: 1px solid #dbe4f0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  color: #475569;
 }
 
 .emptyHint {
-  padding: 24px;
+  padding: 24px 20px;
   text-align: center;
-  border: 2px dashed #333;
-  border-radius: 4px;
-  background: #fafafa;
+  border: 1px dashed #9db7d6;
+  border-radius: 18px;
+  background: #f8fbff;
+  color: #475569;
 }
 
 .headerFieldsWrap {
   padding: 12px;
-  border-bottom: 2px solid #000;
-  background: #fff;
+  border-bottom: 1px solid #dbe4f0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .colCompact { width: 1%; }
@@ -279,6 +286,107 @@
     background: #e3edf9 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+/* ── Mobile: stack table rows as key-value cards ── */
+@media screen and (max-width: 640px) {
+  .reportBlock {
+    overflow-x: visible;
+  }
+
+  .gridTable {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .gridTable thead {
+    display: none;
+  }
+
+  .gridTable tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    background: #f5f5f5;
+  }
+
+  .gridTable tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .gridTable tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+    border-right: none;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 7px 8px;
+    min-width: 0;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .gridTable tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #777;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+
+  .gridTable tbody td.numeric {
+    direction: ltr;
+    text-align: left;
+  }
+
+  .gridTable tbody td.numeric[data-label]::before {
+    direction: rtl;
+    text-align: right;
+    display: block;
+  }
+
+  .grandTotalRow {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .grandTotalRow td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 8px;
+    border-right: 1px solid #aaa;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .detailFooterRow {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .detailFooterRow td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 8px;
+    border-right: 1px solid #ccc;
+    min-width: 0;
+    white-space: normal;
   }
 }
 

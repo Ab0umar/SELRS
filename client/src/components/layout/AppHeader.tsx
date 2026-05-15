@@ -81,15 +81,15 @@ export function AppHeader({
             title={theme === "light" ? "Dark mode" : "Light mode"}
             aria-label={theme === "light" ? "Dark mode" : "Light mode"}
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 shrink-0 gap-2 px-2">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                  <AvatarFallback className="bg-blue-50 text-xs font-semibold text-blue-800">
                     {userName?.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>
@@ -130,7 +130,7 @@ export function AppHeader({
               type="button"
               onClick={dispatchOpenCommandPalette}
               dir="rtl"
-              className="flex h-9 w-full cursor-text items-center rounded-lg border border-border bg-muted/50 ps-10 pe-4 text-end text-sm text-muted-foreground transition-all hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex h-9 w-full cursor-text items-center rounded-lg border border-border bg-muted/50 ps-10 pe-4 text-end text-sm text-muted-foreground transition-[background-color,border-color,box-shadow] hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-ring"
             >
               بحث عن مرضى، أطباء، مواعيد… (⌘K)
             </button>

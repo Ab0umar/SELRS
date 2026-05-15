@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { getErrorContext } from "@/lib/errorMessages";
 import type {
   DailyRevenueInput,
   DailyRevenueOutput,
@@ -129,9 +130,11 @@ export default function DailyRevenue() {
   const search = useSearch();
   const filters = useMemo(() => readFilters(search), [search]);
   const [draft, setDraft] = useState(filters);
+  const [dateError, setDateError] = useState("");
 
   useEffect(() => {
     setDraft(filters);
+    setDateError("");
   }, [filters]);
 
   const dailyRevenueQuery = accountingTrpc.accounting.dailyRevenue.useQuery(filters, {
@@ -149,6 +152,11 @@ export default function DailyRevenue() {
   };
 
   const applyFilters = () => {
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError("تاريخ البداية بعد تاريخ النهاية");
+      return;
+    }
+    setDateError("");
     setLocation(buildDailyRevenueUrl(draft));
   };
 
@@ -177,8 +185,8 @@ export default function DailyRevenue() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
-        <Card className={`${reportStyles.noPrint} border-border/80 shadow-sm`}>
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
+        <Card className={`${reportStyles.noPrint} border-border shadow-sm`}>
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -193,45 +201,55 @@ export default function DailyRevenue() {
                   variant="outline"
                   onClick={() => void dailyRevenueQuery.refetch()}
                   disabled={dailyRevenueQuery.isFetching}
+                  aria-label="تحديث بيانات الإيراد اليومي"
                 >
-                  <RefreshCw className={dailyRevenueQuery.isFetching ? "animate-spin" : ""} />
+                  <RefreshCw className={dailyRevenueQuery.isFetching ? "animate-spin" : ""} aria-hidden />
                   تحديث
                 </Button>
                 <Button
                   type="button"
                   onClick={printReport}
                   disabled={dailyRevenueQuery.isLoading || rows.length === 0}
+                  aria-label="طباعة تقرير الإيراد اليومي"
                 >
-                  <Printer className="ml-2 h-4 w-4" />
+                  <Printer className="ml-2 h-4 w-4" aria-hidden />
                   طباعة
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-5">
-            <label className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label htmlFor="daily-from-date" className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
               <Input
+                id="daily-from-date"
                 type="date"
                 value={draft.fromDate}
-                onChange={(event) =>
-                  setDraft((prev) => ({ ...prev, fromDate: event.target.value }))
-                }
+                onChange={(event) => {
+                  setDraft((prev) => ({ ...prev, fromDate: event.target.value }));
+                  setDateError("");
+                }}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="daily-to-date" className="space-y-1.5 text-sm font-medium">
               <span>إلى تاريخ</span>
               <Input
+                id="daily-to-date"
                 type="date"
                 value={draft.toDate}
-                onChange={(event) =>
-                  setDraft((prev) => ({ ...prev, toDate: event.target.value }))
-                }
+                onChange={(event) => {
+                  setDraft((prev) => ({ ...prev, toDate: event.target.value }));
+                  setDateError("");
+                }}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            {dateError && (
+              <p className="col-span-full text-sm text-red-600">{dateError}</p>
+            )}
+            <label htmlFor="daily-section-code" className="space-y-1.5 text-sm font-medium">
               <span>كود القسم</span>
               <Input
+                id="daily-section-code"
                 type="number"
                 min={1}
                 value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
@@ -244,7 +262,7 @@ export default function DailyRevenue() {
               />
             </label>
             <div className="space-y-1.5 text-sm font-medium">
-              <span>الوردية</span>
+              <label htmlFor="daily-shift-code">الوردية</label>
               <Select
                 value={draft.shiftCode ?? "all"}
                 onValueChange={(val) =>
@@ -252,7 +270,7 @@ export default function DailyRevenue() {
                 }
                 dir="rtl"
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="daily-shift-code" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
@@ -263,11 +281,11 @@ export default function DailyRevenue() {
               </Select>
             </div>
             <div className="flex items-end gap-2">
-              <Button type="button" className="flex-1" onClick={applyFilters}>
-                <Search className="ml-2 h-4 w-4" />
+              <Button type="button" className="flex-1" onClick={applyFilters} aria-label="تطبيق الفلاتر">
+                <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters}>
+              <Button type="button" variant="outline" onClick={resetFilters} aria-label="إعادة ضبط الفلاتر">
                 إعادة ضبط
               </Button>
             </div>
@@ -275,24 +293,24 @@ export default function DailyRevenue() {
         </Card>
 
         {dailyRevenueQuery.isError ? (
-          <Card className="border-destructive/30 bg-destructive/5">
+          <Card className="border-error/30 bg-error/5">
             <CardContent className="flex items-start gap-3 py-5">
-              <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
-                <CircleAlert className="h-5 w-5" />
+              <div className="rounded-lg bg-error/10 p-2 text-error">
+                <CircleAlert className="h-5 w-5" aria-hidden />
               </div>
               <div>
                 <p className="font-semibold text-foreground">
-                  تعذر تحميل بيانات الإيراد اليومي
+                  {getErrorContext(dailyRevenueQuery.error.message).title}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {dailyRevenueQuery.error.message || "تأكد من الاتصال بقاعدة بيانات الحسابات."}
+                  {getErrorContext(dailyRevenueQuery.error.message).hint}
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : null}
 
-        <Card className={`${reportStyles.printScope} border-border/80 shadow-sm`}>
+        <Card className={`${reportStyles.printScope} border-border shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">البيانات اليومية</CardTitle>
           </CardHeader>
@@ -347,13 +365,13 @@ export default function DailyRevenue() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.date}>
-                      <td className={reportStyles.numeric}>{formatDateAr(row.date)}</td>
-                      <td className={reportStyles.numeric}>{formatCountAr(row.totalReceipts)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.totalGross)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.totalDiscount)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.totalCash)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.totalPaid)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.netAfterDiscount)}</td>
+                      <td data-label="التاريخ" className={reportStyles.numeric}>{formatDateAr(row.date)}</td>
+                      <td data-label="الإيصالات" className={reportStyles.numeric}>{formatCountAr(row.totalReceipts)}</td>
+                      <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(row.totalGross)}</td>
+                      <td data-label="الخصم" className={reportStyles.numeric}>{formatMoneyAr(row.totalDiscount)}</td>
+                      <td data-label="نقدي" className={reportStyles.numeric}>{formatMoneyAr(row.totalCash)}</td>
+                      <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoneyAr(row.totalPaid)}</td>
+                      <td data-label="الصافي" className={reportStyles.numeric}>{formatMoneyAr(row.netAfterDiscount)}</td>
                     </tr>
                   ))}
                 </tbody>

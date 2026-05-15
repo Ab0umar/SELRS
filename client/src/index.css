@@ -80,6 +80,8 @@
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
+  --warning: #F59E0B;
+  --warning-foreground: #92400E;
   --border: #E5E7EB;
   --input: #FFFFFF;
   --ring: #003D82;
@@ -93,25 +95,27 @@
 }
 
 .dark {
-  /* Dark Mode - Solid Black */
-  --background: #000000;
-  --foreground: #FFFFFF;
-  --card: #111111;
-  --card-foreground: #FFFFFF;
-  --popover: #111111;
-  --popover-foreground: #FFFFFF;
+  /* SELRS is a light-theme clinical product. Keep dark-mode fallbacks tinted and readable if the class is present. */
+  --background: #f7fafc;
+  --foreground: #001F47;
+  --card: #f2f6fb;
+  --card-foreground: #001F47;
+  --popover: #f7fafc;
+  --popover-foreground: #001F47;
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
   --secondary: #FF9500;
-  --secondary-foreground: #000000;
-  --muted: #1A1A1A;
-  --muted-foreground: #E5E7EB;
+  --secondary-foreground: #001F47;
+  --muted: #E8F0F8;
+  --muted-foreground: #334155;
   --accent: #FF9500;
-  --accent-foreground: #000000;
+  --accent-foreground: #001F47;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #333333;
-  --input: #1A1A1A;
+  --warning: #FBBF24;
+  --warning-foreground: #78350F;
+  --border: #cbd5e1;
+  --input: #FFFFFF;
   --ring: #FF9500;
 
   --chart-1: #003D82;
@@ -120,19 +124,32 @@
   --chart-4: #FFB84D;
   --chart-5: #FFD699;
 
-  --sidebar: #111111;
-  --sidebar-foreground: #FFFFFF;
+  --sidebar: #f7fafc;
+  --sidebar-foreground: #001F47;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #333333;
+  --sidebar-accent-foreground: #001F47;
+  --sidebar-border: #cbd5e1;
   --sidebar-ring: #FF9500;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [type="button"]:focus-visible,
+  [type="submit"]:focus-visible,
+  [type="reset"]:focus-visible,
+  a[href]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #003D82;
+    outline-offset: 2px;
   }
 
   /* Slightly denser typography on desktop; mobile keeps its own scale in the mq below */
@@ -153,8 +170,8 @@
   }
   .dark body {
     background-image:
-      radial-gradient(circle at top, rgba(255, 149, 0, 0.06), transparent 24%),
-      linear-gradient(180deg, #000000 0%, #111111 100%);
+      radial-gradient(circle at top, rgba(0, 61, 130, 0.05), transparent 24%),
+      linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
   }
   body * {
     unicode-bidi: plaintext;
@@ -172,6 +189,25 @@
   [contenteditable="true"] {
     unicode-bidi: plaintext;
     text-align: start;
+  }
+  /* Strip native chrome from date/time pickers */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-datetime-edit {
+    direction: ltr;
+    text-align: center;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: center;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -197,8 +233,8 @@
   }
 
   .dark .selrs-page-bg {
-    background-color: var(--background) !important;
-    background-image: none !important;
+    background-color: #f7fafc !important;
+    background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%) !important;
     background-attachment: scroll !important;
   }
 }
@@ -256,7 +292,7 @@
 
   .dark [class*="shadow-sm"],
   .dark [class*="shadow-lg"] {
-    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10) !important;
   }
 
 }
@@ -447,22 +483,19 @@
   }
 
   .selrs-text-gradient {
-    background: linear-gradient(135deg, #003D82 0%, #FF9500 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary);
   }
 
   .selrs-card {
-    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md hover:border-accent;
+    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-md hover:border-accent;
   }
 
   .selrs-button-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold px-4 py-2 transition-all duration-200 hover:opacity-90 active:scale-95;
+    @apply inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold px-4 py-2 transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-95;
   }
 
   .selrs-button-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-accent bg-transparent text-accent font-semibold px-4 py-2 transition-all duration-200 hover:bg-accent/10 active:scale-95;
+    @apply inline-flex items-center justify-center rounded-lg border border-accent bg-transparent text-accent font-semibold px-4 py-2 transition-[background-color,transform] duration-200 hover:bg-accent/10 active:scale-95;
   }
 
   .selrs-page-bg {
@@ -473,10 +506,8 @@
   }
 
   .dark .selrs-page-bg {
-    background-color: #111111;
-    background-image:
-      radial-gradient(circle at top, rgba(255, 149, 0, 0.04), transparent 24%),
-      linear-gradient(180deg, #111111 0%, #111111 100%);
+    background-color: #f7fafc;
+    background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
   }
 
   /* Sidebar panel — matches selrs.cc dashboard shell */
@@ -485,7 +516,7 @@
   }
 
   .dark .selrs-sidebar-bg {
-    background: linear-gradient(180deg, #141414 0%, #1a1a1a 100%);
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   }
 
   .selrs-login-bg {
@@ -504,32 +535,19 @@
   .selrs-glass-card {
     border: 1px solid rgba(0, 61, 130, 0.12);
     background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 24px 60px rgba(0, 31, 71, 0.12);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10);
     backdrop-filter: blur(14px);
   }
 
   .dark .selrs-glass-card {
-    border: 1px solid rgba(255, 149, 0, 0.16);
-    background: rgba(17, 17, 17, 0.85);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.40);
-    backdrop-filter: blur(14px);
+    border: 1px solid rgba(0, 61, 130, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10);
+    backdrop-filter: none;
   }
 
   .selrs-active-nav {
-    @apply bg-accent/10 text-accent;
-    position: relative;
-  }
-
-  .selrs-active-nav::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 60%;
-    border-radius: 2px;
-    background: var(--accent);
+    @apply bg-primary/10 text-primary font-semibold;
   }
 }
 
@@ -1152,4 +1170,26 @@ select {
     font-size: 0.72rem !important;
     padding-inline: 0.35rem !important;
   }
+}
+
+@keyframes pulse-revue {
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-revue {
+  animation: pulse-revue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-revue {
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-revue {
+  animation: pulse-revue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

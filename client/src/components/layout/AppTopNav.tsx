@@ -1,0 +1,401 @@
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
+import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BRAND_NAME_AR } from "@/lib/brand";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, KeyRound, LogOut, Moon, Search, Settings, Sun, UserCog } from "lucide-react";
+import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  normalizeNavPath,
+  pathGrantedByRoots,
+  permissionsToAllowedRoots,
+} from "@/lib/nav-permission-utils";
+import {
+  accountingNavGroup,
+  adminNavGroups,
+  staffNavGroups,
+  type NavGroupSection,
+  type NavLeaf,
+} from "./AppNav";
+
+function dispatchOpenCommandPalette() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("selrs:open-command-palette"));
+}
+
+function tabActive(location: string, path: string): boolean {
+  const navBase = path.split("?")[0];
+  const locBase = location.split("?")[0];
+  if (locBase === navBase) return true;
+  if (navBase.length <= 1) return false;
+  return locBase.startsWith(`${navBase}/`);
+}
+
+type AppTopNavProps = {
+  location: string;
+  onNavigate: (path: string) => void;
+  onOpenAccount: () => void;
+  onOpenPassword: () => void;
+  onLogout: () => void;
+};
+
+export function AppTopNav({
+  location,
+  onNavigate,
+  onOpenAccount,
+  onOpenPassword,
+  onLogout,
+}: AppTopNavProps) {
+  const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const userRole = String(user?.role ?? "").toLowerCase();
+  const isAdmin = userRole === "admin";
+
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+
+  const allowedRoots = useMemo(
+    () => permissionsToAllowedRoots((permissionsQuery.data ?? []) as string[]),
+    [permissionsQuery.data],
+  );
+
+  const leafVisible = useMemo(
+    () =>
+      (leaf: NavLeaf): boolean => {
+        if (isAdmin) return true;
+        const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+        if (!permissionsQuery.isSuccess) return true;
+        return pathGrantedByRoots(cleanPath, allowedRoots);
+      },
+    [isAdmin, permissionsQuery.isSuccess, allowedRoots],
+  );
+
+  const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
+
+  const mainTabs = useMemo(
+    () => navGroups.filter((item): item is NavLeaf => !("items" in item) && Boolean(item.isMain)),
+    [navGroups],
+  );
+
+  const accountingItems = useMemo(
+    () => accountingNavGroup.items.filter(leafVisible),
+    [leafVisible],
+  );
+
+  const moreGroups = useMemo(
+    () =>
+      navGroups
+        .filter(
+          (item): item is NavGroupSection =>
+            "items" in item && item.navKey !== "accounting",
+        )
+        .map((group) => ({ ...group, items: group.items.filter(leafVisible) }))
+        .filter((group) => group.items.length > 0),
+    [navGroups, leafVisible],
+  );
+
+  const logoTarget = isAdmin ? "/dashboard?tab=admin" : "/today";
+
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const dateStr = mounted
+    ? new Date().toLocaleDateString("ar-EG", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })
+    : "";
+
+  const userName =
+    typeof (user as any)?.name === "string" && String((user as any).name).trim()
+      ? String((user as any).name).trim()
+      : String((user as any)?.username ?? "").trim() || "—";
+
+  const accountingActive = tabActive(location, "/accounting");
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  return (
+    <header
+      dir="rtl"
+      className="relative z-40 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top)] print:hidden"
+    >
+      <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
+
+      <div className="flex h-12 w-full items-stretch">
+        {/* Logo */}
+        <button
+          type="button"
+          onClick={() => onNavigate(logoTarget)}
+          className="flex shrink-0 items-center gap-2 border-e border-border/60 px-3 transition-opacity hover:opacity-80 md:px-4"
+          aria-label="الرئيسية"
+        >
+          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-white" />
+          <span className="hidden text-sm font-black text-foreground lg:block">{BRAND_NAME_AR}</span>
+        </button>
+
+        {/* Main tabs + الحسابات — desktop only */}
+        <nav className="hidden items-stretch md:flex" aria-label="القائمة الرئيسية">
+          {mainTabs.map((tab) => {
+            const active = tabActive(location, tab.path);
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.path}
+                type="button"
+                onClick={() => onNavigate(tab.path)}
+                className={cn(
+                  "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
+                  active
+                    ? "border-b-primary bg-primary/5 font-semibold text-primary"
+                    : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                )}
+              >
+                <Icon
+                  className="h-[15px] w-[15px] shrink-0"
+                  strokeWidth={active ? 2.2 : 1.8}
+                  aria-hidden
+                />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+
+          {/* الحسابات dropdown */}
+          {accountingItems.length > 0 && (
+            <div className="flex h-full items-stretch">
+              <button
+                type="button"
+                onClick={() => onNavigate("/accounting")}
+                className={cn(
+                  "flex h-full items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-none",
+                  accountingActive
+                    ? "border-b-primary bg-primary/5 font-semibold text-primary"
+                    : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                )}
+              >
+                <span>الحسابات</span>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex h-full items-center border-b-2 px-2.5 text-sm transition-colors focus-visible:outline-none",
+                      accountingActive
+                        ? "border-b-primary bg-primary/5 text-primary"
+                        : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                    )}
+                    aria-label="فتح قائمة الحسابات"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48" style={{ direction: "rtl" } satisfies CSSProperties}>
+                  {accountingItems.map((item) => (
+                    <DropdownMenuItem
+                      key={item.path}
+                      className="cursor-pointer gap-2"
+                      onClick={() => onNavigate(item.path)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </nav>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Controls */}
+        <div className="flex shrink-0 items-center gap-0.5 px-2">
+          {/* المزيد popover — desktop only, accordion sections closed by default */}
+          {moreGroups.length > 0 && (
+            <Popover open={moreOpen} onOpenChange={(o) => {
+              setMoreOpen(o);
+              if (!o) setOpenSections({});
+            }}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="hidden h-8 gap-1 px-2.5 text-sm font-medium md:flex"
+                >
+                  <span>المزيد</span>
+                  <ChevronDown
+                    className={cn("h-3.5 w-3.5 opacity-70 transition-transform duration-200", moreOpen && "rotate-180")}
+                    aria-hidden
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-56 p-0 overflow-hidden"
+                style={{ direction: "rtl" } satisfies CSSProperties}
+              >
+                {moreGroups.map((group, gi) => {
+                  const key = group.navKey ?? String(gi);
+                  const isOpen = openSections[key] ?? false;
+                  return (
+                    <div key={key} className={cn(gi > 0 && "border-t border-border/50")}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(key)}
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                      >
+                        <span>{group.label}</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                            isOpen && "rotate-180",
+                          )}
+                          aria-hidden
+                        />
+                      </button>
+                      {isOpen && (
+                        <div className="pb-1">
+                          {group.items.map((item) => (
+                            <button
+                              key={item.path}
+                              type="button"
+                              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                              onClick={() => {
+                                onNavigate(item.path);
+                                setMoreOpen(false);
+                                setOpenSections({});
+                              }}
+                            >
+                              <item.icon className="h-4 w-4 shrink-0" />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Search */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            title="بحث (⌘K)"
+            aria-label="فتح لوحة البحث"
+            onClick={dispatchOpenCommandPalette}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+
+          {/* Date badge — hidden on small screens */}
+          <Badge
+            variant="outline"
+            className="hidden whitespace-nowrap py-1 text-[10px] font-normal sm:inline-flex"
+          >
+            <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+            {dateStr || "…"}
+          </Badge>
+
+          {/* Theme toggle */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="relative h-8 w-8 shrink-0"
+            onClick={() => toggleTheme?.()}
+            title={theme === "light" ? "Dark mode" : "Light mode"}
+            aria-label={theme === "light" ? "Dark mode" : "Light mode"}
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+          </Button>
+
+          {/* Avatar + user dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 shrink-0 gap-1.5 px-1.5">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-blue-50 text-xs font-semibold text-blue-800">
+                    {userName.slice(0, 2).toUpperCase() || "؟"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden max-w-[100px] truncate text-sm font-semibold sm:inline">
+                  {userName}
+                </span>
+                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48" style={{ direction: "rtl" } satisfies CSSProperties}>
+              <DropdownMenuLabel>الحساب</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => onNavigate("/profile")}
+              >
+                <UserCog className="h-4 w-4" />
+                الملف الشخصي
+              </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() => onNavigate("/admin-hub")}
+                >
+                  <Settings className="h-4 w-4" />
+                  مركز الإدارة
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={onOpenAccount}>
+                <UserCog className="h-4 w-4" />
+                Account Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={onOpenPassword}>
+                <KeyRound className="h-4 w-4" />
+                تغيير كلمة المرور
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                onClick={onLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                خروج
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  );
+}

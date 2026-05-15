@@ -1,9 +1,11 @@
-import { useCallback, useMemo } from "react";
-import { BarChart3, Users, RefreshCw } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { BarChart3, Users, RefreshCw, AlertCircle } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { BulkActionsBar } from "@/components/admin-patients/BulkActionsBar";
 import { AdminPatientsTable } from "@/components/admin-patients/AdminPatientsTable";
 import { AdminPatientsToolbar } from "@/components/admin-patients/AdminPatientsToolbar";
+import { StatCard } from "@/components/admin-patients/StatCard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,9 @@ const MONTHS_AR = [
 ];
 
 export default function AdminPatients() {
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"reset-service-type" | null>(null);
+
   const list = useAdminPatientsList();
   const bulk = useAdminPatientsBulk({
     activeDoctors: list.activeDoctors,
@@ -73,11 +78,11 @@ export default function AdminPatients() {
   ];
 
   return (
-    <div className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4" dir="rtl">
-      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
-        <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border/70 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="w-full space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6" dir="rtl">
+      <Card dir="rtl" className="border-border bg-card text-right shadow-sm">
+        <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
               <Users className="h-5 w-5" />
             </div>
             <Badge variant="secondary" className="tabular-nums">
@@ -85,17 +90,17 @@ export default function AdminPatients() {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 p-3 sm:p-4 lg:p-5">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-border/80 bg-card p-2 sm:p-3 shadow-sm">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <CardContent className="space-y-6 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
-                  <span className="text-sm">إحصائيات شهرية ({monthTitleKey})</span>
+                  <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
+                  <span className="text-sm sm:text-base">إحصائيات شهرية ({monthTitleKey})</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
-                    <SelectTrigger className="h-8 min-w-[100px] sm:min-w-[120px] rounded-lg">
+                    <SelectTrigger className="h-9 w-24 rounded-lg text-sm">
                       <SelectValue>{monthLabelShort}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -110,7 +115,7 @@ export default function AdminPatients() {
                     </SelectContent>
                   </Select>
                   <Select value={list.statsYear} onValueChange={list.setStatsYear}>
-                    <SelectTrigger className="h-8 min-w-[80px] sm:min-w-[94px] rounded-lg">
+                    <SelectTrigger className="h-9 w-20 rounded-lg text-sm">
                       <SelectValue placeholder="السنة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -123,85 +128,80 @@ export default function AdminPatients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-center sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4 sm:gap-3">
                 {monthlyBannerStats.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1 sm:px-3 sm:py-1.5">
-                    <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
-                    <p className="mt-0.5 text-base sm:text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
-                  </div>
+                  <StatCard
+                    key={item.label}
+                    label={item.label}
+                    value={item.value}
+                    isTotal={item.label === "الإجمالي"}
+                  />
                 ))}
               </div>
             </div>
-            <div className="rounded-xl border border-border/80 bg-card p-2 sm:p-3 shadow-sm">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-3.5 w-3.5 text-primary" aria-hidden />
-                  <span className="text-sm">إحصائيات سنوية ({list.statsYear})</span>
+                  <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
+                  <span className="text-sm sm:text-base">إحصائيات سنوية ({list.statsYear})</span>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-2 rounded-lg text-xs sm:text-sm"
-                  onClick={() => syncRegistrationCatalogMutation.mutate()}
-                  disabled={syncRegistrationCatalogMutation.isPending}
-                  title="مزامنة قائمة الخدمات والأطباء من MSSQL"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  {syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-lg text-xs sm:text-sm"
-                  disabled={resetPatientServiceTypesMutation.isPending}
-                  onClick={async () => {
-                    try {
-                      const out = await resetPatientServiceTypesMutation.mutateAsync({
-                        dryRun: true,
-                        onlyConsultant: true,
-                      });
-                      toast.success(`فحص جاهز: سيتم تعديل ${out.updated} من أصل ${out.scanned}`);
-                    } catch (error: any) {
-                      toast.error("فشل الفحص: " + (error?.message || "خطأ غير معروف"));
-                    }
-                  }}
-                  title="فحص (بدون تعديل) لتحويل consultant الخاطئة حسب كود الخدمة"
-                >
-                  فحص التصحيح
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-lg text-xs sm:text-sm border-amber-300 text-amber-800 hover:bg-amber-50"
-                  disabled={resetPatientServiceTypesMutation.isPending}
-                  onClick={async () => {
-                    const confirmed = window.confirm("تشغيل تصحيح serviceType لكل المرضى consultant حسب كود الخدمة؟");
-                    if (!confirmed) return;
-                    try {
-                      const out = await resetPatientServiceTypesMutation.mutateAsync({
-                        dryRun: false,
-                        onlyConsultant: true,
-                      });
-                      toast.success(`تم تصحيح ${out.updated} مريض`);
-                      await list.utils.medical.getAllPatients.invalidate();
-                    } catch (error: any) {
-                      toast.error("فشل التصحيح: " + (error?.message || "خطأ غير معروف"));
-                    }
-                  }}
-                  title="تطبيق التصحيح الفعلي"
-                >
-                  تطبيق التصحيح
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-2 rounded-lg text-sm"
+                    onClick={() => syncRegistrationCatalogMutation.mutate()}
+                    disabled={syncRegistrationCatalogMutation.isPending}
+                    aria-label="مزامنة قائمة الخدمات والأطباء من MSSQL"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    {syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg text-sm"
+                    disabled={resetPatientServiceTypesMutation.isPending}
+                    onClick={async () => {
+                      try {
+                        const out = await resetPatientServiceTypesMutation.mutateAsync({
+                          dryRun: true,
+                        });
+                        toast.success(`فحص جاهز: سيتم تعديل ${out.updated} من أصل ${out.scanned}`);
+                      } catch (error: any) {
+                        toast.error("فشل الفحص: " + (error?.message || "خطأ غير معروف"));
+                      }
+                    }}
+                    aria-label="فحص (بدون تعديل) لتحديث serviceType حسب آخر كود خدمة"
+                  >
+                    فحص التصحيح
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg text-sm border-warning text-warning hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
+                    disabled={resetPatientServiceTypesMutation.isPending}
+                    onClick={() => {
+                      setConfirmAction("reset-service-type");
+                      setConfirmDialogOpen(true);
+                    }}
+                    aria-label="تطبيق التصحيح الفعلي"
+                  >
+                    تطبيق التصحيح
+                  </Button>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-center sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4 sm:gap-3">
                 {yearlyBannerStats.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border/60 bg-muted/20 px-2 py-1 sm:px-3 sm:py-1.5">
-                    <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight">{item.label}</p>
-                    <p className="mt-0.5 text-base sm:text-lg font-black tabular-nums leading-none text-foreground">{item.value}</p>
-                  </div>
+                  <StatCard
+                    key={item.label}
+                    label={item.label}
+                    value={item.value}
+                    isTotal={item.label === "الإجمالي"}
+                  />
                 ))}
               </div>
             </div>
@@ -291,6 +291,33 @@ export default function AdminPatients() {
           />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDialogOpen}
+        title="تطبيق التصحيح"
+        description="تشغيل تصحيح serviceType لكل المرضى حسب آخر كود خدمة؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="تطبيق"
+        cancelLabel="إلغاء"
+        isDestructive={true}
+        isPending={resetPatientServiceTypesMutation.isPending}
+        onConfirm={async () => {
+          try {
+            const out = await resetPatientServiceTypesMutation.mutateAsync({
+              dryRun: false,
+            });
+            toast.success(`تم تصحيح ${out.updated} مريض`);
+            await list.utils.medical.getAllPatients.invalidate();
+            setConfirmDialogOpen(false);
+            setConfirmAction(null);
+          } catch (error: any) {
+            toast.error("فشل التصحيح: " + (error?.message || "خطأ غير معروف"));
+          }
+        }}
+        onCancel={() => {
+          setConfirmDialogOpen(false);
+          setConfirmAction(null);
+        }}
+      />
     </div>
   );
 }

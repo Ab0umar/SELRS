@@ -262,3 +262,18 @@ export const patientLasikSummaryOutputSchema = z.object({
 export type PatientLasikSummaryInput = z.infer<typeof patientLasikSummaryInputSchema>;
 export type PatientLasikSummaryTotals = z.infer<typeof patientLasikSummaryTotalsSchema>;
 export type PatientLasikSummaryOutput = z.infer<typeof patientLasikSummaryOutputSchema>;
+
+export const extendedDashboardSummaryOutputSchema = dashboardSummaryOutputSchema;
+
+export type ExtendedDashboardSummaryOutput = z.infer<typeof extendedDashboardSummaryOutputSchema>;
+
+export const transactionsInputSchema = z.object({
+  sectionCode: z.number().int().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export type TransactionsInput = z.infer<typeof transactionsInputSchema>;
+
+export const transactionsOutputSchema = z.array(receiptHeaderSchema);
+
+export type TransactionsOutput = z.infer<typeof transactionsOutputSchema>;

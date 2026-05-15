@@ -98,60 +98,110 @@ export function ScheduleVisitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-lg" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-right">تحديد موعد / كشف</DialogTitle>
-          <DialogDescription className="text-right text-muted-foreground">
-            اسم المريض، السن، تاريخ الزيارة أو الكشف، الجوال، والخدمة — يُحفظ في سجل الاستقبال
-          </DialogDescription>
+      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-3xl border-none shadow-2xl p-0" dir="rtl">
+        <DialogHeader className="p-4 border-b bg-muted/20">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <span className="text-primary font-bold">📅</span>
+            </div>
+            <div className="text-right">
+              <DialogTitle className="text-lg font-bold">تحديد موعد / كشف</DialogTitle>
+              <DialogDescription className="text-[11px]">أدخل بيانات المريض والخدمة المطلوبة لإدراجها في جدول المواعيد</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="space-y-2">
-            <Label>الاسم</Label>
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="text-right" dir="rtl" />
-          </div>
-          <div className="space-y-2">
-            <Label>السن</Label>
-            <Input
-              type="number"
-              min={0}
-              max={130}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="text-right"
-              dir="ltr"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>تاريخ الزيارة أو الكشف</Label>
-            <Input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="font-mono" dir="ltr" />
-          </div>
-          <div className="space-y-2">
-            <Label>الموبايل</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="text-right" dir="ltr" />
-          </div>
-          <div className="space-y-2">
-            <Label>الخدمة</Label>
-            <Select value={service} onValueChange={setService}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="اختر الخدمة" />
-              </SelectTrigger>
-              <SelectContent dir="rtl">
-                {SERVICE_KEYS.map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {serviceTypeLabels[k] ?? k}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+        <div className="p-4 bg-background">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Right Column: Patient Basic Info */}
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الاسم بالكامل</Label>
+                  <Input 
+                    value={fullName} 
+                    onChange={(e) => setFullName(e.target.value)} 
+                    className="h-9 text-sm font-medium" 
+                    placeholder="اسم المريض الرباعي..." 
+                  />
+                </div>
+                <div>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">رقم الموبايل</Label>
+                  <Input 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)} 
+                    className="h-9 text-sm font-medium tracking-wider" 
+                    placeholder="01xxxxxxxxx" 
+                    dir="ltr"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">السن</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={130}
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="h-9 text-sm text-center font-bold"
+                    />
+                  </div>
+                  <div>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الكود</Label>
+                    <Input 
+                      value={patientQuery.data?.code || "—"} 
+                      readOnly 
+                      className="h-9 text-sm bg-muted/50 text-center font-mono" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Left Column: Visit Details */}
+            <div className="bg-primary/[0.03] p-4 rounded-xl border border-primary/10 space-y-4">
+              <div className="space-y-1">
+                <Label className="font-bold text-[11px] text-primary">الخدمة المطلوبة</Label>
+                <Select value={service} onValueChange={setService}>
+                  <SelectTrigger className="h-9 bg-white border-primary/20 text-sm">
+                    <SelectValue placeholder="اختر الخدمة" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {SERVICE_KEYS.map((k) => (
+                      <SelectItem key={k} value={k} className="text-sm">
+                        {serviceTypeLabels[k] ?? k}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="font-bold text-[11px] text-primary">تاريخ الزيارة</Label>
+                <Input 
+                  type="date" 
+                  value={visitDate} 
+                  onChange={(e) => setVisitDate(e.target.value)} 
+                  className="h-9 text-sm font-mono border-primary/20 bg-white" 
+                />
+              </div>
+
+              <div className="pt-2">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  * سيتم إضافة المريض إلى قائمة الانتظار في التاريخ المحدد.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-        <DialogFooter className="gap-2 sm:justify-start">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+
+        <DialogFooter className="p-4 bg-muted/10 border-t gap-2 sm:justify-start">
+          <Button type="button" variant="ghost" className="h-9 text-sm" onClick={() => onOpenChange(false)}>
             إلغاء
           </Button>
-          <Button type="button" onClick={submit} disabled={createMutation.isPending}>
-            {createMutation.isPending ? "جاري الحفظ…" : "حفظ"}
+          <Button type="button" className="h-9 text-sm px-8 font-bold" onClick={submit} disabled={createMutation.isPending}>
+            {createMutation.isPending ? "جاري الحفظ…" : "تأكيد الحجز"}
           </Button>
         </DialogFooter>
       </DialogContent>

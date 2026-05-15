@@ -1,94 +1,65 @@
 import { lazy, Suspense, useState } from 'react'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { useMedicalFileLauncher } from '@/hooks/useMedicalFileLauncher'
-import { useAuth } from '@/hooks/useAuth'
-import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { AppointmentsSection } from '@/components/dashboard/appointments-activity'
-import { CollapsibleSection } from '@/components/shared/CollapsibleSection'
-import { CardContent } from '@/components/ui/card'
-import { Calendar, Clock, Activity, Eye, Stethoscope, FileText, TrendingUp, BarChart3, PieChart, CircleDot, Glasses, Users, Syringe } from 'lucide-react'
+import {
+  Clock,
+  Activity,
+  Eye,
+  Users,
+  RefreshCw,
+  Syringe,
+  CircleDot,
+  Glasses,
+} from 'lucide-react'
 import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
-import { STAT_CARDS_MOBILE_ROW } from '@/components/shared/StatCard'
 import { cn } from '@/lib/utils'
 import { OperationsBookingQuickDialog } from '@/components/operations/OperationsBookingQuickDialog'
-import { B4Loader } from '@/components/loaders/OrganicLoaders'
 import { getLocalDateIso } from '@/hooks/operations/operationsShared'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const ChartLoading = () => <div className="h-[240px] bg-muted/30 animate-pulse rounded-lg" />
-const PatientTrendChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.PatientTrendChart })))
-const AppointmentDistributionChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.AppointmentDistributionChart })))
-const DepartmentWorkloadChart = lazy(() => import('@/components/dashboard/charts').then(m => ({ default: m.DepartmentWorkloadChart })))
+const ChartLoading = () => (
+  <div className="h-[200px] bg-muted/30 animate-pulse rounded-lg" />
+)
+const PatientTrendChart = lazy(() =>
+  import('@/components/dashboard/charts').then((m) => ({
+    default: m.PatientTrendChart,
+  }))
+)
+const DepartmentWorkloadChart = lazy(() =>
+  import('@/components/dashboard/charts').then((m) => ({
+    default: m.DepartmentWorkloadChart,
+  }))
+)
 
-const IconWrap = ({ children, color }: { children: React.ReactNode; color: string }) => (
-  <div className={`h-6 w-6 rounded-md flex items-center justify-center ${color}`}>{children}</div>
-);
-
-function TodayActivitySummary({ selectedDate }: { selectedDate: string }) {
+function ServiceBreakdown({
+  selectedDate,
+}: {
+  selectedDate: string
+}) {
   const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate)
-  const total = merged.length
-  const treated = merged.filter((p) => p.queueStatus === 'treated').length
-  const waiting = total - treated
-  const completionRate = total > 0 ? Math.round((treated / total) * 100) : 0
 
   if (isLoading) {
     return (
-      <div className="space-y-4 py-2">
-        <div className="flex justify-center">
-          <B4Loader label="جاري التحميل..." size={96} />
-        </div>
-        <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-3 sm:gap-3')}>
-          {['a', 'b', 'c'].map((k) => (
-            <div key={k} className="h-14 min-w-[28%] shrink-0 animate-pulse rounded-lg bg-muted/40 sm:min-w-0" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  const stats = [
-    { label: 'إجمالي المرضى', value: total, icon: Calendar, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800' },
-    { label: 'تم معالجتهم', value: treated, icon: Activity, color: 'text-secondary dark:text-secondary', bg: 'bg-secondary/15 dark:bg-secondary/20' },
-    { label: 'في الانتظار', value: waiting, icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-950' },
-  ]
-
-  return (
-    <div className="space-y-4">
-      <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-3 sm:gap-3')}>
-        {stats.map((stat) => (
-          <div key={stat.label} className="min-w-[28%] shrink-0 text-center sm:min-w-0">
-            <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center mx-auto mb-1.5`}>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+      <div className="space-y-3 py-1.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-border/60 bg-background px-3 py-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 space-y-2">
+                <Skeleton className="h-3.5 w-24 rounded-full" />
+                <Skeleton className="h-2.5 w-32 rounded-full" />
+              </div>
+              <Skeleton className="h-8 w-14 rounded-full" />
             </div>
-            <p className="text-lg sm:text-xl font-bold">{stat.value}</p>
-            <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+            <Skeleton className="mt-3 h-1.5 w-full rounded-full" />
           </div>
         ))}
-      </div>
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">نسبة الإنجاز</span>
-          <span className="font-medium">{completionRate}%</span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-l from-primary to-orange-500 rounded-full transition-all duration-500"
-            style={{ width: `${completionRate}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ServiceTypeBreakdown({ selectedDate }: { selectedDate: string }) {
-  const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate)
-
-  if (isLoading) {
-    return (
-      <div className="py-2">
-        <B4Loader label="جاري التحميل..." size={96} />
       </div>
     )
   }
@@ -99,44 +70,56 @@ function ServiceTypeBreakdown({ selectedDate }: { selectedDate: string }) {
     return acc
   }, {})
 
-  const serviceColors: Record<string, string> = {
+  const colors: Record<string, string> = {
     consultant: 'bg-primary',
-    specialist: 'bg-blue-500',
-    lasik: 'bg-amber-500',
-    surgery: 'bg-rose-500',
-    external: 'bg-slate-400',
+    specialist: 'bg-primary/60',
+    lasik: 'bg-secondary',
+    surgery: 'bg-warning',
+    external: 'bg-muted-foreground/40',
   }
 
   const total = merged.length
-
   const items = Object.entries(serviceCounts).map(([key, count]) => ({
     label: serviceTypeLabels[key as keyof typeof serviceTypeLabels] || key,
     count,
-    percentage: total > 0 ? Math.round((count / total) * 100) : 0,
-    color: serviceColors[key] || 'bg-slate-400',
+    pct: total > 0 ? Math.round((count / total) * 100) : 0,
+    color: colors[key] || 'bg-muted-foreground/40',
   }))
 
   if (items.length === 0) {
-    return <p className="py-4 text-center text-xs text-muted-foreground">لا يوجد مرضى اليوم</p>
+    return (
+      <p className="py-4 text-center text-xs text-muted-foreground">
+        لا يوجد مرضى اليوم
+      </p>
+    )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {items.map((item) => (
-        <div key={item.label} className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
+        <div key={item.label} className="space-y-1">
+          <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <div className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+              <span
+                className={cn(
+                  'inline-block h-2 w-2 rounded-full',
+                  item.color
+                )}
+                aria-hidden
+              />
               <span className="font-medium">{item.label}</span>
             </div>
-            <span className="text-muted-foreground">
-              {item.count} مريض — {item.percentage}%
+            <span className="text-muted-foreground tabular-nums">
+              {item.count} — {item.pct}%
             </span>
           </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div
-              className={`h-full ${item.color} rounded-full transition-all duration-500`}
-              style={{ width: `${item.percentage}%` }}
+              className={cn(
+                'h-full rounded-full transition-all duration-500',
+                item.color
+              )}
+              style={{ width: `${item.pct}%` }}
             />
           </div>
         </div>
@@ -145,51 +128,190 @@ function ServiceTypeBreakdown({ selectedDate }: { selectedDate: string }) {
   )
 }
 
-function MedicalStats() {
-  const totalsQuery = trpc.medical.getMedicalTotals.useQuery(undefined, {
+function MedicalTotals() {
+  const q = trpc.medical.getMedicalTotals.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
 
   const fmt = (n: number | undefined, loading: boolean) =>
     loading ? '—' : (n ?? 0).toLocaleString('ar-EG')
 
-  const totals = totalsQuery.data
-
-  const stats = [
-    { label: 'إجمالي المرضى', value: fmt(totals?.patients, totalsQuery.isLoading), icon: Users, color: 'text-slate-700 dark:text-slate-200', bg: 'bg-slate-100 dark:bg-slate-800' },
-    { label: 'إجمالي Autoref', value: fmt(totals?.autoref, totalsQuery.isLoading), icon: Eye, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'إجمالي Refraction', value: fmt(totals?.refraction, totalsQuery.isLoading), icon: Glasses, color: 'text-cyan-700 dark:text-cyan-300', bg: 'bg-cyan-100 dark:bg-cyan-950' },
-    { label: 'إجمالي البنتاكام', value: fmt(totals?.pentacam, totalsQuery.isLoading), icon: CircleDot, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-950' },
-    { label: 'إجمالي العمليات', value: fmt(totals?.operations, totalsQuery.isLoading), icon: Syringe, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-950' },
+  const t = q.data
+  const rows = [
+    {
+      label: 'إجمالي المرضى',
+      value: fmt(t?.patients, q.isLoading),
+      icon: Users,
+    },
+    {
+      label: 'Autoref',
+      value: fmt(t?.autoref, q.isLoading),
+      icon: Eye,
+    },
+    {
+      label: 'Refraction',
+      value: fmt(t?.refraction, q.isLoading),
+      icon: Glasses,
+    },
+    {
+      label: 'بنتاكام',
+      value: fmt(t?.pentacam, q.isLoading),
+      icon: CircleDot,
+    },
+    {
+      label: 'عمليات',
+      value: fmt(t?.operations, q.isLoading),
+      icon: Syringe,
+    },
   ]
 
   return (
-    <div className={cn(STAT_CARDS_MOBILE_ROW, 'gap-2 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-5')}>
-      {stats.map((s) => (
-        <div key={s.label} className="flex min-w-[46%] shrink-0 items-center gap-2 rounded-lg bg-muted/30 p-2 sm:min-w-0 sm:gap-3 sm:p-2.5">
-          <div className={`h-9 w-9 rounded-lg ${s.bg} flex items-center justify-center shrink-0`}>
-            <s.icon className={`h-4 w-4 ${s.color}`} />
+    <div className="space-y-1">
+      {rows.map((r) => (
+        <div
+          key={r.label}
+          className="flex items-center justify-between py-1.5 text-sm"
+        >
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <r.icon className="h-3.5 w-3.5" aria-hidden />
+            <span>{r.label}</span>
           </div>
-          <div className="min-w-0">
-            <p className="text-base sm:text-lg font-bold leading-tight tabular-nums">{s.value}</p>
-            <p className="text-[11px] text-muted-foreground">{s.label}</p>
-          </div>
+          <span className="font-semibold tabular-nums">{r.value}</span>
         </div>
       ))}
     </div>
   )
 }
 
+function SectionHeader({
+  title,
+  children,
+}: {
+  title: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-border/50 bg-background px-3 py-2.5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-md" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-3 w-20 rounded-full" />
+                <Skeleton className="h-6 w-14 rounded-full" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-lg border border-border/50 bg-background shadow-sm">
+          <SectionHeader title="مرضى اليوم و العمليات" />
+          <div className="space-y-3 p-3 sm:p-4">
+            <Skeleton className="h-11 w-full rounded-xl" />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-44 rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-lg border border-border/50 bg-background">
+            <SectionHeader title="توزيع الخدمات" />
+            <div className="space-y-3 p-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Skeleton className="h-3.5 w-24 rounded-full" />
+                    <Skeleton className="h-3.5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-2 w-full rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-background">
+            <SectionHeader title="إحصائيات طبية" />
+            <div className="space-y-2 px-4 py-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5">
+                  <Skeleton className="h-3.5 w-24 rounded-full" />
+                  <Skeleton className="h-3.5 w-14 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-lg border border-border/50 bg-background ring-1 ring-border/30">
+          <SectionHeader title="اتجاه المرضى" />
+          <div className="p-3 sm:p-4">
+            <Skeleton className="h-[220px] w-full rounded-2xl" />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/50 bg-background ring-1 ring-border/30">
+          <SectionHeader title="أقسام المركز" />
+          <div className="p-3 sm:p-4">
+            <Skeleton className="h-[220px] w-full rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
-  const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } = useMedicalFileLauncher()
-  const { user } = useAuth()
+  const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } =
+    useMedicalFileLauncher()
   const [bookingOpen, setBookingOpen] = useState(false)
-  const [selectedTodayDate, setSelectedTodayDate] = useState(getLocalDateIso)
-  const showAdminKpis = String(user?.role ?? '').toLowerCase() === 'admin'
+  const [selectedDate, setSelectedDate] = useState(getLocalDateIso)
   const utils = trpc.useUtils()
 
+  const { merged, isLoading: queueLoading } =
+    useTodayQueuePatientsMerged(selectedDate)
+  const opsQuery = trpc.medical.getTodayOperationLists.useQuery(
+    { date: selectedDate },
+    { refetchOnWindowFocus: false }
+  )
+
+  const total = merged.length
+  const treated = merged.filter((p) => p.queueStatus === 'treated').length
+  const waiting = total - treated
+  const completionRate = total > 0 ? Math.round((treated / total) * 100) : 0
+  const opsCount = opsQuery.data?.length ?? 0
+
+  const handleRefresh = () => {
+    void utils.medical.getMedicalTotals.invalidate()
+    void utils.medical.getTodayOperationLists.invalidate()
+    void utils.medical.getTodayPatientsByQueueStatus.invalidate()
+  }
+
+  const tiles = [
+    { label: 'مرضى اليوم', value: total, icon: Users },
+    { label: 'تم معالجتهم', value: treated, icon: Activity },
+    { label: 'في الانتظار', value: waiting, icon: Clock },
+    { label: 'العمليات', value: opsCount, icon: Syringe },
+  ]
+
   return (
-    <div className="max-w-[1440px] mx-auto w-full space-y-3 sm:space-y-4">
+    <div className="mx-auto w-full max-w-[1440px] space-y-4 sm:space-y-5">
       {medicalFilePortal}
       <OperationsBookingQuickDialog
         open={bookingOpen}
@@ -198,107 +320,167 @@ export default function Dashboard() {
           void utils.medical.getTodayOperationLists.invalidate()
         }}
       />
+
+      {/* Quick actions */}
       <QuickActions
         onOpenMeasurementsMedicalFile={openMedicalFilePicker}
         onOpenOperationsBooking={() => setBookingOpen(true)}
       />
 
-      {showAdminKpis ? (
-      <CollapsibleSection
-        title="المؤشرات الرئيسية"
-        icon={<IconWrap color="bg-primary/10 text-primary"><TrendingUp className="h-3.5 w-3.5" /></IconWrap>}
-        defaultOpen={false}
-      >
-        <CardContent className="space-y-8 p-3 sm:p-4">
-          <KpiCards key={`kpi-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
-
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="space-y-3 lg:col-span-2">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                <IconWrap color="bg-primary/10 text-primary">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                </IconWrap>
-                <h3 className="text-sm font-semibold">اتجاه المرضى</h3>
-              </div>
-              <Suspense fallback={<ChartLoading />}>
-                <PatientTrendChart />
-              </Suspense>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                <IconWrap color="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
-                  <PieChart className="h-3.5 w-3.5" />
-                </IconWrap>
-                <h3 className="text-sm font-semibold">توزيع المواعيد</h3>
-              </div>
-              <Suspense fallback={<ChartLoading />}>
-                <AppointmentDistributionChart />
-              </Suspense>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <div className="space-y-3 lg:col-span-2">
-                <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                  <IconWrap color="bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                  </IconWrap>
-                  <h3 className="text-sm font-semibold">أقسام المركز</h3>
-                </div>
-                <Suspense fallback={<ChartLoading />}>
-                  <DepartmentWorkloadChart />
-                </Suspense>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                  <IconWrap color="bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
-                    <Activity className="h-3.5 w-3.5" />
-                  </IconWrap>
-                  <h3 className="text-sm font-semibold">نشاط اليوم</h3>
-                </div>
-                <TodayActivitySummary key={`today-activity-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
-              </div>
-            </div>
-          </section>
-
-          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                <IconWrap color="bg-primary/10 text-primary">
-                  <Stethoscope className="h-3.5 w-3.5" />
-                </IconWrap>
-                <h3 className="text-sm font-semibold">توزيع الخدمات</h3>
-              </div>
-              <ServiceTypeBreakdown key={`service-breakdown-${selectedTodayDate}`} selectedDate={selectedTodayDate} />
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                <IconWrap color="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  <FileText className="h-3.5 w-3.5" />
-                </IconWrap>
-                <h3 className="text-sm font-semibold">إحصائيات طبية</h3>
-              </div>
-              <MedicalStats />
-            </div>
-          </section>
-        </CardContent>
-      </CollapsibleSection>
-      ) : null}
-
-      <CollapsibleSection
-        title="مرضى اليوم و العمليات"
-        icon={<IconWrap color="bg-secondary/15 text-secondary dark:bg-secondary/25 dark:text-secondary"><Eye className="h-3.5 w-3.5" /></IconWrap>}
-        defaultOpen={true}
-      >
-        <div className="px-1.5 sm:px-2 md:px-3 pb-1.5 sm:pb-2 md:pb-3">
-          <AppointmentsSection
-            selectedDate={selectedTodayDate}
-            onSelectedDateChange={setSelectedTodayDate}
-            onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
-          />
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+          <h2 className="text-sm font-semibold text-foreground">
+            لوحة تحكم المشرف
+          </h2>
         </div>
-      </CollapsibleSection>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          className="gap-1.5 text-xs"
+        >
+          <RefreshCw className="h-3 w-3" />
+          تحديث
+        </Button>
+      </div>
+
+      {/* Metric tiles + completion bar */}
+      {queueLoading || opsQuery.isLoading ? (
+        <DashboardLoadingSkeleton />
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {tiles.map((t, i) => {
+              const Icon = t.icon
+              const isAccent = i === 1
+              return (
+                <div
+                  key={t.label}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 sm:px-4',
+                    isAccent
+                      ? 'bg-primary/[0.06] ring-1 ring-primary/15'
+                      : 'bg-background border border-border/50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
+                      isAccent
+                        ? 'bg-primary/12 text-primary'
+                        : 'bg-primary/8 text-primary/70'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className={cn(
+                        'text-lg leading-none tabular-nums tracking-tight sm:text-xl',
+                        isAccent ? 'font-extrabold text-primary' : 'font-bold'
+                      )}
+                    >
+                      {t.value}
+                    </p>
+                    <p
+                      className={cn(
+                        'mt-0.5 text-[11px]',
+                        isAccent ? 'text-primary/70 font-medium' : 'text-muted-foreground'
+                      )}
+                    >
+                      {t.label}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {/* Completion bar */}
+          <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background px-4 py-2.5">
+            <span className="text-xs text-muted-foreground shrink-0">
+              نسبة الإنجاز
+            </span>
+            <div
+              className="h-2 flex-1 rounded-full bg-muted overflow-hidden"
+              role="progressbar"
+              aria-valuenow={completionRate}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="نسبة الإنجاز"
+            >
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  completionRate >= 80
+                    ? 'bg-emerald-500'
+                    : completionRate >= 50
+                      ? 'bg-primary'
+                      : 'bg-secondary'
+                )}
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
+            <span className="text-sm font-semibold tabular-nums w-10 text-left">
+              {completionRate}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Main grid: queue + side panels */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Queue */}
+        <div className="lg:col-span-2 rounded-lg border border-border/50 bg-background shadow-sm">
+          <SectionHeader title="مرضى اليوم و العمليات" />
+          <div className="p-2 sm:p-3">
+            <AppointmentsSection
+              selectedDate={selectedDate}
+              onSelectedDateChange={setSelectedDate}
+              onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
+            />
+          </div>
+        </div>
+
+        {/* Side panels */}
+        <div className="space-y-5">
+          <div className="rounded-lg border border-border/50 bg-background">
+            <SectionHeader title="توزيع الخدمات" />
+            <div className="p-4">
+              <ServiceBreakdown selectedDate={selectedDate} />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-background">
+            <SectionHeader title="إحصائيات طبية" />
+            <div className="px-4 py-3">
+              <MedicalTotals />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-lg bg-muted/30 ring-1 ring-border/30">
+          <SectionHeader title="اتجاه المرضى" />
+          <div className="p-3 sm:p-4">
+            <Suspense fallback={<ChartLoading />}>
+              <PatientTrendChart />
+            </Suspense>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-muted/30 ring-1 ring-border/30">
+          <SectionHeader title="أقسام المركز" />
+          <div className="p-3 sm:p-4">
+            <Suspense fallback={<ChartLoading />}>
+              <DepartmentWorkloadChart />
+            </Suspense>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

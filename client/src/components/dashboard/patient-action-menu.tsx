@@ -29,7 +29,8 @@ import { cn } from '@/lib/utils'
 interface MenuItemDef {
   label: string
   icon: React.ComponentType<{ className?: string }>
-  color: string
+  semantic: 'success' | 'info' | 'warning' | 'error'
+  group: 'records' | 'exams' | 'treatment' | 'reports'
   /** If set, this item opens the medical file panel instead of navigating */
   medicalFile?: true
   /** If set, this item dynamically routes based on serviceType */
@@ -39,61 +40,104 @@ interface MenuItemDef {
 }
 
 const menuItems: MenuItemDef[] = [
+  // Group 1: Medical Records
   {
     label: 'الملف الطبي',
     icon: FileHeart,
-    color: 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-800/50',
+    semantic: 'success',
+    group: 'records',
     medicalFile: true,
   },
   {
     label: 'الملف المجمع',
     icon: FolderOpen,
-    color: 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800/50',
+    semantic: 'info',
+    group: 'records',
+    page: 'patient-details',
+  },
+  {
+    label: 'الملف الشامل',
+    icon: FileSpreadsheet,
+    semantic: 'info',
+    group: 'records',
+    page: 'patient-summary',
+  },
+  // Group 2: Exams & Measurements
+  {
+    label: 'قياس و فحص',
+    icon: Eye,
+    semantic: 'warning',
+    group: 'exams',
     page: 'patient-details',
   },
   {
     label: 'الشيت',
     icon: ClipboardList,
-    color: 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border-amber-200 dark:border-amber-800/50',
+    semantic: 'warning',
+    group: 'exams',
     dynamicSheet: true,
-  },
-  {
-    label: 'الملف الشامل',
-    icon: FileSpreadsheet,
-    color: 'text-secondary dark:text-secondary hover:bg-secondary/10 dark:hover:bg-secondary/20 border-secondary/30 dark:border-secondary/40',
-    page: 'patient-summary',
   },
   {
     label: 'بنتاكام',
     icon: CircleDot,
-    color: 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/40 border-violet-200 dark:border-violet-800/50',
+    semantic: 'warning',
+    group: 'exams',
     page: 'pentacam-sheet',
   },
-  {
-    label: 'قياس و فحص',
-    icon: Eye,
-    color: 'text-primary hover:bg-primary/5 border-primary/20 dark:hover:bg-primary/10 dark:border-primary/30',
-    page: 'patient-details',
-  },
+  // Group 3: Treatment & Tests
   {
     label: 'الروشته',
     icon: Pill,
-    color: 'text-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-primary/15 border-primary/25 dark:border-primary/35',
+    semantic: 'error',
+    group: 'treatment',
     page: 'write-prescription',
   },
   {
     label: 'تحاليل و اشعه',
     icon: FlaskConical,
-    color: 'text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 border-orange-200 dark:border-orange-800/50',
+    semantic: 'error',
+    group: 'treatment',
     page: 'request-tests',
   },
+  // Group 4: Reports
   {
     label: 'تشخيص/تقرير',
     icon: FileText,
-    color: 'text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40 border-pink-200 dark:border-pink-800/50',
+    semantic: 'info',
+    group: 'reports',
     page: 'medical-reports',
   },
 ]
+
+const semanticColors = {
+  success: {
+    text: 'text-success',
+    bg: 'hover:bg-success/10',
+    border: 'border-success/20',
+  },
+  info: {
+    text: 'text-info',
+    bg: 'hover:bg-info/10',
+    border: 'border-info/20',
+  },
+  warning: {
+    text: 'text-warning',
+    bg: 'hover:bg-warning/10',
+    border: 'border-warning/20',
+  },
+  error: {
+    text: 'text-error',
+    bg: 'hover:bg-error/10',
+    border: 'border-error/20',
+  },
+}
+
+const groupLabels = {
+  records: 'الملفات الطبية',
+  exams: 'الفحوصات والقياسات',
+  treatment: 'العلاج والتحاليل',
+  reports: 'التقارير',
+}
 
 /* ═══════════════════════════════════════════
    Props
@@ -173,28 +217,45 @@ export function PatientActionMenu({ open, onClose, patient, onOpenMedicalFile }:
           </div>
         </DialogHeader>
 
-        {/* Menu Grid */}
-        <div className="px-4 pb-5">
-          <div className="grid grid-cols-2 gap-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Button
-                  key={item.label}
-                  type="button"
-                  variant="outline"
-                  className={cn(
-                    'h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border',
-                    item.color
-                  )}
-                  onClick={() => handleAction(item)}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </Button>
-              )
-            })}
-          </div>
+        {/* Menu Groups */}
+        <div className="px-4 pb-5 space-y-4">
+          {(Object.keys(groupLabels) as Array<keyof typeof groupLabels>).map((groupKey) => {
+            const groupItems = menuItems.filter((item) => item.group === groupKey)
+            if (groupItems.length === 0) return null
+
+            return (
+              <div key={groupKey}>
+                {/* Group Header */}
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {groupLabels[groupKey]}
+                </h3>
+                {/* Group Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {groupItems.map((item) => {
+                    const Icon = item.icon
+                    const colors = semanticColors[item.semantic]
+                    return (
+                      <Button
+                        key={item.label}
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          'h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border',
+                          colors.text,
+                          colors.bg,
+                          colors.border
+                        )}
+                        onClick={() => handleAction(item)}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </DialogContent>
     </Dialog>

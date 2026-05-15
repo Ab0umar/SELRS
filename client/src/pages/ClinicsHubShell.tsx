@@ -15,6 +15,9 @@ import MedicalReports from "./MedicalReports";
 import PatientSummary from "./PatientSummary";
 import PentacamResultsDashboard from "./PentacamResultsDashboard";
 import PrescriptionsList from "./PrescriptionsList";
+import RefractionsDashboard from "./RefractionsDashboard";
+import AutorefsDashboard from "./AutorefsDashboard";
+import PrescriptionsDashboard from "./PrescriptionsDashboard";
 import RequestTests from "./RequestTests";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +63,27 @@ const MAIN_MODULES: HubModuleCard[] = [
     iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
   },
   {
+    href: "/clinics-hub/refractions-dashboard",
+    title: "لوحة الانكسارات",
+    description: "استعراض سريع لسجلات الانكسار مع البحث والمراجعة.",
+    icon: Eye,
+    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+  },
+  {
+    href: "/clinics-hub/autorefs-dashboard",
+    title: "لوحة Autoref",
+    description: "مراجعة الانكسار الآلي والضغط من نفس مساحة العيادة.",
+    icon: FileSpreadsheet,
+    iconWrap: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+  },
+  {
+    href: "/clinics-hub/prescriptions-dashboard",
+    title: "لوحة الروشتات",
+    description: "متابعة سريعة للوصفات وحالتها من داخل العيادة.",
+    icon: Pill,
+    iconWrap: "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300",
+  },
+  {
     href: "/clinics-hub/prescriptions",
     title: "الروشتات",
     description: "كتابة وإدارة روشتات العلاج والأدوية.",
@@ -88,6 +112,9 @@ export default function ClinicsHubShell() {
     if (location === "/clinics-hub/medical-reports") return <MedicalReports />;
     if (location === "/clinics-hub/patient-summary") return <PatientSummary />;
     if (location === "/clinics-hub/pentacam") return <PentacamResultsDashboard />;
+    if (location === "/clinics-hub/refractions-dashboard") return <RefractionsDashboard />;
+    if (location === "/clinics-hub/autorefs-dashboard") return <AutorefsDashboard />;
+    if (location === "/clinics-hub/prescriptions-dashboard") return <PrescriptionsDashboard />;
     if (location === "/clinics-hub/prescriptions") return <PrescriptionsList />;
     if (location === "/clinics-hub/request-tests") return <RequestTests />;
 

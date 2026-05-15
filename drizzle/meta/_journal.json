@@ -127,6 +127,13 @@
       "when": 1778134731815,
       "tag": "0029_superb_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1778806202974,
+      "tag": "0030_mean_songbird",
+      "breakpoints": true
     }
   ]
 }

@@ -1,40 +1,77 @@
-import { Layers } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AdminSheets from "./AdminSheets";
-import AdminSheetDesigner from "./AdminSheetDesigner";
-import AdminSheetCopies from "./AdminSheetCopies";
+import { Layers, PenSquare, Copy, FileText } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "wouter";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { cn } from "@/lib/utils";
 
-/** تجميع اختياري: `/admin/forms` — كل قسم يحتفظ برأس الصفحة الخاص به. */
+const FORM_MODULES = [
+  {
+    href: "/admin-hub/sheets",
+    title: "النماذج",
+    description: "إدارة وعرض جميع نماذج المرضى المسجلة.",
+    icon: FileText,
+    iconWrap: "bg-sky-50 text-sky-700",
+  },
+  {
+    href: "/admin-hub/sheet-designer",
+    title: "مصمم النماذج",
+    description: "تخصيص وتصميم حقول وبيانات النماذج الطبية.",
+    icon: PenSquare,
+    iconWrap: "bg-amber-50 text-amber-700",
+  },
+  {
+    href: "/admin-hub/sheet-copies",
+    title: "نسخ النماذج",
+    description: "أداة لنسخ بيانات النماذج بين المرضى.",
+    icon: Copy,
+    iconWrap: "bg-violet-50 text-violet-600",
+  },
+];
+
 export default function AdminFormsHub() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 pb-8 text-right lg:pb-10" dir="rtl">
-      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-        <Layers className="h-4 w-4" />
-        مركز النماذج — اختر القسم
-      </p>
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
+      <PageHeader
+        title="مركز النماذج"
+        subtitle="إدارة وتصميم وتخصيص جميع النماذج الطبية والشيتات في النظام."
+        icon={<Layers className="h-5 w-5 text-primary" />}
+      />
 
-      <Tabs defaultValue="manage" persistKey="admin-forms-hub" className="w-full">
-        <TabsList className="mb-4 flex h-auto min-h-[2.75rem] w-full flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1.5">
-          <TabsTrigger value="manage" className="shrink-0 rounded-lg text-xs sm:text-sm">
-            النماذج
-          </TabsTrigger>
-          <TabsTrigger value="designer" className="shrink-0 rounded-lg text-xs sm:text-sm">
-            مصمم النماذج
-          </TabsTrigger>
-          <TabsTrigger value="copies" className="shrink-0 rounded-lg text-xs sm:text-sm">
-            نسخ النماذج
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="manage" className="mt-0">
-          <AdminSheets />
-        </TabsContent>
-        <TabsContent value="designer" className="mt-0">
-          <AdminSheetDesigner />
-        </TabsContent>
-        <TabsContent value="copies" className="mt-0">
-          <AdminSheetCopies />
-        </TabsContent>
-      </Tabs>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {FORM_MODULES.map((mod) => {
+          const Icon = mod.icon;
+          return (
+            <Link key={mod.href} href={mod.href}>
+              <Card
+                className={cn(
+                  "group h-full border-border/60 bg-card transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.98]",
+                )}
+              >
+                <CardContent className="flex h-full flex-col gap-5 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors group-hover:bg-primary/5",
+                        mod.iconWrap,
+                      )}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1 text-right">
+                      <h3 className="font-bold text-base tracking-tight text-foreground/90 transition-colors group-hover:text-primary">
+                        {mod.title}
+                      </h3>
+                      <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {mod.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

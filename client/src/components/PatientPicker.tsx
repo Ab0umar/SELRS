@@ -7,6 +7,7 @@ type PatientOption = {
   id: number;
   fullName: string;
   patientCode?: string | null;
+  locationType?: "center" | "external" | null;
   phone?: string | null;
   age?: number | null;
   dateOfBirth?: string | Date | null;
@@ -21,7 +22,10 @@ type PatientPickerProps = {
   /** When false, fetching `initialPatientId` still fills the picker UI but does not call `onSelect` (avoids duplicate navigation/sync with route-driven parents). Default true for backward compatibility. */
   fireOnInitialPatientLoad?: boolean;
   readOnly?: boolean;
-  sheetType?: "consultant" | "specialist" | "lasik" | "external";
+  sheetType?: "consultant" | "specialist" | "lasik" | "external" | "pentacam";
+  locationType?: "center" | "external";
+  wrapperClassName?: string;
+  allowPatient?: (patient: PatientOption) => boolean;
 };
 
 export default function PatientPicker({
@@ -32,6 +36,9 @@ export default function PatientPicker({
   fireOnInitialPatientLoad = true,
   readOnly = false,
   sheetType,
+  locationType,
+  wrapperClassName,
+  allowPatient,
 }: PatientPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -50,7 +57,7 @@ export default function PatientPicker({
   const normalizedQuery = query.replace(/\s+/g, "");
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
-    { searchTerm: normalizedQuery, sheetType },
+    { searchTerm: normalizedQuery, sheetType, locationType },
     {
       enabled: normalizedQuery.trim().length >= 1,
       refetchOnWindowFocus: false,
@@ -62,15 +69,22 @@ export default function PatientPicker({
     const patient = patientQuery.data as unknown as PatientOption;
     if (patient.id !== initialPatientId) return;
     if (hydratedPatientIdRef.current === patient.id) return;
+    if (allowPatient && !allowPatient(patient)) {
+      setSelected(null);
+      setQuery("");
+      setOpen(false);
+      return;
+    }
     hydratedPatientIdRef.current = patient.id;
     setSelected(patient);
     setQuery(patient.fullName ?? "");
     if (fireOnInitialPatientLoad) {
       onSelect(patient);
     }
-  }, [patientQuery.data, initialPatientId, fireOnInitialPatientLoad, onSelect]);
+  }, [patientQuery.data, initialPatientId, fireOnInitialPatientLoad, onSelect, allowPatient]);
 
   const results = (searchQuery.data ?? []) as PatientOption[];
+  const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
   const formatPhone = (value?: string | null) => {
     if (!value) return "";
@@ -84,7 +98,7 @@ export default function PatientPicker({
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium hidden">{label}</label>
-      <div className="relative w-full max-w-md ml-auto">
+      <div className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}>
         <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-slate-400">
           <Search className="h-4 w-4" />
         </div>
@@ -114,16 +128,17 @@ export default function PatientPicker({
           {searchQuery.isLoading && (
             <div className="px-3 py-2 text-sm text-muted-foreground">جاري البحث...</div>
           )}
-          {!searchQuery.isLoading && results.length === 0 && (
+          {!searchQuery.isLoading && filteredResults.length === 0 && (
             <div className="px-3 py-2 text-sm text-muted-foreground">لا توجد نتائج</div>
           )}
-          {results.map((patient) => (
+          {filteredResults.map((patient) => (
             <button
               key={patient.id}
               type="button"
               className="w-full px-3 py-3 text-right transition-colors hover:bg-accent"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
+                if (allowPatient && !allowPatient(patient)) return;
                 setSelected(patient);
                 setQuery(patient.fullName ?? "");
                 setOpen(false);

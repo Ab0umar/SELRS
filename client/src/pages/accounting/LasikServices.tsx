@@ -51,23 +51,30 @@ export default function LasikServices() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">خدمات الليزك</CardTitle>
+            <CardTitle className="text-xl tracking-tight">خدمات الليزك</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-4">
-             <Input type="date" value={draft.fromDate} onChange={(e) => setDraft(p => ({...p, fromDate: e.target.value}))} />
-             <Input type="date" value={draft.toDate} onChange={(e) => setDraft(p => ({...p, toDate: e.target.value}))} />
-             <div className="space-y-1">
-               <Input placeholder="كود الخدمة..." value={draft.serviceCode ?? ""} onChange={(e) => setDraft(p => ({...p, serviceCode: e.target.value.trim() || undefined}))} />
+          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+             <label htmlFor="lasik-svc-from-date" className="space-y-1.5 text-sm font-medium">
+               <span>من تاريخ</span>
+               <Input id="lasik-svc-from-date" type="date" value={draft.fromDate} onChange={(e) => setDraft(p => ({...p, fromDate: e.target.value}))} />
+             </label>
+             <label htmlFor="lasik-svc-to-date" className="space-y-1.5 text-sm font-medium">
+               <span>إلى تاريخ</span>
+               <Input id="lasik-svc-to-date" type="date" value={draft.toDate} onChange={(e) => setDraft(p => ({...p, toDate: e.target.value}))} />
+             </label>
+             <label htmlFor="lasik-svc-service-code" className="space-y-1">
+               <span className="block text-sm font-medium">كود الخدمة</span>
+               <Input id="lasik-svc-service-code" placeholder="اختياري" value={draft.serviceCode ?? ""} onChange={(e) => setDraft(p => ({...p, serviceCode: e.target.value.trim() || undefined}))} />
                {draft.serviceCode && (
                  <span className="text-xs text-muted-foreground block mt-1">
                    {serviceLookup.isLoading ? "جاري البحث..." : serviceLookup.data ? `الاسم: ${serviceLookup.data.serviceName}` : "غير موجود"}
                  </span>
                )}
-             </div>
-             <Button onClick={() => setFilters(draft)}><Search className="ml-2"/> بحث</Button>
+             </label>
+             <Button onClick={() => setFilters(draft)} aria-label="بحث عن خدمة الليزك"><Search className="ml-2" aria-hidden/> بحث</Button>
           </CardContent>
         </Card>
 
@@ -86,10 +93,10 @@ export default function LasikServices() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.serviceCode}>
-                      <td className={reportStyles.numeric}>{toArabicDigits(row.serviceCode)}</td>
-                      <td>{row.serviceName}</td>
-                      <td className={reportStyles.numeric}>{formatCountAr(row.quantity)}</td>
-                      <td className={reportStyles.numeric}>{formatMoneyAr(row.price)}</td>
+                      <td data-label="كود الخدمة" className={reportStyles.numeric}>{toArabicDigits(row.serviceCode)}</td>
+                      <td data-label="اسم الخدمة">{row.serviceName}</td>
+                      <td data-label="العدد" className={reportStyles.numeric}>{formatCountAr(row.quantity)}</td>
+                      <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(row.price)}</td>
                     </tr>
                   ))}
                 </tbody>

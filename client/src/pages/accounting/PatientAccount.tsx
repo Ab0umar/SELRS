@@ -9,8 +9,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { getErrorContext } from "@/lib/errorMessages";
 import type { PatientLasikSummaryInput } from "@shared/accounting/contracts";
-import { ArrowLeft, CircleAlert, Search } from "lucide-react";
+import { ArrowLeft, CircleAlert, Search, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import AccountingShell from "./AccountingShell";
@@ -64,6 +65,7 @@ export default function PatientAccount() {
     sectionCode: DEFAULT_SECTION_CODE,
   });
   const [didSearch, setDidSearch] = useState(false);
+  const [dateError, setDateError] = useState(false);
   const [queryInput, setQueryInput] = useState<PatientLasikSummaryInput | null>(null);
 
   const detailCode = detailMatch?.patientCode
@@ -107,6 +109,11 @@ export default function PatientAccount() {
   const runSearch = () => {
     const code = draft.patientCode.trim();
     if (!code) return;
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError(true);
+      return;
+    }
+    setDateError(false);
     setDidSearch(true);
     setQueryInput({
       patientCode: code,
@@ -122,7 +129,7 @@ export default function PatientAccount() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         {detailCode ? (
           <Button variant="outline" type="button" onClick={onBack}>
             <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
@@ -130,41 +137,48 @@ export default function PatientAccount() {
           </Button>
         ) : null}
 
-        <Card className="border-border/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="gap-1">
             <CardTitle className="text-xl tracking-tight">حساب مريض</CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               أدخل كود المريض والفترة ثم اضغط بحث.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-            <label className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label htmlFor="patient-code" className="space-y-1.5 text-sm font-medium">
               <span>كود المريض</span>
               <Input
+                id="patient-code"
                 value={draft.patientCode}
                 onChange={(e) => setDraft((p) => ({ ...p, patientCode: e.target.value }))}
                 placeholder="مثال: 01354"
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="patient-from-date" className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
               <Input
+                id="patient-from-date"
                 type="date"
                 value={draft.fromDate}
                 onChange={(e) => setDraft((p) => ({ ...p, fromDate: e.target.value }))}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="patient-to-date" className="space-y-1.5 text-sm font-medium">
               <span>إلى تاريخ</span>
               <Input
+                id="patient-to-date"
                 type="date"
                 value={draft.toDate}
                 onChange={(e) => setDraft((p) => ({ ...p, toDate: e.target.value }))}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            {dateError && (
+              <p className="text-[11px] text-red-500 md:col-span-2">تاريخ البداية بعد تاريخ النهاية</p>
+            )}
+            <label htmlFor="patient-section-code" className="space-y-1.5 text-sm font-medium">
               <span>كود القسم</span>
               <Input
+                id="patient-section-code"
                 type="number"
                 min={1}
                 value={draft.sectionCode}
@@ -177,8 +191,8 @@ export default function PatientAccount() {
               />
             </label>
             <div className="flex items-end">
-              <Button type="button" className="w-full" onClick={() => void runSearch()}>
-                <Search className="ml-2 h-4 w-4" />
+              <Button type="button" className="w-full" onClick={() => void runSearch()} aria-label="بحث عن مريض">
+                <Search className="ml-2 h-4 w-4" aria-hidden />
                 بحث
               </Button>
             </div>
@@ -187,6 +201,9 @@ export default function PatientAccount() {
 
         {!didSearch ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+            <div className="flex justify-center mb-3">
+              <Users className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+            </div>
             ابحث عن مريض لعرض الحساب
           </div>
         ) : null}
@@ -194,13 +211,15 @@ export default function PatientAccount() {
         {didSearch && summaryQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
 
         {didSearch && summaryQuery.isError ? (
-          <Card className="border-destructive/40 bg-destructive/5">
+          <Card className="border-error/30 bg-error/5">
             <CardContent className="flex items-start gap-3 py-4">
-              <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-error" aria-hidden />
               <div>
-                <p className="font-semibold text-destructive">خطأ في تحميل بيانات المريض</p>
+                <p className="font-semibold text-error">
+                  {getErrorContext(summaryQuery.error.message).title}
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {summaryQuery.error.message || "تحقق من الاتصال أو الفلاتر."}
+                  {getErrorContext(summaryQuery.error.message).hint}
                 </p>
               </div>
             </CardContent>
@@ -222,26 +241,26 @@ export default function PatientAccount() {
                       {data.patientName ? `— ${data.patientName}` : ""}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+                  <CardContent className="grid gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">إيصالات</div>
-                      <div className="font-semibold">{formatCountAr(data.totals.totalReceipts)}</div>
+                      <div className="font-semibold tabular-nums">{formatCountAr(data.totals.totalReceipts)}</div>
                     </div>
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">خدمات</div>
-                      <div className="font-semibold">{formatCountAr(data.totals.totalServices)}</div>
+                      <div className="font-semibold tabular-nums">{formatCountAr(data.totals.totalServices)}</div>
                     </div>
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">إجمالي قبل الخصم</div>
-                      <div className="font-semibold">{formatMoneyAr(data.totals.totalGross)}</div>
+                      <div className="font-semibold tabular-nums">{formatMoneyAr(data.totals.totalGross)}</div>
                     </div>
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">خصم</div>
-                      <div className="font-semibold">{formatMoneyAr(data.totals.totalDiscount)}</div>
+                      <div className="font-semibold tabular-nums">{formatMoneyAr(data.totals.totalDiscount)}</div>
                     </div>
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">مدفوع</div>
-                      <div className="font-semibold">{formatMoneyAr(data.totals.totalPaid)}</div>
+                      <div className="font-semibold tabular-nums">{formatMoneyAr(data.totals.totalPaid)}</div>
                     </div>
                     <div className="rounded border p-3 text-sm">
                       <div className="text-muted-foreground">آخر حركة</div>
@@ -272,12 +291,12 @@ export default function PatientAccount() {
                         <tbody>
                           {data.receipts.map((r) => (
                             <tr key={`${r.sectionCode}:${r.trTy}:${r.trNo}`}>
-                              <td className={reportStyles.numeric}>{toArabicDigits(r.trNo)}</td>
-                              <td className={reportStyles.numeric}>
+                              <td data-label="رقم الإيصال" className={reportStyles.numeric}>{toArabicDigits(r.trNo)}</td>
+                              <td data-label="التاريخ" className={reportStyles.numeric}>
                                 {formatDateAr(String(r.transactionDate))}
                               </td>
-                              <td className={reportStyles.numeric}>{formatMoneyAr(r.total)}</td>
-                              <td className={reportStyles.numeric}>{formatMoneyAr(r.paidValue)}</td>
+                              <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(r.total)}</td>
+                              <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoneyAr(r.paidValue)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -305,11 +324,11 @@ export default function PatientAccount() {
                         <tbody>
                           {data.services.map((s, idx) => (
                             <tr key={`${s.trNo}-${s.serviceCode}-${idx}`}>
-                              <td>{s.serviceName || s.serviceCode}</td>
-                              <td className={reportStyles.numeric}>{formatCountAr(s.quantity)}</td>
-                              <td className={reportStyles.numeric}>{formatMoneyAr(s.price)}</td>
-                              <td className={reportStyles.numeric}>{formatMoneyAr(s.discountValue)}</td>
-                              <td className={reportStyles.numeric}>{formatMoneyAr(s.paidValue)}</td>
+                              <td data-label="الخدمة">{s.serviceName || s.serviceCode}</td>
+                              <td data-label="الكمية" className={reportStyles.numeric}>{formatCountAr(s.quantity)}</td>
+                              <td data-label="السعر" className={reportStyles.numeric}>{formatMoneyAr(s.price)}</td>
+                              <td data-label="الخصم" className={reportStyles.numeric}>{formatMoneyAr(s.discountValue)}</td>
+                              <td data-label="المشاركة" className={reportStyles.numeric}>{formatMoneyAr(s.paidValue)}</td>
                             </tr>
                           ))}
                         </tbody>

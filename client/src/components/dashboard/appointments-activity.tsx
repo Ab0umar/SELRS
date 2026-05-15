@@ -26,18 +26,25 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
 ];
 
 const queueStatusStyles: Record<QueueStatus, string> = {
-  checkedIn: "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
-  next: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  clinic: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
-  treated: "bg-secondary/15 text-secondary dark:bg-secondary/25 dark:text-secondary",
+  checkedIn: "bg-info/10 text-info",
+  next: "bg-warning/10 text-warning",
+  clinic: "bg-primary/10 text-primary",
+  treated: "bg-success/10 text-success",
+};
+
+const queueCardStyles: Record<QueueStatus, string> = {
+  checkedIn: "border-info/30 bg-info/5",
+  next: "border-warning/30 bg-warning/5",
+  clinic: "border-primary/30 bg-primary/5",
+  treated: "border-success/30 bg-success/5",
 };
 
 const serviceTypeStyles: Record<string, string> = {
-  consultant: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  specialist: "bg-secondary/15 text-secondary dark:bg-secondary/25 dark:text-secondary",
-  lasik: "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300",
-  external: "bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400",
-  surgery: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300",
+  consultant: "bg-secondary/10 text-secondary",
+  specialist: "bg-secondary/15 text-secondary",
+  lasik: "bg-primary/10 text-primary",
+  external: "bg-muted text-muted-foreground",
+  surgery: "bg-error/10 text-error",
 };
 
 function coercePositiveInt(v: unknown): number | undefined {
@@ -447,13 +454,10 @@ function QueuePatientCard({
           onSelectPatient();
         }
       }}
+      aria-label={`فتح اختصارات المريض ${patient.fullName ?? ""}`.trim()}
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md",
-        "border-s-4",
-        st === "checkedIn" && "border-s-primary",
-        st === "next" && "border-s-amber-500",
-        st === "clinic" && "border-s-orange-500",
-        st === "treated" && "border-s-emerald-600",
+        "overflow-hidden rounded-xl border bg-card shadow-sm transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        queueCardStyles[st],
         "cursor-pointer",
       )}
     >
@@ -493,7 +497,8 @@ function QueuePatientCard({
               size="sm"
               disabled={markingThis}
               title="معالج"
-              className="h-7 w-7 shrink-0 border-secondary/30 bg-secondary/10 p-0 text-secondary hover:border-secondary/50 hover:bg-secondary/15 dark:border-secondary/40 dark:bg-secondary/20 dark:hover:border-secondary/60 dark:hover:bg-secondary/25"
+              aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
+              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary/10 p-0 text-secondary hover:border-secondary/50 hover:bg-secondary/15 dark:border-secondary/40 dark:bg-secondary/20 dark:hover:border-secondary/60 dark:hover:bg-secondary/25"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -532,7 +537,9 @@ function TodayOperationListItemCard({
   };
   doctorNameByCode: Map<string, string>;
 }) {
-  const accent = row.isAutoFromMssql ? "border-s-violet-500" : "border-s-rose-500";
+  const accent = row.isAutoFromMssql
+    ? "border-violet-300 bg-violet-50/45 dark:bg-violet-950/20"
+    : "border-rose-300 bg-rose-50/45 dark:bg-rose-950/20";
   const rawDoctor = String(row.item.doctor ?? row.listDoctorName ?? "").trim();
   const doctorDisplay = (() => {
     if (!rawDoctor) return "طبيب غير محدد";
@@ -543,8 +550,7 @@ function TodayOperationListItemCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md sm:p-4",
-        "border-s-4",
+        "rounded-xl border bg-card p-3 shadow-sm transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-md sm:p-4",
         accent,
       )}
     >
@@ -578,7 +584,7 @@ function TodayOperationListItemCard({
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
         {row.item.payment ? (
-          <Badge className="bg-secondary/15 text-[10px] text-secondary sm:text-xs">{row.item.payment}</Badge>
+          <Badge className="bg-amber-50 text-[10px] text-amber-800 sm:text-xs">{row.item.payment}</Badge>
         ) : (
           <span />
         )}

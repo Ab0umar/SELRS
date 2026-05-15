@@ -15,25 +15,25 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight,
   Activity,
+  ArrowRight,
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   CircleDot,
   ClipboardList,
   FileText,
   FlaskConical,
   LayoutGrid,
+  MoreHorizontal,
   Pill,
   Repeat,
-  RefreshCw,
   Search,
 } from "lucide-react";
 import { AppShellFooter } from "@/components/layout/AppShellFooter";
 import PatientHubHome from "./PatientHubHome";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const HUB_PATIENT_PATH_RE =
   /\/patient-hub\/(?:file|summary|reports|doctor|brief|examination|prescription|request-tests|visits|followups|pentacam-dashboard|sheets\/consultant)\/(\d+)/;
@@ -77,13 +77,38 @@ function visitDateKey(visit: { visitDate?: unknown }): string {
   }
 }
 
-function formatVisitPickerLabel(visit: { visitDate?: unknown; visitType?: string | null; id: number }) {
+function formatVisitDisplay(visit: { visitDate?: unknown; visitType?: string | null; id: number }): string {
   const day = visitDateKey(visit);
+  const dateStr = day
+    ? (() => {
+        try {
+          return new Date(`${day}T12:00:00`).toLocaleDateString("ar-EG", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        } catch {
+          return day;
+        }
+      })()
+    : `#${visit.id}`;
   const t = visit.visitType?.trim();
-  return t ? `${day} — ${t}` : `#${visit.id} ${day}`;
+  return t ? `${dateStr} · ${t}` : dateStr;
 }
 
-/** عرض الطبيب أصبح داخل الموجز؛ الروابط القديمة تُحوَّل للموجز مع نفس الاستعلام */
+function computeAge(data: { age?: number | null; dateOfBirth?: unknown }): number | null {
+  if (data.age != null && data.age > 0) return data.age;
+  if (!data.dateOfBirth) return null;
+  try {
+    const dob = new Date(data.dateOfBirth as string);
+    const years = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
+    return years >= 0 && years < 150 ? years : null;
+  } catch {
+    return null;
+  }
+}
+
+/** عرض الطبيب أصبح داخل الموجز؛ الروابط القديمة تُحوَّل للموجز مع نفس الاستعلام */
 function PatientHubDoctorToBriefRedirect() {
   const [, params] = useRoute("/patient-hub/doctor/:id");
   const pid = params?.id?.trim();
@@ -104,7 +129,7 @@ function HubNeedPatientSearch({ visitDate }: { visitDate: string }) {
   return (
     <div className="flex min-h-[38vh] flex-col items-center justify-center gap-4 p-8 text-center" dir="rtl">
       <p className="max-w-sm text-sm text-muted-foreground">
-        لم يُحدَّد مريض. استخدم بحث مركز المريض ثم اختر المريض لفتح هذا القسم.
+        لم يُحدَّد مريض. استخدم بحث مركز المريض ثم اختر المريض لفتح هذا القسم.
       </p>
       <Button type="button" variant="outline" className="gap-2" asChild>
         <Link href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}>
@@ -116,7 +141,6 @@ function HubNeedPatientSearch({ visitDate }: { visitDate: string }) {
   );
 }
 
-/** Patient Hub: examinations are view-only (no save/create/delete inside panel). */
 const PATIENT_HUB_VIEW_ONLY_HINT = "العرض فقط داخل المركز";
 
 function PatientHubExaminationInner({
@@ -149,7 +173,7 @@ function PatientHubExaminationInner({
     );
   }
   return (
-    <div className="min-h-0 flex-1 p-3 sm:p-4">
+    <div className="min-h-0 flex-1 p-4 sm:p-6">
       <MedicalFilePanel
         embedded
         patientHubReadOnly
@@ -184,6 +208,7 @@ export default function PatientHubShell() {
 
   const [visitDate, setVisitDate] = useState(readVisitDateFromLocation);
   const [visitId, setVisitId] = useState<number | null>(readVisitIdFromLocation);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     setVisitDate(readVisitDateFromLocation());
@@ -224,6 +249,13 @@ export default function PatientHubShell() {
   );
 
   const visits = useMemo(() => visitsQuery.data ?? [], [visitsQuery.data]);
+
+  const currentVisitIdx = useMemo(() => {
+    if (visits.length === 0) return -1;
+    if (visitId == null) return 0;
+    const idx = visits.findIndex((v) => v.id === visitId);
+    return idx >= 0 ? idx : 0;
+  }, [visits, visitId]);
 
   useEffect(() => {
     if (!patientId || !visitsQuery.isSuccess) return;
@@ -364,137 +396,144 @@ export default function PatientHubShell() {
     [patientId, withVisit],
   );
 
+  const age = patientQuery.data ? computeAge(patientQuery.data as { age?: number | null; dateOfBirth?: unknown }) : null;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#fafafa] dark:bg-background" dir="rtl">
-      <header className="shrink-0 border-b border-border/80 bg-background">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-3 py-3 sm:px-5">
+    <div className="flex min-h-0 flex-1 flex-col bg-background" dir="rtl">
+      {/* Combined header: no patient → back + title; patient selected → back + identity + visit */}
+      <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-white">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 sm:px-5">
           <button
             type="button"
             onClick={() => goBack()}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             aria-label="رجوع"
           >
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-4 w-4" />
           </button>
-          <div className="min-w-0 flex-1 text-center sm:text-right">
-            <h1 className="text-lg font-black leading-tight text-foreground sm:text-xl">مركز المريض</h1>
-            <p className="mt-0.5 truncate text-sm font-medium text-muted-foreground tabular-nums">
-              {patientId
-                ? `${patientQuery.data?.fullName ?? ""} (${patientId})`.trim()
-                : "لم يُختَر مريض"}
-            </p>
-          </div>
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:max-w-none">
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[15rem] md:max-w-[20rem]">
-              <Label className="shrink-0 text-xs font-semibold whitespace-nowrap text-muted-foreground">
-                الزيارة
-              </Label>
-              {patientId && visitsQuery.isLoading ? (
-                <Input
-                  type="date"
-                  className="h-9 min-w-[9rem] flex-1 shrink-0"
-                  value={visitDate}
-                  disabled
-                  title="جاري تحميل الزيارات…"
-                />
-              ) : patientId && visitsQuery.isSuccess && visits.length > 0 ? (
-                <Select
-                  value={visitId != null ? String(visitId) : ""}
-                  onValueChange={(v) => {
-                    const vid = Number(v);
-                    const row = visits.find((x) => x.id === vid);
-                    if (row) {
-                      applyVisitSelection(visitDateKey(row), vid);
-                    }
-                  }}
+
+          {patientId ? (
+            <>
+              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="truncate font-semibold leading-tight text-foreground">
+                  {patientQuery.data?.fullName ?? "جاري التحميل..."}
+                </span>
+                {age != null && (
+                  <span className="shrink-0 text-xs text-muted-foreground">{age} سنة</span>
+                )}
+                <span dir="ltr" className="shrink-0 font-mono text-xs text-muted-foreground">
+                  #{patientId}
+                </span>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1.5">
+                {visitsQuery.isLoading ? (
+                  <div className="h-7 w-28 animate-pulse rounded-md bg-muted" aria-hidden />
+                ) : visits.length === 0 ? (
+                  <span className="text-xs text-muted-foreground">لا توجد زيارات</span>
+                ) : (
+                  <div className="flex items-center gap-0.5" dir="ltr">
+                    <button
+                      type="button"
+                      disabled={currentVisitIdx >= visits.length - 1}
+                      onClick={() => {
+                        const v = visits[currentVisitIdx + 1];
+                        if (v) applyVisitSelection(visitDateKey(v), v.id);
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                      aria-label="زيارة أقدم"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0 px-1 text-center" dir="rtl">
+                      <p className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
+                        {formatVisitDisplay(visits[currentVisitIdx >= 0 ? currentVisitIdx : 0] as { id: number; visitDate?: unknown; visitType?: string | null })}
+                      </p>
+                      {visits.length > 1 && (
+                        <p className="mt-0.5 text-[10px] leading-none text-muted-foreground" dir="ltr">
+                          {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} / {visits.length}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={currentVisitIdx <= 0}
+                      onClick={() => {
+                        const v = visits[currentVisitIdx - 1];
+                        if (v) applyVisitSelection(visitDateKey(v), v.id);
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                      aria-label="زيارة أحدث"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  asChild
                 >
-                  <SelectTrigger dir="rtl" className="h-9 min-w-0 flex-1 text-start">
-                    <SelectValue placeholder="اختر الزيارة" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    {visits.map((v) => (
-                      <SelectItem key={v.id} value={String(v.id)} className="text-start">
-                        {formatVisitPickerLabel(v as { id: number; visitDate?: unknown; visitType?: string | null })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  type="date"
-                  className="h-9 min-w-[9rem] flex-1"
-                  value={visitDate}
-                  onChange={(e) => applyVisitSelection(e.target.value, null)}
-                  disabled={!patientId || visitsQuery.isLoading}
-                  title={
-                    patientId && visitsQuery.isSuccess && visits.length === 0
-                      ? "لا توجد زيارات مسجّلة؛ يمكن اختيار يوم مرجعي يدوياً"
-                      : undefined
-                  }
-                />
-              )}
-            </div>
-            {patientId ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1.5"
-                asChild
-              >
-                <Link href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}>
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">تغيير المريض</span>
-                  <span className="sm:hidden">بحث</span>
-                </Link>
-              </Button>
-            ) : null}
-          </div>
+                  <Link href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}>
+                    <Search className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">تغيير</span>
+                  </Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <h1 className="font-semibold text-foreground">مركز المريض</h1>
+          )}
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col md:flex-row md:min-h-0">
-        {patientId ? (
-          <aside className="shrink-0 border-b border-border/80 bg-background md:w-[13.5rem] md:border-b-0 md:border-s md:border-border/80 xl:w-56">
-            <nav className="flex flex-row gap-0.5 overflow-x-auto px-2 py-2 md:flex-col md:overflow-y-auto md:px-2 md:py-3 scrollbar-none">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = item.match(pathOnly);
-                return (
-                  <Link key={item.key} href={item.href} className="shrink-0 md:w-full">
-                    <span
-                      className={cn(
-                        "flex min-w-[8.5rem] cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold transition-colors md:min-w-0 md:w-full",
-                        active
-                          ? "bg-primary/12 text-primary shadow-sm"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
-                          active
-                            ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-border/60 bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        <Icon className="h-[18px] w-[18px]" />
-                      </span>
-                      <span className="truncate">{item.label}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </aside>
-        ) : null}
+      {/* Horizontal tabs — desktop only, patient-specific sections */}
+      {patientId ? (
+        <div className="hidden shrink-0 border-b border-border/60 bg-background print:hidden md:block">
+          <div
+            className="mx-auto flex max-w-[1600px] overflow-x-auto scrollbar-none"
+            dir="rtl"
+            role="tablist"
+            aria-label="أقسام ملف المريض"
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = item.match(pathOnly);
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  role="tab"
+                  aria-selected={active}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
+                    active
+                      ? "border-b-primary text-primary font-semibold"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-b-border",
+                  )}
+                >
+                  <Icon
+                    className="h-[15px] w-[15px] shrink-0"
+                    strokeWidth={active ? 2.2 : 1.8}
+                    aria-hidden
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
-        <main
-          className={cn(
-            "flex min-h-[50vh] min-h-0 flex-1 flex-col bg-background md:min-h-0",
-            patientId ? "md:border-s md:border-border/80" : "",
-          )}
-        >
+      {/* Main content — full width, no sidebar */}
+      <main
+        className={cn(
+          "flex min-h-0 flex-1 flex-col bg-background",
+          patientId ? "pb-14 md:pb-0" : "",
+        )}
+      >
           <Switch>
             <Route
               path="/patient-hub/examination/:id"
@@ -685,9 +724,91 @@ export default function PatientHubShell() {
             </Route>
           </Switch>
         </main>
-      </div>
 
-      <AppShellFooter />
+      {/* Mobile bottom nav — 4 primary tabs + المزيد */}
+      {patientId ? (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-border/60 bg-background md:hidden print:hidden"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          dir="rtl"
+        >
+          {navItems.slice(0, 4).map((item) => {
+            const Icon = item.icon;
+            const active = item.match(pathOnly);
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className="relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors"
+              >
+                {active && (
+                  <span className="absolute inset-x-2 top-0 h-0.5 rounded-b-full bg-primary" aria-hidden />
+                )}
+                <Icon
+                  className={cn("h-[20px] w-[20px] shrink-0", active ? "text-primary" : "text-muted-foreground/70")}
+                  strokeWidth={active ? 2.2 : 1.8}
+                  aria-hidden
+                />
+                <span
+                  className={cn(
+                    "whitespace-nowrap text-[9px] leading-none",
+                    active ? "font-semibold text-primary" : "font-medium text-muted-foreground/70",
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className="relative flex flex-1 flex-col items-center justify-center gap-0.5"
+            onClick={() => setMoreOpen(true)}
+            aria-label="المزيد"
+          >
+            <MoreHorizontal className="h-[20px] w-[20px] shrink-0 text-muted-foreground/70" aria-hidden />
+            <span className="whitespace-nowrap text-[9px] font-medium leading-none text-muted-foreground/70">المزيد</span>
+          </button>
+        </nav>
+      ) : null}
+
+      {/* More bottom sheet (mobile) */}
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-0 pb-0" dir="rtl">
+          <SheetHeader className="px-6 pb-3 pt-4">
+            <SheetTitle className="text-right text-base font-semibold">أقسام أخرى</SheetTitle>
+          </SheetHeader>
+          <nav className="flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            {navItems.slice(4).map((item) => {
+              const Icon = item.icon;
+              const active = item.match(pathOnly);
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  onClick={() => setMoreOpen(false)}
+                  className={cn(
+                    "flex h-14 items-center gap-4 border-t border-border/40 px-6 transition-colors",
+                    active
+                      ? "bg-primary/5 text-primary"
+                      : "text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <Icon
+                    className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")}
+                    aria-hidden
+                  />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
+
+      <div className={patientId ? "hidden md:block" : undefined}>
+        <AppShellFooter />
+      </div>
     </div>
   );
 }

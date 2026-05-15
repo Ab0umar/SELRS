@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Clock, Database, ListChecks, RefreshCcw, Shield, Upload, XCircle } from "lucide-react";
+import { Activity, Clock, Database, ListChecks, RefreshCcw, Shield, Upload, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { toast } from "sonner";
@@ -104,21 +104,28 @@ export default function AdminMigrations() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-8 text-right" dir="rtl">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
       <PageHeader
         title="ترحيل البيانات"
-        subtitle="تطبيق ترحيلات مخطط قاعدة البيانات (Drizzle) ومراجعة الحالة — الاستيراد/التصدير عبر ملفات SQL في المشروع وليس عبر رفع جداول من هنا"
-        icon={<Database className="h-5 w-5" />}
-        actions={
+        subtitle="تطبيق ترحيلات Drizzle (SQL) ومراجعة حالة توافق المخطط."
+        icon={<Database className="h-5 w-5 text-primary" />}
+        action={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => void handleRefresh()} disabled={migrationsQuery.isFetching}>
-              <RefreshCcw className={`ml-2 h-4 w-4 ${migrationsQuery.isFetching ? "animate-spin" : ""}`} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-4 border-border/60 hover:bg-background shadow-sm font-bold gap-2"
+              onClick={() => void handleRefresh()} 
+              disabled={migrationsQuery.isFetching}
+            >
+              <RefreshCcw className={cn("h-4 w-4 text-primary", migrationsQuery.isFetching && "animate-spin")} />
               تحديث القائمة
             </Button>
             <Button
+              size="sm"
               onClick={() => void handleApply()}
               disabled={pendingCount === 0 || applyMutation.isPending}
-              className="selrs-gradient-btn text-white hover:opacity-95"
+              className="selrs-gradient-btn text-white h-9 px-6 font-bold shadow-sm"
             >
               {applyMutation.isPending ? "جاري التطبيق…" : `تطبيق المعلّقة (${pendingCount})`}
             </Button>
@@ -128,129 +135,142 @@ export default function AdminMigrations() {
 
       <div className={cn(STAT_CARDS_MOBILE_ROW, "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
         <StatCard
-          title="إجمالي السجلات"
+          title="إجمالي الترحيلات"
           value={migrationTotal}
           icon={ListChecks}
-          iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
-          description="عدد ملفات الترحيل المعروضة"
+          iconColor="bg-sky-50 text-sky-600 shadow-sm shadow-sky-100"
+          description="ملفات SQL المسجلة"
         />
         <StatCard
-          title="تم ترحيلها"
+          title="الترحيلات المطبقة"
           value={migrationApplied}
           icon={Shield}
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
-          description={appliedPct != null ? `${appliedPct}%` : undefined}
+          iconColor="bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100"
+          description={appliedPct != null ? `اكتمال: ${appliedPct}%` : undefined}
         />
         <StatCard
-          title="معلّقة"
+          title="ترحيلات معلقة"
           value={pendingCount}
           icon={Clock}
-          iconColor="bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+          iconColor={pendingCount > 0 ? "bg-amber-50 text-amber-700 shadow-sm shadow-amber-100" : "bg-muted text-muted-foreground"}
         />
         <StatCard
-          title="فشل / تنبيه"
+          title="الأخطاء والتنبيهات"
           value={failureSignal > 0 ? failureSignal : 0}
           icon={XCircle}
-          iconColor={
-            failureSignal > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-          }
-          description={failureSignal > 0 ? "خطأ في الجلب أو آخر تطبيق" : "لا يوجد خطأ ظاهر"}
+          iconColor={failureSignal > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}
+          description={failureSignal > 0 ? "يوجد خطأ في التوافق" : "المخطط سليم"}
         />
       </div>
 
-      <Card className="border-border/80 bg-card shadow-sm">
-        <CardHeader className="flex flex-col gap-1 border-b border-border/70 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">سجل الترحيل</CardTitle>
-          <span className="text-xs text-muted-foreground">أعمدة «المدة» و«عدد السجلات» غير متوفرة من خادم Drizzle</span>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {migrationsQuery.isLoading && <p className="text-sm text-muted-foreground">جاري تحميل الترحيلات…</p>}
-          {!migrationsQuery.isLoading && rows.length === 0 && (
-            <p className="text-sm text-muted-foreground">لا توجد ترحيلات.</p>
-          )}
-          {!migrationsQuery.isLoading && migrationsQuery.data?.source === "journal" && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              تم استخدام سجل Drizzle المحلي لعرض الترحيلات لأن الاتصال بقاعدة البيانات فشل.
-              {migrationsQuery.data.dbError ? ` (${migrationsQuery.data.dbError})` : ""}
-            </div>
-          )}
-          {rows.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border border-border/70">
-              <Table dir="rtl">
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="min-w-[200px] text-right font-bold">الملف</TableHead>
-                    <TableHead className="text-right font-bold">التاريخ</TableHead>
-                    <TableHead className="text-center font-bold">عدد السجلات</TableHead>
-                    <TableHead className="text-center font-bold">الحالة</TableHead>
-                    <TableHead className="text-center font-bold">المدة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((migration: MigrationRow) => (
-                    <TableRow key={migration.name}>
-                      <TableCell className="max-w-[320px] font-mono text-xs break-all">{migration.name}</TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{formatAt(migration.appliedAt)}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">—</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={migration.pending ? "destructive" : "secondary"}>
-                          {migration.pending ? "معلّقة" : "نجاح"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center text-muted-foreground">—</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      {!migrationsQuery.isLoading && migrationsQuery.data?.source === "journal" && (
+        <Card className="border-amber-200 bg-amber-50 shadow-sm border-dashed">
+          <CardContent className="flex items-center gap-3 p-3 text-amber-900 text-xs font-bold">
+            <Shield className="h-4 w-4 text-amber-700" />
+            تنبيه: تم عرض الترحيلات من سجل Drizzle المحلي لتعذر الاتصال المباشر.
+            {migrationsQuery.data.dbError && <span className="opacity-70 font-mono">[{migrationsQuery.data.dbError}]</span>}
+          </CardContent>
+        </Card>
+      )}
 
-      <Card className="border-2 border-dashed border-border/80 bg-muted/20 shadow-none">
-        <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Upload className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">رفع ملفات Excel/CSV</p>
-            <p className="mt-1 max-w-lg text-sm text-muted-foreground leading-relaxed">
-              مسار SELRS الحالي يعتمد على ترحيلات <strong>Drizzle</strong> (SQL) من مجلد المشروع، وليس على رفع جداول من
-              المتصفّح. استخدم زر «تطبيق المعلّقة» بعد نشر ملفات الترحيل على الخادم، أو أوامر CLI الرسمية للنشر.
-            </p>
-          </div>
-          <Badge variant="outline" className="text-xs">
-            الحدّ الأقصى للرفع غير مفعّل — الترحيل من الواجهة فقط لتطبيق SQL المسجّل
+      <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-col gap-2 border-b bg-muted/5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-sky-600" />
+            سجل الترحيل والمزامنة
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px] font-bold h-5 bg-background">
+            أعمدة Dur/Rows غير مدعومة من Drizzle
           </Badge>
-        </CardContent>
-      </Card>
-
-      <Card className="border-amber-200/80 bg-amber-50/95 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-amber-900">إصلاح الفحوصات الأيتام</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-sm text-amber-800">
-            هذه الأداة تحدث الفحوصات التي ليس لديها معرف زيارة صحيح (visitId=0) وتربطها بزيارات صحيحة.
-          </p>
-          <Button
-            onClick={() => {
-              if (window.confirm("سيتم إصلاح جميع الفحوصات الأيتام. هل أنت متأكد؟")) {
-                fixOrphanedExaminationsMutation.mutate();
-              }
-            }}
-            disabled={fixOrphanedExaminationsMutation.isPending}
-            className="bg-amber-600 text-white hover:bg-amber-700"
-          >
-            {fixOrphanedExaminationsMutation.isPending ? "جاري الإصلاح…" : "إصلاح الفحوصات الأيتام"}
-          </Button>
+        <CardContent className="p-0">
+          <Table dir="rtl" className="text-right">
+            <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm shadow-sm">
+              <TableRow className="hover:bg-transparent border-b-primary/10 h-11">
+                <TableHead className="min-w-[200px] px-6 font-bold text-sky-900 text-xs">ملف الترحيل (SQL)</TableHead>
+                <TableHead className="px-4 font-bold text-sky-900 text-xs">تاريخ التطبيق</TableHead>
+                <TableHead className="text-center font-bold text-sky-900 text-xs">السجلات</TableHead>
+                <TableHead className="text-center font-bold text-sky-900 text-xs">الحالة</TableHead>
+                <TableHead className="text-center font-bold text-sky-900 text-xs">المدة</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {migrationsQuery.isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-20 text-center text-muted-foreground animate-pulse">
+                    جاري فحص حالة المخطط…
+                  </TableCell>
+                </TableRow>
+              )}
+              {!migrationsQuery.isLoading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-20 text-center text-muted-foreground bg-muted/20">
+                    لا توجد ترحيلات مسجلة.
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.map((migration: MigrationRow, idx: number) => (
+                <TableRow key={migration.name} className={cn(
+                  "group transition-colors hover:bg-primary/[0.03]",
+                  idx % 2 === 0 ? "bg-white" : "bg-muted/10"
+                )}>
+                  <TableCell className="px-6 py-3 font-mono text-[11px] font-bold text-foreground/80 break-all">{migration.name}</TableCell>
+                  <TableCell className="whitespace-nowrap py-3 text-[11px] font-medium text-muted-foreground tabular-nums">{formatAt(migration.appliedAt)}</TableCell>
+                  <TableCell className="text-center text-muted-foreground py-3 opacity-30">—</TableCell>
+                  <TableCell className="text-center py-3">
+                    <Badge variant={migration.pending ? "destructive" : "secondary"} className={cn("h-5 text-[9px] px-2 font-bold", !migration.pending && "bg-emerald-50 text-emerald-700 border-emerald-100")}>
+                      {migration.pending ? "معلّقة" : "مطبقة"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-muted-foreground py-3 opacity-30">—</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      <div>
-        <Button variant="outline" onClick={() => setLocation("/dashboard?tab=admin")}>
-          العودة إلى لوحة التحكم
-        </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-border/60 bg-muted/5 shadow-sm border-dashed">
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-bold text-sm text-foreground">استيراد البيانات الخارجية</p>
+              <p className="max-w-md text-[11px] text-muted-foreground leading-relaxed">
+                ترحيلات <strong>Drizzle</strong> تتم برمجياً عبر ملفات SQL. 
+                لاستيراد بيانات Excel/CSV، يرجى استخدام أدوات المزامنة المتخصصة في صفحة الإدارة.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-200/60 bg-amber-50/40 shadow-sm border-dashed">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-amber-700" />
+              <CardTitle className="text-sm font-bold text-amber-900">أدوات إصلاح المخطط</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              تحديث الفحوصات التي تفتقر لمعرف زيارة صحيح (visitId=0) وربطها بالسجلات التاريخية.
+            </p>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (window.confirm("سيتم إصلاح الفحوصات الأيتام. هل أنت متأكد؟")) {
+                  fixOrphanedExaminationsMutation.mutate();
+                }
+              }}
+              disabled={fixOrphanedExaminationsMutation.isPending}
+              className="w-full h-9 bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 shadow-sm"
+            >
+              {fixOrphanedExaminationsMutation.isPending ? "جاري المعالجة…" : "إصلاح الفحوصات الأيتام"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

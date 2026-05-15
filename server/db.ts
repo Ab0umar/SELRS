@@ -4,6 +4,7 @@ import {
   like,
   desc,
   or,
+  not,
   sql,
   inArray,
   gte,
@@ -71,11 +72,48 @@ import {
   visitScheduleRequests,
   InsertVisitScheduleRequest,
 } from "../drizzle/schema";
+import { PENTACAM_ALLOWED_SRV_CODES, isPentacamEligiblePatient } from "../shared/pentacam";
 const exec = promisify(execCb);
 
 let _db: ReturnType<typeof drizzle> | null = null;
+const OVERVIEW_ROW_LIMIT = 5000;
+const OVERVIEW_PAGE_SIZE = 50;
+const ACTIVE_DAYS = 30;
+const EXPIRED_AFTER_DAYS = 120;
 
 const MOJIBAKE_HINT = /[ØÙÃÂ]/;
+
+function meaningfulValueCondition(column: any) {
+  return sql`NULLIF(TRIM(COALESCE(CAST(${column} AS CHAR), '')), '') IS NOT NULL AND UPPER(TRIM(COALESCE(CAST(${column} AS CHAR), ''))) NOT IN ('0', '0.0', '0.00')`;
+}
+
+function anyMeaningfulValueCondition(columns: any[]) {
+  return or(...columns.map((column) => meaningfulValueCondition(column)) as any);
+}
+
+function overviewSearchClause(search: string, columns: any[]) {
+  const normalizedSearch = String(search ?? "").trim();
+  if (!normalizedSearch) return undefined;
+  const term = `%${normalizedSearch}%`;
+  const legacyTerm = `%${encodeForLegacySearch(normalizedSearch)}%`;
+  const searchClauses = columns.flatMap((column) => [like(column, term), like(column, legacyTerm)]);
+  return or(...searchClauses as any);
+}
+
+function normalizeOverviewPage(page: number | undefined) {
+  const safePage = Number.isFinite(Number(page)) ? Math.max(1, Math.floor(Number(page))) : 1;
+  return safePage;
+}
+
+function normalizeOverviewPageSize(pageSize: number | undefined) {
+  const safePageSize = Number.isFinite(Number(pageSize)) ? Math.max(1, Math.min(200, Math.floor(Number(pageSize)))) : OVERVIEW_PAGE_SIZE;
+  return safePageSize;
+}
+
+function combineWhereClauses(...clauses: Array<any | undefined>) {
+  const cleanClauses = clauses.filter(Boolean);
+  return cleanClauses.length > 0 ? and(...(cleanClauses as any)) : undefined;
+}
 
 function decodeMojibake(value: unknown): string {
   const raw = String(value ?? "");
@@ -104,6 +142,24 @@ function decodePatientRow<T extends Record<string, any>>(row: T): T {
     referralSource: decodeMojibake(row.referralSource),
     treatingDoctor: decodeMojibake(row.treatingDoctor),
   } as T;
+}
+
+const PENTACAM_ALLOWED_SRV_CODE_SQL = sql.join(
+  PENTACAM_ALLOWED_SRV_CODES.map((code) => sql`${code.toLowerCase()}`),
+  sql`, `,
+);
+
+function pentacamEligibilityExpr() {
+  const allowedLocationExpr = sql`LOWER(TRIM(COALESCE(${patients.locationType}, ''))) IN ('center', 'external')`;
+  const directCodeExpr = sql`LOWER(TRIM(COALESCE(${patients.serviceCode}, ''))) IN (${PENTACAM_ALLOWED_SRV_CODE_SQL})`;
+  const entryCodeExpr = sql`EXISTS (
+    SELECT 1
+    FROM ${patientServiceEntries} pse
+    WHERE pse.patientId = ${patients.id}
+      AND LOWER(TRIM(pse.serviceCode)) IN (${PENTACAM_ALLOWED_SRV_CODE_SQL})
+  )`;
+
+  return and(allowedLocationExpr as any, or(directCodeExpr as any, entryCodeExpr as any) as any);
 }
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -237,9 +293,9 @@ export async function upsertRegistrationCatalogRows(params: {
         code,
         name: String(row.name ?? "").trim() || code,
         category: null,
-        serviceType: "lasik" as const,
+        serviceType: "specialist" as const,
         srvTyp: null,
-        defaultSheet: "lasik" as const,
+        defaultSheet: "specialist" as const,
         locationType: "center" as const,
         price: priceStr,
         isActive: true,
@@ -913,7 +969,8 @@ export async function getPatientByCode(patientCode: string) {
 
 export async function searchPatients(
   searchTerm: string,
-  sheetType?: "consultant" | "specialist" | "lasik" | "external"
+  sheetType?: "consultant" | "specialist" | "lasik" | "external" | "pentacam",
+  locationType?: "center" | "external"
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -951,14 +1008,23 @@ export async function searchPatients(
 
   let whereClause = textMatch as any;
   if (sheetType) {
-    const rows = await db
-      .select({ patientId: sheetEntries.patientId })
-      .from(sheetEntries)
-      .where(eq(sheetEntries.sheetType, sheetType as any))
-      .groupBy(sheetEntries.patientId);
-    const patientIds = rows.map((row) => Number(row.patientId)).filter((id) => Number.isFinite(id));
-    if (patientIds.length === 0) return [];
-    whereClause = and(textMatch, inArray(patients.id, patientIds));
+    if (sheetType === "pentacam") {
+      whereClause = and(textMatch, pentacamEligibilityExpr() as any);
+    } else {
+      const rows = await db
+        .select({ patientId: sheetEntries.patientId })
+        .from(sheetEntries)
+        .where(eq(sheetEntries.sheetType, sheetType as any))
+        .groupBy(sheetEntries.patientId);
+      const patientIds = rows.map((row) => Number(row.patientId)).filter((id) => Number.isFinite(id));
+      if (patientIds.length === 0) return [];
+      whereClause = and(textMatch, inArray(patients.id, patientIds));
+    }
+  }
+
+  const normalizedLocationType = String(locationType ?? "").trim().toLowerCase();
+  if (normalizedLocationType === "center" || normalizedLocationType === "external") {
+    whereClause = and(whereClause, eq(patients.locationType, normalizedLocationType as any));
   }
 
   const result = await db.select().from(patients).where(whereClause).limit(50);
@@ -1636,34 +1702,32 @@ function buildPatientFilterClauses(filters?: {
     const searchTokens = normalizedSearch.split(/\s+/).filter(Boolean);
     const effectiveSearchTokens = searchTokens.length > 0 ? searchTokens : [normalizedSearch];
     for (const token of effectiveSearchTokens) {
-      const legacyToken = encodeForLegacySearch(token);
       const tokenTerm = `%${token}%`;
-      const legacyTokenTerm = `%${legacyToken}%`;
-      whereClauses.push(sql`
-        (
-          ${patients.fullName} LIKE ${tokenTerm}
-          OR ${patients.fullName} LIKE ${legacyTokenTerm}
-          OR ${patients.patientCode} LIKE ${tokenTerm}
-          OR ${patients.phone} LIKE ${tokenTerm}
-          OR ${patients.alternatePhone} LIKE ${tokenTerm}
-          OR EXISTS (
-            SELECT 1
-            FROM patientPageStates pps
-            WHERE pps.patientId = ${patients.id}
-              AND pps.page = 'examination'
-              AND (
-                TRIM(COALESCE(
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
-                )) LIKE ${tokenTerm}
-                OR TRIM(COALESCE(
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
-                )) LIKE ${legacyTokenTerm}
-              )
+      const simpleSearchConditions = or(
+        or(
+          like(patients.fullName, tokenTerm),
+          or(
+            like(patients.patientCode, tokenTerm),
+            or(
+              like(patients.phone, tokenTerm),
+              like(patients.alternatePhone, tokenTerm)
+            )
           )
-        )
-      `);
+        ),
+        sql`EXISTS (
+          SELECT 1
+          FROM patientPageStates pps
+          WHERE pps.patientId = ${patients.id}
+            AND pps.page = 'examination'
+            AND (
+              TRIM(COALESCE(
+                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
+                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
+              )) LIKE ${tokenTerm}
+            )
+        )` as any
+      );
+      whereClauses.push(simpleSearchConditions as any);
     }
   }
   const normalizedDateFrom = String(filters?.dateFrom ?? "").trim();
@@ -1715,27 +1779,19 @@ function buildPatientFilterClauses(filters?: {
     const doctorTokens = normalizedDoctor.split(/\s+/).filter(Boolean);
     const effectiveDoctorTokens = doctorTokens.length > 0 ? doctorTokens : [normalizedDoctor];
     for (const token of effectiveDoctorTokens) {
-      const legacyDoctorToken = encodeForLegacySearch(token);
       const doctorTokenTerm = `%${token}%`;
-      const legacyDoctorTokenTerm = `%${legacyDoctorToken}%`;
       whereClauses.push(sql`
-        (
-          EXISTS (
-            SELECT 1
-            FROM patientPageStates pps
-            WHERE pps.patientId = ${patients.id}
-              AND pps.page = 'examination'
-              AND (
-                TRIM(COALESCE(
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
-                )) LIKE ${doctorTokenTerm}
-                OR TRIM(COALESCE(
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
-                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
-                )) LIKE ${legacyDoctorTokenTerm}
-              )
-          )
+        EXISTS (
+          SELECT 1
+          FROM patientPageStates pps
+          WHERE pps.patientId = ${patients.id}
+            AND pps.page = 'examination'
+            AND (
+              TRIM(COALESCE(
+                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
+                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
+              )) LIKE ${doctorTokenTerm}
+            )
         )
       `);
     }
@@ -1760,6 +1816,10 @@ export async function getAllPatients(options?: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  if (options?.searchTerm) {
+    console.log(`[getAllPatients] Searching for: "${options.searchTerm}"`);
+  }
 
   const whereClauses: any[] = buildPatientFilterClauses(options);
   const limitValue = Math.max(1, Math.min(500, Number(options?.limit ?? 120)));
@@ -2814,6 +2874,130 @@ export async function getAllExaminations() {
   return result;
 }
 
+export async function getRefractionsOverviewRows(input: {
+  page?: number;
+  pageSize?: number;
+  locationType?: "center" | "external";
+  search?: string;
+  statusFilter?: "all" | "complete" | "partial";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const page = normalizeOverviewPage(input.page);
+  const pageSize = normalizeOverviewPageSize(input.pageSize);
+  const offset = (page - 1) * pageSize;
+  const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
+  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const locationWhere =
+    normalizedLocationType === "center" || normalizedLocationType === "external"
+      ? eq(patients.locationType, normalizedLocationType as any)
+      : undefined;
+  const dataWhere = anyMeaningfulValueCondition([
+    examinations.ucvaOD,
+    examinations.ucvaOS,
+    examinations.bcvaOD,
+    examinations.bcvaOS,
+    examinations.sphereOD,
+    examinations.sphereOS,
+    examinations.cylinderOD,
+    examinations.cylinderOS,
+    examinations.axisOD,
+    examinations.axisOS,
+    examinations.iopOD,
+    examinations.iopOS,
+    examinations.glassesData,
+    examinations.airPuffOD,
+    examinations.airPuffOS,
+  ]);
+  const rightHas = anyMeaningfulValueCondition([
+    examinations.ucvaOD,
+    examinations.bcvaOD,
+    examinations.sphereOD,
+    examinations.cylinderOD,
+    examinations.axisOD,
+    examinations.iopOD,
+    examinations.airPuffOD,
+  ]);
+  const leftHas = anyMeaningfulValueCondition([
+    examinations.ucvaOS,
+    examinations.bcvaOS,
+    examinations.sphereOS,
+    examinations.cylinderOS,
+    examinations.axisOS,
+    examinations.iopOS,
+    examinations.airPuffOS,
+  ]);
+  const completeWhere = and(rightHas as any, leftHas as any);
+  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const statusWhere =
+    status === "complete" ? completeWhere : status === "partial" ? not(completeWhere as any) : undefined;
+  const searchWhere = overviewSearchClause(String(input.search ?? ""), [
+    patients.fullName,
+    patients.patientCode,
+    doctorsLookup.name,
+  ]);
+  const whereExpr = combineWhereClauses(locationWhere, dataWhere, searchWhere, statusWhere);
+
+  const totalRows = await db
+    .select({
+      total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
+    })
+    .from(examinations)
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
+    .innerJoin(patients, eq(examinations.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .where(whereExpr as any);
+
+  const rows = await db
+    .select({
+      id: examinations.id,
+      visitId: examinations.visitId,
+      patientId: examinations.patientId,
+      visitDate: visits.visitDate,
+      patientName: patients.fullName,
+      patientCode: patients.patientCode,
+      locationType: patients.locationType,
+      doctorName: doctorsLookup.name,
+      ucvaOD: examinations.ucvaOD,
+      ucvaOS: examinations.ucvaOS,
+      bcvaOD: examinations.bcvaOD,
+      bcvaOS: examinations.bcvaOS,
+      sphereOD: examinations.sphereOD,
+      sphereOS: examinations.sphereOS,
+      cylinderOD: examinations.cylinderOD,
+      cylinderOS: examinations.cylinderOS,
+      axisOD: examinations.axisOD,
+      axisOS: examinations.axisOS,
+      iopOD: examinations.iopOD,
+      iopOS: examinations.iopOS,
+      glassesData: examinations.glassesData,
+      airPuffOD: examinations.airPuffOD,
+      airPuffOS: examinations.airPuffOS,
+      createdAt: examinations.createdAt,
+      updatedAt: examinations.updatedAt,
+    })
+    .from(examinations)
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
+    .innerJoin(patients, eq(examinations.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .where(whereExpr as any)
+    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${examinations.createdAt})`))
+    .limit(cap)
+    .offset(offset);
+
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      patientName: decodeMojibake(String(row.patientName ?? "")),
+      doctorName: decodeMojibake(String(row.doctorName ?? "")),
+    })),
+    total: Number(totalRows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
+}
+
 export async function updateExamination(examinationId: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -2838,6 +3022,124 @@ export async function getAutorefractometryByPatient(patientId: number) {
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .where(eq(autorefractometryData.patientId, patientId))
     .orderBy(desc(visits.visitDate ?? autorefractometryData.createdAt));
+}
+
+export async function getAutorefractometryOverviewRows(input: {
+  page?: number;
+  pageSize?: number;
+  locationType?: "center" | "external";
+  search?: string;
+  statusFilter?: "all" | "complete" | "partial";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const page = normalizeOverviewPage(input.page);
+  const pageSize = normalizeOverviewPageSize(input.pageSize);
+  const offset = (page - 1) * pageSize;
+  const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
+  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const locationWhere =
+    normalizedLocationType === "center" || normalizedLocationType === "external"
+      ? eq(patients.locationType, normalizedLocationType as any)
+      : undefined;
+  const dataWhere = anyMeaningfulValueCondition([
+    autorefractometryData.sphereOD,
+    autorefractometryData.cylinderOD,
+    autorefractometryData.axisOD,
+    autorefractometryData.ucvaOD,
+    autorefractometryData.bcvaOD,
+    autorefractometryData.iopOD,
+    autorefractometryData.sphereOS,
+    autorefractometryData.cylinderOS,
+    autorefractometryData.axisOS,
+    autorefractometryData.ucvaOS,
+    autorefractometryData.bcvaOS,
+    autorefractometryData.iopOS,
+  ]);
+  const rightHas = anyMeaningfulValueCondition([
+    autorefractometryData.sphereOD,
+    autorefractometryData.cylinderOD,
+    autorefractometryData.axisOD,
+    autorefractometryData.ucvaOD,
+    autorefractometryData.bcvaOD,
+    autorefractometryData.iopOD,
+  ]);
+  const leftHas = anyMeaningfulValueCondition([
+    autorefractometryData.sphereOS,
+    autorefractometryData.cylinderOS,
+    autorefractometryData.axisOS,
+    autorefractometryData.ucvaOS,
+    autorefractometryData.bcvaOS,
+    autorefractometryData.iopOS,
+  ]);
+  const completeWhere = and(rightHas as any, leftHas as any);
+  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const statusWhere =
+    status === "complete" ? completeWhere : status === "partial" ? not(completeWhere as any) : undefined;
+  const searchWhere = overviewSearchClause(String(input.search ?? ""), [
+    patients.fullName,
+    patients.patientCode,
+    doctorsLookup.name,
+  ]);
+  const whereExpr = combineWhereClauses(locationWhere, dataWhere, searchWhere, statusWhere);
+
+  const totalRows = await db
+    .select({
+      total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
+    })
+    .from(autorefractometryData)
+    .leftJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
+    .innerJoin(patients, eq(autorefractometryData.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .where(whereExpr as any);
+
+  const rows = await db
+    .select({
+      id: autorefractometryData.id,
+      examinationId: autorefractometryData.examinationId,
+      patientId: autorefractometryData.patientId,
+      visitDate: visits.visitDate,
+      patientName: patients.fullName,
+      patientCode: patients.patientCode,
+      locationType: patients.locationType,
+      doctorName: doctorsLookup.name,
+      sphereOD: autorefractometryData.sphereOD,
+      cylinderOD: autorefractometryData.cylinderOD,
+      axisOD: autorefractometryData.axisOD,
+      ucvaOD: autorefractometryData.ucvaOD,
+      bcvaOD: autorefractometryData.bcvaOD,
+      iopOD: autorefractometryData.iopOD,
+      sphereOS: autorefractometryData.sphereOS,
+      cylinderOS: autorefractometryData.cylinderOS,
+      axisOS: autorefractometryData.axisOS,
+      ucvaOS: autorefractometryData.ucvaOS,
+      bcvaOS: autorefractometryData.bcvaOS,
+      iopOS: autorefractometryData.iopOS,
+      createdAt: autorefractometryData.createdAt,
+      updatedAt: autorefractometryData.updatedAt,
+    })
+    .from(autorefractometryData)
+    .leftJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
+    .innerJoin(patients, eq(autorefractometryData.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .where(whereExpr as any)
+    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${autorefractometryData.createdAt})`))
+    .limit(cap)
+    .offset(offset);
+
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      patientName: decodeMojibake(String(row.patientName ?? "")),
+      doctorName: decodeMojibake(String(row.doctorName ?? "")),
+    })),
+    total: Number(totalRows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
 }
 
 export async function getGlassesRecordsByPatient(patientId: number) {
@@ -3183,6 +3485,11 @@ export async function getPentacamResultsByPatient(patientId: number, limit = 100
   if (!db) throw new Error("Database not available");
 
   const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(500, Number(limit))) : 100;
+  const patientRow = await db.select().from(patients).where(eq(patients.id, patientId)).limit(1);
+  if (patientRow.length === 0) return [];
+  const patient = decodePatientRow(patientRow[0] as any);
+  if (!isPentacamEligiblePatient(patient)) return [];
+
   return await db
     .select({
       ...getTableColumns(pentacamResults),
@@ -3202,6 +3509,7 @@ export type PentacamDashboardFilters = {
   fromDate?: string;
   toDate?: string;
   search?: string;
+  locationType?: "center" | "external";
   limit?: number;
   offset?: number;
 };
@@ -3229,6 +3537,7 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
   if (filters.patientId !== undefined && Number.isFinite(Number(filters.patientId)) && Number(filters.patientId) > 0) {
     clauses.push(eq(pentacamResults.patientId, Number(filters.patientId)));
   }
+  clauses.push(pentacamEligibilityExpr() as any);
 
   const fromD = String(filters.fromDate ?? "").trim();
   const toD = String(filters.toDate ?? "").trim();
@@ -3253,6 +3562,11 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
         like(doctorsLookup.name, legacyTerm),
       ),
     );
+  }
+
+  const normalizedLocationType = String(filters.locationType ?? "").trim().toLowerCase();
+  if (normalizedLocationType === "center" || normalizedLocationType === "external") {
+    clauses.push(eq(patients.locationType, normalizedLocationType as any));
   }
 
   const whereExpr = clauses.length > 0 ? and(...clauses) : undefined;
@@ -3280,9 +3594,15 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
   }));
 }
 
-export async function getPentacamDashboardDayStats() {
+export async function getPentacamDashboardDayStats(locationType?: "center" | "external") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  const normalizedLocationType = String(locationType ?? "").trim().toLowerCase();
+  const locationWhere =
+    normalizedLocationType === "center" || normalizedLocationType === "external"
+      ? eq(patients.locationType, normalizedLocationType as any)
+      : undefined;
 
   const rows = await db
     .select({
@@ -3290,7 +3610,9 @@ export async function getPentacamDashboardDayStats() {
       yesterdayCount: sql<number>`COALESCE(SUM(CASE WHEN DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END), 0)`,
     })
     .from(pentacamResults)
-    .leftJoin(visits, eq(pentacamResults.visitId, visits.id));
+    .leftJoin(visits, eq(pentacamResults.visitId, visits.id))
+    .innerJoin(patients, eq(pentacamResults.patientId, patients.id))
+    .where(locationWhere ? and(pentacamEligibilityExpr() as any, locationWhere as any) : (pentacamEligibilityExpr() as any));
 
   const r = rows[0];
   return {
@@ -3593,13 +3915,45 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
 }
 
 /** Recent prescriptions joined with patient/user for overview table (counts items in-memory). */
-export async function getPrescriptionsOverviewRows(limit = 250) {
+export async function getPrescriptionsOverviewRows(input: {
+  page?: number;
+  pageSize?: number;
+  locationType?: "center" | "external";
+  search?: string;
+  statusFilter?: "all" | "active" | "completed" | "expired";
+}) {
   const dbConn = await getDb();
   if (!dbConn) throw new Error("Database not available");
 
-  const cap = Math.min(Math.max(limit, 1), 500);
+  const page = normalizeOverviewPage(input.page);
+  const pageSize = normalizeOverviewPageSize(input.pageSize);
+  const offset = (page - 1) * pageSize;
+  const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
+  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const locationWhere =
+    normalizedLocationType === "center" || normalizedLocationType === "external"
+      ? eq(patients.locationType, normalizedLocationType as any)
+      : undefined;
+  const searchWhere = overviewSearchClause(String(input.search ?? ""), [
+    patients.fullName,
+    patients.patientCode,
+    users.name,
+    prescriptions.notes,
+  ]);
+  const dateExpr = sql<number>`DATEDIFF(CURDATE(), DATE(COALESCE(${prescriptions.prescriptionDate}, ${prescriptions.createdAt})))`;
+  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const statusWhere =
+    status === "active"
+      ? sql`${dateExpr} <= ${ACTIVE_DAYS}`
+      : status === "expired"
+        ? sql`${dateExpr} > ${EXPIRED_AFTER_DAYS}`
+        : status === "completed"
+          ? sql`${dateExpr} > ${ACTIVE_DAYS} AND ${dateExpr} <= ${EXPIRED_AFTER_DAYS}`
+          : undefined;
+  const hasItemsWhere = sql`EXISTS (SELECT 1 FROM ${prescriptionItems} pi WHERE pi.prescriptionId = ${prescriptions.id})`;
+  const whereExpr = combineWhereClauses(locationWhere, searchWhere, statusWhere, hasItemsWhere);
 
-  const base = await dbConn
+  const baseQuery = dbConn
     .select({
       id: prescriptions.id,
       patientId: prescriptions.patientId,
@@ -3609,14 +3963,30 @@ export async function getPrescriptionsOverviewRows(limit = 250) {
       doctorName: users.name,
       patientName: patients.fullName,
       patientCode: patients.patientCode,
+      locationType: patients.locationType,
+    })
+    .from(prescriptions)
+    .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+    .leftJoin(users, eq(prescriptions.doctorId, users.id));
+
+  const totalRows = await dbConn
+    .select({
+      total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
     })
     .from(prescriptions)
     .leftJoin(patients, eq(prescriptions.patientId, patients.id))
     .leftJoin(users, eq(prescriptions.doctorId, users.id))
-    .orderBy(desc(prescriptions.prescriptionDate))
-    .limit(cap);
+    .where(whereExpr as any);
 
-  if (base.length === 0) return [];
+  const base = await baseQuery
+    .where(whereExpr as any)
+    .orderBy(desc(prescriptions.prescriptionDate))
+    .limit(cap)
+    .offset(offset);
+
+  if (base.length === 0) {
+    return { rows: [], total: Number(totalRows[0]?.total ?? 0), page, pageSize };
+  }
 
   const ids = base.map((r) => r.id);
   const countRows = await dbConn
@@ -3630,10 +4000,17 @@ export async function getPrescriptionsOverviewRows(limit = 250) {
 
   const countMap = new Map(countRows.map((r) => [r.prescriptionId, r.cnt]));
 
-  return base.map((r) => ({
-    ...r,
-    itemCount: countMap.get(r.id) ?? 0,
-  }));
+  return {
+    rows: base
+      .map((r) => ({
+        ...r,
+        itemCount: countMap.get(r.id) ?? 0,
+      }))
+      .filter((row) => row.itemCount > 0),
+    total: Number(totalRows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
 }
 
 export async function createPrescriptionWithItems(data: {

@@ -23,6 +23,10 @@ export function QuickPatientEntryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] gap-4 overflow-x-hidden overflow-y-auto sm:max-w-6xl" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>تسجيل مريض</DialogTitle>
+          <DialogDescription className="sr-only">نموذج تسجيل مريض جديد</DialogDescription>
+        </DialogHeader>
         {open ? (
           <ExaminationPatientQuickDialogContent key={mountKey} onClose={() => onOpenChange(false)} />
         ) : null}

@@ -14,7 +14,7 @@ import { CircleAlert, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
-import { formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
+import { formatDateAr, formatCountAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
 
 type ReceiptsInquiryQuery = {
@@ -135,6 +135,7 @@ export default function AccountingPatientsInquiry() {
   const search = useSearch();
   const filters = useMemo(() => readFilters(search), [search]);
   const [draft, setDraft] = useState(filters);
+  const [dateError, setDateError] = useState("");
 
   useEffect(() => {
     setDraft(filters);
@@ -147,6 +148,11 @@ export default function AccountingPatientsInquiry() {
   const rows = q.data ?? [];
 
   const applyFilters = () => {
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError("تاريخ البداية بعد تاريخ النهاية");
+      return;
+    }
+    setDateError("");
     setLocation(buildPatientsUrl(draft));
   };
 
@@ -167,7 +173,7 @@ export default function AccountingPatientsInquiry() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-2">
             <CardTitle className="text-xl tracking-tight">استعلام المرضى والإيصالات</CardTitle>
@@ -175,7 +181,7 @@ export default function AccountingPatientsInquiry() {
               عرض إيصالات المرضى حسب الفترة والقسم والفلاتر. اضغط صفًا للانتقال إلى تفاصيل الإيصال.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <CardContent className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
               <Input
@@ -192,8 +198,11 @@ export default function AccountingPatientsInquiry() {
                 onChange={(e) => setDraft((p) => ({ ...p, toDate: e.target.value }))}
               />
             </label>
+            {dateError && (
+              <p className="text-[11px] text-red-500 md:col-span-2">{dateError}</p>
+            )}
             <label className="space-y-1.5 text-sm font-medium">
-              <span>كود القسم (افتراضي {DEFAULT_SECTION_CODE})</span>
+              <span>كود القسم</span>
               <Input
                 type="number"
                 value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
@@ -227,7 +236,7 @@ export default function AccountingPatientsInquiry() {
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
-              <span>نوع الإيصال (trTy)</span>
+              <span>نوع الإيصال</span>
               <Input
                 type="number"
                 value={draft.trTy ?? ""}
@@ -241,15 +250,15 @@ export default function AccountingPatientsInquiry() {
               />
             </label>
             <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
-              <Button type="button" className="flex-1 sm:flex-none" onClick={applyFilters}>
-                <Search className="ml-2 h-4 w-4" />
+              <Button type="button" className="flex-1 sm:flex-none" onClick={applyFilters} aria-label="تطبيق الفلاتر">
+                <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters}>
+              <Button type="button" variant="outline" onClick={resetFilters} aria-label="إعادة ضبط الفلاتر">
                 إعادة ضبط
               </Button>
-              <Button type="button" variant="outline" onClick={() => void q.refetch()} disabled={q.isFetching}>
-                <RefreshCw className={q.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"} />
+              <Button type="button" variant="outline" onClick={() => void q.refetch()} disabled={q.isFetching} aria-label="تحديث البيانات">
+                <RefreshCw className={q.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"} aria-hidden />
                 تحديث
               </Button>
             </div>
@@ -257,10 +266,10 @@ export default function AccountingPatientsInquiry() {
         </Card>
 
         {q.isError ? (
-          <Card className="border-destructive/30 bg-destructive/5">
+          <Card className="border-error/30 bg-error/5">
             <CardContent className="flex items-start gap-3 py-5">
-              <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
-                <CircleAlert className="h-5 w-5" />
+              <div className="rounded-lg bg-error/10 p-2 text-error">
+                <CircleAlert className="h-5 w-5" aria-hidden />
               </div>
               <div>
                 <p className="font-semibold text-foreground">تعذر تحميل البيانات</p>
@@ -275,6 +284,9 @@ export default function AccountingPatientsInquiry() {
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">الإيصالات</CardTitle>
+            {rows.length > 0 && (
+              <span className="text-xs text-muted-foreground tabular-nums">عرض {formatCountAr(rows.length)} نتيجة</span>
+            )}
           </CardHeader>
           <CardContent>
             <div className={reportStyles.reportShell}>
@@ -341,25 +353,30 @@ export default function AccountingPatientsInquiry() {
                             }
                           }}
                         >
-                          <td className={`${reportStyles.numeric} font-medium`}>
+                          <td data-label="رقم الإيصال" className={`${reportStyles.numeric} font-medium`}>
                             {toArabicDigits(row.trNo)}
                           </td>
-                          <td className={reportStyles.numeric}>
+                          <td data-label="التاريخ" className={reportStyles.numeric}>
                             {formatDateAr(row.transactionDate)}
                           </td>
-                          <td className={reportStyles.numeric}>{toArabicDigits(row.patientCode)}</td>
-                          <td>{row.patientName?.trim() || "—"}</td>
-                          <td className="text-muted-foreground">—</td>
-                          <td className={reportStyles.numeric}>{formatMoney(row.total)}</td>
-                          <td className={reportStyles.numeric}>{formatMoney(row.discount)}</td>
-                          <td className={reportStyles.numeric}>{formatMoney(row.paidValue)}</td>
-                          <td>{row.enteredBy?.trim() || "—"}</td>
+                          <td data-label="كود المريض" className={reportStyles.numeric}>{toArabicDigits(row.patientCode)}</td>
+                          <td data-label="اسم المريض">{row.patientName?.trim() || "—"}</td>
+                          <td data-label="الطبيب" className="text-muted-foreground">—</td>
+                          <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoney(row.total)}</td>
+                          <td data-label="الخصم" className={reportStyles.numeric}>{formatMoney(row.discount)}</td>
+                          <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoney(row.paidValue)}</td>
+                          <td data-label="المستخدم">{row.enteredBy?.trim() || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : null}
+              {rows.length >= 500 && (
+                <div className="mt-2 text-[11px] text-amber-600 bg-amber-50 rounded px-3 py-1.5">
+                  قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

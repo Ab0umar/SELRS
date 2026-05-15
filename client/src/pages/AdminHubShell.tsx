@@ -10,6 +10,18 @@ import {
   Stethoscope,
   Terminal,
   Users,
+  Wrench,
+  FileSearch,
+  Settings,
+  Coins,
+  Plug,
+  TestTube2,
+  Eye,
+  Bell,
+  Layers,
+  Copy,
+  Scan,
+  PenSquare,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminMigrations from "./AdminMigrations";
@@ -29,10 +41,8 @@ import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { cn } from "@/lib/utils";
 
 type HubModuleCard = {
@@ -43,71 +53,128 @@ type HubModuleCard = {
   iconWrap: string;
 };
 
-const MAIN_MODULES: HubModuleCard[] = [
+const ALL_MODULES: HubModuleCard[] = [
   {
     href: "/admin-hub/permissions",
     title: "الصلاحيات",
     description: "تحديد صلاحيات الوصول للأدوار المختلفة.",
     icon: Shield,
-    iconWrap: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+    iconWrap: "bg-violet-50 text-violet-600",
   },
   {
     href: "/admin-hub/doctors",
     title: "إدارة الأطباء",
     description: "تنظيم قائمة الأطباء والتخصصات.",
     icon: Stethoscope,
-    iconWrap: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    iconWrap: "bg-emerald-50 text-emerald-600",
   },
   {
     href: "/admin-hub/users",
     title: "إدارة المستخدمين",
     description: "إضافة وتعديل بيانات الموظفين والمستخدمين.",
     icon: Users,
-    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    iconWrap: "bg-sky-50 text-sky-700",
   },
   {
     href: "/admin-hub/status",
     title: "حالة النظام",
     description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
     icon: Terminal,
-    iconWrap: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+    iconWrap: "bg-cyan-50 text-cyan-700",
   },
   {
     href: "/admin-hub/migrations",
     title: "ترحيل البيانات",
-    description: "تطبيق ترحيلات Drizzle وأدوات صيانة المخطط.",
+    description: "تطبيق ترحيلات Drizzle وأدوات الصيانة.",
     icon: Database,
-    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
+    iconWrap: "bg-orange-50 text-orange-700",
   },
   {
     href: "/admin-hub/services",
     title: "الخدمات والأسعار",
     description: "إدارة قائمة الخدمات الطبية ومطابقة الأطباء.",
     icon: HeartPulse,
-    iconWrap: "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300",
+    iconWrap: "bg-pink-50 text-pink-700",
+  },
+  { 
+    href: "/admin-hub/data-source-audit", 
+    title: "تدقيق مصدر البيانات",
+    description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
+    icon: FileSearch,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/settings", 
+    title: "الإعدادات العامة",
+    description: "ضبط إعدادات النظام والتسعير.",
+    icon: Settings,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/api-tools", 
+    title: "أدوات API",
+    description: "أدوات للمطورين لفحص tRPC.",
+    icon: Plug,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/tests", 
+    title: "التحاليل",
+    description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
+    icon: TestTube2,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/card-visibility", 
+    title: "ظهور الكروت",
+    description: "التحكم في الكروت التي تظهر في الداشبورد.",
+    icon: Eye,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/notifications", 
+    title: "إخطارات التطبيق",
+    description: "إدارة إعدادات الإخطارات داخل التطبيق.",
+    icon: Bell,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/forms", 
+    title: "مركز النماذج",
+    description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
+    icon: Layers,
+    iconWrap: "bg-gray-100 text-gray-700",
+  },
+  { 
+    href: "/admin-hub/pentacam-failed", 
+    title: "بنتاكام الفاشل",
+    description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
+    icon: Scan,
+    iconWrap: "bg-gray-100 text-gray-700",
   },
 ];
 
-const MORE_LINKS: { href: string; label: string }[] = [
-  { href: "/admin-hub/diagnostics", label: "🔧 التشخيص والإصلاح" },
-  { href: "/admin-hub/data-source-audit", label: "مصدر البيانات — تدقيق" },
-  { href: "/admin-hub/settings", label: "الإعدادات العامة" },
-  { href: "/admin-hub/settings/pricing-rules", label: "تسعير المواعيد" },
-  { href: "/admin-hub/api-tools", label: "أدوات API" },
-  { href: "/admin-hub/tests", label: "التحاليل" },
-  { href: "/admin-hub/card-visibility", label: "ظهور الكروت" },
-  { href: "/admin-hub/notifications", label: "إخطارات التطبيق" },
-  { href: "/admin-hub/forms", label: "النماذج (جميع التابات)" },
-  { href: "/admin-hub/sheets", label: "شيتات المرضى" },
-  { href: "/admin-hub/sheet-designer", label: "مصمم النماذج" },
-  { href: "/admin-hub/sheet-copies", label: "نسخ النماذج" },
-  { href: "/admin-hub/pentacam-failed", label: "بنتاكام الفاشل" },
-];
 
 export default function AdminHubShell() {
   const [location] = useLocation();
 
   const isHubHome = location === "/admin-hub" || location === "/admin-hub/";
+
+  const getBreadcrumbs = () => {
+    if (isHubHome) return null;
+    const parts = location.split("/").filter(Boolean);
+    const crumbs = [{ label: "مركز الإدارة", href: "/admin-hub" }];
+    
+    if (parts.length > 1) {
+      const moduleName = parts[1];
+      const found = ALL_MODULES.find(m => m.href.includes(moduleName));
+      if (found) {
+        crumbs.push({ label: found.title, href: found.href });
+      }
+    }
+    
+    return crumbs;
+  };
 
   const renderComponent = () => {
     if (isHubHome) return null;
@@ -145,101 +212,97 @@ export default function AdminHubShell() {
   };
 
   const HubLanding = () => (
-    <>
+    <div className="space-y-6">
       <PageHeader
         title="مركز الإدارة"
-        subtitle="اختصارات للصفحات الإدارية الأكثر استخداماً؛ بقية الأدوات ضمن «المزيد»."
-        icon={<LayoutGrid className="h-5 w-5" />}
+        subtitle="التحكم الشامل في المستخدمين، الأطباء، والخدمات الفنية للمركز."
+        icon={<LayoutGrid className="h-5 w-5 text-primary" />}
       />
 
-      <Card className="mb-6 border-emerald-200/90 bg-emerald-50/90 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/30">
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1 text-right">
-            <div className="flex items-center gap-2 justify-end font-bold text-emerald-900 dark:text-emerald-100">
-              <Activity className="h-4 w-4" />
-              التشخيص والإصلاح
+      {/* Critical Actions Tier */}
+      <Link href="/admin-hub/diagnostics">
+        <Card className="group relative overflow-hidden border-emerald-200/60 bg-emerald-50/40 transition-all hover:border-emerald-300 hover:bg-emerald-50/60 active:scale-[0.99]">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4 text-right">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-transform group-hover:scale-110">
+                <Wrench className="h-5 w-5" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-bold text-emerald-900">التشخيص والإصلاح</div>
+                <p className="text-xs text-emerald-800/70">أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.</p>
+              </div>
             </div>
-            <p className="text-sm text-emerald-900/85 dark:text-emerald-200/90">
-              أدوات فحص وإصلاح البيانات المتقدمة (للمشرفين).
-            </p>
-          </div>
-          <Button asChild size="lg" className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700">
-            <Link href="/admin-hub/diagnostics">فتح التشخيص</Link>
-          </Button>
-        </CardContent>
-      </Card>
+            <ArrowRight className="h-4 w-4 text-emerald-400 rotate-180 transition-transform group-hover:-translate-x-1" />
+          </CardContent>
+        </Card>
+      </Link>
 
+      {/* All Modules Grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.map((mod) => {
+        {ALL_MODULES.map((mod) => {
           const Icon = mod.icon;
           return (
-            <Card
-              key={mod.href}
-              className={cn(
-                "border-border/80 bg-card shadow-sm transition-all hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md",
-              )}
-            >
-              <CardContent className="flex h-full flex-col gap-4 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1 text-right">
-                    <h3 className="font-black text-base tracking-tight">{mod.title}</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{mod.description}</p>
+            <Link key={mod.href} href={mod.href}>
+              <Card
+                className={cn(
+                  "group h-full border-border/60 bg-card transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98]",
+                )}
+              >
+                <CardContent className="flex h-full flex-col gap-4 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className={cn(
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors group-hover:bg-primary/5",
+                        mod.iconWrap,
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1 text-right">
+                      <h3 className="font-bold text-sm tracking-tight text-foreground/90 transition-colors group-hover:text-primary">
+                        {mod.title}
+                      </h3>
+                      <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {mod.description}
+                      </p>
+                    </div>
                   </div>
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
-                      mod.iconWrap,
-                    )}
-                  >
-                    <Icon className="h-6 w-6" />
-                  </div>
-                </div>
-                <div className="mt-auto pt-2">
-                  <Button asChild className="w-full selrs-gradient-btn text-white hover:opacity-95 gap-2">
-                    <Link href={mod.href}>
-                      <LayoutGrid className="h-4 w-4" />
-                      فتح الموديول
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>
-
-      <CollapsibleSection
-        title="صفحات إدارية أخرى"
-        defaultOpen={false}
-        className="mt-8 border-border/80 bg-muted/20 shadow-sm"
-      >
-        <div className="flex flex-wrap gap-2 border-t border-border/60 px-4 py-4 justify-end bg-card/80">
-          {MORE_LINKS.map((item) => (
-            <Button key={item.href} variant="outline" size="sm" asChild className="rounded-full">
-              <Link href={item.href}>{item.label}</Link>
-            </Button>
-          ))}
-        </div>
-      </CollapsibleSection>
-    </>
+    </div>
   );
 
+  const crumbs = getBreadcrumbs();
+
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right" dir="rtl">
-      {!isHubHome ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" asChild className="gap-1">
-            <Link href="/admin-hub">
-              <ArrowRight className="h-4 w-4 rotate-180" />
-              مركز الإدارة
-            </Link>
-          </Button>
-          <span className="text-xs text-muted-foreground">التنقل الكامل متاح أيضاً من القائمة الجانبية.</span>
-        </div>
-      ) : null}
+    <div className="mx-auto w-full max-w-[1440px] space-y-4 px-4 py-4 sm:px-6 pb-10 text-right" dir="rtl">
+      {crumbs && (
+        <nav className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-2">
+          {crumbs.map((crumb, i) => (
+            <span key={crumb.href} className="flex items-center gap-1.5">
+              {i > 0 && <span className="opacity-40">/</span>}
+              <Link 
+                href={crumb.href} 
+                className={cn(
+                  "transition-colors hover:text-primary",
+                  i === crumbs.length - 1 ? "font-bold text-foreground pointer-events-none" : "underline-offset-4 hover:underline"
+                )}
+              >
+                {crumb.label}
+              </Link>
+            </span>
+          ))}
+        </nav>
+      )}
 
       {isHubHome ? <HubLanding /> : null}
-      {renderComponent()}
+      <div className={cn(!isHubHome && "pt-2")}>
+        {renderComponent()}
+      </div>
     </div>
   );
 }

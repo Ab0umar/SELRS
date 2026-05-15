@@ -707,6 +707,8 @@ async function findAvailablePort(startPort: number = parseInt(process.env.PORT |
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Increase timeout for long-running operations like patient sync (10 minutes)
+  server.setTimeout(600_000);
   const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam");
   const allowedCorsOrigins = getAllowedCorsOrigins();
   registerWsServer(server);

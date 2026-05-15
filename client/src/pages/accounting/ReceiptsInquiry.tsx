@@ -9,8 +9,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { getErrorContext } from "@/lib/errorMessages";
 import type { ReceiptHeader, ReceiptsInquiryInput } from "@shared/accounting/contracts";
-import { CircleAlert, RefreshCw, Search } from "lucide-react";
+import { CircleAlert, RefreshCw, Search, ReceiptText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
@@ -156,6 +157,7 @@ export default function ReceiptsInquiry() {
 
   const [debouncedPatient, setDebouncedPatient] = useState(filters.patientCode ?? "");
   const [debouncedDoctor, setDebouncedDoctor] = useState(filters.doctorCode ?? "");
+  const [dateError, setDateError] = useState("");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -186,6 +188,11 @@ export default function ReceiptsInquiry() {
   const rows = receiptsQuery.data ?? [];
 
   const applyFilters = () => {
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError("تاريخ البداية بعد تاريخ النهاية");
+      return;
+    }
+    setDateError("");
     const normalized = receiptsQueryInput({
       ...draft,
       sectionCode:
@@ -218,7 +225,7 @@ export default function ReceiptsInquiry() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-3">
             <CardTitle className="text-xl tracking-tight">استعلام الإيصالات</CardTitle>
@@ -226,26 +233,32 @@ export default function ReceiptsInquiry() {
               طبّق الفلاتر ثم اضغط «تطبيق». يتم تحديث الرابط وتشغيل الاستعلام تلقائيًا.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-4 xl:grid-cols-9">
-            <label className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label htmlFor="receipt-from-date" className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
               <Input
+                id="receipt-from-date"
                 type="date"
                 value={draft.fromDate ?? ""}
                 onChange={(e) => setDraft((p) => ({ ...p, fromDate: e.target.value }))}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="receipt-to-date" className="space-y-1.5 text-sm font-medium">
               <span>إلى تاريخ</span>
               <Input
+                id="receipt-to-date"
                 type="date"
                 value={draft.toDate ?? ""}
                 onChange={(e) => setDraft((p) => ({ ...p, toDate: e.target.value }))}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            {dateError && (
+              <p className="text-[11px] text-red-500 md:col-span-2">{dateError}</p>
+            )}
+            <label htmlFor="receipt-patient-code" className="space-y-1.5 text-sm font-medium">
               <span>كود المريض</span>
               <Input
+                id="receipt-patient-code"
                 value={draft.patientCode ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({
@@ -260,9 +273,10 @@ export default function ReceiptsInquiry() {
                 </span>
               )}
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="receipt-doctor-code" className="space-y-1.5 text-sm font-medium">
               <span>كود الطبيب</span>
               <Input
+                id="receipt-doctor-code"
                 value={draft.doctorCode ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({
@@ -278,9 +292,10 @@ export default function ReceiptsInquiry() {
               )}
             </label>
 
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="receipt-section-code" className="space-y-1.5 text-sm font-medium">
               <span>كود القسم</span>
               <Input
+                id="receipt-section-code"
                 type="number"
                 min={1}
                 value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
@@ -292,9 +307,10 @@ export default function ReceiptsInquiry() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="receipt-tr-no" className="space-y-1.5 text-sm font-medium">
               <span>رقم الإيصال</span>
               <Input
+                id="receipt-tr-no"
                 value={draft.trNo ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({
@@ -304,9 +320,10 @@ export default function ReceiptsInquiry() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="receipt-tr-ty" className="space-y-1.5 text-sm font-medium">
               <span>نوع الإيصال</span>
               <select
+                id="receipt-tr-ty"
                 className={selectLikeClass}
                 value={draft.trTy ?? ""}
                 onChange={(e) => {
@@ -325,11 +342,11 @@ export default function ReceiptsInquiry() {
               </select>
             </label>
             <div className="flex flex-wrap items-end gap-2 xl:col-span-2">
-              <Button type="button" onClick={() => void applyFilters()}>
-                <Search className="ml-2 h-4 w-4" />
+              <Button type="button" onClick={() => void applyFilters()} aria-label="تطبيق الفلاتر">
+                <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={() => void resetFilters()}>
+              <Button type="button" variant="outline" onClick={() => void resetFilters()} aria-label="إعادة ضبط الفلاتر">
                 إعادة ضبط
               </Button>
               <Button
@@ -337,8 +354,9 @@ export default function ReceiptsInquiry() {
                 variant="outline"
                 onClick={() => void receiptsQuery.refetch()}
                 disabled={receiptsQuery.isFetching}
+                aria-label="تحديث بيانات الإيصالات"
               >
-                <RefreshCw className={receiptsQuery.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"} />
+                <RefreshCw className={receiptsQuery.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"} aria-hidden />
                 تحديث
               </Button>
             </div>
@@ -346,18 +364,25 @@ export default function ReceiptsInquiry() {
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-0">
+            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length > 0 && (
+              <div className="text-xs text-muted-foreground mb-2">
+                عرض {toArabicDigits(String(rows.length))} نتيجة
+              </div>
+            )}
             {receiptsQuery.isLoading ? (
               <Skeleton className="h-40 w-full" aria-busy />
             ) : null}
 
             {receiptsQuery.isError ? (
-              <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-destructive">
-                <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/5 p-4 text-error">
+                <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
                 <div>
-                  <p className="font-semibold">تعذر تحميل الإيصالات</p>
+                  <p className="font-semibold">
+                    {getErrorContext(receiptsQuery.error.message).title}
+                  </p>
                   <p className="mt-1 text-sm opacity-90">
-                    {receiptsQuery.error.message || "تحقق من الاتصال أو الفلاتر."}
+                    {getErrorContext(receiptsQuery.error.message).hint}
                   </p>
                 </div>
               </div>
@@ -365,6 +390,9 @@ export default function ReceiptsInquiry() {
 
             {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+                <div className="flex justify-center mb-3">
+                  <ReceiptText className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+                </div>
                 لا توجد إيصالات مطابقة للفلاتر الحالية.
               </div>
             ) : null}
@@ -400,19 +428,25 @@ export default function ReceiptsInquiry() {
                           }
                         }}
                       >
-                        <td className={reportStyles.numeric}>{toArabicDigits(row.trNo)}</td>
-                        <td className={reportStyles.numeric}>{formatDateAr(row.transactionDate)}</td>
-                        <td>{trTyLabel(row.trTy)}</td>
-                        <td>{row.patientName ?? "—"}</td>
-                        <td className={reportStyles.numeric}>{formatMoneyAr(row.total)}</td>
-                        <td className={reportStyles.numeric}>{formatMoneyAr(row.discount)}</td>
-                        <td className={reportStyles.numeric}>{formatMoneyAr(row.paidValue)}</td>
+                        <td data-label="الإيصال" className={reportStyles.numeric}>{toArabicDigits(row.trNo)}</td>
+                        <td data-label="التاريخ" className={reportStyles.numeric}>{formatDateAr(row.transactionDate)}</td>
+                        <td data-label="النوع">{trTyLabel(row.trTy)}</td>
+                        <td data-label="المريض">{row.patientName ?? "—"}</td>
+                        <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(row.total)}</td>
+                        <td data-label="الخصم" className={reportStyles.numeric}>{formatMoneyAr(row.discount)}</td>
+                        <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoneyAr(row.paidValue)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : null}
+
+            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length >= 500 && (
+              <div className="px-4 py-2 text-[11px] text-amber-600 bg-amber-50 border-t border-border/30 mt-2">
+                قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

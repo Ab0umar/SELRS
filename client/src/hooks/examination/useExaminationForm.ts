@@ -16,6 +16,13 @@ interface DoctorOption {
   doctorType?: "consultant" | "specialist" | "external";
 }
 
+export interface ServiceEntry {
+  code: string;
+  qty: string;
+  price: number;
+  discount: number;
+}
+
 const normalizeMappingCode = (value: unknown): string => {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
@@ -51,7 +58,7 @@ export type UseExaminationFormOptions = {
 /**
  * Cache Ownership Policy (patientPageStates):
  * - Allowed: sheetSelection, visitDate, isFollowup, temporary unsaved UI state
- * - Forbidden: doctorCode, doctorName, serviceCode, serviceQty (always load fresh from MySQL)
+ * - Forbidden: doctorCode, doctorName, services (always load fresh from MySQL)
  * - Medical data is authoritative from normalized MySQL tables, never from cache
  * - Cache invalidation deletes examination, quick-entry, medical-file pages after MSSQL sync
  */
@@ -87,8 +94,9 @@ export function useExaminationForm(
     job: "",
   });
   const [locationType, setLocationType] = useState<"center" | "external">("center");
-  const [servicePrice, setServicePrice] = useState(0);
-  const [discountValue, setDiscountValue] = useState(0);
+  const [services, setServices] = useState<ServiceEntry[]>([
+    { code: "", qty: "1", price: 0, discount: 0 },
+  ]);
   const lastAgeSyncRef = useRef<"dob" | "age" | null>(null);
   const [medicalChecklist, setMedicalChecklist] = useState({
     generalDiseases: false,
@@ -180,6 +188,7 @@ export function useExaminationForm(
 
   const saveExamMutation = trpc.medical.saveExaminationForm.useMutation();
   const linkPatientServiceToMssqlMutation = trpc.medical.linkPatientServiceToMssql.useMutation();
+  const linkMultipleServicesToMssqlMutation = trpc.medical.linkMultipleServicesToMssql.useMutation();
   const createPatientFromExamMutation = trpc.medical.createPatientFromExamination.useMutation({
     onError: (error: unknown) => {
       toast.error(getTrpcErrorMessage(error, "فشل إنشاء مريض جديد"));
@@ -202,12 +211,46 @@ export function useExaminationForm(
   }
 
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [serviceCode, setServiceCode] = useState("");
-  const [serviceQty, setServiceQty] = useState("2");
   const currentUserDisplayName = String((user as any)?.name ?? (user as any)?.username ?? "").trim();
   const mobileExamInputClass = "h-10 text-sm text-center border-input";
   const desktopVisionSelectClass = "h-7 w-28 text-sm text-center tabular-nums border-input";
   const desktopRefractionInputClass = "h-7 w-24 text-sm text-center tabular-nums border-input";
+
+  const addService = () => {
+    setServices((prev) => [...prev, { code: "", qty: "1", price: 0, discount: 0 }]);
+  };
+
+  const removeService = (index: number) => {
+    setServices((prev) => {
+      if (prev.length <= 1) {
+        return [{ code: "", qty: "1", price: 0, discount: 0 }];
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const updateService = (index: number, updates: Partial<ServiceEntry>) => {
+    setServices((prev) => prev.map((s, i) => (i === index ? { ...s, ...updates } : s)));
+  };
+
+  const { serviceTotalPrice, serviceTotal, patientShare } = useMemo(() => {
+    let totalBasePrice = 0;
+    let totalFullPrice = 0;
+    let totalDiscount = 0;
+
+    services.forEach((s) => {
+      const qty = Number(s.qty) || 1;
+      totalBasePrice += s.price;
+      totalFullPrice += s.price * qty;
+      totalDiscount += s.discount;
+    });
+
+    return {
+      serviceTotalPrice: totalBasePrice,
+      serviceTotal: totalFullPrice,
+      patientShare: Math.max(0, totalFullPrice - totalDiscount),
+    };
+  }, [services]);
 
   // Route param -> patient id (لا يُستخدم داخل حوار مضمّن)
   useEffect(() => {
@@ -344,43 +387,17 @@ export function useExaminationForm(
   }, [doctorServiceMatchQuery.data, serviceDirectoryQuery.data, selectedDoctorEntry]);
 
   const selectedServiceOption = useMemo(
-    () => serviceOptions.find((item) => item.code === serviceCode) ?? null,
-    [serviceOptions, serviceCode]
+    () => null, // No longer used as a single value
+    []
   );
 
-  // Clear serviceCode if no longer in options
-  useEffect(() => {
-    if (!serviceCode) return;
-    if (!serviceOptions.some((item) => item.code === serviceCode)) {
-      setServiceCode("");
-    }
-  }, [serviceCode, serviceOptions]);
-
   const isPentacamService = useMemo(() => {
-    const code = String(selectedServiceOption?.code ?? serviceCode ?? "").trim().toLowerCase();
-    const name = String(selectedServiceOption?.name ?? "").trim().toLowerCase();
-    if (!code && !name) return false;
-    return (
-      code === "1501" ||
-      code.includes("pentacam") ||
-      name.includes("pentacam") ||
-      name.includes("بنتاكام")
-    );
-  }, [selectedServiceOption, serviceCode]);
-
-  // Auto-set sheet type based on selected service code
-  useEffect(() => {
-    if (!serviceCode || !serviceDirectoryQuery.data) return;
-    const allServices = Array.isArray(serviceDirectoryQuery.data) ? serviceDirectoryQuery.data : [];
-    const selectedService = (allServices as any[]).find((s) => String(s.code ?? "").trim() === serviceCode);
-    if (selectedService) {
-      const srvType = String(selectedService.serviceType ?? "").trim().toLowerCase();
-      if (srvType && ["consultant", "specialist", "lasik", "surgery", "external"].includes(srvType)) {
-        console.log(`Auto-setting sheet type to "${srvType}" for service code ${serviceCode}`);
-        setSheetSelection(srvType);
-      }
-    }
-  }, [serviceCode, serviceDirectoryQuery.data]);
+    return services.some((s) => {
+      const code = String(s.code ?? "").trim().toLowerCase();
+      // We check by code or common patterns
+      return code === "1501" || code.includes("pentacam");
+    });
+  }, [services]);
 
   const digitsOnly = (value: string) => value.replace(/\D+/g, "");
 
@@ -470,7 +487,6 @@ export function useExaminationForm(
       const examDate = new Date(data.lastVisit);
       const examDateStr = formatDateForInput(examDate);
       setVisitDate(examDateStr);
-      console.log("ExaminationForm visitDate from lastVisit:", examDateStr);
     } else {
       setVisitDate(new Date().toISOString().split("T")[0]);
     }
@@ -615,19 +631,6 @@ export function useExaminationForm(
     };
   }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, isFollowup, savePatientStateMutation]);
 
-  // Duplicate patientDetails load from patientQuery (preserved from original)
-  useEffect(() => {
-    if (!patientQuery.data) return;
-    const patient = patientQuery.data as any;
-    setPatientDetails({
-      dateOfBirth: patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
-      age: patient.age != null ? String(patient.age) : "",
-      address: patient.address ?? "",
-      phone: patient.phone ?? "",
-      job: patient.occupation ?? "",
-    });
-  }, [patientQuery.data]);
-
   // Auto-save sheet entries (debounced)
   useEffect(() => {
     if (!EXAM_AUTO_SAVE_ENABLED) return;
@@ -690,86 +693,7 @@ export function useExaminationForm(
                 job: patientDetails.job,
               },
               medicalChecklist,
-              examData: {
-                autorefraction: {
-                  od: {
-                    ...(existing.examData?.autorefraction?.od ?? {}),
-                    s: pickValue(refractionTableData.od.s, existing.examData?.autorefraction?.od?.s),
-                    c: pickValue(refractionTableData.od.c, existing.examData?.autorefraction?.od?.c),
-                    axis: pickValue(refractionTableData.od.a, existing.examData?.autorefraction?.od?.axis),
-                    pd: pickValue(refractionTableData.od.pd, (existing.examData?.autorefraction?.od as any)?.pd),
-                    s1: pickValue((examData.autorefraction.od as any).s1, (existing.examData?.autorefraction?.od as any)?.s1),
-                    c1: pickValue((examData.autorefraction.od as any).c1, (existing.examData?.autorefraction?.od as any)?.c1),
-                    a1: pickValue((examData.autorefraction.od as any).a1, (existing.examData?.autorefraction?.od as any)?.a1),
-                    s2: pickValue((examData.autorefraction.od as any).s2, (existing.examData?.autorefraction?.od as any)?.s2),
-                    c2: pickValue((examData.autorefraction.od as any).c2, (existing.examData?.autorefraction?.od as any)?.c2),
-                    a2: pickValue((examData.autorefraction.od as any).a2, (existing.examData?.autorefraction?.od as any)?.a2),
-                    s3: pickValue((examData.autorefraction.od as any).s3, (existing.examData?.autorefraction?.od as any)?.s3),
-                    c3: pickValue((examData.autorefraction.od as any).c3, (existing.examData?.autorefraction?.od as any)?.c3),
-                    a3: pickValue((examData.autorefraction.od as any).a3, (existing.examData?.autorefraction?.od as any)?.a3),
-                    afterS: pickValue((examData.autorefraction.od as any).afterS, (existing.examData?.autorefraction?.od as any)?.afterS),
-                    afterC: pickValue((examData.autorefraction.od as any).afterC, (existing.examData?.autorefraction?.od as any)?.afterC),
-                    afterA: pickValue((examData.autorefraction.od as any).afterA, (existing.examData?.autorefraction?.od as any)?.afterA),
-                    ucva: pickValue(examData.autorefraction.od.ucva, existing.examData?.autorefraction?.od?.ucva),
-                    bcva: pickValue(examData.autorefraction.od.bcva, existing.examData?.autorefraction?.od?.bcva),
-                    iop: pickValue(examData.autorefraction.od.iop, existing.examData?.autorefraction?.od?.iop),
-                    airPuff1: pickValue((examData.autorefraction.od as any).airPuff1, (existing.examData?.autorefraction?.od as any)?.airPuff1),
-                    airPuff2: pickValue((examData.autorefraction.od as any).airPuff2, (existing.examData?.autorefraction?.od as any)?.airPuff2),
-                    airPuff3: pickValue((examData.autorefraction.od as any).airPuff3, (existing.examData?.autorefraction?.od as any)?.airPuff3),
-                  },
-                  os: {
-                    ...(existing.examData?.autorefraction?.os ?? {}),
-                    s: pickValue(refractionTableData.os.s, existing.examData?.autorefraction?.os?.s),
-                    c: pickValue(refractionTableData.os.c, existing.examData?.autorefraction?.os?.c),
-                    axis: pickValue(refractionTableData.os.a, existing.examData?.autorefraction?.os?.axis),
-                    pd: pickValue(refractionTableData.os.pd, (existing.examData?.autorefraction?.os as any)?.pd),
-                    s1: pickValue((examData.autorefraction.os as any).s1, (existing.examData?.autorefraction?.os as any)?.s1),
-                    c1: pickValue((examData.autorefraction.os as any).c1, (existing.examData?.autorefraction?.os as any)?.c1),
-                    a1: pickValue((examData.autorefraction.os as any).a1, (existing.examData?.autorefraction?.os as any)?.a1),
-                    s2: pickValue((examData.autorefraction.os as any).s2, (existing.examData?.autorefraction?.os as any)?.s2),
-                    c2: pickValue((examData.autorefraction.os as any).c2, (existing.examData?.autorefraction?.os as any)?.c2),
-                    a2: pickValue((examData.autorefraction.os as any).a2, (existing.examData?.autorefraction?.os as any)?.a2),
-                    s3: pickValue((examData.autorefraction.os as any).s3, (existing.examData?.autorefraction?.os as any)?.s3),
-                    c3: pickValue((examData.autorefraction.os as any).c3, (existing.examData?.autorefraction?.os as any)?.c3),
-                    a3: pickValue((examData.autorefraction.os as any).a3, (existing.examData?.autorefraction?.os as any)?.a3),
-                    afterS: pickValue((examData.autorefraction.os as any).afterS, (existing.examData?.autorefraction?.os as any)?.afterS),
-                    afterC: pickValue((examData.autorefraction.os as any).afterC, (existing.examData?.autorefraction?.os as any)?.afterC),
-                    afterA: pickValue((examData.autorefraction.os as any).afterA, (existing.examData?.autorefraction?.os as any)?.afterA),
-                    ucva: pickValue(examData.autorefraction.os.ucva, existing.examData?.autorefraction?.os?.ucva),
-                    bcva: pickValue(examData.autorefraction.os.bcva, existing.examData?.autorefraction?.os?.bcva),
-                    iop: pickValue(examData.autorefraction.os.iop, existing.examData?.autorefraction?.os?.iop),
-                    airPuff1: pickValue((examData.autorefraction.os as any).airPuff1, (existing.examData?.autorefraction?.os as any)?.airPuff1),
-                    airPuff2: pickValue((examData.autorefraction.os as any).airPuff2, (existing.examData?.autorefraction?.os as any)?.airPuff2),
-                    airPuff3: pickValue((examData.autorefraction.os as any).airPuff3, (existing.examData?.autorefraction?.os as any)?.airPuff3),
-                  },
-                },
-                pentacam: {
-                  od: {
-                    ...(existing.examData?.pentacam?.od ?? {}),
-                    k1: pickValue(examData.pentacam.od.k1, existing.examData?.pentacam?.od?.k1),
-                    k2: pickValue(examData.pentacam.od.k2, existing.examData?.pentacam?.od?.k2),
-                    ax1: pickValue(examData.pentacam.od.ax1, existing.examData?.pentacam?.od?.ax1),
-                    ax2: pickValue(examData.pentacam.od.ax2, existing.examData?.pentacam?.od?.ax2),
-                    thinnest: pickValue(examData.pentacam.od.thinnest, existing.examData?.pentacam?.od?.thinnest),
-                    apex: pickValue(examData.pentacam.od.apex, existing.examData?.pentacam?.od?.apex),
-                    residual: pickValue(examData.pentacam.od.residual, existing.examData?.pentacam?.od?.residual),
-                    ttt: pickValue(examData.pentacam.od.ttt, existing.examData?.pentacam?.od?.ttt),
-                    ablation: pickValue(examData.pentacam.od.ablation, existing.examData?.pentacam?.od?.ablation),
-                  },
-                  os: {
-                    ...(existing.examData?.pentacam?.os ?? {}),
-                    k1: pickValue(examData.pentacam.os.k1, existing.examData?.pentacam?.os?.k1),
-                    k2: pickValue(examData.pentacam.os.k2, existing.examData?.pentacam?.os?.k2),
-                    ax1: pickValue(examData.pentacam.os.ax1, existing.examData?.pentacam?.os?.ax1),
-                    ax2: pickValue(examData.pentacam.os.ax2, existing.examData?.pentacam?.os?.ax2),
-                    thinnest: pickValue(examData.pentacam.os.thinnest, existing.examData?.pentacam?.os?.thinnest),
-                    apex: pickValue(examData.pentacam.os.apex, existing.examData?.pentacam?.os?.apex),
-                    residual: pickValue(examData.pentacam.os.residual, existing.examData?.pentacam?.os?.residual),
-                    ttt: pickValue(examData.pentacam.os.ttt, existing.examData?.pentacam?.os?.ttt),
-                    ablation: pickValue(examData.pentacam.os.ablation, existing.examData?.pentacam?.os?.ablation),
-                  },
-                },
-              },
+              examData,
               formData: {
                 ...(existing.formData ?? {}),
                 ucvaOD: pickValue(examData.autorefraction.od.ucva, existing.formData?.ucvaOD),
@@ -856,86 +780,7 @@ export function useExaminationForm(
         const updated = {
           ...existing,
           medicalChecklist,
-          examData: {
-            autorefraction: {
-              od: {
-                ...(existing.examData?.autorefraction?.od ?? {}),
-                s: pickValue(refractionTableData.od.s, existing.examData?.autorefraction?.od?.s),
-                c: pickValue(refractionTableData.od.c, existing.examData?.autorefraction?.od?.c),
-                axis: pickValue(refractionTableData.od.a, existing.examData?.autorefraction?.od?.axis),
-                pd: pickValue(refractionTableData.od.pd, (existing.examData?.autorefraction?.od as any)?.pd),
-                s1: pickValue((examData.autorefraction.od as any).s1, (existing.examData?.autorefraction?.od as any)?.s1),
-                c1: pickValue((examData.autorefraction.od as any).c1, (existing.examData?.autorefraction?.od as any)?.c1),
-                a1: pickValue((examData.autorefraction.od as any).a1, (existing.examData?.autorefraction?.od as any)?.a1),
-                s2: pickValue((examData.autorefraction.od as any).s2, (existing.examData?.autorefraction?.od as any)?.s2),
-                c2: pickValue((examData.autorefraction.od as any).c2, (existing.examData?.autorefraction?.od as any)?.c2),
-                a2: pickValue((examData.autorefraction.od as any).a2, (existing.examData?.autorefraction?.od as any)?.a2),
-                s3: pickValue((examData.autorefraction.od as any).s3, (existing.examData?.autorefraction?.od as any)?.s3),
-                c3: pickValue((examData.autorefraction.od as any).c3, (existing.examData?.autorefraction?.od as any)?.c3),
-                a3: pickValue((examData.autorefraction.od as any).a3, (existing.examData?.autorefraction?.od as any)?.a3),
-                ucva: pickValue(examData.autorefraction.od.ucva, existing.examData?.autorefraction?.od?.ucva),
-                bcva: pickValue(examData.autorefraction.od.bcva, existing.examData?.autorefraction?.od?.bcva),
-                iop: pickValue(examData.autorefraction.od.iop, existing.examData?.autorefraction?.od?.iop),
-                afterS: pickValue((examData.autorefraction.od as any).afterS, (existing.examData?.autorefraction?.od as any)?.afterS),
-                afterC: pickValue((examData.autorefraction.od as any).afterC, (existing.examData?.autorefraction?.od as any)?.afterC),
-                afterA: pickValue((examData.autorefraction.od as any).afterA, (existing.examData?.autorefraction?.od as any)?.afterA),
-                airPuff1: pickValue((examData.autorefraction.od as any).airPuff1, (existing.examData?.autorefraction?.od as any)?.airPuff1),
-                airPuff2: pickValue((examData.autorefraction.od as any).airPuff2, (existing.examData?.autorefraction?.od as any)?.airPuff2),
-                airPuff3: pickValue((examData.autorefraction.od as any).airPuff3, (existing.examData?.autorefraction?.od as any)?.airPuff3),
-              },
-              os: {
-                ...(existing.examData?.autorefraction?.os ?? {}),
-                s: pickValue(refractionTableData.os.s, existing.examData?.autorefraction?.os?.s),
-                c: pickValue(refractionTableData.os.c, existing.examData?.autorefraction?.os?.c),
-                axis: pickValue(refractionTableData.os.a, existing.examData?.autorefraction?.os?.axis),
-                pd: pickValue(refractionTableData.os.pd, (existing.examData?.autorefraction?.os as any)?.pd),
-                s1: pickValue((examData.autorefraction.os as any).s1, (existing.examData?.autorefraction?.os as any)?.s1),
-                c1: pickValue((examData.autorefraction.os as any).c1, (existing.examData?.autorefraction?.os as any)?.c1),
-                a1: pickValue((examData.autorefraction.os as any).a1, (existing.examData?.autorefraction?.os as any)?.a1),
-                s2: pickValue((examData.autorefraction.os as any).s2, (existing.examData?.autorefraction?.os as any)?.s2),
-                c2: pickValue((examData.autorefraction.os as any).c2, (existing.examData?.autorefraction?.os as any)?.c2),
-                a2: pickValue((examData.autorefraction.os as any).a2, (existing.examData?.autorefraction?.os as any)?.a2),
-                s3: pickValue((examData.autorefraction.os as any).s3, (existing.examData?.autorefraction?.os as any)?.s3),
-                c3: pickValue((examData.autorefraction.os as any).c3, (existing.examData?.autorefraction?.os as any)?.c3),
-                a3: pickValue((examData.autorefraction.os as any).a3, (existing.examData?.autorefraction?.os as any)?.a3),
-                ucva: pickValue(examData.autorefraction.os.ucva, existing.examData?.autorefraction?.os?.ucva),
-                bcva: pickValue(examData.autorefraction.os.bcva, existing.examData?.autorefraction?.os?.bcva),
-                iop: pickValue(examData.autorefraction.os.iop, existing.examData?.autorefraction?.os?.iop),
-                afterS: pickValue((examData.autorefraction.os as any).afterS, (existing.examData?.autorefraction?.os as any)?.afterS),
-                afterC: pickValue((examData.autorefraction.os as any).afterC, (existing.examData?.autorefraction?.os as any)?.afterC),
-                afterA: pickValue((examData.autorefraction.os as any).afterA, (existing.examData?.autorefraction?.os as any)?.afterA),
-                airPuff1: pickValue((examData.autorefraction.os as any).airPuff1, (existing.examData?.autorefraction?.os as any)?.airPuff1),
-                airPuff2: pickValue((examData.autorefraction.os as any).airPuff2, (existing.examData?.autorefraction?.os as any)?.airPuff2),
-                airPuff3: pickValue((examData.autorefraction.os as any).airPuff3, (existing.examData?.autorefraction?.os as any)?.airPuff3),
-              },
-            },
-            pentacam: {
-              od: {
-                ...(existing.examData?.pentacam?.od ?? {}),
-                k1: pickValue(examData.pentacam.od.k1, existing.examData?.pentacam?.od?.k1),
-                k2: pickValue(examData.pentacam.od.k2, existing.examData?.pentacam?.od?.k2),
-                ax1: pickValue(examData.pentacam.od.ax1, existing.examData?.pentacam?.od?.ax1),
-                ax2: pickValue(examData.pentacam.od.ax2, existing.examData?.pentacam?.od?.ax2),
-                thinnest: pickValue(examData.pentacam.od.thinnest, existing.examData?.pentacam?.od?.thinnest),
-                apex: pickValue(examData.pentacam.od.apex, existing.examData?.pentacam?.od?.apex),
-                residual: pickValue(examData.pentacam.od.residual, existing.examData?.pentacam?.od?.residual),
-                ttt: pickValue(examData.pentacam.od.ttt, existing.examData?.pentacam?.od?.ttt),
-                ablation: pickValue(examData.pentacam.od.ablation, existing.examData?.pentacam?.od?.ablation),
-              },
-              os: {
-                ...(existing.examData?.pentacam?.os ?? {}),
-                k1: pickValue(examData.pentacam.os.k1, existing.examData?.pentacam?.os?.k1),
-                k2: pickValue(examData.pentacam.os.k2, existing.examData?.pentacam?.os?.k2),
-                ax1: pickValue(examData.pentacam.os.ax1, existing.examData?.pentacam?.os?.ax1),
-                ax2: pickValue(examData.pentacam.os.ax2, existing.examData?.pentacam?.os?.ax2),
-                thinnest: pickValue(examData.pentacam.os.thinnest, existing.examData?.pentacam?.os?.thinnest),
-                apex: pickValue(examData.pentacam.os.apex, existing.examData?.pentacam?.os?.apex),
-                residual: pickValue(examData.pentacam.os.residual, existing.examData?.pentacam?.os?.residual),
-                ttt: pickValue(examData.pentacam.os.ttt, existing.examData?.pentacam?.os?.ttt),
-                ablation: pickValue(examData.pentacam.os.ablation, existing.examData?.pentacam?.os?.ablation),
-              },
-            },
-          },
+          examData,
           formData: {
             ...(existing.formData ?? {}),
             ucvaOD: pickValue(examData.autorefraction.od.ucva, existing.formData?.ucvaOD),
@@ -1010,6 +855,7 @@ export function useExaminationForm(
         const doctorCode = selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "").trim() : "";
         console.log(`[ExaminationForm] Creating patient with doctor code: "${doctorCode}"`);
 
+        const firstService = services[0];
         const created = await createPatientFromExamMutation.mutateAsync({
           patientCode: patientInfo.code || undefined,
           fullName: patientInfo.name.trim(),
@@ -1021,10 +867,10 @@ export function useExaminationForm(
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           ...(doctorCode ? { doctorCode } : {}),
-          ...(serviceCode ? { serviceCode } : {}),
-          ...(Number(serviceQty) > 0 ? { serviceQty: Number(serviceQty) } : {}),
-          ...(servicePrice > 0 ? { servicePrice } : {}),
-          ...(discountValue > 0 ? { discountValue } : {}),
+          serviceCode: firstService?.code || undefined,
+          serviceQty: firstService ? Number(firstService.qty) : undefined,
+          servicePrice: firstService?.price || undefined,
+          discountValue: firstService?.discount || undefined,
         });
         effectivePatientId = created.id;
         setPatientInfo((prev) => ({
@@ -1032,7 +878,46 @@ export function useExaminationForm(
           id: effectivePatientId,
           code: created.patientCode || prev.code,
         }));
+
+        // Link additional services
+        if (services.length > 1) {
+          for (let i = 1; i < services.length; i++) {
+            const srv = services[i];
+            if (srv.code.trim()) {
+              try {
+                await linkPatientServiceToMssqlMutation.mutateAsync({
+                  patientId: effectivePatientId,
+                  serviceCode: srv.code,
+                  quantity: Number(srv.qty) || 1,
+                  doctorCode: doctorCode || undefined,
+                  doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
+                });
+              } catch (err) {
+                console.warn(`Failed to link extra service ${srv.code}:`, err);
+              }
+            }
+          }
+        }
+      } else {
+        // Existing patient - link all services
+        for (const srv of services) {
+          if (srv.code.trim()) {
+            try {
+              const doctorCode = selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "").trim() : "";
+              await linkPatientServiceToMssqlMutation.mutateAsync({
+                patientId: effectivePatientId,
+                serviceCode: srv.code,
+                quantity: Number(srv.qty) || 1,
+                doctorCode: doctorCode || undefined,
+                doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
+              });
+            } catch (err) {
+              console.warn(`Failed to link service ${srv.code}:`, err);
+            }
+          }
+        }
       }
+
       const form = formRef.current;
       const formData = form ? new FormData(form) : new FormData();
       const payload: Record<string, any> = {};
@@ -1068,38 +953,10 @@ export function useExaminationForm(
           sheetSelection,
           visitDate,
           doctorName,
-          serviceCode,
-          serviceQty,
+          services,
           isFollowup,
         },
       });
-
-      if (!isFollowup && patientInfo.id && serviceCode.trim()) {
-        const isNewPatient = !patientQuery.data;
-        if (isNewPatient) {
-          const singleServiceCode = String(serviceCode)
-            .split(/[,\s]+/)
-            .map((v) => v.trim())
-            .filter(Boolean)[0] ?? "";
-          if (singleServiceCode) {
-            const parsedQty = Number.parseInt(serviceQty, 10);
-            const quantity = isPentacamService
-              ? (Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 2)
-              : 1;
-            try {
-              await linkPatientServiceToMssqlMutation.mutateAsync({
-                patientId: effectivePatientId,
-                serviceCode: singleServiceCode,
-                quantity,
-                doctorCode: String((selectedDoctorEntry as any)?.code ?? "").trim() || undefined,
-                doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
-              });
-            } catch (error) {
-              console.warn("MSSQL sync failed for new case:", error);
-            }
-          }
-        }
-      }
 
       const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
@@ -1143,15 +1000,12 @@ export function useExaminationForm(
         // Clear the form for embedded mode (modal stays open)
         setPatientInfo({ id: 0, name: "", code: "" });
         setPatientDetails({ dateOfBirth: "", age: "", address: "", phone: "", job: "" });
-        setServiceCode("");
-        setServiceQty("1");
+        setServices([{ code: "", qty: "1", price: 0, discount: 0 }]);
         setDoctorName("");
         setSheetSelection("");
         setLocationType("center");
         setIsFollowup(false);
         setReceptionSignature("");
-        setServicePrice(0);
-        setDiscountValue(0);
         setVisitDate(new Date().toISOString().split("T")[0]);
         setMedicalChecklist({
           generalDiseases: false,
@@ -1209,10 +1063,6 @@ export function useExaminationForm(
     setPatientDetails,
     locationType,
     setLocationType,
-    servicePrice,
-    setServicePrice,
-    discountValue,
-    setDiscountValue,
     medicalChecklist,
     setMedicalChecklist,
     examData,
@@ -1223,10 +1073,13 @@ export function useExaminationForm(
     availableDoctors,
     selectedDoctorEntry,
     serviceOptions,
-    serviceCode,
-    setServiceCode,
-    serviceQty,
-    setServiceQty,
+    services,
+    addService,
+    removeService,
+    updateService,
+    serviceTotalPrice,
+    serviceTotal,
+    patientShare,
     isPentacamService,
     handleSelectPatient,
     handleSubmit,

@@ -5,11 +5,11 @@ import { Capacitor } from "@capacitor/core";
  * was never merged/initialized (`IllegalStateException: Default FirebaseApp is not initialized`). Probing only the
  * json file during the web bundle build is insufficient (Gradle plugin may skip, wrong packageId, CI ordering).
  *
- * Android push registration is gated on both:
- * - `android/app/google-services.json` detected at **`vite build`** → `__SELRS_BUILD_HAS_ANDROID_GOOGLE_SERVICES__`
- * - `VITE_ENABLE_ANDROID_FCM=1` / `true` on that same web build (e.g. set in release script when config is valid)
+ * Android push registration is enabled when:
+ * - `android/app/google-services.json` was detected at **`vite build`** → `__SELRS_BUILD_HAS_ANDROID_GOOGLE_SERVICES__`
  *
  * `VITE_DISABLE_NATIVE_FCM=1` disables push everywhere it is checked here.
+ * `VITE_ENABLE_ANDROID_FCM=0` / `false` can also explicitly disable Android FCM for temporary builds.
  */
 export function shouldRegisterNativePush(): boolean {
   if (!Capacitor.isNativePlatform()) return false;
@@ -36,13 +36,16 @@ export function shouldRegisterNativePush(): boolean {
   const enable =
     typeof rawEnable === "boolean"
       ? rawEnable
+        ? "true"
+        : "false"
       : String(rawEnable ?? "")
           .trim()
           .toLowerCase();
 
-  if (!(enable === "1" || enable === "true")) {
-    console.warn("[PushConfig] Push registration disabled: set VITE_ENABLE_ANDROID_FCM=1 to enable");
+  if (enable === "0" || enable === "false" || enable === "no") {
+    console.warn("[PushConfig] Push registration disabled by VITE_ENABLE_ANDROID_FCM=0/false");
+    return false;
   }
 
-  return enable === "1" || enable === "true";
+  return true;
 }

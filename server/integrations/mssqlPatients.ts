@@ -3,7 +3,7 @@ import { getAppNotificationSettings, pushAppNotification } from "../_core/appNot
 import { notifyOwner } from "../_core/notification";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { users, doctorsLookup } from "../../drizzle/schema";
+import { users, doctorsLookup, services } from "../../drizzle/schema";
 import { eq, ilike } from "drizzle-orm";
 
 type SyncOptions = {
@@ -3026,16 +3026,35 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         // Priority:
         // 1) explicit doctor+service mapping from admin settings
         // 2) service directory mapping by code
-        // 3) MSSQL row serviceType/serviceName fallback
-        const serviceTypeFromCode =
+        // 3) Look up service table directly for correct serviceType
+        // 4) MSSQL row serviceType/serviceName fallback
+        let serviceType =
           (mappedSheet ? normalizeServiceType(mappedSheet) : undefined) ||
           (primaryServiceCode ? serviceTypeMap.get(primaryServiceCode) : undefined);
-        const serviceTypeFallback = primaryServiceCode
-          ? undefined
-          : normalizeServiceType(source.serviceType ?? source.serviceName);
-        const serviceType = serviceTypeFromCode || serviceTypeFallback;
+
+        // If no mapping found, look up service directly from database
+        if (!serviceType && primaryServiceCode) {
+          try {
+            const dbConn = await db.getDb();
+            const serviceRow = await dbConn
+              ?.select({ serviceType: services.serviceType })
+              .from(services)
+              .where(eq(services.code, primaryServiceCode))
+              .limit(1);
+            if (serviceRow && serviceRow.length > 0) {
+              serviceType = serviceRow[0].serviceType as any;
+            }
+          } catch (e) {
+            // Silently fail
+          }
+        }
+
+        // Final fallback
+        if (!serviceType) {
+          serviceType = normalizeServiceType(source.serviceType ?? source.serviceName);
+        }
+
         if (serviceType) {
-          // console.log(`[mssql-sync] Patient ${patientCode}: Auto-set serviceType="${serviceType}" from serviceCode="${primaryServiceCode}"`);
           payload.serviceType = serviceType;
         }
         let locationType =
@@ -3055,13 +3074,23 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           try {
             const dbConn = await db.getDb();
             const doctorRow = await dbConn
-              ?.select({ id: doctorsLookup.id, name: doctorsLookup.name })
+              ?.select({ id: doctorsLookup.id, name: doctorsLookup.name, doctorType: doctorsLookup.doctorType })
               .from(doctorsLookup)
               .where(eq(doctorsLookup.code, String(doctorCode)))
               .limit(1);
             if (doctorRow && doctorRow.length > 0) {
               payload.doctorId = doctorRow[0].id as any;
               resolvedDoctorName = String(doctorRow[0].name ?? "").trim();
+              // Update service's serviceType to match doctor's doctorType
+              if (primaryServiceCode && doctorRow[0].doctorType) {
+                try {
+                  await dbConn?.update(services)
+                    .set({ serviceType: doctorRow[0].doctorType as any })
+                    .where(eq(services.code, primaryServiceCode));
+                } catch (e) {
+                  // Silently fail service update
+                }
+              }
             }
           } catch (e) {
             // Silently fail

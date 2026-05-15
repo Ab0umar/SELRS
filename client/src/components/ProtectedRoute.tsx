@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { requestAppReload } from "@/lib/appRuntime";
 import { AppShell } from "@/components/layout/AppShell";
-import { LidWipeLoader } from "@/components/loaders/OrganicLoaders";
+import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -171,11 +171,7 @@ export default function ProtectedRoute({
   }, [user, userRole, loading, requiredRoles, requiredBranches, setLocation, permissionsQuery.isSuccess, isPathAllowed, mustChangePassword, cleanPath]);
 
   if (loading || (userRole !== "admin" && permissionsQuery.isLoading)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-        <LidWipeLoader size={140} logo="eye" label="جاري التحميل..." />
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   if (!user) {

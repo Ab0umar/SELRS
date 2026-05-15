@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -13,6 +12,7 @@ import { Eye, Search, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import RefractionValueSelect from "./RefractionValueSelect";
 import { SPHERE_OPTIONS, CYLINDER_OPTIONS, UCVA_BCVA_OPTIONS } from "@/lib/refractionOptions";
+import { cn } from "@/lib/utils";
 
 interface MedicalFilePanelProps {
   patientId: number;
@@ -42,7 +42,10 @@ const READY_TABS = [
   "أخرى 2",
   "أخرى 3",
 ];
-const MEDICAL_TABS = ["medical-history", "measurements", "pentacam", "investigation", "diagnosis", "treatment"];
+const MEDICAL_TABS = ["data", "plan"];
+const CollapsibleChevron = ({ open }: { open: boolean }) => (
+  <svg className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+);
 
 export default function MedicalFilePanel({
   patientId,
@@ -59,7 +62,8 @@ export default function MedicalFilePanel({
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const hubRo = Boolean(patientHubReadOnly);
   const queryClient = useQueryClient();
-  const [activeMedicalTab, setActiveMedicalTab] = useState("medical-history");
+  const [activeMedicalTab, setActiveMedicalTab] = useState("data");
+  const [fundusOpen, setFundusOpen] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const [formData, setFormData] = useState<any>({
@@ -1077,1130 +1081,580 @@ export default function MedicalFilePanel({
 
   const outerCls = embedded
     ? "relative z-0 w-full flex min-h-0 flex-1 flex-col"
-    : "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4";
+    : "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
   const innerCls = embedded
-    ? "flex min-h-[min(85vh,900px)] w-full max-h-[min(92vh,1000px)] flex-col rounded-lg border border-border bg-card text-card-foreground shadow-sm min-h-0"
-    : "flex h-[95vh] max-h-[95vh] w-full max-w-[95vw] flex-col rounded-lg bg-white shadow-lg min-h-0";
+    ? "flex min-h-[min(85vh,900px)] w-full max-h-[min(92vh,1000px)] flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm min-h-0"
+    : "flex h-[95vh] max-h-[95vh] w-full max-w-[960px] flex-col rounded-lg bg-background shadow-lg min-h-0";
 
   return (
     <div className={outerCls}>
       <div className={innerCls}>
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b flex-shrink-0">
+        <div className="flex items-center justify-between border-b border-border/50 px-4 py-3 flex-shrink-0">
+          <h2 className="text-sm font-semibold truncate">
+            {patientQuery.isLoading ? "جاري التحميل..." : patient?.fullName ?? "بدون اسم"}
+          </h2>
           {embedded ? (
-            <span className="text-sm text-muted-foreground" aria-hidden />
+            <span className="text-xs text-muted-foreground" aria-hidden />
           ) : (
             <button
               type="button"
               onClick={dismiss}
-              className="text-2xl text-muted-foreground hover:text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               aria-label="إغلاق"
             >
-              ✕
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           )}
-          <h2 className="text-lg font-semibold">
-            {patientQuery.isLoading ? "جاري التحميل..." : patient?.fullName ?? "بدون اسم"}
-          </h2>
         </div>
 
-        {/* Followup Checkbox */}
-        <div className="px-6 py-3 border-b bg-slate-50 flex-shrink-0">
-          <label
-            className={
-              hubRo
-                ? "inline-flex items-center gap-3 rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 opacity-70"
-                : "inline-flex cursor-pointer items-center gap-3 rounded-md border-2 border-amber-300 bg-amber-50 px-3 py-2 shadow-sm"
-            }
-          >
-            <Checkbox
-              checked={isFollowup}
-              disabled={hubRo}
-              onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
-              className="h-5 w-5 border-2 border-amber-600 data-[state=checked]:bg-amber-600 data-[state=checked]:text-white"
-            />
-            <span className="text-base font-extrabold text-amber-900">متابعه</span>
+        {/* Followup + Exam selector */}
+        <div className="flex items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2 flex-shrink-0 flex-wrap">
+          <label className={cn(
+            "inline-flex items-center gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 px-2.5 py-1.5 text-xs font-semibold text-amber-800",
+            hubRo && "opacity-60"
+          )}>
+            <Checkbox checked={isFollowup} disabled={hubRo} onCheckedChange={(checked) => setIsFollowup(Boolean(checked))} className="h-4 w-4" />
+            متابعه
           </label>
-        </div>
-
-        {/* Examination Selector */}
-        {examinations && examinations.length > 0 && (
-          <div className="px-6 py-3 border-b bg-slate-50 flex-shrink-0">
-            <Label className="text-sm font-medium block mb-2">اختر الفحص</Label>
-            <div className="flex gap-2">
+          {examinations && examinations.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">الفحص:</span>
               <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="h-7 w-[160px] text-xs">
                   <SelectValue placeholder="اختر فحص" />
                 </SelectTrigger>
                 <SelectContent>
                   {examinations.map((exam: any) => (
                     <SelectItem key={exam.id} value={String(exam.id)}>
-                      {new Date(exam.createdAt).toLocaleDateString("ar-EG")} - {new Date(exam.createdAt).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {isAdmin && !hubRo ? (
-                <Button
-                  size="icon"
-                  variant="destructive"
+                <button
+                  type="button"
                   disabled={!selectedExaminationId}
                   onClick={() => {
                     if (selectedExaminationId && confirm("هل أنت متأكد من حذف هذه الزيارة؟")) {
                       deleteExaminationMutation.mutate({ examinationId: selectedExaminationId });
                     }
                   }}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors"
+                  aria-label="حذف الفحص"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               ) : null}
             </div>
-          </div>
-        )}
-
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {/* TABS SECTION */}
-          <Tabs value={activeMedicalTab} onValueChange={setActiveMedicalTab} dir="rtl" className="w-full flex flex-col" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-            <div className="px-6 pt-6">
-              <TabsList className="w-full justify-start gap-1 overflow-x-hidden flex-nowrap border-b">
-                <TabsTrigger value="medical-history" className="text-sm whitespace-nowrap">التاريخ المرضي</TabsTrigger>
-                <TabsTrigger value="measurements" className="text-sm whitespace-nowrap">القياسات</TabsTrigger>
-                <TabsTrigger value="pentacam" className="text-sm whitespace-nowrap">بنتاكام</TabsTrigger>
-                <TabsTrigger value="investigation" className="text-sm whitespace-nowrap">التحاليل و الأشعة</TabsTrigger>
-                <TabsTrigger value="diagnosis" className="text-sm whitespace-nowrap">التشخيص</TabsTrigger>
-                <TabsTrigger value="treatment" className="text-sm whitespace-nowrap">العلاج</TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* Content Area */}
-            <div className="px-6 py-6 flex flex-col flex-1 min-h-0 overflow-x-hidden">
-              {hubRo ? (
-                <p className="-mt-2 mb-2 text-xs text-muted-foreground" role="note">
-                  {patientHubViewOnlyHint}
-                </p>
-              ) : null}
-              <fieldset disabled={hubRo} className="flex min-h-0 w-full flex-1 flex-col border-0 p-0 m-0 min-w-0 disabled:opacity-95">
-              {/* Medical History Tab */}
-              <TabsContent value="medical-history" className="mt-0 space-y-4">
-                {/* PROFILE DATA - Only visible in Medical History tab */}
-                <div className="border-b pb-6 pt-1 mb-6">
-                  <h3 className="text-base font-semibold mb-6">Profile Data</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Row 1: Name | Age */}
-                    <div>
-                      <Label>الاسم</Label>
-                      <Input value={patient?.fullName ?? ""} disabled className="mt-1 text-xs" />
-                    </div>
-                    <div>
-                      <Label>السن</Label>
-                      <Input value={patient?.age ?? ""} disabled className="mt-1 text-xs" />
-                    </div>
-
-                    {/* Row 2: ExamDate | VisitDate */}
-                    <div>
-                      <Label>تاريخ الفحص</Label>
-                      <Input type="date" value={examinationDate} disabled className="mt-1 text-xs" />
-                    </div>
-                    <div>
-                      <Label>تاريخ الزيارة</Label>
-                      <Input
-                        type="date"
-                        value={visitDate}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setVisitDate(v);
-                          onHubVisitDateChange?.(v);
-                        }}
-                        className="mt-1 text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-5">التاريخ المرضي</h3>
-                  <div>
-                    <Textarea
-                      value={formData.medicalHistory}
-                      onChange={(e) =>
-                        setFormData((prev: any) => ({ ...prev, medicalHistory: e.target.value }))
-                      }
-                      placeholder="اكتب التاريخ المرضي هنا..."
-                      className="mt-1"
-                      rows={4}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Measurements Tab (AutoRef | IOP + Refraction) */}
-              <TabsContent value="measurements" className="mt-0 space-y-6">
-                {examinations && examinations.length > 1 && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label className="text-sm font-medium whitespace-nowrap">تاريخ الزيارة</Label>
-                    <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
-                      <SelectTrigger className="flex-1 h-8 text-xs">
-                        <SelectValue placeholder="اختر زيارة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {examinations.map((exam: any) => (
-                          <SelectItem key={exam.id} value={String(exam.id)}>
-                            {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {/* AutoRef | IOP */}
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">AutoRef | IOP</h3>
-
-                  <Tabs value={autorefSectionTab} onValueChange={setAutorefSectionTab} dir="ltr" className="w-full">
-                    <TabsList className="w-full mb-4">
-                      <TabsTrigger value="autoref" className="flex-1">Autoref | IOP</TabsTrigger>
-                      <TabsTrigger value="after" className="flex-1">After</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="autoref" className="mt-0 space-y-4">
-                      <div className="flex items-center gap-2 mb-4" dir="ltr">
-                        <label className="font-semibold min-w-[50px]">UCVA</label>
-                        <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
-                        <span className="text-slate-400">/</span>
-                        <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
-                      </div>
-                      <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
-                        <table className="w-full border-collapse text-center text-[10px] sm:text-sm" dir="ltr">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">Eye</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">UCVA</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">S</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">C</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">Axis</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">IOP</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {["od", "os"].map((eye) => (
-                              <tr key={eye} className="bg-white hover:bg-slate-50">
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 font-bold text-[10px] sm:text-xs">{eye === "od" ? "OD" : "OS"}</td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <Input
-                                    value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""}
-                                    onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))}
-                                    className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                                  />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <Input
-                                    value={formData.measurements?.iop?.[eye as "od" | "os"] || ""}
-                                    onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))}
-                                    className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                                  />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="md:hidden space-y-2" dir="ltr">
-                        {["od", "os"].map((eye) => (
-                          <div key={`auto-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
-                            <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.iop?.[eye as "od" | "os"] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))} className="h-8 w-full text-xs text-center border-input" placeholder="IOP" />
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="after" className="mt-0 space-y-4">
-                      <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
-                        <table className="w-full border-collapse text-center text-[10px] sm:text-sm" dir="ltr">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">Eye</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">S</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">C</th>
-                              <th className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-600">Axis</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {["od", "os"].map((eye) => (
-                              <tr key={`after-${eye}`} className="bg-white hover:bg-slate-50">
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 font-bold text-[10px] sm:text-xs">{eye === "od" ? "OD" : "OS"}</td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                                <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                                  <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="md:hidden space-y-2" dir="ltr">
-                        {["od", "os"].map((eye) => (
-                          <div key={`after-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
-                            <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                              <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 w-full text-xs text-center border-input col-span-2" placeholder="Axis" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-
-                {/* Refraction */}
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">👓 Refraction</h3>
-
-                  {/* BCVA Input Row */}
-                  <div className="flex items-center gap-2 mb-4" dir="ltr">
-                    <label className="font-semibold min-w-[50px]">BCVA</label>
-                    <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
-                    <span className="text-slate-400">/</span>
-                    <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
-                  </div>
-                  <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
-                    <table className="w-full border-collapse text-center text-xs sm:text-sm" dir="ltr">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Type</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Eye</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">S</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">C</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">A</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">P.D.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* DIST - OD */}
-                        <tr className="bg-white hover:bg-slate-50">
-                          <td className="border border-slate-200 px-3 py-2 font-bold">DIST</td>
-                          <td className="border border-slate-200 px-3 py-2 font-bold">OD</td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <RefractionValueSelect value={refractionTableData.od.s} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <RefractionValueSelect value={refractionTableData.od.c} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <Input
-                              value={refractionTableData.od.a}
-                              onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, a: e.target.value } }))}
-                              className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                            />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <Input
-                              value={refractionTableData.od.pd}
-                              onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, pd: e.target.value } }))}
-                              className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                            />
-                          </td>
-                        </tr>
-                        {/* DIST - OS */}
-                        <tr className="bg-white hover:bg-slate-50">
-                          <td className="border border-slate-200 px-3 py-2 font-bold">DIST</td>
-                          <td className="border border-slate-200 px-3 py-2 font-bold">OS</td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <RefractionValueSelect value={refractionTableData.os.s} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <RefractionValueSelect value={refractionTableData.os.c} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input" />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <Input
-                              value={refractionTableData.os.a}
-                              onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, a: e.target.value } }))}
-                              className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                            />
-                          </td>
-                          <td className="border border-slate-200 px-3 py-2">
-                            <Input
-                              value={refractionTableData.os.pd}
-                              onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, pd: e.target.value } }))}
-                              className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                            />
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="md:hidden space-y-2" dir="ltr">
-                    {[
-                      { key: "od", label: "OD" },
-                      { key: "os", label: "OS" },
-                    ].map((row) => (
-                      <div key={`ref-mobile-${row.key}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
-                        <div className="text-xs font-semibold">{row.label}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <RefractionValueSelect value={refractionTableData[row.key as "od" | "os"]?.s || ""} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                          <RefractionValueSelect value={refractionTableData[row.key as "od" | "os"]?.c || ""} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
-                          <Input value={refractionTableData[row.key as "od" | "os"]?.a || ""} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], a: e.target.value } }))} className="h-8 w-full text-xs text-center border-input" placeholder="Axis" />
-                          <Input value={refractionTableData[row.key as "od" | "os"]?.pd || ""} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], pd: e.target.value } }))} className="h-8 w-full text-xs text-center border-input" placeholder="P.D." />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Fundus */}
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">👁️ Fundus Examination</h3>
-                  <div className="rounded-xl border border-slate-200 overflow-x-hidden hidden md:block">
-                    <table className="w-full border-collapse text-center text-xs sm:text-sm" dir="ltr">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Eye</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Disc Status</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Cup/Disc</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Macula</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Vessels</th>
-                          <th className="border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Other</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {["od", "os"].map((eye) => (
-                          <tr key={eye} className="bg-white hover:bg-slate-50">
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2 font-bold text-[10px] sm:text-xs">{eye === "od" ? "OD" : "OS"}</td>
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                              <Input
-                                value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""}
-                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))}
-                                placeholder="Normal/Abnormal"
-                                className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                              />
-                            </td>
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                              <Input
-                                value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""}
-                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))}
-                                placeholder="0.3"
-                                className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                              />
-                            </td>
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                              <Input
-                                value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""}
-                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))}
-                                placeholder="Normal"
-                                className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                              />
-                            </td>
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                              <Input
-                                value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""}
-                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))}
-                                placeholder="Normal"
-                                className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                              />
-                            </td>
-                            <td className="border border-slate-200 px-1 py-1 sm:px-3 sm:py-2">
-                              <Input
-                                value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""}
-                                onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))}
-                                placeholder="Notes"
-                                className="h-6 sm:h-8 w-full text-[10px] sm:text-xs text-center border-input"
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="md:hidden space-y-2" dir="ltr">
-                    {["od", "os"].map((eye) => (
-                      <div key={`fundus-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
-                        <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))} placeholder="Disc Status" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))} placeholder="Cup/Disc" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))} placeholder="Macula" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))} placeholder="Vessels" className="h-8 text-xs text-center border-input" />
-                        <Input value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))} placeholder="Other" className="h-8 text-xs text-center border-input" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Pentacam Tab */}
-              <TabsContent value="pentacam" className="mt-0 space-y-4">
-                {examinations && examinations.length > 1 && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label className="text-sm font-medium whitespace-nowrap">تاريخ الزيارة</Label>
-                    <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
-                      <SelectTrigger className="flex-1 h-8 text-xs">
-                        <SelectValue placeholder="اختر زيارة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {examinations.map((exam: any) => (
-                          <SelectItem key={exam.id} value={String(exam.id)}>
-                            {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">🔬 بنتاكام</h3>
-                  <div className="space-y-4">
-                    <Button
-                      type="button"
-                      className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white"
-                    >
-                      <Eye className="h-4 w-4 ml-2" />
-                      عرض صور البنتاكام
-                    </Button>
-                  </div>
-                  <div className="rounded-[1.25rem] border border-slate-200 bg-white mt-4 hidden md:block">
-                    <table className="w-full border-collapse text-center text-xs sm:text-sm" dir="ltr">
-                      <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
-                        <tr>
-                          <th className="border px-3 py-3">Eye</th>
-                          <th className="border px-3 py-3">K1</th>
-                          <th className="border px-3 py-3">K2</th>
-                          <th className="border px-3 py-3">Axis</th>
-                          <th className="border px-3 py-3">Thinnest</th>
-                          <th className="border px-3 py-3">Apex</th>
-                          <th className="border px-3 py-3">Residual</th>
-                          <th className="border px-3 py-3">TTT</th>
-                          <th className="border px-3 py-3">Ablation</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="bg-white text-sm font-medium text-slate-800">
-                          <td className="border px-3 py-3 font-bold">OD</td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.k1 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.k2 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.thinnest || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.apex || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.residual || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.ttt || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.od?.ablation || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, od: { ...prev.pentacam?.od, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                        </tr>
-                        <tr className="bg-white text-sm font-medium text-slate-800">
-                          <td className="border px-3 py-3 font-bold">OS</td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.k1 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k1: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.k2 || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, k2: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, axis: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.thinnest || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, thinnest: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.apex || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, apex: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.residual || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, residual: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.ttt || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ttt: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                          <td className="border px-3 py-3">
-                            <Input type="number" value={formData.pentacam?.os?.ablation || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, os: { ...prev.pentacam?.os, ablation: e.target.value } } }))} placeholder="—" className="h-8 text-sm text-center border-slate-300 focus:border-slate-500 px-4 py-2" />
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="md:hidden mt-4 space-y-2" dir="ltr">
-                    {["od", "os"].map((eye) => (
-                      <div key={`pentacam-mobile-${eye}`} className="rounded-lg border border-slate-200 bg-white p-2 space-y-2">
-                        <div className="text-xs font-semibold">{eye === "od" ? "OD" : "OS"}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.k1 || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], k1: e.target.value } },
-                              }))
-                            }
-                            placeholder="K1"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.k2 || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], k2: e.target.value } },
-                              }))
-                            }
-                            placeholder="K2"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.thinnest || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], thinnest: e.target.value } },
-                              }))
-                            }
-                            placeholder="Thinnest"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.axis || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], axis: e.target.value } },
-                              }))
-                            }
-                            placeholder="Axis"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.apex || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], apex: e.target.value } },
-                              }))
-                            }
-                            placeholder="Apex"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.residual || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], residual: e.target.value } },
-                              }))
-                            }
-                            placeholder="Residual"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.ttt || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], ttt: e.target.value } },
-                              }))
-                            }
-                            placeholder="TTT"
-                            className="h-8 text-xs text-center border-input"
-                          />
-                          <Input
-                            type="number"
-                            value={formData.pentacam?.[eye as "od" | "os"]?.ablation || ""}
-                            onChange={(e) =>
-                              setFormData((prev: any) => ({
-                                ...prev,
-                                pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], ablation: e.target.value } },
-                              }))
-                            }
-                            placeholder="Ablation"
-                            className="h-8 text-xs text-center border-input col-span-2"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Investigation Tab */}
-              <TabsContent value="investigation" className="mt-0 space-y-4">
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">التحاليل و الأشعة</h3>
-                  <div className="space-y-6">
-                    {/* Search Tests */}
-                    <div>
-                      <label className="font-semibold text-slate-900 text-sm block mb-2">Tests</label>
-                      <div className="relative mb-3">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          placeholder="ابحث عن الفحوصات..."
-                          value={testSearchText}
-                          onChange={(e) => setTestSearchText(e.target.value)}
-                          className="pl-10 text-xs"
-                        />
-                      </div>
-                      {testSearchText && (
-                        <>
-                          {testsQuery.isLoading ? (
-                            <div className="text-slate-500 text-xs">جاري التحميل...</div>
-                          ) : testsQuery.isError ? (
-                            <div className="text-red-500 text-xs">خطأ في تحميل الفحوصات</div>
-                          ) : (
-                            <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded p-2">
-                              {(testsQuery.data ?? []).filter((test: any) => test.name.toLowerCase().includes(testSearchText.toLowerCase())).length === 0 ? (
-                                <div className="text-slate-500 text-xs">لا توجد نتائج</div>
-                              ) : (
-                                (testsQuery.data ?? []).filter((test: any) => test.name.toLowerCase().includes(testSearchText.toLowerCase())).map((test: any) => (
-                                  <div key={test.id} className="flex items-center gap-2">
-                                    <Checkbox
-                                      id={`test-${test.id}`}
-                                      checked={(formData.tests || []).includes(test.id)}
-                                      onCheckedChange={() => toggleCheckbox("tests", test.id)}
-                                    />
-                                    <Label htmlFor={`test-${test.id}`} className="cursor-pointer text-xs flex-1">
-                                      {test.name}
-                                    </Label>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Selected Tests from Templates */}
-                      {(formData.tests || []).length > 0 && (
-                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                          <div className="text-xs font-semibold text-blue-900 mb-2">الفحوصات المختارة:</div>
-                          <div className="flex flex-wrap gap-2">
-                            {(formData.tests || []).map((testId: number) => {
-                              const test = testsQuery.data?.find((t: any) => t.id === testId);
-                              return (
-                                <div key={testId} className="flex items-center gap-1 bg-white px-2 py-1 rounded text-xs border border-blue-300">
-                                  <span>{test?.name || `Test ${testId}`}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleCheckbox("tests", testId)}
-                                    className="text-red-500 hover:text-red-700 font-bold"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Saved Test Requests Templates */}
-                    <div className="flex-1 flex flex-col min-h-0">
-                      <div className="font-semibold text-slate-900 mb-3 text-sm">Saved Test Requests</div>
-                      {testRequestsQuery.isLoading ? (
-                        <div className="text-slate-500 text-sm">جاري التحميل...</div>
-                      ) : testRequestsQuery.isError ? (
-                        <div className="text-red-500 text-sm">خطأ في تحميل الطلبات</div>
-                      ) : !testRequestsQuery.data || Object.keys(testRequestsQuery.data).length === 0 ? (
-                        <div className="text-slate-500 text-xs">لا توجد طلبات محفوظة</div>
-                      ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2 flex-1 overflow-y-auto min-h-0">
-                          {Object.entries(testRequestsQuery.data ?? {}).map(([templateId, template]: [string, any]) => (
-                            <Button
-                              key={templateId}
-                              variant="outline"
-                              type="button"
-                              className="h-6 px-2 text-xs truncate"
-                              onClick={() => {
-                                setSelectedTestRequestId(templateId);
-                              }}
-                              title={template.name || templateId}
-                            >
-                              {template.name || templateId}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Diagnosis Tab */}
-              <TabsContent value="diagnosis" className="mt-0 space-y-4">
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">التشخيص</h3>
-                  <div className="flex flex-col gap-4">
-                    {/* Top Row: Diagnosis & Diseases */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Diagnosis Text */}
-                      <div>
-                        <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                        <textarea
-                          id="diagnosis"
-                          value={formData.diagnosis}
-                          onChange={(e) => setFormData((prev: any) => ({ ...prev, diagnosis: e.target.value }))}
-                          className="w-full min-h-32 mt-2 p-2 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                          placeholder="Enter diagnosis details..."
-                        />
-                      </div>
-
-                      {/* Diseases */}
-                      <div>
-                        <Label className="text-sm font-medium block mb-2">Diseases</Label>
-                        {(formData.diseases || []).length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {(formData.diseases || []).map((diseaseId: any) => {
-                              const disease = diseasesQuery.data?.find((d: any) => d.id === diseaseId);
-                              return disease ? (
-                                <div key={diseaseId} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-2">
-                                  {disease.name}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setFormData((prev: any) => ({
-                                        ...prev,
-                                        diseases: (prev.diseases || []).filter((d: any) => d !== diseaseId)
-                                      }));
-                                    }}
-                                    className="font-bold text-sm"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-                        <div className="relative mb-3">
-                          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                          <Input
-                            placeholder="ابحث عن الأمراض..."
-                            value={diseaseSearchText}
-                            onChange={(e) => setDiseaseSearchText(e.target.value)}
-                            className="pl-10 text-xs"
-                          />
-                        </div>
-                        {diseaseSearchText && (
-                          <>
-                            {diseasesQuery.isLoading ? (
-                              <div className="text-slate-500 text-xs">جاري التحميل...</div>
-                            ) : diseasesQuery.isError ? (
-                              <div className="text-red-500 text-xs">خطأ في تحميل الأمراض</div>
-                            ) : (
-                              <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded p-2">
-                                {(diseasesQuery.data ?? []).filter((disease: any) => disease.name.toLowerCase().includes(diseaseSearchText.toLowerCase())).length === 0 ? (
-                                  <div className="text-slate-500 text-xs">لا توجد نتائج</div>
-                                ) : (
-                                  (diseasesQuery.data ?? []).filter((disease: any) => disease.name.toLowerCase().includes(diseaseSearchText.toLowerCase())).map((disease: any) => (
-                                    <div key={disease.id} className="flex items-center gap-2">
-                                      <Checkbox
-                                        id={`disease-${disease.id}`}
-                                        checked={(formData.diseases || []).includes(disease.id)}
-                                        onCheckedChange={() => {
-                                          setFormData((prev: any) => {
-                                            const diseases = prev.diseases || [];
-                                            if (diseases.includes(disease.id)) {
-                                              return { ...prev, diseases: diseases.filter((d: any) => d !== disease.id) };
-                                            } else {
-                                              return { ...prev, diseases: [...diseases, disease.id] };
-                                            }
-                                          });
-                                        }}
-                                      />
-                                      <Label htmlFor={`disease-${disease.id}`} className="cursor-pointer text-xs flex-1">
-                                        {disease.name}
-                                      </Label>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                          </>
-                        )}
-                        {/* Recommendations */}
-                        <div className="mt-4">
-                          <Label htmlFor="recommendations" className="text-sm font-medium block mb-2">Recommendations</Label>
-                          <textarea
-                            id="recommendations"
-                            value={formData.recommendations}
-                            onChange={(e) => setFormData((prev: any) => ({ ...prev, recommendations: e.target.value }))}
-                            className="w-full min-h-32 p-2 border border-slate-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                            placeholder="Enter recommendations..."
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Treatment Tab */}
-              <TabsContent value="treatment" className="mt-0 space-y-4">
-                <div className="border-b pb-2 pt-1 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold mb-6">العلاج</h3>
-                  <div className="space-y-6">
-                    {/* Search Medications */}
-                    <div>
-                      <label className="font-semibold text-slate-900 text-sm block mb-2">Medications</label>
-                      <div className="relative mb-3">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          placeholder="ابحث عن الأدوية..."
-                          value={medicationSearchText}
-                          onChange={(e) => setMedicationSearchText(e.target.value)}
-                          className="pl-10 text-xs"
-                        />
-                      </div>
-                      {medicationSearchText && (
-                        <>
-                          {medicationsQuery.isLoading ? (
-                            <div className="text-slate-500 text-xs">جاري التحميل...</div>
-                          ) : medicationsQuery.isError ? (
-                            <div className="text-red-500 text-xs">خطأ في تحميل العلاجات</div>
-                          ) : (
-                            <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded p-2">
-                              {(medicationsQuery.data ?? []).filter((med: any) => med.name.toLowerCase().includes(medicationSearchText.toLowerCase())).length === 0 ? (
-                                <div className="text-slate-500 text-xs">لا توجد نتائج</div>
-                              ) : (
-                                (medicationsQuery.data ?? []).filter((med: any) => med.name.toLowerCase().includes(medicationSearchText.toLowerCase())).map((med: any) => (
-                                  <div key={med.id} className="flex items-center gap-2">
-                                    <Checkbox
-                                      id={`med-${med.id}`}
-                                      checked={(formData.treatment || []).includes(med.id)}
-                                      onCheckedChange={() => toggleCheckbox("treatment", med.id)}
-                                    />
-                                    <Label htmlFor={`med-${med.id}`} className="cursor-pointer text-xs flex-1">
-                                      {med.name}
-                                    </Label>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Selected Medications from Templates */}
-                    {(formData.treatment || []).length > 0 && (
-                      <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                        <div className="text-xs font-semibold text-blue-900 mb-2">الأدوية المختارة:</div>
-                        <div className="flex flex-wrap gap-2">
-                          {(formData.treatment || []).map((medId: number) => {
-                            const medication = medicationsQuery.data?.find((m: any) => m.id === medId);
-                            return (
-                              <div key={medId} className="flex items-center gap-1 bg-white px-2 py-1 rounded text-xs border border-blue-300">
-                                <span>{medication?.name || `Med ${medId}`}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleCheckbox("treatment", medId)}
-                                  className="text-red-500 hover:text-red-700 font-bold"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Saved Prescriptions Templates */}
-                    <div>
-                      <div className="font-semibold text-slate-900 mb-3 text-sm">Saved Presc</div>
-                      {prescriptionsQuery.isLoading ? (
-                        <div className="text-slate-500 text-sm">جاري التحميل...</div>
-                      ) : prescriptionsQuery.isError ? (
-                        <div className="text-red-500 text-sm">خطأ في تحميل الوصفات</div>
-                      ) : !prescriptionsQuery.data || Object.keys(prescriptionsQuery.data).length === 0 ? (
-                        <div className="text-slate-500 text-xs">لا توجد وصفات محفوظة</div>
-                      ) : (
-                        <>
-                          <Tabs value={prescriptionTab} onValueChange={setPrescriptionTab} dir="rtl" className="mb-3">
-                            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1.5 bg-muted/50 p-1.5">
-                              {READY_TABS.map((tab) => (
-                                <TabsTrigger
-                                  key={tab}
-                                  value={tab}
-                                  className="shrink-0 whitespace-normal px-2 py-1.5 text-[11px] leading-snug sm:text-xs"
-                                >
-                                  {tab}
-                                </TabsTrigger>
-                              ))}
-                            </TabsList>
-                          </Tabs>
-                          {(() => {
-                            const filteredTemplates = Object.entries(prescriptionsQuery.data ?? {}).filter(
-                              ([_, template]: [string, any]) => getTemplateCategory(template.name || "") === prescriptionTab
-                            );
-                            const filteredTemplateIds = filteredTemplates.map(([id]) => id);
-                            const allFiltered = filteredTemplateIds.length > 0 && filteredTemplateIds.every(id => selectedPrescriptionIds.includes(id));
-
-                            return (
-                              <>
-                                <div className="flex flex-wrap items-center gap-2 rounded border p-2 mb-3">
-                                  <label className="flex items-center gap-2 text-sm">
-                                    <Checkbox
-                                      checked={allFiltered}
-                                      onCheckedChange={(checked) => {
-                                        if (Boolean(checked)) {
-                                          setSelectedPrescriptionIds(prev =>
-                                            Array.from(new Set([...prev, ...filteredTemplateIds]))
-                                          );
-                                        } else {
-                                          setSelectedPrescriptionIds(prev =>
-                                            prev.filter(id => !filteredTemplateIds.includes(id))
-                                          );
-                                        }
-                                      }}
-                                    />
-                                    تحديد الكل
-                                  </label>
-                                  {selectedPrescriptionIds.length > 0 && (
-                                    <div className="ml-auto flex gap-2">
-                                      <Select value={destinationTab || ""} onValueChange={setDestinationTab}>
-                                        <SelectTrigger className="h-7 w-32 text-xs">
-                                          <SelectValue placeholder="اختر التاب" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {READY_TABS.filter(tab => tab !== prescriptionTab).map((tab) => (
-                                            <SelectItem key={tab} value={tab} className="text-xs">
-                                              {tab}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (!destinationTab) {
-                                            toast.error("اختر التاب المقصود");
-                                            return;
-                                          }
-                                          // Just switch to destination tab and keep selection
-                                          setPrescriptionTab(destinationTab);
-                                          setDestinationTab(null);
-                                          toast.success("تم الانتقال للتاب");
-                                        }}
-                                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                      >
-                                        نقل
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-[300px] overflow-y-auto">
-                                  {filteredTemplates.map(([templateId, template]: [string, any]) => (
-                                    <div key={templateId} className="flex items-center gap-1 text-xs">
-                                      <Checkbox
-                                        id={`presc-${templateId}`}
-                                        checked={selectedPrescriptionIds.includes(templateId)}
-                                        onCheckedChange={(checked) => {
-                                          setSelectedPrescriptionIds(prev =>
-                                            Boolean(checked)
-                                              ? [...prev, templateId]
-                                              : prev.filter(id => id !== templateId)
-                                          );
-                                        }}
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        type="button"
-                                        className="h-6 px-2 text-xs truncate"
-                                        onClick={() => {
-                                          // Could add selection logic here
-                                        }}
-                                        title={template.name || templateId}
-                                      >
-                                        {template.name || templateId}
-                                      </Button>
-                                    </div>
-                                  ))}
-                                  {filteredTemplates.length === 0 ? (
-                                    <div className="col-span-full text-center text-xs text-slate-500 py-4">
-                                      لا توجد وصفات في هذا التاب
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              </fieldset>
-            </div>
-          </Tabs>
+          )}
         </div>
 
-        {/* Footer - Always visible */}
-        <div className="border-t p-4 bg-slate-50 flex gap-2 flex-shrink-0">
-          {!hubRo ? (
+        {/* Section toggle */}
+        <div className="flex gap-1 border-b border-border/40 px-4 py-2 flex-shrink-0">
+          {(["data", "plan"] as const).map((sec) => (
             <button
+              key={sec}
               type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              style={{ backgroundColor: isSaving ? '#9ca3af' : 'blue', color: 'white', padding: '10px 20px', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-              {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+              onClick={() => setActiveMedicalTab(sec)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                activeMedicalTab === sec
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              )}
+            >
+              {sec === "data" ? "القياسات والبيانات" : "الخطة العلاجية"}
             </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-5" dir="rtl">
+
+        {activeMedicalTab === "data" && (<>
+          {examinations && examinations.length > 1 && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">تاريخ الزيارة</span>
+              <Select value={String(selectedExaminationId || "")} onValueChange={(val) => setSelectedExaminationId(Number(val))}>
+                <SelectTrigger className="h-7 flex-1 text-xs max-w-[200px]">
+                  <SelectValue placeholder="اختر زيارة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {examinations.map((exam: any) => (
+                    <SelectItem key={exam.id} value={String(exam.id)}>
+                      {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* AutoRef | IOP */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AutoRef | IOP</h3>
+            <div className="flex items-center gap-2 mb-3" dir="ltr">
+              <label className="font-medium min-w-[42px] text-xs">UCVA</label>
+              <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border rounded text-xs text-center" />
+              <span className="text-muted-foreground">/</span>
+              <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.ucva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, ucva: e.target.value } } } }))} className="w-16 px-2 py-1 border rounded text-xs text-center" />
+            </div>
+            <div className="rounded-lg border overflow-hidden hidden md:block">
+              <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">UCVA</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Axis</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">IOP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {["od", "os"].map((eye) => (
+                    <tr key={eye} className="hover:bg-muted/20">
+                      <td className="border px-2 py-1.5 font-bold text-[10px]">{eye === "od" ? "OD" : "OS"}</td>
+                      <td className="border px-1 py-1"><RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><Input value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><Input value={formData.measurements?.iop?.[eye as "od" | "os"] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-2" dir="ltr">
+              {["od", "os"].map((eye) => (
+                <div key={`auto-m-${eye}`} className="rounded-lg border p-2">
+                  <div className="text-xs font-semibold mb-1.5">{eye === "od" ? "OD" : "OS"}</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.ucva || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], ucva: value } } } }))} options={UCVA_BCVA_OPTIONS} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <Input value={formData.measurements?.iop?.[eye as "od" | "os"] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, iop: { ...prev.measurements?.iop, [eye]: e.target.value } } }))} className="h-8 text-xs text-center border-input" placeholder="IOP" />
+                    <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <RefractionValueSelect value={formData.measurements?.autoref?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <Input value={formData.measurements?.autoref?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, [eye]: { ...prev.measurements?.autoref?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 text-xs text-center border-input col-span-2" placeholder="Axis" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* After Refraction */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">After Refraction</h3>
+            <div className="rounded-lg border overflow-hidden hidden md:block">
+              <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Axis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {["od", "os"].map((eye) => (
+                    <tr key={`after-${eye}`} className="hover:bg-muted/20">
+                      <td className="border px-2 py-1.5 font-bold text-[10px]">{eye === "od" ? "OD" : "OS"}</td>
+                      <td className="border px-1 py-1"><RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                      <td className="border px-1 py-1"><Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-2" dir="ltr">
+              {["od", "os"].map((eye) => (
+                <div key={`after-m-${eye}`} className="rounded-lg border p-2">
+                  <div className="text-xs font-semibold mb-1.5">{eye === "od" ? "OD" : "OS"}</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.s || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], s: value } } } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <RefractionValueSelect value={formData.measurements?.after?.[eye as "od" | "os"]?.c || ""} onChange={(value) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], c: value } } } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <Input value={formData.measurements?.after?.[eye as "od" | "os"]?.axis || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, after: { ...prev.measurements?.after, [eye]: { ...prev.measurements?.after?.[eye as "od" | "os"], axis: e.target.value } } } }))} className="h-8 text-xs text-center border-input col-span-2" placeholder="Axis" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Glasses / Refraction */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Refraction</h3>
+            <div className="flex items-center gap-2 mb-3" dir="ltr">
+              <label className="font-medium min-w-[42px] text-xs">BCVA</label>
+              <input type="text" placeholder="OD" value={formData.measurements?.autoref?.od?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, od: { ...prev.measurements?.autoref?.od, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border rounded text-xs text-center" />
+              <span className="text-muted-foreground">/</span>
+              <input type="text" placeholder="OS" value={formData.measurements?.autoref?.os?.bcva || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, measurements: { ...prev.measurements, autoref: { ...prev.measurements?.autoref, os: { ...prev.measurements?.autoref?.os, bcva: e.target.value } } } }))} className="w-16 px-2 py-1 border rounded text-xs text-center" />
+            </div>
+            <div className="rounded-lg border overflow-hidden hidden md:block">
+              <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Type</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">A</th>
+                    <th scope="col" className="border px-2 py-1.5 font-semibold text-[10px]">P.D.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="hover:bg-muted/20">
+                    <td className="border px-2 py-1.5 font-bold text-[10px]">DIST</td>
+                    <td className="border px-2 py-1.5 font-bold text-[10px]">OD</td>
+                    <td className="border px-1 py-1"><RefractionValueSelect value={refractionTableData.od.s} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><RefractionValueSelect value={refractionTableData.od.c} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><Input value={refractionTableData.od.a} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, a: e.target.value } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><Input value={refractionTableData.od.pd} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, od: { ...prev.od, pd: e.target.value } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                  </tr>
+                  <tr className="hover:bg-muted/20">
+                    <td className="border px-2 py-1.5 font-bold text-[10px]">DIST</td>
+                    <td className="border px-2 py-1.5 font-bold text-[10px]">OS</td>
+                    <td className="border px-1 py-1"><RefractionValueSelect value={refractionTableData.os.s} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><RefractionValueSelect value={refractionTableData.os.c} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><Input value={refractionTableData.os.a} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, a: e.target.value } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                    <td className="border px-1 py-1"><Input value={refractionTableData.os.pd} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, os: { ...prev.os, pd: e.target.value } }))} className="h-6 w-full text-[10px] text-center border-input" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-2" dir="ltr">
+              {[{ key: "od", label: "OD" }, { key: "os", label: "OS" }].map((row) => (
+                <div key={`ref-m-${row.key}`} className="rounded-lg border p-2">
+                  <div className="text-xs font-semibold mb-1.5">{row.label}</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <RefractionValueSelect value={refractionTableData[row.key as "od" | "os"]?.s || ""} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], s: value } }))} options={SPHERE_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <RefractionValueSelect value={refractionTableData[row.key as "od" | "os"]?.c || ""} onChange={(value) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], c: value } }))} options={CYLINDER_OPTIONS} defaultValue="0.00" allowEmpty={false} triggerClassName="h-8 w-full text-xs text-center border-input" />
+                    <Input value={refractionTableData[row.key as "od" | "os"]?.a || ""} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], a: e.target.value } }))} className="h-8 text-xs text-center border-input" placeholder="Axis" />
+                    <Input value={refractionTableData[row.key as "od" | "os"]?.pd || ""} onChange={(e) => setRefractionTableData((prev: any) => ({ ...prev, [row.key]: { ...prev[row.key], pd: e.target.value } }))} className="h-8 text-xs text-center border-input" placeholder="P.D." />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pentacam */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pentacam</h3>
+              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[10px]" onClick={() => toast.info("البنتاكام", { description: "عرض صور البنتاكام — قريباً" })}>
+                <Eye className="h-3 w-3" /> عرض الصور
+              </Button>
+            </div>
+            <div className="rounded-lg border overflow-hidden hidden md:block">
+              <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                <thead className="bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="border px-2 py-2">Eye</th>
+                    <th className="border px-2 py-2">K1</th>
+                    <th className="border px-2 py-2">K2</th>
+                    <th className="border px-2 py-2">Axis</th>
+                    <th className="border px-2 py-2">Thinnest</th>
+                    <th className="border px-2 py-2">Apex</th>
+                    <th className="border px-2 py-2">Residual</th>
+                    <th className="border px-2 py-2">TTT</th>
+                    <th className="border px-2 py-2">Ablation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {["od", "os"].map((eye) => (
+                    <tr key={`pc-${eye}`} className="hover:bg-muted/20">
+                      <td className="border px-2 py-2 font-bold">{eye === "od" ? "OD" : "OS"}</td>
+                      {(["k1", "k2", "axis", "thinnest", "apex", "residual", "ttt", "ablation"] as const).map((field) => (
+                        <td key={field} className="border px-1 py-1">
+                          <Input type="number" value={formData.pentacam?.[eye as "od" | "os"]?.[field] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], [field]: e.target.value } } }))} placeholder="—" className="h-7 text-xs text-center border-input px-2" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-2" dir="ltr">
+              {["od", "os"].map((eye) => (
+                <div key={`pc-m-${eye}`} className="rounded-lg border p-2">
+                  <div className="text-xs font-semibold mb-1.5">{eye === "od" ? "OD" : "OS"}</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    {(["k1", "k2", "axis", "thinnest", "apex", "residual", "ttt", "ablation"] as const).map((field) => (
+                      <Input key={field} type="number" value={formData.pentacam?.[eye as "od" | "os"]?.[field] || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, pentacam: { ...prev.pentacam, [eye]: { ...prev.pentacam?.[eye as "od" | "os"], [field]: e.target.value } } }))} placeholder={field} className="h-8 text-xs text-center border-input" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fundus (collapsible) */}
+          <div>
+            <button type="button" onClick={() => setFundusOpen((p) => !p)} className="flex w-full items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fundus Examination</h3>
+              <CollapsibleChevron open={fundusOpen} />
+            </button>
+            {fundusOpen && (
+              <>
+                <div className="rounded-lg border overflow-hidden hidden md:block">
+                  <table className="w-full border-collapse text-center text-xs" dir="ltr">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Disc</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">C/D</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Macula</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Vessels</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Other</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {["od", "os"].map((eye) => (
+                        <tr key={`fu-${eye}`} className="hover:bg-muted/20">
+                          <td className="border px-2 py-1.5 font-bold text-[10px]">{eye === "od" ? "OD" : "OS"}</td>
+                          <td className="border px-1 py-1"><Input value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))} placeholder="Normal" className="h-6 w-full text-[10px] text-center border-input" /></td>
+                          <td className="border px-1 py-1"><Input value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))} placeholder="0.3" className="h-6 w-full text-[10px] text-center border-input" /></td>
+                          <td className="border px-1 py-1"><Input value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))} placeholder="Normal" className="h-6 w-full text-[10px] text-center border-input" /></td>
+                          <td className="border px-1 py-1"><Input value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))} placeholder="Normal" className="h-6 w-full text-[10px] text-center border-input" /></td>
+                          <td className="border px-1 py-1"><Input value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))} placeholder="—" className="h-6 w-full text-[10px] text-center border-input" /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="md:hidden space-y-2" dir="ltr">
+                  {["od", "os"].map((eye) => (
+                    <div key={`fu-m-${eye}`} className="rounded-lg border p-2">
+                      <div className="text-xs font-semibold mb-1.5">{eye === "od" ? "OD" : "OS"}</div>
+                      <div className="grid grid-cols-2 gap-1.5 text-xs">
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.discStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], discStatus: e.target.value } } }))} placeholder="Disc" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.cupDiscRatio || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], cupDiscRatio: e.target.value } } }))} placeholder="C/D" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.macuaStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], macuaStatus: e.target.value } } }))} placeholder="Macula" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.vesselStatus || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], vesselStatus: e.target.value } } }))} placeholder="Vessels" className="h-8 text-xs text-center border-input" />
+                        <Input value={formData.fundus?.[eye as "od" | "os"]?.otherFindings || ""} onChange={(e) => setFormData((prev: any) => ({ ...prev, fundus: { ...prev.fundus, [eye]: { ...prev.fundus?.[eye as "od" | "os"], otherFindings: e.target.value } } }))} placeholder="Other" className="h-8 text-xs text-center border-input col-span-2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </>)}
+
+        {activeMedicalTab === "plan" && (<>
+          {/* Patient profile */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground">الاسم</Label>
+              <Input value={patient?.fullName ?? ""} disabled className="mt-0.5 text-xs h-8" />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">السن</Label>
+              <Input value={patient?.age ?? ""} disabled className="mt-0.5 text-xs h-8" />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">تاريخ الفحص</Label>
+              <Input type="date" value={examinationDate} disabled className="mt-0.5 text-xs h-8" />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">تاريخ الزيارة</Label>
+              <Input type="date" value={visitDate} onChange={(e) => { const v = e.target.value; setVisitDate(v); onHubVisitDateChange?.(v); }} className="mt-0.5 text-xs h-8" />
+            </div>
+          </div>
+
+          {/* Medical History */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">التاريخ المرضي</h3>
+            <Textarea value={formData.medicalHistory} onChange={(e) => setFormData((prev: any) => ({ ...prev, medicalHistory: e.target.value }))} placeholder="اكتب التاريخ المرضي هنا..." className="text-sm" rows={3} />
+          </div>
+
+          {/* Diagnosis + Diseases */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium mb-1.5 block">التشخيص</Label>
+              <Textarea value={formData.diagnosis} onChange={(e) => setFormData((prev: any) => ({ ...prev, diagnosis: e.target.value }))} placeholder="أدخل تفاصيل التشخيص..." className="text-sm min-h-[120px]" rows={5} />
+            </div>
+            <div className="space-y-3">
+              <Label className="text-xs font-medium block">الأمراض</Label>
+              {(formData.diseases || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(formData.diseases || []).map((diseaseId: any) => {
+                    const disease = diseasesQuery.data?.find((d: any) => d.id === diseaseId);
+                    return disease ? (
+                      <span key={diseaseId} className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        {disease.name}
+                        <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, diseases: (prev.diseases || []).filter((d: any) => d !== diseaseId) }))} className="hover:text-destructive">×</button>
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              <div className="relative">
+                <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="ابحث عن الأمراض..." value={diseaseSearchText} onChange={(e) => setDiseaseSearchText(e.target.value)} className="pr-8 text-xs h-8" />
+              </div>
+              {diseaseSearchText && (
+                <>
+                  {diseasesQuery.isLoading ? (
+                    <p className="text-xs text-muted-foreground">جاري التحميل...</p>
+                  ) : diseasesQuery.isError ? (
+                    <p className="text-xs text-destructive">خطأ في تحميل الأمراض</p>
+                  ) : (
+                    <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                      {(diseasesQuery.data ?? []).filter((disease: any) => disease.name.toLowerCase().includes(diseaseSearchText.toLowerCase())).length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-1.5">لا توجد نتائج</p>
+                      ) : (
+                        (diseasesQuery.data ?? []).filter((disease: any) => disease.name.toLowerCase().includes(diseaseSearchText.toLowerCase())).map((disease: any) => (
+                          <label key={disease.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs">
+                            <Checkbox id={`disease-${disease.id}`} checked={(formData.diseases || []).includes(disease.id)} onCheckedChange={() => { setFormData((prev: any) => { const diseases = prev.diseases || []; if (diseases.includes(disease.id)) return { ...prev, diseases: diseases.filter((d: any) => d !== disease.id) }; return { ...prev, diseases: [...diseases, disease.id] }; }); }} />
+                            <span className="flex-1">{disease.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div>
+            <Label className="text-xs font-medium mb-1.5 block">التوصيات</Label>
+            <Textarea value={formData.recommendations} onChange={(e) => setFormData((prev: any) => ({ ...prev, recommendations: e.target.value }))} placeholder="أدخل التوصيات..." className="text-sm" rows={3} />
+          </div>
+
+          {/* Investigations */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">التحاليل و الأشعة</h3>
+            <div className="relative mb-2">
+              <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="ابحث عن الفحوصات..." value={testSearchText} onChange={(e) => setTestSearchText(e.target.value)} className="pr-8 text-xs h-8" />
+            </div>
+            {testSearchText && (
+              <>
+                {testsQuery.isLoading ? (
+                  <p className="text-xs text-muted-foreground">جاري التحميل...</p>
+                ) : testsQuery.isError ? (
+                  <p className="text-xs text-destructive">خطأ في تحميل الفحوصات</p>
+                ) : (
+                  <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                    {(testsQuery.data ?? []).filter((test: any) => test.name.toLowerCase().includes(testSearchText.toLowerCase())).length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-1.5">لا توجد نتائج</p>
+                    ) : (
+                      (testsQuery.data ?? []).filter((test: any) => test.name.toLowerCase().includes(testSearchText.toLowerCase())).map((test: any) => (
+                        <label key={test.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs">
+                          <Checkbox id={`test-${test.id}`} checked={(formData.tests || []).includes(test.id)} onCheckedChange={() => toggleCheckbox("tests", test.id)} />
+                          <span className="flex-1">{test.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {(formData.tests || []).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(formData.tests || []).map((testId: number) => {
+                  const test = testsQuery.data?.find((t: any) => t.id === testId);
+                  return (
+                    <span key={testId} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px]">
+                      {test?.name || `Test ${testId}`}
+                      <button type="button" onClick={() => toggleCheckbox("tests", testId)} className="text-muted-foreground hover:text-destructive">×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {testRequestsQuery.data && Object.keys(testRequestsQuery.data).length > 0 && (
+              <div className="mt-2">
+                <span className="text-[10px] text-muted-foreground">قوالب:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(testRequestsQuery.data).map(([templateId, template]: [string, any]) => (
+                    <button key={templateId} type="button" className="rounded-md border px-2 py-0.5 text-[10px] hover:bg-muted/60 transition-colors" onClick={() => setSelectedTestRequestId(templateId)}>
+                      {template.name || templateId}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Treatment / Medications */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">العلاج</h3>
+            <div className="relative mb-2">
+              <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="ابحث عن الأدوية..." value={medicationSearchText} onChange={(e) => setMedicationSearchText(e.target.value)} className="pr-8 text-xs h-8" />
+            </div>
+            {medicationSearchText && (
+              <>
+                {medicationsQuery.isLoading ? (
+                  <p className="text-xs text-muted-foreground">جاري التحميل...</p>
+                ) : medicationsQuery.isError ? (
+                  <p className="text-xs text-destructive">خطأ في تحميل العلاجات</p>
+                ) : (
+                  <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                    {(medicationsQuery.data ?? []).filter((med: any) => med.name.toLowerCase().includes(medicationSearchText.toLowerCase())).length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-1.5">لا توجد نتائج</p>
+                    ) : (
+                      (medicationsQuery.data ?? []).filter((med: any) => med.name.toLowerCase().includes(medicationSearchText.toLowerCase())).map((med: any) => (
+                        <label key={med.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs">
+                          <Checkbox id={`med-${med.id}`} checked={(formData.treatment || []).includes(med.id)} onCheckedChange={() => toggleCheckbox("treatment", med.id)} />
+                          <span className="flex-1">{med.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {(formData.treatment || []).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(formData.treatment || []).map((medId: number) => {
+                  const medication = medicationsQuery.data?.find((m: any) => m.id === medId);
+                  return (
+                    <span key={medId} className="inline-flex items-center gap-1 rounded-md bg-primary/8 px-2 py-0.5 text-[10px]">
+                      {medication?.name || `Med ${medId}`}
+                      <button type="button" onClick={() => toggleCheckbox("treatment", medId)} className="text-muted-foreground hover:text-destructive">×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {prescriptionsQuery.data && Object.keys(prescriptionsQuery.data).length > 0 && (
+              <div className="mt-2">
+                <span className="text-[10px] text-muted-foreground">وصفات جاهزة:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(prescriptionsQuery.data).map(([templateId, template]: [string, any]) => (
+                    <button key={templateId} type="button" className="rounded-md border px-2 py-0.5 text-[10px] hover:bg-muted/60 transition-colors" onClick={() => { setSelectedPrescriptionIds([templateId]); }}>
+                      {template.name || templateId}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>)}
+
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border/50 px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0">
+          {!hubRo ? (
+            <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={isSaving}>
+              <Save className="h-3.5 w-3.5" />
+              {isSaving ? "جاري الحفظ..." : "حفظ"}
+            </Button>
           ) : (
-            <span className="self-center text-xs text-muted-foreground px-2">{patientHubViewOnlyHint}</span>
+            <span className="text-[10px] text-muted-foreground">{patientHubViewOnlyHint}</span>
           )}
           {!embedded ? (
-            <button
-              type="button"
-              onClick={dismiss}
-              style={{
-                border: '1px solid #cbd5e1',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
+            <Button variant="outline" size="sm" className="text-xs" onClick={dismiss}>
               إغلاق
-            </button>
-          ) : null}
+            </Button>
+          ) : <span />}
         </div>
       </div>
     </div>

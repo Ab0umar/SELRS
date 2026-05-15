@@ -19,24 +19,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { PageKey } from "@/lib/dashboard-data";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 
-const iconBgMap = {
-  calendar: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400",
-  eye: "bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary",
-  glasses: "bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20 dark:text-cyan-400",
-  pentacam: "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 dark:text-violet-400",
-  pill: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400",
-  flask: "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400",
-  fileText: "bg-primary/10 text-primary hover:bg-primary/20 dark:text-primary",
-  fileHeart: "bg-pink-500/10 text-pink-600 hover:bg-pink-500/20 dark:text-pink-400",
-  spreadsheet: "bg-secondary/10 text-secondary hover:bg-secondary/20 dark:text-secondary",
+const semanticColors = {
+  success: { text: "text-success", bg: "hover:bg-success/10", border: "border-success/20" },
+  info:    { text: "text-info",    bg: "hover:bg-info/10",    border: "border-info/20"    },
+  warning: { text: "text-warning", bg: "hover:bg-warning/10", border: "border-warning/20" },
+  error:   { text: "text-error",   bg: "hover:bg-error/10",   border: "border-error/20"   },
 } as const;
 
-type ColorKey = keyof typeof iconBgMap;
+type SemanticType = keyof typeof semanticColors;
+
+const groupLabels = {
+  scheduling: "المواعيد",
+  records:    "الملفات الطبية",
+  exams:      "الفحوصات والقياسات",
+  treatment:  "العلاج والتحاليل",
+  reports:    "التقارير",
+} as const;
+
+type GroupKey = keyof typeof groupLabels;
 
 function p(id: number, page: PageKey): string {
   return patientNavPathForPageKey(page, id) ?? "/dashboard";
@@ -46,22 +52,22 @@ type ShortcutRow = {
   key: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  colorKey: ColorKey;
+  semantic: SemanticType;
+  group: GroupKey;
   path: string;
 };
 
-/** نفس ترتيب لوحة التحكم ما عدا «تسجيل مريض». */
 function actionsForPatient(patientId: number): ShortcutRow[] {
   return [
-    { key: "schedule", label: "حجز موعد", path: "", icon: CalendarPlus, colorKey: "calendar" },
-    { key: "exam", label: "القياسات و الفحص", path: p(patientId, "examination-form"), icon: Eye, colorKey: "eye" },
-    { key: "ref", label: "مقاس النظارة", path: p(patientId, "refraction"), icon: Glasses, colorKey: "glasses" },
-    { key: "penta", label: "بنتاكام", path: p(patientId, "pentacam-sheet"), icon: CircleDot, colorKey: "pentacam" },
-    { key: "rx", label: "الروشتات", path: p(patientId, "write-prescription"), icon: Pill, colorKey: "pill" },
-    { key: "tests", label: "تحاليل و اشعه", path: p(patientId, "request-tests"), icon: FlaskConical, colorKey: "flask" },
-    { key: "diag", label: "تشخيص / تقرير", path: p(patientId, "medical-reports"), icon: FileText, colorKey: "fileText" },
-    { key: "file", label: "الملف الطبي", path: p(patientId, "patient-details"), icon: FileHeart, colorKey: "fileHeart" },
-    { key: "summary", label: "تقرير المريض", path: p(patientId, "patient-summary"), icon: FileSpreadsheet, colorKey: "spreadsheet" },
+    { key: "schedule", label: "حجز موعد",        path: "",                                      icon: CalendarPlus,  semantic: "info",    group: "scheduling" },
+    { key: "file",     label: "الملف الطبي",      path: p(patientId, "patient-details"),         icon: FileHeart,     semantic: "success", group: "records"    },
+    { key: "summary",  label: "تقرير المريض",     path: p(patientId, "patient-summary"),         icon: FileSpreadsheet, semantic: "info",  group: "records"    },
+    { key: "exam",     label: "القياسات و الفحص", path: p(patientId, "examination-form"),        icon: Eye,           semantic: "warning", group: "exams"      },
+    { key: "ref",      label: "مقاس النظارة",     path: p(patientId, "refraction"),              icon: Glasses,       semantic: "warning", group: "exams"      },
+    { key: "penta",    label: "بنتاكام",          path: p(patientId, "pentacam-sheet"),          icon: CircleDot,     semantic: "warning", group: "exams"      },
+    { key: "rx",       label: "الروشتات",         path: p(patientId, "write-prescription"),      icon: Pill,          semantic: "error",   group: "treatment"  },
+    { key: "tests",    label: "تحاليل و اشعه",   path: p(patientId, "request-tests"),           icon: FlaskConical,  semantic: "error",   group: "treatment"  },
+    { key: "diag",     label: "تشخيص / تقرير",   path: p(patientId, "medical-reports"),         icon: FileText,      semantic: "info",    group: "reports"    },
   ];
 }
 
@@ -70,8 +76,8 @@ export type TodayPatientShortcutsDialogProps = {
   onOpenChange: (open: boolean) => void;
   patientId: number;
   patientName?: string | null;
-  /** «القياسات و الفحص»: فتح `MedicalFilePanel` لهذا المريض بدل صفحة الفحص. */
   onOpenMeasurementsMedicalFile?: (patientId: number) => void;
+  readOnly?: boolean;
 };
 
 export function TodayPatientShortcutsDialog({
@@ -80,11 +86,30 @@ export function TodayPatientShortcutsDialog({
   patientId,
   patientName,
   onOpenMeasurementsMedicalFile,
+  readOnly = false,
 }: TodayPatientShortcutsDialogProps) {
   const [, setLocation] = useLocation();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const valid = Number.isFinite(patientId) && patientId > 0;
-  const rows = valid ? actionsForPatient(patientId) : [];
+  const allRows = valid ? actionsForPatient(patientId) : [];
+  const primaryRow = allRows.find((r) => r.key === "exam");
+  const rows = allRows.filter((r) => r.key !== "exam" && !(readOnly && r.key === "schedule"));
+
+  const handleAction = (item: ShortcutRow) => {
+    if (item.key === "schedule") {
+      if (readOnly) return;
+      setScheduleOpen(true);
+      onOpenChange(false);
+      return;
+    }
+    if (item.key === "exam" && onOpenMeasurementsMedicalFile) {
+      onOpenMeasurementsMedicalFile(patientId);
+      onOpenChange(false);
+      return;
+    }
+    setLocation(item.path);
+    onOpenChange(false);
+  };
 
   return (
     <>
@@ -94,68 +119,90 @@ export function TodayPatientShortcutsDialog({
         prefilledPatientId={valid ? patientId : undefined}
       />
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-2xl" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-right">اختصارات المريض</DialogTitle>
-          <DialogDescription className="text-right text-muted-foreground">
-            {patientName ? (
+        <DialogContent
+          className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-[520px] p-0 gap-0 overflow-hidden rounded-xl"
+          dir="rtl"
+        >
+          {/* Header */}
+          <DialogHeader className="px-5 pt-5 pb-3">
+            <DialogTitle className="text-base font-semibold">
+              اختصارات المريض
+              {patientName && (
+                <span className="text-muted-foreground font-normal"> — {patientName}</span>
+              )}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              اختر وجهة العمل لهذا المريض
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Groups */}
+          <div className="px-4 pb-5 space-y-4 overflow-y-auto">
+            {!valid ? (
+              <p className="text-center text-sm text-muted-foreground py-4">لا يوجد مريض محدد</p>
+            ) : primaryRow ? (
               <>
-                اختر وجهة العمل لـ <span className="font-semibold text-foreground">{patientName}</span>
-              </>
-            ) : (
-              "اختر وجهة العمل لهذا المريض"
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        {!valid ? (
-          <p className="text-center text-sm text-muted-foreground">لا يوجد مريض محدد</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-            {rows.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.key}
+                {readOnly ? (
+                  <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                    عرض تاريخي للقراءة فقط. اختصارات الحجز متوقفة.
+                  </div>
+                ) : null}
+                {/* Primary action */}
+                <Button
                   type="button"
+                  variant="outline"
                   className={cn(
-                    "flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 py-4 text-center text-xs font-semibold transition-all hover:border-primary/30 hover:bg-muted active:scale-[0.98]",
-                    "group cursor-pointer",
+                    "w-full h-auto py-4 px-4 gap-3 justify-center text-sm font-semibold transition-colors border-2",
+                    semanticColors[primaryRow.semantic].text,
+                    semanticColors[primaryRow.semantic].bg,
+                    semanticColors[primaryRow.semantic].border,
                   )}
-                  onClick={() => {
-                    if (item.key === "exam") {
-                      if (onOpenMeasurementsMedicalFile) {
-                        onOpenMeasurementsMedicalFile(patientId);
-                      } else {
-                        setLocation(p(patientId, "examination-form"));
-                      }
-                      onOpenChange(false);
-                      return;
-                    }
-                    if (item.key === "schedule") {
-                      setScheduleOpen(true);
-                      onOpenChange(false);
-                      return;
-                    }
-                    setLocation(item.path);
-                    onOpenChange(false);
-                  }}
+                  onClick={() => handleAction(primaryRow)}
                 >
-                  <span
-                    className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                      iconBgMap[item.colorKey],
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="leading-tight text-muted-foreground group-hover:text-foreground">{item.label}</span>
-                </button>
-              );
-            })}
+                  <primaryRow.icon className="h-5 w-5 shrink-0" />
+                  <span>{primaryRow.label}</span>
+                </Button>
+                {/* Remaining groups */}
+                {(
+                  Object.keys(groupLabels) as GroupKey[]).map((groupKey) => {
+                  const groupItems = rows.filter((r) => r.group === groupKey);
+                  if (groupItems.length === 0) return null;
+                  return (
+                    <div key={groupKey}>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                        {groupLabels[groupKey]}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {groupItems.map((item) => {
+                          const Icon = item.icon;
+                          const colors = semanticColors[item.semantic];
+                          return (
+                            <Button
+                              key={item.key}
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                "h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border",
+                                colors.text,
+                                colors.bg,
+                                colors.border,
+                              )}
+                              onClick={() => handleAction(item)}
+                            >
+                              <Icon className="h-4 w-4 shrink-0" />
+                              <span>{item.label}</span>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            ) : null}
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -10,7 +10,7 @@ import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { trpc } from "@/lib/trpc";
 import { OperationsBookingFormContent } from "./OperationsBookingFormContent";
 
-type OperationsBookingDraft = {
+export type OperationsBookingDraft = {
   bookingDate: string;
   bookingTime: string;
   doctorName: string;
@@ -27,7 +27,7 @@ export type OperationsBookingQuickDialogProps = {
   initialDoctorName?: string;
 };
 
-function defaultDraft(initialDate?: string, initialDoctorName?: string): OperationsBookingDraft {
+export function defaultOperationsBookingDraft(initialDate?: string, initialDoctorName?: string): OperationsBookingDraft {
   const now = new Date();
   const doctorName = String(initialDoctorName ?? "").trim() || TAB_CONFIG[0]?.doctor || "طبيب غير محدد";
   return {
@@ -47,7 +47,7 @@ export function OperationsBookingQuickDialog({
   initialDate,
   initialDoctorName,
 }: OperationsBookingQuickDialogProps) {
-  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultDraft(initialDate, initialDoctorName));
+  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultOperationsBookingDraft(initialDate, initialDoctorName));
   const utils = trpc.useUtils();
   const createBooking = trpc.medical.createOperationBooking.useMutation({
     onSuccess: async () => {
@@ -58,7 +58,7 @@ export function OperationsBookingQuickDialog({
   });
 
   useEffect(() => {
-    if (open) setDraft(defaultDraft(initialDate, initialDoctorName));
+    if (open) setDraft(defaultOperationsBookingDraft(initialDate, initialDoctorName));
   }, [initialDate, initialDoctorName, open]);
 
   const handleChange = (field: string, value: string | number) => {

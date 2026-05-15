@@ -1,0 +1,53 @@
+{
+  "id": "6973c9bb",
+  "phase": "completed",
+  "pageUrl": "/today",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 11,
+  "activeOwner": "12ad9931",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 1
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 1
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 2
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 3
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 4
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 5
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 6
+    },
+    {
+      "error": "stale_checkpoint_ignored",
+      "revision": 7
+    }
+  ],
+  "updatedAt": "2026-05-15T08:54:57.721Z"
+}

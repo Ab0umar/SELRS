@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FlaskConical, Link2, Plus, Trash2, Edit2, Upload, Star, Save } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -328,6 +329,8 @@ export default function MedicationsTestsManagement() {
         subtitle="إضافة وتعديل وحذف الأدوية والفحوصات الطبية"
         icon={<FlaskConical className="h-5 w-5" />}
       />
+
+      <ServicesHubNav active="registry" className="mb-4" />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {/* صف الإدخال: يمين = أدوية، يسار = فحوصات (RTL) */}

@@ -17,6 +17,7 @@ import {
   Upload,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -680,6 +681,8 @@ export default function MedicationsManagement() {
         subtitle="إضافة وتعديل وحذف الأدوية والفحوصات والأمراض والأعراض"
         icon={<Pill className="h-5 w-5" />}
       />
+
+      <ServicesHubNav active="registry" className="mb-4" />
 
       <Tabs value={activeTab} onValueChange={handleRegistryTabChange} persistKey="medications-management" className="w-full">
         <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl border border-border bg-muted/30 p-1.5 sm:grid-cols-4">

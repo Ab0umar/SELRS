@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { getErrorContext } from "@/lib/errorMessages";
 import type {
   ServiceRevenueDetail,
   ServiceRevenueInput,
@@ -22,6 +23,7 @@ import {
   Printer,
   RefreshCw,
   Search,
+  ClipboardList,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -172,6 +174,7 @@ export default function LasikRevenue() {
   const search = useSearch();
   const filters = useMemo(() => readFilters(search), [search]);
   const [draft, setDraft] = useState(filters);
+  const [dateError, setDateError] = useState("");
   const [debouncedDoctor, setDebouncedDoctor] = useState(filters.doctorCode ?? "");
   const [debouncedService, setDebouncedService] = useState(filters.serviceCode ?? "");
 
@@ -196,6 +199,7 @@ export default function LasikRevenue() {
 
   useEffect(() => {
     setDraft(filters);
+    setDateError("");
   }, [filters]);
 
   const serviceRevenueQuery = accountingTrpc.accounting.serviceRevenue.useQuery(
@@ -236,6 +240,11 @@ export default function LasikRevenue() {
   };
 
   const applyFilters = () => {
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError("تاريخ البداية بعد تاريخ النهاية");
+      return;
+    }
+    setDateError("");
     setLocation(buildServiceRevenueUrl(draft));
   };
 
@@ -265,8 +274,8 @@ export default function LasikRevenue() {
 
   return (
     <AccountingShell>
-      <div className="space-y-4" dir="rtl">
-        <Card className={`${styles.noPrint} border-border/80 shadow-sm`}>
+      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
+        <Card className={`${styles.noPrint} border-border shadow-sm`}>
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -283,11 +292,13 @@ export default function LasikRevenue() {
                   variant="outline"
                   onClick={() => void serviceRevenueQuery.refetch()}
                   disabled={serviceRevenueQuery.isFetching}
+                  aria-label="تحديث بيانات إيراد الخدمات"
                 >
                   <RefreshCw
                     className={
                       serviceRevenueQuery.isFetching ? "animate-spin" : ""
                     }
+                    aria-hidden
                   />
                   تحديث
                 </Button>
@@ -295,17 +306,19 @@ export default function LasikRevenue() {
                   type="button"
                   onClick={printReport}
                   disabled={serviceRevenueQuery.isLoading || sections.length === 0}
+                  aria-label="طباعة تقرير إيراد الخدمات"
                 >
-                  <Printer className="ml-2 h-4 w-4" />
+                  <Printer className="ml-2 h-4 w-4" aria-hidden />
                   طباعة
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-6">
-            <label className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label htmlFor="lasik-from-date" className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
               <Input
+                id="lasik-from-date"
                 type="date"
                 value={draft.fromDate}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
@@ -313,9 +326,10 @@ export default function LasikRevenue() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="lasik-to-date" className="space-y-1.5 text-sm font-medium">
               <span>إلى تاريخ</span>
               <Input
+                id="lasik-to-date"
                 type="date"
                 value={draft.toDate}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
@@ -323,9 +337,10 @@ export default function LasikRevenue() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="lasik-section-code" className="space-y-1.5 text-sm font-medium">
               <span>كود القسم</span>
               <Input
+                id="lasik-section-code"
                 type="number"
                 min={1}
                 value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
@@ -339,9 +354,10 @@ export default function LasikRevenue() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="lasik-doctor-code" className="space-y-1.5 text-sm font-medium">
               <span>كود الطبيب</span>
               <Input
+                id="lasik-doctor-code"
                 value={draft.doctorCode ?? ""}
                 placeholder="اختياري"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
@@ -357,9 +373,10 @@ export default function LasikRevenue() {
                 </span>
               )}
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label htmlFor="lasik-service-code" className="space-y-1.5 text-sm font-medium">
               <span>كود الخدمة</span>
               <Input
+                id="lasik-service-code"
                 value={draft.serviceCode ?? ""}
                 placeholder="اختياري"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
@@ -376,11 +393,11 @@ export default function LasikRevenue() {
               )}
             </label>
             <div className="flex items-end gap-2">
-              <Button type="button" className="flex-1" onClick={applyFilters}>
-                <Search className="ml-2 h-4 w-4" />
+              <Button type="button" className="flex-1" onClick={applyFilters} aria-label="تطبيق الفلاتر">
+                <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters}>
+              <Button type="button" variant="outline" onClick={resetFilters} aria-label="إعادة ضبط الفلاتر">
                 إعادة ضبط
               </Button>
             </div>
@@ -388,25 +405,24 @@ export default function LasikRevenue() {
         </Card>
 
         {serviceRevenueQuery.isError ? (
-          <Card className={`${styles.noPrint} border-destructive/30 bg-destructive/5`}>
+          <Card className={`${styles.noPrint} border-error/30 bg-error/5`}>
             <CardContent className="flex items-start gap-3 py-5">
-              <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
-                <CircleAlert className="h-5 w-5" />
+              <div className="rounded-lg bg-error/10 p-2 text-error">
+                <CircleAlert className="h-5 w-5" aria-hidden />
               </div>
               <div>
                 <p className="font-semibold text-foreground">
-                  تعذر تحميل بيانات إيراد الخدمات
+                  {getErrorContext(serviceRevenueQuery.error.message).title}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {serviceRevenueQuery.error.message ||
-                    "تأكد من الاتصال بقاعدة بيانات الحسابات."}
+                  {getErrorContext(serviceRevenueQuery.error.message).hint}
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : null}
 
-        <Card data-print-service-revenue-table className={`${styles.printScope} border-border/80 shadow-sm`}>
+        <Card data-print-service-revenue-table className={`${styles.printScope} border-border shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">تفاصيل إيرادات الأقسام والخدمات</CardTitle>
           </CardHeader>
@@ -424,8 +440,9 @@ export default function LasikRevenue() {
               {serviceRevenueQuery.isLoading ? <LoadingRows /> : null}
 
               {!serviceRevenueQuery.isLoading && sections.length === 0 ? (
-                <div className={`${styles.emptyState} text-muted-foreground`}>
-                  لا توجد بيانات لإيراد الخدمات للفلاتر المختارة.
+                <div className={`${styles.emptyState} text-muted-foreground flex flex-col items-center justify-center gap-2`}>
+                  <ClipboardList className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+                  <span>لا توجد بيانات لإيراد الخدمات للفلاتر المختارة.</span>
                 </div>
               ) : null}
 
@@ -482,8 +499,7 @@ export default function LasikRevenue() {
                                 <Button
                                   type="button"
                                   variant="ghost"
-                                  size="sm"
-                                  className={`${styles.noPrint} h-8 shrink-0 px-2`}
+                                  className={`${styles.noPrint} h-10 w-10 shrink-0 px-2`}
                                   onClick={() => toggleService(section.sectionCode, service.serviceCode)}
                                 >
                                   {collapsed ? (
@@ -501,15 +517,15 @@ export default function LasikRevenue() {
                           for (const [dIdx, detail] of details.entries()) {
                             sectionRows.push(
                               <tr key={`${key}-${detail.trNo}-${dIdx}`}>
-                                <td className={styles.numeric}>{toArabicDigits(detail.trNo)}</td>
-                                <td className={styles.numeric}>{formatDateAr(detail.trDate)}</td>
-                                <td>{detail.patientName || "-"}</td>
-                                <td className={styles.numeric}>{formatCountAr(detail.quantity)}</td>
-                                <td className={styles.numeric}>{formatMoneyAr(detail.price)}</td>
-                                <td className={styles.numeric}>{formatMoneyAr(detail.patientShare)}</td>
-                                <td className={styles.numeric}>{formatMoneyAr(detail.discount)}</td>
-                                <td className={styles.numeric}>{formatMoneyAr(detail.patientTotal)}</td>
-                                <td className={styles.numeric}>{formatMoneyAr(detail.companyTotal)}</td>
+                                <td data-label="رقم الإيصال" className={styles.numeric}>{toArabicDigits(detail.trNo)}</td>
+                                <td data-label="تاريخ الإيصال" className={styles.numeric}>{formatDateAr(detail.trDate)}</td>
+                                <td data-label="المريض">{detail.patientName || "-"}</td>
+                                <td data-label="العدد" className={styles.numeric}>{formatCountAr(detail.quantity)}</td>
+                                <td data-label="السعر" className={styles.numeric}>{formatMoneyAr(detail.price)}</td>
+                                <td data-label="ما يخص المريض" className={styles.numeric}>{formatMoneyAr(detail.patientShare)}</td>
+                                <td data-label="الخصم" className={styles.numeric}>{formatMoneyAr(detail.discount)}</td>
+                                <td data-label="إجمالي المريض" className={styles.numeric}>{formatMoneyAr(detail.patientTotal)}</td>
+                                <td data-label="إجمالي الجهة" className={styles.numeric}>{formatMoneyAr(detail.companyTotal)}</td>
                               </tr>,
                             );
                           }

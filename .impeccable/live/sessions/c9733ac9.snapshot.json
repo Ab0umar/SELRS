@@ -1,0 +1,20 @@
+{
+  "id": "c9733ac9",
+  "phase": "variants_ready",
+  "pageUrl": "/accounting/advances",
+  "sourceFile": "client/src/pages/accounting/AccountingAdvances.tsx",
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "6ced795e",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [],
+  "updatedAt": "2026-05-15T14:09:53.367Z"
+}

@@ -105,17 +105,17 @@ export default function PrintPreview() {
   if (error) {
     return (
       <div className="min-h-screen bg-muted/20 p-8 flex items-center justify-center" dir="rtl">
-        <Card className="max-w-md border-destructive/30 bg-destructive/5 shadow-sm">
+        <Card className="max-w-md border-error/30 bg-error/5 shadow-sm">
           <CardContent className="flex flex-col items-center p-6 text-center gap-4">
-            <div className="rounded-full bg-destructive/10 p-3 text-destructive">
-              <CircleAlert className="h-8 w-8" />
+            <div className="rounded-full bg-error/10 p-3 text-error">
+              <CircleAlert className="h-8 w-8" aria-hidden />
             </div>
             <div>
               <p className="font-semibold text-foreground text-lg">تعذر عرض المعاينة</p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
             </div>
-            <Button onClick={() => setLocation("/accounting")} variant="outline" className="mt-2">
-              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+            <Button onClick={() => setLocation("/accounting")} variant="outline" className="mt-2" aria-label="الرجوع إلى الحسابات">
+              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" aria-hidden />
               الرجوع إلى الحسابات
             </Button>
           </CardContent>

@@ -1,17 +1,15 @@
 import { useAuth, persistSessionUser } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/useMobile";
-import { useTheme } from "@/contexts/ThemeContext";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { AppHeader } from "./AppHeader";
-import { AppSidebar } from "./AppSidebar";
+import { AppTopNav } from "./AppTopNav";
+import { AppBottomNav } from "./AppBottomNav";
 
 type AppShellProps = {
   children: ReactNode;
@@ -21,51 +19,12 @@ type AppShellProps = {
 
 export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
-  const isMobile = useIsMobile();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isAdminPatientsRoute = location === "/admin/patients" || location === "/admin-patients";
   const isDashboardLikeRoute =
     location === "/dashboard" ||
     location === "/today-patients" ||
     location === "/today";
-  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
-
-  useEffect(() => {
-    if (!isMobile || hideSidebar) return;
-    const EDGE_PX = 32;
-    const MIN_SWIPE_PX = 48;
-
-    const onTouchStart = (e: TouchEvent) => {
-      swipeTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      const start = swipeTouchStart.current;
-      if (!start) return;
-      swipeTouchStart.current = null;
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-      const dx = endX - start.x;
-      const dy = endY - start.y;
-      if (Math.abs(dy) > Math.abs(dx) * 1.5) return;
-      const viewWidth = window.innerWidth;
-      if (!mobileNavOpen && start.x > viewWidth - EDGE_PX && dx < -MIN_SWIPE_PX) {
-        setMobileNavOpen(true);
-      }
-      if (mobileNavOpen && dx > MIN_SWIPE_PX) {
-        setMobileNavOpen(false);
-      }
-    };
-
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [isMobile, hideSidebar, mobileNavOpen]);
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const [accountUsername, setAccountUsername] = useState("");
@@ -190,16 +149,13 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
 
   return (
     <div
-      className="flex h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden selrs-page-bg md:flex-row"
+      className="flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg"
       dir="rtl"
     >
-      {!hideSidebar && !isMobile ? (
-        <AppSidebar
+      {!hideSidebar && (
+        <AppTopNav
           location={location}
           onNavigate={setLocation}
-          isMobile={false}
-          mobileOpen={false}
-          onMobileOpenChange={() => {}}
           onOpenAccount={() => {
             if (mustForcePasswordChange) return;
             setAccountUsername(String((user as any)?.username ?? ""));
@@ -208,52 +164,26 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
             setIsAccountDialogOpen(true);
           }}
           onOpenPassword={() => setIsPasswordDialogOpen(true)}
-        />
-      ) : null}
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <AppHeader
-          userName={
-            typeof (user as any)?.name === "string" && String((user as any).name).trim()
-              ? String((user as any).name).trim()
-              : String((user as any)?.username ?? "").trim() || "—"
-          }
-          theme={theme}
-          onToggleTheme={() => toggleTheme?.()}
           onLogout={() => void handleSignOut()}
-          onHome={() => setLocation("/dashboard")}
-          onProfile={() => setLocation("/profile")}
-          isMobile={isMobile}
-          onOpenMobileNav={() => setMobileNavOpen(true)}
-          showMobileNavToggle={!hideSidebar}
         />
+      )}
 
-        {!hideSidebar && isMobile ? (
-          <AppSidebar
-            location={location}
-            onNavigate={setLocation}
-            isMobile
-            mobileOpen={mobileNavOpen}
-            onMobileOpenChange={setMobileNavOpen}
-            onOpenAccount={() => {
-              if (mustForcePasswordChange) return;
-              setAccountUsername(String((user as any)?.username ?? ""));
-              setAccountName(String((user as any)?.name ?? ""));
-              setAccountEmail(String((user as any)?.email ?? ""));
-              setIsAccountDialogOpen(true);
-            }}
-            onOpenPassword={() => setIsPasswordDialogOpen(true)}
-          />
-        ) : null}
+      <main
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-2 pt-1.5 pb-2 sm:p-3 md:p-4`}
+      >
+        <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
+          {children}
+        </div>
+      </main>
 
-        <main
-          className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-2 pt-1.5 pb-2 sm:p-3 md:p-4`}
-        >
-          <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
-            {children}
-          </div>
-        </main>
-      </div>
+      {!hideSidebar && (
+        <AppBottomNav
+          location={location}
+          onNavigate={setLocation}
+          onOpenMore={() => window.dispatchEvent(new Event("selrs:open-command-palette"))}
+          moreOpen={false}
+        />
+      )}
 
       <Dialog
         open={isAccountDialogOpen}
