@@ -311,7 +311,7 @@ function AdminPatientsTableComponent({
       {/* Mobile cards */}
       {isMobileViewport ? (
       <div className="space-y-4" dir="rtl">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4" dir="rtl">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3" dir="rtl">
           {patientsLoading ? (
             <div className="col-span-full py-10 text-center text-muted-foreground">جاري تحميل المرضى…</div>
           ) : visiblePatients.length === 0 ? (

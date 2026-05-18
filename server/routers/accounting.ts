@@ -4,7 +4,8 @@ import { execSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { sql } from "drizzle-orm";
-import { getDb } from "../db";
+import { getDb, upsertPatientServiceEntry } from "../db";
+import { addMultiServiceReceiptInMssql, createMssqlPool } from "../integrations/mssqlPatients";
 import {
   dailyRevenueInputSchema,
   dailyRevenueOutputSchema,
@@ -133,10 +134,27 @@ export const accountingRouter = router({
     .input(z.object({ patientCode: z.string() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ PAT_CD: string; NAM: string }>(
-        "SELECT TOP 1 PAT_CD, NAM FROM PAPATMF WHERE PAT_CD = @code",
+        `SELECT TOP 1 PAT_CD, NAM FROM PAJRNRCVH WHERE PAT_CD = @code
+         ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+                  CASE WHEN ISDATE(ENTRYDATE)  = 1 THEN CONVERT(datetime, ENTRYDATE)  END DESC`,
         { code: input.patientCode }
       );
       return rows[0] ? { patientCode: rows[0].PAT_CD, patientName: rows[0].NAM } : null;
+    }),
+
+  patientNameLookup: accountingProcedure
+    .input(z.object({ patientCode: z.string() }))
+    .query(async ({ input }) => {
+      const code = input.patientCode.trim();
+      if (!code) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const sq = (v: string) => `'${v.replace(/'/g, "''")}'`;
+      const [rows] = await db.execute(sql.raw(
+        `SELECT fullName FROM patients WHERE patientCode=${sq(code)} LIMIT 1`
+      )) as any;
+      const patient = (rows as any[])[0];
+      return patient ? { patientName: String(patient.fullName) } : null;
     }),
 
   doctorLookup: accountingProcedure
@@ -159,6 +177,205 @@ export const accountingRouter = router({
       return rows[0] ? { serviceCode: rows[0].SRV_CD, serviceName: rows[0].SRV_NM_AR } : null;
     }),
 
+  serviceEntryCatalog: accountingProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    const [servicesRes, doctorsRes] = await Promise.all([
+      db.execute(sql.raw(
+        `SELECT code, name, price
+         FROM services
+         WHERE isActive = 1 AND code IS NOT NULL AND code <> ''
+         ORDER BY CAST(code AS UNSIGNED), code`
+      )),
+      db.execute(sql.raw(
+        `SELECT code, name
+         FROM doctors
+         WHERE code IS NOT NULL AND code <> '' AND COALESCE(isActive, 1) <> 0
+         ORDER BY CAST(code AS UNSIGNED), code`
+      )),
+    ]);
+    return {
+      services: ((servicesRes as any)[0] as any[]).map((r: any) => ({
+        code: String(r.code ?? ""),
+        name: String(r.name ?? ""),
+        price: Number(r.price ?? 0),
+      })),
+      doctors: ((doctorsRes as any)[0] as any[]).map((r: any) => ({
+        code: String(r.code ?? ""),
+        name: String(r.name ?? ""),
+      })),
+    };
+  }),
+
+  addPatientServices: accountingProcedure
+    .input(z.object({
+      patientCode: z.string().min(1),
+      doctorCode: z.string().optional(),
+      doctorName: z.string().optional(),
+      lines: z.array(z.object({
+        serviceCode: z.string().min(1),
+        serviceName: z.string().optional(),
+        quantity: z.number().int().positive().max(99).default(1),
+        discount: z.number().min(0).optional(),
+        price: z.number().min(0).optional(),
+      })).min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      const patientCode = input.patientCode.trim();
+      const mssqlPatientRows = await mssqlQuery<{ PAT_CD: string; NAM: string }>(
+        `SELECT TOP 1 PAT_CD, NAM FROM PAJRNRCVH WHERE PAT_CD = @code
+         ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+                  CASE WHEN ISDATE(ENTRYDATE)  = 1 THEN CONVERT(datetime, ENTRYDATE)  END DESC`,
+        { code: patientCode },
+      );
+      if (!mssqlPatientRows[0]) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient code was not found in MSSQL",
+        });
+      }
+
+      const [patientRes] = await db.execute(sql.raw(
+        `SELECT id, fullName FROM patients WHERE patientCode=${sq(patientCode)} LIMIT 1`
+      )) as any;
+      const patient = (patientRes as any[])[0];
+      if (!patient?.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient exists in MSSQL but is not synced to MySQL yet",
+        });
+      }
+
+      const serviceTotals = new Map<string, { serviceName: string; quantity: number; discount?: number; price?: number }>();
+      for (const line of input.lines) {
+        const serviceCode = line.serviceCode.trim();
+        if (!serviceCode) continue;
+        const current = serviceTotals.get(serviceCode);
+        serviceTotals.set(serviceCode, {
+          serviceName: line.serviceName?.trim() || current?.serviceName || "",
+          quantity: (current?.quantity ?? 0) + Math.max(1, Math.trunc(line.quantity || 1)),
+          discount: line.discount ?? current?.discount,
+          price: line.price ?? current?.price,
+        });
+      }
+      if (serviceTotals.size === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No services selected" });
+      }
+
+      let mysqlLinked = 0;
+      const serviceDate = new Date().toISOString().slice(0, 10);
+
+      const mssqlLines = Array.from(serviceTotals.entries()).map(([serviceCode, line]) => ({
+        serviceCode,
+        quantity: line.quantity,
+        discount: line.discount,
+        priceOverride: line.price,
+      }));
+      const mssqlResult = await addMultiServiceReceiptInMssql(
+        patientCode,
+        mssqlLines,
+        input.doctorCode ?? null,
+      );
+      const mssqlLinked = mssqlResult.inserted ? 1 : 0;
+
+      for (const [serviceCode, line] of serviceTotals) {
+        const [serviceRes] = await db.execute(sql.raw(
+          `SELECT name FROM services WHERE code=${sq(serviceCode)} LIMIT 1`
+        )) as any;
+        const serviceName = String((serviceRes as any[])[0]?.name ?? line.serviceName ?? "").trim();
+
+        await upsertPatientServiceEntry({
+          patientId: Number(patient.id),
+          serviceCode,
+          serviceName,
+          source: "manual",
+          sourceRef: `manual:accounting:${patientCode}:${serviceCode}`,
+          serviceDate,
+        });
+        mysqlLinked += 1;
+      }
+
+      return {
+        patientCode,
+        patientName: String(patient.fullName ?? mssqlPatientRows[0].NAM ?? ""),
+        mysqlLinked,
+        mssqlLinked,
+      };
+    }),
+
+  deleteReceipt: accountingProcedure
+    .input(z.object({
+      patientCode: z.string().min(1),
+      trNo: z.number().int(),
+    }))
+    .mutation(async ({ input }) => {
+      const targetTable = String(process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH").trim();
+      const pool = await createMssqlPool();
+      try {
+        await pool.connect();
+        const vstReq = pool.request();
+        vstReq.input("PAT_CD", input.patientCode);
+        vstReq.input("TR_NO", input.trNo);
+        const vstRs = await vstReq.query(
+          `SELECT TOP 1 VST_NO FROM ${targetTable} WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`
+        );
+        const vstNo = vstRs?.recordset?.[0]?.VST_NO;
+
+        const delReq = pool.request();
+        delReq.input("PAT_CD", input.patientCode);
+        delReq.input("TR_NO", input.trNo);
+        await delReq.query(
+          `DELETE FROM ${targetTable} WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`
+        );
+
+        if (vstNo != null) {
+          const delSrvReq = pool.request();
+          delSrvReq.input("PAT_CD", input.patientCode);
+          delSrvReq.input("VST_NO", vstNo);
+          await delSrvReq.query(
+            `DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), VST_NO), '0') AS INT) = CAST(ISNULL(CONVERT(varchar(20), @VST_NO), '0') AS INT)`
+          );
+        }
+        return { deleted: true };
+      } finally {
+        try { await pool.close(); } catch {}
+      }
+    }),
+
+  updateReceipt: accountingProcedure
+    .input(z.object({
+      patientCode: z.string().min(1),
+      trNo: z.number().int(),
+      paidAmount: z.number().min(0).optional(),
+      discount: z.number().min(0).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const targetTable = String(process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH").trim();
+      const parts: string[] = [];
+      if (input.paidAmount != null) parts.push("PA_VL = @PA_VL");
+      if (input.discount != null) parts.push("DISC = @DISC");
+      if (parts.length === 0) return { updated: false };
+      const pool = await createMssqlPool();
+      try {
+        await pool.connect();
+        const req = pool.request();
+        req.input("PAT_CD", input.patientCode);
+        req.input("TR_NO", input.trNo);
+        if (input.paidAmount != null) req.input("PA_VL", input.paidAmount);
+        if (input.discount != null) req.input("DISC", input.discount);
+        await req.query(
+          `UPDATE ${targetTable} SET ${parts.join(", ")}, UPDATEDATE = GETDATE() WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`
+        );
+        return { updated: true };
+      } finally {
+        try { await pool.close(); } catch {}
+      }
+    }),
+
   // ── Access DB (الخزنه) ────────────────────────────────────────────────────
 
   accLedgerSummary: accountingProcedure
@@ -170,18 +387,16 @@ export const accountingRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       const where = buildDateWhere(input.dateFrom, input.dateTo);
-      const [periodRes, balanceRes] = await Promise.all([
+      const [periodRes, allRes] = await Promise.all([
         db.execute(sql.raw(
           `SELECT COALESCE(SUM(income),0) AS totalIncome, COALESCE(SUM(expense),0) AS totalExpense, COUNT(*) AS txCount FROM accLedger${where}`
         )),
-        // Current treasury balance = الاجمالي of the latest row overall (not filtered by date)
         db.execute(sql.raw(
-          `SELECT total AS currentBalance FROM accLedger ORDER BY accessId DESC LIMIT 1`
+          `SELECT COALESCE(SUM(income),0) - COALESCE(SUM(expense),0) AS currentBalance FROM accLedger`
         )),
       ]);
       const p = (periodRes as any)[0]?.[0] ?? {};
-      const b = (balanceRes as any)[0]?.[0] ?? {};
-      console.log("[accLedgerSummary] periodRes:", periodRes, "parsed p:", p, "balanceRes:", balanceRes, "parsed b:", b);
+      const b = (allRes as any)[0]?.[0] ?? {};
       return {
         totalIncome:     Number(p.totalIncome     ?? 0),
         totalExpense:    Number(p.totalExpense    ?? 0),
@@ -198,6 +413,7 @@ export const accountingRouter = router({
       notes:    z.string().optional(),
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -209,9 +425,15 @@ export const accountingRouter = router({
         const q = input.notes.trim().replace(/'/g, "");
         where += (where ? " AND " : " WHERE ") + `notes LIKE '%${q}%'`;
       }
+      const dir = input.sortDir.toUpperCase();
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
-        db.execute(sql.raw(`SELECT id, accessId, txDate, income, expense, balance, total, notes FROM accLedger${where} ORDER BY txDate DESC, accessId DESC LIMIT ${input.pageSize} OFFSET ${offset}`)),
+        db.execute(sql.raw(
+          `SELECT id, accessId, txDate, income, expense, notes,
+            COALESCE(income, 0) - COALESCE(expense, 0) AS balance,
+            SUM(COALESCE(income, 0) - COALESCE(expense, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
+           FROM accLedger${where} ORDER BY txDate ${dir}, accessId ${dir} LIMIT ${input.pageSize} OFFSET ${offset}`
+        )),
         db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accLedger${where}`)),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
@@ -267,30 +489,39 @@ export const accountingRouter = router({
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
       search:   z.string().optional(),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-      let where = "";
+      let searchCond = "";
       if (input.search?.trim()) {
         const q = input.search.trim().replace(/'/g, "");
-        where = ` WHERE notes LIKE '%${q}%'`;
+        searchCond = ` AND employee LIKE '%${q}%'`;
       }
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(sql.raw(
-          `SELECT id, accessId, txDate, advance, repayment, notes, total FROM accAdvances${where} ORDER BY txDate DESC, accessId DESC LIMIT ${input.pageSize} OFFSET ${offset}`
+          `SELECT id, accessId, txDate, advance, repayment, notes, employee,
+             SUM(COALESCE(advance,0) - COALESCE(repayment,0)) OVER (
+               PARTITION BY employee
+               ORDER BY txDate ASC, id ASC
+             ) AS runningTotal
+           FROM accAdvances
+           WHERE 1=1${searchCond}
+           ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`
         )),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accAdvances${where}`)),
+        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accAdvances WHERE 1=1${searchCond}`)),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
-        id:         Number(r.id),
-        accessId:   Number(r.accessId),
-        txDate:     String(r.txDate ?? ""),
-        advance:    r.advance    != null ? Number(r.advance)    : null,
-        repayment:  r.repayment  != null ? Number(r.repayment)  : null,
-        notes:      r.notes      != null ? String(r.notes)      : null,
-        total:      r.total      != null ? Number(r.total)      : null,
+        id:           Number(r.id),
+        accessId:     r.accessId != null ? Number(r.accessId) : null,
+        txDate:       String(r.txDate ?? ""),
+        advance:      r.advance    != null ? Number(r.advance)    : null,
+        repayment:    r.repayment  != null ? Number(r.repayment)  : null,
+        notes:        r.notes      != null ? String(r.notes)      : null,
+        employee:     r.employee   != null ? String(r.employee)   : null,
+        runningTotal: r.runningTotal != null ? Number(r.runningTotal) : null,
       }));
       const total = Number((countRes as any)[0]?.[0]?.n ?? 0);
       return { rows, total, page: input.page, pageSize: input.pageSize };
@@ -337,6 +568,7 @@ export const accountingRouter = router({
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
       search:   z.string().optional(),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -349,7 +581,9 @@ export const accountingRouter = router({
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(sql.raw(
-          `SELECT id, accessId, txDate, name, amount, repayment, remaining, notes FROM accLoans${where} ORDER BY txDate DESC, accessId DESC LIMIT ${input.pageSize} OFFSET ${offset}`
+          `SELECT id, accessId, txDate, name, amount, repayment, remaining, notes,
+           SUM(COALESCE(amount,0) - COALESCE(repayment,0)) OVER (ORDER BY txDate ASC, id ASC) AS total
+           FROM accLoans${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`
         )),
         db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accLoans${where}`)),
       ]);
@@ -361,6 +595,7 @@ export const accountingRouter = router({
         amount:     r.amount     != null ? Number(r.amount)     : null,
         repayment:  r.repayment  != null ? Number(r.repayment)  : null,
         remaining:  r.remaining  != null ? Number(r.remaining)  : null,
+        total:      r.total      != null ? Number(r.total)      : null,
         notes:      r.notes      != null ? String(r.notes)      : null,
       }));
       const total = Number((countRes as any)[0]?.[0]?.n ?? 0);
@@ -385,6 +620,7 @@ export const accountingRouter = router({
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
       search:   z.string().optional(),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -397,7 +633,10 @@ export const accountingRouter = router({
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(sql.raw(
-          `SELECT id, accessId, txDate, inAmount, outAmount, balance, total, notes FROM accHome${where} ORDER BY txDate DESC, accessId DESC LIMIT ${input.pageSize} OFFSET ${offset}`
+          `SELECT id, accessId, txDate, inAmount, outAmount, notes,
+            COALESCE(inAmount, 0) - COALESCE(outAmount, 0) AS balance,
+            SUM(COALESCE(inAmount, 0) - COALESCE(outAmount, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
+           FROM accHome${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, accessId ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`
         )),
         db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accHome${where}`)),
       ]);
@@ -415,24 +654,25 @@ export const accountingRouter = router({
       return { rows, total, page: input.page, pageSize: input.pageSize };
     }),
 
-  // ── Instagram (انستا) ─────────────────────────────────────────────────────
+  // ── Instapay (انستاباي) ───────────────────────────────────────────────────
 
-  accInstagramSummary: accountingProcedure
+  accInstapaySummary: accountingProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       const res = await db.execute(sql.raw(
-        `SELECT COALESCE(SUM(inAmount),0) AS totalIn, COALESCE(SUM(outAmount),0) AS totalOut FROM accInstagram`
+        `SELECT COALESCE(SUM(inAmount),0) AS totalIn, COALESCE(SUM(outAmount),0) AS totalOut FROM accInstapay`
       ));
       const r = (res as any)[0]?.[0] ?? {};
       return { totalIn: Number(r.totalIn ?? 0), totalOut: Number(r.totalOut ?? 0) };
     }),
 
-  accInstagramLedger: accountingProcedure
+  accInstapayLedger: accountingProcedure
     .input(z.object({
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
       search:   z.string().optional(),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -445,9 +685,12 @@ export const accountingRouter = router({
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(sql.raw(
-          `SELECT id, accessId, txDate, inAmount, outAmount, balance, total, notes FROM accInstagram${where} ORDER BY txDate DESC, accessId DESC LIMIT ${input.pageSize} OFFSET ${offset}`
+          `SELECT id, accessId, txDate, inAmount, outAmount, notes,
+            COALESCE(inAmount, 0) - COALESCE(outAmount, 0) AS balance,
+            SUM(COALESCE(inAmount, 0) - COALESCE(outAmount, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
+           FROM accInstapay${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, accessId ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`
         )),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accInstagram${where}`)),
+        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accInstapay${where}`)),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id:        Number(r.id),
@@ -467,25 +710,34 @@ export const accountingRouter = router({
     .input(z.object({
       page:     z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(200).default(50),
+      search:   z.string().optional(),
+      sortDir:  z.enum(["asc","desc"]).default("desc"),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      let where = "";
+      if (input.search?.trim()) {
+        const q = input.search.trim().replace(/'/g, "");
+        where = ` WHERE notes LIKE '%${q}%'`;
+      }
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(sql.raw(
-          `SELECT id, accessId, txDate, withdrawals, repayment, total, notes FROM accSaadany ORDER BY txDate DESC, id DESC LIMIT ${input.pageSize} OFFSET ${offset}`
+          `SELECT id, accessId, txDate, ABS(withdrawals) AS withdrawals, repayment, notes,
+           SUM(ABS(IFNULL(withdrawals,0)) - IFNULL(repayment,0)) OVER (ORDER BY txDate ASC, id ASC) AS runningTotal
+           FROM accSaadany${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`
         )),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accSaadany`)),
+        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accSaadany${where}`)),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id:         Number(r.id),
         accessId:   r.accessId != null ? Number(r.accessId) : null,
         txDate:     String(r.txDate ?? ""),
         withdrawals: r.withdrawals != null ? Number(r.withdrawals) : null,
-        repayment:  r.repayment  != null ? Number(r.repayment)  : null,
-        total:      r.total      != null ? Number(r.total)      : null,
-        notes:      r.notes      != null ? String(r.notes)      : null,
+        repayment:    r.repayment    != null ? Number(r.repayment)    : null,
+        runningTotal: r.runningTotal != null ? Number(r.runningTotal) : null,
+        notes:        r.notes        != null ? String(r.notes)        : null,
       }));
       const total = Number((countRes as any)[0]?.[0]?.n ?? 0);
       return { rows, total, page: input.page, pageSize: input.pageSize };
@@ -500,10 +752,19 @@ export const accountingRouter = router({
       try {
         const toNum = (v: any) => v != null ? parseFloat(String(v)) || 0 : 0;
 
-        const [advRows] = await db.execute(sql.raw("SELECT employee, totalAdvance, totalRepaid, remaining FROM accView_Advances ORDER BY employee")) as any;
+        const [advRows] = await db.execute(sql.raw(
+          `SELECT employee,
+             COALESCE(SUM(advance),0) AS totalAdvance,
+             COALESCE(SUM(repayment),0) AS totalRepaid,
+             COALESCE(SUM(advance),0) - COALESCE(SUM(repayment),0) AS remaining
+           FROM accAdvances
+           WHERE employee IS NOT NULL AND employee != ''
+           GROUP BY employee
+           ORDER BY employee`
+        )) as any;
         const [loanRows] = await db.execute(sql.raw("SELECT name, totalLoan, totalPaid, remaining FROM accView_Loans ORDER BY name")) as any;
         const [[homeRow]] = await db.execute(sql.raw("SELECT totalIn, totalOut, net FROM accView_Home")) as any;
-        const [[instaRow]] = await db.execute(sql.raw("SELECT totalIn, totalOut, net FROM accView_Instagram")) as any;
+        const [[instaRow]] = await db.execute(sql.raw("SELECT totalIn, totalOut, net FROM accView_Instapay")) as any;
         const [[saadanyRow]] = await db.execute(sql.raw("SELECT totalWithdrawals, totalRepaid, remaining FROM accView_Saadany")) as any;
 
         return {
@@ -524,7 +785,7 @@ export const accountingRouter = router({
             totalOut: toNum(homeRow?.totalOut),
             net:      toNum(homeRow?.net),
           },
-          instagram: {
+          instapay: {
             totalIn:  toNum(instaRow?.totalIn),
             totalOut: toNum(instaRow?.totalOut),
             net:      toNum(instaRow?.net),
@@ -538,6 +799,18 @@ export const accountingRouter = router({
       } catch (e: any) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message?.slice(0, 300) ?? "Failed to read reports" });
       }
+    }),
+
+  // ── Employees list (for advance form) ────────────────────────────────────
+
+  accEmployeesList: accountingProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const [rows] = await db.execute(sql.raw(
+        `SELECT id, name FROM accEmployees ORDER BY name`
+      )) as any;
+      return (rows as any[]).map((r: any) => ({ id: Number(r.id), name: String(r.name) }));
     }),
 
   // ── Categories (for entry form autocomplete) ─────────────────────────────
@@ -573,13 +846,8 @@ export const accountingRouter = router({
       const sq = (v: string | number | null) =>
         v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
 
-      const [lastRes] = await db.execute(sql.raw(
-        `SELECT COALESCE(total, 0) AS t FROM accLedger ORDER BY accessId DESC, id DESC LIMIT 1`
-      )) as any;
-      const runningTotal = Number((lastRes as any[])[0]?.t ?? 0) + balance;
-
       const [res] = await db.execute(sql.raw(
-        `INSERT INTO accLedger (txDate, income, expense, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.income)}, ${sq(input.expense)}, ${sq(balance)}, ${sq(runningTotal)}, ${sq(input.notes || null)})`
+        `INSERT INTO accLedger (txDate, income, expense, balance, notes) VALUES (${sq(input.txDate)}, ${sq(input.income)}, ${sq(input.expense)}, ${sq(balance)}, ${sq(input.notes || null)})`
       )) as any;
       const ledgerId: number = res.insertId;
 
@@ -658,6 +926,7 @@ export const accountingRouter = router({
   addAccAdvance: accountingProcedure
     .input(z.object({
       txDate:    z.string(),
+      employee:  z.string().max(200),
       advance:   z.number().min(0).default(0),
       repayment: z.number().min(0).default(0),
       notes:     z.string().max(500).default(""),
@@ -667,14 +936,30 @@ export const accountingRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       const sq = (v: string | number | null) =>
         v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
-      const [lastRes] = await db.execute(sql.raw(
-        `SELECT COALESCE(total, 0) AS t FROM accAdvances ORDER BY accessId DESC, id DESC LIMIT 1`
-      )) as any;
-      const runningTotal = Number((lastRes as any[])[0]?.t ?? 0) + (input.advance || 0) - (input.repayment || 0);
       const [res] = await db.execute(sql.raw(
-        `INSERT INTO accAdvances (txDate, advance, repayment, notes, total) VALUES (${sq(input.txDate)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)}, ${sq(runningTotal)})`
+        `INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`
       )) as any;
       return { id: res.insertId };
+    }),
+
+  updateAccAdvance: accountingProcedure
+    .input(z.object({
+      id:        z.number().int(),
+      txDate:    z.string(),
+      employee:  z.string().max(200),
+      advance:   z.number().min(0).default(0),
+      repayment: z.number().min(0).default(0),
+      notes:     z.string().max(500).default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      await db.execute(sql.raw(
+        `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`
+      ));
+      return { id: input.id };
     }),
 
   addAccHome: accountingProcedure
@@ -690,17 +975,17 @@ export const accountingRouter = router({
       const sq = (v: string | number | null) =>
         v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
-      const [lastRes] = await db.execute(sql.raw(
-        `SELECT COALESCE(total, 0) AS t FROM accHome ORDER BY accessId DESC, id DESC LIMIT 1`
+      const [lastHomeRes] = await db.execute(sql.raw(
+        `SELECT COALESCE(total, 0) AS t FROM accHome WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
       )) as any;
-      const runningTotal = Number((lastRes as any[])[0]?.t ?? 0) + balance;
+      const homeTotal = Number((lastHomeRes as any[])[0]?.t ?? 0) + balance;
       const [res] = await db.execute(sql.raw(
-        `INSERT INTO accHome (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(runningTotal)}, ${sq(input.notes || null)})`
+        `INSERT INTO accHome (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(homeTotal)}, ${sq(input.notes || null)})`
       )) as any;
       return { id: res.insertId };
     }),
 
-  addAccInstagram: accountingProcedure
+  addAccInstapay: accountingProcedure
     .input(z.object({
       txDate:    z.string(),
       inAmount:  z.number().min(0).default(0),
@@ -713,12 +998,12 @@ export const accountingRouter = router({
       const sq = (v: string | number | null) =>
         v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
-      const [lastRes] = await db.execute(sql.raw(
-        `SELECT COALESCE(total, 0) AS t FROM accInstagram ORDER BY accessId DESC, id DESC LIMIT 1`
+      const [lastInstaRes] = await db.execute(sql.raw(
+        `SELECT COALESCE(total, 0) AS t FROM accInstapay WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
       )) as any;
-      const runningTotal = Number((lastRes as any[])[0]?.t ?? 0) + balance;
+      const instaTotal = Number((lastInstaRes as any[])[0]?.t ?? 0) + balance;
       const [res] = await db.execute(sql.raw(
-        `INSERT INTO accInstagram (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(runningTotal)}, ${sq(input.notes || null)})`
+        `INSERT INTO accInstapay (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(instaTotal)}, ${sq(input.notes || null)})`
       )) as any;
       return { id: res.insertId };
     }),
@@ -739,8 +1024,12 @@ export const accountingRouter = router({
       const sq = (v: string | number | null) =>
         v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
       const remaining = input.amount - input.repayment;
+      const [lastLoanRes] = await db.execute(sql.raw(
+        `SELECT COALESCE(total, 0) AS t FROM accLoans WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
+      )) as any;
+      const loanTotal = Number((lastLoanRes as any[])[0]?.t ?? 0) + remaining;
       const [res] = await db.execute(sql.raw(
-        `INSERT INTO accLoans (txDate, name, amount, repayment, remaining, notes) VALUES (${sq(input.txDate)}, ${sq(input.name)}, ${sq(input.amount || null)}, ${sq(input.repayment || null)}, ${sq(remaining)}, ${sq(input.notes || null)})`
+        `INSERT INTO accLoans (txDate, name, amount, repayment, remaining, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.name)}, ${sq(input.amount || null)}, ${sq(input.repayment || null)}, ${sq(remaining)}, ${sq(loanTotal)}, ${sq(input.notes || null)})`
       )) as any;
       return { id: res.insertId };
     }),
@@ -775,6 +1064,119 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
+  deleteAccAdvance: accountingProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.execute(sql.raw(`DELETE FROM accAdvances WHERE id=${input.id}`));
+      return { ok: true };
+    }),
+
+  deleteAccHome: accountingProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.execute(sql.raw(`DELETE FROM accHome WHERE id=${input.id}`));
+      return { ok: true };
+    }),
+
+  deleteAccInstapay: accountingProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.execute(sql.raw(`DELETE FROM accInstapay WHERE id=${input.id}`));
+      return { ok: true };
+    }),
+
+  deleteAccSaadany: accountingProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.execute(sql.raw(`DELETE FROM accSaadany WHERE id=${input.id}`));
+      return { ok: true };
+    }),
+
+  updateAccHome: accountingProcedure
+    .input(z.object({
+      id:        z.number().int(),
+      txDate:    z.string(),
+      inAmount:  z.number().min(0).default(0),
+      outAmount: z.number().min(0).default(0),
+      notes:     z.string().max(500).default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      const balance = input.inAmount - input.outAmount;
+      await db.execute(sql.raw(
+        `UPDATE accHome SET txDate=${sq(input.txDate)}, inAmount=${sq(input.inAmount || null)}, outAmount=${sq(input.outAmount || null)}, balance=${sq(balance)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`
+      ));
+      return { id: input.id };
+    }),
+
+  updateAccInstapay: accountingProcedure
+    .input(z.object({
+      id:        z.number().int(),
+      txDate:    z.string(),
+      inAmount:  z.number().min(0).default(0),
+      outAmount: z.number().min(0).default(0),
+      notes:     z.string().max(500).default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      const balance = input.inAmount - input.outAmount;
+      await db.execute(sql.raw(
+        `UPDATE accInstapay SET txDate=${sq(input.txDate)}, inAmount=${sq(input.inAmount || null)}, outAmount=${sq(input.outAmount || null)}, balance=${sq(balance)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`
+      ));
+      return { id: input.id };
+    }),
+
+  addAccSaadany: accountingProcedure
+    .input(z.object({
+      txDate:     z.string(),
+      withdrawals: z.number().min(0).default(0),
+      repayment:  z.number().min(0).default(0),
+      notes:      z.string().max(500).default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      const [res] = await db.execute(sql.raw(
+        `INSERT INTO accSaadany (txDate, withdrawals, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.withdrawals ? -input.withdrawals : null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`
+      )) as any;
+      return { id: res.insertId };
+    }),
+
+  updateAccSaadany: accountingProcedure
+    .input(z.object({
+      id:         z.number().int(),
+      txDate:     z.string(),
+      withdrawals: z.number().min(0).default(0),
+      repayment:  z.number().min(0).default(0),
+      notes:      z.string().max(500).default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const sq = (v: string | number | null) =>
+        v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      await db.execute(sql.raw(
+        `UPDATE accSaadany SET txDate=${sq(input.txDate)}, withdrawals=${sq(input.withdrawals ? -input.withdrawals : null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`
+      ));
+      return { id: input.id };
+    }),
+
   triggerAccSync: adminProcedure
     .mutation(async () => {
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -793,7 +1195,7 @@ export const accountingRouter = router({
 const ENTITY_TABLE: Record<string, string> = {
   سلف:    "accAdvances",
   البيت:  "accHome",
-  insta:  "accInstagram",
+  insta:  "accInstapay",
   غرابه:  "accSaadany",
 };
 
@@ -837,15 +1239,28 @@ async function resolveMirror(
   if (table === "accAdvances") {
     const advance   = isOut ? sq(mirrorAmount) : sq(null);   // expense = سلفة خارجة
     const repayment = isOut ? sq(null) : sq(mirrorAmount);   // income  = سداد داخل
-    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes) VALUES (${sq(today)}, ${advance}, ${repayment}, ${notesVal})`;
-  } else if (table === "accHome" || table === "accInstagram") {
-    const inAmt  = isOut ? sq(null) : sq(mirrorAmount);
-    const outAmt = isOut ? sq(mirrorAmount) : sq(null);
-    insertSql = `INSERT INTO ${table} (txDate, inAmount, outAmount, notes) VALUES (${sq(today)}, ${inAmt}, ${outAmt}, ${notesVal})`;
+    const [lastRes] = await db.execute(sql.raw(
+      `SELECT COALESCE(total, 0) AS t FROM accAdvances WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
+    )) as any;
+    const runningTotal = Number((lastRes as any[])[0]?.t ?? 0) + (isOut ? mirrorAmount : 0) - (isOut ? 0 : mirrorAmount);
+    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total) VALUES (${sq(today)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)})`;
+  } else if (table === "accHome" || table === "accInstapay") {
+    const inAmt  = isOut ? 0 : mirrorAmount;
+    const outAmt = isOut ? mirrorAmount : 0;
+    const bal    = inAmt - outAmt;
+    const [lastT] = await db.execute(sql.raw(
+      `SELECT COALESCE(total, 0) AS t FROM ${table} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
+    )) as any;
+    const runningT = Number((lastT as any[])[0]?.t ?? 0) + bal;
+    insertSql = `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(today)}, ${sq(inAmt || null)}, ${sq(outAmt || null)}, ${sq(bal)}, ${sq(runningT)}, ${notesVal})`;
   } else if (table === "accSaadany") {
-    const withdrawals = isOut ? sq(mirrorAmount) : sq(null);
-    const repayment   = isOut ? sq(null) : sq(mirrorAmount);
-    insertSql = `INSERT INTO accSaadany (txDate, withdrawals, repayment, notes) VALUES (${sq(today)}, ${withdrawals}, ${repayment}, ${notesVal})`;
+    const withdrawals = isOut ? mirrorAmount : 0;
+    const repayment   = isOut ? 0 : mirrorAmount;
+    const [lastSaad] = await db.execute(sql.raw(
+      `SELECT COALESCE(total, 0) AS t FROM accSaadany WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`
+    )) as any;
+    const saadTotal = Number((lastSaad as any[])[0]?.t ?? 0) + withdrawals - repayment;
+    insertSql = `INSERT INTO accSaadany (txDate, withdrawals, repayment, total, notes) VALUES (${sq(today)}, ${sq(withdrawals ? -withdrawals : null)}, ${sq(repayment || null)}, ${sq(saadTotal)}, ${notesVal})`;
   }
   return insertSql ? { table, insertSql } : null;
 }

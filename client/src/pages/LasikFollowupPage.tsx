@@ -219,7 +219,7 @@ export default function LasikFollowupPage() {
           <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} readOnly />
         </div>
 
-        <div className="followup-print-root rounded-[28px] border border-slate-200/80 bg-white p-1 text-slate-900 shadow-sm print:rounded-none print:border-0 print:p-0" dir="ltr" style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}>
+        <div className="followup-print-root rounded-[28px] border border-border/80 bg-background p-1 text-foreground shadow-sm print:rounded-none print:border-0 print:p-0" dir="ltr" style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}>
           <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] px-1 print:px-0 print:text-[13px]">
             <div className="whitespace-nowrap">{followupLabels.rtLabel}: {operationEyes.right ? "" : "..."} &nbsp;&nbsp; {followupLabels.ltLabel}: {operationEyes.left ? "" : "..."} &nbsp; //</div>
             <div className="whitespace-nowrap">{followupLabels.operationTypeLabel}: <Input value={operationType} onChange={(e) => setOperationType(e.target.value)} className="inline-block w-40 h-7 text-xs mx-1" /></div>

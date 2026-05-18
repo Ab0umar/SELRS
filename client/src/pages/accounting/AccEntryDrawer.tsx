@@ -27,14 +27,22 @@ function todayIso() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }: Props) {
+export default function AccEntryDrawer({
+  open,
+  mode,
+  initial,
+  onClose,
+  onSaved,
+}: Props) {
   const utils = trpc.useUtils();
-  const categoriesQ = trpc.accounting.accCategories.useQuery(undefined, { refetchOnWindowFocus: false });
+  const categoriesQ = trpc.accounting.accCategories.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
-  const [txDate,  setTxDate]  = useState(todayIso());
-  const [income,  setIncome]  = useState("");
+  const [txDate, setTxDate] = useState(todayIso());
+  const [income, setIncome] = useState("");
   const [expense, setExpense] = useState("");
-  const [notes,   setNotes]   = useState("");
+  const [notes, setNotes] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -42,7 +50,7 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
       setDeleteConfirm(false);
       if (mode === "edit" && initial) {
         setTxDate(initial.txDate?.slice(0, 10) ?? todayIso());
-        setIncome(initial.income  ? String(initial.income)  : "");
+        setIncome(initial.income ? String(initial.income) : "");
         setExpense(initial.expense ? String(initial.expense) : "");
         setNotes(initial.notes ?? "");
       } else {
@@ -54,7 +62,7 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
     }
   }, [open, mode, initial]);
 
-  const addMut    = trpc.accounting.addAccEntry.useMutation();
+  const addMut = trpc.accounting.addAccEntry.useMutation();
   const updateMut = trpc.accounting.updateAccEntry.useMutation();
   const deleteMut = trpc.accounting.deleteAccEntry.useMutation();
 
@@ -66,16 +74,16 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
     utils.accounting.accReports.invalidate();
     utils.accounting.accAdvancesLedger.invalidate();
     utils.accounting.accHomeLedger.invalidate();
-    utils.accounting.accInstagramLedger.invalidate();
+    utils.accounting.accInstapayLedger.invalidate();
     utils.accounting.accSaadanyLedger.invalidate();
   };
 
   async function handleSave() {
     const payload = {
       txDate,
-      income:  parseFloat(income)  || 0,
+      income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
-      notes:   notes.trim(),
+      notes: notes.trim(),
     };
     if (mode === "add") {
       await addMut.mutateAsync(payload);
@@ -87,7 +95,10 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
   }
 
   async function handleDelete() {
-    if (!deleteConfirm) { setDeleteConfirm(true); return; }
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);
+      return;
+    }
     await deleteMut.mutateAsync({ id: initial!.id });
     invalidate();
     onSaved();
@@ -110,20 +121,20 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
       {/* Drawer */}
       <div
         dir="rtl"
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl sm:w-[420px]"
+        className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col bg-background shadow-xl sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[420px]"
         style={{ animation: "slideInRight 180ms cubic-bezier(0.16,1,0.3,1)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
             <p className="text-xs font-medium text-slate-500">الخزنة</p>
-            <h2 className="text-base font-bold text-slate-900">
+            <h2 className="text-base font-bold text-foreground">
               {mode === "add" ? "قيد جديد" : "تعديل القيد"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -131,15 +142,16 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
 
         {/* Form */}
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {/* Date */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">التاريخ</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              التاريخ
+            </label>
             <Input
               type="date"
               value={txDate}
-              onChange={e => setTxDate(e.target.value)}
+              onChange={(e) => setTxDate(e.target.value)}
               className="text-sm"
             />
           </div>
@@ -147,13 +159,15 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
           {/* Income / Expense */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-emerald-700">إيراد</label>
+              <label className="text-xs font-medium text-emerald-700">
+                إيراد
+              </label>
               <Input
                 type="number"
                 min="0"
                 step="0.01"
                 value={income}
-                onChange={e => setIncome(e.target.value)}
+                onChange={(e) => setIncome(e.target.value)}
                 placeholder="0"
                 className="text-sm tabular-nums"
               />
@@ -165,7 +179,7 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
                 min="0"
                 step="0.01"
                 value={expense}
-                onChange={e => setExpense(e.target.value)}
+                onChange={(e) => setExpense(e.target.value)}
                 placeholder="0"
                 className="text-sm tabular-nums"
               />
@@ -174,31 +188,39 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
 
           {/* Balance preview */}
           {(income || expense) && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 flex items-center justify-between">
+            <div className="rounded-xl border border-border bg-muted px-4 py-2.5 flex items-center justify-between">
               <span className="text-xs text-slate-500">الرصيد</span>
-              <span className={cn(
-                "text-sm font-semibold tabular-nums",
-                (parseFloat(income) || 0) - (parseFloat(expense) || 0) >= 0 ? "text-emerald-700" : "text-rose-700"
-              )}>
-                {((parseFloat(income) || 0) - (parseFloat(expense) || 0)).toLocaleString("ar-EG")}
+              <span
+                className={cn(
+                  "text-sm font-semibold tabular-nums",
+                  (parseFloat(income) || 0) - (parseFloat(expense) || 0) >= 0
+                    ? "text-emerald-700"
+                    : "text-rose-700",
+                )}
+              >
+                {(
+                  (parseFloat(income) || 0) - (parseFloat(expense) || 0)
+                ).toLocaleString("ar-EG")}
               </span>
             </div>
           )}
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">ملاحظات</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              ملاحظات
+            </label>
             <textarea
               value={notes}
-              onChange={e => setNotes(e.target.value)}
+              onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="البيان أو اسم الموظف..."
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none"
             />
             {/* Category quick-fill */}
             {cats.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {cats.map(c => (
+                {cats.map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -207,7 +229,7 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
                       "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                       notes.trim() === c.name
                         ? "border-blue-300 bg-blue-50 text-blue-700"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                        : "border-border text-muted-foreground hover:border-border hover:bg-muted",
                     )}
                   >
                     {c.name}
@@ -218,13 +240,14 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
           </div>
 
           {err && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{err}</p>
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {err}
+            </p>
           )}
         </div>
 
-
         {/* Footer */}
-        <div className="border-t border-slate-200 px-5 py-4 space-y-2">
+        <div className="space-y-2 border-t border-border px-4 py-4 sm:px-5">
           <Button
             className="w-full"
             onClick={handleSave}
@@ -244,7 +267,11 @@ export default function AccEntryDrawer({ open, mode, initial, onClose, onSaved }
                     onClick={handleDelete}
                     disabled={busy}
                   >
-                    {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "تأكيد الحذف"}
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      "تأكيد الحذف"
+                    )}
                   </Button>
                   <Button
                     variant="outline"

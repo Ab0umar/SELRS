@@ -105,7 +105,7 @@ export const PatientsTable = memo(function PatientsTable({
 
   if (patients.length === 0) {
     return (
-      <Card className="border-slate-200/80 bg-white/90 shadow-sm">
+      <Card className="border-border/80 bg-background/90 shadow-sm">
         <CardContent className="pt-6 text-center text-muted-foreground">
           لا توجد بيانات مرضى في هذا القسم
         </CardContent>
@@ -380,7 +380,7 @@ export const PatientsTable = memo(function PatientsTable({
   }
 
   return (
-    <Card className="mt-1 overflow-hidden border-slate-200/80 bg-white/92 shadow-sm">
+    <Card className="mt-1 overflow-hidden border-border/80 bg-background/92 shadow-sm">
       <CardContent className="pt-6">
         <div
           ref={desktopTableRef}
@@ -398,18 +398,18 @@ export const PatientsTable = memo(function PatientsTable({
               <col className="w-[118px]" />
               <col className="w-[250px]" />
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-slate-50/95 shadow-[0_1px_0_rgba(148,163,184,0.25)] backdrop-blur">
-              <tr className="border-b border-slate-200">
-                {canBulkManage ? <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">تحديد</th> : null}
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الكود</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الاسم</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">تاريخ الميلاد</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الدكتور</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الخدمة</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">نوع الشيت</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">تاريخ فتح الملف</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">البيانات</th>
-                <th className="bg-slate-50/95 text-center py-2 px-1 whitespace-nowrap">الإجراءات</th>
+            <thead className="sticky top-0 z-10 bg-muted/95 shadow-[0_1px_0_rgba(148,163,184,0.25)] backdrop-blur">
+              <tr className="border-b border-border">
+                {canBulkManage ? <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تحديد</th> : null}
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الكود</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الاسم</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تاريخ الميلاد</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الدكتور</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الخدمة</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">نوع الشيت</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تاريخ فتح الملف</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">البيانات</th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الإجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -421,7 +421,7 @@ export const PatientsTable = memo(function PatientsTable({
               {desktopPatients.map((patient) => (
                 <Fragment key={String((patient as any).__rowKey ?? patient.id)}>
                   <tr
-                    className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-primary/5"
+                    className="cursor-pointer border-b border-border transition-colors hover:bg-primary/5"
                     onClick={() => onOpenDetails(patient.id)}
                   >
                     {canBulkManage ? (
@@ -446,7 +446,7 @@ export const PatientsTable = memo(function PatientsTable({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 w-7 rounded-lg border-slate-200 bg-white p-0"
+                            className="h-7 w-7 rounded-lg border-border bg-background p-0"
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleExpanded(Number(patient.id));
@@ -456,7 +456,7 @@ export const PatientsTable = memo(function PatientsTable({
                           </Button>
                         </div>
                         {isExpanded(Number(patient.id)) ? (
-                          <div className="w-full rounded border border-slate-200 bg-slate-50/60 p-2 text-right">
+                          <div className="w-full rounded border border-border bg-muted/60 p-2 text-right">
                             <PatientTransactions patientId={Number(patient.id)} serviceCodeToLabel={serviceCodeToLabel} />
                           </div>
                         ) : null}

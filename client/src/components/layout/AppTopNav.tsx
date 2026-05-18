@@ -153,7 +153,7 @@ export function AppTopNav({
           className="flex shrink-0 items-center gap-2 border-e border-border/60 px-3 transition-opacity hover:opacity-80 md:px-4"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-white" />
+          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-background" />
           <span className="hidden text-sm font-black text-foreground lg:block">{BRAND_NAME_AR}</span>
         </button>
 
@@ -214,17 +214,41 @@ export function AppTopNav({
                     <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48" style={{ direction: "rtl" } satisfies CSSProperties}>
-                  {accountingItems.map((item) => (
-                    <DropdownMenuItem
-                      key={item.path}
-                      className="cursor-pointer gap-2"
-                      onClick={() => onNavigate(item.path)}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align="start" className="w-52" style={{ direction: "rtl" } satisfies CSSProperties}>
+                  {(() => {
+                    const byPath = new Map(accountingItems.map(i => [i.path, i]));
+                    const pick = (paths: string[]) => paths.map(p => byPath.get(p)).filter(Boolean) as typeof accountingItems;
+                    const treasury   = pick(["/accounting/ledger", "/accounting/daily-revenue", "/accounting/service-revenue", "/accounting/receipts"]);
+                    const statements = pick(["/accounting/cashbook", "/accounting/advances", "/accounting/instapay", "/accounting/home-fund", "/accounting/dr-saadany"]);
+                    const loans      = pick(["/accounting/loans"]);
+                    const knownPaths = new Set([...treasury, ...statements, ...loans].map(i => i.path));
+                    const reports    = accountingItems.filter(i => !knownPaths.has(i.path));
+                    const labelOverrides: Record<string, string> = {
+                      "/accounting/cashbook":  "الخزينة",
+                      "/accounting/advances":  "السلف",
+                      "/accounting/home-fund": "البيت",
+                    };
+                    const renderSection = (label: string, items: typeof accountingItems, sep = true) =>
+                      items.length > 0 ? (
+                        <>
+                          {sep && <DropdownMenuSeparator />}
+                          <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</DropdownMenuLabel>
+                          {items.map((item) => (
+                            <DropdownMenuItem key={item.path} className="cursor-pointer gap-2" onClick={() => onNavigate(item.path)}>
+                              <item.icon className="h-4 w-4" />{labelOverrides[item.path] ?? item.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      ) : null;
+                    return (
+                      <>
+                        {renderSection("الخزينة",    treasury,   false)}
+                        {renderSection("كشف حساب",   statements, true)}
+                        {renderSection("صندوق القرض", loans,      true)}
+                        {renderSection("تقارير",      reports,    true)}
+                      </>
+                    );
+                  })()}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

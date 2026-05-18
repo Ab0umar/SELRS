@@ -462,7 +462,7 @@ export default function PatientSummary() {
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
       {/* Identity strip — info/blue tint distinguishes from patient-file */}
-      <header className="z-20 shrink-0 border-b border-info/25 bg-info/5 print:border-slate-200 print:bg-white">
+      <header className="z-20 shrink-0 border-b border-info/25 bg-info/5 print:border-border print:bg-background">
         <div className="flex items-center gap-2 px-3 py-2.5">
           <Button
             variant="ghost"

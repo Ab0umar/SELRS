@@ -21,7 +21,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "مركز الخدمات",
     description: "نقطة الدخول إلى الصفحات المرجعية.",
     icon: LayoutGrid,
-    accent: "bg-slate-100 text-slate-800 dark:bg-slate-900/60 dark:text-slate-200",
+    accent: "bg-muted text-slate-800 dark:bg-slate-900/60 dark:text-slate-200",
   },
   {
     id: "medications",

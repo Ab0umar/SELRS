@@ -122,6 +122,10 @@ export default function MedicationsManagement() {
 
   const [newSymptom, setNewSymptom] = useState({ name: "" });
   const [editingSymptomId, setEditingSymptomId] = useState<string | null>(null);
+  const [delConfirmMed, setDelConfirmMed] = useState<number | null>(null);
+  const [delConfirmTest, setDelConfirmTest] = useState<number | null>(null);
+  const [delConfirmDisease, setDelConfirmDisease] = useState<number | null>(null);
+  const [delConfirmSymptom, setDelConfirmSymptom] = useState<string | null>(null);
 
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -400,7 +404,6 @@ export default function MedicationsManagement() {
   };
 
   const handleDeleteMedication = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف الدواء؟")) return;
     await deleteMedicationMutation.mutateAsync({ medicationId: id });
   };
 
@@ -511,7 +514,6 @@ export default function MedicationsManagement() {
   };
 
   const handleDeleteTest = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف الفحص؟")) return;
     await deleteTestMutation.mutateAsync({ testId: id });
   };
 
@@ -544,7 +546,6 @@ export default function MedicationsManagement() {
   };
 
   const handleDeleteDisease = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف المرض؟")) return;
     await deleteDiseaseMutation.mutateAsync({ diseaseId: id });
   };
 
@@ -639,7 +640,6 @@ export default function MedicationsManagement() {
   };
 
   const handleDeleteSymptom = async (symptomId: string) => {
-    if (!window.confirm("هل أنت متأكد من حذف العرض؟")) return;
     await deleteSymptomMutation.mutateAsync({ symptomId });
   };
 
@@ -796,16 +796,26 @@ export default function MedicationsManagement() {
                           <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditMedication(med)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="destructive"
-                            className="h-9 w-9 rounded-lg"
-                            title="حذف"
-                            onClick={() => void handleDeleteMedication(med.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {delConfirmMed === med.id ? (
+                            <div className="flex items-center gap-1">
+                              <button type="button" aria-label="تأكيد الحذف"
+                                className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                onClick={() => { void handleDeleteMedication(med.id); setDelConfirmMed(null); }}>
+                                تأكيد
+                              </button>
+                              <button type="button" aria-label="إلغاء الحذف"
+                                className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                onClick={() => setDelConfirmMed(null)}>
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button type="button" aria-label="حذف الدواء"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                              onClick={() => setDelConfirmMed(med.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -907,9 +917,26 @@ export default function MedicationsManagement() {
                         <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditTest(test)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteTest(test.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {delConfirmTest === test.id ? (
+                          <div className="flex items-center gap-1">
+                            <button type="button" aria-label="تأكيد الحذف"
+                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              onClick={() => { void handleDeleteTest(test.id); setDelConfirmTest(null); }}>
+                              تأكيد
+                            </button>
+                            <button type="button" aria-label="إلغاء الحذف"
+                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              onClick={() => setDelConfirmTest(null)}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" aria-label="حذف الفحص"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            onClick={() => setDelConfirmTest(test.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -1005,9 +1032,26 @@ export default function MedicationsManagement() {
                         <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditDisease(disease)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteDisease(disease.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {delConfirmDisease === disease.id ? (
+                          <div className="flex items-center gap-1">
+                            <button type="button" aria-label="تأكيد الحذف"
+                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              onClick={() => { void handleDeleteDisease(disease.id); setDelConfirmDisease(null); }}>
+                              تأكيد
+                            </button>
+                            <button type="button" aria-label="إلغاء الحذف"
+                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              onClick={() => setDelConfirmDisease(null)}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" aria-label="حذف المرض"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            onClick={() => setDelConfirmDisease(disease.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -1082,9 +1126,26 @@ export default function MedicationsManagement() {
                         <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditSymptom(symptom)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button type="button" size="icon" variant="destructive" className="h-9 w-9 rounded-lg" title="حذف" onClick={() => void handleDeleteSymptom(symptom.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {delConfirmSymptom === symptom.id ? (
+                          <div className="flex items-center gap-1">
+                            <button type="button" aria-label="تأكيد الحذف"
+                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              onClick={() => { void handleDeleteSymptom(symptom.id); setDelConfirmSymptom(null); }}>
+                              تأكيد
+                            </button>
+                            <button type="button" aria-label="إلغاء الحذف"
+                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              onClick={() => setDelConfirmSymptom(null)}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" aria-label="حذف العرض"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            onClick={() => setDelConfirmSymptom(symptom.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))

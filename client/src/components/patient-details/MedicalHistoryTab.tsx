@@ -13,18 +13,18 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <Card className="border-slate-200/80 bg-white/92 shadow-sm md:col-span-2">
-        <div className="border-b border-slate-100 px-6 py-3 font-semibold text-base">التاريخ المرضي</div>
+      <Card className="border-border/80 bg-background/92 shadow-sm md:col-span-2">
+        <div className="border-b border-border px-6 py-3 font-semibold text-base">التاريخ المرضي</div>
         <CardContent className="pt-4">
           {history ? (
-            <div className="rounded border border-slate-200 p-4 bg-slate-50/50 text-sm whitespace-pre-wrap">{history}</div>
+            <div className="rounded border border-border p-4 bg-muted/50 text-sm whitespace-pre-wrap">{history}</div>
           ) : (
             <p className="text-xs text-muted-foreground">لا يوجد تاريخ مرضي محفوظ</p>
           )}
         </CardContent>
       </Card>
-      <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-        <div className="border-b border-slate-100 px-6 py-3 font-semibold text-base">الأعراض</div>
+      <Card className="border-border/80 bg-background/92 shadow-sm">
+        <div className="border-b border-border px-6 py-3 font-semibold text-base">الأعراض</div>
         <CardContent className="pt-4">
           {symptoms.length === 0 ? (
             <p className="text-xs text-muted-foreground">لا توجد أعراض مضافة</p>

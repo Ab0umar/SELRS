@@ -33,12 +33,12 @@ import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged
 import { TodayOperationListItemCard } from "./TodayOperationListItemCard";
 
 type QueueStage = QueueStatus;
-type QueueFilter = "all" | QueueStage;
+type QueueFilter = QueueStage | "bookings";
 
 const STAGES: QueueStage[] = ["checkedIn", "next", "clinic", "treated"];
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "all", label: "الكل" },
+  { value: "bookings", label: "حجز" },
   { value: "checkedIn", label: "تسجيل" },
   { value: "next", label: "التالي" },
   { value: "clinic", label: "عيادة" },
@@ -363,6 +363,65 @@ function GridPatientCard({
   );
 }
 
+type VisitScheduleRequestRow = {
+  id: number;
+  fullName: string;
+  age?: number | null;
+  visitDate?: string | Date | null;
+  phone?: string | null;
+  service?: string | null;
+};
+
+function formatScheduleRequestDate(value: VisitScheduleRequestRow["visitDate"]) {
+  if (!value) return "—";
+  const text = value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+  return text || "—";
+}
+
+function BookingRequestCard({
+  request,
+  removing,
+  isReadOnly,
+  onRemove,
+}: {
+  request: VisitScheduleRequestRow;
+  removing: boolean;
+  isReadOnly?: boolean;
+  onRemove: () => void;
+}) {
+  const serviceText = serviceTypeLabels[String(request.service ?? "")] ?? request.service ?? "—";
+
+  return (
+    <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-right shadow-sm">
+      <div className="flex items-start gap-3">
+        <label className="mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-warning transition-colors hover:bg-warning/10">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-primary"
+            checked={removing}
+            disabled={removing || isReadOnly}
+            aria-label={`إزالة ${request.fullName} من حجز`}
+            onChange={(event) => {
+              if (event.target.checked) onRemove();
+            }}
+          />
+        </label>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">{request.fullName || "—"}</p>
+          <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
+            <span className="text-muted-foreground">الخدمة</span>
+            <span className="text-right text-foreground">{serviceText}</span>
+            <span className="text-muted-foreground">التاريخ</span>
+            <span className="text-right tabular-nums text-foreground" dir="ltr">{formatScheduleRequestDate(request.visitDate)}</span>
+            <span className="text-muted-foreground">الهاتف</span>
+            <span className="truncate text-right tabular-nums text-foreground" dir="ltr">{request.phone || "—"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function KanbanColumn({
   stage,
   patients,
@@ -493,7 +552,7 @@ export function TodayBottleneckBoard({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [activeTab, setActiveTab] = useState<"queue" | "operations">("queue");
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false);
-  const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("checkedIn");
   const [mobileStage, setMobileStage] = useState<QueueStage>("checkedIn");
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
@@ -525,6 +584,19 @@ export function TodayBottleneckBoard({
     { date: selectedDate },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
+  const visitScheduleRequestsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
+    { date: selectedDate },
+    { staleTime: 60_000, refetchOnWindowFocus: false },
+  );
+  const removeScheduleRequest = trpc.patient.removeVisitScheduleRequest.useMutation({
+    onSuccess: async () => {
+      await utils.patient.getVisitScheduleRequests.invalidate();
+      toast.success("تم إزالة الحجز");
+    },
+    onError: (error: unknown) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
+    },
+  });
   const doctorsDirectoryQuery = trpc.medical.getDoctors.useQuery(undefined, {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -603,13 +675,19 @@ export function TodayBottleneckBoard({
 
   const counts = useMemo(
     () => ({
-      all: merged.length,
+      bookings: visitScheduleRequestsQuery.data?.length ?? 0,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
       treated: byStatus.treated.length,
     }),
-    [merged.length, byStatus.checkedIn.length, byStatus.next.length, byStatus.clinic.length, byStatus.treated.length],
+    [
+      visitScheduleRequestsQuery.data?.length,
+      byStatus.checkedIn.length,
+      byStatus.next.length,
+      byStatus.clinic.length,
+      byStatus.treated.length,
+    ],
   );
 
   const waitSnapshot = useMemo(() => {
@@ -629,9 +707,9 @@ export function TodayBottleneckBoard({
   const bottleneckStage = useMemo(() => getBottleneckStage(counts, waitSnapshot), [counts, waitSnapshot]);
 
   const filteredPatients = useMemo(() => {
-    const source = queueFilter === "all" ? merged : byStatus[queueFilter];
+    const source = queueFilter === "bookings" ? [] : byStatus[queueFilter];
     return sortByWaitDesc(source, selectedDate, nowMs);
-  }, [queueFilter, merged, byStatus, selectedDate, nowMs]);
+  }, [queueFilter, byStatus, selectedDate, nowMs]);
 
   const markVisitTreatedPendingVisitId = markVisitTreated.isPending
     ? markVisitTreated.variables?.visitId ?? null
@@ -716,9 +794,9 @@ export function TodayBottleneckBoard({
               )}
             >
               الطابور
-              {counts.all > 0 ? (
+              {merged.length > 0 ? (
                 <Badge className="bg-muted/80 text-[10px] tabular-nums text-muted-foreground">
-                  {counts.all.toLocaleString("ar-EG")}
+                  {merged.length.toLocaleString("ar-EG")}
                 </Badge>
               ) : null}
             </button>
@@ -876,6 +954,30 @@ export function TodayBottleneckBoard({
                   <Skeleton key={i} className="h-40 rounded-xl" />
                 ))}
               </div>
+            ) : queueFilter === "bookings" ? (
+              visitScheduleRequestsQuery.isLoading ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-32 rounded-xl" />
+                  ))}
+                </div>
+              ) : (visitScheduleRequestsQuery.data ?? []).length === 0 ? (
+                <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
+                  لا توجد حجوزات لهذا التاريخ
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                  {((visitScheduleRequestsQuery.data ?? []) as VisitScheduleRequestRow[]).map((request) => (
+                    <BookingRequestCard
+                      key={request.id}
+                      request={request}
+                      removing={removeScheduleRequest.isPending && removeScheduleRequest.variables?.requestId === request.id}
+                      isReadOnly={isHistoricalDate}
+                      onRemove={() => removeScheduleRequest.mutate({ requestId: request.id })}
+                    />
+                  ))}
+                </div>
+              )
             ) : filteredPatients.length === 0 ? (
               <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
                 لا يوجد مرضى في هذه الفئة

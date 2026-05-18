@@ -29,8 +29,8 @@ export function FollowupTab({
   return (
     <div className="space-y-6">
       {/* All Visits/Examinations */}
-      <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-        <CardHeader className="border-b border-slate-100">
+      <Card className="border-border/80 bg-background/92 shadow-sm">
+        <CardHeader className="border-b border-border">
           <CardTitle>جميع الزيارات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -42,7 +42,7 @@ export function FollowupTab({
               const visit = visitsData.find((v: any) => v.id === exam.visitId);
               const displayDate = visit?.visitDate || exam.createdAt;
               return (
-                <div key={exam.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+                <div key={exam.id} className="rounded-2xl border border-border bg-muted/70 p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-semibold">زيارة رقم {exam.id}</span>
@@ -93,27 +93,27 @@ export function FollowupTab({
                   </div>
 
                   {(exam.ucvaOD || exam.ucvaOS || exam.bcvaOD || exam.bcvaOS) && (
-                    <div className="text-sm pt-2 border-t border-slate-200">
-                      <span className="font-semibold text-slate-700">الحدة البصرية:</span>
-                      <p className="text-slate-600 mt-1">
+                    <div className="text-sm pt-2 border-t border-border">
+                      <span className="font-semibold text-foreground">الحدة البصرية:</span>
+                      <p className="text-muted-foreground mt-1">
                         {exam.ucvaOD && `UCVA OD: ${exam.ucvaOD}`}{exam.ucvaOD && exam.ucvaOS && " | "}{exam.ucvaOS && `UCVA OS: ${exam.ucvaOS}`}
                       </p>
                       {(exam.bcvaOD || exam.bcvaOS) && (
-                        <p className="text-slate-600">{exam.bcvaOD && `BCVA OD: ${exam.bcvaOD}`}{exam.bcvaOD && exam.bcvaOS && " | "}{exam.bcvaOS && `BCVA OS: ${exam.bcvaOS}`}</p>
+                        <p className="text-muted-foreground">{exam.bcvaOD && `BCVA OD: ${exam.bcvaOD}`}{exam.bcvaOD && exam.bcvaOS && " | "}{exam.bcvaOS && `BCVA OS: ${exam.bcvaOS}`}</p>
                       )}
                     </div>
                   )}
                   {(exam.sphereOD || exam.sphereOS || exam.cylinderOD || exam.cylinderOS) && (
-                    <div className="text-sm pt-2 border-t border-slate-200">
-                      <span className="font-semibold text-slate-700">الانكسار:</span>
-                      {exam.sphereOD && <p className="text-slate-600 mt-1">OD: {exam.sphereOD} / {exam.cylinderOD || "-"} x {exam.axisOD || "-"}</p>}
-                      {exam.sphereOS && <p className="text-slate-600">OS: {exam.sphereOS} / {exam.cylinderOS || "-"} x {exam.axisOS || "-"}</p>}
+                    <div className="text-sm pt-2 border-t border-border">
+                      <span className="font-semibold text-foreground">الانكسار:</span>
+                      {exam.sphereOD && <p className="text-muted-foreground mt-1">OD: {exam.sphereOD} / {exam.cylinderOD || "-"} x {exam.axisOD || "-"}</p>}
+                      {exam.sphereOS && <p className="text-muted-foreground">OS: {exam.sphereOS} / {exam.cylinderOS || "-"} x {exam.axisOS || "-"}</p>}
                     </div>
                   )}
                   {(exam.iopOD || exam.iopOS) && (
-                    <div className="text-sm pt-2 border-t border-slate-200">
-                      <span className="font-semibold text-slate-700">ضغط العين:</span>
-                      <p className="text-slate-600 mt-1">{exam.iopOD && `OD: ${exam.iopOD}`}{exam.iopOD && exam.iopOS && " | "}{exam.iopOS && `OS: ${exam.iopOS}`}</p>
+                    <div className="text-sm pt-2 border-t border-border">
+                      <span className="font-semibold text-foreground">ضغط العين:</span>
+                      <p className="text-muted-foreground mt-1">{exam.iopOD && `OD: ${exam.iopOD}`}{exam.iopOD && exam.iopOS && " | "}{exam.iopOS && `OS: ${exam.iopOS}`}</p>
                     </div>
                   )}
                 </div>
@@ -123,11 +123,11 @@ export function FollowupTab({
       </Card>
 
       {surgeries.length > 0 && (
-        <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-          <CardHeader className="border-b border-slate-100"><CardTitle>العمليات الجراحية</CardTitle></CardHeader>
+        <Card className="border-border/80 bg-background/92 shadow-sm">
+          <CardHeader className="border-b border-border"><CardTitle>العمليات الجراحية</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {surgeries.map((surgery: any) => (
-              <div key={surgery.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+              <div key={surgery.id} className="rounded-2xl border border-border bg-muted/70 p-3">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">عملية #{surgery.id}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(surgery.surgeryDate)}</span>
@@ -140,24 +140,24 @@ export function FollowupTab({
       )}
 
       {followups.length > 0 && (
-        <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-          <CardHeader className="border-b border-slate-100"><CardTitle>متابعات ما بعد العملية</CardTitle></CardHeader>
+        <Card className="border-border/80 bg-background/92 shadow-sm">
+          <CardHeader className="border-b border-border"><CardTitle>متابعات ما بعد العملية</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {followups.map((followup: any) => (
-              <div key={followup.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+              <div key={followup.id} className="rounded-2xl border border-border bg-muted/70 p-4 space-y-2">
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="font-semibold">متابعة #{followup.id}</span>
                   <span className="text-xs font-medium text-blue-600">{formatDate(followup.followupDate)}</span>
                 </div>
                 {(followup.visualAcuityOD || followup.visualAcuityOS) && (
-                  <div className="text-sm"><span className="font-medium text-slate-700">الإبصار:</span><span className="ml-2 text-slate-600">{followup.visualAcuityOD && `OD: ${followup.visualAcuityOD}`}{followup.visualAcuityOD && followup.visualAcuityOS && " | "}{followup.visualAcuityOS && `OS: ${followup.visualAcuityOS}`}</span></div>
+                  <div className="text-sm"><span className="font-medium text-foreground">الإبصار:</span><span className="ml-2 text-muted-foreground">{followup.visualAcuityOD && `OD: ${followup.visualAcuityOD}`}{followup.visualAcuityOD && followup.visualAcuityOS && " | "}{followup.visualAcuityOS && `OS: ${followup.visualAcuityOS}`}</span></div>
                 )}
                 {(followup.iopOD || followup.iopOS) && (
-                  <div className="text-sm"><span className="font-medium text-slate-700">ضغط العين:</span><span className="ml-2 text-slate-600">{followup.iopOD && `OD: ${followup.iopOD}`}{followup.iopOD && followup.iopOS && " | "}{followup.iopOS && `OS: ${followup.iopOS}`}</span></div>
+                  <div className="text-sm"><span className="font-medium text-foreground">ضغط العين:</span><span className="ml-2 text-muted-foreground">{followup.iopOD && `OD: ${followup.iopOD}`}{followup.iopOD && followup.iopOS && " | "}{followup.iopOS && `OS: ${followup.iopOS}`}</span></div>
                 )}
-                {followup.findings && <div className="text-sm"><span className="font-medium text-slate-700">الملاحظات:</span><p className="text-slate-600 mt-1">{formatDisplayValue(followup.findings)}</p></div>}
-                {followup.prescription && <div className="text-sm"><span className="font-medium text-slate-700">الوصفة:</span><p className="text-slate-600 mt-1">{formatDisplayValue(followup.prescription)}</p></div>}
-                {followup.status && <div className="text-sm"><span className="font-medium text-slate-700">الحالة:</span><span className="ml-2 text-slate-600">{followup.status}</span></div>}
+                {followup.findings && <div className="text-sm"><span className="font-medium text-foreground">الملاحظات:</span><p className="text-muted-foreground mt-1">{formatDisplayValue(followup.findings)}</p></div>}
+                {followup.prescription && <div className="text-sm"><span className="font-medium text-foreground">الوصفة:</span><p className="text-muted-foreground mt-1">{formatDisplayValue(followup.prescription)}</p></div>}
+                {followup.status && <div className="text-sm"><span className="font-medium text-foreground">الحالة:</span><span className="ml-2 text-muted-foreground">{followup.status}</span></div>}
               </div>
             ))}
           </CardContent>

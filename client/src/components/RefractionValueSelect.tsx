@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -31,17 +30,11 @@ export default function RefractionValueSelect({
   allowEmpty = true,
 }: RefractionValueSelectProps) {
   const normalizedValue = String(value ?? "").trim();
-  const effectiveValue = normalizedValue || String(defaultValue ?? "").trim();
-
-  useEffect(() => {
-    if (!normalizedValue && defaultValue !== undefined) {
-      onChange(defaultValue);
-    }
-  }, [defaultValue, normalizedValue, onChange]);
+  const effectiveValue = normalizedValue || EMPTY_SELECT_VALUE;
 
   return (
     <Select
-      value={effectiveValue || EMPTY_SELECT_VALUE}
+      value={effectiveValue}
       onValueChange={(nextValue) =>
         onChange(nextValue === EMPTY_SELECT_VALUE ? "" : nextValue)
       }
@@ -50,7 +43,7 @@ export default function RefractionValueSelect({
         <SelectValue placeholder={placeholder ?? "Select value"} />
       </SelectTrigger>
       <SelectContent className={className}>
-        {allowEmpty ? <SelectItem value={EMPTY_SELECT_VALUE}>-</SelectItem> : null}
+        <SelectItem value={EMPTY_SELECT_VALUE}>-</SelectItem>
         {options.map((option) => (
           <SelectItem key={option} value={option}>
             {option}

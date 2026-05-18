@@ -56,7 +56,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
       <Button
         size="sm"
         variant="outline"
-        className="h-8 w-8 rounded-lg border-slate-200 bg-white p-0 shadow-sm"
+        className="h-8 w-8 rounded-lg border-border bg-background p-0 shadow-sm"
         title="طباعة الشيت"
         aria-label="طباعة الشيت"
         onClick={(event) => {

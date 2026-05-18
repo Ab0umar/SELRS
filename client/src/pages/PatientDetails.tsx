@@ -100,7 +100,7 @@ export default function PatientDetails() {
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
       {/* Sticky identity strip */}
-      <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-white">
+      <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-background">
         <div className="flex items-center gap-2 px-3 py-2.5">
           <Button
             variant="ghost"

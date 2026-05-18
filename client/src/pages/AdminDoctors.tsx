@@ -115,6 +115,8 @@ export default function AdminDoctors() {
   const [isImporting, setIsImporting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [delConfirmDoctor, setDelConfirmDoctor] = useState<string | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
@@ -305,7 +307,6 @@ export default function AdminDoctors() {
   const doctorsInactive = doctorsTotal - doctorsActive;
 
   const removeDoctor = (id: string) => {
-    if (!window.confirm("حذف هذا الطبيب من القائمة؟")) return;
     setDoctors((prev) => prev.filter((d) => d.id !== id));
     if (expandedId === id) setExpandedId(null);
   };
@@ -349,7 +350,7 @@ export default function AdminDoctors() {
             setDraft((prev) => ({ ...prev, locationType: value as "center" | "external" }))
           }
         >
-          <SelectTrigger className="h-9 text-xs bg-white">
+          <SelectTrigger className="h-9 text-xs bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -369,7 +370,7 @@ export default function AdminDoctors() {
             }))
           }
         >
-          <SelectTrigger className="h-9 text-xs bg-white">
+          <SelectTrigger className="h-9 text-xs bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -455,22 +456,31 @@ export default function AdminDoctors() {
               <Button type="button" variant="outline" className="h-9 text-xs border-border/60" disabled={isImporting} onClick={() => fileInputRef.current?.click()}>
                 استيراد CSV
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 border-dashed text-destructive hover:bg-destructive/10 hover:text-destructive text-[11px] font-bold"
-                onClick={() => {
-                  if (
-                    doctors.length === 0 ||
-                    window.confirm("مسح كل الأطباء من القائمة المحلية؟ (لن يُحدَّث الخادم حتى تحفظ قائمة فارغة.)")
-                  ) {
-                    setDoctors([]);
-                  }
-                }}
-              >
-                مسح الكل
-              </Button>
+              {confirmClearAll ? (
+                <div className="flex items-center gap-1">
+                  <button type="button" aria-label="تأكيد"
+                    className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                    onClick={() => { setDoctors([]); setConfirmClearAll(false); }}>
+                    تأكيد
+                  </button>
+                  <button type="button" aria-label="إلغاء"
+                    className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                    onClick={() => setConfirmClearAll(false)}>
+                    إلغاء
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 border-dashed text-destructive hover:bg-destructive/10 hover:text-destructive text-[11px] font-bold"
+                  disabled={doctors.length === 0}
+                  onClick={() => setConfirmClearAll(true)}
+                >
+                  مسح الكل
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -511,7 +521,7 @@ export default function AdminDoctors() {
                     <Fragment key={doctor.id}>
                       <TableRow className={cn(
                         "group transition-colors hover:bg-primary/[0.03]",
-                        idx % 2 === 0 ? "bg-white" : "bg-muted/10",
+                        idx % 2 === 0 ? "bg-background" : "bg-muted/10",
                         !doctor.isActive && "opacity-60 bg-muted/5 grayscale-[0.3]"
                       )}>
                         <TableCell className="align-middle py-3">
@@ -567,15 +577,26 @@ export default function AdminDoctors() {
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
-                              onClick={() => removeDoctor(doctor.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {delConfirmDoctor === doctor.id ? (
+                              <div className="flex items-center gap-1">
+                                <button type="button" aria-label="تأكيد الحذف"
+                                  className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                  onClick={() => { removeDoctor(doctor.id); setDelConfirmDoctor(null); }}>
+                                  تأكيد
+                                </button>
+                                <button type="button" aria-label="إلغاء الحذف"
+                                  className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                  onClick={() => setDelConfirmDoctor(null)}>
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button type="button" aria-label="حذف الطبيب"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                onClick={() => setDelConfirmDoctor(doctor.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -625,7 +646,7 @@ export default function AdminDoctors() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="h-9 bg-white text-xs border-primary/10">
+                                    <SelectTrigger className="h-9 bg-background text-xs border-primary/10">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -648,7 +669,7 @@ export default function AdminDoctors() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="h-9 bg-white text-xs border-primary/10">
+                                    <SelectTrigger className="h-9 bg-background text-xs border-primary/10">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>

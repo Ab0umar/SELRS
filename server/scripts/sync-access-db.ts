@@ -30,7 +30,7 @@ const TABLES = {
   advances:   "سلف",
   loans:      "القرض",
   home:       "البيت",
-  instagram:  "انستا",
+  instapay:   "انستا",
   employees:  "الموظفين",
   categories: "التصنيف",
   saadany:    "د_السعدني",
@@ -45,7 +45,7 @@ function dumpAccess(dbPath: string): Record<string, any[]> {
     "-T2", `"${TABLES.advances}"`,
     "-T3", `"${TABLES.loans}"`,
     "-T4", `"${TABLES.home}"`,
-    "-T5", `"${TABLES.instagram}"`,
+    "-T5", `"${TABLES.instapay}"`,
     "-T6", `"${TABLES.employees}"`,
     "-T7", `"${TABLES.categories}"`,
     "-T8", `"${TABLES.saadany}"`,
@@ -61,7 +61,7 @@ function dumpAccess(dbPath: string): Record<string, any[]> {
     advances:  parsed.t2 ?? [],
     loans:     parsed.t3 ?? [],
     home:      parsed.t4 ?? [],
-    instagram:  parsed.t5 ?? [],
+    instapay:   parsed.t5 ?? [],
     employees:  parsed.t6 ?? [],
     categories: parsed.t7 ?? [],
     saadany:    parsed.t8 ?? [],
@@ -255,8 +255,15 @@ async function batchUpsertAdvances(db: any, rows: any[]) {
   }).filter(Boolean);
   if (!vals.length) return;
   await db.execute(sql.raw(
-    `INSERT INTO accAdvances (accessId, txDate, advance, repayment, notes, employee, total) VALUES ${vals.join(",")} ON DUPLICATE KEY UPDATE txDate=VALUES(txDate), advance=VALUES(advance), repayment=VALUES(repayment), notes=VALUES(notes), employee=VALUES(employee), total=VALUES(total), syncedAt=NOW()`
+    `INSERT INTO accAdvances (accessId, txDate, advance, repayment, notes, employee, total) VALUES ${vals.join(",")} ON DUPLICATE KEY UPDATE txDate=VALUES(txDate), advance=VALUES(advance), repayment=VALUES(repayment), notes=VALUES(notes), total=VALUES(total), syncedAt=NOW()`
   ));
+  // Refresh canonical employee name from accEmployees via LIKE match
+  await db.execute(sql.raw(`
+    UPDATE accAdvances a
+    INNER JOIN accEmployees e ON TRIM(a.notes) LIKE CONCAT(TRIM(e.name), '%')
+    SET a.employee = TRIM(e.name)
+    WHERE a.employee IS NULL OR a.employee != TRIM(e.name)
+  `));
   console.log(`  accAdvances: ${vals.length} upserted`);
 }
 
@@ -362,7 +369,7 @@ async function main() {
   console.log(`   advances:   ${dump.advances?.length ?? 0} rows`);
   console.log(`   loans:      ${dump.loans?.length ?? 0} rows`);
   console.log(`   home:       ${dump.home?.length ?? 0} rows`);
-  console.log(`   instagram:  ${dump.instagram?.length ?? 0} rows`);
+  console.log(`   instapay:   ${dump.instapay?.length ?? 0} rows`);
   console.log(`   employees:  ${dump.employees?.length ?? 0} rows`);
   console.log(`   categories: ${dump.categories?.length ?? 0} rows`);
   console.log(`   saadany:    ${dump.saadany?.length ?? 0} rows\n`);
@@ -372,7 +379,7 @@ async function main() {
   await batchUpsertAdvances(db, dump.advances ?? []);
   await batchUpsertLoans(db, dump.loans ?? []);
   await batchUpsertSimple(db, "accHome", dump.home ?? []);
-  await batchUpsertSimple(db, "accInstagram", dump.instagram ?? []);
+  await batchUpsertSimple(db, "accInstapay", dump.instapay ?? []);
   await batchUpsertEmployees(db, dump.employees ?? []);
   await batchUpsertCategories(db, dump.categories ?? []);
   await batchUpsertSaadany(db, dump.saadany ?? []);

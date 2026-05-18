@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, ImageDown, Plus, Printer, RotateCcw, Save, Share2, X, ChevronDown } from "lucide-react";
+import { ImageDown, Plus, Printer, RotateCcw, Save, Share2, X, ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,26 +92,20 @@ export function OperationDialog({
       <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
         {/* Date + time */}
         <div className="flex items-center gap-1.5">
-          <div className="relative flex items-center">
-            <CalendarDays className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              type="date"
-              value={toDateInputValue(listDate)}
-              onChange={(e) => onListDateChange(e.target.value || getLocalDateIso())}
-              disabled={!canManageList}
-              className="h-8 w-[130px] rounded-md border border-border/60 bg-background pr-7 pl-2 text-[11px] tabular-nums focus:border-primary focus:ring-1 focus:ring-primary/30"
-            />
-          </div>
-          <div className="relative flex items-center">
-            <Clock className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              type="time"
-              value={listTime}
-              onChange={(e) => onListTimeChange(e.target.value)}
-              disabled={!canManageList}
-              className="h-8 w-[100px] rounded-md border border-border/60 bg-background pr-7 pl-2 text-[11px] tabular-nums focus:border-primary focus:ring-1 focus:ring-primary/30"
-            />
-          </div>
+          <input
+            type="date"
+            value={toDateInputValue(listDate)}
+            onChange={(e) => onListDateChange(e.target.value || getLocalDateIso())}
+            disabled={!canManageList}
+            className="h-8 w-[150px] rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <input
+            type="time"
+            value={listTime}
+            onChange={(e) => onListTimeChange(e.target.value)}
+            disabled={!canManageList}
+            className="h-8 w-[115px] rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+          />
         </div>
 
         {/* Doctor name (others tab only) */}
@@ -239,10 +233,6 @@ export function OperationDialog({
         </div>
       )}
 
-      {/* Meta line for export/print context */}
-      <div className="text-[10px] text-muted-foreground print:hidden">
-        {exportDateLabel} | {exportTimeLabel} | {exportDoctorLabel} | {exportOperationLabel}
-      </div>
     </>
   );
 }

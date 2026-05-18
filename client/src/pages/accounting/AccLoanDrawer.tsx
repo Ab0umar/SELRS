@@ -26,7 +26,13 @@ function todayIso() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }: Props) {
+export default function AccLoanDrawer({
+  open,
+  mode,
+  initial,
+  onClose,
+  onSaved,
+}: Props) {
   const utils = trpc.useUtils();
 
   const [txDate, setTxDate] = useState(todayIso());
@@ -102,35 +108,47 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px]" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
       <div
         dir="rtl"
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl sm:w-[420px]"
+        className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col bg-background shadow-xl sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[420px]"
         style={{ animation: "slideInRight 180ms cubic-bezier(0.16,1,0.3,1)" }}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">القروض</span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                القروض
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
                 {mode === "add" ? "إضافة" : "تعديل"}
               </span>
             </div>
-            <h2 className="mt-2 text-base font-bold text-slate-900">
+            <h2 className="mt-2 text-base font-bold text-foreground">
               {mode === "add" ? "قرض جديد" : "تعديل القرض"}
             </h2>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+          <div className="rounded-2xl border border-border bg-muted px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-slate-500">المتبقي الحالي</p>
-                <p className="mt-1 text-lg font-bold tabular-nums text-slate-900">{remaining.toLocaleString("ar-EG")}</p>
+                <p className="text-xs font-medium text-slate-500">
+                  المتبقي الحالي
+                </p>
+                <p className="mt-1 text-lg font-bold tabular-nums text-foreground">
+                  {remaining.toLocaleString("ar-EG")}
+                </p>
               </div>
               <div
                 className={cn(
@@ -146,12 +164,19 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">التاريخ</label>
-            <Input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} className="text-sm" />
+            <label className="text-xs font-medium text-muted-foreground">
+              التاريخ
+            </label>
+            <Input
+              type="date"
+              value={txDate}
+              onChange={(e) => setTxDate(e.target.value)}
+              className="text-sm"
+            />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">الاسم</label>
+            <label className="text-xs font-medium text-muted-foreground">الاسم</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -163,7 +188,9 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-blue-700">المبلغ</label>
+              <label className="text-xs font-medium text-blue-700">
+                المبلغ
+              </label>
               <Input
                 type="number"
                 min="0"
@@ -175,7 +202,9 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-emerald-700">السداد</label>
+              <label className="text-xs font-medium text-emerald-700">
+                السداد
+              </label>
               <Input
                 type="number"
                 min="0"
@@ -189,22 +218,32 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">ملاحظات</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              ملاحظات
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               dir="rtl"
-              className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-right text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+              className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-right text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
               placeholder="تفاصيل إضافية أو سبب القرض"
             />
           </div>
 
-          {err ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{err}</p> : null}
+          {err ? (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {err}
+            </p>
+          ) : null}
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 px-5 py-4">
-          <Button className="w-full" onClick={handleSave} disabled={busy || !txDate || !name.trim()}>
+        <div className="space-y-2 border-t border-border px-4 py-4 sm:px-5">
+          <Button
+            className="w-full"
+            onClick={handleSave}
+            disabled={busy || !txDate || !name.trim()}
+          >
             {busy && <Loader2 className="ml-2 h-3.5 w-3.5 animate-spin" />}
             {mode === "add" ? "حفظ القرض" : "تحديث القرض"}
           </Button>
@@ -212,10 +251,24 @@ export default function AccLoanDrawer({ open, mode, initial, onClose, onSaved }:
           {mode === "edit" ? (
             deleteConfirm ? (
               <div className="flex gap-2">
-                <Button variant="destructive" className="flex-1 text-xs" onClick={handleDelete} disabled={busy}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "تأكيد الحذف"}
+                <Button
+                  variant="destructive"
+                  className="flex-1 text-xs"
+                  onClick={handleDelete}
+                  disabled={busy}
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "تأكيد الحذف"
+                  )}
                 </Button>
-                <Button variant="outline" className="flex-1 text-xs" onClick={() => setDeleteConfirm(false)} disabled={busy}>
+                <Button
+                  variant="outline"
+                  className="flex-1 text-xs"
+                  onClick={() => setDeleteConfirm(false)}
+                  disabled={busy}
+                >
                   إلغاء
                 </Button>
               </div>

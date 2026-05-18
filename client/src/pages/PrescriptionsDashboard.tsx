@@ -59,7 +59,7 @@ function statusBadge(status: Exclude<RxStatus, "all">) {
     return <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">فعالة</span>;
   }
   if (status === "expired") {
-    return <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">منتهية</span>;
+    return <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">منتهية</span>;
   }
   return <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700">مكتملة</span>;
 }
@@ -146,7 +146,7 @@ export default function PrescriptionsDashboard() {
         <StatCard title="الإجمالي" value={stats.total} icon={Pill} description="الروشتات المتاحة" />
         <StatCard title="فعالة" value={stats.active} icon={Clock3} description={`آخر ${ACTIVE_DAYS} يومًا`} iconColor="bg-emerald-100 text-emerald-700" />
         <StatCard title="مكتملة" value={stats.completed} icon={CheckCircle2} description="خارج نافذة النشاط" iconColor="bg-sky-100 text-sky-700" />
-        <StatCard title="منتهية" value={stats.expired} icon={XCircle} description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`} iconColor="bg-slate-100 text-slate-700" />
+        <StatCard title="منتهية" value={stats.expired} icon={XCircle} description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`} iconColor="bg-muted text-foreground" />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -243,7 +243,7 @@ export default function PrescriptionsDashboard() {
                           {row.patientCode || "—"}
                         </div>
                       </div>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">منتهية</span>
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">منتهية</span>
                     </div>
                     <div className="mt-3 text-[11px] text-muted-foreground">
                       {row.itemCount} دواء, {row.doctorName || "—"}

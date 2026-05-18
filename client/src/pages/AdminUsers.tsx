@@ -153,7 +153,7 @@ function roleBadgeClass(role: UserRole): string {
     accountant:
       "bg-cyan-100 text-cyan-900 border-0 dark:bg-cyan-950/50 dark:text-cyan-100",
     admin:
-      "bg-slate-200 text-slate-900 border-0 dark:bg-slate-800 dark:text-slate-100",
+      "bg-border text-foreground border-0 dark:bg-slate-800 dark:text-slate-100",
   };
   return map[role] ?? "bg-muted text-foreground border-0";
 }
@@ -1000,7 +1000,7 @@ export default function AdminUsers() {
                     return (
                       <TableRow key={u.id} className={cn(
                         "group transition-colors hover:bg-primary/[0.03]",
-                        idx % 2 === 0 ? "bg-white" : "bg-muted/15"
+                        idx % 2 === 0 ? "bg-background" : "bg-muted/15"
                       )}>
                         <TableCell className="align-middle py-3">
                           <div className="flex items-center justify-end gap-3">

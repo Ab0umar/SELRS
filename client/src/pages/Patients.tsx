@@ -225,13 +225,13 @@ export default function Patients() {
                 }}
               />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm text-muted-foreground rounded-xl border border-slate-200 bg-white/80 px-3 py-2">
+                <div className="text-sm text-muted-foreground rounded-xl border border-border bg-background/80 px-3 py-2">
                   Page {currentPage}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    className="rounded-xl border-slate-200 bg-white"
+                    className="rounded-xl border-border bg-background"
                     onClick={() => {
                       if (cursorHistory.length === 0) return;
                       const prev = [...cursorHistory];
@@ -245,7 +245,7 @@ export default function Patients() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="rounded-xl border-slate-200 bg-white"
+                    className="rounded-xl border-border bg-background"
                     onClick={() => {
                       if (!nextCursor) return;
                       setCursorHistory((prev) => [...prev, cursor]);

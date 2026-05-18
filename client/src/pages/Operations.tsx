@@ -1,5 +1,6 @@
-import { History, Syringe } from "lucide-react";
-import { useMemo, useState } from "react";
+import { History, Syringe, Trash2 } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
 import { OperationsBookingInlinePanel } from "@/components/operations/OperationsBookingInlinePanel";
@@ -8,9 +9,12 @@ import { OperationsTabs } from "@/components/operations/OperationsTabs";
 import { OperationsTable } from "@/components/operations/OperationsTable";
 import { OperationsHistoryDrawer } from "@/components/operations/OperationsHistoryDrawer";
 import { Button } from "@/components/ui/button";
+import { TAB_OTHERS, operationTypeLabel } from "@/lib/operationsPricing";
 import { formatDayDate } from "@/hooks/operations/operationsShared";
 import { useOperations } from "@/hooks/operations/useOperations";
 import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
+import { trpc } from "@/lib/trpc";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 type SettlementFilter = "open" | "settled" | "all";
 
@@ -18,9 +22,22 @@ export default function Operations() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settlementFilter, setSettlementFilter] = useState<SettlementFilter>("open");
   const [settlementRailOpen, setSettlementRailOpen] = useState(false);
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   const operations = useOperations();
   const actions = useOperationsActions(operations);
+  const utils = trpc.useUtils();
+
+  const deleteBookingMutation = trpc.medical.deleteOperationBooking.useMutation({
+    onSuccess: async () => {
+      await utils.medical.getOperationBookings.invalidate();
+      await utils.medical.getTodayOperationLists.invalidate();
+      toast.success("تم حذف الحجز بنجاح");
+    },
+    onError: (error) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر حذف الحجز"));
+    },
+  });
 
   const decoratedRows = useMemo(() => {
     return operations.currentList.map((row) => {
@@ -35,8 +52,7 @@ export default function Operations() {
 
   const openRows = decoratedRows.filter((entry) => !entry.isSettled).map((entry) => entry.row);
   const settledRows = decoratedRows.filter((entry) => entry.isSettled).map((entry) => entry.row);
-  const visibleRows =
-    settlementFilter === "all" ? operations.currentList : settlementFilter === "open" ? openRows : settledRows;
+  const visibleRows = operations.currentList;
 
   if (!operations.isAuthenticated) return null;
 
@@ -118,6 +134,91 @@ export default function Operations() {
               }}
             />
 
+            {operations.activeTab === TAB_OTHERS && (
+              <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
+                <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-foreground">حجوزات العمليات</h2>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">{formatDayDate(String(operations.listDate))}</span>
+                </div>
+                <div className="px-4 py-3">
+                  {operations.operationBookingsQuery.isLoading ? (
+                    <p className="text-[11px] text-muted-foreground animate-pulse">جاري تحميل الحجوزات...</p>
+                  ) : (operations.operationBookingsQuery.data ?? []).length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">لا توجد حجوزات مسجلة لهذا التاريخ.</p>
+                  ) : (
+                    <table className="w-full text-xs border-collapse" dir="rtl">
+                      <thead>
+                        <tr className="border-b border-border/50 text-muted-foreground">
+                          <th className="py-1.5 text-right font-medium">نوع العملية</th>
+                          <th className="py-1.5 text-center w-20 font-medium">الوقت</th>
+                          <th className="py-1.5 text-center w-16 font-medium">العدد</th>
+                          <th className="py-1.5 text-center w-10 font-medium"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const bookings = operations.operationBookingsQuery.data ?? [];
+                          const grouped: Record<string, typeof bookings> = {};
+                          for (const b of bookings) {
+                            const d = b.doctorName || "طبيب غير محدد";
+                            if (!grouped[d]) grouped[d] = [];
+                            grouped[d].push(b);
+                          }
+                          return Object.entries(grouped).map(([doctor, list]) => (
+                            <Fragment key={doctor}>
+                              <tr>
+                                <td colSpan={4} className="pt-2 pb-0.5 font-semibold text-primary text-[11px]">{doctor}</td>
+                              </tr>
+                              {list.map((booking) => (
+                                <tr key={booking.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
+                                  <td className="py-1 pr-3 text-muted-foreground">{operationTypeLabel(booking.operationType)}</td>
+                                  <td className="py-1 text-center tabular-nums" dir="ltr">{booking.bookingTime || "—"}</td>
+                                  <td className="py-1 text-center font-semibold tabular-nums">{booking.casesCount}</td>
+                                  <td className="py-1 text-center">
+                                    {delConfirm === booking.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <button type="button" aria-label="تأكيد الحذف"
+                                          className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                          onClick={() => { deleteBookingMutation.mutate({ id: booking.id }); setDelConfirm(null); }}>
+                                          تأكيد
+                                        </button>
+                                        <button type="button" aria-label="إلغاء الحذف"
+                                          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                          onClick={() => setDelConfirm(null)}>
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button type="button" aria-label="حذف الحجز"
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                        disabled={deleteBookingMutation.isPending}
+                                        onClick={() => setDelConfirm(booking.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </Fragment>
+                          ));
+                        })()}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-border/50">
+                          <td className="pt-1.5 font-semibold text-foreground">إجمالي الحالات</td>
+                          <td />
+                          <td className="pt-1.5 text-center font-bold tabular-nums text-foreground">
+                            {(operations.operationBookingsQuery.data ?? []).reduce((acc, b) => acc + (b.casesCount || 0), 0)}
+                          </td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+              </section>
+            )}
+
             <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
               <div className="border-b border-border/50 px-4 py-3">
                 <OperationDialog
@@ -155,50 +256,8 @@ export default function Operations() {
               </div>
             </section>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {([
-                ["open", "المفتوحة", openRows.length],
-                ["settled", "المسددة", settledRows.length],
-                ["all", "الكل", operations.currentList.length],
-              ] as const).map(([key, label, count]) => {
-                const isActive = settlementFilter === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSettlementFilter(key)}
-                    className={[
-                      "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
-                      isActive
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-border/50 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40",
-                    ].join(" ")}
-                  >
-                    <span>{label}</span>
-                    <span className="rounded bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
 
             <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
-              <div className="border-b border-border/50 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-semibold">قائمة العمليات</h2>
-                    <p className="text-[11px] text-muted-foreground">
-                      {settlementFilter === "open"
-                        ? "تظهر العناصر المفتوحة فقط"
-                        : settlementFilter === "settled"
-                          ? "تظهر العناصر المسددة فقط"
-                          : "تظهر كل العناصر"}
-                    </p>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground tabular-nums">
-                    المعروض: {visibleRows.length} / {operations.currentList.length}
-                  </div>
-                </div>
-              </div>
               <div className="px-4 py-3">
                 <OperationsTable
                   canManageList={operations.canManageList}

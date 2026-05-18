@@ -1,24 +1,28 @@
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowUpRight,
   Banknote,
   BookOpen,
   Check,
+  ChevronDown,
   CreditCard,
   FileText,
   Home,
   Loader,
   Loader2,
+  Pencil,
   ReceiptText,
   RefreshCw,
   Scissors,
   Smartphone,
   Stethoscope,
+  Trash2,
   TrendingUp,
   UserRound,
   Users,
   Wallet,
+  X,
 } from "lucide-react";
 import { Link } from "wouter";
 import AccountingShell from "./AccountingShell";
@@ -27,25 +31,96 @@ import { formatMoneyAr, formatCountAr } from "./accountingFormat";
 
 const quickLinkGroups = [
   [
-    { label: "الخزنة — قيود", href: "/accounting/ledger",          icon: BookOpen,    desc: "إضافة وتعديل قيود الخزنة" },
-    { label: "الخزنة — رصيد", href: "/accounting/cashbook",        icon: Wallet,      desc: "حركة الخزنة والرصيد الحالي" },
-    { label: "كشف السلف",     href: "/accounting/advances",        icon: CreditCard,  desc: "سلف الموظفين وحركات السداد" },
-    { label: "القروض",         href: "/accounting/loans",           icon: FileText,    desc: "متابعة القروض والسداد" },
+    {
+      label: "الخزنة — قيود",
+      href: "/accounting/ledger",
+      icon: BookOpen,
+      desc: "إضافة وتعديل قيود الخزنة",
+    },
+    {
+      label: "الخزنة — رصيد",
+      href: "/accounting/cashbook",
+      icon: Wallet,
+      desc: "حركة الخزنة والرصيد الحالي",
+    },
+    {
+      label: "كشف السلف",
+      href: "/accounting/advances",
+      icon: CreditCard,
+      desc: "سلف الموظفين وحركات السداد",
+    },
+    {
+      label: "القروض",
+      href: "/accounting/loans",
+      icon: FileText,
+      desc: "متابعة القروض والسداد",
+    },
   ],
   [
-    { label: "الإيراد اليومي", href: "/accounting/daily-revenue",  icon: Banknote,    desc: "مراجعة الإيراد حسب اليوم" },
-    { label: "إيراد الخدمات", href: "/accounting/service-revenue", icon: TrendingUp,  desc: "تقرير إيراد الخدمات" },
-    { label: "بحث الإيصالات", href: "/accounting/receipts",        icon: ReceiptText, desc: "البحث بالرقم أو الكود" },
-    { label: "الخدمات",        href: "/accounting/services",        icon: Scissors,    desc: "قائمة الخدمات" },
+    {
+      label: "الإيراد اليومي",
+      href: "/accounting/daily-revenue",
+      icon: Banknote,
+      desc: "مراجعة الإيراد حسب اليوم",
+    },
+    {
+      label: "إيراد الخدمات",
+      href: "/accounting/service-revenue",
+      icon: TrendingUp,
+      desc: "تقرير إيراد الخدمات",
+    },
+    {
+      label: "بحث الإيصالات",
+      href: "/accounting/receipts",
+      icon: ReceiptText,
+      desc: "البحث بالرقم أو الكود",
+    },
+    {
+      label: "الخدمات",
+      href: "/accounting/services",
+      icon: Scissors,
+      desc: "قائمة الخدمات",
+    },
   ],
   [
-    { label: "بحث المرضى",    href: "/accounting/patients",        icon: Users,       desc: "البحث عن المريض والإيصالات" },
-    { label: "حساب مريض",     href: "/accounting/patient",         icon: UserRound,   desc: "فتح حساب مريض مباشرة" },
-    { label: "حساب طبيب",     href: "/accounting/doctor",          icon: Stethoscope, desc: "فتح حساب طبيب مباشرة" },
+    {
+      label: "بحث المرضى",
+      href: "/accounting/patients",
+      icon: Users,
+      desc: "البحث عن المريض والإيصالات",
+    },
+    {
+      label: "حساب مريض",
+      href: "/accounting/patient",
+      icon: UserRound,
+      desc: "فتح حساب مريض مباشرة",
+    },
+    {
+      label: "حساب طبيب",
+      href: "/accounting/doctor",
+      icon: Stethoscope,
+      desc: "فتح حساب طبيب مباشرة",
+    },
   ],
   [
-    { label: "رصيد البيت",    href: "/accounting/home-fund",       icon: Home,        desc: "متابعة حساب البيت" },
-    { label: "رصيد انستاباي", href: "/accounting/instapay",        icon: Smartphone,  desc: "متابعة حساب انستاباي" },
+    {
+      label: "رصيد البيت",
+      href: "/accounting/home-fund",
+      icon: Home,
+      desc: "متابعة حساب البيت",
+    },
+    {
+      label: "رصيد انستاباي",
+      href: "/accounting/instapay",
+      icon: Smartphone,
+      desc: "متابعة حساب انستاباي",
+    },
+    {
+      label: "د. السعدني",
+      href: "/accounting/dr-saadany",
+      icon: UserRound,
+      desc: "متابعة حساب الدكتور",
+    },
   ],
 ];
 
@@ -58,10 +133,15 @@ function formatTime(isoDate: string) {
   return `${String(h % 12 || 12).padStart(2, "0")}:${m} ${period}`;
 }
 
-
 export default function AccountingHome() {
+  const [viewDate, setViewDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
+  const today = new Date().toISOString().split("T")[0];
+  const isToday = viewDate === today;
+
   const summaryQuery = trpc.accounting.dashboardSummary.useQuery(
-    { sectionCode: 15 },
+    { sectionCode: 15, date: viewDate },
     { refetchOnWindowFocus: true },
   );
   const cashbookSummaryQuery = trpc.accounting.accLedgerSummary.useQuery(
@@ -70,33 +150,125 @@ export default function AccountingHome() {
   );
 
   const activityQuery = trpc.accounting.transactions.useQuery(
-    { sectionCode: 15, limit: 20 },
-    { refetchInterval: 60_000, refetchOnWindowFocus: true },
+    { sectionCode: 15, limit: 50, date: viewDate },
+    { refetchInterval: isToday ? 60_000 : false, refetchOnWindowFocus: true },
   );
 
-  const categoriesQ = trpc.accounting.accCategories.useQuery(undefined, { refetchOnWindowFocus: false });
+  const categoriesQ = trpc.accounting.accCategories.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const addMut = trpc.accounting.addAccEntry.useMutation();
   const utils = trpc.useUtils();
 
-  const [txDate,  setTxDate]  = useState(() => new Date().toISOString().split("T")[0]);
-  const [income,  setIncome]  = useState("");
+  const [txDate, setTxDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
+  const [income, setIncome] = useState("");
   const [expense, setExpense] = useState("");
-  const [notes,   setNotes]   = useState("");
-  const [saved,   setSaved]   = useState(false);
+  const [notes, setNotes] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [notesFocused, setNotesFocused] = useState(false);
+  const [activeTab, setActiveTab] = useState<"cashbook" | "service">("cashbook");
+  const [moreQuickLinksOpen, setMoreQuickLinksOpen] = useState(false);
+  const [servicePat, setServicePat] = useState("");
+  const [serviceDocCode, setServiceDocCode] = useState("");
+  const [serviceLines, setServiceLines] = useState([{ svcCode: "", qty: "1", discount: "", price: "" }]);
+  const [serviceSaved, setServiceSaved] = useState(false);
+  const [deletingTrNo, setDeletingTrNo] = useState<string | null>(null);
+  const [editingReceipt, setEditingReceipt] = useState<{
+    trNo: string;
+    patientCode: string;
+    paidAmount: string;
+    discount: string;
+  } | null>(null);
+
+  const catalogQ = trpc.accounting.serviceEntryCatalog.useQuery(undefined, {
+    enabled: activeTab === "service",
+    refetchOnWindowFocus: false,
+  });
+  const servicePatLookup = trpc.accounting.patientNameLookup.useQuery(
+    { patientCode: servicePat.trim() },
+    {
+      enabled: activeTab === "service" && servicePat.trim().length > 0,
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  );
+  const addServicesMut = trpc.accounting.addPatientServices.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        summaryQuery.refetch(),
+        activityQuery.refetch(),
+        utils.accounting.lasikServices.invalidate(),
+        utils.accounting.patientLasikSummary.invalidate(),
+        utils.accounting.serviceRevenue.invalidate(),
+      ]);
+      setServicePat("");
+      setServiceDocCode("");
+      setServiceLines([{ svcCode: "", qty: "1", discount: "", price: "" }]);
+      setServiceSaved(true);
+      setTimeout(() => setServiceSaved(false), 2000);
+    },
+  });
+
+  const deleteReceiptMut = trpc.accounting.deleteReceipt.useMutation({
+    onSuccess: async () => {
+      setDeletingTrNo(null);
+      await Promise.all([summaryQuery.refetch(), activityQuery.refetch()]);
+    },
+  });
+  const updateReceiptMut = trpc.accounting.updateReceipt.useMutation({
+    onSuccess: async () => {
+      setEditingReceipt(null);
+      await activityQuery.refetch();
+    },
+  });
+
+  const catalogServices = useMemo(() => catalogQ.data?.services ?? [], [catalogQ.data]);
+  const catalogDoctors = useMemo(() => catalogQ.data?.doctors ?? [], [catalogQ.data]);
+  const canSaveService =
+    servicePat.trim().length > 0 &&
+    serviceLines.some((l) => l.svcCode.trim()) &&
+    !addServicesMut.isPending;
+
+  function updateServiceLine(idx: number, patch: Partial<{ svcCode: string; qty: string; discount: string; price: string }>) {
+    setServiceLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  }
+
+  async function handleQuickAddService() {
+    if (!canSaveService) return;
+    const lines = serviceLines
+      .filter((l) => l.svcCode.trim())
+      .map((l) => ({
+        serviceCode: l.svcCode.trim(),
+        serviceName: catalogServices.find((s) => s.code === l.svcCode)?.name ?? "",
+        quantity: Math.max(1, Math.trunc(Number(l.qty) || 1)),
+        discount: l.discount !== "" ? parseFloat(l.discount) : undefined,
+        price: l.price !== "" ? parseFloat(l.price) : undefined,
+      }));
+    await addServicesMut.mutateAsync({
+      patientCode: servicePat.trim(),
+      doctorCode: serviceDocCode || undefined,
+      doctorName: catalogDoctors.find((d) => d.code === serviceDocCode)?.name,
+      lines,
+    });
+  }
 
   async function handleQuickAdd() {
     if ((!income && !expense) || !txDate) return;
     await addMut.mutateAsync({
       txDate,
-      income:  parseFloat(income)  || 0,
+      income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
-      notes:   notes.trim(),
+      notes: notes.trim(),
     });
     utils.accounting.accLedger.invalidate();
     utils.accounting.accLedgerSummary.invalidate();
     utils.accounting.accHomeLedger.invalidate();
     void cashbookSummaryQuery.refetch();
-    setIncome(""); setExpense(""); setNotes("");
+    setIncome("");
+    setExpense("");
+    setNotes("");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -114,170 +286,490 @@ export default function AccountingHome() {
   return (
     <AccountingShell>
       <div dir="rtl" className="space-y-4">
-        <section className="rounded-[24px] border border-slate-200 bg-white p-4 lg:p-5">
-          <div className="flex gap-4">
-
-            {/* Metrics column */}
-            <div className="flex flex-col gap-1 min-w-[160px]">
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">مؤشرات اليوم</div>
-              {([
-                { href: "/accounting/daily-revenue", label: "إيراد اليوم",   val: summaryQuery.isLoading ? "..." : formatMoneyAr(s?.totalRevenueToday ?? 0) },
-                { href: "/accounting/receipts",      label: "إيصالات اليوم", val: summaryQuery.isLoading ? "..." : formatCountAr(s?.totalReceiptsToday ?? 0) },
-                { href: "/accounting/cashbook",      label: "إجمالي الإيراد", val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.totalIncome ?? 0) },
-                { href: "/accounting/cashbook",      label: "رصيد الخزنة",   val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.currentBalance ?? 0) },
-              ] as const).map((m) => (
+        <section
+          className="rounded-[24px] border border-border bg-background p-4 lg:p-5"
+          dir="rtl"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {isToday ? "مؤشرات اليوم" : "مؤشرات اليوم المحدد"}
+                </div>
+                {!isToday && (
+                  <button
+                    type="button"
+                    onClick={() => setViewDate(today)}
+                    className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-muted"
+                  >
+                    اليوم
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <input
+                  type="date"
+                  value={viewDate}
+                  max={today}
+                  onChange={(e) => e.target.value && setViewDate(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-2 py-1 text-xs tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                />
+                {[
+                  {
+                    href: "/accounting/daily-revenue",
+                    label: isToday ? "إيراد اليوم" : "إيراد اليوم المحدد",
+                    val: summaryQuery.isLoading ? "..." : formatMoneyAr(s?.totalRevenueToday ?? 0),
+                  },
+                  {
+                    href: "/accounting/receipts",
+                    label: isToday ? "إيصالات اليوم" : "إيصالات اليوم المحدد",
+                    val: summaryQuery.isLoading ? "..." : formatCountAr(s?.totalReceiptsToday ?? 0),
+                  },
+                  {
+                    href: "/accounting/cashbook",
+                    label: "رصيد الخزنة",
+                    val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.currentBalance ?? 0),
+                  },
+                ].map((m) => (
+                  <a
+                    key={m.label}
+                    href={m.href}
+                    className="group hidden flex-col items-end gap-0.5 no-underline sm:flex"
+                  >
+                    <span className="text-[10px] font-medium text-slate-400 group-hover:text-muted-foreground transition-colors">
+                      {m.label}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums leading-none text-foreground">
+                      {m.val}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 sm:hidden">
+              {[
+                {
+                  href: "/accounting/daily-revenue",
+                  label: isToday ? "إيراد اليوم" : "الإيراد",
+                  val: summaryQuery.isLoading ? "..." : formatMoneyAr(s?.totalRevenueToday ?? 0),
+                },
+                {
+                  href: "/accounting/receipts",
+                  label: isToday ? "إيصالات اليوم" : "الإيصالات",
+                  val: summaryQuery.isLoading ? "..." : formatCountAr(s?.totalReceiptsToday ?? 0),
+                },
+                {
+                  href: "/accounting/cashbook",
+                  label: "الخزنة",
+                  val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.currentBalance ?? 0),
+                },
+              ].map((m) => (
                 <a
                   key={m.label}
                   href={m.href}
-                  className="group flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 no-underline transition-colors duration-100 hover:bg-white"
+                  className="group flex flex-col gap-0.5 no-underline"
                 >
-                  <div className="flex items-start justify-between gap-1.5">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.13em] text-slate-500">{m.label}</span>
-                    <svg className="h-3 w-3 shrink-0 text-slate-300 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4h8v8M4 12 12 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                  <div className="text-[1.05rem] font-bold tabular-nums leading-none text-slate-900">{m.val}</div>
+                  <span className="text-[10px] font-medium text-slate-400 group-hover:text-muted-foreground transition-colors">
+                    {m.label}
+                  </span>
+                  <span className="text-sm font-bold tabular-nums leading-none text-foreground">
+                    {m.val}
+                  </span>
                 </a>
               ))}
             </div>
-
-            {/* Divider */}
-            <div className="w-px self-stretch bg-slate-100" />
-
-            {/* Quick-add cashbook entry */}
-            <div className="flex flex-1 flex-col gap-2.5" dir="rtl">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">قيد خزنة سريع</div>
-
-              {/* Row 1: التاريخ | الإيراد | المصروف */}
-              <div className="flex gap-2">
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">التاريخ</span>
-                  <input
-                    type="date"
-                    value={txDate}
-                    onChange={e => setTxDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs font-medium text-emerald-700">الإيراد</span>
-                  <input
-                    type="number" min="0" step="0.01"
-                    value={income}
-                    onChange={e => setIncome(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm tabular-nums outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs font-medium text-rose-700">المصروف</span>
-                  <input
-                    type="number" min="0" step="0.01"
-                    value={expense}
-                    onChange={e => setExpense(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm tabular-nums outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
-                  />
-                </div>
+            <div className="h-px bg-muted" />
+            <div className="flex flex-col gap-2.5">
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("cashbook")}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                        activeTab === "cashbook"
+                          ? "bg-slate-900 text-white"
+                          : "border border-border text-slate-500 hover:border-border",
+                      )}
+                    >
+                      <Wallet className="h-3 w-3" />
+                      قيد خزنة
+                    </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("service")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    activeTab === "service"
+                      ? "bg-blue-600 text-white"
+                      : "border border-dashed border-blue-300 bg-background text-blue-700 hover:border-blue-500 hover:bg-blue-50",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none",
+                      activeTab === "service"
+                        ? "bg-background/20 text-white"
+                        : "bg-blue-500 text-white",
+                    )}
+                  >
+                    +
+                  </span>
+                  خدمة
+                </button>
               </div>
-
-              {/* Row 2: البيان */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-500">البيان</span>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  rows={2}
-                  placeholder="اسم الموظف أو البيان..."
-                  className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                />
-                {cats.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {cats.map(c => (
-                      <button
-                        key={c.id} type="button"
-                        onClick={() => setNotes(c.name)}
-                        className={cn(
-                          "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors",
-                          notes.trim() === c.name
-                            ? "border-blue-300 bg-blue-50 text-blue-700"
-                            : "border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
-                        )}
-                      >{c.name}</button>
-                    ))}
+              {activeTab === "cashbook" && (
+                <div className="flex flex-col gap-1.5">
+                  {(
+                    [
+                      {
+                        id: "qk-cb-date",
+                        label: "التاريخ",
+                        node: (
+                          <input
+                            id="qk-cb-date"
+                            type="date"
+                            value={txDate}
+                            onChange={(e) => setTxDate(e.target.value)}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                          />
+                        ),
+                      },
+                      {
+                        id: "qk-cb-income",
+                        label: "الإيراد",
+                        node: (
+                          <input
+                            id="qk-cb-income"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={income}
+                            onChange={(e) => setIncome(e.target.value)}
+                            placeholder="0"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                          />
+                        ),
+                      },
+                      {
+                        id: "qk-cb-expense",
+                        label: "المصروف",
+                        node: (
+                          <input
+                            id="qk-cb-expense"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={expense}
+                            onChange={(e) => setExpense(e.target.value)}
+                            placeholder="0"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+                          />
+                        ),
+                      },
+                      {
+                        id: "qk-cb-notes",
+                        label: "البيان",
+                        node: (
+                          <input
+                            id="qk-cb-notes"
+                            type="text"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            onFocus={() => setNotesFocused(true)}
+                            onBlur={() => setNotesFocused(false)}
+                            placeholder="اسم الموظف أو البيان..."
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                          />
+                        ),
+                      },
+                    ] as const
+                  ).map((row) => (
+                    <div key={row.label} className="flex items-center gap-3">
+                      <label
+                        htmlFor={row.id}
+                        className="w-16 shrink-0 text-xs font-medium text-slate-500"
+                      >
+                        {row.label}
+                      </label>
+                      <div className="flex-1">{row.node}</div>
+                    </div>
+                  ))}
+                  {cats.length > 0 && (notesFocused || notes.length > 0) && (
+                    <div className="flex items-start gap-3">
+                      <span className="w-16 shrink-0 pt-0.5 text-xs font-medium text-slate-500">
+                        التصنيف
+                      </span>
+                      <div className="flex flex-1 flex-wrap gap-1.5">
+                        {cats.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            aria-pressed={notes.trim() === c.name}
+                            onClick={() =>
+                              setNotes(notes.trim() === c.name ? "" : c.name)
+                            }
+                            className={cn(
+                              "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
+                              notes.trim() === c.name
+                                ? "border-blue-300 bg-blue-50 text-blue-700"
+                                : "border-border text-muted-foreground hover:border-border hover:bg-muted",
+                            )}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex justify-start pt-0.5">
+                    <button
+                      type="button"
+                      onClick={handleQuickAdd}
+                      disabled={
+                        addMut.isPending || (!income && !expense) || !txDate
+                      }
+                      className={cn(
+                        "rounded-lg px-5 py-1.5 text-sm font-semibold transition-colors",
+                        saved
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                          : "bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40",
+                      )}
+                    >
+                      {saved ? "تم ✓" : "حفظ"}
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {addMut.error && (
-                <p className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs text-rose-700">{addMut.error.message}</p>
+                </div>
               )}
-
-              <button
-                type="button"
-                onClick={handleQuickAdd}
-                disabled={addMut.isPending || (!income && !expense) || !txDate}
-                className={cn(
-                  "flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors",
-                  saved
-                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                    : "bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
-                )}
-              >
-                {addMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : null}
-                {saved ? "تم الحفظ" : "حفظ القيد"}
-              </button>
+              {activeTab === "service" && (
+                <div className="flex flex-col gap-1.5">
+                  {/* Patient + Doctor (shared) */}
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="qk-svc-pat" className="w-16 shrink-0 text-xs font-medium text-slate-500">
+                      المريض
+                    </label>
+                    <div className="flex flex-1 items-center gap-2">
+                      <input
+                        id="qk-svc-pat"
+                        type="text"
+                        value={servicePat}
+                        onChange={(e) => setServicePat(e.target.value)}
+                        placeholder="كود المريض"
+                        dir="ltr"
+                        className="w-28 rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                      />
+                      {servicePat.trim().length > 0 && (
+                        <span className="text-xs text-slate-500">
+                          {servicePatLookup.isFetching
+                            ? "..."
+                            : servicePatLookup.data?.patientName ?? "غير موجود"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="qk-svc-doctor" className="w-16 shrink-0 text-xs font-medium text-slate-500">
+                      الدكتور
+                    </label>
+                    <select
+                      id="qk-svc-doctor"
+                      value={serviceDocCode}
+                      onChange={(e) => setServiceDocCode(e.target.value)}
+                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    >
+                      <option value="">بدون</option>
+                      {catalogDoctors.map((d) => (
+                        <option key={d.code} value={d.code}>
+                          {d.code} - {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Service lines */}
+                  <div className="flex flex-col gap-1">
+                    {serviceLines.map((line, idx) => {
+                      const info = catalogServices.find((s) => s.code === line.svcCode);
+                      return (
+                        <div key={idx} className="flex items-center gap-1.5">
+                          <select
+                            aria-label={`الخدمة ${idx + 1}`}
+                            value={line.svcCode}
+                            onChange={(e) => {
+                              const code = e.target.value;
+                              const svcInfo = catalogServices.find((s) => s.code === code);
+                              updateServiceLine(idx, {
+                                svcCode: code,
+                                price: svcInfo && line.price === "" ? String(svcInfo.price ?? "") : line.price,
+                              });
+                            }}
+                            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                          >
+                            <option value="">الخدمة</option>
+                            {catalogServices.map((svc) => (
+                              <option key={svc.code} value={svc.code}>
+                                {svc.code} - {svc.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            aria-label="السعر"
+                            value={line.price}
+                            onChange={(e) => updateServiceLine(idx, { price: e.target.value })}
+                            placeholder={info ? String(info.price ?? "سعر") : "سعر"}
+                            className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                          />
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            aria-label="العدد"
+                            value={line.qty}
+                            onChange={(e) => updateServiceLine(idx, { qty: e.target.value })}
+                            className="w-14 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            aria-label="الخصم"
+                            value={line.discount}
+                            onChange={(e) => updateServiceLine(idx, { discount: e.target.value })}
+                            placeholder="خصم"
+                            className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                          />
+                          {serviceLines.length > 1 && (
+                            <button
+                              type="button"
+                              aria-label="حذف السطر"
+                              onClick={() => setServiceLines((prev) => prev.filter((_, i) => i !== idx))}
+                              className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setServiceLines((prev) => [...prev, { svcCode: "", qty: "1", discount: "", price: "" }])}
+                    className="self-start rounded-full border border-dashed border-blue-200 px-3 py-0.5 text-xs font-medium text-blue-600 hover:border-blue-400 hover:bg-blue-50"
+                  >
+                    + خدمة
+                  </button>
+                  {(() => {
+                    const filled = serviceLines.filter((l) => l.svcCode.trim());
+                    if (filled.length === 0) return null;
+                    let gross = 0;
+                    let disc = 0;
+                    for (const l of filled) {
+                      const info = catalogServices.find((s) => s.code === l.svcCode);
+                      const price = l.price !== "" ? parseFloat(l.price) : (info?.price ?? 0);
+                      const qty = Math.max(1, Math.trunc(Number(l.qty) || 1));
+                      gross += (Number.isFinite(price) ? price : 0) * qty;
+                      disc += l.discount !== "" && Number.isFinite(parseFloat(l.discount)) ? parseFloat(l.discount) : 0;
+                    }
+                    const net = Math.max(0, gross - disc);
+                    return (
+                      <div className="flex items-center gap-3 rounded-xl bg-muted px-3 py-2 text-xs">
+                        <span className="text-slate-500">ما يخص المريض</span>
+                        <span className="font-semibold tabular-nums text-foreground">{formatMoneyAr(gross)}</span>
+                        {disc > 0 && (
+                          <>
+                            <span className="text-slate-400">خصم</span>
+                            <span className="tabular-nums text-amber-700">{formatMoneyAr(disc)}</span>
+                          </>
+                        )}
+                        <span className="text-slate-400">الإجمالي</span>
+                        <span className="font-bold tabular-nums text-emerald-700">{formatMoneyAr(net)}</span>
+                      </div>
+                    );
+                  })()}
+                  {addServicesMut.error && (
+                    <p className="text-xs text-rose-600">{addServicesMut.error.message}</p>
+                  )}
+                  <div className="flex justify-start pt-0.5">
+                    <button
+                      type="button"
+                      onClick={handleQuickAddService}
+                      disabled={!canSaveService}
+                      className={cn(
+                        "rounded-lg px-5 py-1.5 text-sm font-semibold transition-colors",
+                        serviceSaved
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                          : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40",
+                      )}
+                    >
+                      {serviceSaved ? "تم ✓" : "حفظ"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-slate-200 bg-white p-4 lg:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">التقارير</div>
-              <div className="mt-0.5 text-sm font-semibold text-slate-900">مسارات سريعة</div>
-            </div>
-            <ArrowUpRight className="h-4 w-4 text-slate-300" />
-          </div>
-          <div className="mt-3 flex gap-2">
-            {quickLinkGroups.map((group, gi) => (
-              <div key={gi} className="flex flex-1 flex-col gap-1">
-                {group.map((item) => {
+        <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
+          <button
+            type="button"
+            onClick={() => setMoreQuickLinksOpen((v) => !v)}
+            aria-expanded={moreQuickLinksOpen}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-muted px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <span>المسارات السريعة</span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform",
+                moreQuickLinksOpen && "rotate-180",
+              )}
+            />
+          </button>
+          {moreQuickLinksOpen ? (
+            <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
+              {quickLinkGroups
+                .flatMap((group) => group)
+                .map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="group flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition-colors hover:border-slate-300 hover:bg-white"
+                      className="group flex flex-col gap-1.5 rounded-2xl border border-blue-100 bg-blue-50 px-2.5 py-2.5 transition-colors hover:bg-blue-100/70 sm:gap-2 sm:px-3 sm:py-3"
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-blue-700 ring-1 ring-slate-200">
-                        <Icon className="h-4 w-4" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-700 text-white ring-1 ring-blue-300 sm:h-8 sm:w-8">
+                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-900">{item.label}</div>
-                        <div className="truncate text-xs text-slate-500">{item.desc}</div>
+                      <div className="truncate text-xs font-semibold text-blue-900 sm:text-sm">
+                        {item.label}
                       </div>
-                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                     </Link>
                   );
                 })}
-              </div>
-            ))}
-          </div>
+            </div>
+          ) : null}
         </section>
 
-        <section className="w-full overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+        <section className="w-full overflow-hidden rounded-[24px] border border-border bg-background">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">حركات اليوم</h2>
-              <p className="mt-1 text-xs text-slate-500">آخر الإيصالات والدفعيات المنفذة في القسم 15.</p>
+              <h2 className="text-sm font-bold text-foreground">
+                {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
+              </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               {activityQuery.isFetching && !activityQuery.isLoading ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />
               ) : null}
-              <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
-                {activityQuery.isLoading ? "..." : formatCountAr(receipts.length)}
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold text-foreground">
+                {activityQuery.isLoading
+                  ? "..."
+                  : formatCountAr(receipts.length)}
               </span>
             </div>
           </div>
@@ -290,7 +782,11 @@ export default function AccountingHome() {
           ) : activityQuery.isError ? (
             <div className="flex flex-col items-center gap-3 py-16 text-sm text-slate-500">
               <span>تعذر تحميل الحركات</span>
-              <button type="button" className="text-blue-700 hover:underline" onClick={() => activityQuery.refetch()}>
+              <button
+                type="button"
+                className="text-blue-700 hover:underline"
+                onClick={() => activityQuery.refetch()}
+              >
                 إعادة المحاولة
               </button>
             </div>
@@ -298,78 +794,437 @@ export default function AccountingHome() {
             <div className="flex flex-col items-center gap-2 py-16 text-sm text-slate-500">
               <FileText className="h-6 w-6 text-slate-300" />
               <span>لا توجد حركات مسجلة اليوم</span>
-              <span className="text-xs text-slate-400">ستظهر الإيصالات هنا تلقائيًا عندما يبدأ القسم بالحركة</span>
+              <span className="text-xs text-slate-400">
+                ستظهر الإيصالات هنا تلقائيًا عندما يبدأ القسم بالحركة
+              </span>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500">
-                    <th scope="col" className="w-20 px-3 py-2.5 text-right">الوقت</th>
-                    <th scope="col" className="w-24 px-3 py-2.5 text-right">الإيصال</th>
-                    <th scope="col" className="px-3 py-2.5 text-right">المريض</th>
-                    <th scope="col" className="w-20 px-3 py-2.5 text-right">الكود</th>
-                    <th scope="col" className="w-28 px-3 py-2.5 text-left" dir="ltr">
-                      المبلغ
-                    </th>
-                    <th scope="col" className="w-28 px-3 py-2.5 text-left" dir="ltr">
-                      المدفوع
-                    </th>
-                    <th scope="col" className="w-20 px-3 py-2.5 text-center">فتح</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {receipts.map((r) => {
-                    const remaining = r.total - r.discount - r.paidValue;
-                    const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
-                    return (
-                      <tr key={`${r.trTy}-${r.trNo}`} className="transition-colors hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-500" dir="ltr">
-                          {formatTime(r.transactionDate)}
-                        </td>
-                        <td className="px-3 py-2 font-semibold tabular-nums text-slate-900" dir="ltr">
+            <>
+              <div className="grid gap-3 sm:hidden">
+                {receipts.map((r) => {
+                  const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
+                  const remaining = r.total - r.discount - r.paidValue;
+                  const balanceTone =
+                    remaining > 0
+                      ? "bg-amber-50 text-amber-700 ring-amber-100"
+                      : "bg-emerald-50 text-emerald-700 ring-emerald-100";
+                  const isDeleting = deletingTrNo === r.trNo;
+                  const isEditing = editingReceipt?.trNo === r.trNo;
+                  return (
+                    <div
+                      key={`${r.trTy}-${r.trNo}`}
+                      className={cn(
+                        "rounded-2xl border bg-background p-4 shadow-sm",
+                        isDeleting ? "border-rose-200 bg-rose-50" : "border-border",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <Link href={href} className="min-w-0 flex-1 no-underline">
+                          <div className="flex items-center gap-2">
+                            <div className="text-[11px] font-medium text-slate-500">
+                              {formatTime(r.transactionDate)}
+                            </div>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              إيصال
+                            </span>
+                          </div>
+                          <div className="mt-1 text-base font-semibold leading-snug text-foreground">
+                            {r.patientName || "—"}
+                          </div>
+                        </Link>
+                        <span
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs font-semibold ring-1",
+                            balanceTone,
+                          )}
+                        >
                           {r.trNo}
-                        </td>
-                        <td className="truncate px-3 py-2 text-slate-700">{r.patientName || "—"}</td>
-                        <td className="px-3 py-2 tabular-nums text-slate-500" dir="ltr">
-                          {r.patientCode || "—"}
-                        </td>
-                        <td className={cn("px-3 py-2 tabular-nums", remaining > 0 && "font-semibold text-slate-900")} dir="ltr">
-                          {formatMoneyAr(r.total - r.discount)}
-                        </td>
-                        <td className={cn("px-3 py-2 tabular-nums font-medium", remaining <= 0 ? "text-emerald-700" : "text-amber-700")} dir="ltr">
-                          {formatMoneyAr(r.paidValue)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <Link
-                            href={href}
-                            aria-label={`فتح الإيصال ${r.trNo}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">الكود</div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {r.patientCode || "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">ما يخص المريض</div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(r.total)}
+                          </div>
+                        </div>
+                        <div className="col-span-2 rounded-xl bg-emerald-50 px-3 py-2">
+                          <div className="text-[10px] text-emerald-700">المدفوع</div>
+                          <div className="mt-1 flex items-end justify-between gap-3">
+                            <div className="font-semibold tabular-nums text-emerald-700">
+                              {formatMoneyAr(r.paidValue)}
+                            </div>
+                            <div
+                              className={cn(
+                                "rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1",
+                                balanceTone,
+                              )}
+                            >
+                              {remaining > 0 ? "متبقي" : "مسدد"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {isEditing && (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!editingReceipt) return;
+                            await updateReceiptMut.mutateAsync({
+                              patientCode: editingReceipt.patientCode,
+                              trNo: Number(editingReceipt.trNo),
+                              paidAmount: editingReceipt.paidAmount !== "" ? parseFloat(editingReceipt.paidAmount) : undefined,
+                              discount: editingReceipt.discount !== "" ? parseFloat(editingReceipt.discount) : undefined,
+                            });
+                          }}
+                          className="mt-3 flex flex-wrap gap-2 border-t border-blue-100 pt-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-medium text-slate-500">المدفوع</label>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={editingReceipt?.paidAmount ?? ""}
+                              onChange={(e) => setEditingReceipt((p) => p ? { ...p, paidAmount: e.target.value } : null)}
+                              className="w-28 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-medium text-slate-500">الخصم</label>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={editingReceipt?.discount ?? ""}
+                              onChange={(e) => setEditingReceipt((p) => p ? { ...p, discount: e.target.value } : null)}
+                              className="w-24 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button type="submit" disabled={updateReceiptMut.isPending}
+                              className="rounded-lg bg-blue-600 px-4 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                              {updateReceiptMut.isPending ? "..." : "حفظ"}
+                            </button>
+                            <button type="button" onClick={() => setEditingReceipt(null)}
+                              className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted">
+                              إلغاء
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                      <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                        {isDeleting ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={deleteReceiptMut.isPending}
+                              onClick={() => deleteReceiptMut.mutate({ patientCode: r.patientCode, trNo: Number(r.trNo) })}
+                              className="rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                            >
+                              {deleteReceiptMut.isPending ? "..." : "تأكيد الحذف"}
+                            </button>
+                            <button type="button" onClick={() => setDeletingTrNo(null)}
+                              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+                              إلغاء
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setEditingReceipt(isEditing ? null : { trNo: r.trNo, patientCode: r.patientCode, paidAmount: String(r.paidValue ?? ""), discount: String(r.discount ?? "") })}
+                              className={cn("rounded-full p-1.5 transition-colors", isEditing ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:bg-muted hover:text-foreground")}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button type="button" onClick={() => setDeletingTrNo(r.trNo)}
+                              className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="rounded-2xl border border-border bg-muted p-4 text-xs font-semibold text-muted-foreground">
+                  {formatCountAr(receipts.length)} إيصال
+                </div>
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted text-[11px] font-semibold text-slate-500">
+                      <th scope="col" className="w-20 px-3 py-2.5 text-right">
+                        الوقت
+                      </th>
+                      <th scope="col" className="w-24 px-3 py-2.5 text-right">
+                        الإيصال
+                      </th>
+                      <th scope="col" className="px-3 py-2.5 text-right">
+                        المريض
+                      </th>
+                      <th
+                        scope="col"
+                        className="hidden w-20 px-3 py-2.5 text-right sm:table-cell"
+                      >
+                        الكود
+                      </th>
+                      <th
+                        scope="col"
+                        className="hidden w-28 px-3 py-2.5 text-left sm:table-cell"
+                        dir="ltr"
+                      >
+                        ما يخص المريض
+                      </th>
+                      <th
+                        scope="col"
+                        className="w-28 px-3 py-2.5 text-left"
+                        dir="ltr"
+                      >
+                        المدفوع
+                      </th>
+                      <th scope="col" className="w-32 px-3 py-2.5 text-center">
+                        إجراءات
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {receipts.map((r) => {
+                      const remaining = r.total - r.discount - r.paidValue;
+                      const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
+                      const isDeleting = deletingTrNo === r.trNo;
+                      const isEditing = editingReceipt?.trNo === r.trNo;
+                      return (
+                        <>
+                          <tr
+                            key={`${r.trTy}-${r.trNo}`}
+                            className={cn(
+                              "transition-colors hover:bg-muted",
+                              isDeleting && "bg-rose-50",
+                              isEditing && "bg-blue-50/40",
+                            )}
                           >
-                            عرض
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-slate-200 bg-slate-50/80">
-                    <td colSpan={4} className="px-3 py-2.5 text-xs font-semibold text-slate-500">
-                      {formatCountAr(receipts.length)} إيصال
-                    </td>
-                    <td className="px-3 py-2.5 text-left tabular-nums font-bold text-slate-900" dir="ltr">
-                      {formatMoneyAr(receipts.reduce((a, r) => a + (r.total - r.discount), 0))}
-                    </td>
-                    <td className="px-3 py-2.5 text-left tabular-nums font-bold text-emerald-700" dir="ltr">
-                      {formatMoneyAr(receipts.reduce((a, r) => a + r.paidValue, 0))}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                            <td
+                              className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-500"
+                              dir="ltr"
+                            >
+                              {formatTime(r.transactionDate)}
+                            </td>
+                            <td
+                              className="px-3 py-2 font-semibold tabular-nums text-foreground"
+                              dir="ltr"
+                            >
+                              {r.trNo}
+                            </td>
+                            <td className="truncate px-3 py-2 text-foreground">
+                              {r.patientName || "—"}
+                            </td>
+                            <td
+                              className="hidden px-3 py-2 tabular-nums text-slate-500 sm:table-cell"
+                              dir="ltr"
+                            >
+                              {r.patientCode || "—"}
+                            </td>
+                            <td
+                              className={cn(
+                                "hidden px-3 py-2 tabular-nums sm:table-cell",
+                                remaining > 0 && "font-semibold text-foreground",
+                              )}
+                              dir="ltr"
+                            >
+                              {formatMoneyAr(r.total)}
+                            </td>
+                            <td
+                              className={cn(
+                                "px-3 py-2 tabular-nums font-medium",
+                                remaining <= 0 ? "text-emerald-700" : "text-amber-700",
+                              )}
+                              dir="ltr"
+                            >
+                              {formatMoneyAr(r.paidValue)}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                {!isDeleting && (
+                                  <Link
+                                    href={href}
+                                    aria-label={`فتح الإيصال ${r.trNo}`}
+                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-blue-800 transition-colors hover:border-blue-200 hover:bg-blue-50"
+                                  >
+                                    عرض
+                                    <ArrowUpRight className="h-3 w-3" />
+                                  </Link>
+                                )}
+                                {!isDeleting && (
+                                  <button
+                                    type="button"
+                                    title="تعديل"
+                                    onClick={() =>
+                                      setEditingReceipt(
+                                        isEditing
+                                          ? null
+                                          : {
+                                              trNo: r.trNo,
+                                              patientCode: r.patientCode,
+                                              paidAmount: String(r.paidValue ?? ""),
+                                              discount: String(r.discount ?? ""),
+                                            },
+                                      )
+                                    }
+                                    className={cn(
+                                      "rounded-full p-1.5 transition-colors",
+                                      isEditing
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "text-slate-400 hover:bg-muted hover:text-foreground",
+                                    )}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                )}
+                                {isDeleting ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={deleteReceiptMut.isPending}
+                                      onClick={() =>
+                                        deleteReceiptMut.mutate({
+                                          patientCode: r.patientCode,
+                                          trNo: Number(r.trNo),
+                                        })
+                                      }
+                                      className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                    >
+                                      {deleteReceiptMut.isPending ? "..." : "تأكيد"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingTrNo(null)}
+                                      className="rounded-full p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    title="حذف"
+                                    onClick={() => setDeletingTrNo(r.trNo)}
+                                    className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {isEditing && (
+                            <tr key={`edit-${r.trNo}`} className="bg-blue-50/60">
+                              <td colSpan={7} className="px-4 py-3">
+                                <form
+                                  onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    if (!editingReceipt) return;
+                                    await updateReceiptMut.mutateAsync({
+                                      patientCode: editingReceipt.patientCode,
+                                      trNo: Number(editingReceipt.trNo),
+                                      paidAmount: editingReceipt.paidAmount !== "" ? parseFloat(editingReceipt.paidAmount) : undefined,
+                                      discount: editingReceipt.discount !== "" ? parseFloat(editingReceipt.discount) : undefined,
+                                    });
+                                  }}
+                                  className="flex flex-wrap items-center gap-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium text-slate-500">المدفوع</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editingReceipt?.paidAmount ?? ""}
+                                      onChange={(e) =>
+                                        setEditingReceipt((prev) =>
+                                          prev ? { ...prev, paidAmount: e.target.value } : null,
+                                        )
+                                      }
+                                      className="w-28 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium text-slate-500">الخصم</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editingReceipt?.discount ?? ""}
+                                      onChange={(e) =>
+                                        setEditingReceipt((prev) =>
+                                          prev ? { ...prev, discount: e.target.value } : null,
+                                        )
+                                      }
+                                      className="w-24 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                                    />
+                                  </div>
+                                  {updateReceiptMut.error && (
+                                    <span className="text-xs text-rose-600">{updateReceiptMut.error.message}</span>
+                                  )}
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      type="submit"
+                                      disabled={updateReceiptMut.isPending}
+                                      className="rounded-lg bg-blue-600 px-4 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                      {updateReceiptMut.isPending ? "..." : "حفظ"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingReceipt(null)}
+                                      className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                                    >
+                                      إلغاء
+                                    </button>
+                                  </div>
+                                </form>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border bg-muted/80">
+                      <td
+                        colSpan={3}
+                        className="px-3 py-2.5 text-xs font-semibold text-slate-500"
+                      >
+                        {formatCountAr(receipts.length)} إيصال
+                      </td>
+                      <td className="hidden px-3 py-2.5 sm:table-cell" />
+                      <td
+                        className="hidden px-3 py-2.5 text-left tabular-nums font-bold text-foreground sm:table-cell"
+                        dir="ltr"
+                      >
+                        {formatMoneyAr(
+                          receipts.reduce((a, r) => a + r.total, 0),
+                        )}
+                      </td>
+                      <td
+                        className="px-3 py-2.5 text-left tabular-nums font-bold text-emerald-700"
+                        dir="ltr"
+                      >
+                        {formatMoneyAr(
+                          receipts.reduce((a, r) => a + r.paidValue, 0),
+                        )}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           )}
         </section>
       </div>

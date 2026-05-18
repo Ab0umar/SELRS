@@ -47,7 +47,7 @@ export function OperationsBookingFormContent({
               value={draft.doctorName}
               onChange={(event) => onChange("doctorName", event.target.value)}
               placeholder="اسم الطبيب..."
-              className="h-9 text-sm font-medium bg-white"
+              className="h-9 text-sm font-medium bg-background"
             />
           </div>
           <div>
@@ -56,7 +56,7 @@ export function OperationsBookingFormContent({
               type="date"
               value={draft.bookingDate}
               onChange={(event) => onChange("bookingDate", event.target.value)}
-              className="h-9 text-sm font-mono bg-white"
+              className="h-9 text-sm font-mono bg-background"
             />
           </div>
           <div>
@@ -65,7 +65,7 @@ export function OperationsBookingFormContent({
               value={draft.weekdayLabel ?? ""}
               onChange={(event) => onChange("weekdayLabel", event.target.value)}
               placeholder="السبت، الأحد..."
-              className="h-9 text-sm bg-white"
+              className="h-9 text-sm bg-background"
             />
           </div>
         </div>
@@ -79,7 +79,7 @@ export function OperationsBookingFormContent({
               value={draft.operationType}
               onChange={(event) => onChange("operationType", event.target.value)}
               placeholder="ابحث عن العملية..."
-              className="h-9 text-sm font-semibold bg-white border-emerald-200"
+              className="h-9 text-sm font-semibold bg-background border-emerald-200"
             />
             <datalist id="operation-booking-types">
               {Object.keys(OPERATION_LABELS).map((key) => (
@@ -97,7 +97,7 @@ export function OperationsBookingFormContent({
                 type="time"
                 value={draft.bookingTime}
                 onChange={(event) => onChange("bookingTime", event.target.value)}
-                className="h-9 text-sm font-mono bg-white border-emerald-200"
+                className="h-9 text-sm font-mono bg-background border-emerald-200"
               />
             </div>
             <div>
@@ -107,7 +107,7 @@ export function OperationsBookingFormContent({
                 min={1}
                 value={draft.casesCount}
                 onChange={(event) => onChange("casesCount", Number(event.target.value) || 1)}
-                className="h-9 text-sm text-center font-bold bg-white border-emerald-200"
+                className="h-9 text-sm text-center font-bold bg-background border-emerald-200"
               />
             </div>
           </div>

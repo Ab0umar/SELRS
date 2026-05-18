@@ -166,7 +166,7 @@ export default function PatientPicker({
         </div>
       )}
       {selected && (
-        <div className="hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
+        <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
           المريض المحدد: <span className="font-medium">{selected.fullName}</span>
         </div>
       )}

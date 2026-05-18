@@ -10,13 +10,20 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { getErrorContext } from "@/lib/errorMessages";
-import type { ReceiptHeader, ReceiptsInquiryInput } from "@shared/accounting/contracts";
+import type {
+  ReceiptHeader,
+  ReceiptsInquiryInput,
+} from "@shared/accounting/contracts";
 import { CircleAlert, RefreshCw, Search, ReceiptText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
 import reportStyles from "./AccountingOpReport.module.css";
-import { formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
+import {
+  formatDateAr,
+  formatMoneyAr,
+  toArabicDigits,
+} from "./accountingFormat";
 
 type ReceiptsInquiryQuery = {
   data?: ReceiptHeader[];
@@ -72,11 +79,15 @@ function optionalNumber(value: string | null | undefined): number | undefined {
 }
 
 /** Normalize URL-derived filters for a stable tRPC query key (no "" optional fields). */
-function receiptsQueryInput(parsed: ReceiptsInquiryInput): ReceiptsInquiryInput {
+function receiptsQueryInput(
+  parsed: ReceiptsInquiryInput,
+): ReceiptsInquiryInput {
   const defaults = defaultDateRange();
   const secRaw = parsed.sectionCode;
   const sectionCode =
-    secRaw != null && Number.isFinite(Number(secRaw)) ? Number(secRaw) : DEFAULT_SECTION_CODE;
+    secRaw != null && Number.isFinite(Number(secRaw))
+      ? Number(secRaw)
+      : DEFAULT_SECTION_CODE;
   const limit =
     parsed.limit != null && Number.isFinite(parsed.limit) && parsed.limit > 0
       ? parsed.limit
@@ -122,7 +133,8 @@ function buildReceiptsUrl(input: ReceiptsInquiryInput) {
   if (n.doctorCode) params.set("doctorCode", n.doctorCode);
   if (n.trNo) params.set("trNo", n.trNo);
   if (n.trTy !== undefined) params.set("trTy", String(n.trTy));
-  if (n.limit != null && n.limit !== DEFAULT_LIMIT) params.set("limit", String(n.limit));
+  if (n.limit != null && n.limit !== DEFAULT_LIMIT)
+    params.set("limit", String(n.limit));
   return `/accounting/receipts?${params.toString()}`;
 }
 
@@ -155,8 +167,12 @@ export default function ReceiptsInquiry() {
   const queryInput = useMemo(() => receiptsQueryInput(filters), [filters]);
   const [draft, setDraft] = useState(filters);
 
-  const [debouncedPatient, setDebouncedPatient] = useState(filters.patientCode ?? "");
-  const [debouncedDoctor, setDebouncedDoctor] = useState(filters.doctorCode ?? "");
+  const [debouncedPatient, setDebouncedPatient] = useState(
+    filters.patientCode ?? "",
+  );
+  const [debouncedDoctor, setDebouncedDoctor] = useState(
+    filters.doctorCode ?? "",
+  );
   const [dateError, setDateError] = useState("");
 
   useEffect(() => {
@@ -169,21 +185,24 @@ export default function ReceiptsInquiry() {
 
   const patientLookup = trpc.accounting.patientLookup.useQuery(
     { patientCode: debouncedPatient },
-    { enabled: debouncedPatient.length > 0 }
+    { enabled: debouncedPatient.length > 0 },
   );
 
   const doctorLookup = trpc.accounting.doctorLookup.useQuery(
     { doctorCode: debouncedDoctor },
-    { enabled: debouncedDoctor.length > 0 }
+    { enabled: debouncedDoctor.length > 0 },
   );
 
   useEffect(() => {
     setDraft(filters);
   }, [filters]);
 
-  const receiptsQuery = accountingTrpc.accounting.receiptsInquiry.useQuery(queryInput, {
-    refetchOnWindowFocus: false,
-  });
+  const receiptsQuery = accountingTrpc.accounting.receiptsInquiry.useQuery(
+    queryInput,
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const rows = receiptsQuery.data ?? [];
 
@@ -228,34 +247,52 @@ export default function ReceiptsInquiry() {
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-3">
-            <CardTitle className="text-xl tracking-tight">استعلام الإيصالات</CardTitle>
+            <CardTitle className="text-xl tracking-tight">
+              استعلام الإيصالات
+            </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              طبّق الفلاتر ثم اضغط «تطبيق». يتم تحديث الرابط وتشغيل الاستعلام تلقائيًا.
+              طبّق الفلاتر ثم اضغط «تطبيق». يتم تحديث الرابط وتشغيل الاستعلام
+              تلقائيًا.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <label htmlFor="receipt-from-date" className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label
+              htmlFor="receipt-from-date"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>من تاريخ</span>
               <Input
                 id="receipt-from-date"
                 type="date"
                 value={draft.fromDate ?? ""}
-                onChange={(e) => setDraft((p) => ({ ...p, fromDate: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, fromDate: e.target.value }))
+                }
               />
             </label>
-            <label htmlFor="receipt-to-date" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-to-date"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>إلى تاريخ</span>
               <Input
                 id="receipt-to-date"
                 type="date"
                 value={draft.toDate ?? ""}
-                onChange={(e) => setDraft((p) => ({ ...p, toDate: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, toDate: e.target.value }))
+                }
               />
             </label>
             {dateError && (
-              <p className="text-[11px] text-red-500 md:col-span-2">{dateError}</p>
+              <p className="text-[11px] text-red-500 md:col-span-2">
+                {dateError}
+              </p>
             )}
-            <label htmlFor="receipt-patient-code" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-patient-code"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>كود المريض</span>
               <Input
                 id="receipt-patient-code"
@@ -269,11 +306,18 @@ export default function ReceiptsInquiry() {
               />
               {draft.patientCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
-                  {patientLookup.isLoading ? "جاري البحث..." : patientLookup.data ? `الاسم: ${patientLookup.data.patientName}` : "غير موجود"}
+                  {patientLookup.isLoading
+                    ? "جاري البحث..."
+                    : patientLookup.data
+                      ? `الاسم: ${patientLookup.data.patientName}`
+                      : "غير موجود"}
                 </span>
               )}
             </label>
-            <label htmlFor="receipt-doctor-code" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-doctor-code"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>كود الطبيب</span>
               <Input
                 id="receipt-doctor-code"
@@ -287,12 +331,19 @@ export default function ReceiptsInquiry() {
               />
               {draft.doctorCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
-                  {doctorLookup.isLoading ? "جاري البحث..." : doctorLookup.data ? `الاسم: ${doctorLookup.data.doctorName}` : "غير موجود"}
+                  {doctorLookup.isLoading
+                    ? "جاري البحث..."
+                    : doctorLookup.data
+                      ? `الاسم: ${doctorLookup.data.doctorName}`
+                      : "غير موجود"}
                 </span>
               )}
             </label>
 
-            <label htmlFor="receipt-section-code" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-section-code"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>كود القسم</span>
               <Input
                 id="receipt-section-code"
@@ -302,12 +353,16 @@ export default function ReceiptsInquiry() {
                 onChange={(e) =>
                   setDraft((p) => ({
                     ...p,
-                    sectionCode: optionalNumber(e.target.value) ?? DEFAULT_SECTION_CODE,
+                    sectionCode:
+                      optionalNumber(e.target.value) ?? DEFAULT_SECTION_CODE,
                   }))
                 }
               />
             </label>
-            <label htmlFor="receipt-tr-no" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-tr-no"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>رقم الإيصال</span>
               <Input
                 id="receipt-tr-no"
@@ -320,7 +375,10 @@ export default function ReceiptsInquiry() {
                 }
               />
             </label>
-            <label htmlFor="receipt-tr-ty" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="receipt-tr-ty"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>نوع الإيصال</span>
               <select
                 id="receipt-tr-ty"
@@ -342,11 +400,20 @@ export default function ReceiptsInquiry() {
               </select>
             </label>
             <div className="flex flex-wrap items-end gap-2 xl:col-span-2">
-              <Button type="button" onClick={() => void applyFilters()} aria-label="تطبيق الفلاتر">
+              <Button
+                type="button"
+                onClick={() => void applyFilters()}
+                aria-label="تطبيق الفلاتر"
+              >
                 <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={() => void resetFilters()} aria-label="إعادة ضبط الفلاتر">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void resetFilters()}
+                aria-label="إعادة ضبط الفلاتر"
+              >
                 إعادة ضبط
               </Button>
               <Button
@@ -356,7 +423,14 @@ export default function ReceiptsInquiry() {
                 disabled={receiptsQuery.isFetching}
                 aria-label="تحديث بيانات الإيصالات"
               >
-                <RefreshCw className={receiptsQuery.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"} aria-hidden />
+                <RefreshCw
+                  className={
+                    receiptsQuery.isFetching
+                      ? "ml-2 h-4 w-4 animate-spin"
+                      : "ml-2 h-4 w-4"
+                  }
+                  aria-hidden
+                />
                 تحديث
               </Button>
             </div>
@@ -365,11 +439,13 @@ export default function ReceiptsInquiry() {
 
         <Card>
           <CardContent className="pt-6 space-y-0">
-            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length > 0 && (
-              <div className="text-xs text-muted-foreground mb-2">
-                عرض {toArabicDigits(String(rows.length))} نتيجة
-              </div>
-            )}
+            {!receiptsQuery.isLoading &&
+              !receiptsQuery.isError &&
+              rows.length > 0 && (
+                <div className="text-xs text-muted-foreground mb-2">
+                  عرض {toArabicDigits(String(rows.length))} نتيجة
+                </div>
+              )}
             {receiptsQuery.isLoading ? (
               <Skeleton className="h-40 w-full" aria-busy />
             ) : null}
@@ -388,65 +464,204 @@ export default function ReceiptsInquiry() {
               </div>
             ) : null}
 
-            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length === 0 ? (
+            {!receiptsQuery.isLoading &&
+            !receiptsQuery.isError &&
+            rows.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
                 <div className="flex justify-center mb-3">
-                  <ReceiptText className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+                  <ReceiptText
+                    className="h-8 w-8 text-muted-foreground/60"
+                    aria-hidden
+                  />
                 </div>
                 لا توجد إيصالات مطابقة للفلاتر الحالية.
               </div>
             ) : null}
 
-            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className={reportStyles.gridTable}>
-                  <thead>
-                    <tr>
-                      <th>الإيصال</th>
-                      <th>التاريخ</th>
-                      <th>النوع</th>
-                      <th>المريض</th>
-                      <th className={reportStyles.numeric}>الإجمالي</th>
-                      <th className={reportStyles.numeric}>الخصم</th>
-                      <th className={reportStyles.numeric}>المدفوع</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                        className="cursor-pointer hover:bg-muted/50"
-                        tabIndex={0}
-                        role="button"
-                        onClick={() =>
-                          setLocation(receiptDetailUrl(row.sectionCode, row.trTy, row.trNo))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setLocation(receiptDetailUrl(row.sectionCode, row.trTy, row.trNo));
-                          }
-                        }}
-                      >
-                        <td data-label="الإيصال" className={reportStyles.numeric}>{toArabicDigits(row.trNo)}</td>
-                        <td data-label="التاريخ" className={reportStyles.numeric}>{formatDateAr(row.transactionDate)}</td>
-                        <td data-label="النوع">{trTyLabel(row.trTy)}</td>
-                        <td data-label="المريض">{row.patientName ?? "—"}</td>
-                        <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(row.total)}</td>
-                        <td data-label="الخصم" className={reportStyles.numeric}>{formatMoneyAr(row.discount)}</td>
-                        <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoneyAr(row.paidValue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
+            <div className="grid gap-3 sm:hidden">
+              {receiptsQuery.isLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Array.from({ length: 4 }).map((__, j) => (
+                          <div
+                            key={j}
+                            className="rounded-xl border border-border bg-muted p-3"
+                          >
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="mt-2 h-4 w-16" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                : null}
 
-            {!receiptsQuery.isLoading && !receiptsQuery.isError && rows.length >= 500 && (
-              <div className="px-4 py-2 text-[11px] text-amber-600 bg-amber-50 border-t border-border/30 mt-2">
-                قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
-              </div>
-            )}
+              {!receiptsQuery.isLoading &&
+              !receiptsQuery.isError &&
+              rows.length > 0
+                ? rows.map((row) => (
+                    <button
+                      key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
+                      type="button"
+                      onClick={() =>
+                        setLocation(
+                          receiptDetailUrl(row.sectionCode, row.trTy, row.trNo),
+                        )
+                      }
+                      className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-blue-50/60"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[11px] text-slate-500">
+                            {formatDateAr(row.transactionDate)}
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-foreground">
+                            {row.patientName ?? "—"}
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                          {toArabicDigits(row.trNo)}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">
+                            النوع
+                          </div>
+                          <div className="mt-1 font-semibold text-foreground">
+                            {trTyLabel(row.trTy)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">
+                            الإجمالي
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(row.total)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-rose-50 px-3 py-2">
+                          <div className="text-[10px] text-rose-700">الخصم</div>
+                          <div className="mt-1 font-semibold tabular-nums text-rose-700">
+                            {formatMoneyAr(row.discount)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
+                          <div className="text-[10px] text-emerald-700">
+                            المدفوع
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                            {formatMoneyAr(row.paidValue)}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                : null}
+            </div>
+
+            <div className="hidden sm:block">
+              {!receiptsQuery.isLoading &&
+              !receiptsQuery.isError &&
+              rows.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className={reportStyles.gridTable}>
+                    <thead>
+                      <tr>
+                        <th>الإيصال</th>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>المريض</th>
+                        <th className={reportStyles.numeric}>الإجمالي</th>
+                        <th className={reportStyles.numeric}>الخصم</th>
+                        <th className={reportStyles.numeric}>المدفوع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr
+                          key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
+                          className="cursor-pointer hover:bg-muted/50"
+                          tabIndex={0}
+                          role="button"
+                          onClick={() =>
+                            setLocation(
+                              receiptDetailUrl(
+                                row.sectionCode,
+                                row.trTy,
+                                row.trNo,
+                              ),
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setLocation(
+                                receiptDetailUrl(
+                                  row.sectionCode,
+                                  row.trTy,
+                                  row.trNo,
+                                ),
+                              );
+                            }
+                          }}
+                        >
+                          <td
+                            data-label="الإيصال"
+                            className={reportStyles.numeric}
+                          >
+                            {toArabicDigits(row.trNo)}
+                          </td>
+                          <td
+                            data-label="التاريخ"
+                            className={reportStyles.numeric}
+                          >
+                            {formatDateAr(row.transactionDate)}
+                          </td>
+                          <td data-label="النوع">{trTyLabel(row.trTy)}</td>
+                          <td data-label="المريض">{row.patientName ?? "—"}</td>
+                          <td
+                            data-label="الإجمالي"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.total)}
+                          </td>
+                          <td
+                            data-label="الخصم"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.discount)}
+                          </td>
+                          <td
+                            data-label="المدفوع"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.paidValue)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+
+            {!receiptsQuery.isLoading &&
+              !receiptsQuery.isError &&
+              rows.length >= 500 && (
+                <div className="px-4 py-2 text-[11px] text-amber-600 bg-amber-50 border-t border-border/30 mt-2">
+                  قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
+                </div>
+              )}
           </CardContent>
         </Card>
       </div>

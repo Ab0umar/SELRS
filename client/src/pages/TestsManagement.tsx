@@ -17,6 +17,7 @@ export default function TestsManagement() {
 
   type TestType = "examination" | "lab" | "imaging" | "other";
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
   const [newTest, setNewTest] = useState<{
     name: string;
     type: TestType;
@@ -120,7 +121,6 @@ export default function TestsManagement() {
   };
 
   const handleDeleteTest = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف الفحص؟")) return;
     await deleteTestMutation.mutateAsync({ testId: id });
   };
 
@@ -237,9 +237,26 @@ export default function TestsManagement() {
                     <Button size="icon" variant="outline" onClick={() => handleEditTest(test)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="destructive" onClick={() => handleDeleteTest(test.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {delConfirm === test.id ? (
+                      <div className="flex items-center gap-1">
+                        <button type="button" aria-label="تأكيد الحذف"
+                          className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                          onClick={() => { void handleDeleteTest(test.id); setDelConfirm(null); }}>
+                          تأكيد
+                        </button>
+                        <button type="button" aria-label="إلغاء الحذف"
+                          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                          onClick={() => setDelConfirm(null)}>
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" aria-label="حذف الفحص"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                        onClick={() => setDelConfirm(test.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

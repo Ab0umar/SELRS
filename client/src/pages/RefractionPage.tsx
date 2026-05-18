@@ -11,7 +11,12 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
-import { CYLINDER_OPTIONS, SPHERE_OPTIONS, UCVA_BCVA_OPTIONS } from "@/lib/refractionOptions";
+import {
+  CYLINDER_OPTIONS,
+  EMPTY_SELECT_VALUE,
+  SPHERE_OPTIONS,
+  UCVA_BCVA_OPTIONS,
+} from "@/lib/refractionOptions";
 
 type AutoEye = {
   bcva?: string;
@@ -114,14 +119,8 @@ function ComboBoxField({
   allowEmpty = true,
 }: ComboBoxFieldProps) {
   const normalized = String(value ?? "");
-  const effectiveValue = normalized || String(defaultValue ?? "");
+  const effectiveValue = normalized || EMPTY_SELECT_VALUE;
   const hasCurrent = options.includes(effectiveValue);
-
-  useEffect(() => {
-    if (!normalized && defaultValue !== undefined) {
-      onChange(defaultValue);
-    }
-  }, [defaultValue, normalized, onChange]);
 
   return (
     <select
@@ -129,8 +128,10 @@ function ComboBoxField({
       onChange={(event) => onChange(event.target.value)}
       className="flex h-8 w-full max-w-full rounded-md border border-input bg-background px-1 py-0.5 text-center text-xs shadow-xs sm:h-9 sm:px-2 sm:text-sm"
     >
-      {allowEmpty ? <option value="">{placeholder}</option> : null}
-      {!hasCurrent && effectiveValue ? <option value={effectiveValue}>{effectiveValue}</option> : null}
+      <option value={EMPTY_SELECT_VALUE}>{placeholder}</option>
+      {!hasCurrent && effectiveValue ? (
+        <option value={effectiveValue}>{effectiveValue}</option>
+      ) : null}
       {options.map((option) => (
         <option key={option} value={option}>
           {option}
@@ -145,37 +146,52 @@ export default function RefractionPage() {
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/refraction/:id");
   const patientId = Number(params?.id ?? 0);
-  const printMode = usePrintMode({ ready: Number.isFinite(patientId) && patientId > 0 });
+  const printMode = usePrintMode({
+    ready: Number.isFinite(patientId) && patientId > 0,
+  });
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientId,
-    { enabled: Number.isFinite(patientId) && patientId > 0, refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
+    enabled: Number.isFinite(patientId) && patientId > 0,
+    refetchOnWindowFocus: false,
+  });
   const consultantQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "consultant" },
-    { enabled: Number.isFinite(patientId) && patientId > 0, refetchOnWindowFocus: false }
+    {
+      enabled: Number.isFinite(patientId) && patientId > 0,
+      refetchOnWindowFocus: false,
+    },
   );
   const specialistQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "specialist" },
-    { enabled: Number.isFinite(patientId) && patientId > 0, refetchOnWindowFocus: false }
+    {
+      enabled: Number.isFinite(patientId) && patientId > 0,
+      refetchOnWindowFocus: false,
+    },
   );
   const lasikQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "lasik" },
-    { enabled: Number.isFinite(patientId) && patientId > 0, refetchOnWindowFocus: false }
+    {
+      enabled: Number.isFinite(patientId) && patientId > 0,
+      refetchOnWindowFocus: false,
+    },
   );
   const externalQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "external" },
-    { enabled: Number.isFinite(patientId) && patientId > 0, refetchOnWindowFocus: false }
+    {
+      enabled: Number.isFinite(patientId) && patientId > 0,
+      refetchOnWindowFocus: false,
+    },
   );
 
   const utils = trpc.useUtils();
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
-  const saveRefractionMutation = trpc.medical.saveRefractionToExamination.useMutation({
-    onSuccess: () => {
-      // Invalidate examination queries so patient file/summary updates
-      utils.medical.getExaminationsByPatient.invalidate();
-    }
-  });
+  const saveRefractionMutation =
+    trpc.medical.saveRefractionToExamination.useMutation({
+      onSuccess: () => {
+        // Invalidate examination queries so patient file/summary updates
+        utils.medical.getExaminationsByPatient.invalidate();
+      },
+    });
   const [form, setForm] = useState<RefractionForm>(EMPTY_FORM);
 
   const sourceAutos = useMemo(() => {
@@ -184,7 +200,12 @@ export default function RefractionPage() {
     const lasik = parseSheetAuto(lasikQuery.data);
     const external = parseSheetAuto(externalQuery.data);
     return { consultant, specialist, lasik, external };
-  }, [consultantQuery.data, specialistQuery.data, lasikQuery.data, externalQuery.data]);
+  }, [
+    consultantQuery.data,
+    specialistQuery.data,
+    lasikQuery.data,
+    externalQuery.data,
+  ]);
 
   useEffect(() => {
     if (!patientId) return;
@@ -193,69 +214,72 @@ export default function RefractionPage() {
         sourceAutos.consultant.od?.bcva,
         sourceAutos.specialist.od?.bcva,
         sourceAutos.lasik.od?.bcva,
-        sourceAutos.external.od?.bcva
+        sourceAutos.external.od?.bcva,
       ),
       bcvaOS: firstValue(
         sourceAutos.consultant.os?.bcva,
         sourceAutos.specialist.os?.bcva,
         sourceAutos.lasik.os?.bcva,
-        sourceAutos.external.os?.bcva
+        sourceAutos.external.os?.bcva,
       ),
       pdOD: firstValue(
         sourceAutos.consultant.od?.pd,
         sourceAutos.specialist.od?.pd,
         sourceAutos.lasik.od?.pd,
-        sourceAutos.external.od?.pd
+        sourceAutos.external.od?.pd,
       ),
       pdOS: firstValue(
         sourceAutos.consultant.os?.pd,
         sourceAutos.specialist.os?.pd,
         sourceAutos.lasik.os?.pd,
-        sourceAutos.external.os?.pd
+        sourceAutos.external.os?.pd,
       ),
       sOD: firstValue(
         sourceAutos.consultant.od?.s,
         sourceAutos.specialist.od?.s,
         sourceAutos.lasik.od?.s,
-        sourceAutos.external.od?.s
+        sourceAutos.external.od?.s,
       ),
       cOD: firstValue(
         sourceAutos.consultant.od?.c,
         sourceAutos.specialist.od?.c,
         sourceAutos.lasik.od?.c,
-        sourceAutos.external.od?.c
+        sourceAutos.external.od?.c,
       ),
       aOD: firstValue(
         sourceAutos.consultant.od?.axis,
         sourceAutos.specialist.od?.axis,
         sourceAutos.lasik.od?.axis,
-        sourceAutos.external.od?.axis
+        sourceAutos.external.od?.axis,
       ),
       addOD: "",
       sOS: firstValue(
         sourceAutos.consultant.os?.s,
         sourceAutos.specialist.os?.s,
         sourceAutos.lasik.os?.s,
-        sourceAutos.external.os?.s
+        sourceAutos.external.os?.s,
       ),
       cOS: firstValue(
         sourceAutos.consultant.os?.c,
         sourceAutos.specialist.os?.c,
         sourceAutos.lasik.os?.c,
-        sourceAutos.external.os?.c
+        sourceAutos.external.os?.c,
       ),
       aOS: firstValue(
         sourceAutos.consultant.os?.axis,
         sourceAutos.specialist.os?.axis,
         sourceAutos.lasik.os?.axis,
-        sourceAutos.external.os?.axis
+        sourceAutos.external.os?.axis,
       ),
       addOS: "",
     };
     setForm(next);
   }, [patientId, sourceAutos]);
 
-  const mergeAndSerialize = (content: string | null | undefined, sheetType: "consultant" | "specialist" | "lasik" | "external") => {
+  const mergeAndSerialize = (
+    content: string | null | undefined,
+    sheetType: "consultant" | "specialist" | "lasik" | "external",
+  ) => {
     const parsed = (() => {
       if (!content) return {} as any;
       try {
@@ -344,22 +368,28 @@ export default function RefractionPage() {
 
       // Build autorefraction object from form fields
       const autorefraction = {
-        od: form.sOD || form.cOD || form.aOD || form.bcvaOD ? {
-          s: form.sOD || undefined,
-          c: form.cOD || undefined,
-          axis: form.aOD || undefined,
-          ucva: undefined,
-          bcva: form.bcvaOD || undefined,
-          iop: undefined,
-        } : undefined,
-        os: form.sOS || form.cOS || form.aOS || form.bcvaOS ? {
-          s: form.sOS || undefined,
-          c: form.cOS || undefined,
-          axis: form.aOS || undefined,
-          ucva: undefined,
-          bcva: form.bcvaOS || undefined,
-          iop: undefined,
-        } : undefined,
+        od:
+          form.sOD || form.cOD || form.aOD || form.bcvaOD
+            ? {
+                s: form.sOD || undefined,
+                c: form.cOD || undefined,
+                axis: form.aOD || undefined,
+                ucva: undefined,
+                bcva: form.bcvaOD || undefined,
+                iop: undefined,
+              }
+            : undefined,
+        os:
+          form.sOS || form.cOS || form.aOS || form.bcvaOS
+            ? {
+                s: form.sOS || undefined,
+                c: form.cOS || undefined,
+                axis: form.aOS || undefined,
+                ucva: undefined,
+                bcva: form.bcvaOS || undefined,
+                iop: undefined,
+              }
+            : undefined,
       };
 
       // Extract glasses and pentacam from sheets
@@ -384,7 +414,9 @@ export default function RefractionPage() {
         pentacam,
       });
 
-      toast.success("Refraction and measurements saved for all sheets and patient file");
+      toast.success(
+        "Refraction and measurements saved for all sheets and patient file",
+      );
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "Failed to save refraction"));
     }
@@ -393,22 +425,31 @@ export default function RefractionPage() {
   const handlePrint = () => {
     if (typeof window === "undefined") return;
     void printOrExportPdf(
-      `${String((patientQuery.data as any)?.fullName ?? patientId ?? "refraction").trim()}.pdf`
+      `${String((patientQuery.data as any)?.fullName ?? patientId ?? "refraction").trim()}.pdf`,
     );
   };
 
   const todayLabel = new Date().toISOString().split("T")[0];
 
   return (
-    <div data-mobile-pdf-root className={`container mx-auto ${printMode.printView ? "px-3 py-3" : "px-4 py-6"}`}>
+    <div
+      data-mobile-pdf-root
+      className={`container mx-auto ${printMode.printView ? "px-3 py-3" : "px-4 py-6"}`}
+    >
       {printMode.printView ? (
         <PrintPreviewBanner
           title="روشتة المقاس"
-          subtitle={patientQuery.data ? String((patientQuery.data as any).fullName ?? "") : undefined}
+          subtitle={
+            patientQuery.data
+              ? String((patientQuery.data as any).fullName ?? "")
+              : undefined
+          }
           onPrint={handlePrint}
         />
       ) : null}
-      <div className={`mb-4 refraction-no-print ${printMode.printView ? "hidden" : ""}`}>
+      <div
+        className={`mb-4 refraction-no-print ${printMode.printView ? "hidden" : ""}`}
+      >
         <PatientPicker
           onSelect={(p) => {
             const id = Number((p as any)?.id ?? 0);
@@ -468,224 +509,345 @@ export default function RefractionPage() {
           }
         }
       `}</style>
-      <Card className="refraction-page-card border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="refraction-page-card border-border/80 bg-background/95 shadow-sm">
         <CardHeader className="refraction-no-print">
           <CardTitle>
             Refraction
-            {patientQuery.data ? ` - ${String((patientQuery.data as any).fullName ?? "")}` : ""}
+            {patientQuery.data
+              ? ` - ${String((patientQuery.data as any).fullName ?? "")}`
+              : ""}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 refraction-page-content">
           {!Number.isFinite(patientId) || patientId <= 0 ? (
             <div className="space-y-3 refraction-no-print">
-              <div className="text-sm text-muted-foreground">Choose patient first</div>
+              <div className="text-sm text-muted-foreground">
+                Choose patient first
+              </div>
             </div>
           ) : null}
 
           <div className="flex gap-2 refraction-no-print">
-            <Button type="button" onClick={handleSave} disabled={saveSheetMutation.isPending}>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saveSheetMutation.isPending}
+            >
               Save
             </Button>
             <Button type="button" variant="outline" onClick={handlePrint}>
               Print
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => goBack()}
-            >
+            <Button type="button" variant="outline" onClick={() => goBack()}>
               Back
             </Button>
           </div>
 
           <div className="refraction-print-wrapper">
             <div
-              className="refraction-print-card w-full max-w-full overflow-x-auto bg-white text-black print:overflow-visible"
+              className="refraction-print-card w-full max-w-full overflow-x-auto bg-background text-black print:overflow-visible"
               dir="ltr"
-              style={{ border: "2px solid #2ea3f2", borderTop: "0", borderRadius: 14, padding: 12, textAlign: "center", background: "#fff" }}
+              style={{
+                border: "2px solid #2ea3f2",
+                borderTop: "0",
+                borderRadius: 14,
+                padding: 12,
+                textAlign: "center",
+                background: "#fff",
+              }}
             >
-            <div className="mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-2 sm:gap-3 sm:text-sm">
-              <div className="text-center sm:text-left">
-                <span>Name :</span>{" "}
-                <span className="break-words">{String((patientQuery.data as any)?.fullName ?? "........................")}</span>
-              </div>
-              <div className="text-center sm:text-right">Date : {todayLabel}</div>
-            </div>
-            <div className="mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
-              <div className="text-center sm:text-left">Colour : ........................</div>
-              <div className="min-w-0">
-                <span className="hidden print:inline">V.A : {form.bcvaOD || "......."} / {form.bcvaOS || "......."}</span>
-                <span className="print:hidden flex flex-wrap items-center justify-center gap-1 sm:inline-flex sm:justify-center">
-                  <span>V.A :</span>
-                  <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
-                    <ComboBoxField
-                      value={form.bcvaOD}
-                      options={UCVA_BCVA_OPTIONS}
-                      onChange={(value) => setForm((p) => ({ ...p, bcvaOD: value }))}
-                    />
-                  </div>
-                  <span>/</span>
-                  <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
-                    <ComboBoxField
-                      value={form.bcvaOS}
-                      options={UCVA_BCVA_OPTIONS}
-                      onChange={(value) => setForm((p) => ({ ...p, bcvaOS: value }))}
-                    />
-                  </div>
-                </span>
-              </div>
-              <div className="text-center sm:text-right">
-                <span className="hidden print:inline">P.D. : {form.pdOS || "......."}</span>
-                <span className="print:hidden inline-flex flex-wrap items-center justify-center gap-1">
-                  <span>P.D. :</span>
-                  <Input
-                    value={form.pdOS}
-                    onChange={(e) => setForm((p) => ({ ...p, pdOS: e.target.value }))}
-                    className="h-8 w-full max-w-[6.5rem] text-center sm:w-24"
-                  />
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <div className="text-center text-white font-bold py-1" style={{ background: "#2ea3f2", borderRadius: "8px 8px 0 0" }}>
-                  RIGHT
+              <div className="mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-2 sm:gap-3 sm:text-sm">
+                <div className="text-center sm:text-left">
+                  <span>Name :</span>{" "}
+                  <span className="break-words">
+                    {String(
+                      (patientQuery.data as any)?.fullName ??
+                        "........................",
+                    )}
+                  </span>
                 </div>
-                <table className="w-full border-collapse text-center text-sm" style={{ tableLayout: "fixed" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}></th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Sph.</th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Cyl.</th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Axis</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ height: 58 }}>
-                      <td style={{ border: "2px solid #2ea3f2", fontWeight: 700 }}>DIST</td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.sOD}</span>
-                        <span className="print:hidden">
-                          <ComboBoxField
-                            value={form.sOD}
-                            options={SPHERE_OPTIONS}
-                            defaultValue="0.00"
-                            allowEmpty={false}
-                            onChange={(value) => setForm((p) => ({ ...p, sOD: value }))}
-                          />
-                        </span>
-                      </td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.cOD}</span>
-                        <span className="print:hidden">
-                          <ComboBoxField
-                            value={form.cOD}
-                            options={CYLINDER_OPTIONS}
-                            defaultValue="0.00"
-                            allowEmpty={false}
-                            onChange={(value) => setForm((p) => ({ ...p, cOD: value }))}
-                          />
-                        </span>
-                      </td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.aOD}</span>
-                        <span className="print:hidden">
-                          <Input value={form.aOD} onChange={(e) => setForm((p) => ({ ...p, aOD: e.target.value }))} className="border-0 text-center shadow-none" />
-                        </span>
-                      </td>
-                    </tr>
-                    <tr style={{ height: 58 }}>
-                      <td style={{ border: "2px solid #2ea3f2", fontWeight: 700 }}>NEAR</td>
-                      <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">Add {form.addOD || ""}</span>
-                        <span className="print:hidden flex w-full items-center gap-2 px-2">
-                          <span className="font-semibold">Add</span>
-                          <div className="flex-1">
-                            <ComboBoxField
-                              value={form.addOD}
-                              options={ADD_OPTIONS}
-                              defaultValue="0.00"
-                              allowEmpty={false}
-                              onChange={(value) => setForm((p) => ({ ...p, addOD: value }))}
-                            />
-                          </div>
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="text-center sm:text-right">
+                  Date : {todayLabel}
+                </div>
+              </div>
+              <div className="mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
+                <div className="text-center sm:text-left">
+                  Colour : ........................
+                </div>
+                <div className="min-w-0">
+                  <span className="hidden print:inline">
+                    V.A : {form.bcvaOD || "......."} /{" "}
+                    {form.bcvaOS || "......."}
+                  </span>
+                  <span className="print:hidden flex flex-wrap items-center justify-center gap-1 sm:inline-flex sm:justify-center">
+                    <span>V.A :</span>
+                    <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
+                      <ComboBoxField
+                        value={form.bcvaOD}
+                        options={UCVA_BCVA_OPTIONS}
+                        onChange={(value) =>
+                          setForm((p) => ({ ...p, bcvaOD: value }))
+                        }
+                      />
+                    </div>
+                    <span>/</span>
+                    <div className="min-w-0 flex-1 sm:w-20 sm:flex-none">
+                      <ComboBoxField
+                        value={form.bcvaOS}
+                        options={UCVA_BCVA_OPTIONS}
+                        onChange={(value) =>
+                          setForm((p) => ({ ...p, bcvaOS: value }))
+                        }
+                      />
+                    </div>
+                  </span>
+                </div>
+                <div className="text-center sm:text-right">
+                  <span className="hidden print:inline">
+                    P.D. : {form.pdOS || "......."}
+                  </span>
+                  <span className="print:hidden inline-flex flex-wrap items-center justify-center gap-1">
+                    <span>P.D. :</span>
+                    <Input
+                      value={form.pdOS}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, pdOS: e.target.value }))
+                      }
+                      className="h-8 w-full max-w-[6.5rem] text-center sm:w-24"
+                    />
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <div className="text-center text-white font-bold py-1" style={{ background: "#2ea3f2", borderRadius: "8px 8px 0 0" }}>
-                  LEFT
-                </div>
-                <table className="w-full border-collapse text-center text-sm" style={{ tableLayout: "fixed" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}></th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Sph.</th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Cyl.</th>
-                      <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>Axis</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ height: 58 }}>
-                      <td style={{ border: "2px solid #2ea3f2", fontWeight: 700 }}>DIST</td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.sOS}</span>
-                        <span className="print:hidden">
-                          <ComboBoxField
-                            value={form.sOS}
-                            options={SPHERE_OPTIONS}
-                            defaultValue="0.00"
-                            allowEmpty={false}
-                            onChange={(value) => setForm((p) => ({ ...p, sOS: value }))}
-                          />
-                        </span>
-                      </td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.cOS}</span>
-                        <span className="print:hidden">
-                          <ComboBoxField
-                            value={form.cOS}
-                            options={CYLINDER_OPTIONS}
-                            defaultValue="0.00"
-                            allowEmpty={false}
-                            onChange={(value) => setForm((p) => ({ ...p, cOS: value }))}
-                          />
-                        </span>
-                      </td>
-                      <td style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">{form.aOS}</span>
-                        <span className="print:hidden">
-                          <Input value={form.aOS} onChange={(e) => setForm((p) => ({ ...p, aOS: e.target.value }))} className="border-0 text-center shadow-none" />
-                        </span>
-                      </td>
-                    </tr>
-                    <tr style={{ height: 58 }}>
-                      <td style={{ border: "2px solid #2ea3f2", fontWeight: 700 }}>NEAR</td>
-                      <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
-                        <span className="hidden print:inline">Add {form.addOS || ""}</span>
-                        <span className="print:hidden flex w-full items-center gap-2 px-2">
-                          <span className="font-semibold">Add</span>
-                          <div className="flex-1">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div
+                    className="text-center text-white font-bold py-1"
+                    style={{
+                      background: "#2ea3f2",
+                      borderRadius: "8px 8px 0 0",
+                    }}
+                  >
+                    RIGHT
+                  </div>
+                  <table
+                    className="w-full border-collapse text-center text-sm"
+                    style={{ tableLayout: "fixed" }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{ border: "2px solid #2ea3f2", padding: 6 }}
+                        ></th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Sph.
+                        </th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Cyl.
+                        </th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Axis
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ height: 58 }}>
+                        <td
+                          style={{
+                            border: "2px solid #2ea3f2",
+                            fontWeight: 700,
+                          }}
+                        >
+                          DIST
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.sOD}
+                          </span>
+                          <span className="print:hidden">
                             <ComboBoxField
-                              value={form.addOS}
-                              options={ADD_OPTIONS}
-                              defaultValue="0.00"
-                              allowEmpty={false}
-                              onChange={(value) => setForm((p) => ({ ...p, addOS: value }))}
+                              value={form.sOD}
+                              options={SPHERE_OPTIONS}
+                              onChange={(value) =>
+                                setForm((p) => ({ ...p, sOD: value }))
+                              }
                             />
-                          </div>
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                          </span>
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.cOD}
+                          </span>
+                          <span className="print:hidden">
+                            <ComboBoxField
+                              value={form.cOD}
+                              options={CYLINDER_OPTIONS}
+                              onChange={(value) =>
+                                setForm((p) => ({ ...p, cOD: value }))
+                              }
+                            />
+                          </span>
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.aOD}
+                          </span>
+                          <span className="print:hidden">
+                            <Input
+                              value={form.aOD}
+                              onChange={(e) =>
+                                setForm((p) => ({ ...p, aOD: e.target.value }))
+                              }
+                              className="border-0 text-center shadow-none"
+                            />
+                          </span>
+                        </td>
+                      </tr>
+                      <tr style={{ height: 58 }}>
+                        <td
+                          style={{
+                            border: "2px solid #2ea3f2",
+                            fontWeight: 700,
+                          }}
+                        >
+                          NEAR
+                        </td>
+                        <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            Add {form.addOD || ""}
+                          </span>
+                          <span className="print:hidden flex w-full items-center gap-2 px-2">
+                            <span className="font-semibold">Add</span>
+                            <div className="flex-1">
+                              <ComboBoxField
+                                value={form.addOD}
+                                options={ADD_OPTIONS}
+                                onChange={(value) =>
+                                  setForm((p) => ({ ...p, addOD: value }))
+                                }
+                              />
+                            </div>
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <div
+                    className="text-center text-white font-bold py-1"
+                    style={{
+                      background: "#2ea3f2",
+                      borderRadius: "8px 8px 0 0",
+                    }}
+                  >
+                    LEFT
+                  </div>
+                  <table
+                    className="w-full border-collapse text-center text-sm"
+                    style={{ tableLayout: "fixed" }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{ border: "2px solid #2ea3f2", padding: 6 }}
+                        ></th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Sph.
+                        </th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Cyl.
+                        </th>
+                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                          Axis
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ height: 58 }}>
+                        <td
+                          style={{
+                            border: "2px solid #2ea3f2",
+                            fontWeight: 700,
+                          }}
+                        >
+                          DIST
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.sOS}
+                          </span>
+                          <span className="print:hidden">
+                            <ComboBoxField
+                              value={form.sOS}
+                              options={SPHERE_OPTIONS}
+                              onChange={(value) =>
+                                setForm((p) => ({ ...p, sOS: value }))
+                              }
+                            />
+                          </span>
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.cOS}
+                          </span>
+                          <span className="print:hidden">
+                            <ComboBoxField
+                              value={form.cOS}
+                              options={CYLINDER_OPTIONS}
+                              onChange={(value) =>
+                                setForm((p) => ({ ...p, cOS: value }))
+                              }
+                            />
+                          </span>
+                        </td>
+                        <td style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            {form.aOS}
+                          </span>
+                          <span className="print:hidden">
+                            <Input
+                              value={form.aOS}
+                              onChange={(e) =>
+                                setForm((p) => ({ ...p, aOS: e.target.value }))
+                              }
+                              className="border-0 text-center shadow-none"
+                            />
+                          </span>
+                        </td>
+                      </tr>
+                      <tr style={{ height: 58 }}>
+                        <td
+                          style={{
+                            border: "2px solid #2ea3f2",
+                            fontWeight: 700,
+                          }}
+                        >
+                          NEAR
+                        </td>
+                        <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
+                          <span className="hidden print:inline">
+                            Add {form.addOS || ""}
+                          </span>
+                          <span className="print:hidden flex w-full items-center gap-2 px-2">
+                            <span className="font-semibold">Add</span>
+                            <div className="flex-1">
+                              <ComboBoxField
+                                value={form.addOS}
+                                options={ADD_OPTIONS}
+                                onChange={(value) =>
+                                  setForm((p) => ({ ...p, addOS: value }))
+                                }
+                              />
+                            </div>
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </CardContent>
@@ -693,4 +855,3 @@ export default function RefractionPage() {
     </div>
   );
 }
-

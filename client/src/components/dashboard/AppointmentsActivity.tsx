@@ -35,7 +35,7 @@ const serviceTypeStyles: Record<string, string> = {
   consultant: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
   specialist: 'bg-secondary/15 text-secondary dark:bg-secondary/25 dark:text-secondary',
   lasik: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
-  external: 'bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400',
+  external: 'bg-muted text-muted-foreground dark:bg-gray-800/60 dark:text-gray-400',
 }
 
 export function AppointmentsActivity({ patients, className }: AppointmentsActivityProps) {

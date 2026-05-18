@@ -118,7 +118,7 @@ export function PullToRefresh({
         )}
         style={{ transform: `translateY(${Math.min(MAX_PULL, isRefreshing ? REFRESH_THRESHOLD : pullDistance)}px)` }}
       >
-        <div className="rounded-full border border-primary/20 bg-white/95 px-4 py-2 text-xs text-slate-600 shadow-lg backdrop-blur">
+        <div className="rounded-full border border-primary/20 bg-background/95 px-4 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur">
           <span className="inline-flex items-center gap-2">
             {isRefreshing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />

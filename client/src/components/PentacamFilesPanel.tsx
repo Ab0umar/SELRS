@@ -119,18 +119,18 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
 
   if (!targetPatientId) {
     return (
-      <Card className="border-slate-200/80 bg-white/92 shadow-sm">
+      <Card className="border-border/80 bg-background/92 shadow-sm">
         <CardContent className="pt-6 text-sm text-muted-foreground">Select patient first.</CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 bg-white/95 shadow-sm">
-      <CardHeader className="space-y-3 border-b border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.96))] pb-3">
+    <Card className="overflow-hidden border-border/80 bg-background/95 shadow-sm">
+      <CardHeader className="space-y-3 border-b border-border bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.96))] pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-base text-slate-900">الملفات المرتبطة بالبنتاكام</CardTitle>
+            <CardTitle className="text-base text-foreground">الملفات المرتبطة بالبنتاكام</CardTitle>
             <div className="mt-1 text-sm text-muted-foreground">
               {files.length > 0 ? `${files.length} linked file${files.length === 1 ? "" : "s"}` : "No linked Pentacam files yet"}
             </div>
@@ -154,7 +154,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
       </CardHeader>
       <CardContent className="space-y-5">
         {files.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border bg-muted px-5 py-10 text-center text-sm text-muted-foreground">
             No Pentacam files yet for this patient.
           </div>
         ) : (
@@ -172,8 +172,8 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                     return (
                       <div
                         key={row?.id ?? `${fileName}-${row?.importedAt ?? ""}`}
-                        className={`space-y-3 rounded-2xl border bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 ${
-                          previewIndex === index ? "border-primary/30 ring-1 ring-primary/10" : "border-slate-200"
+                        className={`space-y-3 rounded-2xl border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 ${
+                          previewIndex === index ? "border-primary/30 ring-1 ring-primary/10" : "border-border"
                         }`}
                       >
                         <label className="flex items-center gap-2 text-xs">
@@ -237,7 +237,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                             <PentacamThumbnail
                               src={url}
                               alt={fileName}
-                              className="h-44 w-full rounded-xl border border-slate-200 bg-muted/30 object-cover"
+                              className="h-44 w-full rounded-xl border border-border bg-muted/30 object-cover"
                               loading={index < (compact ? 6 : 12) ? "eager" : "lazy"}
                             />
                             <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 transition-opacity group-hover:opacity-100">
@@ -250,13 +250,13 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                             href={url || "#"}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm hover:bg-muted"
+                            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border p-4 text-center text-sm hover:bg-muted"
                           >
                             <ImageIcon className="h-4 w-4" />
                             Open file
                           </a>
                         )}
-                        <div className="text-xs font-medium text-slate-700 break-all">{fileName}</div>
+                        <div className="text-xs font-medium text-foreground break-all">{fileName}</div>
                         <div className="text-[11px] text-muted-foreground">
                           {formatDate(row?.capturedAt || row?.importedAt)}
                         </div>
@@ -266,11 +266,11 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                 </div>
               </div>
 
-              <aside className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+              <aside className="overflow-hidden rounded-[1.5rem] border border-border bg-muted shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+                <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Inline preview</div>
-                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                    <div className="mt-1 text-sm font-semibold text-foreground">
                       {activeImage?.fileName ?? "Pentacam image"}
                     </div>
                   </div>
@@ -311,11 +311,11 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
 
                 <div className="space-y-3 px-4 py-4">
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    <div className="rounded-2xl border border-border bg-background px-3 py-2">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Side</div>
                       <div className="mt-1 font-medium text-slate-800">{activeImage?.side || "—"}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    <div className="rounded-2xl border border-border bg-background px-3 py-2">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Status</div>
                       <div className="mt-1 font-medium text-slate-800">{activeImage?.status || "—"}</div>
                     </div>

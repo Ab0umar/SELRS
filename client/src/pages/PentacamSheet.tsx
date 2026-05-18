@@ -41,7 +41,7 @@ function SummaryField({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="rounded-2xl border border-border bg-muted px-4 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</div>
       <div className="mt-1 text-sm font-medium text-slate-800">{value}</div>
     </div>
@@ -50,14 +50,14 @@ function SummaryField({
 
 function EmptyPanel() {
   return (
-    <div className="flex h-full min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+    <div className="flex h-full min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background px-6 py-10 text-center">
       <div className="max-w-sm space-y-3">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
           <Search className="h-6 w-6" />
         </div>
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-slate-900">ابحث برمز المريض</p>
-          <p className="text-sm leading-6 text-slate-600">
+          <p className="text-lg font-semibold text-foreground">ابحث برمز المريض</p>
+          <p className="text-sm leading-6 text-muted-foreground">
             اكتب كود المريض لعرض صوره المرتبطة وبدء الربط بسرعة.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function PentacamSheet() {
           <div className="space-y-3">
             <button
               onClick={() => goBack()}
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowRight className="h-4 w-4" />
               رجوع
@@ -138,8 +138,8 @@ export default function PentacamSheet() {
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 Pentacam Sheet
               </div>
-              <h1 className="text-3xl font-black tracking-tight text-[#001f47] sm:text-4xl">البنتاكام</h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-600">
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">البنتاكام</h1>
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 ابحث برمز المريض، افحص الصور المرتبطة، ثم اربط الملفات الصحيحة بسجل المريض.
               </p>
             </div>
@@ -153,10 +153,10 @@ export default function PentacamSheet() {
 
         <div className="grid flex-1 gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
           <aside className="space-y-5">
-            <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+            <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
               <div className="mb-4 flex items-center gap-2">
                 <Search className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-slate-900">البحث بالكود</h2>
+                <h2 className="text-sm font-semibold text-foreground">البحث بالكود</h2>
               </div>
               <div className="mb-3">
                 <FilterBar
@@ -183,15 +183,15 @@ export default function PentacamSheet() {
               </p>
             </section>
 
-            <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+            <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
               <div className="mb-4 flex items-center gap-2">
                 <BookOpenText className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-slate-900">ملخص المريض</h2>
+                <h2 className="text-sm font-semibold text-foreground">ملخص المريض</h2>
               </div>
               {selectedPatient ? (
                 <div className="space-y-4">
                   <div>
-                    <div className="text-lg font-bold text-slate-900">{selectedPatient.fullName}</div>
+                    <div className="text-lg font-bold text-foreground">{selectedPatient.fullName}</div>
                     <div className="mt-1 text-sm text-slate-500">
                       {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
                     </div>
@@ -203,7 +203,7 @@ export default function PentacamSheet() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm leading-6 text-slate-600">
+                <div className="rounded-2xl border border-dashed border-border bg-muted px-4 py-6 text-sm leading-6 text-muted-foreground">
                   اختر مريضًا لعرض الكود والبيانات السريعة هنا.
                 </div>
               )}

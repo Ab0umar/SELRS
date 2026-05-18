@@ -185,8 +185,8 @@ export default function ProtectedRoute({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-base font-semibold text-slate-900">Unable to verify page permissions</p>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="text-base font-semibold text-foreground">Unable to verify page permissions</p>
+          <p className="mt-2 text-sm text-muted-foreground">
             The app could not reach the server to confirm access for this page.
           </p>
           <div className="mt-4 flex justify-center gap-2">
@@ -210,7 +210,7 @@ export default function ProtectedRoute({
   if (roleMismatch && !roleOverrideByPermission) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">
+        <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
@@ -233,7 +233,7 @@ export default function ProtectedRoute({
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">
+        <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
@@ -252,7 +252,7 @@ export default function ProtectedRoute({
   if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center shadow-sm">
+        <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
             <ShieldAlert className="h-6 w-6" />
           </div>

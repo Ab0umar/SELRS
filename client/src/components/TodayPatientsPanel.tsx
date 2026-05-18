@@ -50,7 +50,7 @@ export default function TodayPatientsPanel() {
       {/* Date Picker */}
       <div className="flex-shrink-0">
         <div
-          className="flex items-center gap-2 justify-center cursor-pointer hover:text-slate-900 px-2"
+          className="flex items-center gap-2 justify-center cursor-pointer hover:text-foreground px-2"
           onClick={() => setIsEditingDate(true)}
         >
           {isEditingDate ? (

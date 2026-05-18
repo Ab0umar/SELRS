@@ -196,7 +196,7 @@ export default function AdminPentacamFailed() {
       ? "border-secondary/40 bg-secondary/10 text-secondary"
       : tone === "warn"
         ? "border-amber-300 bg-amber-50 text-amber-900"
-        : "border-slate-300 bg-slate-50 text-slate-700";
+        : "border-border bg-muted text-foreground";
 
   const loadPreview = async (key: string, fileNames: string[], idCode: string) => {
     const result = await previewMutation.mutateAsync({ fileNames, idCode });
@@ -220,7 +220,7 @@ export default function AdminPentacamFailed() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="border-border/80 bg-background/95 shadow-sm">
         <CardHeader>
           <CardTitle>Pentacam Failed Review</CardTitle>
         </CardHeader>
@@ -229,7 +229,7 @@ export default function AdminPentacamFailed() {
             <div className="text-sm text-muted-foreground">
               Files are grouped by patient-like base name. Set one ID for the group, apply it to all related files, or fix single files one by one.
             </div>
-            <Button variant="outline" onClick={() => filesQuery.refetch()} disabled={filesQuery.isFetching} className="gap-2 border-slate-200 bg-white">
+            <Button variant="outline" onClick={() => filesQuery.refetch()} disabled={filesQuery.isFetching} className="gap-2 border-border bg-background">
               <RefreshCw className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -261,7 +261,7 @@ export default function AdminPentacamFailed() {
           const confidence = groupConfidence(group);
           const groupPreview = renamePreview[group.key] ?? [];
           return (
-            <Card key={group.key} className="overflow-hidden border-slate-200/80 bg-white/95 shadow-sm">
+            <Card key={group.key} className="overflow-hidden border-border/80 bg-background/95 shadow-sm">
               <CardHeader className="space-y-2">
                 <CardTitle className="text-lg">{group.label || group.key}</CardTitle>
                 <div className="flex flex-wrap gap-2 text-xs">
@@ -277,7 +277,7 @@ export default function AdminPentacamFailed() {
                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm">
+                      <div className="rounded-xl border border-border bg-muted/70 px-3 py-2 text-sm">
                         Suggested ID: <span className="font-semibold">{group.suggestedId || "-"}</span>
                       </div>
                       <Input
@@ -296,7 +296,7 @@ export default function AdminPentacamFailed() {
                           variant="outline"
                           onClick={() => loadPreview(group.key, group.rows.map((row) => row.fileName), groupValue)}
                           disabled={!groupValue.trim() || previewMutation.isPending}
-                          className="gap-2 border-slate-200 bg-white"
+                          className="gap-2 border-border bg-background"
                         >
                           <ScanLine className="h-4 w-4" />
                           Preview Rename
@@ -316,7 +316,7 @@ export default function AdminPentacamFailed() {
                     </div>
 
                     {group.suggestions.length > 0 ? (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                      <div className="rounded-2xl border border-border bg-muted/70 p-3">
                         <div className="mb-2 text-sm font-medium">Patient suggestions</div>
                         <div className="flex flex-wrap gap-2">
                           {group.suggestions.map((suggestion) => (
@@ -340,7 +340,7 @@ export default function AdminPentacamFailed() {
                     ) : null}
 
                     {groupPreview.length > 0 ? (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+                      <div className="rounded-2xl border border-border bg-muted/70 p-3 text-sm">
                         <div className="mb-2 font-medium">
                           Rename preview
                           {groupPreview.some((row) => row.willDuplicate) ? (
@@ -360,7 +360,7 @@ export default function AdminPentacamFailed() {
                     ) : null}
                   </div>
 
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-3 text-sm text-muted-foreground">
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/60 p-3 text-sm text-muted-foreground">
                     Applying a group ID updates all files in this set and keeps the rest of each file name unchanged.
                   </div>
                 </div>
@@ -370,30 +370,30 @@ export default function AdminPentacamFailed() {
                     const value = getManualValue(row.fileName, row.detectedId || groupValue);
                     const previewUrl = resolvePreviewUrl(row.previewUrl);
                     return (
-                      <Card key={row.fileName} className="overflow-hidden border-dashed border-slate-200 bg-slate-50/30 shadow-none">
+                      <Card key={row.fileName} className="overflow-hidden border-dashed border-border bg-muted/30 shadow-none">
                         <CardHeader className="space-y-2">
                           <CardTitle className="break-all text-base">{row.fileName}</CardTitle>
                           <div className="flex flex-wrap gap-2 text-xs">
                             <span className="text-muted-foreground">
                               score {row.score} | {formatFileSize(row.size)} | {new Date(row.modifiedAt).toLocaleString()}
                             </span>
-                            <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-slate-700">
+                            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-foreground">
                               {row.pageType}
                             </span>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="overflow-hidden rounded-xl border border-slate-200 bg-muted/20">
+                          <div className="overflow-hidden rounded-xl border border-border bg-muted/20">
                             <AuthenticatedImage
                               src={previewUrl}
                               alt={row.fileName}
-                              className="h-[280px] w-full object-contain bg-white"
+                              className="h-[280px] w-full object-contain bg-background"
                               loading="lazy"
                             />
                           </div>
 
                           <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                            <div className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
                               OCR ID: <span className="font-semibold">{row.detectedId || "-"}</span>
                             </div>
                             <Input
@@ -429,7 +429,7 @@ export default function AdminPentacamFailed() {
                             </div>
                           ) : null}
 
-                              <Textarea value={buildTraceText(row)} readOnly className="min-h-[160px] border-slate-200 bg-white font-mono text-xs" />
+                              <Textarea value={buildTraceText(row)} readOnly className="min-h-[160px] border-border bg-background font-mono text-xs" />
 
                           <div className="flex flex-wrap gap-2">
                             <Button
@@ -443,7 +443,7 @@ export default function AdminPentacamFailed() {
                               variant="outline"
                               onClick={() => loadPreview(row.fileName, [row.fileName], value)}
                               disabled={!value.trim() || previewMutation.isPending}
-                              className="gap-2 border-slate-200 bg-white"
+                              className="gap-2 border-border bg-background"
                             >
                               <ScanLine className="h-4 w-4" />
                               Preview
@@ -471,7 +471,7 @@ export default function AdminPentacamFailed() {
                             </Button>
                           </div>
                           {(renamePreview[row.fileName] ?? []).length > 0 ? (
-                            <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                            <div className="rounded-xl border border-border bg-background p-3 text-sm">
                               {(renamePreview[row.fileName] ?? []).map((item) => (
                                 <div key={`${row.fileName}-${item.proposedFileName}`} className="break-all">
                                   {item.willDuplicate ? "dup" : "ok"} | {item.proposedFileName}
@@ -491,7 +491,7 @@ export default function AdminPentacamFailed() {
       </div>
 
       {!filesQuery.isLoading && filteredGroups.length === 0 ? (
-        <Card className="border-slate-200 bg-slate-50/70">
+        <Card className="border-border bg-muted/70">
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             No failed Pentacam files found.
           </CardContent>

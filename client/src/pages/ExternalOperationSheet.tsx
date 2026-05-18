@@ -473,7 +473,7 @@ export default function ExternalOperationSheet() {
         <div className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
         </div>
-        <div className="rounded-[28px] border border-slate-200/80 bg-white p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
+        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
           <div className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}>
             <Button
               variant="outline"
@@ -523,7 +523,7 @@ export default function ExternalOperationSheet() {
             </div>
             <div className="flex flex-wrap items-center gap-1 min-w-0">
               <span className="font-bold">العيون</span>
-              <label className="flex items-center gap-1 bg-white px-2 py-1">
+              <label className="flex items-center gap-1 bg-background px-2 py-1">
                 <span className="text-xs">يمين (RT)</span>
                 <Checkbox
                   id="external-rt"
@@ -538,7 +538,7 @@ export default function ExternalOperationSheet() {
                   }}
                 />
               </label>
-              <label className="flex items-center gap-1 bg-white px-2 py-1">
+              <label className="flex items-center gap-1 bg-background px-2 py-1">
                 <span className="text-xs">يسار (LT)</span>
                 <Checkbox
                   id="external-lt"
@@ -553,7 +553,7 @@ export default function ExternalOperationSheet() {
                   }}
                 />
               </label>
-              <label className="flex items-center gap-1 bg-white px-2 py-1">
+              <label className="flex items-center gap-1 bg-background px-2 py-1">
                 <span className="text-xs">OU</span>
                 <Checkbox
                   id="external-ou"
@@ -614,11 +614,11 @@ export default function ExternalOperationSheet() {
           <div className="mb-4 border sheet-section-card">
             <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
               <thead>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b bg-muted">
                   <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
                   <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
                 </tr>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b bg-muted">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>
@@ -674,7 +674,7 @@ export default function ExternalOperationSheet() {
 
           <div className="grid grid-cols-2 gap-2 mb-4 sheet-section-card">
             <div className="border">
-              <div className="bg-gray-100 p-1 text-center font-bold text-xs border-b">RT فحص القرنية</div>
+              <div className="bg-muted p-1 text-center font-bold text-xs border-b">RT فحص القرنية</div>
               <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
                 <tbody>
                   <tr className="border-b">
@@ -803,7 +803,7 @@ export default function ExternalOperationSheet() {
             </div>
 
             <div className="border">
-              <div className="bg-gray-100 p-1 text-center font-bold text-xs border-b">LT فحص القرنية</div>
+              <div className="bg-muted p-1 text-center font-bold text-xs border-b">LT فحص القرنية</div>
               <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
                 <tbody>
                   <tr className="border-b">
@@ -931,7 +931,7 @@ export default function ExternalOperationSheet() {
           <div className="mb-4 border sheet-section-card">
             <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
               <thead>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b bg-muted">
                   <th className="border-r p-0.5 text-center">Target refraction</th>
                   <th className="border-r p-0.5 text-center">OD / OS</th>
                   <th className="border-r p-0.5 text-center">Before Flap</th>

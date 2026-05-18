@@ -4,19 +4,20 @@ import { buildReceiptsInquirySql } from "./sqlBuilders";
 import { mssqlQuery } from "./mssqlAccounting";
 import { mapReceiptHeader } from "./mappers";
 
-export async function getExtendedDashboardSummary(input: { sectionCode?: number }): Promise<ExtendedDashboardSummaryOutput> {
+export async function getExtendedDashboardSummary(input: { sectionCode?: number; date?: string }): Promise<ExtendedDashboardSummaryOutput> {
   return getDashboardSummary(input);
 }
 
 export async function getTransactions(input: TransactionsInput): Promise<TransactionsOutput> {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const dateStr = input.date ?? todayStr;
 
   const { sql, params } = buildReceiptsInquirySql({
-    fromDate: todayStr,
-    toDate: todayStr,
+    fromDate: dateStr,
+    toDate: dateStr,
     sectionCode: input.sectionCode,
-    limit: input.limit ?? 20,
+    limit: input.limit ?? 50,
   });
 
   const rows = await mssqlQuery<Record<string, unknown>>(sql, params);

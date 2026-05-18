@@ -31,7 +31,7 @@ export const PatientTransactions = memo(function PatientTransactions({
         const name = String(serviceCodeToLabel.get(code) ?? entry?.serviceName ?? code ?? "-").trim();
         const date = entry?.serviceDate ? formatDisplayDate(entry.serviceDate) : "";
         return (
-          <div key={String(entry?.id ?? `${patientId}-${code}`)} className="rounded border bg-white px-2 py-1.5">
+          <div key={String(entry?.id ?? `${patientId}-${code}`)} className="rounded border bg-background px-2 py-1.5">
             <div className="flex flex-col items-end gap-0.5" dir="rtl">
               <span className="font-medium">{name}</span>
               <span className="text-muted-foreground">({code || "-"})</span>

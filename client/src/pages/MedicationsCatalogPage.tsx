@@ -66,6 +66,7 @@ export default function MedicationsCatalogPage() {
   const [filter, setFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -205,7 +206,6 @@ export default function MedicationsCatalogPage() {
   };
 
   const remove = async (id: number) => {
-    if (!window.confirm("هل أنت متأكد من حذف الدواء؟")) return;
     await deleteMutation.mutateAsync({ medicationId: id });
   };
 
@@ -309,16 +309,26 @@ export default function MedicationsCatalogPage() {
                             <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(row)} title="تعديل">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => remove(id)}
-                              title="حذف"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {delConfirm === id ? (
+                              <div className="flex items-center gap-1">
+                                <button type="button" aria-label="تأكيد الحذف"
+                                  className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                  onClick={() => { void remove(id); setDelConfirm(null); }}>
+                                  تأكيد
+                                </button>
+                                <button type="button" aria-label="إلغاء الحذف"
+                                  className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                  onClick={() => setDelConfirm(null)}>
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button type="button" aria-label="حذف الدواء"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                onClick={() => setDelConfirm(id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

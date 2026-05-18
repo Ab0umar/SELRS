@@ -430,7 +430,7 @@ export default function SpecialistSheet() {
           />
         ) : null}
         {/* Patient picker removed */}
-          <div className="bg-white p-8 print:p-0 specialist-print-root">
+          <div className="bg-background p-8 print:p-0 specialist-print-root">
            <div className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}>
             <Button
               variant="outline"
@@ -515,11 +515,11 @@ export default function SpecialistSheet() {
           <div className="mb-4 border sheet-section-card">
             <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
               <thead>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b bg-muted">
                   <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
                   <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
                 </tr>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b bg-muted">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>

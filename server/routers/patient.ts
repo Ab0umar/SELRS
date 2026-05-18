@@ -110,6 +110,51 @@ export const patientRouter = router({
         });
       }
     }),
+
+  getVisitScheduleRequests: protectedProcedure
+    .input(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    )
+    .query(async ({ input }) => {
+      return await db.getVisitScheduleRequestsByDate(input.date);
+    }),
+
+  removeVisitScheduleRequest: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number().int().positive(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
+      const role = String(ctx.user.role ?? "").toLowerCase();
+      const canRemoveBooking =
+        permissions.includes("/today") ||
+        permissions.includes("/patients") ||
+        ["admin", "manager", "reception"].includes(role);
+      if (!canRemoveBooking) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to remove booking requests.",
+        });
+      }
+
+      const request = await db.getVisitScheduleRequestById(input.requestId);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Booking request not found" });
+      }
+
+      await db.deleteVisitScheduleRequest(input.requestId);
+      await db.logAuditEvent(ctx.user.id, "REMOVE_VISIT_SCHEDULE_REQUEST", "visit_schedule_requests", input.requestId, {
+        fullName: request.fullName,
+        visitDate: request.visitDate,
+        service: request.service,
+      });
+
+      return { success: true };
+    }),
 });
 
 export type PatientRouter = typeof patientRouter;

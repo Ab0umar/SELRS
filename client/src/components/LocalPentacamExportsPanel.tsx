@@ -443,7 +443,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
   }, [nameFilter, dateFrom, dateTo]);
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 bg-white/95 shadow-sm">
+    <Card className="overflow-hidden border-border/80 bg-background/95 shadow-sm">
       <CardHeader className="space-y-3 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
@@ -457,29 +457,29 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
                 Review and import Pentacam images from the local export folder.
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="rounded-full border border-border bg-muted px-3 py-1">
                 Total files: {items.length}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              <span className="rounded-full border border-border bg-muted px-3 py-1">
                 Filtered: {filteredItems.length}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              <span className="rounded-full border border-border bg-muted px-3 py-1">
                 Selected: {selectedNames.length}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              <span className="rounded-full border border-border bg-muted px-3 py-1">
                 Patient: {targetPatientId > 0 ? `#${targetPatientId}` : "not selected"}
               </span>
             </div>
           </div>
-          <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-2xl border border-border bg-background/95 p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setExpanded((prev) => !prev)}
               title={expanded ? "Collapse" : "Expand"}
-              className="gap-2 border-slate-200 bg-white"
+              className="gap-2 border-border bg-background"
             >
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               {expanded ? "Collapse" : "Expand"}
@@ -490,7 +490,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               size="sm"
               onClick={printSelectedItems}
               disabled={selectedItems.length === 0}
-              className="gap-2 border-slate-200 bg-white"
+              className="gap-2 border-border bg-background"
             >
               <Printer className="h-4 w-4" />
               Print Selected ({selectedItems.length})
@@ -501,7 +501,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               size="sm"
               onClick={autoImportFiltered}
               disabled={!canAutoImport}
-              className="gap-2 border-slate-200 bg-white"
+              className="gap-2 border-border bg-background"
             >
               <ScanSearch className="h-4 w-4" />
               {autoImportMutation.isPending ? "Auto-linking..." : "Auto-wire filtered"}
@@ -515,7 +515,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
             >
               {importMutation.isPending ? "Saving..." : `Save Selected (${selectedNames.length})`}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={loadExports} disabled={loading} className="gap-2 border-slate-200 bg-white">
+            <Button type="button" variant="outline" size="sm" onClick={loadExports} disabled={loading} className="gap-2 border-border bg-background">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -528,7 +528,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
             Select a patient above, then choose images and click import.
           </div>
         ) : null}
-        <div className="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-3">
+        <div className="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-border bg-muted/70 p-3 sm:grid-cols-3">
           <input
             type="text"
             value={nameFilter}
@@ -581,7 +581,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         ) : null}
         {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
         {unmatchedSuggestions.length > 0 ? (
-          <div className="mb-4 space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+          <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
             <div className="text-sm font-medium">
               Unmatched Suggestions ({unmatchedSuggestions.length}) - Manual linking only
             </div>
@@ -631,7 +631,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
             </div>
           </div>
         ) : null}
-        <div className="mb-4 space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
           <div className="flex items-center justify-between gap-2">
             <div className="text-sm font-medium">
               Mismatched Existing Links ({mismatchedLinks.length})
@@ -699,7 +699,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
             {visibleItems.map((item, index) => (
               <div
                 key={`${item.name}-${item.mtime}`}
-                className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5"
+                className="space-y-2 rounded-2xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5"
               >
                 <label className="flex items-center gap-2 text-xs">
                   <input
@@ -733,7 +733,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
                   <PentacamThumbnail
                     src={buildPentacamAssetUrl(item)}
                     alt={item.name}
-                    className="h-24 w-full rounded-xl border border-slate-200 object-cover"
+                    className="h-24 w-full rounded-xl border border-border object-cover"
                     loading={index < 12 ? "eager" : "lazy"}
                   />
                 </a>

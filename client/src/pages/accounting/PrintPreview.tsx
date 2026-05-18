@@ -391,7 +391,7 @@ export default function PrintPreview() {
 
                     <div className={`${styles.header} ${styles.screenOnly}`}>
                       <h1 className="text-2xl font-bold uppercase tracking-tight">{payload.title}</h1>
-                      <div className="mt-1 text-sm font-medium text-slate-900">{payload.meta.clinicName}</div>
+                      <div className="mt-1 text-sm font-medium text-foreground">{payload.meta.clinicName}</div>
                     </div>
 
                     <div className={styles.printTitleBand}>

@@ -75,8 +75,11 @@ function readFilters(search: string): DailyRevenueInput {
   const defaults = defaultDateRange();
   const params = parseQueryString(search);
   const sectionRaw = params.get("sectionCode");
-  const sectionParsed = sectionRaw != null && sectionRaw !== "" ? Number(sectionRaw) : NaN;
-  const sectionCode = Number.isFinite(sectionParsed) ? sectionParsed : DEFAULT_SECTION_CODE;
+  const sectionParsed =
+    sectionRaw != null && sectionRaw !== "" ? Number(sectionRaw) : NaN;
+  const sectionCode = Number.isFinite(sectionParsed)
+    ? sectionParsed
+    : DEFAULT_SECTION_CODE;
   const shiftCode = params.get("shiftCode")?.trim() || undefined;
 
   return {
@@ -92,10 +95,7 @@ function buildDailyRevenueUrl(input: DailyRevenueInput) {
   params.set("fromDate", input.fromDate);
   params.set("toDate", input.toDate);
 
-  if (
-    input.sectionCode != null &&
-    input.sectionCode !== DEFAULT_SECTION_CODE
-  ) {
+  if (input.sectionCode != null && input.sectionCode !== DEFAULT_SECTION_CODE) {
     params.set("sectionCode", String(input.sectionCode));
   }
 
@@ -137,9 +137,12 @@ export default function DailyRevenue() {
     setDateError("");
   }, [filters]);
 
-  const dailyRevenueQuery = accountingTrpc.accounting.dailyRevenue.useQuery(filters, {
-    refetchOnWindowFocus: false,
-  });
+  const dailyRevenueQuery = accountingTrpc.accounting.dailyRevenue.useQuery(
+    filters,
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const rows = dailyRevenueQuery.data?.rows ?? [];
   const totals = dailyRevenueQuery.data?.totals ?? {
@@ -190,7 +193,9 @@ export default function DailyRevenue() {
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-xl tracking-tight">الإيراد اليومي</CardTitle>
+                <CardTitle className="text-xl tracking-tight">
+                  الإيراد اليومي
+                </CardTitle>
                 <CardDescription className="mt-1 text-sm">
                   تصفية إجمالي الإيصالات اليومية وإيرادات الخدمات.
                 </CardDescription>
@@ -203,7 +208,12 @@ export default function DailyRevenue() {
                   disabled={dailyRevenueQuery.isFetching}
                   aria-label="تحديث بيانات الإيراد اليومي"
                 >
-                  <RefreshCw className={dailyRevenueQuery.isFetching ? "animate-spin" : ""} aria-hidden />
+                  <RefreshCw
+                    className={
+                      dailyRevenueQuery.isFetching ? "animate-spin" : ""
+                    }
+                    aria-hidden
+                  />
                   تحديث
                 </Button>
                 <Button
@@ -218,20 +228,29 @@ export default function DailyRevenue() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <label htmlFor="daily-from-date" className="space-y-1.5 text-sm font-medium">
+          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <label
+              htmlFor="daily-from-date"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>من تاريخ</span>
               <Input
                 id="daily-from-date"
                 type="date"
                 value={draft.fromDate}
                 onChange={(event) => {
-                  setDraft((prev) => ({ ...prev, fromDate: event.target.value }));
+                  setDraft((prev) => ({
+                    ...prev,
+                    fromDate: event.target.value,
+                  }));
                   setDateError("");
                 }}
               />
             </label>
-            <label htmlFor="daily-to-date" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="daily-to-date"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>إلى تاريخ</span>
               <Input
                 id="daily-to-date"
@@ -246,7 +265,10 @@ export default function DailyRevenue() {
             {dateError && (
               <p className="col-span-full text-sm text-red-600">{dateError}</p>
             )}
-            <label htmlFor="daily-section-code" className="space-y-1.5 text-sm font-medium">
+            <label
+              htmlFor="daily-section-code"
+              className="space-y-1.5 text-sm font-medium"
+            >
               <span>كود القسم</span>
               <Input
                 id="daily-section-code"
@@ -256,7 +278,9 @@ export default function DailyRevenue() {
                 onChange={(event) =>
                   setDraft((prev) => ({
                     ...prev,
-                    sectionCode: Number(event.target.value || DEFAULT_SECTION_CODE),
+                    sectionCode: Number(
+                      event.target.value || DEFAULT_SECTION_CODE,
+                    ),
                   }))
                 }
               />
@@ -266,7 +290,10 @@ export default function DailyRevenue() {
               <Select
                 value={draft.shiftCode ?? "all"}
                 onValueChange={(val) =>
-                  setDraft((prev) => ({ ...prev, shiftCode: val === "all" ? undefined : val }))
+                  setDraft((prev) => ({
+                    ...prev,
+                    shiftCode: val === "all" ? undefined : val,
+                  }))
                 }
                 dir="rtl"
               >
@@ -281,11 +308,21 @@ export default function DailyRevenue() {
               </Select>
             </div>
             <div className="flex items-end gap-2">
-              <Button type="button" className="flex-1" onClick={applyFilters} aria-label="تطبيق الفلاتر">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={applyFilters}
+                aria-label="تطبيق الفلاتر"
+              >
                 <Search className="ml-2 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters} aria-label="إعادة ضبط الفلاتر">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetFilters}
+                aria-label="إعادة ضبط الفلاتر"
+              >
                 إعادة ضبط
               </Button>
             </div>
@@ -316,82 +353,302 @@ export default function DailyRevenue() {
           </CardHeader>
           <CardContent>
             <div className={reportStyles.reportMeta} role="note">
-              <span className="font-semibold">الفترة:</span> من {formatDateAr(filters.fromDate)} إلى{" "}
+              <span className="font-semibold">الفترة:</span> من{" "}
+              {formatDateAr(filters.fromDate)} إلى{" "}
               {formatDateAr(filters.toDate)}
             </div>
 
-            {dailyRevenueQuery.isLoading ? (
-              <table className={reportStyles.gridTable} aria-hidden>
-                <tbody>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <td key={j}><Skeleton className="h-5 w-full" /></td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : null}
+            <div className="grid gap-3 sm:hidden">
+              {dailyRevenueQuery.isLoading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Array.from({ length: 6 }).map((__, j) => (
+                          <div
+                            key={j}
+                            className="rounded-xl border border-border bg-muted p-3"
+                          >
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="mt-2 h-4 w-16" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                : null}
 
-            {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
-              <div className={`${reportStyles.emptyState} text-muted-foreground`}>
-                لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
-              </div>
-            ) : null}
+              {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
+                <div
+                  className={`${reportStyles.emptyState} text-muted-foreground`}
+                >
+                  لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
+                </div>
+              ) : null}
 
-            {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
-              <table className={reportStyles.gridTable}>
-                <colgroup>
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "16%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "16%" }} />
-                  <col style={{ width: "20%" }} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th scope="col" className={reportStyles.numeric}>التاريخ</th>
-                    <th scope="col" className={reportStyles.numeric}>عدد الإيصالات</th>
-                    <th scope="col" className={reportStyles.numeric}>الإجمالي</th>
-                    <th scope="col" className={reportStyles.numeric}>الخصم</th>
-                    <th scope="col" className={reportStyles.numeric}>نقدي</th>
-                    <th scope="col" className={reportStyles.numeric}>المدفوع</th>
-                    <th scope="col" className={reportStyles.numeric}>الصافي</th>
-                  </tr>
-                </thead>
-                <tbody>
+              {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
+                <>
                   {rows.map((row) => (
-                    <tr key={row.date}>
-                      <td data-label="التاريخ" className={reportStyles.numeric}>{formatDateAr(row.date)}</td>
-                      <td data-label="الإيصالات" className={reportStyles.numeric}>{formatCountAr(row.totalReceipts)}</td>
-                      <td data-label="الإجمالي" className={reportStyles.numeric}>{formatMoneyAr(row.totalGross)}</td>
-                      <td data-label="الخصم" className={reportStyles.numeric}>{formatMoneyAr(row.totalDiscount)}</td>
-                      <td data-label="نقدي" className={reportStyles.numeric}>{formatMoneyAr(row.totalCash)}</td>
-                      <td data-label="المدفوع" className={reportStyles.numeric}>{formatMoneyAr(row.totalPaid)}</td>
-                      <td data-label="الصافي" className={reportStyles.numeric}>{formatMoneyAr(row.netAfterDiscount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className={reportStyles.grandTotalRow}>
-                    <td className="font-bold">الإجمالي العام</td>
-                    <td className={reportStyles.numeric}>{formatCountAr(totals.totalReceipts)}</td>
-                    <td className={reportStyles.numeric}>{formatMoneyAr(totals.totalGross)}</td>
-                    <td className={reportStyles.numeric}>{formatMoneyAr(totals.totalDiscount)}</td>
-                    <td className={reportStyles.numeric}>{formatMoneyAr(totals.totalCash)}</td>
-                    <td className={reportStyles.numeric}>{formatMoneyAr(totals.totalPaid)}</td>
-                    <td className={reportStyles.numeric}>{formatMoneyAr(totals.netAfterDiscount)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            ) : null}
+                    <div
+                      key={row.date}
+                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] text-slate-500">
+                            {formatDateAr(row.date)}
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-foreground">
+                            الإيراد اليومي
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                          {formatCountAr(row.totalReceipts)} إيصال
+                        </span>
+                      </div>
 
-            </CardContent>
-            </Card>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">
+                            الإجمالي
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(row.totalGross)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-muted px-3 py-2">
+                          <div className="text-[10px] text-slate-500">
+                            الخصم
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(row.totalDiscount)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
+                          <div className="text-[10px] text-emerald-700">
+                            نقدي
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                            {formatMoneyAr(row.totalCash)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
+                          <div className="text-[10px] text-emerald-700">
+                            المدفوع
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                            {formatMoneyAr(row.totalPaid)}
+                          </div>
+                        </div>
+                        <div className="col-span-2 rounded-xl bg-blue-50 px-3 py-2">
+                          <div className="text-[10px] text-blue-700">
+                            الصافي
+                          </div>
+                          <div className="mt-1 text-lg font-bold tabular-nums text-blue-700">
+                            {formatMoneyAr(row.netAfterDiscount)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="text-xs font-semibold text-blue-700">
+                      الإجمالي العام
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">
+                          الإيصالات
+                        </div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatCountAr(totals.totalReceipts)}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">
+                          الإجمالي
+                        </div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(totals.totalGross)}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">الخصم</div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(totals.totalDiscount)}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">نقدي</div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(totals.totalCash)}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">
+                          المدفوع
+                        </div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(totals.totalPaid)}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-background px-3 py-2">
+                        <div className="text-[10px] text-slate-500">الصافي</div>
+                        <div className="mt-1 font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(totals.netAfterDiscount)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
-            </AccountingShell>
-            );
-            }
+
+            <div className="hidden sm:block">
+              {dailyRevenueQuery.isLoading ? (
+                <table className={reportStyles.gridTable} aria-hidden>
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 7 }).map((_, j) => (
+                          <td key={j}>
+                            <Skeleton className="h-5 w-full" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+
+              {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
+                <div
+                  className={`${reportStyles.emptyState} text-muted-foreground`}
+                >
+                  لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
+                </div>
+              ) : null}
+
+              {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
+                <table className={reportStyles.gridTable}>
+                  <colgroup>
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "16%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "16%" }} />
+                    <col style={{ width: "20%" }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col" className={reportStyles.numeric}>
+                        التاريخ
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        عدد الإيصالات
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        الإجمالي
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        الخصم
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        نقدي
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        المدفوع
+                      </th>
+                      <th scope="col" className={reportStyles.numeric}>
+                        الصافي
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.date}>
+                        <td
+                          data-label="التاريخ"
+                          className={reportStyles.numeric}
+                        >
+                          {formatDateAr(row.date)}
+                        </td>
+                        <td
+                          data-label="الإيصالات"
+                          className={reportStyles.numeric}
+                        >
+                          {formatCountAr(row.totalReceipts)}
+                        </td>
+                        <td
+                          data-label="الإجمالي"
+                          className={reportStyles.numeric}
+                        >
+                          {formatMoneyAr(row.totalGross)}
+                        </td>
+                        <td data-label="الخصم" className={reportStyles.numeric}>
+                          {formatMoneyAr(row.totalDiscount)}
+                        </td>
+                        <td data-label="نقدي" className={reportStyles.numeric}>
+                          {formatMoneyAr(row.totalCash)}
+                        </td>
+                        <td
+                          data-label="المدفوع"
+                          className={reportStyles.numeric}
+                        >
+                          {formatMoneyAr(row.totalPaid)}
+                        </td>
+                        <td
+                          data-label="الصافي"
+                          className={reportStyles.numeric}
+                        >
+                          {formatMoneyAr(row.netAfterDiscount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className={reportStyles.grandTotalRow}>
+                      <td className="font-bold">الإجمالي العام</td>
+                      <td
+                        data-label="الإيصالات"
+                        className={reportStyles.numeric}
+                      >
+                        {formatCountAr(totals.totalReceipts)}
+                      </td>
+                      <td
+                        data-label="الإجمالي"
+                        className={reportStyles.numeric}
+                      >
+                        {formatMoneyAr(totals.totalGross)}
+                      </td>
+                      <td data-label="الخصم" className={reportStyles.numeric}>
+                        {formatMoneyAr(totals.totalDiscount)}
+                      </td>
+                      <td data-label="نقدي" className={reportStyles.numeric}>
+                        {formatMoneyAr(totals.totalCash)}
+                      </td>
+                      <td data-label="المدفوع" className={reportStyles.numeric}>
+                        {formatMoneyAr(totals.totalPaid)}
+                      </td>
+                      <td data-label="الصافي" className={reportStyles.numeric}>
+                        {formatMoneyAr(totals.netAfterDiscount)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AccountingShell>
+  );
+}

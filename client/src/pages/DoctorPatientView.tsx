@@ -63,7 +63,7 @@ export default function DoctorPatientView() {
       <PageHeader backTo="/dashboard" />
       <main className="container mx-auto max-w-4xl space-y-6 px-3 py-6 sm:px-4">
         {/* Patient Picker */}
-        <Card className="border-slate-200/80 shadow-sm">
+        <Card className="border-border/80 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">اختر المريض</CardTitle>
           </CardHeader>
@@ -87,7 +87,7 @@ export default function DoctorPatientView() {
         ) : (
           <div className="space-y-6">
             {/* Latest Examination */}
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card className="border-border/80 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Latest Examination</CardTitle>
             </CardHeader>
@@ -96,28 +96,28 @@ export default function DoctorPatientView() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-slate-600">UCVA OD:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.ucvaOD || "—"}</div>
+                      <span className="text-muted-foreground">UCVA OD:</span>
+                      <div className="font-semibold text-foreground">{latestExam.ucvaOD || "—"}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">UCVA OS:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.ucvaOS || "—"}</div>
+                      <span className="text-muted-foreground">UCVA OS:</span>
+                      <div className="font-semibold text-foreground">{latestExam.ucvaOS || "—"}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">BCVA OD:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.bcvaOD || "—"}</div>
+                      <span className="text-muted-foreground">BCVA OD:</span>
+                      <div className="font-semibold text-foreground">{latestExam.bcvaOD || "—"}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">BCVA OS:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.bcvaOS || "—"}</div>
+                      <span className="text-muted-foreground">BCVA OS:</span>
+                      <div className="font-semibold text-foreground">{latestExam.bcvaOS || "—"}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">IOP OD:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.iopOD || "—"}</div>
+                      <span className="text-muted-foreground">IOP OD:</span>
+                      <div className="font-semibold text-foreground">{latestExam.iopOD || "—"}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">IOP OS:</span>
-                      <div className="font-semibold text-slate-900">{latestExam.iopOS || "—"}</div>
+                      <span className="text-muted-foreground">IOP OS:</span>
+                      <div className="font-semibold text-foreground">{latestExam.iopOS || "—"}</div>
                     </div>
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export default function DoctorPatientView() {
           </Card>
 
           {/* Latest Report */}
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card className="border-border/80 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Latest Report</CardTitle>
             </CardHeader>
@@ -136,19 +136,19 @@ export default function DoctorPatientView() {
               {latestReport ? (
                 <div className="space-y-3">
                   <div>
-                    <span className="text-sm text-slate-600">Diagnosis:</span>
-                    <p className="mt-1 text-slate-900">{latestReport.diagnosis || "—"}</p>
+                    <span className="text-sm text-muted-foreground">Diagnosis:</span>
+                    <p className="mt-1 text-foreground">{latestReport.diagnosis || "—"}</p>
                   </div>
                   {latestReport.treatment && (
                     <div>
-                      <span className="text-sm text-slate-600">Treatment:</span>
-                      <p className="mt-1 text-slate-900">{latestReport.treatment}</p>
+                      <span className="text-sm text-muted-foreground">Treatment:</span>
+                      <p className="mt-1 text-foreground">{latestReport.treatment}</p>
                     </div>
                   )}
                   {latestReport.recommendations && (
                     <div>
-                      <span className="text-sm text-slate-600">Recommendations:</span>
-                      <p className="mt-1 text-slate-900">{latestReport.recommendations}</p>
+                      <span className="text-sm text-muted-foreground">Recommendations:</span>
+                      <p className="mt-1 text-foreground">{latestReport.recommendations}</p>
                     </div>
                   )}
                 </div>
@@ -159,7 +159,7 @@ export default function DoctorPatientView() {
           </Card>
 
           {/* Latest Prescription */}
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card className="border-border/80 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Latest Prescription</CardTitle>
             </CardHeader>
@@ -175,9 +175,9 @@ export default function DoctorPatientView() {
                     return rxItems.length > 0 ? (
                       <div className="space-y-2">
                         {rxItems.map((item: any, index: number) => (
-                          <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                            <div className="font-semibold text-slate-900">{item.medicationName}</div>
-                            <div className="mt-1 text-sm text-slate-600">
+                          <div key={index} className="rounded-lg border border-border bg-muted p-3">
+                            <div className="font-semibold text-foreground">{item.medicationName}</div>
+                            <div className="mt-1 text-sm text-muted-foreground">
                               Dosage: {item.dosage || "—"} | Frequency: {item.frequency || "—"}
                             </div>
                           </div>

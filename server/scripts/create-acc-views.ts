@@ -41,21 +41,21 @@ const views: { name: string; ddl: string }[] = [
       FROM accHome`,
   },
   {
-    name: "accView_Instagram",  // انستا_T
-    ddl: `CREATE OR REPLACE VIEW accView_Instagram AS
+    name: "accView_Instapay",
+    ddl: `CREATE OR REPLACE VIEW accView_Instapay AS
       SELECT
         SUM(IFNULL(inAmount,  0)) AS totalIn,
         SUM(IFNULL(outAmount, 0)) AS totalOut,
         SUM(IFNULL(inAmount,0)) - SUM(IFNULL(outAmount,0)) AS net
-      FROM accInstagram`,
+      FROM accInstapay`,
   },
   {
     name: "accView_Saadany",    // د_السعدني summary
     ddl: `CREATE OR REPLACE VIEW accView_Saadany AS
       SELECT
-        SUM(IFNULL(withdrawals, 0)) AS totalWithdrawals,
+        ABS(SUM(IFNULL(withdrawals, 0))) AS totalWithdrawals,
         SUM(IFNULL(repayment,   0)) AS totalRepaid,
-        SUM(IFNULL(withdrawals,0)) - SUM(IFNULL(repayment,0)) AS remaining
+        ABS(SUM(IFNULL(withdrawals,0))) - SUM(IFNULL(repayment,0)) AS remaining
       FROM accSaadany`,
   },
   {
@@ -73,7 +73,7 @@ const views: { name: string; ddl: string }[] = [
       UNION ALL
       SELECT 'البيت',               SUM(IFNULL(inAmount,0)),     SUM(IFNULL(outAmount,0))              FROM accHome
       UNION ALL
-      SELECT 'انستاباي',            SUM(IFNULL(inAmount,0)),     SUM(IFNULL(outAmount,0))              FROM accInstagram
+      SELECT 'انستاباي',            SUM(IFNULL(inAmount,0)),     SUM(IFNULL(outAmount,0))              FROM accInstapay
       UNION ALL
       SELECT 'د/ السعدني',          SUM(IFNULL(withdrawals,0)), SUM(IFNULL(repayment,0))              FROM accSaadany`,
   },

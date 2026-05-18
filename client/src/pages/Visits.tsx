@@ -443,11 +443,11 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                           {/* Exam Data */}
                           {(visit.sphereOD || visit.sphereOS || visit.iopOD || visit.iopOS || visit.ucvaOD || visit.ucvaOS || visit.bcvaOD || visit.bcvaOS) && (
                             <div>
-                              <h4 className="font-semibold text-slate-900 mb-3">بيانات الفحص</h4>
+                              <h4 className="font-semibold text-foreground mb-3">بيانات الفحص</h4>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="border-b border-slate-200">
+                                    <tr className="border-b border-border">
                                       <th className="text-right px-2 py-2">القياس</th>
                                       <th className="text-center px-2 py-2">OD</th>
                                       <th className="text-center px-2 py-2">OS</th>
@@ -455,42 +455,42 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                   </thead>
                                   <tbody>
                                     {(visit.ucvaOD || visit.ucvaOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">UCVA</td>
                                         <td className="text-center px-2 py-2">{visit.ucvaOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.ucvaOS || "-"}</td>
                                       </tr>
                                     )}
                                     {(visit.bcvaOD || visit.bcvaOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">BCVA</td>
                                         <td className="text-center px-2 py-2">{visit.bcvaOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.bcvaOS || "-"}</td>
                                       </tr>
                                     )}
                                     {(visit.sphereOD || visit.sphereOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">Sphere</td>
                                         <td className="text-center px-2 py-2">{visit.sphereOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.sphereOS || "-"}</td>
                                       </tr>
                                     )}
                                     {(visit.cylinderOD || visit.cylinderOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">Cylinder</td>
                                         <td className="text-center px-2 py-2">{visit.cylinderOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.cylinderOS || "-"}</td>
                                       </tr>
                                     )}
                                     {(visit.axisOD || visit.axisOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">Axis</td>
                                         <td className="text-center px-2 py-2">{visit.axisOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.axisOS || "-"}</td>
                                       </tr>
                                     )}
                                     {(visit.iopOD || visit.iopOS) && (
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">IOP</td>
                                         <td className="text-center px-2 py-2">{visit.iopOD || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.iopOS || "-"}</td>
@@ -505,7 +505,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                           {visit.autorefraction && (
                             <div>
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-slate-900">الأوتوريفراكشن</h4>
+                                <h4 className="font-semibold text-foreground">الأوتوريفراكشن</h4>
                                 {!patientHubReadOnly && editingExamType !== "autorefraction" && (
                                   <Button
                                     size="sm"
@@ -518,7 +518,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                               </div>
 
                               {editingExamType === "autorefraction" ? (
-                                <div className="space-y-3 p-3 bg-slate-50 rounded-lg">
+                                <div className="space-y-3 p-3 bg-muted rounded-lg">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <Label className="text-sm">UCVA OD</Label>
@@ -663,24 +663,24 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-sm">
                                     <thead>
-                                      <tr className="border-b border-slate-200">
+                                      <tr className="border-b border-border">
                                         <th className="text-right px-2 py-2">المقياس</th>
                                         <th className="text-center px-2 py-2">OD</th>
                                         <th className="text-center px-2 py-2">OS</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">UCVA</td>
                                         <td className="text-center px-2 py-2">{visit.autorefraction.od?.ucva || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.autorefraction.os?.ucva || "-"}</td>
                                       </tr>
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">BCVA</td>
                                         <td className="text-center px-2 py-2">{visit.autorefraction.od?.bcva || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.autorefraction.os?.bcva || "-"}</td>
                                       </tr>
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">S / C / A</td>
                                         <td className="text-center px-2 py-2">
                                           {visit.autorefraction.od?.s} / {visit.autorefraction.od?.c} / {visit.autorefraction.od?.axis}
@@ -700,7 +700,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                           {visit.pentacam && (
                             <div>
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-slate-900">البنتاكام</h4>
+                                <h4 className="font-semibold text-foreground">البنتاكام</h4>
                                 {!patientHubReadOnly && editingExamType !== "pentacam" && (
                                   <Button
                                     size="sm"
@@ -713,7 +713,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                               </div>
 
                               {editingExamType === "pentacam" ? (
-                                <div className="space-y-3 p-3 bg-slate-50 rounded-lg">
+                                <div className="space-y-3 p-3 bg-muted rounded-lg">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <Label className="text-sm">K1 OD</Label>
@@ -810,14 +810,14 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-sm">
                                     <thead>
-                                      <tr className="border-b border-slate-200">
+                                      <tr className="border-b border-border">
                                         <th className="text-right px-2 py-2">المقياس</th>
                                         <th className="text-center px-2 py-2">OD</th>
                                         <th className="text-center px-2 py-2">OS</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">K1 / K2</td>
                                         <td className="text-center px-2 py-2">
                                           {visit.pentacam.od?.k1} / {visit.pentacam.od?.k2}
@@ -826,7 +826,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                           {visit.pentacam.os?.k1} / {visit.pentacam.os?.k2}
                                         </td>
                                       </tr>
-                                      <tr className="border-b border-slate-100">
+                                      <tr className="border-b border-border">
                                         <td className="text-right px-2 py-2">Thinnest Point</td>
                                         <td className="text-center px-2 py-2">{visit.pentacam.od?.thinnest || "-"}</td>
                                         <td className="text-center px-2 py-2">{visit.pentacam.os?.thinnest || "-"}</td>

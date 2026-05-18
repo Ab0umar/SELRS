@@ -22,6 +22,7 @@ import {
   Copy,
   Scan,
   PenSquare,
+  UserCheck,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminMigrations from "./AdminMigrations";
@@ -41,6 +42,7 @@ import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
+import AdminPatients from "./AdminPatients";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
@@ -101,56 +103,84 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "تدقيق مصدر البيانات",
     description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
     icon: FileSearch,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/settings", 
     title: "الإعدادات العامة",
     description: "ضبط إعدادات النظام والتسعير.",
     icon: Settings,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/api-tools", 
     title: "أدوات API",
     description: "أدوات للمطورين لفحص tRPC.",
     icon: Plug,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/tests", 
     title: "التحاليل",
     description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
     icon: TestTube2,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/card-visibility", 
     title: "ظهور الكروت",
     description: "التحكم في الكروت التي تظهر في الداشبورد.",
     icon: Eye,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/notifications", 
     title: "إخطارات التطبيق",
     description: "إدارة إعدادات الإخطارات داخل التطبيق.",
     icon: Bell,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
   { 
     href: "/admin-hub/forms", 
     title: "مركز النماذج",
     description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
     icon: Layers,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
   },
-  { 
-    href: "/admin-hub/pentacam-failed", 
+  {
+    href: "/admin-hub/pentacam-failed",
     title: "بنتاكام الفاشل",
     description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
     icon: Scan,
-    iconWrap: "bg-gray-100 text-gray-700",
+    iconWrap: "bg-muted text-foreground",
+  },
+  {
+    href: "/admin-hub/patients",
+    title: "إدارة المرضى",
+    description: "مراجعة بيانات المرضى والمزامنة مع النظام.",
+    icon: UserCheck,
+    iconWrap: "bg-blue-50 text-blue-600",
+  },
+  {
+    href: "/admin-hub/sheets",
+    title: "الشيتات",
+    description: "إدارة الشيتات الطبية المتاحة في النظام.",
+    icon: Layers,
+    iconWrap: "bg-indigo-50 text-indigo-600",
+  },
+  {
+    href: "/admin-hub/sheet-designer",
+    title: "مصمم الشيتات",
+    description: "تصميم وتخصيص قوالب الشيتات الطبية.",
+    icon: PenSquare,
+    iconWrap: "bg-indigo-50 text-indigo-700",
+  },
+  {
+    href: "/admin-hub/sheet-copies",
+    title: "نسخ الشيتات",
+    description: "إدارة ونسخ الشيتات المحفوظة للمرضى.",
+    icon: Copy,
+    iconWrap: "bg-indigo-50 text-indigo-500",
   },
 ];
 
@@ -199,6 +229,7 @@ export default function AdminHubShell() {
     if (location === "/admin-hub/diagnostics") return <AdminDiagnostics />;
     if (location === "/admin-hub/data-source-audit" || location === "/admin/data-source-audit") return <AdminDataSourceAudit />;
     if (location === "/admin-hub/notifications" || location === "/admin/notifications") return <AdminNotificationSettings />;
+    if (location === "/admin-hub/patients" || location === "/admin/patients") return <AdminPatients />;
 
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">

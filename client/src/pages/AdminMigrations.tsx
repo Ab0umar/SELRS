@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ export default function AdminMigrations() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+  const [confirmFixOrphans, setConfirmFixOrphans] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
@@ -212,7 +213,7 @@ export default function AdminMigrations() {
               {rows.map((migration: MigrationRow, idx: number) => (
                 <TableRow key={migration.name} className={cn(
                   "group transition-colors hover:bg-primary/[0.03]",
-                  idx % 2 === 0 ? "bg-white" : "bg-muted/10"
+                  idx % 2 === 0 ? "bg-background" : "bg-muted/10"
                 )}>
                   <TableCell className="px-6 py-3 font-mono text-[11px] font-bold text-foreground/80 break-all">{migration.name}</TableCell>
                   <TableCell className="whitespace-nowrap py-3 text-[11px] font-medium text-muted-foreground tabular-nums">{formatAt(migration.appliedAt)}</TableCell>
@@ -257,18 +258,29 @@ export default function AdminMigrations() {
             <p className="text-[11px] text-amber-800 leading-relaxed">
               تحديث الفحوصات التي تفتقر لمعرف زيارة صحيح (visitId=0) وربطها بالسجلات التاريخية.
             </p>
-            <Button
-              size="sm"
-              onClick={() => {
-                if (window.confirm("سيتم إصلاح الفحوصات الأيتام. هل أنت متأكد؟")) {
-                  fixOrphanedExaminationsMutation.mutate();
-                }
-              }}
-              disabled={fixOrphanedExaminationsMutation.isPending}
-              className="w-full h-9 bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 shadow-sm"
-            >
-              {fixOrphanedExaminationsMutation.isPending ? "جاري المعالجة…" : "إصلاح الفحوصات الأيتام"}
-            </Button>
+            {confirmFixOrphans ? (
+              <div className="flex items-center gap-1">
+                <button type="button" aria-label="تأكيد"
+                  className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                  onClick={() => { fixOrphanedExaminationsMutation.mutate(); setConfirmFixOrphans(false); }}>
+                  تأكيد
+                </button>
+                <button type="button" aria-label="إلغاء"
+                  className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                  onClick={() => setConfirmFixOrphans(false)}>
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => setConfirmFixOrphans(true)}
+                disabled={fixOrphanedExaminationsMutation.isPending}
+                className="w-full h-9 bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 shadow-sm"
+              >
+                {fixOrphanedExaminationsMutation.isPending ? "جاري المعالجة…" : "إصلاح الفحوصات الأيتام"}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

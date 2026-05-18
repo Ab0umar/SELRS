@@ -111,7 +111,7 @@ const HubPatientRow = memo(function HubPatientRow({
     ? (/^\d+$/.test(patient.patientCode) ? patient.patientCode.padStart(4, "0") : patient.patientCode)
     : "—";
   return (
-    <tr className="border-b border-slate-100 transition-colors hover:bg-primary/5">
+    <tr className="border-b border-border transition-colors hover:bg-primary/5">
       <td className="py-1.5 px-2 text-center" dir="ltr">{code}</td>
       <td className="py-1.5 px-2 text-right font-medium">{patient.fullName || "—"}</td>
       <td className="py-1.5 px-2 text-center">{serviceLabel(patient.__serviceCodeSingle ?? patient.serviceType)}</td>
@@ -267,8 +267,8 @@ export default function PatientsHubList() {
         <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
           <div className="w-full overflow-x-auto">
             <table className="min-w-[720px] w-full table-auto text-center text-xs sm:text-sm" dir="rtl">
-              <thead className="bg-slate-50/95 shadow-[0_1px_0_rgba(148,163,184,0.25)]">
-                <tr className="border-b border-slate-200">
+              <thead className="bg-muted/95 shadow-[0_1px_0_rgba(148,163,184,0.25)]">
+                <tr className="border-b border-border">
                   <th className="py-2 px-2 whitespace-nowrap">الكود</th>
                   <th className="py-2 px-2 whitespace-nowrap text-right">الاسم</th>
                   <th className="py-2 px-2 whitespace-nowrap">الخدمة</th>

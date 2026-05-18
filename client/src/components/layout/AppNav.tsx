@@ -126,7 +126,12 @@ export const accountingNavGroup: NavGroupSection = {
     {
       icon: Smartphone,
       label: "انستاباي",
-      path: "/accounting/instagram",
+      path: "/accounting/instapay",
+    },
+    {
+      icon: UserRound,
+      label: "د. السعدني",
+      path: "/accounting/dr-saadany",
     },
   ],
 };

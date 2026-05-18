@@ -8,8 +8,8 @@ interface DiagnosisTabProps {
 
 export function DiagnosisTab({ latestReport, latestReportContent }: DiagnosisTabProps) {
   return (
-    <Card className="border-slate-200/80 bg-white/92 shadow-sm">
-      <CardHeader className="border-b border-slate-100">
+    <Card className="border-border/80 bg-background/92 shadow-sm">
+      <CardHeader className="border-b border-border">
         <CardTitle>التشخيص الطبي</CardTitle>
         <CardDescription>{latestReport ? formatDate(latestReport.createdAt) : ""}</CardDescription>
       </CardHeader>

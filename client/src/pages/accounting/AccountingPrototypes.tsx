@@ -51,11 +51,11 @@ function ProtoBadge({ tone, children }: { tone: "blue" | "emerald" | "amber"; ch
 
 function SideRail({ title, subtitle, compact = false }: { title: string; subtitle: string; compact?: boolean }) {
   return (
-    <div className={cn("rounded-[28px] border border-slate-200 bg-white shadow-sm", compact ? "p-4" : "p-5")}>
+    <div className={cn("rounded-[28px] border border-border bg-background shadow-sm", compact ? "p-4" : "p-5")}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</div>
-          <div className="mt-1 text-sm font-semibold text-slate-900">{subtitle}</div>
+          <div className="mt-1 text-sm font-semibold text-foreground">{subtitle}</div>
         </div>
         <ArrowUpRight className="h-4 w-4 text-slate-300" />
       </div>
@@ -63,12 +63,12 @@ function SideRail({ title, subtitle, compact = false }: { title: string; subtitl
         {reports.slice(0, 3).map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 transition-colors hover:bg-blue-50/70">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm">
+            <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-2xl border border-border bg-muted/70 px-3 py-2.5 transition-colors hover:bg-blue-50/70">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-background text-blue-700 shadow-sm">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-slate-900">{item.label}</div>
+                <div className="truncate text-sm font-semibold text-foreground">{item.label}</div>
                 <div className="truncate text-xs text-slate-500">{item.desc}</div>
               </div>
               <ArrowUpRight className="h-4 w-4 text-slate-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -100,20 +100,20 @@ function MetricsRow({
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-700/80">إيراد اليوم</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
         <div className="mt-1 text-xs text-slate-500">مؤشر سريع</div>
       </div>
       <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700/80">إيصالات اليوم</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
         <div className="mt-1 text-xs text-slate-500">نشاط اليوم</div>
       </div>
       <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700/80">إجمالي الإيراد</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoneyAr(cashbook?.totalIncome ?? 0)}</div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalIncome ?? 0)}</div>
         <div className="mt-1 text-xs text-slate-500">من الخزنة</div>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">رصيد الخزنة</div>
         <div className={cn("mt-2 text-2xl font-bold tabular-nums", (cashbook?.currentBalance ?? 0) >= 0 ? "text-blue-700" : "text-rose-700")}>
           {formatMoneyAr(cashbook?.currentBalance ?? 0)}
@@ -126,10 +126,10 @@ function MetricsRow({
 
 function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: string; patientName?: string | null; patientCode?: string | null; total: number; discount: number; paidValue: number; sectionCode: number; trTy: number }> }) {
   return (
-    <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <div className="overflow-hidden rounded-[28px] border border-border bg-background shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">حركات اليوم</h3>
+          <h3 className="text-sm font-bold text-foreground">حركات اليوم</h3>
           <p className="mt-1 text-xs text-slate-500">صفوف فعلية، بدون حشو بصري.</p>
         </div>
         <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{formatCountAr(rows.length)} حركة</span>
@@ -137,7 +137,7 @@ function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500">
+            <tr className="border-b border-border bg-muted text-[11px] font-semibold text-slate-500">
               <th scope="col" className="w-20 px-4 py-3 text-right">الوقت</th>
               <th scope="col" className="w-24 px-4 py-3 text-right">الإيصال</th>
               <th scope="col" className="px-4 py-3 text-right">المريض</th>
@@ -152,10 +152,10 @@ function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: 
               return (
                 <tr key={`${r.trTy}-${r.trNo}`} className="hover:bg-blue-50/70">
                   <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-slate-500" dir="ltr">{formatTime(r.transactionDate)}</td>
-                  <td className="px-4 py-2.5 font-semibold tabular-nums text-slate-900" dir="ltr">{r.trNo}</td>
-                  <td className="px-4 py-2.5 truncate text-slate-700">{r.patientName || "—"}</td>
+                  <td className="px-4 py-2.5 font-semibold tabular-nums text-foreground" dir="ltr">{r.trNo}</td>
+                  <td className="px-4 py-2.5 truncate text-foreground">{r.patientName || "—"}</td>
                   <td className="px-4 py-2.5 tabular-nums text-slate-500" dir="ltr">{r.patientCode || "—"}</td>
-                  <td className={cn("px-4 py-2.5 tabular-nums", remaining > 0 && "font-semibold text-slate-900")} dir="ltr">{formatMoneyAr(r.total - r.discount)}</td>
+                  <td className={cn("px-4 py-2.5 tabular-nums", remaining > 0 && "font-semibold text-foreground")} dir="ltr">{formatMoneyAr(r.total - r.discount)}</td>
                   <td className={cn("px-4 py-2.5 tabular-nums font-medium", remaining <= 0 ? "text-emerald-700" : "text-amber-700")} dir="ltr">{formatMoneyAr(r.paidValue)}</td>
                 </tr>
               );
@@ -202,8 +202,8 @@ function PrototypePanel({
   }[tone];
 
   return (
-    <section className="rounded-[32px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+    <section className="rounded-[32px] border border-border bg-background/90 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <ProtoBadge tone={tone}>Prototype</ProtoBadge>
@@ -214,12 +214,12 @@ function PrototypePanel({
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{subtitle}</p>
+              <h2 className="text-lg font-bold text-foreground">{title}</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{subtitle}</p>
             </div>
           </div>
         </div>
-        <Link href="/accounting" className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+        <Link href="/accounting" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
           فتح الصفحة
         </Link>
       </div>
@@ -231,17 +231,17 @@ function PrototypePanel({
           <div className="space-y-4">
             {variant === "workspace" ? (
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="rounded-2xl border border-border bg-muted/60 p-4">
                   <div className="text-[11px] font-medium text-slate-500">إيراد الشهر</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-slate-900">{formatMoneyAr(summary?.totalRevenueThisMonth ?? 0)}</div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueThisMonth ?? 0)}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="rounded-2xl border border-border bg-muted/60 p-4">
                   <div className="text-[11px] font-medium text-slate-500">إيصالات الشهر</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-slate-900">{formatCountAr(summary?.totalReceiptsThisMonth ?? 0)}</div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsThisMonth ?? 0)}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="rounded-2xl border border-border bg-muted/60 p-4">
                   <div className="text-[11px] font-medium text-slate-500">المصروف</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-slate-900">{formatMoneyAr(cashbook?.totalExpense ?? 0)}</div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalExpense ?? 0)}</div>
                 </div>
               </div>
             ) : null}
@@ -252,38 +252,38 @@ function PrototypePanel({
             {variant === "command" ? (
               <>
                 <SideRail title="التقارير" subtitle="مسارات سريعة" compact />
-                <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-4">
+                <div className="rounded-[28px] border border-border bg-muted/80 p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">الملخص</div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                    <div className="rounded-2xl bg-background p-3 shadow-sm">
                       <div className="text-[11px] text-slate-500">اليوم</div>
-                      <div className="mt-2 text-lg font-bold tabular-nums text-slate-900">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
+                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
                     </div>
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                    <div className="rounded-2xl bg-background p-3 shadow-sm">
                       <div className="text-[11px] text-slate-500">الرصيد</div>
-                      <div className="mt-2 text-lg font-bold tabular-nums text-slate-900">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
+                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
                     </div>
                   </div>
                 </div>
               </>
             ) : variant === "workspace" ? (
               <>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="rounded-[28px] border border-border bg-background p-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <PanelRight className="h-5 w-5 text-slate-400" />
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">الخلاصة</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-900">بطاقات صغيرة، مساحة أكبر للجدول</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">بطاقات صغيرة، مساحة أكبر للجدول</div>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                    <div className="rounded-2xl border border-border bg-muted/70 p-3">
                       <div className="text-[11px] text-slate-500">الخزنة</div>
-                      <div className="mt-1 text-lg font-bold tabular-nums text-slate-900">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
+                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                    <div className="rounded-2xl border border-border bg-muted/70 p-3">
                       <div className="text-[11px] text-slate-500">إيراد اليوم</div>
-                      <div className="mt-1 text-lg font-bold tabular-nums text-slate-900">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
+                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
                     </div>
                   </div>
                 </div>
@@ -313,7 +313,7 @@ export default function AccountingPrototypes() {
   return (
     <AccountingShell>
       <div dir="rtl" className="space-y-5">
-        <section className="overflow-hidden rounded-[30px] border border-blue-100 bg-white/85 p-5 shadow-sm backdrop-blur-sm">
+        <section className="overflow-hidden rounded-[30px] border border-blue-100 bg-background/85 p-5 shadow-sm backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -321,14 +321,14 @@ export default function AccountingPrototypes() {
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">بيانات حية</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">تصميم الحسابات</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">تصميم الحسابات</h1>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                   ثلاث اتجاهات على نفس البيانات: Command Center, Workspace First, Balanced Mixed. الهدف أن ترى الفرق قبل ما نثبت اتجاهًا واحدًا.
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/accounting" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <Link href="/accounting" className="rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted">
                 العودة للحسابات
               </Link>
               <Link href="/accounting/cashbook" className="rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">

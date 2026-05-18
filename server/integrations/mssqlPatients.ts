@@ -458,6 +458,7 @@ async function applyPapatSrvDefaults(
     serviceLinePrice?: number | null;
     discountValue?: number | null;
     paValue?: number | null;
+    doctorCode?: string | null;
   }
 ): Promise<void> {
   const qty = Math.max(1, Math.trunc(desiredQty || 1));
@@ -628,15 +629,12 @@ async function applyPapatSrvDefaults(
       discReq.input("SRV_CD", serviceCode);
       if (hasScopedTrNo) discReq.input("TR_NO", Math.trunc(scopedTrNo));
       const discRs = await discReq.query(`
-      SELECT TOP 1
-        ${discountExpr} AS D
-      FROM op2026.dbo.PAPAT_SRV
-      WHERE ${whereSrv}
-    `);
+        SELECT TOP 1 ${discountExpr} AS D FROM op2026.dbo.PAPAT_SRV WHERE ${whereSrv}
+      `);
       const discRow = Array.isArray(discRs?.recordset) && discRs.recordset.length > 0 ? discRs.recordset[0] : {};
       const disc = Number.isFinite(Number(discRow?.D)) ? Number(discRow?.D) : 0;
       const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
-      const total = price * qty - disc;
+      const total = Math.max(0, price * qty - disc);
       await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
         req.input("PA_VL", total),
       );
@@ -676,6 +674,12 @@ async function applyPapatSrvDefaults(
     }
   }
   if (cols.has("PAT_TYP")) await run(`UPDATE op2026.dbo.PAPAT_SRV SET PAT_TYP = 2 WHERE ${whereSrv}`);
+  const drCode = String(options?.doctorCode ?? "").trim() || null;
+  if (cols.has("SRV_BY1") && drCode) {
+    await run(`UPDATE op2026.dbo.PAPAT_SRV SET SRV_BY1 = @SRV_BY1 WHERE ${whereSrv}`, (req) =>
+      req.input("SRV_BY1", drCode)
+    );
+  }
   if (cols.has("CUR_SRV_BY")) await run(`UPDATE op2026.dbo.PAPAT_SRV SET CUR_SRV_BY = NULL WHERE ${whereSrv}`);
   if (cols.has("PRG_BY")) await run(`UPDATE op2026.dbo.PAPAT_SRV SET PRG_BY = NULL WHERE ${whereSrv}`);
   if (cols.has("CA_CD")) await run(`UPDATE op2026.dbo.PAPAT_SRV SET CA_CD = '00000' WHERE ${whereSrv}`);
@@ -1223,17 +1227,26 @@ async function applyPajrnrCvhDefaults(
     aggReq.input("PAT_CD", patientCode);
     const agg = await aggReq.query(`
       SELECT
-        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalSrv,
-        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc
+        SUM(
+          CASE WHEN ISNUMERIC(CONVERT(varchar(50), ISNULL(QTY,1))) = 1
+                AND ISNUMERIC(CONVERT(varchar(50), ISNULL(PRC,0))) = 1
+               THEN CAST(CONVERT(varchar(50), ISNULL(QTY,1)) AS decimal(18,2))
+                  * CAST(CONVERT(varchar(50), ISNULL(PRC,0)) AS decimal(18,2))
+               ELSE 0 END
+        ) AS totalGross,
+        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc,
+        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalNet
       FROM op2026.dbo.PAPAT_SRV
       WHERE PAT_CD = @PAT_CD
     `);
     const row = Array.isArray(agg?.recordset) && agg.recordset.length > 0 ? agg.recordset[0] : {};
-    const totalSrv = Number(row?.totalSrv ?? 0);
+    const totalGross = Number(row?.totalGross ?? 0);
     const totalDisc = Number(row?.totalDisc ?? 0);
-    if (cols.has("TOTL")) {
-      await run(`UPDATE ${targetTable} SET TOTL = @TOTL WHERE PAT_CD = @PAT_CD`, (req) =>
-        req.input("TOTL", Number.isFinite(totalSrv) ? totalSrv : 0)
+    const totalNet = Number(row?.totalNet ?? 0);
+    if (cols.has("PA_VL")) {
+      // PA_VL = gross (ما يخص المريض = price before discount)
+      await run(`UPDATE ${targetTable} SET PA_VL = @PAVL WHERE PAT_CD = @PAT_CD`, (req) =>
+        req.input("PAVL", Number.isFinite(totalGross) ? totalGross : 0)
       );
     }
     if (cols.has("DISC")) {
@@ -1241,9 +1254,10 @@ async function applyPajrnrCvhDefaults(
         req.input("DISC", Number.isFinite(totalDisc) ? totalDisc : 0)
       );
     }
-    if (cols.has("PA_VL")) {
-      await run(`UPDATE ${targetTable} SET PA_VL = @PAVL WHERE PAT_CD = @PAT_CD`, (req) =>
-        req.input("PAVL", Number.isFinite(totalSrv) ? totalSrv : 0)
+    if (cols.has("TOTL")) {
+      // TOTL = net (المدفوع = price after discount)
+      await run(`UPDATE ${targetTable} SET TOTL = @TOTL WHERE PAT_CD = @PAT_CD`, (req) =>
+        req.input("TOTL", Number.isFinite(totalNet) ? totalNet : 0)
       );
     }
   }
@@ -1273,9 +1287,6 @@ async function applyPajrnrReportDefaults(
        WHERE ${whereClause}`
     );
   }
-  if (cols.has("CNCL")) {
-    await run(`UPDATE ${targetTable} SET CNCL = ISNULL(CNCL, 0) WHERE ${whereClause}`);
-  }
 }
 
 async function applyPajrnrImmediateMonetaryValues(
@@ -1303,9 +1314,9 @@ async function applyPajrnrImmediateMonetaryValues(
   const safeDisc = Number.isFinite(values.discountValue) ? values.discountValue : 0;
   const safeNet = Number.isFinite(values.netValue) ? values.netValue : safeGross - safeDisc;
 
-  if (cols.has("TOTL")) {
-    await run(`UPDATE ${targetTable} SET TOTL = @TOTL WHERE ${whereClause}`, (req) =>
-      req.input("TOTL", safeGross)
+  if (cols.has("PA_VL")) {
+    await run(`UPDATE ${targetTable} SET PA_VL = @PAVL WHERE ${whereClause}`, (req) =>
+      req.input("PAVL", safeGross)
     );
   }
   if (cols.has("DISC")) {
@@ -1313,9 +1324,9 @@ async function applyPajrnrImmediateMonetaryValues(
       req.input("DISC", safeDisc)
     );
   }
-  if (cols.has("PA_VL")) {
-    await run(`UPDATE ${targetTable} SET PA_VL = @PAVL WHERE ${whereClause}`, (req) =>
-      req.input("PAVL", safeNet)
+  if (cols.has("TOTL")) {
+    await run(`UPDATE ${targetTable} SET TOTL = @TOTL WHERE ${whereClause}`, (req) =>
+      req.input("TOTL", safeNet)
     );
   }
 }
@@ -2170,7 +2181,8 @@ export async function ensurePatientServiceInMssql(
   serviceCodeRaw: string,
   quantityRaw?: number | null,
   doctorCodeRaw?: string | null,
-  doctorNameRaw?: string | null
+  doctorNameRaw?: string | null,
+  discountValueRaw?: number | null,
 ): Promise<{ linked: boolean; note?: string }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
@@ -2366,15 +2378,497 @@ export async function ensurePatientServiceInMssql(
     }
     const q = Number(quantityRaw);
     const desiredQty = Number.isFinite(q) && q > 0 ? Math.trunc(q) : await getDesiredServiceQty(serviceCode);
+    const discountValue = discountValueRaw != null && Number.isFinite(Number(discountValueRaw)) && Number(discountValueRaw) >= 0
+      ? Number(discountValueRaw)
+      : null;
     await applyPapatSrvDefaults(pool, patientCode, serviceCode, desiredQty, {
       enteredBy,
       entryDate: todayDateOnly,
+      discountValue,
     });
     await applyPajrnrCvhDefaults(pool, targetTable, patientCode, null, null);
     await ensurePapatMfDefaults(pool, patientCode, new Date(todayDateOnly), null);
     return { linked: true };
   } finally {
     await pool.close();
+  }
+}
+
+export async function addServiceReceiptInMssql(
+  patientCodeRaw: string,
+  serviceCodeRaw: string,
+  quantityRaw?: number | null,
+  doctorCodeRaw?: string | null,
+  discountValueRaw?: number | null,
+  servicePriceOverride?: number | null,
+): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+  const patientCode = String(patientCodeRaw ?? "").trim();
+  const serviceCode = String(serviceCodeRaw ?? "").trim();
+  if (!patientCode || !serviceCode) return { inserted: false, note: "Missing patientCode/serviceCode" };
+
+  const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
+  if (!enabled) return { inserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
+
+  const targetTable = String(process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH").trim();
+  const nowIso = new Date().toISOString();
+  const nowLiteral = toSqlDateTimeLiteral(nowIso);
+  const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
+  const doctorCode = String(doctorCodeRaw ?? "").trim() || null;
+  const quantity = Math.max(1, Math.trunc(Number.isFinite(Number(quantityRaw)) ? Number(quantityRaw) : 1));
+  const discountNum =
+    discountValueRaw != null && Number.isFinite(Number(discountValueRaw)) && Number(discountValueRaw) >= 0
+      ? Number(discountValueRaw)
+      : 0;
+  const enteredBy = String(process.env.MSSQL_PUSH_ENTEREDBY ?? "").trim() || null;
+  const secCd = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_SEC_CD)) ? Number(process.env.MSSQL_PUSH_SEC_CD) : 15);
+  const trTy = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_TR_TY)) ? Number(process.env.MSSQL_PUSH_TR_TY) : 1);
+  const strNo = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_STR_NO)) ? Number(process.env.MSSQL_PUSH_STR_NO) : 916);
+  const shft = resolveShiftNumber();
+
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+    const targetCols = await getTableColumns(pool, targetTable);
+    const trNoCol = targetCols.has("TR_NO") ? "TR_NO" : targetCols.has("TR_NONEW") ? "tr_noNew" : "";
+    const hasTrNoCol = Boolean(trNoCol);
+
+    // Fetch patient demographics from their latest PAJRNRCVH row
+    const demReq = pool.request();
+    demReq.input("PAT_CD", patientCode);
+    const demRs = await demReq.query(`
+      SELECT TOP 1
+        ISNULL(CONVERT(nvarchar(255), NAM), '') AS NAM,
+        ISNULL(CONVERT(nvarchar(100), NAM1), '') AS NAM1,
+        ISNULL(CONVERT(nvarchar(100), NAM2), '') AS NAM2,
+        ISNULL(CONVERT(nvarchar(100), NAM3), '') AS NAM3,
+        ISNULL(CONVERT(nvarchar(50), TEL1), '') AS TEL1,
+        ISNULL(CONVERT(nvarchar(255), ADDRS), '') AS ADDRS,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(20), AGE)) = 1 THEN CAST(CONVERT(varchar(20), AGE) AS INT) ELSE NULL END AS AGE,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(5), GNDR)) = 1 THEN CAST(CONVERT(varchar(5), GNDR) AS INT) ELSE NULL END AS GNDR,
+        ISNULL(CONVERT(varchar(50), BRNCH), '') AS BRNCH,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(10), IDNO)) = 1 THEN CAST(CONVERT(varchar(10), IDNO) AS INT) ELSE NULL END AS IDNO,
+        CASE WHEN ISDATE(BDT) = 1 THEN CONVERT(datetime, BDT) ELSE NULL END AS BDT
+      FROM ${targetTable}
+      WHERE PAT_CD = @PAT_CD
+      ORDER BY
+        CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+        CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+    `);
+    const dem = Array.isArray(demRs?.recordset) && demRs.recordset.length > 0 ? demRs.recordset[0] : null;
+    if (!dem) return { inserted: false, note: "Patient not found in MSSQL" };
+
+    const fullName = String(dem.NAM ?? "") || null;
+    const nam1 = String(dem.NAM1 ?? "") || null;
+    const nam2 = String(dem.NAM2 ?? "") || null;
+    const nam3 = String(dem.NAM3 ?? "") || null;
+    const phone = String(dem.TEL1 ?? "") || null;
+    const address = String(dem.ADDRS ?? "") || null;
+    const ageValue = Number.isFinite(Number(dem.AGE)) ? Math.trunc(Number(dem.AGE)) : null;
+    const genderCode = Number.isFinite(Number(dem.GNDR)) ? Math.trunc(Number(dem.GNDR)) : null;
+    const branch = String(dem.BRNCH ?? "") || null;
+    const idno = Number.isFinite(Number(dem.IDNO)) ? Math.trunc(Number(dem.IDNO)) : null;
+    const dobLiteral = dem.BDT ? toSqlDateTimeLiteral(new Date(dem.BDT).toISOString()) : null;
+
+    // Look up service price (override takes priority over catalog lookup)
+    let basePrice: number | null =
+      servicePriceOverride != null && Number.isFinite(Number(servicePriceOverride)) && Number(servicePriceOverride) >= 0
+        ? Number(servicePriceOverride)
+        : null;
+    if (basePrice == null) try {
+      const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
+      const srvlstdCodeCol = ["SRV_CD", "SERVICE_CODE", "CODE", "SRVNO", "SRV_NO"].find((c) => srvlstdCols.has(c)) ?? "";
+      const priceCols = ["PRC", "PRC1", "PRC2", "PRC3", "PRICE", "SRV_PRICE", "AMT", "BASIC_PRC", "NET_PRC", "CASH_PRC"].filter((c) => srvlstdCols.has(c));
+      if (srvlstdCodeCol && priceCols.length > 0) {
+        for (const col of priceCols) {
+          const pReq = pool.request();
+          pReq.input("SRV_CD", serviceCode);
+          const pRs = await pReq.query(`
+            SELECT TOP 1
+              CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
+            FROM op2026.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD
+          `);
+          const p = Number(pRs?.recordset?.[0]?.PRC);
+          if (Number.isFinite(p) && p > 0) { basePrice = p; break; }
+        }
+      }
+    } catch { /* optional SRVLSTD table */ }
+    if (basePrice == null) {
+      try {
+        const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+        const priceCols = ["PRC", "PRC1", "PRC2", "PRC3", "PRICE", "SRV_PRICE", "AMT", "BASIC_PRC", "NET_PRC", "CASH_PRC"].filter((c) => srvcmfCols.has(c));
+        for (const col of priceCols) {
+          const pReq = pool.request();
+          pReq.input("SRV_CD", serviceCode);
+          const pRs = await pReq.query(`
+            SELECT TOP 1
+              CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
+            FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD
+          `);
+          const p = Number(pRs?.recordset?.[0]?.PRC);
+          if (Number.isFinite(p) && p > 0) { basePrice = p; break; }
+        }
+      } catch { /* optional SRVCMF table */ }
+    }
+
+    const grossValue = basePrice != null ? basePrice * quantity : 0;
+    const netValue = Math.max(0, grossValue - discountNum);
+    const hasSrvCd = targetCols.has("SRV_CD");
+
+    // Insert new PAJRNRCVH row (with SRV_CD if the column exists)
+    const insertCols = [
+      "PAT_CD", "NAM", "NAM1", "NAM2", "NAM3", "TEL1", "ADDRS", "AGE", "GNDR", "BRNCH",
+      "SEC_CD", "TR_TY",
+      ...(hasSrvCd ? ["SRV_CD"] : []),
+      ...(hasTrNoCol ? [trNoCol] : []),
+      "TR_DT", "VST_NO", "SHFT", "DT", "BDT", "VST_DT", "ENTRYDATE", "UPDATEDATE", "STR_NO", "IDNO",
+      ...(enteredBy ? ["ENTEREDBY"] : []),
+    ];
+    const insertVals = [
+      "@PAT_CD", "@NAM", "@NAM1", "@NAM2", "@NAM3", "@TEL1", "@ADDRS", "@AGE", "@GNDR", "@BRNCH",
+      "@SEC_CD", "@TR_TY",
+      ...(hasSrvCd ? ["@SRV_CD"] : []),
+      ...(hasTrNoCol ? [`(SELECT ISNULL(MAX(CAST(${trNoCol} AS INT)), 0) + 1 FROM ${targetTable} WITH (UPDLOCK, HOLDLOCK))`] : []),
+      "@TR_DT",
+      `(SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END), 0) + 1 FROM ${targetTable} WHERE PAT_CD = @PAT_CD)`,
+      "@SHFT", "@DT", "@BDT", "@VST_DT", "@ENTRYDATE", "@UPDATEDATE", "@STR_NO", "@IDNO",
+      ...(enteredBy ? ["@ENTEREDBY"] : []),
+    ];
+
+    const insertSql = `
+      INSERT INTO ${targetTable} (${insertCols.join(", ")})
+      ${hasTrNoCol ? `OUTPUT INSERTED.${trNoCol} AS TR_NO` : ""}
+      VALUES (${insertVals.join(", ")})
+    `;
+
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    req.input("NAM", fullName);
+    req.input("NAM1", nam1);
+    req.input("NAM2", nam2);
+    req.input("NAM3", nam3);
+    req.input("TEL1", phone);
+    req.input("ADDRS", address);
+    req.input("AGE", ageValue);
+    req.input("GNDR", genderCode);
+    req.input("BRNCH", branch);
+    req.input("SEC_CD", secCd);
+    req.input("TR_TY", trTy);
+    if (hasSrvCd) req.input("SRV_CD", serviceCode);
+    req.input("TR_DT", todayDateOnly);
+    req.input("SHFT", shft);
+    req.input("DT", todayDateOnly);
+    req.input("BDT", dobLiteral);
+    req.input("VST_DT", todayDateOnly);
+    req.input("ENTRYDATE", nowLiteral);
+    req.input("UPDATEDATE", nowLiteral);
+    req.input("STR_NO", strNo);
+    req.input("IDNO", idno);
+    if (enteredBy) req.input("ENTEREDBY", enteredBy);
+
+    const insertResult = await req.query(insertSql);
+    const insertedRow = Array.isArray(insertResult?.recordset) && insertResult.recordset.length > 0 ? insertResult.recordset[0] : {};
+    const trNo = hasTrNoCol ? Number(insertedRow?.TR_NO) : Number.NaN;
+
+    if (Number.isFinite(trNo) && grossValue > 0) {
+      await applyPajrnrImmediateMonetaryValues(pool, targetTable, patientCode, trNo, {
+        grossValue,
+        discountValue: discountNum,
+        netValue,
+      });
+    }
+    await applyPajrnrReportDefaults(pool, targetTable, patientCode, Number.isFinite(trNo) ? trNo : null);
+
+    // Insert PAPAT_SRV row for the service
+    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvTrNoCol = srvCols.has("TR_NO") ? "TR_NO" : srvCols.has("TR_NONEW") ? "tr_noNew" : "";
+    const srvInsertCols = [
+      "PAT_CD", "SRV_CD", "VST_NO", "DT", "FRMTIM",
+      ...(srvTrNoCol ? [srvTrNoCol] : []),
+      "TR_TY", "SEC_CD", "PRG_SNO", "CUR_STAT", "QTY",
+    ];
+    const headerTrExpr = trNoCol || "NULL";
+    const srvTrExpr = srvTrNoCol || "NULL";
+    const srvInsertVals = [
+      "@PAT_CD", "@SRV_CD",
+      `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
+      `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      ...(srvTrNoCol
+        ? [`ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`]
+        : []),
+      `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
+      "15", "1", "6", "1",
+    ];
+    const srvQtyColName = srvCols.has("QTY") ? "QTY" : "";
+    const srvSql = `
+      INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
+      SELECT ${srvInsertVals.join(", ")}
+    `;
+    const srvReq = pool.request();
+    srvReq.input("PAT_CD", patientCode);
+    srvReq.input("SRV_CD", serviceCode);
+    await srvReq.query(srvSql);
+    // Set QTY, DISC_VL, price, doctor
+    await applyPapatSrvDefaults(pool, patientCode, serviceCode, quantity, {
+      enteredBy,
+      entryDate: todayDateOnly,
+      discountValue: discountNum > 0 ? discountNum : null,
+      serviceLinePrice: basePrice ?? null,
+      trNo: Number.isFinite(trNo) ? trNo : null,
+    });
+
+    if (doctorCode && targetCols.has("DRS_CD")) {
+      const drReq = pool.request();
+      drReq.input("PAT_CD", patientCode);
+      drReq.input("DRS_CD", doctorCode);
+      const trNoColFilter = hasTrNoCol && Number.isFinite(trNo) ? ` AND ${trNoCol} = ${Math.trunc(trNo)}` : "";
+      await drReq.query(`UPDATE ${targetTable} SET DRS_CD = @DRS_CD WHERE PAT_CD = @PAT_CD${trNoColFilter}`);
+    }
+
+    return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
+  } finally {
+    try { await pool.close(); } catch {}
+  }
+}
+
+export async function addMultiServiceReceiptInMssql(
+  patientCodeRaw: string,
+  lines: Array<{
+    serviceCode: string;
+    quantity?: number | null;
+    discount?: number | null;
+    priceOverride?: number | null;
+  }>,
+  doctorCodeRaw?: string | null,
+): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+  const patientCode = String(patientCodeRaw ?? "").trim();
+  const validLines = lines.filter((l) => String(l.serviceCode ?? "").trim());
+  if (!patientCode || validLines.length === 0) return { inserted: false, note: "Missing patientCode or lines" };
+
+  const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
+  if (!enabled) return { inserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
+
+  const targetTable = String(process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH").trim();
+  const nowIso = new Date().toISOString();
+  const nowLiteral = toSqlDateTimeLiteral(nowIso);
+  const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
+  const doctorCode = String(doctorCodeRaw ?? "").trim() || null;
+  const enteredBy = String(process.env.MSSQL_PUSH_ENTEREDBY ?? "").trim() || null;
+  const secCd = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_SEC_CD)) ? Number(process.env.MSSQL_PUSH_SEC_CD) : 15);
+  const trTy = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_TR_TY)) ? Number(process.env.MSSQL_PUSH_TR_TY) : 1);
+  const strNo = Math.trunc(Number.isFinite(Number(process.env.MSSQL_PUSH_STR_NO)) ? Number(process.env.MSSQL_PUSH_STR_NO) : 916);
+  const shft = resolveShiftNumber();
+
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+    const targetCols = await getTableColumns(pool, targetTable);
+    const trNoCol = targetCols.has("TR_NO") ? "TR_NO" : targetCols.has("TR_NONEW") ? "tr_noNew" : "";
+    const hasTrNoCol = Boolean(trNoCol);
+
+    // Fetch patient demographics
+    const demReq = pool.request();
+    demReq.input("PAT_CD", patientCode);
+    const demRs = await demReq.query(`
+      SELECT TOP 1
+        ISNULL(CONVERT(nvarchar(255), NAM), '') AS NAM,
+        ISNULL(CONVERT(nvarchar(100), NAM1), '') AS NAM1,
+        ISNULL(CONVERT(nvarchar(100), NAM2), '') AS NAM2,
+        ISNULL(CONVERT(nvarchar(100), NAM3), '') AS NAM3,
+        ISNULL(CONVERT(nvarchar(50), TEL1), '') AS TEL1,
+        ISNULL(CONVERT(nvarchar(255), ADDRS), '') AS ADDRS,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(20), AGE)) = 1 THEN CAST(CONVERT(varchar(20), AGE) AS INT) ELSE NULL END AS AGE,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(5), GNDR)) = 1 THEN CAST(CONVERT(varchar(5), GNDR) AS INT) ELSE NULL END AS GNDR,
+        ISNULL(CONVERT(varchar(50), BRNCH), '') AS BRNCH,
+        CASE WHEN ISNUMERIC(CONVERT(varchar(10), IDNO)) = 1 THEN CAST(CONVERT(varchar(10), IDNO) AS INT) ELSE NULL END AS IDNO,
+        CASE WHEN ISDATE(BDT) = 1 THEN CONVERT(datetime, BDT) ELSE NULL END AS BDT
+      FROM ${targetTable}
+      WHERE PAT_CD = @PAT_CD
+      ORDER BY
+        CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+        CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+    `);
+    const dem = Array.isArray(demRs?.recordset) && demRs.recordset.length > 0 ? demRs.recordset[0] : null;
+    if (!dem) return { inserted: false, note: "Patient not found in MSSQL" };
+
+    const fullName = String(dem.NAM ?? "") || null;
+    const nam1 = String(dem.NAM1 ?? "") || null;
+    const nam2 = String(dem.NAM2 ?? "") || null;
+    const nam3 = String(dem.NAM3 ?? "") || null;
+    const phone = String(dem.TEL1 ?? "") || null;
+    const address = String(dem.ADDRS ?? "") || null;
+    const ageValue = Number.isFinite(Number(dem.AGE)) ? Math.trunc(Number(dem.AGE)) : null;
+    const genderCode = Number.isFinite(Number(dem.GNDR)) ? Math.trunc(Number(dem.GNDR)) : null;
+    const branch = String(dem.BRNCH ?? "") || null;
+    const idno = Number.isFinite(Number(dem.IDNO)) ? Math.trunc(Number(dem.IDNO)) : null;
+    const dobLiteral = dem.BDT ? toSqlDateTimeLiteral(new Date(dem.BDT).toISOString()) : null;
+
+    // Resolve price for each line
+    type ResolvedLine = { serviceCode: string; quantity: number; discountNum: number; basePrice: number | null };
+    const resolvedLines: ResolvedLine[] = [];
+    for (const line of validLines) {
+      const serviceCode = String(line.serviceCode).trim();
+      const quantity = Math.max(1, Math.trunc(Number.isFinite(Number(line.quantity)) ? Number(line.quantity) : 1));
+      const discountNum = line.discount != null && Number.isFinite(Number(line.discount)) && Number(line.discount) >= 0
+        ? Number(line.discount) : 0;
+
+      let basePrice: number | null =
+        line.priceOverride != null && Number.isFinite(Number(line.priceOverride)) && Number(line.priceOverride) >= 0
+          ? Number(line.priceOverride) : null;
+      if (basePrice == null) try {
+        const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
+        const srvlstdCodeCol = ["SRV_CD", "SERVICE_CODE", "CODE", "SRVNO", "SRV_NO"].find((c) => srvlstdCols.has(c)) ?? "";
+        const priceCols = ["PRC", "PRC1", "PRC2", "PRC3", "PRICE", "SRV_PRICE", "AMT", "BASIC_PRC", "NET_PRC", "CASH_PRC"].filter((c) => srvlstdCols.has(c));
+        if (srvlstdCodeCol && priceCols.length > 0) {
+          for (const col of priceCols) {
+            const pReq = pool.request();
+            pReq.input("SRV_CD", serviceCode);
+            const pRs = await pReq.query(`SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM op2026.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD`);
+            const p = Number(pRs?.recordset?.[0]?.PRC);
+            if (Number.isFinite(p) && p > 0) { basePrice = p; break; }
+          }
+        }
+      } catch { /* optional */ }
+      if (basePrice == null) try {
+        const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+        const priceCols = ["PRC", "PRC1", "PRC2", "PRC3", "PRICE", "SRV_PRICE", "AMT", "BASIC_PRC", "NET_PRC", "CASH_PRC"].filter((c) => srvcmfCols.has(c));
+        for (const col of priceCols) {
+          const pReq = pool.request();
+          pReq.input("SRV_CD", serviceCode);
+          const pRs = await pReq.query(`SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`);
+          const p = Number(pRs?.recordset?.[0]?.PRC);
+          if (Number.isFinite(p) && p > 0) { basePrice = p; break; }
+        }
+      } catch { /* optional */ }
+
+      resolvedLines.push({ serviceCode, quantity, discountNum, basePrice });
+    }
+
+    // Combined header totals
+    let combinedGross = 0;
+    let combinedDiscount = 0;
+    for (const l of resolvedLines) {
+      combinedGross += l.basePrice != null ? l.basePrice * l.quantity : 0;
+      combinedDiscount += l.discountNum;
+    }
+    const combinedNet = Math.max(0, combinedGross - combinedDiscount);
+
+    const primaryServiceCode = resolvedLines[0].serviceCode;
+    const hasSrvCd = targetCols.has("SRV_CD");
+
+    // Insert one PAJRNRCVH header
+    const insertCols = [
+      "PAT_CD", "NAM", "NAM1", "NAM2", "NAM3", "TEL1", "ADDRS", "AGE", "GNDR", "BRNCH",
+      "SEC_CD", "TR_TY",
+      ...(hasSrvCd ? ["SRV_CD"] : []),
+      ...(hasTrNoCol ? [trNoCol] : []),
+      "TR_DT", "VST_NO", "SHFT", "DT", "BDT", "VST_DT", "ENTRYDATE", "UPDATEDATE", "STR_NO", "IDNO",
+      ...(enteredBy ? ["ENTEREDBY"] : []),
+    ];
+    const insertVals = [
+      "@PAT_CD", "@NAM", "@NAM1", "@NAM2", "@NAM3", "@TEL1", "@ADDRS", "@AGE", "@GNDR", "@BRNCH",
+      "@SEC_CD", "@TR_TY",
+      ...(hasSrvCd ? ["@SRV_CD"] : []),
+      ...(hasTrNoCol ? [`(SELECT ISNULL(MAX(CAST(${trNoCol} AS INT)), 0) + 1 FROM ${targetTable} WITH (UPDLOCK, HOLDLOCK))`] : []),
+      "@TR_DT",
+      `(SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END), 0) + 1 FROM ${targetTable} WHERE PAT_CD = @PAT_CD)`,
+      "@SHFT", "@DT", "@BDT", "@VST_DT", "@ENTRYDATE", "@UPDATEDATE", "@STR_NO", "@IDNO",
+      ...(enteredBy ? ["@ENTEREDBY"] : []),
+    ];
+    const insertSql = `
+      INSERT INTO ${targetTable} (${insertCols.join(", ")})
+      ${hasTrNoCol ? `OUTPUT INSERTED.${trNoCol} AS TR_NO` : ""}
+      VALUES (${insertVals.join(", ")})
+    `;
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    req.input("NAM", fullName);
+    req.input("NAM1", nam1);
+    req.input("NAM2", nam2);
+    req.input("NAM3", nam3);
+    req.input("TEL1", phone);
+    req.input("ADDRS", address);
+    req.input("AGE", ageValue);
+    req.input("GNDR", genderCode);
+    req.input("BRNCH", branch);
+    req.input("SEC_CD", secCd);
+    req.input("TR_TY", trTy);
+    if (hasSrvCd) req.input("SRV_CD", primaryServiceCode);
+    req.input("TR_DT", todayDateOnly);
+    req.input("SHFT", shft);
+    req.input("DT", todayDateOnly);
+    req.input("BDT", dobLiteral);
+    req.input("VST_DT", todayDateOnly);
+    req.input("ENTRYDATE", nowLiteral);
+    req.input("UPDATEDATE", nowLiteral);
+    req.input("STR_NO", strNo);
+    req.input("IDNO", idno);
+    if (enteredBy) req.input("ENTEREDBY", enteredBy);
+
+    const insertResult = await req.query(insertSql);
+    const insertedRow = Array.isArray(insertResult?.recordset) && insertResult.recordset.length > 0 ? insertResult.recordset[0] : {};
+    const trNo = hasTrNoCol ? Number(insertedRow?.TR_NO) : Number.NaN;
+
+    if (Number.isFinite(trNo) && combinedGross > 0) {
+      await applyPajrnrImmediateMonetaryValues(pool, targetTable, patientCode, trNo, {
+        grossValue: combinedGross,
+        discountValue: combinedDiscount,
+        netValue: combinedNet,
+      });
+    }
+    await applyPajrnrReportDefaults(pool, targetTable, patientCode, Number.isFinite(trNo) ? trNo : null);
+
+    // Insert PAPAT_SRV row per service line
+    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvTrNoCol = srvCols.has("TR_NO") ? "TR_NO" : srvCols.has("TR_NONEW") ? "tr_noNew" : "";
+    const headerTrExpr = trNoCol || "NULL";
+    const srvTrExpr = srvTrNoCol || "NULL";
+
+    const srvInsertCols = [
+      "PAT_CD", "SRV_CD", "VST_NO", "DT", "FRMTIM",
+      ...(srvTrNoCol ? [srvTrNoCol] : []),
+      "TR_TY", "SEC_CD", "PRG_SNO", "CUR_STAT", "QTY",
+    ];
+    const srvInsertVals = [
+      "@PAT_CD", "@SRV_CD",
+      `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
+      `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      ...(srvTrNoCol
+        ? [`ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`]
+        : []),
+      `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
+      "15", "1", "6", "1",
+    ];
+    const srvSql = `INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")}) SELECT ${srvInsertVals.join(", ")}`;
+
+    for (const line of resolvedLines) {
+      const srvReq = pool.request();
+      srvReq.input("PAT_CD", patientCode);
+      srvReq.input("SRV_CD", line.serviceCode);
+      await srvReq.query(srvSql);
+
+      await applyPapatSrvDefaults(pool, patientCode, line.serviceCode, line.quantity, {
+        enteredBy,
+        entryDate: todayDateOnly,
+        discountValue: line.discountNum > 0 ? line.discountNum : null,
+        serviceLinePrice: line.basePrice ?? null,
+        trNo: Number.isFinite(trNo) ? trNo : null,
+        doctorCode,
+      });
+    }
+
+    if (doctorCode && targetCols.has("DRS_CD")) {
+      const drReq = pool.request();
+      drReq.input("PAT_CD", patientCode);
+      drReq.input("DRS_CD", doctorCode);
+      const trNoColFilter = hasTrNoCol && Number.isFinite(trNo) ? ` AND ${trNoCol} = ${Math.trunc(trNo)}` : "";
+      await drReq.query(`UPDATE ${targetTable} SET DRS_CD = @DRS_CD WHERE PAT_CD = @PAT_CD${trNoColFilter}`);
+    }
+
+    return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
+  } finally {
+    try { await pool.close(); } catch {}
   }
 }
 

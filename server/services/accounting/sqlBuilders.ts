@@ -42,7 +42,7 @@ type LimitInput = {
   limit?: number;
 };
 
-export type DashboardSummarySqlInput = SectionInput;
+export type DashboardSummarySqlInput = SectionInput & { date?: string };
 
 export type DailyRevenueSqlInput = DateRangeInput & DoctorInput & { shiftCode?: string };
 
@@ -235,9 +235,12 @@ function andWhere(where: string[]): string {
 export function buildDashboardSummarySql(
   input: DashboardSummarySqlInput = {},
 ): SqlBuild {
-  const params = cleanParams({
+  const params: Record<string, unknown> = cleanParams({
     secCd: input.sectionCode ?? LASIK_SECTION_CODE,
   });
+
+  const dateExpr = input.date ? "@viewDate" : "GETDATE()";
+  if (input.date) params.viewDate = input.date;
 
   const sql = `
 WITH base_rows AS (
@@ -245,30 +248,31 @@ WITH base_rows AS (
     h.TR_TY,
     h.TR_NO,
     h.TR_DT,
-    ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS gross_value
+    ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) - ISNULL(s.DISC_VL, 0) AS gross_value
   ${joinedTables()}
   WHERE h.SEC_CD = @secCd
-    AND h.CNCL IS NULL
-    AND s.CNCL IS NULL
+    AND ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''
+    AND ISNULL(CONVERT(varchar(10), s.CNCL), '') = ''
+    AND ISNULL(s.PRC, 0) > 0
 )
 SELECT
   COUNT(DISTINCT CASE
-    WHEN CONVERT(date, TR_DT) = CONVERT(date, GETDATE())
+    WHEN CONVERT(date, TR_DT) = CONVERT(date, ${dateExpr})
     THEN CONCAT(TR_TY, ':', TR_NO)
   END) AS totalReceiptsToday,
   SUM(CASE
-    WHEN CONVERT(date, TR_DT) = CONVERT(date, GETDATE())
+    WHEN CONVERT(date, TR_DT) = CONVERT(date, ${dateExpr})
     THEN gross_value
     ELSE 0
   END) AS totalRevenueToday,
   COUNT(DISTINCT CASE
-    WHEN TR_DT >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
-     AND TR_DT < DATEADD(month, 1, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+    WHEN TR_DT >= DATEFROMPARTS(YEAR(${dateExpr}), MONTH(${dateExpr}), 1)
+     AND TR_DT < DATEADD(month, 1, DATEFROMPARTS(YEAR(${dateExpr}), MONTH(${dateExpr}), 1))
     THEN CONCAT(TR_TY, ':', TR_NO)
   END) AS totalReceiptsThisMonth,
   SUM(CASE
-    WHEN TR_DT >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
-     AND TR_DT < DATEADD(month, 1, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+    WHEN TR_DT >= DATEFROMPARTS(YEAR(${dateExpr}), MONTH(${dateExpr}), 1)
+     AND TR_DT < DATEADD(month, 1, DATEFROMPARTS(YEAR(${dateExpr}), MONTH(${dateExpr}), 1))
     THEN gross_value
     ELSE 0
   END) AS totalRevenueThisMonth
@@ -328,7 +332,7 @@ SELECT
   h.NAM AS patientName,
   ISNULL(s.QTY, 0) AS quantity,
   ISNULL(s.PRC, 0) AS price,
-  ISNULL(s.PA_VL, 0) AS patientShare,
+  ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS patientShare,
   ISNULL(s.DISC_VL, 0) AS discount,
   ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS lineGross,
   ISNULL(s.CA_VL, 0) AS companyValue
@@ -388,9 +392,9 @@ SELECT DISTINCT ${top}
   h.TR_DT AS trDate,
   RTRIM(LTRIM(CONVERT(VARCHAR(40), h.PAT_CD))) AS patientCode,
   h.NAM AS patientName,
-  h.TOTL AS totalValue,
+  h.PA_VL AS totalValue,
   h.DISC AS discountValue,
-  h.PA_VL AS paidValue,
+  h.TOTL AS paidValue,
   h.ENTEREDBY AS enteredBy
 ${receiptsInquiryTables(patientFiltered)}
 ${andWhere(where)}

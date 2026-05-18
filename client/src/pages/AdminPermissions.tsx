@@ -136,7 +136,7 @@ function PermissionLevelButton({
         "inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-center text-[11px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
         selected
           ? "border-primary bg-primary text-primary-foreground shadow-sm"
-          : "border-border/60 bg-white text-muted-foreground hover:bg-muted/40 hover:border-border",
+          : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:border-border",
         compact ? "min-h-8 px-2 py-1" : "sm:min-h-9",
       )}
     >
@@ -154,6 +154,7 @@ export default function AdminPermissions() {
   const [permissions, setPermissions] = useState<TeamPermissionsMap>(
     DEFAULT_TEAM_PERMISSIONS,
   );
+  const [confirmReset, setConfirmReset] = useState(false);
   const [selectedRole, setSelectedRole] = useState<TeamRole>("manager");
   const [selectedSection, setSelectedSection] = useState<PermissionSection>(
     PERMISSION_SECTIONS[0],
@@ -365,7 +366,7 @@ export default function AdminPermissions() {
                         key={perm.id}
                         className={cn(
                           "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-white" : "bg-muted/10"
+                          idx % 2 === 0 ? "bg-background" : "bg-muted/10"
                         )}
                       >
                         <TableCell className="max-w-[360px] px-6 py-4 align-middle font-bold leading-snug">
@@ -407,19 +408,30 @@ export default function AdminPermissions() {
                 التغييرات لا تصبح فعالة إلا بعد الضغط على زر الحفظ أعلاه.
               </p>
              </div>
-             <Button
-              type="button"
-              variant="outline"
-              className="h-9 px-6 font-bold text-xs border-dashed"
-              onClick={() => {
-                if (window.confirm("إلغاء جميع التعديلات الحالية؟")) {
-                  setPermissions(serverPermissions);
-                }
-              }}
-              disabled={!hasUnsavedChanges}
-            >
-              تجاهل التعديلات
-            </Button>
+             {confirmReset ? (
+              <div className="flex items-center gap-1">
+                <button type="button" aria-label="تأكيد"
+                  className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                  onClick={() => { setPermissions(serverPermissions); setConfirmReset(false); }}>
+                  تأكيد
+                </button>
+                <button type="button" aria-label="إلغاء"
+                  className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                  onClick={() => setConfirmReset(false)}>
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 px-6 font-bold text-xs border-dashed"
+                onClick={() => setConfirmReset(true)}
+                disabled={!hasUnsavedChanges}
+              >
+                تجاهل التعديلات
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -101,7 +101,7 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto max-w-4xl space-y-6 p-4" dir="rtl">
-      <Card className="border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="border-border/80 bg-background/95 shadow-sm">
         <CardHeader>
           <CardTitle>حسابي</CardTitle>
           <CardDescription>تعديل بيانات المستخدم</CardDescription>
@@ -127,7 +127,7 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200/80 bg-white/95 shadow-sm">
+      <Card className="border-border/80 bg-background/95 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-slate-500" />

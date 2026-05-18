@@ -38,7 +38,7 @@ export function PatientDetailsNavBar({
         variant="outline"
         size="sm"
         onClick={() => goBack()}
-        className="rounded-xl border-slate-200 bg-white hover:bg-slate-100"
+        className="rounded-xl border-border bg-background hover:bg-muted"
       >
         <ArrowRight className="h-4 w-4 ml-2" />رجوع
       </Button>
@@ -47,7 +47,7 @@ export function PatientDetailsNavBar({
           variant="outline"
           size="sm"
           onClick={() => setLocation(reportBriefPath)}
-          className="rounded-xl border-slate-200 bg-white hover:bg-slate-100"
+          className="rounded-xl border-border bg-background hover:bg-muted"
         >
           <FileText className="h-4 w-4 ml-2" />التقرير المجمع / الموجز
         </Button>

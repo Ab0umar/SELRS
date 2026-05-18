@@ -64,7 +64,7 @@ export default function WorkflowShell() {
         <Route path="/today" component={TodayPatients} />
         <Route path="/operations" component={Operations} />
         <Route>
-          <div className="rounded-lg border bg-white p-4 text-right text-sm text-slate-700">
+          <div className="rounded-lg border bg-background p-4 text-right text-sm text-foreground">
             اختر صفحة من الأزرار أعلاه لإدارة سير العمل.
           </div>
         </Route>

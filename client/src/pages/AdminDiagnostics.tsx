@@ -72,7 +72,7 @@ export default function AdminDiagnostics() {
           </Button>
 
           {autoFixAllMutation.data && (
-            <div className="space-y-4 rounded-2xl bg-white/60 p-5 border border-emerald-100 shadow-inner">
+            <div className="space-y-4 rounded-2xl bg-background/60 p-5 border border-emerald-100 shadow-inner">
               <div className="flex items-center gap-3 text-emerald-700">
                 <CheckCircle2 className="h-6 w-6" />
                 <span className="text-base font-black">اكتملت عملية الإصلاح الشامل بنجاح!</span>

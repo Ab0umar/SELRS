@@ -151,7 +151,7 @@ export default function AdminSheets() {
                     "font-semibold",
                     sheet.status === "approved"
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                      : "border-slate-200 bg-muted text-muted-foreground",
+                      : "border-border bg-muted text-muted-foreground",
                   )}
                   variant="outline"
                 >

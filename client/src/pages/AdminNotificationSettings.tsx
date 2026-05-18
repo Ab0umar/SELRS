@@ -105,7 +105,7 @@ export default function AdminNotificationSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Operations Push Notifications */}
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-lg border border-border bg-muted p-4">
             <div className="mb-4 flex items-center gap-3">
               <Checkbox
                 id="operationsPushEnabled"
@@ -123,7 +123,7 @@ export default function AdminNotificationSettings() {
             </div>
 
             {settings.operationsPushEnabled && (
-              <div className="space-y-3 rounded bg-white p-3">
+              <div className="space-y-3 rounded bg-background p-3">
                 <div>
                   <p className="text-sm font-medium mb-2">ابحث عن المستخدمين:</p>
                   <Input
@@ -135,12 +135,12 @@ export default function AdminNotificationSettings() {
                   />
                 </div>
 
-                <div className="max-h-[400px] overflow-y-auto space-y-2 border border-slate-200 rounded p-2">
+                <div className="max-h-[400px] overflow-y-auto space-y-2 border border-border rounded p-2">
                   {filteredUsers.length === 0 ? (
                     <p className="text-sm text-slate-500 text-center py-4">لا توجد مستخدمين</p>
                   ) : (
                     filteredUsers.map((u) => (
-                      <div key={u.id} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded">
+                      <div key={u.id} className="flex items-center gap-2 p-2 hover:bg-muted rounded">
                         <Checkbox
                           id={`user-${u.id}`}
                           checked={settings.operationsPushUserIds?.includes(u.id) || false}
@@ -157,7 +157,7 @@ export default function AdminNotificationSettings() {
                   )}
                 </div>
 
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-muted-foreground">
                   ({settings.operationsPushUserIds?.length || 0} مستخدم مختار)
                 </p>
               </div>

@@ -243,7 +243,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       <span className="text-[11px] text-muted-foreground font-medium group-hover/field:text-foreground transition-colors">{label}</span>
       <Input
         type="number"
-        className="h-8 w-24 text-center tabular-nums text-xs font-bold border-muted-foreground/20 focus:border-primary/50 bg-white/50"
+        className="h-8 w-24 text-center tabular-nums text-xs font-bold border-muted-foreground/20 focus:border-primary/50 bg-background/50"
         value={String(value)}
         onChange={(e) => onChange(toSafeNumber(e.target.value))}
       />

@@ -127,7 +127,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                     value={patientInfo.name}
                     onChange={(e) => setPatientInfo((prev) => ({ ...prev, name: e.target.value }))}
                     readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 font-medium bg-white"
+                    className="text-sm border h-9 px-3 font-medium bg-background"
                     placeholder="اسم المريض..."
                   />
                 </div>
@@ -137,7 +137,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                     value={patientDetails.phone}
                     onChange={(e) => setPatientDetails((prev) => ({ ...prev, phone: digitsOnly(e.target.value) }))}
                     readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 tracking-widest bg-white"
+                    className="text-sm border h-9 px-3 tracking-widest bg-background"
                     placeholder="01xxxxxxxxx"
                     dir="ltr"
                   />
@@ -149,7 +149,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                       value={patientDetails.age}
                       onChange={(e) => setPatientDetails((prev) => ({ ...prev, age: digitsOnly(e.target.value) }))}
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-2 text-center font-bold bg-white"
+                      className="text-sm border h-9 px-2 text-center font-bold bg-background"
                     />
                   </div>
                   <div>
@@ -172,7 +172,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                       })()}
                       onChange={(e) => setPatientDetails((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-2 bg-white"
+                      className="text-sm border h-9 px-2 bg-background"
                     />
                   </div>
                   <div>
@@ -181,7 +181,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                       value={patientDetails.job}
                       onChange={(e) => setPatientDetails((prev) => ({ ...prev, job: e.target.value }))}
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-3 bg-white"
+                      className="text-sm border h-9 px-3 bg-background"
                     />
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                     value={patientDetails.address}
                     onChange={(e) => setPatientDetails((prev) => ({ ...prev, address: e.target.value }))}
                     readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 bg-white"
+                    className="text-sm border h-9 px-3 bg-background"
                   />
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
               <div className="space-y-1">
                 <Label className="font-bold text-[11px] text-blue-900">الطبيب المعالج</Label>
                 <Select value={doctorName || ""} onValueChange={(name) => setDoctorName(name)}>
-                  <SelectTrigger className="h-9 bg-white border-blue-200 text-xs">
+                  <SelectTrigger className="h-9 bg-background border-blue-200 text-xs">
                     <SelectValue placeholder="اختر الطبيب" />
                   </SelectTrigger>
                   <SelectContent>
@@ -231,7 +231,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
 
                 <div className="space-y-2">
                   {services.map((srv, idx) => (
-                    <div key={idx} className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm space-y-1.5 relative group">
+                    <div key={idx} className="bg-background p-2 rounded-lg border border-blue-100 shadow-sm space-y-1.5 relative group">
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <SearchableCombobox

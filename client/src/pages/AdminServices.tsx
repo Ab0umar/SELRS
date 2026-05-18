@@ -222,6 +222,7 @@ export default function AdminServices() {
     typeof window === "undefined" ? false : window.matchMedia("(max-width: 639px)").matches
   );
   const [showMappingsSection, setShowMappingsSection] = useState(false);
+  const [confirmDeleteMatches, setConfirmDeleteMatches] = useState(false);
 
   const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -610,8 +611,6 @@ export default function AdminServices() {
       toast.success("لا توجد مطابقات للحذف");
       return;
     }
-    const confirmed = window.confirm("حذف كل مطابقات الأطباء والخدمات؟ لا يمكن التراجع.");
-    if (!confirmed) return;
     try {
       await saveMappingsMutation.mutateAsync({
         key: "doctor_service_sheet_match_v1",
@@ -1089,7 +1088,7 @@ export default function AdminServices() {
                       <Fragment key={service.id}>
                         <TableRow className={cn(
                           "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-white" : "bg-muted/10"
+                          idx % 2 === 0 ? "bg-background" : "bg-muted/10"
                         )}>
                           <TableCell className="px-3 align-middle">
                             <Checkbox
@@ -1227,7 +1226,7 @@ export default function AdminServices() {
                                     value={service.serviceType}
                                     onValueChange={(v) => updateService(service.id, { serviceType: v as ServiceType })}
                                   >
-                                    <SelectTrigger className="h-9 w-full sm:w-[220px] bg-white">
+                                    <SelectTrigger className="h-9 w-full sm:w-[220px] bg-background">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1455,14 +1454,29 @@ export default function AdminServices() {
               <Button type="button" variant="outline" onClick={deduplicateMatches}>
                 حذف التكرارات
               </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => void deleteAllMatches()}
-                disabled={saveMappingsMutation.isPending}
-              >
-                حذف الكل
-              </Button>
+              {confirmDeleteMatches ? (
+                <div className="flex items-center gap-1">
+                  <button type="button" aria-label="تأكيد"
+                    className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                    onClick={() => { void deleteAllMatches(); setConfirmDeleteMatches(false); }}>
+                    تأكيد
+                  </button>
+                  <button type="button" aria-label="إلغاء"
+                    className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                    onClick={() => setConfirmDeleteMatches(false)}>
+                    إلغاء
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setConfirmDeleteMatches(true)}
+                  disabled={saveMappingsMutation.isPending}
+                >
+                  حذف الكل
+                </Button>
+              )}
               <Button variant="secondary" onClick={saveDoctorServiceMatches} disabled={saveMappingsMutation.isPending}>
                 حفظ المطابقات
               </Button>

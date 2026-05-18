@@ -20,16 +20,16 @@ interface TreatmentTabProps {
 export function TreatmentTab({ treatmentRows, treatmentData, medications }: TreatmentTabProps) {
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200/80 bg-white/92 shadow-sm" dir="ltr">
-        <CardHeader className="border-b border-slate-100">
+      <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
+        <CardHeader className="border-b border-border">
           <CardTitle>الروشتات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {treatmentRows.length === 0 && <p className="text-sm text-muted-foreground">لا توجد روشتات محفوظة</p>}
           {treatmentRows.length > 0 && (
-            <div className="overflow-x-auto rounded-[1.25rem] border border-slate-200 bg-white">
+            <div className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
               <table className="w-full min-w-[920px] border-collapse text-center">
-                <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
+                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
                   <tr>
                     <th className="border px-3 py-3">Date</th><th className="border px-3 py-3">Medication</th>
                     <th className="border px-3 py-3">Dosage</th><th className="border px-3 py-3">Frequency</th>
@@ -38,7 +38,7 @@ export function TreatmentTab({ treatmentRows, treatmentData, medications }: Trea
                 </thead>
                 <tbody>
                   {treatmentRows.map((row) => (
-                    <tr key={row.key} className="bg-white text-sm font-medium text-slate-800">
+                    <tr key={row.key} className="bg-background text-sm font-medium text-slate-800">
                       <td className="border px-3 py-3">{row.date || "-"}</td>
                       <td className="border px-3 py-3">{row.medication || "-"}</td>
                       <td className="border px-3 py-3">{row.dosage || "-"}</td>
@@ -55,8 +55,8 @@ export function TreatmentTab({ treatmentRows, treatmentData, medications }: Trea
       </Card>
 
       {treatmentData.length > 0 && (
-        <Card className="border-slate-200/80 bg-white/92 shadow-sm" dir="rtl">
-          <CardHeader className="border-b border-slate-100">
+        <Card className="border-border/80 bg-background/92 shadow-sm" dir="rtl">
+          <CardHeader className="border-b border-border">
             <CardTitle>العلاجات المختارة من الملف الطبي</CardTitle>
           </CardHeader>
           <CardContent>

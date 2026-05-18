@@ -11,7 +11,7 @@ export default function ExaminationFormHeader({ form }: ExaminationFormHeaderPro
   const { visitDate, setVisitDate, isFollowup, setIsFollowup } = form;
 
   return (
-    <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-4 shadow-sm">
+    <div className="mb-6 rounded-lg border border-border/80 bg-background p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <Label htmlFor="visit-date-top" className="font-bold whitespace-nowrap">تاريخ الزيارة</Label>

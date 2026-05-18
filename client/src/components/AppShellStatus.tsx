@@ -54,13 +54,13 @@ export function AppShellStatus({
     ? "Reconnect to continue syncing live data."
     : "The app shell is open, but live server requests are currently failing.";
   const cardClassName =
-    "rounded-[1.4rem] border bg-white/95 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.16)] backdrop-blur";
+    "rounded-[1.4rem] border bg-background/95 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.16)] backdrop-blur";
 
   return (
     <>
       {booting ? (
         <div className="fixed inset-x-0 top-0 z-[1200] flex justify-center p-3 print:hidden">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-white/92 px-4 py-2 text-sm text-slate-700 shadow-lg backdrop-blur">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/92 px-4 py-2 text-sm text-foreground shadow-lg backdrop-blur">
             <RefreshCcw className="h-4 w-4 animate-spin text-primary" />
             Preparing secure mobile session...
           </div>
@@ -103,8 +103,8 @@ export function AppShellStatus({
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-slate-900">Sync issue</div>
-          <div className="mt-1 text-sm text-slate-700 break-words">{apiIssue.message}</div>
+          <div className="text-sm font-semibold text-foreground">Sync issue</div>
+          <div className="mt-1 text-sm text-foreground break-words">{apiIssue.message}</div>
           {apiIssue.path ? (
             <div className="mt-1 text-xs text-slate-500">Path: {apiIssue.path}</div>
           ) : null}
@@ -136,11 +136,11 @@ export function AppShellStatus({
               <Rocket className="h-4 w-4" />
             </div>
             <div>
-          <div className="text-sm font-semibold text-slate-900">A newer app build is available</div>
-          <div className="mt-1 text-xs text-slate-600">
+          <div className="text-sm font-semibold text-foreground">A newer app build is available</div>
+          <div className="mt-1 text-xs text-muted-foreground">
             Current: {buildInfo?.version ?? "unknown"} / {buildInfo?.buildTime ?? "unknown"}
           </div>
-          <div className="text-xs text-slate-600">
+          <div className="text-xs text-muted-foreground">
             New: {updateAvailable.version} / {updateAvailable.buildTime}
           </div>
             </div>
@@ -164,7 +164,7 @@ export function AppShellStatus({
             </div>
             <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-rose-700">Runtime issue detected</div>
-          <div className="mt-1 text-sm text-slate-900 break-words">{runtimeIssue.message}</div>
+          <div className="mt-1 text-sm text-foreground break-words">{runtimeIssue.message}</div>
           <div className="mt-1 text-xs text-slate-500">
             {runtimeIssue.source} at {new Date(runtimeIssue.time).toLocaleString()}
           </div>

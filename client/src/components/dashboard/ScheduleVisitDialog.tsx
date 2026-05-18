@@ -164,7 +164,7 @@ export function ScheduleVisitDialog({
               <div className="space-y-1">
                 <Label className="font-bold text-[11px] text-primary">الخدمة المطلوبة</Label>
                 <Select value={service} onValueChange={setService}>
-                  <SelectTrigger className="h-9 bg-white border-primary/20 text-sm">
+                  <SelectTrigger className="h-9 bg-background border-primary/20 text-sm">
                     <SelectValue placeholder="اختر الخدمة" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
@@ -183,7 +183,7 @@ export function ScheduleVisitDialog({
                   type="date" 
                   value={visitDate} 
                   onChange={(e) => setVisitDate(e.target.value)} 
-                  className="h-9 text-sm font-mono border-primary/20 bg-white" 
+                  className="h-9 text-sm font-mono border-primary/20 bg-background" 
                 />
               </div>
 

@@ -36,7 +36,7 @@ export default function ExaminationPentacamTab({ form }: ExaminationPentacamTabP
               </Card>
             )}
             {hasPatient && (
-              <div className="bg-white p-3 sm:p-4">
+              <div className="bg-background p-3 sm:p-4">
                 {isMobileViewport && (
                   <div className="w-full px-4 space-y-3" dir="ltr">
                     <Card className="border">

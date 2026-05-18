@@ -165,13 +165,13 @@ export function AppSidebar({
       <div className={cn("flex h-14 shrink-0 items-center border-b border-border/80 bg-sidebar", collapsed && !isMobile ? "justify-center px-1" : "justify-between gap-1 px-3")}>
         {/* Collapsed desktop: logo only */}
         {collapsed && !isMobile && (
-          <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-white shadow-sm" />
+          <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-background shadow-sm" />
         )}
         {/* Expanded or mobile: logo+name right, toggle/close button left */}
         {(!collapsed || isMobile) && (
           <>
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-white shadow-sm" />
+              <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-background shadow-sm" />
               <div className="min-w-0">
                 <div className="truncate text-sm font-black text-foreground">{BRAND_NAME_AR}</div>
                 <div className="truncate text-[11px] text-muted-foreground">{BRAND_TAGLINE_AR}</div>

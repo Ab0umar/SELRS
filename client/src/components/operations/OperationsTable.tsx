@@ -38,9 +38,8 @@ export function OperationsTable({
         </div>
         <table className="w-full table-fixed border-collapse border border-gray-500 text-center text-xs" dir="rtl">
           <thead>
-            <tr className="bg-gray-200">
+            <tr className="bg-border">
               <th className="w-6 border border-gray-500 p-1 text-center font-bold">#</th>
-              <th className="w-16 border border-gray-500 p-1 text-center font-bold">رقم الإيصال</th>
               <th className="w-36 border border-gray-500 p-1 text-center font-bold">اسم المريض</th>
               <th className="w-24 border border-gray-500 p-1 text-center font-bold">الهاتف</th>
               <th className="w-20 border border-gray-500 p-2 text-center font-bold">الطبيب</th>
@@ -50,6 +49,7 @@ export function OperationsTable({
               <th className="w-6 border border-gray-500 p-1 text-center font-bold">مركز</th>
               <th className="w-12 border border-gray-500 p-1 text-center font-bold">دفع</th>
               <th className="w-12 border border-gray-500 p-1 text-center font-bold">الكود</th>
+              <th className="w-24 border border-gray-500 p-1 text-center font-bold">ملاحظات</th>
               <th className="w-12 border border-gray-500 p-1 text-center font-bold">حذف</th>
             </tr>
           </thead>
@@ -57,9 +57,6 @@ export function OperationsTable({
             {currentList.map((appointment, index) => (
               <tr key={appointment.id} className="border border-gray-500">
                 <td className="w-6 border border-gray-500 p-1 text-center font-bold">{index + 1}</td>
-                <td className="w-16 border border-gray-500 p-1">
-                  <Input dir="ltr" value={appointment.number} onChange={(event) => onUpdateRow(appointment.id, "number", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
-                </td>
                 <td className="w-36 border border-gray-500 p-1">
                   <Input dir="rtl" value={appointment.name} onChange={(event) => onUpdateRow(appointment.id, "name", event.target.value)} readOnly={!canManageList} className="h-6 w-full !max-w-none text-center text-[11px]" />
                 </td>
@@ -104,6 +101,9 @@ export function OperationsTable({
                 </td>
                 <td className="w-12 border border-gray-500 p-1">
                   <Input dir="rtl" value={appointment.code} onChange={(event) => onUpdateRow(appointment.id, "code", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                </td>
+                <td className="w-24 border border-gray-500 p-1">
+                  <Input dir="rtl" value={appointment.notes ?? ""} onChange={(event) => onUpdateRow(appointment.id, "notes", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
                 </td>
                 <td className="w-12 border border-gray-500 p-1 text-center">
                   <Button variant="destructive" size="sm" onClick={() => onDeleteRow(appointment.id)} disabled={!canManageList}>

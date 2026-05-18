@@ -12,7 +12,7 @@ const stmts = [
   `ALTER TABLE accAdvances  MODIFY accessId INT NULL`,
   `ALTER TABLE accLoans     MODIFY accessId INT NULL`,
   `ALTER TABLE accHome      MODIFY accessId INT NULL`,
-  `ALTER TABLE accInstagram MODIFY accessId INT NULL`,
+  `ALTER TABLE accInstapay MODIFY accessId INT NULL`,
   `ALTER TABLE accSaadany   MODIFY accessId INT NULL`,
   // Track which sub-table + row a ledger entry was mirrored to
   `ALTER TABLE accLedger ADD COLUMN IF NOT EXISTS linkedTable VARCHAR(50) NULL`,

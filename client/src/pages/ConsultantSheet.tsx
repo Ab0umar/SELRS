@@ -422,7 +422,7 @@ export default function ConsultantSheet() {
 
   const renderFollowupSection = () => (
     <fieldset disabled={embeddedInPatientHub} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95">
-    <div className="p-1 print:p-0 followup-print-root bg-white text-slate-900" dir="ltr" style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}>
+    <div className="p-1 print:p-0 followup-print-root bg-background text-foreground" dir="ltr" style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}>
       <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
         <div className="whitespace-nowrap">{followupLabels.rtLabel}: {operationEyes.right ? "" : "..."} &nbsp;&nbsp; {followupLabels.ltLabel}: {operationEyes.left ? "" : "..."} &nbsp; //</div>
         <div className="whitespace-nowrap">
@@ -679,7 +679,7 @@ export default function ConsultantSheet() {
           <TabsContent value="sheet" className="space-y-0">
             {activeTab === "sheet" ? (
             <fieldset disabled={embeddedInPatientHub} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95">
-            <div className="bg-white p-8 print:p-0">
+            <div className="bg-background p-8 print:p-0">
               {/* Header with Logo and Center Name */}
               <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
                 <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
@@ -770,11 +770,11 @@ export default function ConsultantSheet() {
               <div className="mb-4 border sheet-section-card">
                 <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
                   <thead>
-                    <tr className="border-b bg-gray-100">
+                    <tr className="border-b bg-muted">
                       <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
                       <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
                     </tr>
-                    <tr className="border-b bg-gray-100">
+                    <tr className="border-b bg-muted">
                       <th className="border-r p-0.5"></th>
                       <th className="border-r p-0.5">UCVA</th>
                       <th className="border-r p-0.5">BCVA</th>
@@ -828,7 +828,7 @@ export default function ConsultantSheet() {
                 </table>
               </div>
 {/* Drawing/Explanation Space */}
-              <div className="consultant-drawing border-2 border-dashed border-gray-400 p-2 mb-1 bg-white" style={{ minHeight: "390px" }}>
+              <div className="consultant-drawing border-2 border-dashed border-gray-400 p-2 mb-1 bg-background" style={{ minHeight: "390px" }}>
               </div>
 
               {/* Comments and Notes */}
@@ -910,7 +910,7 @@ export default function ConsultantSheet() {
         {/* Print both: sheet then followup (back side) */}
         <div className="hidden print:block">
           <div className="space-y-0 consultant-main-print-root">
-            <div className="bg-white p-8 print:p-0">
+            <div className="bg-background p-8 print:p-0">
               {/* Header with Logo and Center Name */}
               <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
                 <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
@@ -1000,11 +1000,11 @@ export default function ConsultantSheet() {
               <div className="mb-4 border">
                 <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
                   <thead>
-                    <tr className="border-b bg-gray-100">
+                    <tr className="border-b bg-muted">
                       <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
                       <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
                     </tr>
-                    <tr className="border-b bg-gray-100">
+                    <tr className="border-b bg-muted">
                       <th className="border-r p-0.5"></th>
                       <th className="border-r p-0.5">UCVA</th>
                       <th className="border-r p-0.5">BCVA</th>
@@ -1058,7 +1058,7 @@ export default function ConsultantSheet() {
                 </table>
               </div>
 {/* Drawing/Explanation Space */}
-              <div className="consultant-drawing border-2 border-dashed border-gray-400 p-2 mb-1 bg-white" style={{ minHeight: "390px" }}>
+              <div className="consultant-drawing border-2 border-dashed border-gray-400 p-2 mb-1 bg-background" style={{ minHeight: "390px" }}>
               </div>
 
               {/* Comments and Notes */}

@@ -55,7 +55,7 @@ export function OperationTotals({
         </div>
         <table className="w-full border-collapse border border-gray-500 text-center text-xs">
           <thead>
-            <tr className="bg-gray-200">
+            <tr className="bg-border">
               <th className="border border-gray-500 p-2 font-bold">اسم المريض</th>
               <th className="border border-gray-500 p-2 font-bold">نوع العملية</th>
               <th className="border border-gray-500 p-2 font-bold">المبلغ</th>
@@ -92,7 +92,7 @@ export function OperationTotals({
                       value={appointment.discountType}
                       onChange={(event) => onUpdateRow(appointment.id, "discountType", event.target.value === "percent" ? "percent" : "amount")}
                       disabled={!canManageList}
-                      className="rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      className="rounded border border-border bg-background px-2 py-1 text-xs"
                     >
                       <option value="amount">قيمة</option>
                       <option value="percent">نسبة %</option>
@@ -145,7 +145,7 @@ export function OperationTotals({
             )}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-100 font-bold">
+            <tr className="bg-muted font-bold">
               <td className="border border-gray-500 p-2" colSpan={5}>
                 الإجمالي
               </td>
@@ -155,7 +155,7 @@ export function OperationTotals({
             </tr>
             {showSawafAdjustments && (
               <>
-                <tr className="bg-white">
+                <tr className="bg-background">
                   <td className="border border-gray-500 p-2" colSpan={5}></td>
                   <td className="border border-gray-500 p-2 font-semibold">الاشعه</td>
                   <td className="border border-gray-500 p-2" colSpan={2}>
@@ -170,7 +170,7 @@ export function OperationTotals({
                     />
                   </td>
                 </tr>
-                <tr className="bg-white">
+                <tr className="bg-background">
                   <td className="border border-gray-500 p-2" colSpan={5}></td>
                   <td className="border border-gray-500 p-2 font-semibold">خارجي</td>
                   <td className="border border-gray-500 p-2" colSpan={2}>
@@ -185,7 +185,7 @@ export function OperationTotals({
                     />
                   </td>
                 </tr>
-                <tr className="bg-white">
+                <tr className="bg-background">
                   <td className="border border-gray-500 p-2" colSpan={5}></td>
                   <td className="border border-gray-500 p-2 font-semibold">الصندوق</td>
                   <td className="border border-gray-500 p-2" colSpan={2}>
@@ -200,7 +200,7 @@ export function OperationTotals({
                     />
                   </td>
                 </tr>
-                <tr className="bg-gray-50 font-semibold">
+                <tr className="bg-muted font-semibold">
                   <td className="border border-gray-500 p-2" colSpan={5}>
                     إجمالي (الاشعه + خارجي + الصندوق)
                   </td>
@@ -219,7 +219,7 @@ export function OperationTotals({
           <div className="mb-2 text-sm font-bold">القوائم المحفوظة</div>
           <div className="flex flex-col gap-2 text-sm">
             {filteredSavedSummaries.map((item) => (
-              <div key={item.key} className="flex items-start justify-between gap-2 rounded border border-gray-200 p-2">
+              <div key={item.key} className="flex items-start justify-between gap-2 rounded border border-border p-2">
                 <div>
                   <div className="font-semibold">{item.date}</div>
                   <div className="text-xs text-muted-foreground">{item.names.length > 0 ? item.names.join(" ") : "-"}</div>

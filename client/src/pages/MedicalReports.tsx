@@ -224,6 +224,7 @@ export default function MedicalReports() {
 
   const [overviewSearch, setOverviewSearch] = useState("");
   const [overviewType, setOverviewType] = useState<string>("all");
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
   const [diseaseSearch, setDiseaseSearch] = useState("");
@@ -435,7 +436,6 @@ export default function MedicalReports() {
       toast.info("العرض فقط داخل مركز المريض");
       return;
     }
-    if (!window.confirm("هل أنت متأكد من حذف التقرير؟")) return;
     try {
       await deleteReportMutation.mutateAsync({ reportId: id });
     } catch (error) {
@@ -1032,16 +1032,26 @@ export default function MedicalReports() {
                               <Eye className="h-4 w-4" />
                             </Button>
                             {canDeleteReports && !inHubReports ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-9 w-9 p-0 text-destructive hover:text-destructive"
-                                title="حذف"
-                                onClick={() => void handleDeleteReport(Number(row.id))}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              delConfirm === Number(row.id) ? (
+                                <div className="flex items-center gap-1">
+                                  <button type="button" aria-label="تأكيد الحذف"
+                                    className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                    onClick={() => { void handleDeleteReport(Number(row.id)); setDelConfirm(null); }}>
+                                    تأكيد
+                                  </button>
+                                  <button type="button" aria-label="إلغاء الحذف"
+                                    className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                    onClick={() => setDelConfirm(null)}>
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <button type="button" aria-label="حذف التقرير"
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                  onClick={() => setDelConfirm(Number(row.id))}>
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )
                             ) : null}
                           </div>
                         </td>
@@ -1068,7 +1078,7 @@ export default function MedicalReports() {
                   <div className="flex items-center justify-between gap-4">
                     <CardTitle>تقرير طبي</CardTitle>
                     <div className="flex items-center gap-3">
-                      <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-white" />
+                      <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-background" />
                       <div className="text-right">
                         <p className="font-semibold leading-tight">{BRAND_NAME_AR}</p>
                         <p className="text-xs text-muted-foreground leading-tight">{BRAND_NAME_EN}</p>

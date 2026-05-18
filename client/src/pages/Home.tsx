@@ -99,9 +99,9 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f8fb] px-4 text-center text-slate-600">
+      <div className="flex min-h-screen items-center justify-center bg-muted px-4 text-center text-muted-foreground">
         <div className="space-y-3">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-primary" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
           <p className="text-sm font-medium">جاري التحميل...</p>
         </div>
       </div>
@@ -111,12 +111,8 @@ export default function Home() {
   return (
     <div
       dir="rtl"
-      className="relative min-h-dvh overflow-hidden bg-[linear-gradient(180deg,#fbfcfe_0%,#f5f7fb_100%)] text-slate-800 selection:bg-primary/10"
+      className="relative min-h-dvh overflow-hidden bg-muted text-slate-800 selection:bg-primary/10"
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-6rem] top-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.07)_0%,transparent_72%)] blur-3xl" />
-        <div className="absolute right-[-6rem] bottom-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,107,53,0.08)_0%,transparent_72%)] blur-3xl" />
-      </div>
 
       <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <section className="w-full max-w-[26rem]">
@@ -125,7 +121,7 @@ export default function Home() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-400">
                 SELRS
               </p>
-              <h1 className="mt-1 text-sm font-medium tracking-wide text-slate-600">
+              <h1 className="mt-1 text-sm font-medium tracking-wide text-muted-foreground">
                 بوابة الطاقم الطبي
               </h1>
             </div>
@@ -142,17 +138,17 @@ export default function Home() {
             </div>
           </div>
 
-          <Card className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+          <Card className="overflow-hidden rounded-[1.6rem] border border-border bg-background shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
             <CardContent className="space-y-5 px-6 py-7 sm:px-7">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-slate-200 bg-[#fffaf6]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-border bg-orange-50">
                   <BrandLogo className="h-8 w-8" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
                     {BRAND_NAME_AR}
                   </p>
-                  <h2 className="mt-1 text-2xl font-black tracking-tight text-[#001F47]">
+                  <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">
                     تسجيل الدخول
                   </h2>
                 </div>
@@ -185,7 +181,7 @@ export default function Home() {
                       placeholder="اسم المستخدم"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-14 rounded-[1rem] border-slate-200 bg-slate-50/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
                       dir="ltr"
                       disabled={submitting}
                       required
@@ -206,7 +202,7 @@ export default function Home() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 rounded-[1rem] border-slate-200 bg-slate-50/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
                       dir="ltr"
                       disabled={submitting}
                       required
@@ -215,7 +211,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-[1rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div className="flex items-center justify-between rounded-[1rem] border border-border bg-muted/70 px-4 py-3">
                   <div className="space-y-1">
                     <div className="text-sm font-semibold text-slate-800">تذكرني</div>
                     <div className="text-[11px] text-slate-500">
@@ -230,8 +226,8 @@ export default function Home() {
                       className="peer sr-only"
                       disabled={submitting}
                     />
-                    <div className="h-7 w-12 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary" />
-                    <div className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                    <div className="h-7 w-12 rounded-full bg-border transition-colors peer-checked:bg-primary" />
+                    <div className="absolute left-1 h-5 w-5 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-5" />
                   </label>
                 </div>
 
