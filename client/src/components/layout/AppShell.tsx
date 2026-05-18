@@ -42,14 +42,14 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
 
   const changeUsernameMutation = trpc.auth.changeUsername.useMutation({
     onSuccess: async () => {
-      toast.success("Username Updated");
+      toast.success("تم تحديث اسم المستخدم");
       setIsAccountDialogOpen(false);
       await utils.auth.me.invalidate();
     },
   });
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: async () => {
-      toast.success("Profile Updated");
+      toast.success("تم تحديث الملف الشخصي");
       await utils.auth.me.invalidate();
     },
   });
@@ -169,7 +169,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       )}
 
       <main
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-2 pt-1.5 pb-2 sm:p-3 md:p-4`}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-3 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4`}
       >
         <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
           {children}
@@ -198,19 +198,19 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Account Settings</DialogTitle>
+            <DialogTitle>إعدادات الحساب</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4" dir="rtl">
             <div className="space-y-2">
-              <Label htmlFor="fullNameEditable">Full Name</Label>
+              <Label htmlFor="fullNameEditable">الاسم الكامل</Label>
               <Input id="fullNameEditable" value={accountName} readOnly />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="emailEditable">Email</Label>
+              <Label htmlFor="emailEditable">البريد الإلكتروني</Label>
               <Input id="emailEditable" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="usernameEditable">Username</Label>
+              <Label htmlFor="usernameEditable">اسم المستخدم</Label>
               <Input
                 id="usernameEditable"
                 value={accountUsername}
@@ -220,13 +220,13 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 }}
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-start gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsAccountDialogOpen(false)}
                 disabled={changeUsernameMutation.isPending || updateProfileMutation.isPending}
               >
-                Cancel
+                إلغاء
               </Button>
               <Button
                 onClick={async () => {
@@ -238,7 +238,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 }}
                 disabled={changeUsernameMutation.isPending || updateProfileMutation.isPending}
               >
-                {changeUsernameMutation.isPending || updateProfileMutation.isPending ? "Saving..." : "Save"}
+                {changeUsernameMutation.isPending || updateProfileMutation.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
             </div>
           </div>
