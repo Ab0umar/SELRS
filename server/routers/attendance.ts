@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import crypto from 'crypto';
 import { router, attendanceViewerProcedure, attendanceManagerProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
@@ -481,6 +482,68 @@ export const attendanceRouter = router({
       } catch (err) {
         return { success: false, error: (err as Error).message };
       }
+    }),
+
+  batchAddPunches: attendanceManagerProcedure
+    .input(
+      z.object({
+        punches: z.array(
+          z.object({
+            empCd: z.string(),
+            punchAt: z.string(), // ISO timestamp
+            direction: z.enum(['in', 'out', 'unknown']),
+            note: z.string().optional(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const results = [];
+
+      for (const punch of input.punches) {
+        const punchAt = new Date(punch.punchAt);
+        const hashInput = `${punch.empCd}|${punchAt.getTime()}|${punch.direction}`;
+        const hash = crypto.createHash('sha1').update(hashInput).digest('hex');
+
+        try {
+          const existing = await db
+            .select()
+            .from(attendancePunches)
+            .where(eq(attendancePunches.sourceHash, hash))
+            .limit(1);
+
+          if (existing.length > 0) {
+            results.push({ empCd: punch.empCd, success: false, error: 'Duplicate punch' });
+            continue;
+          }
+
+          await db.insert(attendancePunches).values({
+            empCd: punch.empCd,
+            punchAt: punchAt,
+            direction: punch.direction,
+            source: 'manual',
+            sourceHash: hash,
+            note: punch.note,
+          });
+
+          results.push({ empCd: punch.empCd, success: true });
+        } catch (err) {
+          results.push({
+            empCd: punch.empCd,
+            success: false,
+            error: (err as Error).message,
+          });
+        }
+      }
+
+      return {
+        total: input.punches.length,
+        successful: results.filter((r) => r.success).length,
+        results,
+      };
     }),
 });
 

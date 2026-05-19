@@ -10,6 +10,7 @@ import { attendancePunches } from '../../../drizzle/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import crypto from 'crypto';
 import { getDefaultDevice, DevicePunch } from './deviceAdapter.service';
+import { broadcastPunch } from '../../_core/ws';
 
 export class PunchReceptionService extends EventEmitter {
   private isListening = false;
@@ -71,7 +72,10 @@ export class PunchReceptionService extends EventEmitter {
 
       console.log(`[PunchReception] Punch recorded: ${punch.empNo} - ${punch.direction} at ${punch.timestamp}`);
 
-      // Emit event for subscribers (e.g., WebSocket broadcast)
+      // Broadcast punch to all connected clients via WebSocket
+      broadcastPunch(punch.empNo, punch.direction, punch.timestamp, punch.deviceId);
+
+      // Emit event for subscribers
       this.emit('punch-recorded', {
         empCd: punch.empNo,
         timestamp: punch.timestamp,

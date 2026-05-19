@@ -120,6 +120,7 @@ const AttendanceAdminDashboard = lazy(() => import("./pages/attendance/admin/Adm
 const AttendanceSyncStatus = lazy(() => import("./pages/attendance/admin/SyncStatus"));
 const AttendanceDevice = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
 const AttendanceConsole = lazy(() => import("./pages/attendance/admin/DeviceConsole"));
+const AttendanceCorrections = lazy(() => import("./pages/attendance/admin/BatchCorrections"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -298,6 +299,7 @@ const Router = memo(function Router() {
       <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceSyncStatus /></ProtectedRoute>} />
       <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceDevice /></ProtectedRoute>} />
       <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceConsole /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/corrections"} component={() => <ProtectedRoute><AttendanceCorrections /></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />

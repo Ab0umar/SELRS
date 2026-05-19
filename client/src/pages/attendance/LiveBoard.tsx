@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wifi, WifiOff, ArrowRightFromLine, ArrowLeftFromLine, AlertCircle } from 'lucide-react';
 
 const tRPC = require('@/lib/trpc').trpc as any;
+
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 
 interface LivePunch {
   empCd: string;
@@ -17,30 +19,84 @@ interface LivePunch {
 export default function LiveBoard() {
   const [punches, setPunches] = useState<LivePunch[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
-  // Poll for recent punches
-  const { data: punchesData, isLoading, refetch } = useQuery({
+  // Load initial punch history
+  const { data: punchesData, isLoading } = useQuery({
     queryKey: ['recentPunches'],
     queryFn: async () => {
       const result = await tRPC.attendance.rawPunches.query({
         limit: 50,
-        fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0], // Last 5 minutes
+        fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0],
       });
       return result.punches || [];
     },
-    refetchInterval: isMonitoring ? 2000 : false,
+    refetchInterval: 30000, // Periodic refresh every 30s
   });
 
+  // Initialize WebSocket connection
+  useEffect(() => {
+    if (!isMonitoring) return;
+
+    try {
+      const ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        setWsConnected(true);
+        // Subscribe to attendance punches
+        ws.send(JSON.stringify({ type: 'subscribe-attendance' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'punch-received') {
+            const newPunch: LivePunch = {
+              empCd: msg.empCd,
+              timestamp: new Date(msg.timestamp),
+              direction: msg.direction,
+              deviceId: msg.deviceId || 'unknown',
+            };
+            setPunches((prev) => [newPunch, ...prev.slice(0, 99)]); // Keep last 100
+          }
+        } catch (err) {
+          console.error('Failed to parse WS message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+        setWsConnected(false);
+      };
+
+      wsRef.current = ws;
+
+      return () => {
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({ type: 'unsubscribe-attendance' }));
+          wsRef.current.close();
+        }
+      };
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+    }
+  }, [isMonitoring]);
+
+  // Load initial punch history on mount
   useEffect(() => {
     if (punchesData) {
-      // Sort by time descending and convert timestamps
       const formatted = punchesData.map((p: any) => ({
         empCd: p.empCd,
         timestamp: new Date(p.punchAt),
         direction: p.direction,
         deviceId: p.deviceId || 'unknown',
       }));
-      setPunches(formatted);
+      setPunches((prev) => [...formatted, ...prev].slice(0, 100)); // Merge with WS punches
     }
   }, [punchesData]);
 
@@ -63,7 +119,11 @@ export default function LiveBoard() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Live Punch Feed</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-xs px-3 py-1 rounded bg-gray-100">
+            <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            {wsConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
+          </div>
           <Button variant={isMonitoring ? 'default' : 'outline'} onClick={toggleMonitoring}>
             {isMonitoring ? 'Monitoring Active' : 'Monitoring Paused'}
           </Button>
@@ -171,8 +231,8 @@ export default function LiveBoard() {
       </Card>
 
       <div className="text-xs text-gray-500">
-        <p>Feed refreshes every 2 seconds when monitoring is active.</p>
-        <p>Shows punches from the last 5 minutes.</p>
+        <p>Real-time updates via WebSocket. Periodic sync every 30 seconds.</p>
+        <p>Shows punches from the last 5 minutes. Stores up to 100 recent punches.</p>
       </div>
     </div>
   );

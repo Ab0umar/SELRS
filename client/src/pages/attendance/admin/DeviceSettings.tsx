@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
 const tRPC = trpc as any;
@@ -14,20 +14,20 @@ export default function DeviceSettings() {
   const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const { data: settings, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
     queryKey: ['deviceSettings'],
     queryFn: async () => {
       const result = await tRPC.attendance.deviceSettings.query();
       setFormData({ ip: result.ip, port: result.port, enabled: result.enabled });
       return result;
     },
-    refetchInterval: 5000,
+    staleTime: 30000, // Keep fresh for 30 seconds
   });
 
-  const { data: status, isLoading: statusLoading } = useQuery({
+  const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery({
     queryKey: ['deviceStatus'],
     queryFn: () => tRPC.attendance.deviceStatus.query(),
-    refetchInterval: 2000,
+    staleTime: 5000, // Keep fresh for 5 seconds
   });
 
   const updateSettings = useMutation({
@@ -69,19 +69,29 @@ export default function DeviceSettings() {
       {/* Device Status Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {status?.connected ? (
-              <>
-                <Wifi className="w-5 h-5 text-green-600" />
-                Device Connected
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-5 h-5 text-red-600" />
-                Device Offline
-              </>
-            )}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              {status?.connected ? (
+                <>
+                  <Wifi className="w-5 h-5 text-green-600" />
+                  Device Connected
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-5 h-5 text-red-600" />
+                  Device Offline
+                </>
+              )}
+            </CardTitle>
+            <Button
+              onClick={() => refetchStatus()}
+              disabled={statusLoading}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${statusLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {status?.connectionError && (

@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { parse as parseCookieHeader } from "cookie";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./auth";
 
-type WsClient = WebSocket & { subscriptions?: Set<number> };
+type WsClient = WebSocket & { subscriptions?: Set<number>; attendanceSubscribed?: boolean };
 
 let wss: WebSocketServer | null = null;
 
@@ -29,12 +29,17 @@ export function registerWsServer(server: Server) {
     }
 
     socket.subscriptions = new Set<number>();
+    socket.attendanceSubscribed = false;
 
     socket.on("message", (raw: RawData) => {
       try {
         const message = JSON.parse(raw.toString());
         if (message?.type === "subscribe" && typeof message.patientId === "number") {
           socket.subscriptions?.add(message.patientId);
+        } else if (message?.type === "subscribe-attendance") {
+          (socket as any).attendanceSubscribed = true;
+        } else if (message?.type === "unsubscribe-attendance") {
+          (socket as any).attendanceSubscribed = false;
         }
       } catch {
         // ignore malformed messages
@@ -56,6 +61,26 @@ export function broadcastSheetUpdate(patientId: number, sheetType: string) {
     const ws = client as WsClient;
     if (ws.readyState !== WebSocket.OPEN) return;
     if (ws.subscriptions?.has(patientId)) {
+      ws.send(payload);
+    }
+  });
+}
+
+export function broadcastPunch(empCd: string, direction: string, timestamp: Date, deviceId: string) {
+  if (!wss) return;
+  const payload = JSON.stringify({
+    type: "punch-received",
+    empCd,
+    direction,
+    timestamp: timestamp.toISOString(),
+    deviceId,
+    at: Date.now(),
+  });
+
+  wss.clients.forEach((client) => {
+    const ws = client as any;
+    if (ws.readyState !== WebSocket.OPEN) return;
+    if (ws.attendanceSubscribed) {
       ws.send(payload);
     }
   });
