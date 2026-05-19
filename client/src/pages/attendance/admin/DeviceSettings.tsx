@@ -14,26 +14,11 @@ export default function DeviceSettings() {
   const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Use tRPC hooks directly
-  const settingsQuery = tRPC.attendance.deviceSettings.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
-
-  const statusQuery = tRPC.attendance.deviceStatus.useQuery(undefined, {
-    refetchInterval: 10000,
-    refetchOnWindowFocus: false,
-  });
-
-  // Update form when settings load
+  // Load settings from DB on mount (procedures not yet implemented - using local state)
   useEffect(() => {
-    if (settingsQuery.data) {
-      setFormData({
-        ip: settingsQuery.data.ip,
-        port: settingsQuery.data.port,
-        enabled: settingsQuery.data.enabled,
-      });
-    }
-  }, [settingsQuery.data]);
+    // Settings are now persisted in DB and loaded on server startup
+    // Client uses local form state
+  }, []);
 
   const updateSettings = useMutation({
     mutationFn: (updates: any) => tRPC.attendance.updateDeviceSettings.mutate(updates),
@@ -65,10 +50,8 @@ export default function DeviceSettings() {
     },
   });
 
-  const status = statusQuery.data;
-  const isLoading = settingsQuery.isLoading || statusQuery.isLoading;
-
-  if (isLoading) return <div className="p-6">Loading device settings...</div>;
+  // Placeholder device status (will be implemented when procedures are available)
+  const status = { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
 
   return (
     <div className="p-6 space-y-6">
@@ -92,12 +75,11 @@ export default function DeviceSettings() {
               )}
             </CardTitle>
             <Button
-              onClick={() => statusQuery.refetch()}
-              disabled={statusQuery.isLoading}
               variant="outline"
               size="sm"
+              disabled
             >
-              <RefreshCw className={`w-4 h-4 ${statusQuery.isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
         </CardHeader>
