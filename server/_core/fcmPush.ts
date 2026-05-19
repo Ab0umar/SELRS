@@ -123,8 +123,17 @@ function isInvalidTokenResponse(status: number, detail: string) {
     lowered.includes("unregistered") ||
     lowered.includes("registration-token-not-registered") ||
     lowered.includes("invalid registration token") ||
-    lowered.includes("requested entity was not found")
+    lowered.includes("not a valid fcm registration token") ||
+    lowered.includes("requested entity was not found") ||
+    lowered.includes("invalid_argument")
   );
+}
+
+function isWebPushSubscription(token: string): boolean {
+  // Web Push subscription objects start with { and contain "endpoint"
+  // They are stored incorrectly as FCM tokens and must be filtered out
+  const t = token.trimStart();
+  return t.startsWith("{") || t.startsWith("[");
 }
 
 export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
@@ -168,6 +177,11 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
   for (const registration of registrations) {
     const token = String((registration as any).token ?? "").trim();
     if (!token) {
+      skipped += 1;
+      continue;
+    }
+    if (isWebPushSubscription(token)) {
+      await db.disablePushDeviceToken(token).catch(() => {});
       skipped += 1;
       continue;
     }

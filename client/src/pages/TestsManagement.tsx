@@ -129,7 +129,7 @@ export default function TestsManagement() {
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary text-primary-foreground">
               <FlaskConical className="h-3.5 w-3.5" />
               كتالوج الفحوصات
             </div>
@@ -234,25 +234,25 @@ export default function TestsManagement() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="icon" variant="outline" onClick={() => handleEditTest(test)}>
+                    <Button size="icon" variant="outline" aria-label={`تعديل الفحص ${test.name}`} onClick={() => handleEditTest(test)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {delConfirm === test.id ? (
                       <div className="flex items-center gap-1">
                         <button type="button" aria-label="تأكيد الحذف"
-                          className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                          className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                           onClick={() => { void handleDeleteTest(test.id); setDelConfirm(null); }}>
                           تأكيد
                         </button>
                         <button type="button" aria-label="إلغاء الحذف"
-                          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                          className="rounded bg-muted text-muted-foreground hover:bg-border"
                           onClick={() => setDelConfirm(null)}>
                           ✕
                         </button>
                       </div>
                     ) : (
                       <button type="button" aria-label="حذف الفحص"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         onClick={() => setDelConfirm(test.id)}>
                         <Trash2 className="h-4 w-4" />
                       </button>

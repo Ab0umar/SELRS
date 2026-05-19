@@ -32,28 +32,28 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "الأدوية",
     description: "إدارة قائمة الأدوية والمستحضرات الطبية.",
     icon: Pill,
-    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/services-hub/catalog",
     title: "كتالوج الفحوصات",
     description: "عرض وإدارة قائمة الفحوصات والخدمات الطبية.",
     icon: FlaskConical,
-    iconWrap: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    iconWrap: "bg-success/15 text-success",
   },
   {
     href: "/services-hub/registry",
     title: "سجل الأدوية",
     description: "تتبع وإدارة سجلات الأدوية والمخزون.",
     icon: Pill,
-    iconWrap: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
   {
     href: "/services-hub/txhub",
     title: "ربط النتائج الخارجية",
     description: "استيراد نتائج المختبر والأشعة وربطها بالمدى الطبيعي.",
     icon: Network,
-    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
+    iconWrap: "bg-primary/15 text-primary",
   },
 ];
 

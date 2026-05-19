@@ -1,0 +1,25 @@
+{
+  "id": "64d03f52",
+  "phase": "agent_error",
+  "pageUrl": "/accounting/ledger",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "5d0cfb4f",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Applied one-line no-scroll summary directly"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:33:33.596Z"
+}

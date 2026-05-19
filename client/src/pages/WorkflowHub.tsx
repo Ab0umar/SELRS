@@ -39,24 +39,24 @@ const ACCENT: Record<
   { bar: string; iconWrap: string; icon: string }
 > = {
   blue: {
-    bar: "border-t-blue-500",
-    iconWrap: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-    icon: "text-blue-700 dark:text-blue-300",
+    bar: "border-t-primary",
+    iconWrap: "bg-primary text-primary-foreground",
+    icon: "text-primary",
   },
   orange: {
-    bar: "border-t-orange-500",
-    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200",
-    icon: "text-orange-800 dark:text-orange-200",
+    bar: "border-t-secondary",
+    iconWrap: "bg-primary/15 text-primary",
+    icon: "text-secondary",
   },
   emerald: {
-    bar: "border-t-emerald-500",
-    iconWrap: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
-    icon: "text-emerald-800 dark:text-emerald-200",
+    bar: "border-t-success",
+    iconWrap: "bg-success/15 text-success",
+    icon: "text-success",
   },
   rose: {
-    bar: "border-t-rose-500",
-    iconWrap: "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
-    icon: "text-rose-800 dark:text-rose-200",
+    bar: "border-t-destructive",
+    iconWrap: "bg-destructive/10 text-destructive",
+    icon: "text-destructive",
   },
 };
 

@@ -164,13 +164,13 @@ export default function AccountingAdvances() {
             <div className="min-w-0 flex-1">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     إدارة مالية
                   </div>
                   <h1 className="mt-1 text-xl font-bold text-foreground lg:text-2xl">
                     السلف
                   </h1>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                     إدخال ومراجعة السلف والسداد مع كشف الحركات في نفس الصفحة.
                   </p>
                 </div>
@@ -182,15 +182,15 @@ export default function AccountingAdvances() {
                     {
                       label: "إجمالي السلف",
                       val: totalAdvance,
-                      cls: "text-amber-700",
-                      bg: "bg-amber-50",
+                      cls: "text-warning",
+                      bg: "bg-warning/10",
                       icon: TrendingDown,
                     },
                     {
                       label: "إجمالي السداد",
                       val: totalRepaid,
-                      cls: "text-emerald-700",
-                      bg: "bg-emerald-50",
+                      cls: "text-success",
+                      bg: "bg-success/10",
                       icon: TrendingUp,
                     },
                     {
@@ -198,12 +198,12 @@ export default function AccountingAdvances() {
                       val: totalAdvance - totalRepaid,
                       cls:
                         totalAdvance - totalRepaid > 0
-                          ? "text-rose-700"
-                          : "text-blue-700",
+                          ? "text-destructive"
+                          : "text-primary",
                       bg:
                         totalAdvance - totalRepaid > 0
-                          ? "bg-rose-50"
-                          : "bg-blue-50",
+                          ? "bg-destructive/10"
+                          : "bg-primary/5",
                       icon: Wallet,
                     },
                   ] as const
@@ -226,7 +226,7 @@ export default function AccountingAdvances() {
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] font-medium text-slate-500">
+                        <div className="text-[11px] font-medium text-muted-foreground">
                           {m.label}
                         </div>
                         <div
@@ -246,14 +246,14 @@ export default function AccountingAdvances() {
 
             <div ref={formRef} className="min-w-0 border-t border-border pt-4 xl:w-[480px] xl:border-t-0 xl:border-s xl:pt-0 xl:ps-5">
               <div className="mb-3 flex items-center justify-between">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     {editingId ? "تعديل قيد" : "إضافة سلفة"}
                   </div>
                   {editingId && (
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="rounded-md px-2 py-1.5 text-[10px] font-medium text-slate-500 hover:bg-muted hover:text-foreground"
+                      className="rounded-md px-2 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-muted text-muted-foreground"
                     >
                       إلغاء
                     </button>
@@ -264,7 +264,7 @@ export default function AccountingAdvances() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="advances-date"
-                      className="text-xs font-medium text-slate-500"
+                      className="text-xs font-medium text-muted-foreground"
                     >
                       التاريخ
                     </label>
@@ -273,16 +273,16 @@ export default function AccountingAdvances() {
                       type="date"
                       value={txDate}
                       onChange={(e) => setTxDate(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
 
                   <div className="relative flex flex-col gap-1.5 sm:col-span-1">
                     <label
                       htmlFor="advances-employee"
-                      className="text-xs font-medium text-slate-500"
+                      className="text-xs font-medium text-muted-foreground"
                     >
-                      الموظف <span aria-hidden="true" className="text-rose-500">*</span>
+                      الموظف <span aria-hidden="true" className="text-destructive">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -302,9 +302,9 @@ export default function AccountingAdvances() {
                         onFocus={() => setEmpOpen(true)}
                         onBlur={() => setTimeout(() => setEmpOpen(false), 150)}
                         placeholder="اختر أو اكتب..."
-                        className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-slate-300 transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                        className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                       />
-                      <ChevronDown className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden />
+                      <ChevronDown className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                       {empOpen && employees.length > 0 && (
                         <div role="listbox" className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-background shadow-lg">
                           {employees
@@ -324,7 +324,7 @@ export default function AccountingAdvances() {
                                 className={cn(
                                   "flex w-full items-center px-3 py-2 text-sm text-right hover:bg-muted",
                                   employee === e.name &&
-                                    "bg-blue-50 text-blue-700",
+                                    "bg-primary text-primary-foreground",
                                 )}
                               >
                                 {e.name}
@@ -338,7 +338,7 @@ export default function AccountingAdvances() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="advances-advance"
-                      className="text-xs font-medium text-amber-700"
+                      className="text-xs font-medium text-warning"
                     >
                       سلفة
                     </label>
@@ -349,14 +349,14 @@ export default function AccountingAdvances() {
                       value={advance}
                       onChange={(e) => setAdvance(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-amber-700 outline-none placeholder:text-slate-300 transition-colors focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-warning outline-none placeholder:text-muted-foreground transition-colors focus:border-warning focus:ring-2 focus:ring-warning/20"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="advances-repayment"
-                      className="text-xs font-medium text-emerald-700"
+                      className="text-xs font-medium text-success"
                     >
                       سداد
                     </label>
@@ -367,14 +367,14 @@ export default function AccountingAdvances() {
                       value={repayment}
                       onChange={(e) => setRepayment(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-emerald-700 outline-none placeholder:text-slate-300 transition-colors focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success outline-none placeholder:text-muted-foreground transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <label
                       htmlFor="advances-notes"
-                      className="text-xs font-medium text-slate-500"
+                      className="text-xs font-medium text-muted-foreground"
                     >
                       ملاحظات
                     </label>
@@ -384,7 +384,7 @@ export default function AccountingAdvances() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="ملاحظات..."
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-slate-300 transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export default function AccountingAdvances() {
                             type="button"
                             onClick={handleDelete}
                             disabled={busy}
-                            className="inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg bg-destructive px-4 text-sm font-semibold text-destructive-foreground transition-opacity hover:bg-destructive/90 disabled:opacity-40 sm:w-auto"
+                            className="inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg bg-destructive text-destructive-foreground transition-opacity hover:bg-destructive/90 disabled:opacity-40 sm:w-auto"
                           >
                             {busy ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -420,7 +420,7 @@ export default function AccountingAdvances() {
                           aria-label="حذف القيد"
                           onClick={() => setDelConfirm(true)}
                           disabled={busy}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-red-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-destructive-foreground bg-destructive text-destructive-foreground disabled:opacity-40"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -429,7 +429,7 @@ export default function AccountingAdvances() {
                         type="button"
                         onClick={handleSubmit}
                         disabled={busy || !txDate || !employee.trim()}
-                        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
+                        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
                       >
                         {busy ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -445,8 +445,8 @@ export default function AccountingAdvances() {
                       disabled={busy || !txDate || !employee.trim()}
                       onClick={handleSubmit}
                       className={cn(
-                        "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto",
-                        saved ? "bg-emerald-500" : "bg-orange-600",
+                        "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto",
+                        saved ? "bg-success/100" : "bg-primary",
                       )}
                     >
                       {busy ? (
@@ -471,18 +471,18 @@ export default function AccountingAdvances() {
               onClick={() => setTableOpen((v) => !v)}
               aria-label={tableOpen ? "إخفاء الجدول" : "عرض الجدول"}
               aria-expanded={tableOpen}
-              className="flex items-center gap-3 text-right transition-opacity hover:opacity-80 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:outline-none"
+              className="flex items-center gap-3 text-right transition-opacity hover:opacity-80 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <div
                 className={cn(
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-muted",
-                  tableOpen && "bg-slate-900",
+                  tableOpen && "bg-card",
                 )}
               >
                 <svg
                   className={cn(
                     "h-3.5 w-3.5 transition-transform duration-200",
-                    tableOpen ? "text-white" : "text-slate-500 -rotate-90",
+                    tableOpen ? "text-card-foreground" : "text-muted-foreground -rotate-90",
                   )}
                   viewBox="0 0 16 16"
                   fill="none"
@@ -500,15 +500,15 @@ export default function AccountingAdvances() {
                 <h2 className="text-sm font-bold text-foreground">
                   حركات السلف
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   اضغط على أي صف للتعديل.
                 </p>
               </div>
             </button>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex h-10 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100 sm:w-auto">
-                <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+              <div className="flex h-10 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 sm:w-auto">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <label htmlFor="advances-search" className="sr-only">بحث في حركات السلف</label>
                 <input
                   id="advances-search"
@@ -519,7 +519,7 @@ export default function AccountingAdvances() {
                     setPage(1);
                   }}
                   placeholder="بحث باسم الموظف..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400 sm:w-44 sm:flex-none"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:w-44 sm:flex-none"
                 />
                 {search ? (
                   <button
@@ -529,13 +529,13 @@ export default function AccountingAdvances() {
                       setSearch("");
                       setPage(1);
                     }}
-                    className="text-slate-400 hover:text-muted-foreground"
+                    className="text-muted-foreground hover:text-muted-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 ) : null}
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              <div className="rounded-full bg-primary text-primary-foreground">
                 {total.toLocaleString("ar-EG")} حركة
               </div>
             </div>
@@ -545,12 +545,12 @@ export default function AccountingAdvances() {
             <>
               <div className="grid gap-3 px-4 py-3 sm:hidden">
                 {ledgerQ.isLoading && (
-                  <div className="py-6 text-center text-sm text-slate-500">
+                  <div className="py-6 text-center text-sm text-muted-foreground">
                     جاري التحميل...
                   </div>
                 )}
                 {!ledgerQ.isLoading && rows.length === 0 && (
-                  <div className="py-6 text-center text-sm text-slate-500">
+                  <div className="py-6 text-center text-sm text-muted-foreground">
                     لا توجد حركات
                   </div>
                 )}
@@ -564,20 +564,20 @@ export default function AccountingAdvances() {
                       if (e.key === "Enter" || e.key === " ") selectRow(row);
                     }}
                     className={cn(
-                      "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors hover:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300",
-                      editingId === row.id && "ring-1 ring-amber-200",
+                      "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      editingId === row.id && "ring-1 ring-warning/30",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-muted-foreground">
                           {fmtDate(row.txDate)}
                         </div>
                         <div className="mt-1 truncate text-sm font-semibold text-foreground">
                           {row.employee ?? "—"}
                         </div>
                         {row.notes && row.notes !== row.employee && (
-                          <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">
+                          <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
                             {row.notes}
                           </div>
                         )}
@@ -586,8 +586,8 @@ export default function AccountingAdvances() {
                         className={cn(
                           "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1",
                           (row.advance ?? 0) - (row.repayment ?? 0) > 0
-                            ? "bg-rose-50 text-rose-700 ring-rose-100"
-                            : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                            ? "bg-destructive/10 text-destructive ring-destructive/20"
+                            : "bg-success/10 text-success ring-success/20",
                         )}
                       >
                         {fmt(row.runningTotal)}
@@ -595,25 +595,25 @@ export default function AccountingAdvances() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-amber-50 px-3 py-2">
-                        <div className="text-[10px] text-amber-700">سلفة</div>
+                      <div className="rounded-xl bg-warning/10 px-3 py-2">
+                        <div className="text-[10px] text-warning">سلفة</div>
                         <div
                           className={cn(
                             "mt-1 font-semibold tabular-nums",
-                            row.advance ? "text-amber-700" : "text-slate-300",
+                            row.advance ? "text-warning" : "text-muted-foreground",
                           )}
                         >
                           {row.advance ? fmt(row.advance) : "—"}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                        <div className="text-[10px] text-emerald-700">سداد</div>
+                      <div className="rounded-xl bg-success/10 px-3 py-2">
+                        <div className="text-[10px] text-success">سداد</div>
                         <div
                           className={cn(
                             "mt-1 font-semibold tabular-nums",
                             row.repayment
-                              ? "text-emerald-700"
-                              : "text-slate-300",
+                              ? "text-success"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.repayment ? fmt(row.repayment) : "—"}
@@ -627,7 +627,7 @@ export default function AccountingAdvances() {
               <div className="hidden w-full overflow-x-auto sm:block">
                 <table className="w-full table-fixed text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-blue-50 text-xs text-blue-800">
+                    <tr className="border-b border-border bg-primary text-primary-foreground">
                       <th
                         scope="col"
                         className="w-[22%] cursor-pointer select-none px-3 py-3 text-right font-semibold sm:w-auto sm:px-4"
@@ -638,7 +638,7 @@ export default function AccountingAdvances() {
                       >
                         <span className="flex items-center gap-1">
                           التاريخ{" "}
-                          <span className="text-slate-400">
+                          <span className="text-muted-foreground">
                             {sortDir === "desc" ? "↓" : "↑"}
                           </span>
                         </span>
@@ -651,30 +651,30 @@ export default function AccountingAdvances() {
                       </th>
                       <th
                         scope="col"
-                        className="w-[18%] px-3 py-3 text-left font-semibold tabular-nums text-amber-700 sm:px-4"
+                        className="w-[18%] px-3 py-3 text-left font-semibold tabular-nums text-warning sm:px-4"
                       >
                         سلفة
                       </th>
                       <th
                         scope="col"
-                        className="w-[18%] px-3 py-3 text-left font-semibold tabular-nums text-emerald-700 sm:px-4"
+                        className="w-[18%] px-3 py-3 text-left font-semibold tabular-nums text-success sm:px-4"
                       >
                         سداد
                       </th>
                       <th
                         scope="col"
-                        className="hidden w-[18%] px-4 py-3 text-left font-semibold tabular-nums text-rose-700 sm:table-cell"
+                        className="hidden w-[18%] px-4 py-3 text-left font-semibold tabular-nums text-destructive sm:table-cell"
                       >
                         المتبقي
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {ledgerQ.isLoading && (
                       <tr>
                         <td
                           colSpan={5}
-                          className="px-4 py-8 text-center text-sm text-slate-500"
+                          className="px-4 py-8 text-center text-sm text-muted-foreground"
                         >
                           جاري التحميل...
                         </td>
@@ -684,7 +684,7 @@ export default function AccountingAdvances() {
                       <tr>
                         <td
                           colSpan={5}
-                          className="px-4 py-8 text-center text-sm text-slate-500"
+                          className="px-4 py-8 text-center text-sm text-muted-foreground"
                         >
                           لا توجد حركات
                         </td>
@@ -701,12 +701,12 @@ export default function AccountingAdvances() {
                             selectRow(row);
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-blue-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300",
+                          "cursor-pointer transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           editingId === row.id &&
-                            "bg-amber-50 ring-1 ring-amber-200",
+                            "bg-warning/10 ring-1 ring-warning/30",
                         )}
                       >
-                        <td className="whitespace-nowrap px-3 py-3 text-[11px] text-slate-500 sm:px-4 sm:text-xs">
+                        <td className="whitespace-nowrap px-3 py-3 text-[11px] text-muted-foreground sm:px-4 sm:text-xs">
                           {fmtDate(row.txDate)}
                         </td>
                         <td className="px-3 py-3 sm:px-4">
@@ -714,7 +714,7 @@ export default function AccountingAdvances() {
                             {row.employee ?? "—"}
                           </div>
                           {row.notes && row.notes !== row.employee && (
-                            <div className="truncate text-[10px] text-slate-500">
+                            <div className="truncate text-[10px] text-muted-foreground">
                               {row.notes}
                             </div>
                           )}
@@ -723,8 +723,8 @@ export default function AccountingAdvances() {
                           className={cn(
                             "px-3 py-3 text-left tabular-nums text-sm sm:px-4",
                             row.advance
-                              ? "font-medium text-amber-700"
-                              : "text-slate-300",
+                              ? "font-medium text-warning"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.advance ? fmt(row.advance) : "—"}
@@ -733,8 +733,8 @@ export default function AccountingAdvances() {
                           className={cn(
                             "px-3 py-3 text-left tabular-nums text-sm sm:px-4",
                             row.repayment
-                              ? "font-medium text-emerald-700"
-                              : "text-slate-300",
+                              ? "font-medium text-success"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.repayment ? fmt(row.repayment) : "—"}
@@ -743,8 +743,8 @@ export default function AccountingAdvances() {
                           className={cn(
                             "hidden px-4 py-3 text-left tabular-nums text-xs sm:table-cell",
                             (row.runningTotal ?? 0) > 0
-                              ? "text-rose-600"
-                              : "text-emerald-700",
+                              ? "text-destructive"
+                              : "text-success",
                           )}
                         >
                           {fmt(row.runningTotal)}
@@ -759,7 +759,7 @@ export default function AccountingAdvances() {
 
           {tableOpen && totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border px-4 py-3">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">
                 {total.toLocaleString("ar-EG")} حركة · صفحة{" "}
                 {page.toLocaleString("ar-EG")} من{" "}
                 {totalPages.toLocaleString("ar-EG")}
@@ -769,6 +769,7 @@ export default function AccountingAdvances() {
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9"
+                  aria-label="الصفحة السابقة"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
@@ -778,6 +779,7 @@ export default function AccountingAdvances() {
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9"
+                  aria-label="الصفحة التالية"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >

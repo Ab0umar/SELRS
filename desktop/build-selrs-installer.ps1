@@ -1,11 +1,11 @@
 param(
-  [string]$IssPath = "E:\SRV100\desktop\SelrsDesktopInstaller.iss"
+  [string]$IssPath = (Join-Path $PSScriptRoot "SelrsDesktopInstaller.iss")
 )
 
 $ErrorActionPreference = "Stop"
 
 # Auto-sync version from root package.json
-$packageJsonPath = "E:\SRV100\package.json"
+$packageJsonPath = Join-Path (Split-Path -Parent $PSScriptRoot) "package.json"
 $packageJson = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
 $version = $packageJson.version
 
@@ -29,9 +29,23 @@ if (-not $iscc) {
 }
 
 Write-Host "[SELRS Installer] Building desktop publish..." -ForegroundColor Cyan
-powershell -ExecutionPolicy Bypass -File "E:\SRV100\desktop\build-selrs-desktop.ps1"
+powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "build-selrs-desktop.ps1")
+if ($LASTEXITCODE -ne 0) {
+  throw "desktop publish failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "[SELRS Installer] Compiling Inno Setup..." -ForegroundColor Cyan
-& $iscc $IssPath
+$outputDir = Join-Path $PSScriptRoot "installer"
+New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+Push-Location $PSScriptRoot
+try {
+  & $iscc $IssPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE"
+  }
+}
+finally {
+  Pop-Location
+}
 
-Write-Host "[SELRS Installer] Done -> C:\Users\SELRS\OneDrive\Documents\SELRS.CC\SELRS-Desktop-Setup-$version.exe" -ForegroundColor Green
+Write-Host "[SELRS Installer] Done -> desktop\installer\SELRS-Desktop-Setup-$version.exe" -ForegroundColor Green

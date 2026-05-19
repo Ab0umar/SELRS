@@ -105,6 +105,7 @@ const Prototypes = lazy(() => import("./pages/dev/Prototypes"));
 const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
+const StockroomShell = lazy(() => import("./pages/StockroomShell"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -112,7 +113,8 @@ const AccountingLedger  = lazy(() => import("./pages/accounting/AccountingLedger
 const AccountingAdvances = lazy(() => import("./pages/accounting/AccountingAdvances"));
 const AccountingLoans = lazy(() => import("./pages/accounting/AccountingLoans"));
 const AccountingHomeFund = lazy(() => import("./pages/accounting/AccountingHomeFund"));
-const AccountingInstagram = lazy(() => import("./pages/accounting/AccountingInstagram"));
+const AccountingInstapay = lazy(() => import("./pages/accounting/AccountingInstapay"));
+const AccountingDrSaadany = lazy(() => import("./pages/accounting/AccountingDrSaadany"));
 const DailyRevenue = lazy(() => import("./pages/accounting/DailyRevenue"));
 const LasikRevenue = lazy(() => import("./pages/accounting/LasikRevenue"));
 const ReceiptsInquiry = lazy(() => import("./pages/accounting/ReceiptsInquiry"));
@@ -225,7 +227,11 @@ function LegacySurgerySheetRedirect() {
   useEffect(() => {
     const match = window.location.pathname.match(/^\/sheets\/surgery\/([^/?#]+)/i);
     const id = match?.[1];
-    const suffix = window.location.search || "";
+    if (id) {
+      setLocation(`/sheets/external/${id}`);
+    } else {
+      setLocation("/");
+    }
   }, [setLocation]);
   return null;
 }
@@ -242,6 +248,7 @@ function DashboardRouteGate() {
   const { user } = useAuth();
   const role = String(user?.role ?? "").toLowerCase();
   if (user && role !== "admin") {
+    if (role === "accountant") return <Redirect to="/accounting" />;
     return <Redirect to="/today" />;
   }
   return (
@@ -283,7 +290,8 @@ const Router = memo(function Router() {
       <Route path={"/accounting/advances"} component={() => <ProtectedRoute><AccountingAdvances /></ProtectedRoute>} />
       <Route path={"/accounting/loans"} component={() => <ProtectedRoute><AccountingLoans /></ProtectedRoute>} />
       <Route path={"/accounting/home-fund"} component={() => <ProtectedRoute><AccountingHomeFund /></ProtectedRoute>} />
-      <Route path={"/accounting/instagram"} component={() => <ProtectedRoute><AccountingInstagram /></ProtectedRoute>} />
+      <Route path={"/accounting/instapay"} component={() => <ProtectedRoute><AccountingInstapay /></ProtectedRoute>} />
+      <Route path={"/accounting/dr-saadany"} component={() => <ProtectedRoute><AccountingDrSaadany /></ProtectedRoute>} />
       <Route path={"/accounting/print"} component={() => <ProtectedRoute><PrintPreview /></ProtectedRoute>} />
 
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
@@ -315,6 +323,10 @@ const Router = memo(function Router() {
       <Route path={"/today"} component={() => <ProtectedRoute><TodayPatients /></ProtectedRoute>} />
       <Route path={"/operations"} component={() => <ProtectedRoute><Operations /></ProtectedRoute>} />
       <Route path={"/workflow-hub"} component={() => <ProtectedRoute><WorkflowHub /></ProtectedRoute>} />
+
+      {/* Stockroom routes */}
+      <Route path={"/stockroom"} component={() => <ProtectedRoute><StockroomShell /></ProtectedRoute>} />
+      <Route path={"/stockroom/*"} component={() => <ProtectedRoute><StockroomShell /></ProtectedRoute>} />
 
       {/* Patient views */}
       <Route path={"/patients"} component={() => <ProtectedRoute><Patients /></ProtectedRoute>} />
@@ -923,7 +935,6 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        switchable
       >
         <TooltipProvider>
           <GlobalCommandPalette />
@@ -942,7 +953,7 @@ function App() {
           </div>
           {/* Unified bottom sheet actions are disabled to keep actions within each page header. */}
           {qaEnabled && (
-            <div className="fixed bottom-3 right-3 z-[1000] rounded-md border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
+            <div className="fixed bottom-3 right-3 z-[1000] rounded-md border border-warning bg-warning/10 px-3 py-1 text-xs font-semibold text-warning shadow-sm">
               Overflow: {overflowCount}
             </div>
           )}

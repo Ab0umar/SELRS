@@ -137,7 +137,7 @@ export default function AdminNotificationSettings() {
 
                 <div className="max-h-[400px] overflow-y-auto space-y-2 border border-border rounded p-2">
                   {filteredUsers.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-4">لا توجد مستخدمين</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">لا توجد مستخدمين</p>
                   ) : (
                     filteredUsers.map((u) => (
                       <div key={u.id} className="flex items-center gap-2 p-2 hover:bg-muted rounded">
@@ -149,7 +149,7 @@ export default function AdminNotificationSettings() {
                         <Label htmlFor={`user-${u.id}`} className="cursor-pointer flex-1">
                           <div>
                             <p className="font-medium">{u.name}</p>
-                            <p className="text-xs text-slate-500">{u.role}</p>
+                            <p className="text-xs text-muted-foreground">{u.role}</p>
                           </div>
                         </Label>
                       </div>

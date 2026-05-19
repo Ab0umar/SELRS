@@ -53,6 +53,7 @@ function openPentacamPdfView(items: LocalExportItem[], title: string) {
         <meta charset="utf-8" />
         <title>${title}</title>
         <style>
+          /* print fidelity: external export window, no access to parent CSS tokens */
           body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
           .page { page-break-after: always; padding: 16px; }
           .page:last-child { page-break-after: auto; }
@@ -447,12 +448,12 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       <CardHeader className="space-y-3 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary text-primary-foreground">
               <FolderCog className="h-3.5 w-3.5" />
               Pentacam Intake
             </div>
             <div>
-              <CardTitle className="text-base text-slate-950">Local Pentacam Exports</CardTitle>
+              <CardTitle className="text-base text-foreground">Local Pentacam Exports</CardTitle>
               <div className="mt-1 text-sm text-muted-foreground">
                 Review and import Pentacam images from the local export folder.
               </div>
@@ -511,7 +512,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               size="sm"
               onClick={importSelected}
               disabled={!canImport}
-              className="bg-slate-900 text-white hover:bg-slate-800"
+              className="bg-foreground text-primary-foreground hover:bg-muted/80"
             >
               {importMutation.isPending ? "Saving..." : `Save Selected (${selectedNames.length})`}
             </Button>
@@ -524,7 +525,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       </CardHeader>
       {expanded ? <CardContent>
         {targetPatientId <= 0 ? (
-          <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
+          <div className="mb-3 rounded-2xl border border-warning/50 bg-warning/10/80 px-4 py-3 text-sm text-warning">
             Select a patient above, then choose images and click import.
           </div>
         ) : null}
@@ -579,7 +580,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         {!hasItems && !error ? (
           <div className="text-sm text-muted-foreground">No exported files found in the `Pentacam` folder.</div>
         ) : null}
-        {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+        {error ? <div className="rounded-xl border border-destructive/30 bg-destructive text-destructive-foreground">{error}</div> : null}
         {unmatchedSuggestions.length > 0 ? (
           <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
             <div className="text-sm font-medium">
@@ -685,7 +686,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
                       </Button>
                     </div>
                   ) : (
-                    <div className="text-amber-600">Ambiguous: manual decision required.</div>
+                    <div className="text-warning">Ambiguous: manual decision required.</div>
                   )}
                 </div>
               ))}

@@ -21,7 +21,7 @@ export default function AdminDataSourceAudit() {
   if (user?.role !== 'admin') {
     return (
       <div className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4" dir="rtl">
-        <Alert className="border-red-200 bg-red-50 text-red-800">
+        <Alert className="border-destructive/30 bg-destructive/10 text-destructive">
           <AlertDescription>
             لا توجد أذونات كافية لعرض هذه الصفحة
           </AlertDescription>
@@ -79,7 +79,7 @@ export default function AdminDataSourceAudit() {
                 ].map((row, idx) => (
                   <tr key={idx} className="border-b border-border">
                     <td className="px-3 py-2">
-                      <span className="inline-flex items-center rounded bg-green-100 px-2 py-1 text-green-800">
+                      <span className="inline-flex items-center rounded bg-success/15 px-2 py-1 text-success">
                         ✅ مطابق
                       </span>
                     </td>
@@ -237,8 +237,8 @@ export default function AdminDataSourceAudit() {
                     <td className="px-3 py-2">
                       <span className={`inline-flex items-center rounded px-2 py-1 text-xs ${
                         row.status === '⚠️ تحقق'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
+                          ? 'bg-warning/20 text-warning'
+                          : 'bg-success/15 text-success'
                       }`}>
                         {row.status}
                       </span>
@@ -502,10 +502,10 @@ export default function AdminDataSourceAudit() {
                                 <td className="px-2 py-2">
                                   <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs ${
                                     match
-                                      ? 'bg-green-100 text-green-800'
+                                      ? 'bg-success/15 text-success'
                                       : pageStateValue !== undefined && pageStateValue !== null
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-muted text-gray-800'
+                                      ? 'bg-warning/20 text-warning'
+                                      : 'bg-muted text-muted-foreground'
                                   }`}>
                                     {match ? '✅' : pageStateValue !== undefined && pageStateValue !== null ? '⚠️' : '—'}
                                   </span>
@@ -520,7 +520,7 @@ export default function AdminDataSourceAudit() {
                       </table>
                     </div>
                   ) : (
-                    <Alert className="border-yellow-200 bg-yellow-50 text-yellow-800">
+                    <Alert className="border-warning/30 bg-warning/10 text-warning">
                       <AlertDescription>
                         لا يوجد سجل checklist معياري (examination_checklist_items) لهذا المريض
                       </AlertDescription>
@@ -528,7 +528,7 @@ export default function AdminDataSourceAudit() {
                   )}
 
                   {!data.checklistInPageState && (
-                    <Alert className="border-blue-200 bg-blue-50 text-blue-800">
+                    <Alert className="border-ring/30 bg-primary text-primary-foreground">
                       <AlertDescription>
                         لا توجد بيانات checklist في patientPageStates
                       </AlertDescription>
@@ -636,7 +636,7 @@ export default function AdminDataSourceAudit() {
           })()}
 
           {auditQuery.error && (
-            <Alert className="border-red-200 bg-red-50 text-red-800">
+            <Alert className="border-destructive/30 bg-destructive/10 text-destructive">
               <AlertDescription>
                 خطأ: {auditQuery.error.message}
               </AlertDescription>

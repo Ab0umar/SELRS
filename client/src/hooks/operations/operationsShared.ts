@@ -11,6 +11,7 @@ export interface ListData {
   payment: string;
   hospital: string;
   code: string;
+  notes?: string;
   amount: number;
   paidAmount: number;
   doctorAmount: number | null;

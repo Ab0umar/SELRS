@@ -14,29 +14,29 @@ export default function TodayPatientsPanel() {
     {
       icon: FileText,
       label: "Medical File",
-      color: "text-blue-600",
-      hoverColor: "hover:bg-blue-50",
+      color: "text-card-foreground",
+      hoverColor: "hover:bg-primary/5",
       onClick: () => setLocation("/patient-file"),
     },
     {
       icon: Pill,
       label: "Prescription",
-      color: "text-green-600",
-      hoverColor: "hover:bg-green-50",
+      color: "text-card-foreground",
+      hoverColor: "hover:bg-success/10",
       onClick: () => setLocation("/prescription"),
     },
     {
       icon: Activity,
       label: "Tests",
-      color: "text-blue-600",
-      hoverColor: "hover:bg-blue-50",
+      color: "text-card-foreground",
+      hoverColor: "hover:bg-primary/5",
       onClick: () => setLocation("/request-tests"),
     },
     {
       icon: FileCheck,
       label: "Reports",
-      color: "text-purple-600",
-      hoverColor: "hover:bg-purple-50",
+      color: "text-secondary",
+      hoverColor: "hover:bg-secondary/10",
       onClick: () => setLocation("/medical-reports"),
     },
   ];
@@ -67,8 +67,8 @@ export default function TodayPatientsPanel() {
             />
           ) : (
             <>
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span className="text-xs font-medium text-blue-600">{selectedDate}</span>
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-primary">{selectedDate}</span>
             </>
           )}
         </div>

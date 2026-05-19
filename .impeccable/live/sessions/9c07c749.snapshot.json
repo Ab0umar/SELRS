@@ -1,0 +1,25 @@
+{
+  "id": "9c07c749",
+  "phase": "agent_error",
+  "pageUrl": null,
+  "sourceFile": null,
+  "expectedVariants": 0,
+  "arrivedVariants": 2,
+  "visibleVariant": 1,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "7c7c0bc0",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Stale partial generation from previous live session"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:18:24.323Z"
+}

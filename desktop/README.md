@@ -5,18 +5,18 @@
 ## Build
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop\build-selrs-desktop.ps1
+powershell -ExecutionPolicy Bypass -File .\desktop\build-selrs-desktop.ps1
 ```
 
 الناتج في:
 
-`E:\SELRS.cc\desktop\publish`
+`desktop\publish`
 
 ## Run
 
 شغّل:
 
-`E:\SELRS.cc\desktop\publish\SelrsDesktop.exe`
+`desktop\publish\SELRS.exe`
 
 ## تغيير الرابط
 
@@ -28,5 +28,5 @@ powershell -ExecutionPolicy Bypass -File E:\SELRS.cc\desktop\build-selrs-desktop
 
 ```powershell
 $env:SELRS_DESKTOP_URL="http://192.168.0.100:4000"
-Start-Process "E:\SELRS.cc\desktop\publish\SelrsDesktop.exe"
+Start-Process ".\desktop\publish\SELRS.exe"
 ```

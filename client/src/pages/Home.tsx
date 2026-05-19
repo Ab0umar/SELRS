@@ -34,7 +34,8 @@ export default function Home() {
 
   useEffect(() => {
     if (loading || !user) return;
-    setLocation("/dashboard");
+    const role = String((user as any)?.role ?? "").toLowerCase();
+    setLocation(role === "accountant" ? "/accounting" : "/dashboard");
   }, [loading, user, setLocation]);
 
   useEffect(() => subscribeNetworkStatus((status) => setIsOnline(status.connected)), []);
@@ -111,14 +112,14 @@ export default function Home() {
   return (
     <div
       dir="rtl"
-      className="relative min-h-dvh overflow-hidden bg-muted text-slate-800 selection:bg-primary/10"
+      className="relative min-h-dvh overflow-hidden bg-muted text-muted-foreground selection:bg-primary/10"
     >
 
       <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <section className="w-full max-w-[26rem]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-400">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-muted-foreground">
                 SELRS
               </p>
               <h1 className="mt-1 text-sm font-medium tracking-wide text-muted-foreground">
@@ -129,8 +130,8 @@ export default function Home() {
             <div
               className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold ${
                 isOnline
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-amber-200 bg-amber-50 text-amber-800"
+                  ? "border-success/30 bg-success/10 text-success"
+                  : "border-warning/50 bg-warning/10 text-warning"
               }`}
             >
               {!isOnline ? <WifiOff className="h-3.5 w-3.5" /> : null}
@@ -141,11 +142,11 @@ export default function Home() {
           <Card className="overflow-hidden rounded-[1.6rem] border border-border bg-background shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
             <CardContent className="space-y-5 px-6 py-7 sm:px-7">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-border bg-orange-50">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-border bg-primary/10">
                   <BrandLogo className="h-8 w-8" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     {BRAND_NAME_AR}
                   </p>
                   <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">
@@ -156,13 +157,13 @@ export default function Home() {
 
               <form onSubmit={handleLogin} className="space-y-4">
                 {error ? (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
+                  <Alert variant="destructive" className="border-destructive/30 bg-destructive/10 text-destructive">
                     <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
                   </Alert>
                 ) : null}
 
                 {!isOnline ? (
-                  <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+                  <Alert className="border-warning/50 bg-warning/10 text-warning">
                     <AlertDescription className="text-sm font-medium">
                       أنت تعمل في وضع عدم الاتصال، سيتم حفظ آخر اسم مستخدم فقط ({offlineCacheSummary.count} ملف مخزن)
                     </AlertDescription>
@@ -170,18 +171,18 @@ export default function Home() {
                 ) : null}
 
                 <div className="space-y-2">
-                  <label htmlFor="username" className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  <label htmlFor="username" className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     اسم المستخدم
                   </label>
                   <div className="relative">
-                    <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="username"
                       type="text"
                       placeholder="اسم المستخدم"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
+                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
                       dir="ltr"
                       disabled={submitting}
                       required
@@ -191,18 +192,18 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     كلمة المرور
                   </label>
                   <div className="relative">
-                    <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-slate-400 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
+                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
                       dir="ltr"
                       disabled={submitting}
                       required
@@ -213,8 +214,8 @@ export default function Home() {
 
                 <div className="flex items-center justify-between rounded-[1rem] border border-border bg-muted/70 px-4 py-3">
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold text-slate-800">تذكرني</div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-sm font-semibold text-foreground">تذكرني</div>
+                    <div className="text-[11px] text-muted-foreground">
                       {rememberMe ? "يبقى الدخول محفوظًا على هذا الجهاز" : "جلسة مؤقتة"}
                     </div>
                   </div>
@@ -233,7 +234,7 @@ export default function Home() {
 
                 <Button
                   type="submit"
-                  className="h-14 w-full rounded-[1rem] bg-[#001F47] text-[15px] font-bold text-white shadow-[0_14px_28px_rgba(0,31,71,0.14)] transition-colors hover:bg-[#00316e] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-14 w-full rounded-[1rem] bg-primary text-[15px] font-bold text-primary-foreground shadow-[0_14px_28px_rgba(0,31,71,0.14)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                   disabled={submitting}
                 >
                   {submitting ? (
@@ -247,7 +248,7 @@ export default function Home() {
                 </Button>
               </form>
 
-              <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
+              <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
                 <Activity className="h-3.5 w-3.5 text-primary" />
                 <span>{isOnline ? "متصل بالإنترنت" : `مخزن محليًا (${offlineCacheSummary.count})`}</span>
               </div>

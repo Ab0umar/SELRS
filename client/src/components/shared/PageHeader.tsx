@@ -28,7 +28,7 @@ export function PageHeader({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-start gap-2 flex-1 min-w-0">
           {icon ? (
-            <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0 [&_svg]:h-[18px] [&_svg]:w-[18px]">
+            <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-primary-foreground shrink-0 [&_svg]:h-[18px] [&_svg]:w-[18px]">
               {icon}
             </div>
           ) : null}

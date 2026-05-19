@@ -82,7 +82,7 @@ export default function AdminPatients() {
       <Card dir="rtl" className="border-border bg-card text-right shadow-sm">
         <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+            <div className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Users className="h-5 w-5" />
             </div>
             <Badge variant="secondary" className="tabular-nums">
@@ -182,7 +182,7 @@ export default function AdminPatients() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-lg text-sm border-warning text-warning hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
+                    className="h-9 rounded-lg text-sm border-warning text-card-foreground hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
                     disabled={resetPatientServiceTypesMutation.isPending}
                     onClick={() => {
                       setConfirmAction("reset-service-type");

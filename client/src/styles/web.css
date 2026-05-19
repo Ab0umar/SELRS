@@ -41,9 +41,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
 }
 
 :root {
@@ -54,9 +58,9 @@
   --selrs-light-blue: #E8F0F8;
   --selrs-light-orange: #FFE8CC;
 
-  /* Primary Colors - Navy Blue */
-  --primary: #003D82;
-  --primary-foreground: #FFFFFF;
+  /* Primary Colors - SELRS Orange */
+  --primary: #FF9500;
+  --primary-foreground: #001F47;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
 
@@ -77,17 +81,21 @@
   --popover: #FFFFFF;
   --popover-foreground: #001F47;
   --secondary: #FF9500;
-  --secondary-foreground: #FFFFFF;
+  --secondary-foreground: #001F47;
   --muted: #E8F0F8;
   --muted-foreground: #4B5563;
   --accent: #FF9500;
-  --accent-foreground: #FFFFFF;
+  --accent-foreground: #001F47;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
   --success: #10B981;
+  --success-foreground: #001F47;
   --info: #3B82F6;
+  --info-foreground: #FFFFFF;
   --warning: #F59E0B;
+  --warning-foreground: #92400E;
   --error: #EF4444;
+  --error-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #FFFFFF;
   --ring: #003D82;
@@ -118,6 +126,14 @@
   --accent-foreground: #001F47;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
+  --success: #10B981;
+  --success-foreground: #001F47;
+  --info: #3B82F6;
+  --info-foreground: #FFFFFF;
+  --warning: #FBBF24;
+  --warning-foreground: #78350F;
+  --error: #EF4444;
+  --error-foreground: #FFFFFF;
   --border: #cbd5e1;
   --input: #FFFFFF;
   --ring: #FF9500;

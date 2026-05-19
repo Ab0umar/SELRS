@@ -21,7 +21,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "مركز الخدمات",
     description: "نقطة الدخول إلى الصفحات المرجعية.",
     icon: LayoutGrid,
-    accent: "bg-muted text-slate-800 dark:bg-slate-900/60 dark:text-slate-200",
+    accent: "bg-muted text-muted-foreground",
   },
   {
     id: "medications",
@@ -29,7 +29,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "الأدوية",
     description: "قائمة الأدوية والإدارة التشغيلية.",
     icon: Pill,
-    accent: "bg-sky-100 text-sky-800 dark:bg-sky-950/55 dark:text-sky-300",
+    accent: "bg-primary/10 text-primary",
   },
   {
     id: "registry",
@@ -37,7 +37,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "السجل",
     description: "الأدوية والفحوصات والأمراض والأعراض.",
     icon: LayoutGrid,
-    accent: "bg-violet-100 text-violet-800 dark:bg-violet-950/55 dark:text-violet-300",
+    accent: "bg-secondary/15 text-secondary",
   },
   {
     id: "catalog",
@@ -45,7 +45,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "كتالوج الفحوصات",
     description: "تعريف الفحوصات والمرجع الطبيعي.",
     icon: FlaskConical,
-    accent: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/55 dark:text-emerald-300",
+    accent: "bg-success/15 text-success",
   },
   {
     id: "txhub",
@@ -53,7 +53,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "ربط النتائج",
     description: "استيراد النتائج الخارجية وربطها بالمدى الطبيعي.",
     icon: Network,
-    accent: "bg-orange-100 text-orange-800 dark:bg-orange-950/55 dark:text-orange-300",
+    accent: "bg-primary/15 text-primary",
   },
 ];
 
@@ -105,7 +105,7 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="truncate text-sm font-bold text-foreground">{item.title}</h3>
                   {isActive ? (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="rounded-full bg-primary text-primary-foreground">
                       الحالي
                     </span>
                   ) : null}

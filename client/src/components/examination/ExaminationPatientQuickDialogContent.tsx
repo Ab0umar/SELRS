@@ -23,7 +23,7 @@ export function ExaminationPatientQuickDialogContent({ onClose }: { onClose: () 
         <Button type="button" variant="outline" onClick={form.handleCancel}>
           إلغاء
         </Button>
-        <Button type="submit" disabled={form.loading} className="bg-blue-700 hover:bg-blue-800">
+        <Button type="submit" disabled={form.loading} className="bg-primary hover:bg-primary/85">
           {form.loading ? "جاري الحفظ…" : "حفظ"}
         </Button>
       </div>

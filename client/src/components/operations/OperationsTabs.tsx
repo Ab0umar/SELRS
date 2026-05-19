@@ -19,8 +19,8 @@ export function OperationsTabs({ activeTab, onActiveTabChange }: OperationsTabsP
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition-all",
               isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-muted-foreground bg-muted/50"
             )}
           >
             {tab.label}

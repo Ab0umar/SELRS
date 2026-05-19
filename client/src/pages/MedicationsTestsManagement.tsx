@@ -337,7 +337,7 @@ export default function MedicationsTestsManagement() {
         <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Link2 className="h-4 w-4" />
               </div>
               <CardTitle className="text-lg">{editingMedId ? "تعديل دواء" : "الأدوية"}</CardTitle>
@@ -386,7 +386,7 @@ export default function MedicationsTestsManagement() {
               <Button
                 type="button"
                 onClick={() => void handleSaveMedication()}
-                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-white sm:flex-none"
+                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-primary-foreground sm:flex-none"
               >
                 <Save className="h-4 w-4" />
                 حفظ
@@ -403,7 +403,7 @@ export default function MedicationsTestsManagement() {
         <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <FlaskConical className="h-4 w-4" />
               </div>
               <CardTitle className="text-lg">{editingTestId ? "تعديل فحص" : "الفحوصات"}</CardTitle>
@@ -447,7 +447,7 @@ export default function MedicationsTestsManagement() {
               <Button
                 type="button"
                 onClick={() => void handleSaveTest()}
-                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-white sm:flex-none"
+                className="min-w-[8rem] flex-1 selrs-gradient-btn gap-2 text-primary-foreground sm:flex-none"
               >
                 <Plus className="h-4 w-4" />
                 حفظ
@@ -486,25 +486,25 @@ export default function MedicationsTestsManagement() {
                       {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" onClick={() => handleEditMedication(med)}>
+                      <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" aria-label="تعديل الدواء" onClick={() => handleEditMedication(med)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       {delConfirmMed === med.id ? (
                         <div className="flex items-center gap-1">
                           <button type="button" aria-label="تأكيد الحذف"
-                            className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                            className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                             onClick={() => { void handleDeleteMedication(med.id); setDelConfirmMed(null); }}>
                             تأكيد
                           </button>
                           <button type="button" aria-label="إلغاء الحذف"
-                            className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                            className="rounded bg-muted text-muted-foreground hover:bg-border"
                             onClick={() => setDelConfirmMed(null)}>
                             ✕
                           </button>
                         </div>
                       ) : (
                         <button type="button" aria-label="حذف الدواء"
-                          className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                           onClick={() => setDelConfirmMed(med.id)}>
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -520,8 +520,8 @@ export default function MedicationsTestsManagement() {
         {/* قائمة الفحوصات + مفضلة */}
         <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="space-y-3 border-b border-border/80 py-4">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+            <div className="flex items-center gap-2 text-warning">
+              <Star className="h-4 w-4 fill-warning text-warning" />
               <span className="text-sm font-black">المفضلة</span>
             </div>
             {!canFavorite ? (
@@ -538,7 +538,7 @@ export default function MedicationsTestsManagement() {
                     title="اضغط لإزالة من المفضلة"
                     onClick={() => toggleFavoriteMutation.mutate({ testId: test.id })}
                   >
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                    <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                     {test.name}
                   </button>
                 ))}
@@ -572,6 +572,7 @@ export default function MedicationsTestsManagement() {
                       variant={favoriteIds.has(test.id) ? "secondary" : "outline"}
                       className="h-9 w-9"
                       title={favoriteIds.has(test.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+                      aria-label={favoriteIds.has(test.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
                       onClick={() => {
                         if (!canFavorite) {
                           toast.error("المفضلة متاحة لطبيب / مدير / مسؤول فقط.");
@@ -581,28 +582,28 @@ export default function MedicationsTestsManagement() {
                       }}
                     >
                       <Star
-                        className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground"}`}
+                        className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-warning text-warning" : "text-muted-foreground"}`}
                       />
                     </Button>
-                    <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" onClick={() => handleEditTest(test)}>
+                    <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" aria-label="تعديل الفحص" onClick={() => handleEditTest(test)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {delConfirmTest === test.id ? (
                       <div className="flex items-center gap-1">
                         <button type="button" aria-label="تأكيد الحذف"
-                          className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                          className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                           onClick={() => { void handleDeleteTest(test.id); setDelConfirmTest(null); }}>
                           تأكيد
                         </button>
                         <button type="button" aria-label="إلغاء الحذف"
-                          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                          className="rounded bg-muted text-muted-foreground hover:bg-border"
                           onClick={() => setDelConfirmTest(null)}>
                           ✕
                         </button>
                       </div>
                     ) : (
                       <button type="button" aria-label="حذف الفحص"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         onClick={() => setDelConfirmTest(test.id)}>
                         <Trash2 className="h-4 w-4" />
                       </button>

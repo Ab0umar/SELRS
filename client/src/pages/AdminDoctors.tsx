@@ -91,10 +91,10 @@ function doctorTypeLabel(t: DoctorEntry["doctorType"]) {
 
 function doctorTypeBadgeClass(t: DoctorEntry["doctorType"]) {
   if (t === "specialist")
-    return "bg-amber-50 text-amber-700 border-0 font-bold";
+    return "bg-warning/10 text-warning/90 border-0 font-bold";
   if (t === "external")
     return "bg-muted text-muted-foreground border-0 font-bold";
-  return "bg-sky-50 text-sky-700 border-0 font-bold";
+  return "bg-primary/10 text-primary border-0 font-bold";
 }
 
 function locationLabel(lt: DoctorEntry["locationType"]) {
@@ -402,7 +402,7 @@ export default function AdminDoctors() {
               <RefreshCw className={cn("h-4 w-4 text-primary", syncRegistrationCatalogMutation.isPending && "animate-spin")} />
               <span className="text-[11px] font-bold uppercase tracking-tight">{syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة السجل"}</span>
             </Button>
-            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white h-9 px-4 rounded-lg shadow-sm" onClick={() => setAddOpen(true)}>
+            <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground h-9 px-4 rounded-lg shadow-sm" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" />
               <span className="text-xs sm:text-sm font-bold">إضافة طبيب</span>
             </Button>
@@ -415,19 +415,19 @@ export default function AdminDoctors() {
           title="إجمالي السجلات"
           value={doctorsTotal}
           icon={Activity}
-          iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+          iconColor="bg-primary text-primary-foreground"
         />
         <StatCard
           title="نشط"
           value={doctorsActive}
           icon={CheckCircle2}
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+          iconColor="bg-success/15 text-success"
         />
         <StatCard
           title="معطّل"
           value={doctorsInactive}
           icon={XCircle}
-          iconColor="bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400"
+          iconColor="bg-destructive/10 text-destructive"
         />
       </div>
 
@@ -459,12 +459,12 @@ export default function AdminDoctors() {
               {confirmClearAll ? (
                 <div className="flex items-center gap-1">
                   <button type="button" aria-label="تأكيد"
-                    className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                    className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                     onClick={() => { setDoctors([]); setConfirmClearAll(false); }}>
                     تأكيد
                   </button>
                   <button type="button" aria-label="إلغاء"
-                    className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                    className="rounded bg-muted text-muted-foreground hover:bg-border"
                     onClick={() => setConfirmClearAll(false)}>
                     إلغاء
                   </button>
@@ -474,7 +474,7 @@ export default function AdminDoctors() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 border-dashed text-destructive hover:bg-destructive/10 hover:text-destructive text-[11px] font-bold"
+                  className="h-9 px-3 border-dashed text-destructive-foreground bg-destructive text-destructive-foreground text-[11px] font-bold"
                   disabled={doctors.length === 0}
                   onClick={() => setConfirmClearAll(true)}
                 >
@@ -490,14 +490,14 @@ export default function AdminDoctors() {
         <CardContent className="p-0">
           <div className="overflow-hidden">
             <Table className="min-w-[900px] text-right" dir="rtl">
-              <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm shadow-sm">
+              <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
                 <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
-                  <TableHead className="text-right font-bold text-sky-900">الطبيب والتخصص</TableHead>
-                  <TableHead className="text-right font-bold text-sky-900">الكود</TableHead>
-                  <TableHead className="text-right font-bold text-sky-900">النوع</TableHead>
-                  <TableHead className="text-right font-bold text-sky-900">المقر</TableHead>
-                  <TableHead className="text-right font-bold text-sky-900">الحالة</TableHead>
-                  <TableHead className="w-[120px] text-center font-bold text-sky-900">إجراءات</TableHead>
+                  <TableHead className="text-right font-bold text-primary">الطبيب والتخصص</TableHead>
+                  <TableHead className="text-right font-bold text-primary">الكود</TableHead>
+                  <TableHead className="text-right font-bold text-primary">النوع</TableHead>
+                  <TableHead className="text-right font-bold text-primary">المقر</TableHead>
+                  <TableHead className="text-right font-bold text-primary">الحالة</TableHead>
+                  <TableHead className="w-[120px] text-center font-bold text-primary">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -534,8 +534,8 @@ export default function AdminDoctors() {
                                 <span>{doctorTypeLabel(doctor.doctorType)}</span>
                               </div>
                             </div>
-                            <Avatar className="h-9 w-9 shrink-0 border border-border/60 bg-primary/10 text-[11px] font-black text-primary shadow-inner">
-                              <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                            <Avatar className="h-9 w-9 shrink-0 border border-border/60 bg-primary text-primary-foreground shadow-inner">
+                              <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
                             </Avatar>
                           </div>
                         </TableCell>
@@ -552,7 +552,7 @@ export default function AdminDoctors() {
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap py-3">
                           <div className="flex items-center justify-end gap-2">
-                            <span className={cn("text-[10px] font-bold", doctor.isActive ? "text-emerald-600" : "text-muted-foreground")}>
+                            <span className={cn("text-[10px] font-bold", doctor.isActive ? "text-success" : "text-muted-foreground")}>
                               {doctor.isActive ? "نشط" : "معطل"}
                             </span>
                             <Checkbox
@@ -572,7 +572,8 @@ export default function AdminDoctors() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              className="h-8 w-8 rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
+                              aria-label="تعديل بيانات الطبيب"
                               onClick={() => setExpandedId((id) => (id === doctor.id ? null : doctor.id))}
                             >
                               <Edit2 className="h-3.5 w-3.5" />
@@ -580,19 +581,19 @@ export default function AdminDoctors() {
                             {delConfirmDoctor === doctor.id ? (
                               <div className="flex items-center gap-1">
                                 <button type="button" aria-label="تأكيد الحذف"
-                                  className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                   onClick={() => { removeDoctor(doctor.id); setDelConfirmDoctor(null); }}>
                                   تأكيد
                                 </button>
                                 <button type="button" aria-label="إلغاء الحذف"
-                                  className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                  className="rounded bg-muted text-muted-foreground hover:bg-border"
                                   onClick={() => setDelConfirmDoctor(null)}>
                                   ✕
                                 </button>
                               </div>
                             ) : (
                               <button type="button" aria-label="حذف الطبيب"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                 onClick={() => setDelConfirmDoctor(doctor.id)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -682,7 +683,7 @@ export default function AdminDoctors() {
                               </div>
                               <div className="flex justify-end gap-2 pt-2 border-t border-dashed mt-2">
                                 <Button variant="ghost" size="sm" className="h-8 text-[11px] font-bold text-muted-foreground" onClick={() => setExpandedId(null)}>إلغاء</Button>
-                                <Button size="sm" className="h-8 text-[11px] font-bold bg-primary text-white shadow-sm" onClick={() => setExpandedId(null)}>تم التعديل محلياً</Button>
+                                <Button size="sm" className="h-8 text-[11px] font-bold bg-primary text-primary-foreground shadow-sm" onClick={() => setExpandedId(null)}>تم التعديل محلياً</Button>
                               </div>
                             </div>
                           </TableCell>
@@ -721,7 +722,7 @@ export default function AdminDoctors() {
             <Button type="button" variant="ghost" className="h-9 text-xs font-bold" onClick={() => setAddOpen(false)}>
               إلغاء
             </Button>
-            <Button type="button" className="selrs-gradient-btn text-white gap-2 h-9 px-6 rounded-lg font-bold" onClick={addDoctor}>
+            <Button type="button" className="selrs-gradient-btn text-primary-foreground gap-2 h-9 px-6 rounded-lg font-bold" onClick={addDoctor}>
               <Plus className="h-4 w-4" />
               إدراج في القائمة
             </Button>
@@ -731,3 +732,4 @@ export default function AdminDoctors() {
     </div>
   );
 }
+

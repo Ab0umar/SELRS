@@ -337,7 +337,7 @@ export default function ComponentsShowcase() {
                       Destructive background with foreground text
                     </p>
                   </div>
-                  <div className="bg-card text-card-foreground rounded-lg p-4 border">
+                  <div className="bg-card text-foreground rounded-lg p-4 border">
                     <p className="font-medium mb-1">Card</p>
                     <p className="text-sm opacity-90">
                       Card background with foreground text

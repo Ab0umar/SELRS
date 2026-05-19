@@ -18,7 +18,7 @@ export default function PentacamThumbnail({
 
   if (!src || failed) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-dashed border-border bg-muted text-slate-400 ${className ?? ""}`}>
+      <div className={`flex items-center justify-center rounded-xl border border-dashed border-border bg-muted text-muted-foreground ${className ?? ""}`}>
         <div className="flex flex-col items-center gap-2 text-xs">
           <ImageIcon className="h-5 w-5" />
           <span>Preview unavailable</span>

@@ -23,9 +23,9 @@ import { fmt, fmtDate, todayIso } from "./accountingFormat";
 const PAGE_SIZE = 50;
 
 function remainingTone(value: number | null | undefined) {
-  if ((value ?? 0) > 0) return "text-rose-700 bg-rose-50 ring-rose-100";
-  if ((value ?? 0) < 0) return "text-amber-700 bg-amber-50 ring-amber-100";
-  return "text-emerald-700 bg-emerald-50 ring-emerald-100";
+  if ((value ?? 0) > 0) return "text-destructive bg-destructive/10 ring-destructive/20";
+  if ((value ?? 0) < 0) return "text-warning bg-warning/10 ring-warning/15";
+  return "text-success bg-success/10 ring-success/20";
 }
 
 function normalizePersonName(name: string) {
@@ -162,24 +162,24 @@ export default function AccountingLoans() {
                     {
                       label: "إجمالي القروض",
                       val: totalLoan,
-                      cls: "text-blue-700",
+                      cls: "text-card-foreground",
                       icon: TrendingDown,
-                      bg: "bg-blue-50",
+                      bg: "bg-primary/5",
                     },
                     {
                       label: "إجمالي السداد",
                       val: totalPaid,
-                      cls: "text-emerald-700",
+                      cls: "text-success",
                       icon: TrendingUp,
-                      bg: "bg-emerald-50",
+                      bg: "bg-success/10",
                     },
                     {
                       label: "المتبقي",
                       val: totalRemaining,
                       cls:
-                        totalRemaining > 0 ? "text-rose-700" : "text-blue-700",
+                        totalRemaining > 0 ? "text-destructive" : "text-primary",
                       icon: Wallet,
-                      bg: totalRemaining > 0 ? "bg-rose-50" : "bg-blue-50",
+                      bg: totalRemaining > 0 ? "bg-destructive/10" : "bg-primary/5",
                     },
                   ] as const
                 ).map((m) => {
@@ -201,7 +201,7 @@ export default function AccountingLoans() {
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] font-medium text-slate-500">
+                        <div className="text-[11px] font-medium text-muted-foreground">
                           {m.label}
                         </div>
                         <div
@@ -224,7 +224,7 @@ export default function AccountingLoans() {
               className="border-t border-border px-4 pb-4 pt-3 lg:px-5"
               dir="rtl"
             >
-              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 إضافة قرض
               </div>
               <div className="grid gap-3">
@@ -232,7 +232,7 @@ export default function AccountingLoans() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="loan-date"
-                      className="text-xs text-slate-400"
+                      className="text-xs text-muted-foreground"
                     >
                       التاريخ
                     </label>
@@ -241,13 +241,13 @@ export default function AccountingLoans() {
                       type="date"
                       value={txDate}
                       onChange={(e) => setTxDate(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-foreground outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="loan-name"
-                      className="text-xs text-slate-400"
+                      className="text-xs text-muted-foreground"
                     >
                       الاسم
                     </label>
@@ -257,7 +257,7 @@ export default function AccountingLoans() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="اسم المقترض"
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-foreground placeholder:text-slate-300 outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function AccountingLoans() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="loan-amount"
-                      className="text-xs text-blue-600"
+                      className="text-xs text-primary"
                     >
                       المبلغ
                     </label>
@@ -277,13 +277,13 @@ export default function AccountingLoans() {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-blue-700 placeholder:text-slate-300 outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-primary placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="loan-repayment"
-                      className="text-xs text-emerald-600"
+                      className="text-xs text-success"
                     >
                       السداد
                     </label>
@@ -294,7 +294,7 @@ export default function AccountingLoans() {
                       value={repayment}
                       onChange={(e) => setRepayment(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-emerald-700 placeholder:text-slate-300 outline-none transition-colors focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-success placeholder:text-muted-foreground outline-none transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
                     />
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function AccountingLoans() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="loan-notes"
-                      className="text-xs text-slate-400"
+                      className="text-xs text-muted-foreground"
                     >
                       ملاحظات
                     </label>
@@ -313,7 +313,7 @@ export default function AccountingLoans() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="ملاحظات..."
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-foreground placeholder:text-slate-300 outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                   <button
@@ -322,10 +322,10 @@ export default function AccountingLoans() {
                     disabled={addBusy || !txDate || !name.trim()}
                     onClick={() => void handleAddLoan()}
                     className={cn(
-                      "inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold text-white transition-colors sm:w-[160px]",
+                      "inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold text-card-foreground transition-colors sm:w-[160px]",
                       entrySaved
-                        ? "bg-emerald-500"
-                        : "bg-blue-600 hover:bg-blue-700 disabled:opacity-40",
+                        ? "bg-success/100"
+                        : "bg-primary hover:bg-primary/90 disabled:opacity-40",
                     )}
                   >
                     {addBusy ? (
@@ -345,7 +345,7 @@ export default function AccountingLoans() {
                 </div>
 
                 {addErr && (
-                  <p className="rounded-lg bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
+                  <p className="rounded-lg bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
                     {addErr}
                   </p>
                 )}
@@ -356,16 +356,16 @@ export default function AccountingLoans() {
               <h2 className="text-xs font-semibold text-foreground">
                 القروض النشطة
               </h2>
-              <div className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              <div className="rounded-full bg-primary text-primary-foreground">
                 {byPerson.length.toLocaleString("ar-EG")} اسم
               </div>
             </div>
             {reportsQ.isLoading ? (
-              <div className="flex items-center justify-center py-6 text-xs text-slate-400">
+              <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
                 جاري التحميل...
               </div>
             ) : byPerson.length === 0 ? (
-              <div className="flex items-center justify-center px-4 py-4 text-xs text-slate-400">
+              <div className="flex items-center justify-center px-4 py-4 text-xs text-muted-foreground">
                 لا توجد قروض مفتوحة
               </div>
             ) : (
@@ -381,7 +381,7 @@ export default function AccountingLoans() {
                           <div className="text-sm font-bold text-foreground">
                             {row.name}
                           </div>
-                          <div className="mt-1 text-[11px] text-slate-500">
+                          <div className="mt-1 text-[11px] text-muted-foreground">
                             {row.remaining > 0 ? "مفتوح" : "مغلق"}
                           </div>
                         </div>
@@ -389,8 +389,8 @@ export default function AccountingLoans() {
                           className={cn(
                             "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1",
                             row.remaining > 0
-                              ? "bg-rose-50 text-rose-700 ring-rose-100"
-                              : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                              ? "bg-destructive/10 text-destructive ring-destructive/20"
+                              : "bg-success/10 text-success ring-success/20",
                           )}
                         >
                           {fmt(row.remaining)}
@@ -398,30 +398,30 @@ export default function AccountingLoans() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded-xl bg-blue-50 px-3 py-2">
-                          <div className="text-[10px] text-blue-700">القرض</div>
-                          <div className="mt-1 font-semibold tabular-nums text-blue-700">
+                        <div className="rounded-xl bg-primary/5 px-3 py-2">
+                          <div className="text-[10px] text-primary">القرض</div>
+                          <div className="mt-1 font-semibold tabular-nums text-primary">
                             {fmt(row.totalLoan)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">
+                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">
                             المسدد
                           </div>
-                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                          <div className="mt-1 font-semibold tabular-nums text-success">
                             {fmt(row.totalPaid)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-rose-50 px-3 py-2">
-                          <div className="text-[10px] text-rose-700">
+                        <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                          <div className="text-[10px] text-destructive">
                             المتبقي
                           </div>
                           <div
                             className={cn(
                               "mt-1 font-semibold tabular-nums",
                               row.remaining > 0
-                                ? "text-rose-700"
-                                : "text-emerald-700",
+                                ? "text-destructive"
+                                : "text-success",
                             )}
                           >
                             {fmt(row.remaining)}
@@ -435,7 +435,7 @@ export default function AccountingLoans() {
                 <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full table-fixed text-xs">
                     <thead>
-                      <tr className="border-b border-border bg-background text-slate-400">
+                      <tr className="border-b border-border bg-background text-muted-foreground">
                         <th
                           scope="col"
                           className="px-3 py-2 text-right font-medium sm:px-4 lg:px-5"
@@ -444,19 +444,19 @@ export default function AccountingLoans() {
                         </th>
                         <th
                           scope="col"
-                          className="px-3 py-2 text-left font-medium tabular-nums text-blue-600 sm:px-4 lg:px-5"
+                          className="px-3 py-2 text-left font-medium tabular-nums text-primary sm:px-4 lg:px-5"
                         >
                           القرض
                         </th>
                         <th
                           scope="col"
-                          className="px-3 py-2 text-left font-medium tabular-nums text-emerald-600 sm:px-4 lg:px-5"
+                          className="px-3 py-2 text-left font-medium tabular-nums text-success sm:px-4 lg:px-5"
                         >
                           المسدد
                         </th>
                         <th
                           scope="col"
-                          className="px-3 py-2 text-left font-medium tabular-nums text-rose-600 sm:px-4 lg:px-5"
+                          className="px-3 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 lg:px-5"
                         >
                           المتبقي
                         </th>
@@ -468,24 +468,24 @@ export default function AccountingLoans() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-border/50">
                       {byPerson.map((row) => (
                         <tr key={row.name} className="hover:bg-muted">
-                          <td className="truncate px-3 py-2 font-medium text-slate-800 sm:px-4 lg:px-5">
+                          <td className="truncate px-3 py-2 font-medium text-foreground sm:px-4 lg:px-5">
                             {row.name}
                           </td>
-                          <td className="px-3 py-2 text-left tabular-nums text-blue-700 sm:px-4 lg:px-5">
+                          <td className="px-3 py-2 text-left tabular-nums text-primary sm:px-4 lg:px-5">
                             {fmt(row.totalLoan)}
                           </td>
-                          <td className="px-3 py-2 text-left tabular-nums text-emerald-700 sm:px-4 lg:px-5">
+                          <td className="px-3 py-2 text-left tabular-nums text-success sm:px-4 lg:px-5">
                             {fmt(row.totalPaid)}
                           </td>
                           <td
                             className={cn(
                               "px-3 py-2 text-left tabular-nums font-semibold sm:px-4 lg:px-5",
                               row.remaining > 0
-                                ? "text-rose-700"
-                                : "text-slate-400",
+                                ? "text-destructive"
+                                : "text-muted-foreground",
                             )}
                           >
                             {fmt(row.remaining)}
@@ -495,8 +495,8 @@ export default function AccountingLoans() {
                               className={cn(
                                 "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1",
                                 row.remaining > 0
-                                  ? "bg-rose-50 text-rose-700 ring-rose-100"
-                                  : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                                  ? "bg-destructive/10 text-destructive ring-destructive/20"
+                                  : "bg-success/10 text-success ring-success/20",
                               )}
                             >
                               {row.remaining > 0 ? "مفتوح" : "مغلق"}
@@ -516,23 +516,23 @@ export default function AccountingLoans() {
               type="button"
               onClick={() => setTableCollapsed((v) => !v)}
               aria-expanded={!tableCollapsed}
-              className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-right transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300 lg:px-5"
+              className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-right transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:px-5"
             >
               <div>
                 <h2 className="text-sm font-bold text-foreground">
                   حركات القروض
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   سجل تفصيلي لكل قرض وسداد.
                 </p>
               </div>
               <div className="flex items-center gap-2.5">
-                <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground">
+                <div className="rounded-full bg-muted text-muted-foreground">
                   {total.toLocaleString("ar-EG")} حركة
                 </div>
                 <svg
                   className={cn(
-                    "h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ease-out",
+                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out",
                     !tableCollapsed && "rotate-180",
                   )}
                   viewBox="0 0 16 16"
@@ -551,8 +551,8 @@ export default function AccountingLoans() {
 
             {!tableCollapsed && (
               <div className="border-b border-border px-4 py-3" dir="rtl">
-                <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-muted px-3 transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
-                  <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-muted px-3 transition-all focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <label htmlFor="loans-search" className="sr-only">بحث في القروض</label>
                   <input
                     id="loans-search"
@@ -563,7 +563,7 @@ export default function AccountingLoans() {
                       setPage(1);
                     }}
                     placeholder="بحث بالاسم أو الملاحظات..."
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-slate-400 focus:outline-none"
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                   />
                   {search && (
                     <button
@@ -572,7 +572,7 @@ export default function AccountingLoans() {
                         setSearch("");
                         setPage(1);
                       }}
-                      className="rounded-full p-1 text-slate-400 hover:bg-muted hover:text-muted-foreground"
+                      className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-muted-foreground"
                       aria-label="مسح البحث"
                     >
                       <X className="h-4 w-4" />
@@ -586,12 +586,12 @@ export default function AccountingLoans() {
               <>
                 <div className="grid gap-3 px-4 py-3 sm:hidden">
                   {ledgerQ.isLoading && (
-                    <div className="py-6 text-center text-sm text-slate-500">
+                    <div className="py-6 text-center text-sm text-muted-foreground">
                       جاري تحميل الحركات...
                     </div>
                   )}
                   {!ledgerQ.isLoading && rows.length === 0 && (
-                    <div className="py-6 text-center text-sm text-slate-500">
+                    <div className="py-6 text-center text-sm text-muted-foreground">
                       لا توجد حركات مسجلة
                     </div>
                   )}
@@ -622,20 +622,20 @@ export default function AccountingLoans() {
                           });
                       }}
                       className={cn(
-                        "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors hover:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300",
-                        delConfirm === row.id && "ring-1 ring-rose-200",
+                        "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        delConfirm === row.id && "ring-1 ring-destructive/30",
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-muted-foreground">
                             {fmtDate(row.txDate)}
                           </div>
                           <div className="mt-1 truncate text-sm font-semibold text-foreground">
                             {row.name ?? "—"}
                           </div>
                           {row.notes ? (
-                            <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">
+                            <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
                               {row.notes}
                             </div>
                           ) : null}
@@ -644,7 +644,7 @@ export default function AccountingLoans() {
                           type="button"
                           disabled={deleteMut.isPending}
                           aria-label="حذف القيد"
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-rose-500 hover:bg-rose-50 disabled:opacity-40"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-destructive hover:bg-destructive/10 disabled:opacity-40"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (delConfirm === row.id) {
@@ -664,36 +664,36 @@ export default function AccountingLoans() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-blue-50 px-3 py-2">
-                          <div className="text-[10px] text-blue-700">
+                        <div className="rounded-xl bg-primary/5 px-3 py-2">
+                          <div className="text-[10px] text-primary">
                             المبلغ
                           </div>
                           <div
                             className={cn(
                               "mt-1 font-semibold tabular-nums",
-                              row.amount ? "text-blue-700" : "text-slate-300",
+                              row.amount ? "text-primary" : "text-muted-foreground",
                             )}
                           >
                             {row.amount ? fmt(row.amount) : "—"}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">
+                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">
                             السداد
                           </div>
                           <div
                             className={cn(
                               "mt-1 font-semibold tabular-nums",
                               row.repayment
-                                ? "text-emerald-700"
-                                : "text-slate-300",
+                                ? "text-success"
+                                : "text-muted-foreground",
                             )}
                           >
                             {row.repayment ? fmt(row.repayment) : "—"}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-rose-50 px-3 py-2">
-                          <div className="text-[10px] text-rose-700">
+                        <div className="col-span-2 rounded-xl bg-destructive/10 px-3 py-2">
+                          <div className="text-[10px] text-destructive">
                             المتبقي
                           </div>
                           <div className="mt-1">
@@ -715,7 +715,7 @@ export default function AccountingLoans() {
                 <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full table-fixed text-sm">
                     <thead>
-                      <tr className="border-b border-border bg-muted text-xs text-slate-500">
+                      <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                         <th
                           scope="col"
                           aria-sort={sortDir === "desc" ? "descending" : "ascending"}
@@ -728,10 +728,10 @@ export default function AccountingLoans() {
                               setPage(1);
                             }}
                             aria-label={`ترتيب حسب التاريخ ${sortDir === "desc" ? "تصاعدياً" : "تنازلياً"}`}
-                            className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             التاريخ{" "}
-                            <span className="text-slate-400" aria-hidden="true">
+                            <span className="text-muted-foreground" aria-hidden="true">
                               {sortDir === "desc" ? "↓" : "↑"}
                             </span>
                           </button>
@@ -744,19 +744,19 @@ export default function AccountingLoans() {
                         </th>
                         <th
                           scope="col"
-                          className="w-[14%] px-2 py-2 text-left font-medium tabular-nums text-blue-700 sm:px-4 sm:py-2.5"
+                          className="w-[14%] px-2 py-2 text-left font-medium tabular-nums text-primary sm:px-4 sm:py-2.5"
                         >
                           المبلغ
                         </th>
                         <th
                           scope="col"
-                          className="w-[14%] px-2 py-2 text-left font-medium tabular-nums text-emerald-700 sm:px-4 sm:py-2.5"
+                          className="w-[14%] px-2 py-2 text-left font-medium tabular-nums text-success sm:px-4 sm:py-2.5"
                         >
                           السداد
                         </th>
                         <th
                           scope="col"
-                          className="w-[16%] px-2 py-2 text-left font-medium tabular-nums text-rose-700 sm:px-4 sm:py-2.5"
+                          className="w-[16%] px-2 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 sm:py-2.5"
                         >
                           المتبقي
                         </th>
@@ -779,12 +779,12 @@ export default function AccountingLoans() {
                         <th scope="col" className="w-8 px-2" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                       {ledgerQ.isLoading && (
                         <tr>
                           <td
                             colSpan={9}
-                            className="px-4 py-8 text-center text-sm text-slate-500"
+                            className="px-4 py-8 text-center text-sm text-muted-foreground"
                           >
                             جاري تحميل الحركات...
                           </td>
@@ -794,7 +794,7 @@ export default function AccountingLoans() {
                         <tr>
                           <td
                             colSpan={9}
-                            className="px-4 py-8 text-center text-sm text-slate-500"
+                            className="px-4 py-8 text-center text-sm text-muted-foreground"
                           >
                             لا توجد حركات مسجلة
                           </td>
@@ -826,9 +826,9 @@ export default function AccountingLoans() {
                                 notes: row.notes,
                               });
                           }}
-                          className="group cursor-pointer transition-colors hover:bg-blue-50/60"
+                          className="group cursor-pointer transition-colors hover:bg-primary/50"
                         >
-                          <td className="whitespace-nowrap px-2 py-2 text-[11px] text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
+                          <td className="whitespace-nowrap px-2 py-2 text-[11px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
                             {fmtDate(row.txDate)}
                           </td>
                           <td className="truncate px-2 py-2 text-right font-medium text-foreground sm:px-4 sm:py-2.5">
@@ -838,8 +838,8 @@ export default function AccountingLoans() {
                             className={cn(
                               "px-2 py-2 text-left tabular-nums text-sm sm:px-4 sm:py-2.5",
                               row.amount
-                                ? "font-medium text-blue-700"
-                                : "text-slate-300",
+                                ? "font-medium text-primary"
+                                : "text-muted-foreground",
                             )}
                           >
                             {row.amount ? fmt(row.amount) : "—"}
@@ -848,8 +848,8 @@ export default function AccountingLoans() {
                             className={cn(
                               "px-2 py-2 text-left tabular-nums text-sm sm:px-4 sm:py-2.5",
                               row.repayment
-                                ? "font-medium text-emerald-700"
-                                : "text-slate-300",
+                                ? "font-medium text-success"
+                                : "text-muted-foreground",
                             )}
                           >
                             {row.repayment ? fmt(row.repayment) : "—"}
@@ -867,11 +867,11 @@ export default function AccountingLoans() {
                           <td className="hidden px-4 py-2.5 text-left tabular-nums text-xs text-foreground sm:table-cell">
                             {fmt(row.total)}
                           </td>
-                          <td className="hidden px-4 py-2.5 text-xs leading-5 text-slate-500 sm:table-cell">
+                          <td className="hidden px-4 py-2.5 text-xs leading-5 text-muted-foreground sm:table-cell">
                             {row.notes ?? "—"}
                           </td>
                           <td className="hidden px-2 py-2.5 sm:table-cell">
-                            <PenLine className="h-3.5 w-3.5 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <PenLine className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                           </td>
                           <td
                             className="w-8 px-2 py-2 text-center"
@@ -882,7 +882,7 @@ export default function AccountingLoans() {
                                 <button
                                   type="button"
                                   disabled={deleteMut.isPending}
-                                  className="inline-flex h-7 items-center rounded-md bg-destructive px-2 text-[10px] font-semibold text-destructive-foreground hover:bg-destructive/80 disabled:opacity-40"
+                                  className="inline-flex h-7 items-center rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/80 disabled:opacity-40"
                                   onClick={() => {
                                     deleteMut.mutate({ id: row.id });
                                     setDelConfirm(null);
@@ -893,7 +893,7 @@ export default function AccountingLoans() {
                                 <button
                                   type="button"
                                   onClick={() => setDelConfirm(null)}
-                                  className="inline-flex h-7 items-center rounded-md border border-border px-1.5 text-[10px] text-slate-500 hover:bg-muted"
+                                  className="inline-flex h-7 items-center rounded-md border border-border px-1.5 text-[10px] text-muted-foreground hover:bg-muted"
                                 >
                                   ✕
                                 </button>
@@ -903,7 +903,7 @@ export default function AccountingLoans() {
                                 type="button"
                                 disabled={deleteMut.isPending}
                                 aria-label="حذف القيد"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                 onClick={() => setDelConfirm(row.id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -918,7 +918,7 @@ export default function AccountingLoans() {
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       {total.toLocaleString("ar-EG")} حركة · صفحة{" "}
                       {page.toLocaleString("ar-EG")} من{" "}
                       {totalPages.toLocaleString("ar-EG")}
@@ -928,7 +928,8 @@ export default function AccountingLoans() {
                         size="icon"
                         variant="ghost"
                         className="h-9 w-9"
-                        disabled={page <= 1}
+                        aria-label="الصفحة السابقة"
+                  disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -937,7 +938,8 @@ export default function AccountingLoans() {
                         size="icon"
                         variant="ghost"
                         className="h-9 w-9"
-                        disabled={page >= totalPages}
+                        aria-label="الصفحة التالية"
+                  disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
                       >
                         <ChevronLeft className="h-4 w-4" />

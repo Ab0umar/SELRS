@@ -86,7 +86,7 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen }: App
                   aria-hidden
                 />
               )}
-              <Icon className="h-[22px] w-[22px] shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+              <Icon className="size-5 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
               <span className={cn("whitespace-nowrap text-[10px] leading-none", active ? "font-semibold" : "font-medium")}>
                 {tab.label}
               </span>

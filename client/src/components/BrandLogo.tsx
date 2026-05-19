@@ -21,7 +21,7 @@ export function BrandLogo({ className, imgClassName, fallbackClassName }: BrandL
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-xl selrs-gradient-mixed text-white shadow-sm",
+          "flex items-center justify-center rounded-xl selrs-gradient-mixed text-card-foreground shadow-sm",
           className,
           fallbackClassName,
         )}

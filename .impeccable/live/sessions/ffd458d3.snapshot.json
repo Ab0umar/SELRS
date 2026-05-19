@@ -1,0 +1,25 @@
+{
+  "id": "ffd458d3",
+  "phase": "agent_error",
+  "pageUrl": "/today",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "66729df5",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Applied bookings filter and move-to-registration checkbox directly"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:53:26.518Z"
+}

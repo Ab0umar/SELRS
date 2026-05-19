@@ -88,7 +88,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                   if (!suggestion) return;
                   setSearchTerm(suggestion.fullName || suggestion.patientCode);
                   setIsSearchFocused(false);
-                  // Navigation should be handled by the container
+                  onSuggestionSelect(suggestion.id);
                   return;
                 }
                 if (event.key === "Escape") {
@@ -96,11 +96,16 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                   setActiveSuggestionIndex(-1);
                 }
               }}
+              role="combobox"
+              aria-expanded={isSearchFocused && groupedSearchSuggestions.length > 0}
+              aria-autocomplete="list"
+              aria-controls="patient-search-listbox"
+              aria-activedescendant={activeSuggestionIndex >= 0 ? `suggestion-${activeSuggestionIndex}` : undefined}
               className="h-11 rounded-xl border-border bg-background pr-10 text-right"
               dir="rtl"
             />
             {isSearchFocused && groupedSearchSuggestions.length > 0 ? (
-              <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border bg-popover shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+              <div id="patient-search-listbox" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border bg-popover shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
                 <div className="border-b border-border px-4 py-2 text-right text-xs font-semibold text-muted-foreground">
                   اقتراحات سريعة
                 </div>
@@ -118,6 +123,9 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                           return (
                             <div
                               key={`${group.key}-${suggestion.id}`}
+                              id={`suggestion-${runningIndex}`}
+                              role="option"
+                              aria-selected={isActive}
                               className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-4 py-3 text-right transition last:border-b-0 cursor-pointer ${
                                 isActive ? "bg-primary/10" : "hover:bg-accent"
                               }`}
@@ -153,7 +161,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
             ) : null}
           </div>
           <div className="flex w-full sm:w-auto flex-wrap items-center justify-end gap-2">
-            <span className="text-sm text-muted-foreground">From (Open Date)</span>
+            <span className="text-sm text-muted-foreground">من تاريخ</span>
             <Input
               type="text"
               value={dateFrom}
@@ -163,7 +171,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
               placeholder="DD/MM/YYYY"
               dir="ltr"
             />
-            <span className="text-sm text-muted-foreground">To (Open Date)</span>
+            <span className="text-sm text-muted-foreground">إلى تاريخ</span>
             <Input
               type="text"
               value={dateTo}

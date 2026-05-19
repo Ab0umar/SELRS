@@ -71,6 +71,10 @@ import {
   services,
   visitScheduleRequests,
   InsertVisitScheduleRequest,
+  stockItems,
+  stockTransactions,
+  InsertStockItem,
+  InsertStockTransaction,
 } from "../drizzle/schema";
 import { PENTACAM_ALLOWED_SRV_CODES, isPentacamEligiblePatient } from "../shared/pentacam";
 const exec = promisify(execCb);
@@ -1703,9 +1707,10 @@ function buildPatientFilterClauses(filters?: {
     const effectiveSearchTokens = searchTokens.length > 0 ? searchTokens : [normalizedSearch];
     for (const token of effectiveSearchTokens) {
       const tokenTerm = `%${token}%`;
+      const legacyTokenTerm = `%${encodeForLegacySearch(token)}%`;
       const simpleSearchConditions = or(
         or(
-          like(patients.fullName, tokenTerm),
+          or(like(patients.fullName, tokenTerm), like(patients.fullName, legacyTokenTerm)),
           or(
             like(patients.patientCode, tokenTerm),
             or(
@@ -1714,18 +1719,29 @@ function buildPatientFilterClauses(filters?: {
             )
           )
         ),
-        sql`EXISTS (
-          SELECT 1
-          FROM patientPageStates pps
-          WHERE pps.patientId = ${patients.id}
-            AND pps.page = 'examination'
-            AND (
-              TRIM(COALESCE(
-                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
-                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
-              )) LIKE ${tokenTerm}
-            )
-        )` as any
+        or(
+          sql`EXISTS (
+            SELECT 1
+            FROM patientPageStates pps
+            WHERE pps.patientId = ${patients.id}
+              AND pps.page = 'examination'
+              AND (
+                TRIM(COALESCE(
+                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.doctorName')), ''),
+                  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(pps.data, '$.signatures.doctor')), '')
+                )) LIKE ${tokenTerm}
+              )
+          )` as any,
+          sql`EXISTS (
+            SELECT 1
+            FROM patientServiceEntries pse
+            WHERE pse.patientId = ${patients.id}
+              AND (
+                pse.serviceCode LIKE ${tokenTerm}
+                OR pse.serviceName LIKE ${tokenTerm}
+              )
+          )` as any
+        )
       );
       whereClauses.push(simpleSearchConditions as any);
     }
@@ -1816,10 +1832,6 @@ export async function getAllPatients(options?: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-
-  if (options?.searchTerm) {
-    console.log(`[getAllPatients] Searching for: "${options.searchTerm}"`);
-  }
 
   const whereClauses: any[] = buildPatientFilterClauses(options);
   const limitValue = Math.max(1, Math.min(500, Number(options?.limit ?? 120)));
@@ -4856,6 +4868,7 @@ export async function saveOperationList(data: {
     payment?: string;
     hospital?: string;
     code?: string;
+    notes?: string;
   }>;
 }) {
   const db = await getDb();
@@ -5009,6 +5022,7 @@ export async function saveOperationList(data: {
         payment: item.payment ?? null,
         hospital: item.hospital ?? null,
         code: item.code ?? null,
+        notes: item.notes ?? null,
       }))
     );
   }
@@ -6000,6 +6014,36 @@ export async function insertVisitScheduleRequest(
   return { id: insertId };
 }
 
+export async function getVisitScheduleRequestsByDate(dateIso: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(visitScheduleRequests)
+    .where(eq(visitScheduleRequests.visitDate, dateIso as any))
+    .orderBy(asc(visitScheduleRequests.createdAt), asc(visitScheduleRequests.id));
+}
+
+export async function getVisitScheduleRequestById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [row] = await db
+    .select()
+    .from(visitScheduleRequests)
+    .where(eq(visitScheduleRequests.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function deleteVisitScheduleRequest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(visitScheduleRequests).where(eq(visitScheduleRequests.id, id));
+}
+
 /**
  * Log audit event
  */
@@ -6027,3 +6071,108 @@ export async function logAuditEvent(
 
   await createAuditLog(logData);
 }
+
+// ============ STOCKROOM OPERATIONS ============
+
+export async function getStockItems(category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  let query = db.select().from(stockItems);
+  if (category) {
+    query = query.where(eq(stockItems.category, category)) as any;
+  }
+  return await query.orderBy(asc(stockItems.name));
+}
+
+export async function getStockItemByCode(itemCode: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(stockItems).where(eq(stockItems.itemCode, itemCode)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getStockItemById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(stockItems).where(eq(stockItems.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function insertStockItem(data: InsertStockItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result: any = await db.insert(stockItems).values(data);
+  const insertId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
+  return { insertId };
+}
+
+export async function updateStockItem(id: number, updates: Partial<InsertStockItem>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(stockItems).set(updates).where(eq(stockItems.id, id));
+}
+
+export async function insertStockTransaction(data: InsertStockTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Start a transaction to update quantity and log movement
+  return await db.transaction(async (tx) => {
+    // 1. Insert transaction log
+    const result: any = await tx.insert(stockTransactions).values(data);
+    const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
+    
+    // 2. Get current item
+    const [item] = await tx.select().from(stockItems).where(eq(stockItems.id, data.itemId)).limit(1);
+    if (!item) throw new Error("Item not found");
+    
+    // 3. Calculate new quantity
+    let newQuantity = item.quantity;
+    if (data.type === 'add') {
+      newQuantity += data.quantity;
+    } else if (data.type === 'dispense') {
+      newQuantity -= data.quantity;
+    }
+    
+    if (newQuantity < 0) throw new Error("Insufficient stock quantity");
+    
+    // 4. Update item quantity and status
+    let status: "متوفر" | "كمية قليلة" | "نفذ المخزون" = "متوفر";
+    if (newQuantity === 0) status = "نفذ المخزون";
+    else if (newQuantity < 10) status = "كمية قليلة"; // Threshold can be item-specific in real app
+    
+    await tx.update(stockItems)
+      .set({ quantity: newQuantity, status, updatedAt: new Date() })
+      .where(eq(stockItems.id, data.itemId));
+      
+    return { txId, newQuantity };
+  });
+}
+
+export async function getStockTransactions(limit = 500) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const rows = await db
+    .select({
+      id: stockTransactions.id,
+      itemId: stockTransactions.itemId,
+      type: stockTransactions.type,
+      quantity: stockTransactions.quantity,
+      unitPrice: stockTransactions.unitPrice,
+      totalValue: stockTransactions.totalValue,
+      employeeName: stockTransactions.employeeName,
+      performedBy: stockTransactions.performedBy,
+      createdAt: stockTransactions.createdAt,
+      itemName: stockItems.name,
+      itemCategory: stockItems.category,
+    })
+    .from(stockTransactions)
+    .innerJoin(stockItems, eq(stockTransactions.itemId, stockItems.id))
+    .orderBy(desc(stockTransactions.createdAt))
+    .limit(limit);
+    
+  return rows;
+}
+

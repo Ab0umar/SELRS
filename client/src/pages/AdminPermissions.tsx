@@ -239,7 +239,7 @@ export default function AdminPermissions() {
         action={
           <Button
             type="button"
-            className="selrs-gradient-btn text-white h-9 px-6 font-bold shadow-sm"
+            className="selrs-gradient-btn text-primary-foreground h-9 px-6 font-bold shadow-sm"
             onClick={() => void saveMutation.mutateAsync(permissions)}
             disabled={
               saveMutation.isPending ||
@@ -272,7 +272,7 @@ export default function AdminPermissions() {
               className={cn(
                 "w-fit rounded-lg border px-3 py-1 text-[11px] font-bold shadow-sm",
                 hasUnsavedChanges
-                  ? "border-amber-200 bg-amber-50 text-amber-700 animate-pulse"
+                  ? "border-warning/50 bg-warning/10 text-warning/90 animate-pulse"
                   : "border-border/60 bg-muted/40 text-muted-foreground",
               )}
             >
@@ -342,15 +342,15 @@ export default function AdminPermissions() {
             {/* Desktop table */}
             <div className="lg:col-span-12 hidden overflow-hidden rounded-xl border border-border/80 bg-background sm:block">
               <Table dir="rtl" className="min-w-[760px] text-right text-sm">
-                <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm shadow-sm">
+                <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
-                    <TableHead className="min-w-[200px] px-6 font-bold text-sky-900">الصفحة والموديول</TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-sky-900">لا وصول</TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-sky-900">عرض فقط</TableHead>
+                    <TableHead className="min-w-[200px] px-6 font-bold text-primary">الصفحة والموديول</TableHead>
+                    <TableHead className="w-32 px-2 text-center font-bold text-primary">لا وصول</TableHead>
+                    <TableHead className="w-32 px-2 text-center font-bold text-primary">عرض فقط</TableHead>
                     {writeAccessColumns.map((column) => (
                       <TableHead
                         key={column}
-                        className="w-40 px-2 py-3 text-center font-bold text-sky-900"
+                        className="w-40 px-2 py-3 text-center font-bold text-primary"
                       >
                         {column}
                       </TableHead>
@@ -411,12 +411,12 @@ export default function AdminPermissions() {
              {confirmReset ? (
               <div className="flex items-center gap-1">
                 <button type="button" aria-label="تأكيد"
-                  className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                   onClick={() => { setPermissions(serverPermissions); setConfirmReset(false); }}>
                   تأكيد
                 </button>
                 <button type="button" aria-label="إلغاء"
-                  className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                  className="rounded bg-muted text-muted-foreground hover:bg-border"
                   onClick={() => setConfirmReset(false)}>
                   إلغاء
                 </button>
@@ -438,3 +438,4 @@ export default function AdminPermissions() {
     </div>
   );
 }
+

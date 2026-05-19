@@ -109,7 +109,7 @@ export default function AccLoanDrawer({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px]"
+        className="fixed inset-0 z-40 bg-muted/40 backdrop-blur-[1px]"
         onClick={onClose}
       />
       <div
@@ -120,7 +120,7 @@ export default function AccLoanDrawer({
         <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+              <span className="rounded-full bg-primary text-primary-foreground">
                 القروض
               </span>
               <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
@@ -133,7 +133,7 @@ export default function AccLoanDrawer({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -143,7 +143,7 @@ export default function AccLoanDrawer({
           <div className="rounded-2xl border border-border bg-muted px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-slate-500">
+                <p className="text-xs font-medium text-muted-foreground">
                   المتبقي الحالي
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-foreground">
@@ -154,8 +154,8 @@ export default function AccLoanDrawer({
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-semibold ring-1",
                   remaining > 0
-                    ? "bg-rose-50 text-rose-700 ring-rose-100"
-                    : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                    ? "bg-destructive/10 text-destructive ring-destructive/20"
+                    : "bg-success/10 text-success ring-success/20",
                 )}
               >
                 {remaining > 0 ? "رصيد قائم" : "متوازن"}
@@ -164,10 +164,11 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor="loan-tx-date" className="text-xs font-medium text-muted-foreground">
               التاريخ
             </label>
             <Input
+              id="loan-tx-date"
               type="date"
               value={txDate}
               onChange={(e) => setTxDate(e.target.value)}
@@ -176,8 +177,9 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">الاسم</label>
+            <label htmlFor="loan-name" className="text-xs font-medium text-muted-foreground">الاسم</label>
             <Input
+              id="loan-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="اسم المقترض"
@@ -188,10 +190,11 @@ export default function AccLoanDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-blue-700">
+              <label htmlFor="loan-amount" className="text-xs font-medium text-primary">
                 المبلغ
               </label>
               <Input
+                id="loan-amount"
                 type="number"
                 min="0"
                 step="0.01"
@@ -202,10 +205,11 @@ export default function AccLoanDrawer({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-emerald-700">
+              <label htmlFor="loan-repayment" className="text-xs font-medium text-success">
                 السداد
               </label>
               <Input
+                id="loan-repayment"
                 type="number"
                 min="0"
                 step="0.01"
@@ -218,21 +222,22 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor="loan-notes" className="text-xs font-medium text-muted-foreground">
               ملاحظات
             </label>
             <textarea
+              id="loan-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               dir="rtl"
-              className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-right text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+              className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-right text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
               placeholder="تفاصيل إضافية أو سبب القرض"
             />
           </div>
 
           {err ? (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {err}
             </p>
           ) : null}
@@ -275,7 +280,7 @@ export default function AccLoanDrawer({
             ) : (
               <Button
                 variant="outline"
-                className="w-full border-rose-200 text-xs text-rose-600 hover:bg-rose-50"
+                className="w-full border-destructive/30 text-xs text-destructive hover:bg-destructive/10"
                 onClick={handleDelete}
                 disabled={busy}
               >

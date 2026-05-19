@@ -28,7 +28,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
       <Button
         size="sm"
         variant="outline"
-        className="h-8 w-8 rounded-lg border-primary/25 bg-primary/5 p-0 text-primary shadow-sm hover:border-primary/40 hover:bg-primary/10"
+        className="h-8 w-8 rounded-lg border-primary/25 bg-primary text-primary-foreground shadow-sm hover:border-primary/40 hover:bg-primary/90"
         title="فتح الشيت"
         aria-label="فتح الشيت"
         onClick={(event) => {
@@ -42,7 +42,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 w-8 rounded-lg border-amber-200 bg-amber-50 p-0 text-amber-700 shadow-sm hover:border-amber-300 hover:bg-amber-100"
+          className="h-8 w-8 rounded-lg border-warning/50 bg-warning/10 p-0 text-warning/90 shadow-sm hover:border-warning hover:bg-warning/20"
           title="تعديل المريض"
           aria-label="تعديل المريض"
           onClick={(event) => {

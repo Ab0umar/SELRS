@@ -10,7 +10,8 @@ import type { LegendPayload } from "recharts/types/component/DefaultLegendConten
 import { cn } from "@/lib/utils";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } as const;
+// Note: dark theme removed per DESIGN.md (light-only for medical clinic environment)
+const THEMES = { light: "" } as const;
 
 export type ChartConfig = {
   [k in string]: {

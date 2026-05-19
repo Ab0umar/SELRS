@@ -139,14 +139,14 @@ const AdminPatientCard = memo(function AdminPatientCard({
 }: AdminPatientItemProps) {
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
   return (
-    <div className={cn("rounded-lg border border-border/80 bg-card p-2", isUnsavedRow ? "border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/20" : undefined)}>
+    <div className={cn("rounded-lg border border-border/80 bg-card p-2", isUnsavedRow ? "border-warning/70 bg-warning/10/70" : undefined)}>
       <div className="flex items-start gap-2">
         <Checkbox checked={selected} onCheckedChange={(checked) => onToggleSelectedPatient(patient.id, Boolean(checked))} className="mt-1 shrink-0" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <span className="text-xs tabular-nums text-muted-foreground" dir="ltr">{patient.patientCode ?? "—"}</span>
-            <Button type="button" variant="outline" size="icon" className="h-7 w-7 shrink-0 rounded-lg" onClick={() => onToggleExpanded(patient.id)} title="توسيع السجل">
-              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 rounded-lg" aria-label="توسيع السجل" onClick={() => onToggleExpanded(patient.id)} title="توسيع السجل">
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
           </div>
           <Input value={draft.fullName} onChange={(event) => onSetDraftField(patient, "fullName", event.target.value)} className="rounded-lg text-right text-sm" placeholder="الاسم" />
@@ -177,11 +177,11 @@ const AdminPatientCard = memo(function AdminPatientCard({
         </div>
       ) : null}
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-orange-200 bg-orange-500 text-xs font-bold text-white shadow-sm hover:bg-orange-600" : "rounded-lg border-amber-200 bg-amber-100 text-xs font-bold text-amber-900 hover:bg-amber-200"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>
+        <Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-secondary/50 bg-secondary text-xs font-bold text-secondary-foreground shadow-sm hover:bg-secondary/80" : "rounded-lg border-warning/50 bg-warning/20 text-xs font-bold text-warning hover:bg-warning/30"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>
           {manualLockEnabled ? <>ON <Lock className="ms-1 h-3 w-3" aria-hidden /></> : <>OFF <LockOpen className="ms-1 h-3 w-3" aria-hidden /></>}
         </Button>
         <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg border-primary/30 bg-primary/5 px-3 text-xs text-primary hover:bg-primary/10" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>
             {status?.state === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Save className="h-3.5 w-3.5" aria-hidden />} حفظ
           </Button>
           <Button variant="destructive" size="sm" className="rounded-lg px-3 text-xs" onClick={() => onDeletePatient(patient)} disabled={deletePatientPending}><Trash2 className="me-1 h-3.5 w-3.5" aria-hidden />حذف</Button>
@@ -197,13 +197,13 @@ const AdminPatientRow = memo(function AdminPatientRow({
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
   return (
     <Fragment>
-      <TableRow className={cn("border-border/70", isUnsavedRow ? "bg-amber-50/70 dark:bg-amber-950/20" : undefined)}>
+      <TableRow className={cn("border-border/70", isUnsavedRow ? "bg-warning/10/70" : undefined)}>
         <TableCell className="py-3 text-center"><Checkbox checked={selected} onCheckedChange={(checked) => onToggleSelectedPatient(patient.id, Boolean(checked))} /></TableCell>
         <TableCell className="tabular-nums text-muted-foreground" dir="ltr">{patient.patientCode ?? "—"}</TableCell>
         <TableCell>
           <div className="flex flex-col items-stretch gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-lg" onClick={() => onToggleExpanded(patient.id)} title="توسيع السجل">{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button>
+              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 rounded-lg" aria-label="توسيع السجل" onClick={() => onToggleExpanded(patient.id)} title="توسيع السجل">{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button>
               <Input value={draft.fullName} onChange={(event) => onSetDraftField(patient, "fullName", event.target.value)} className="min-w-0 rounded-lg text-right" />
             </div>
             {expanded ? <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2"><AdminPatientTransactions patientId={patient.id} serviceCodeToLabel={serviceCodeToLabel} /><Button type="button" variant="outline" size="sm" className="w-full rounded-lg text-xs" disabled={deletePatientFromMssqlPending} onClick={() => onDeleteFromMssql(patient)}>حذف من MSSQL</Button></div> : null}
@@ -211,8 +211,8 @@ const AdminPatientRow = memo(function AdminPatientRow({
         </TableCell>
         <TableCell className="min-w-[210px]"><Input value={draft.treatingDoctor} onChange={(event) => onSetDraftField(patient, "treatingDoctor", event.target.value)} className="rounded-lg text-right" placeholder="اسم الطبيب" /></TableCell>
         <TableCell><Select value={draft.serviceType} onValueChange={(value) => onSetDraftField(patient, "serviceType", value)}><SelectTrigger className="min-w-[150px] rounded-lg"><SelectValue placeholder="نوع الشيت" /></SelectTrigger><SelectContent>{SERVICE_TYPE_SELECT_CONTENT}</SelectContent></Select></TableCell>
-        <TableCell><Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-orange-200 bg-orange-500 font-bold text-white shadow-sm hover:bg-orange-600" : "rounded-lg border-amber-200 bg-amber-100 font-bold text-amber-900 hover:bg-amber-200"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>{manualLockEnabled ? <>ON <Lock className="ms-2 h-3.5 w-3.5" aria-hidden /></> : <>OFF <LockOpen className="ms-2 h-3.5 w-3.5" aria-hidden /></>}</Button></TableCell>
-        <TableCell><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center gap-2"><Button variant="outline" className="gap-2 rounded-lg border-primary/30 bg-primary/5 px-4 text-primary hover:bg-primary/10" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>{status?.state === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}حفظ</Button><Button variant="destructive" size="sm" className="rounded-lg px-4" onClick={() => onDeletePatient(patient)} disabled={deletePatientPending}><Trash2 className="me-2 h-4 w-4" aria-hidden />حذف</Button></div></div></TableCell>
+        <TableCell><Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-secondary/50 bg-secondary font-bold text-secondary-foreground shadow-sm hover:bg-secondary/80" : "rounded-lg border-warning/50 bg-warning/20 font-bold text-warning hover:bg-warning/30"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>{manualLockEnabled ? <>ON <Lock className="ms-2 h-3.5 w-3.5" aria-hidden /></> : <>OFF <LockOpen className="ms-2 h-3.5 w-3.5" aria-hidden /></>}</Button></TableCell>
+        <TableCell><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center gap-2"><Button variant="outline" className="gap-2 rounded-lg border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>{status?.state === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}حفظ</Button><Button variant="destructive" size="sm" className="rounded-lg px-4" onClick={() => onDeletePatient(patient)} disabled={deletePatientPending}><Trash2 className="me-2 h-4 w-4" aria-hidden />حذف</Button></div></div></TableCell>
       </TableRow>
     </Fragment>
   );

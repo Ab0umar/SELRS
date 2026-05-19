@@ -141,21 +141,21 @@ function roleLabelAr(role: UserRole): string {
 function roleBadgeClass(role: UserRole): string {
   const map: Record<UserRole, string> = {
     manager:
-      "bg-rose-100 text-rose-900 border-0 dark:bg-rose-950/50 dark:text-rose-100",
+      "bg-destructive/10 text-destructive border-0",
     doctor:
-      "bg-sky-100 text-sky-900 border-0 dark:bg-sky-950/55 dark:text-sky-100",
+      "bg-primary/10 text-primary border-0",
     reception:
-      "bg-emerald-100 text-emerald-900 border-0 dark:bg-emerald-950/55 dark:text-emerald-100",
+      "bg-success/15 text-foreground border-0",
     nurse:
-      "bg-violet-100 text-violet-900 border-0 dark:bg-violet-950/55 dark:text-violet-100",
+      "bg-secondary/15 text-secondary border-0",
     technician:
-      "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-100",
+      "bg-warning/20 text-warning border-0",
     accountant:
-      "bg-cyan-100 text-cyan-900 border-0 dark:bg-cyan-950/50 dark:text-cyan-100",
+      "bg-primary/15 text-primary border-0",
     admin:
-      "bg-border text-foreground border-0 dark:bg-slate-800 dark:text-slate-100",
+      "bg-border text-foreground border-0",
   };
-  return map[role] ?? "bg-muted text-foreground border-0";
+  return map[role] ?? "bg-muted text-muted-foreground border-0";
 }
 
 function toDateKey(value: unknown): string {
@@ -380,12 +380,12 @@ export default function AdminUsers() {
         className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-right sm:px-0"
         dir="rtl"
       >
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/30 bg-destructive/10">
           <CardHeader>
-            <CardTitle className="text-red-700">Access Denied</CardTitle>
+            <CardTitle className="text-destructive">Access Denied</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-600">
+            <p className="text-destructive">
               You do not have permission to access this page. Admin role is
               required.
             </p>
@@ -742,7 +742,7 @@ export default function AdminUsers() {
           <Button
             type="button"
             size="sm"
-            className="selrs-gradient-btn gap-2 text-white"
+            className="selrs-gradient-btn gap-2 text-primary-foreground"
             onClick={() => setIsCreateOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -760,19 +760,19 @@ export default function AdminUsers() {
           title="إجمالي المستخدمين"
           value={usersTotal}
           icon={UserRound}
-          iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+          iconColor="bg-primary text-primary-foreground"
         />
         <StatCard
           title="نشط"
           value={usersActive}
           icon={UserCheck}
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+          iconColor="bg-success/15 text-success"
         />
         <StatCard
           title="غير نشط"
           value={usersInactive}
           icon={UserX}
-          iconColor="bg-red-100 text-red-700 dark:bg-red-950/55 dark:text-red-300"
+          iconColor="bg-destructive/10 text-destructive"
         />
       </div>
 
@@ -859,8 +859,8 @@ export default function AdminUsers() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10"
                           title="استعادة صلاحيات الدور"
+                          aria-label="استعادة صلاحيات الدور"
                           disabled={setUserPermissionsMutation.isPending}
                           onClick={() =>
                             requestRiskAction("reset-permissions", u)
@@ -872,8 +872,8 @@ export default function AdminUsers() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10"
                           title="تعديل"
+                          aria-label="تعديل المستخدم"
                           onClick={() => handleEdit(u)}
                         >
                           <Edit2 className="h-4 w-4" />
@@ -882,8 +882,9 @@ export default function AdminUsers() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          className="text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
                           title="حذف"
+                          aria-label="حذف المستخدم"
                           onClick={() => requestRiskAction("delete", u)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -902,7 +903,7 @@ export default function AdminUsers() {
                           </div>
                         </div>
                         <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-black text-primary"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
                           aria-hidden
                         >
                           {initials}
@@ -917,7 +918,7 @@ export default function AdminUsers() {
                         className={cn(
                           "h-10 w-full max-w-[9.5rem] text-xs font-semibold",
                           u.isActive
-                            ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-300"
+                            ? "border-success/50 bg-success/10 text-success hover:bg-success/15"
                             : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
                         )}
                         onClick={() => requestRiskAction("toggle-active", u)}
@@ -966,15 +967,15 @@ export default function AdminUsers() {
           <div className="hidden overflow-hidden rounded-xl border border-border/80 bg-background sm:block">
             <div className="overflow-x-auto">
               <Table className="min-w-[1000px] text-right">
-                <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm">
+                <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10">
-                    <TableHead className="text-right font-bold text-sky-900 h-11">الاسم والمهمة</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 h-11">البريد الإلكتروني</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 h-11">الدور الوظيفي</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 h-11">الحالة</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 h-11">آخر نشاط</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 h-11 whitespace-nowrap">تاريخ الإنشاء</TableHead>
-                    <TableHead className="w-[140px] text-center font-bold text-sky-900 h-11">إجراءات</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">الاسم والمهمة</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">البريد الإلكتروني</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">الدور الوظيفي</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">الحالة</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">آخر نشاط</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11 whitespace-nowrap">تاريخ الإنشاء</TableHead>
+                    <TableHead className="w-[140px] text-center font-bold text-primary h-11">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1016,7 +1017,7 @@ export default function AdminUsers() {
                                 <span className="font-medium text-foreground/60">@{u.username}</span>
                               </div>
                             </div>
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[11px] font-black text-primary shadow-inner">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-inner">
                               {initials}
                             </div>
                           </div>
@@ -1039,7 +1040,7 @@ export default function AdminUsers() {
                             className={cn(
                               "h-7 text-[10px] font-bold px-3 transition-all",
                               u.isActive
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
+                                ? "border-success/30 bg-success/10 text-success hover:bg-success/15 hover:border-success/40"
                                 : "border-muted-foreground/20 bg-muted/40 text-muted-foreground hover:bg-muted/60",
                             )}
                             onClick={() => requestRiskAction("toggle-active", u)}
@@ -1059,8 +1060,9 @@ export default function AdminUsers() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              className="rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
                               title="استعادة صلاحيات الدور"
+                              aria-label="استعادة صلاحيات الدور"
                               disabled={setUserPermissionsMutation.isPending}
                               onClick={() => requestRiskAction("reset-permissions", u)}
                             >
@@ -1070,8 +1072,9 @@ export default function AdminUsers() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              className="rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
                               title="تعديل البيانات"
+                              aria-label="تعديل بيانات المستخدم"
                               onClick={() => handleEdit(u)}
                             >
                               <Edit2 className="h-3.5 w-3.5" />
@@ -1080,8 +1083,9 @@ export default function AdminUsers() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                              className="rounded-lg text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
                               title="حذف الحساب"
+                              aria-label="حذف الحساب"
                               onClick={() => requestRiskAction("delete", u)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -1243,7 +1247,7 @@ export default function AdminUsers() {
           <div className="flex flex-wrap gap-2 pt-2">
             <Button
               type="button"
-              className="selrs-gradient-btn text-white gap-2"
+              className="selrs-gradient-btn text-primary-foreground gap-2"
               disabled={isSaving}
               onClick={() => void handleSaveUser()}
             >
@@ -1449,14 +1453,14 @@ export default function AdminUsers() {
               })}
             </div>
             {permissionStateQuery.isError && (
-              <p className="text-xs text-red-600 mt-2">تعذر تحميل الصلاحيات.</p>
+              <p className="text-xs text-destructive mt-2">تعذر تحميل الصلاحيات.</p>
             )}
           </div>
 
           <div className="flex gap-2">
             <Button
               onClick={() => void handleSaveEdit()}
-              className="selrs-gradient-btn text-white"
+              className="selrs-gradient-btn text-primary-foreground"
               disabled={isSaving}
             >
               حفظ
@@ -1498,10 +1502,10 @@ export default function AdminUsers() {
             <AlertDialogAction
               className={cn(
                 pendingRiskCopy?.tone === "danger"
-                  ? "bg-destructive text-white hover:bg-destructive/90"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : pendingRiskCopy?.tone === "warning"
-                    ? "bg-amber-600 text-white hover:bg-amber-700"
-                    : "selrs-gradient-btn text-white",
+                    ? "bg-warning text-warning-foreground hover:bg-warning/90"
+                    : "selrs-gradient-btn text-primary-foreground",
               )}
               disabled={isSaving}
               onClick={() => void confirmPendingRiskAction()}

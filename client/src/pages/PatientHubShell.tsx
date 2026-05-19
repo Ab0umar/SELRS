@@ -406,7 +406,7 @@ export default function PatientHubShell() {
           <button
             type="button"
             onClick={() => goBack()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
             aria-label="رجوع"
           >
             <ArrowRight className="h-4 w-4" />
@@ -440,7 +440,7 @@ export default function PatientHubShell() {
                         const v = visits[currentVisitIdx + 1];
                         if (v) applyVisitSelection(visitDateKey(v), v.id);
                       }}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
                       aria-label="زيارة أقدم"
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -462,7 +462,7 @@ export default function PatientHubShell() {
                         const v = visits[currentVisitIdx - 1];
                         if (v) applyVisitSelection(visitDateKey(v), v.id);
                       }}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
                       aria-label="زيارة أحدث"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -790,8 +790,8 @@ export default function PatientHubShell() {
                   className={cn(
                     "flex h-14 items-center gap-4 border-t border-border/40 px-6 transition-colors",
                     active
-                      ? "bg-primary/5 text-primary"
-                      : "text-foreground hover:bg-muted/40",
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground bg-muted/40",
                   )}
                 >
                   <Icon

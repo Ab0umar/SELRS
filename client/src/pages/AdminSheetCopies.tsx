@@ -99,7 +99,7 @@ export default function AdminSheetCopies() {
         />
         <Button
           type="button"
-          className="selrs-gradient-btn shrink-0 gap-2 self-start text-white sm:mt-1"
+          className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
           onClick={() => window.open(SHEET_COPY_LINKS[0]?.path ?? "/sheets/consultant/0?original=1", "_blank", "noopener,noreferrer")}
         >
           <Sparkles className="h-4 w-4" />
@@ -112,19 +112,19 @@ export default function AdminSheetCopies() {
           title="إجمالي النسخ"
           value={totalCopies}
           icon={PackageOpen}
-          iconColor="bg-amber-100 text-amber-800 dark:bg-amber-950/55 dark:text-amber-300"
+          iconColor="bg-warning/20 text-warning"
         />
         <StatCard
           title="قيد الاستخدام"
           value={activeCount}
           icon={FileText}
-          iconColor="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/55 dark:text-emerald-300"
+          iconColor="bg-success/15 text-success"
         />
         <StatCard
           title="أرشيف"
           value={archiveCount}
           icon={Archive}
-          iconColor="bg-sky-100 text-sky-800 dark:bg-sky-950/55 dark:text-sky-300"
+          iconColor="bg-primary/10 text-primary"
           description={archiveCount === 0 ? "لا يوجد أرشيف بعد" : undefined}
         />
       </div>
@@ -146,7 +146,7 @@ export default function AdminSheetCopies() {
               variant={statusFilter === opt.value ? "default" : "outline"}
               className={cn(
                 "rounded-full px-4",
-                statusFilter === opt.value ? "selrs-gradient-btn border-0 text-white" : "border-border/80",
+                statusFilter === opt.value ? "selrs-gradient-btn border-0 text-primary-foreground" : "border-border/80",
               )}
               onClick={() => setStatusFilter(opt.value)}
             >
@@ -171,7 +171,7 @@ export default function AdminSheetCopies() {
               key={sheet.key}
               className="relative overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md"
             >
-              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-emerald-500 shadow-sm ring-2 ring-white" aria-hidden />
+              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-success/100 shadow-sm ring-2 ring-white" aria-hidden />
               <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-border/60 pb-3 pt-5">
                 <div className="min-w-0 flex-1 space-y-2 text-right">
                   <div className="flex items-start justify-between gap-2">
@@ -194,8 +194,9 @@ export default function AdminSheetCopies() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-destructive hover:bg-destructive/10"
+                      className="h-9 w-9 text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
                       title="حذف"
+                      aria-label="حذف النسخة"
                       onClick={() => toast.message("النسخ المرجعية لا تُحذف من هنا.")}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -206,6 +207,7 @@ export default function AdminSheetCopies() {
                       size="icon"
                       className="h-9 w-9 hover:bg-muted"
                       title="تعديل في المصمم"
+                      aria-label="تعديل النسخة في المصمم"
                       onClick={() => setLocation("/sheet-designer")}
                     >
                       <Pencil className="h-4 w-4" />
@@ -216,7 +218,7 @@ export default function AdminSheetCopies() {
                   </Badge>
                 </div>
                 <Button
-                  className="w-full selrs-gradient-btn text-white"
+                  className="w-full selrs-gradient-btn text-primary-foreground"
                   type="button"
                   onClick={() => window.open(sheet.path, "_blank", "noopener,noreferrer")}
                 >

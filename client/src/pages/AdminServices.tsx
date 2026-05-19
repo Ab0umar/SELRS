@@ -726,7 +726,7 @@ export default function AdminServices() {
         subtitle="إدارة خدمات المركز الطبي"
         icon={<Settings className="h-5 w-5" />}
         action={
-          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setAddOpen(true)}>
+          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4" />
             <span className="text-xs sm:text-sm">إضافة خدمة</span>
           </Button>
@@ -737,19 +737,19 @@ export default function AdminServices() {
           title="إجمالي الخدمات"
           value={servicesTotal}
           icon={Activity}
-          iconColor="bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary"
+          iconColor="bg-secondary text-secondary-foreground"
         />
         <StatCard
           title="فعالة"
           value={servicesActive}
           icon={CheckCircle2}
-          iconColor="bg-green-100 text-green-600 dark:bg-green-950/60 dark:text-green-400"
+          iconColor="bg-success/15 text-success"
         />
         <StatCard
           title="معطلة"
           value={servicesInactive}
           icon={XCircle}
-          iconColor="bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400"
+          iconColor="bg-destructive/10 text-destructive"
         />
       </div>
 
@@ -921,8 +921,8 @@ export default function AdminServices() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
+                        size="icon-sm"
+                        aria-label="تعديل الخدمة"
                         onClick={() => setExpandServiceId((id) => (id === service.id ? null : service.id))}
                       >
                         <Edit2 className="h-3.5 w-3.5" />
@@ -930,8 +930,9 @@ export default function AdminServices() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        size="icon-sm"
+                        className="text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label="حذف الخدمة"
                         onClick={() => deleteService(service.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -943,7 +944,7 @@ export default function AdminServices() {
                         className={cn(
                           "h-8 text-xs font-semibold",
                           service.isActive
-                            ? "border-emerald-500/45 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30"
+                            ? "border-success/45 bg-success/10 text-foreground"
                             : "border-muted text-muted-foreground",
                         )}
                         onClick={() => updateService(service.id, { isActive: !service.isActive })}
@@ -1058,16 +1059,16 @@ export default function AdminServices() {
           ) : (
             <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
               <Table dir="rtl" className="min-w-[1000px] text-right">
-                <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm">
+                <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10">
                     <TableHead className="w-12 px-3 h-11" />
-                    <TableHead className="font-bold text-sky-900 h-11">اسم الخدمة والرمز</TableHead>
-                    <TableHead className="font-bold text-sky-900 h-11">الفئة</TableHead>
-                    <TableHead className="font-bold text-sky-900 h-11">نوع النموذج (الشيت)</TableHead>
-                    <TableHead className="font-bold text-sky-900 h-11">المركز / خارجي</TableHead>
-                    <TableHead className="font-bold text-sky-900 h-11">السعر (EGP)</TableHead>
-                    <TableHead className="font-bold text-sky-900 h-11">الحالة</TableHead>
-                    <TableHead className="w-[120px] text-center font-bold text-sky-900 h-11">إجراءات</TableHead>
+                    <TableHead className="font-bold text-primary h-11">اسم الخدمة والرمز</TableHead>
+                    <TableHead className="font-bold text-primary h-11">الفئة</TableHead>
+                    <TableHead className="font-bold text-primary h-11">نوع النموذج (الشيت)</TableHead>
+                    <TableHead className="font-bold text-primary h-11">المركز / خارجي</TableHead>
+                    <TableHead className="font-bold text-primary h-11">السعر (EGP)</TableHead>
+                    <TableHead className="font-bold text-primary h-11">الحالة</TableHead>
+                    <TableHead className="w-[120px] text-center font-bold text-primary h-11">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1185,7 +1186,7 @@ export default function AdminServices() {
                               className={cn(
                                 "h-7 text-[10px] font-bold px-3 transition-all",
                                 service.isActive
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                  ? "border-success/30 bg-success/10 text-success hover:bg-success/15"
                                   : "border-muted text-muted-foreground",
                               )}
                               onClick={() => updateService(service.id, { isActive: !service.isActive })}
@@ -1198,8 +1199,9 @@ export default function AdminServices() {
                               <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                                size="icon-sm"
+                                className="rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
+                                aria-label="تعديل الخدمة"
                                 onClick={() => setExpandServiceId((id) => (id === service.id ? null : service.id))}
                               >
                                 <Edit2 className="h-3.5 w-3.5" />
@@ -1207,8 +1209,9 @@ export default function AdminServices() {
                               <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                                size="icon-sm"
+                                className="rounded-lg text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
+                                aria-label="حذف الخدمة"
                                 onClick={() => deleteService(service.id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1310,7 +1313,7 @@ export default function AdminServices() {
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
               إلغاء
             </Button>
-            <Button type="button" className="selrs-gradient-btn text-white gap-2" onClick={addService}>
+            <Button type="button" className="selrs-gradient-btn text-primary-foreground gap-2" onClick={addService}>
               <Plus className="h-4 w-4" />
               إدراج الخدمة
             </Button>
@@ -1457,12 +1460,12 @@ export default function AdminServices() {
               {confirmDeleteMatches ? (
                 <div className="flex items-center gap-1">
                   <button type="button" aria-label="تأكيد"
-                    className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                    className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                     onClick={() => { void deleteAllMatches(); setConfirmDeleteMatches(false); }}>
                     تأكيد
                   </button>
                   <button type="button" aria-label="إلغاء"
-                    className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                    className="rounded bg-muted text-muted-foreground hover:bg-border"
                     onClick={() => setConfirmDeleteMatches(false)}>
                     إلغاء
                   </button>
@@ -1487,7 +1490,7 @@ export default function AdminServices() {
           </div>
 
           <div className="rounded-lg border border-border">
-            <div className="grid grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 border-b bg-blue-50 px-4 py-3 text-sm font-semibold text-foreground">
+            <div className="grid grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 border-b bg-primary/5 px-4 py-3 text-sm font-semibold text-foreground">
               <div>الطبيب</div>
               <div>الخدمة</div>
               <div>الشيت</div>
@@ -1495,7 +1498,7 @@ export default function AdminServices() {
             </div>
             <div className="max-h-72 overflow-auto">
               {doctorServiceMatches.length === 0 ? (
-                <div className="p-3 text-sm text-slate-500">لا توجد مطابقات محفوظة</div>
+                <div className="p-3 text-sm text-muted-foreground">لا توجد مطابقات محفوظة</div>
               ) : (
                 doctorServiceMatches.map((match) => (
                   <div key={match.id} className="grid grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 border-b px-3 py-2 text-sm">
@@ -1503,17 +1506,17 @@ export default function AdminServices() {
                       <div className="truncate">
                         {doctorNameByCode.get(match.doctorCode) || match.doctorName || match.doctorCode}
                       </div>
-                      <div className="text-xs text-slate-500" dir="ltr">{match.doctorCode}</div>
+                      <div className="text-xs text-muted-foreground" dir="ltr">{match.doctorCode}</div>
                     </div>
                     <div className="min-w-0">
                       <div className="truncate">
                         {serviceNameByCode.get(match.serviceCode) || match.serviceName || match.serviceCode}
                       </div>
-                      <div className="text-xs text-slate-500" dir="ltr">{match.serviceCode}</div>
+                      <div className="text-xs text-muted-foreground" dir="ltr">{match.serviceCode}</div>
                     </div>
                     <div>{match.sheetType}</div>
                     <div>
-                      <Button variant="ghost" size="sm" onClick={() => removeMatch(match.id)} className="text-red-600">
+                      <Button variant="ghost" size="sm" onClick={() => removeMatch(match.id)} className="text-destructive">
                         حذف
                       </Button>
                     </div>
@@ -1532,3 +1535,4 @@ export default function AdminServices() {
     </div>
   );
 }
+

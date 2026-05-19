@@ -1,0 +1,25 @@
+{
+  "id": "54f2d888",
+  "phase": "agent_error",
+  "pageUrl": "/accounting/ledger",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "37697289",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Applied no-scrolling summary grid directly"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:29:31.960Z"
+}

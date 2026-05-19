@@ -82,10 +82,10 @@ export function evaluateMedicalReference(value: unknown, reference: MedicalRefer
 
 export function medicalReferenceClass(state: MedicalReferenceState): string {
   if (state === "low" || state === "high") {
-    return "bg-red-100 text-red-900 ring-1 ring-red-300 dark:bg-red-950/45 dark:text-red-100 dark:ring-red-800";
+    return "bg-destructive/10 text-destructive ring-1 ring-destructive/20";
   }
   if (state === "normal") {
-    return "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100";
+    return "bg-success/10 text-success";
   }
   return "";
 }

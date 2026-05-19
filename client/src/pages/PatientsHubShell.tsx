@@ -30,28 +30,28 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "قائمة المرضى",
     description: "عرض وإدارة قائمة جميع المرضى وسجلاتهم.",
     icon: Users,
-    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/patients-hub/quick",
     title: "دخول سريع",
     description: "إضافة مريض جديد أو البحث السريع عن مريض موجود.",
     icon: UserRound,
-    iconWrap: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
   {
     href: "/patients-hub/followups",
     title: "المتابعات",
     description: "تتبع حالات المتابعة والمواعيد المقبلة.",
     icon: Repeat,
-    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
+    iconWrap: "bg-primary/15 text-primary",
   },
   {
     href: "/patients-hub/visits",
     title: "الزيارات",
     description: "عرض وإدارة سجل الزيارات والمواعيد.",
     icon: CalendarCheck,
-    iconWrap: "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
 ];
 
@@ -114,7 +114,7 @@ export default function PatientsHubShell() {
                   </div>
                 </div>
                 <div className="mt-auto pt-2">
-                  <Button asChild className="w-full selrs-gradient-btn text-white hover:opacity-95 gap-2">
+                  <Button asChild className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2">
                     <Link href={mod.href}>
                       <LayoutGrid className="h-4 w-4" />
                       فتح الموديول

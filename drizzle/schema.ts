@@ -80,6 +80,37 @@ export const patientImportStaging = mysqlTable("patient_import_staging", {
 export type PatientImportStaging = typeof patientImportStaging.$inferSelect;
 export type InsertPatientImportStaging = typeof patientImportStaging.$inferInsert;
 
+export const stockItems = mysqlTable("stock_items", {
+  id: int("id").autoincrement().primaryKey(),
+  itemCode: varchar("itemCode", { length: 100 }).unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  supplier: varchar("supplier", { length: 255 }),
+  quantity: int("quantity").default(0).notNull(),
+  status: mysqlEnum("status", ["متوفر", "كمية قليلة", "نفذ المخزون"]).default("متوفر").notNull(),
+  expiryDate: date("expiryDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StockItem = typeof stockItems.$inferSelect;
+export type InsertStockItem = typeof stockItems.$inferInsert;
+
+export const stockTransactions = mysqlTable("stock_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  itemId: int("itemId").notNull(),
+  type: mysqlEnum("type", ["add", "dispense"]).notNull(),
+  quantity: int("quantity").notNull(),
+  unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }),
+  totalValue: decimal("totalValue", { precision: 10, scale: 2 }),
+  employeeName: varchar("employeeName", { length: 255 }),
+  performedBy: varchar("performedBy", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StockTransaction = typeof stockTransactions.$inferSelect;
+export type InsertStockTransaction = typeof stockTransactions.$inferInsert;
+
 /**
  * Appointments table - ط¬ط¯ظˆظ„ ط§ظ„ظ…ظˆط§ط¹ظٹط¯
  */
@@ -725,6 +756,7 @@ export const operationListItems = mysqlTable("operationListItems", {
   payment: varchar("payment", { length: 255 }),
   hospital: varchar("hospital", { length: 255 }),
   code: varchar("code", { length: 50 }),
+  notes: varchar("notes", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   listNumberIdx: index("idx_operation_list_number").on(table.listId, table.number),
@@ -886,6 +918,7 @@ export const accLoans = mysqlTable("accLoans", {
   amount: decimal("amount", { precision: 15, scale: 2 }),
   repayment: decimal("repayment", { precision: 15, scale: 2 }),
   remaining: decimal("remaining", { precision: 15, scale: 2 }),
+  total: decimal("total", { precision: 15, scale: 2 }),
   txDate: date("txDate").notNull(),
   notes: text("notes"),
   syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
@@ -903,7 +936,7 @@ export const accHome = mysqlTable("accHome", {
   syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({ uniq: index("accHome_accessId").on(t.accessId) }));
 
-export const accInstagram = mysqlTable("accInstagram", {
+export const accInstapay = mysqlTable("accInstapay", {
   id: int("id").autoincrement().primaryKey(),
   accessId: int("accessId").notNull(),
   txDate: date("txDate").notNull(),
@@ -913,7 +946,7 @@ export const accInstagram = mysqlTable("accInstagram", {
   outAmount: decimal("outAmount", { precision: 15, scale: 2 }),
   notes: varchar("notes", { length: 500 }),
   syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
-}, (t) => ({ uniq: index("accInstagram_accessId").on(t.accessId) }));
+}, (t) => ({ uniq: index("accInstapay_accessId").on(t.accessId) }));
 
 export const accEmployees = mysqlTable("accEmployees", {
   id:       int("id").autoincrement().primaryKey(),

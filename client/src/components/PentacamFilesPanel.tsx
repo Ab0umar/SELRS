@@ -240,7 +240,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                               className="h-44 w-full rounded-xl border border-border bg-muted/30 object-cover"
                               loading={index < (compact ? 6 : 12) ? "eager" : "lazy"}
                             />
-                            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 transition-opacity group-hover:opacity-100">
+                            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
                               <Eye className="h-3.5 w-3.5" />
                               معاينة
                             </div>
@@ -269,7 +269,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
               <aside className="overflow-hidden rounded-[1.5rem] border border-border bg-muted shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
                 <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Inline preview</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Inline preview</div>
                     <div className="mt-1 text-sm font-semibold text-foreground">
                       {activeImage?.fileName ?? "Pentacam image"}
                     </div>
@@ -279,6 +279,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                       type="button"
                       variant="outline"
                       size="icon"
+                      aria-label="الصورة السابقة"
                       onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
                       disabled={previewIndex <= 0}
                     >
@@ -288,6 +289,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                       type="button"
                       variant="outline"
                       size="icon"
+                      aria-label="الصورة التالية"
                       onClick={() => setPreviewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1))}
                       disabled={previewIndex >= imageFiles.length - 1}
                     >
@@ -300,11 +302,11 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                   <AuthenticatedImage
                     src={activeImage.url}
                     alt={activeImage.fileName}
-                    className="h-72 w-full object-contain bg-slate-900/95"
+                    className="h-72 w-full object-contain bg-foreground/95"
                     loading="eager"
                   />
                 ) : (
-                  <div className="flex h-72 items-center justify-center bg-slate-900/95 px-6 text-center text-sm text-slate-300">
+                  <div className="flex h-72 items-center justify-center bg-foreground/95 px-6 text-center text-sm text-muted-foreground">
                     Select an image to preview it here.
                   </div>
                 )}
@@ -312,12 +314,12 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                 <div className="space-y-3 px-4 py-4">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="rounded-2xl border border-border bg-background px-3 py-2">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Side</div>
-                      <div className="mt-1 font-medium text-slate-800">{activeImage?.side || "—"}</div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Side</div>
+                      <div className="mt-1 font-medium text-foreground">{activeImage?.side || "—"}</div>
                     </div>
                     <div className="rounded-2xl border border-border bg-background px-3 py-2">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Status</div>
-                      <div className="mt-1 font-medium text-slate-800">{activeImage?.status || "—"}</div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Status</div>
+                      <div className="mt-1 font-medium text-foreground">{activeImage?.status || "—"}</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

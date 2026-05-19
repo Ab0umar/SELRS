@@ -19,6 +19,20 @@ import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 
+const eyeGridClass =
+  "grid grid-cols-[72px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_1fr_1fr] sm:gap-3";
+const compactSelectClass =
+  "h-10 min-w-0 flex-1 text-xs text-center border-input sm:h-7 sm:w-16 sm:flex-none sm:text-[11px]";
+const mediumSelectClass =
+  "h-10 w-full text-xs text-center border-input sm:h-7 sm:w-24 sm:text-[11px]";
+const compactInputClass =
+  "h-10 min-w-0 flex-1 text-xs text-center border-input sm:h-7 sm:w-16 sm:flex-none sm:text-[11px]";
+const wideInputClass =
+  "h-10 w-full text-xs text-center border-input sm:h-7 sm:w-40 sm:text-[11px]";
+const fullInputClass =
+  "h-10 text-xs text-center border-input sm:h-7 sm:text-[11px]";
+const lensSubheadClass = "min-w-0 flex-1 text-center sm:w-16 sm:flex-none";
+
 export default function FollowupForm() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -212,19 +226,19 @@ export default function FollowupForm() {
                 {/* Auto-Air Tab */}
                 <TabsContent value="auto-air" className="mt-6">
                   <div
-                    className="max-w-4xl mx-auto space-y-4 overflow-x-auto"
+                    className="mx-auto max-w-4xl space-y-4 overflow-x-visible"
                     dir="ltr"
                   >
-                    <div className="min-w-[560px] space-y-2">
+                    <div className="w-full space-y-2">
                       {/* Header */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 text-sm font-bold">
+                      <div className={`${eyeGridClass} text-sm font-bold`}>
                         <div></div>
                         <div className="text-left pl-1">Right (OD)</div>
                         <div className="text-left pl-1">Left (OS)</div>
                       </div>
 
                       {/* UCVA */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">UCVA</div>
                         <RefractionValueSelect
                           value={examData.autorefraction.od.ucva}
@@ -238,7 +252,7 @@ export default function FollowupForm() {
                             }))
                           }
                           options={UCVA_BCVA_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                         <RefractionValueSelect
                           value={examData.autorefraction.os.ucva}
@@ -252,12 +266,12 @@ export default function FollowupForm() {
                             }))
                           }
                           options={UCVA_BCVA_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                       </div>
 
                       {/* BCVA */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">BCVA</div>
                         <RefractionValueSelect
                           value={examData.autorefraction.od.bcva}
@@ -271,7 +285,7 @@ export default function FollowupForm() {
                             }))
                           }
                           options={UCVA_BCVA_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                         <RefractionValueSelect
                           value={examData.autorefraction.os.bcva}
@@ -285,27 +299,27 @@ export default function FollowupForm() {
                             }))
                           }
                           options={UCVA_BCVA_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                       </div>
 
                       {/* Autoref Header */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">Autoref</div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
                         </div>
                       </div>
 
                       {/* Autoref Values */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div></div>
                         <div className="flex items-center gap-2">
                           <RefractionValueSelect
@@ -320,7 +334,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={examData.autorefraction.od.c}
@@ -334,7 +348,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={examData.autorefraction.od.axis}
@@ -350,7 +364,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -366,7 +380,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={examData.autorefraction.os.c}
@@ -380,7 +394,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={examData.autorefraction.os.axis}
@@ -396,28 +410,28 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                       </div>
 
                       {/* After Header */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 pt-2">
+                      <div className={`${eyeGridClass} pt-2`}>
                         <div className="text-sm font-semibold">After</div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
                         </div>
                       </div>
 
                       {/* After Values */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div></div>
                         <div className="flex items-center gap-2">
                           <RefractionValueSelect
@@ -435,7 +449,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={examData.autorefraction.od.afterC}
@@ -452,7 +466,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={examData.autorefraction.od.afterA}
@@ -468,7 +482,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -487,7 +501,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={examData.autorefraction.os.afterC}
@@ -504,7 +518,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={examData.autorefraction.os.afterA}
@@ -520,13 +534,13 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                       </div>
 
                       {/* Air Puff */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 pt-2">
+                      <div className={`${eyeGridClass} pt-2`}>
                         <div className="text-sm font-semibold">Air Puff</div>
                         <RefractionValueSelect
                           value={examData.autorefraction.od.airPuff1}
@@ -543,7 +557,7 @@ export default function FollowupForm() {
                             }))
                           }
                           options={AIR_PUFF_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                         <RefractionValueSelect
                           value={examData.autorefraction.os.airPuff1}
@@ -560,12 +574,14 @@ export default function FollowupForm() {
                             }))
                           }
                           options={AIR_PUFF_OPTIONS}
-                          triggerClassName="h-7 w-24 text-[11px] text-center border-input"
+                          triggerClassName={mediumSelectClass}
                         />
                       </div>
 
                       {/* Fundus - Optic Disc Status */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 pt-4 border-t border-border">
+                      <div
+                        className={`${eyeGridClass} pt-4 border-t border-border`}
+                      >
                         <div className="text-sm font-semibold">Fundus</div>
                         <Input
                           placeholder="Disc Status"
@@ -582,7 +598,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                         <Input
                           placeholder="Disc Status"
@@ -599,12 +615,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                       </div>
 
                       {/* Cup-to-Disc Ratio */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold text-[11px]">
                           C/D Ratio
                         </div>
@@ -623,7 +639,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                         <Input
                           placeholder="C/D"
@@ -640,12 +656,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                       </div>
 
                       {/* Macula Status */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold text-[11px]">
                           Macula
                         </div>
@@ -664,7 +680,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                         <Input
                           placeholder="Macula Status"
@@ -681,12 +697,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                       </div>
 
                       {/* Vessel Status */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold text-[11px]">
                           Vessels
                         </div>
@@ -705,7 +721,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                         <Input
                           placeholder="Vessel Status"
@@ -722,12 +738,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                       </div>
 
                       {/* Other Findings */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold text-[11px]">
                           Other
                         </div>
@@ -746,7 +762,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                         <Input
                           placeholder="Other Findings"
@@ -763,29 +779,29 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 text-[11px] text-center border-input"
+                          className={fullInputClass}
                         />
                       </div>
 
                       {/* Refraction Table Header */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 pt-4">
+                      <div className={`${eyeGridClass} pt-4`}>
                         <div className="text-sm font-semibold">Refraction</div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
-                          <span className="w-16 text-center">P.D</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
+                          <span className={lensSubheadClass}>P.D</span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className="w-16 text-center">S</span>
-                          <span className="w-16 text-center">C</span>
-                          <span className="w-16 text-center">A</span>
-                          <span className="w-16 text-center">P.D</span>
+                          <span className={lensSubheadClass}>S</span>
+                          <span className={lensSubheadClass}>C</span>
+                          <span className={lensSubheadClass}>A</span>
+                          <span className={lensSubheadClass}>P.D</span>
                         </div>
                       </div>
 
                       {/* Refraction Table Values */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div></div>
                         <div className="flex items-center gap-2">
                           <RefractionValueSelect
@@ -797,7 +813,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={refractionTableData.od.c}
@@ -808,7 +824,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={refractionTableData.od.a}
@@ -818,7 +834,7 @@ export default function FollowupForm() {
                                 od: { ...prev.od, a: e.target.value },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={refractionTableData.od.pd}
@@ -828,7 +844,7 @@ export default function FollowupForm() {
                                 od: { ...prev.od, pd: e.target.value },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -841,7 +857,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <RefractionValueSelect
                             value={refractionTableData.os.c}
@@ -852,7 +868,7 @@ export default function FollowupForm() {
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-7 w-16 text-[11px] text-center border-input"
+                            triggerClassName={compactSelectClass}
                           />
                           <Input
                             value={refractionTableData.os.a}
@@ -862,7 +878,7 @@ export default function FollowupForm() {
                                 os: { ...prev.os, a: e.target.value },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={refractionTableData.os.pd}
@@ -872,7 +888,7 @@ export default function FollowupForm() {
                                 os: { ...prev.os, pd: e.target.value },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                       </div>
@@ -883,19 +899,19 @@ export default function FollowupForm() {
                 {/* Pentacam Tab */}
                 <TabsContent value="pentacam" className="mt-6">
                   <div
-                    className="max-w-4xl mx-auto space-y-2 overflow-x-auto"
+                    className="mx-auto max-w-4xl space-y-2 overflow-x-visible"
                     dir="ltr"
                   >
-                    <div className="min-w-[560px] space-y-2">
+                    <div className="w-full space-y-2">
                       {/* Header */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3 text-sm font-bold mb-1">
+                      <div className={`${eyeGridClass} text-sm font-bold mb-1`}>
                         <div></div>
                         <div className="text-left pl-1">Right (OD)</div>
                         <div className="text-left pl-1">Left (OS)</div>
                       </div>
 
                       {/* K1/K2 */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">K1/K2</div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -912,7 +928,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={examData.pentacam.od.k2}
@@ -928,7 +944,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -946,7 +962,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={examData.pentacam.os.k2}
@@ -962,13 +978,13 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                       </div>
 
                       {/* AX1/AX2 */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">AX1/AX2</div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -985,7 +1001,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={examData.pentacam.od.ax2}
@@ -1001,7 +1017,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -1019,7 +1035,7 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                           <Input
                             value={examData.pentacam.os.ax2}
@@ -1035,13 +1051,13 @@ export default function FollowupForm() {
                                 },
                               }))
                             }
-                            className="h-7 w-16 text-[11px] text-center border-input"
+                            className={compactInputClass}
                           />
                         </div>
                       </div>
 
                       {/* Thinnest Point */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">
                           Thinnest Point
                         </div>
@@ -1059,7 +1075,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                         <Input
                           value={examData.pentacam.os.thinnest}
@@ -1075,12 +1091,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                       </div>
 
                       {/* Corneal Apex */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">
                           Corneal Apex
                         </div>
@@ -1098,7 +1114,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                         <Input
                           value={examData.pentacam.os.apex}
@@ -1114,12 +1130,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                       </div>
 
                       {/* Residual Stroma */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">
                           Residual Stroma
                         </div>
@@ -1137,7 +1153,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                         <Input
                           value={examData.pentacam.os.residual}
@@ -1153,12 +1169,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                       </div>
 
                       {/* Planned TTT */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">Planned TTT</div>
                         <Input
                           value={examData.pentacam.od.ttt}
@@ -1174,7 +1190,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                         <Input
                           value={examData.pentacam.os.ttt}
@@ -1190,12 +1206,12 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                       </div>
 
                       {/* Ablation */}
-                      <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+                      <div className={eyeGridClass}>
                         <div className="text-sm font-semibold">Ablation</div>
                         <Input
                           value={examData.pentacam.od.ablation}
@@ -1211,7 +1227,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                         <Input
                           value={examData.pentacam.os.ablation}
@@ -1227,7 +1243,7 @@ export default function FollowupForm() {
                               },
                             }))
                           }
-                          className="h-7 w-40 text-[11px] text-center border-input"
+                          className={wideInputClass}
                         />
                       </div>
                     </div>
@@ -1262,7 +1278,7 @@ export default function FollowupForm() {
                 <h3 className="mb-2 font-semibold text-foreground">
                   اختر مريضاً
                 </h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   اختر مريضاً من الجانب الأيمن لإدخال متابعته
                 </p>
               </div>

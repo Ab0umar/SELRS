@@ -285,7 +285,7 @@ export default function ReceiptsInquiry() {
               />
             </label>
             {dateError && (
-              <p className="text-[11px] text-red-500 md:col-span-2">
+              <p className="text-[11px] text-destructive md:col-span-2">
                 {dateError}
               </p>
             )}
@@ -516,25 +516,25 @@ export default function ReceiptsInquiry() {
                           receiptDetailUrl(row.sectionCode, row.trTy, row.trNo),
                         )
                       }
-                      className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-blue-50/60"
+                      className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-primary/50"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-muted-foreground">
                             {formatDateAr(row.transactionDate)}
                           </div>
                           <div className="mt-1 text-sm font-semibold text-foreground">
                             {row.patientName ?? "—"}
                           </div>
                         </div>
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        <span className="rounded-full bg-primary text-primary-foreground">
                           {toArabicDigits(row.trNo)}
                         </span>
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-muted-foreground">
                             النوع
                           </div>
                           <div className="mt-1 font-semibold text-foreground">
@@ -542,24 +542,24 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-muted-foreground">
                             الإجمالي
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {formatMoneyAr(row.total)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-rose-50 px-3 py-2">
-                          <div className="text-[10px] text-rose-700">الخصم</div>
-                          <div className="mt-1 font-semibold tabular-nums text-rose-700">
+                        <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                          <div className="text-[10px] text-destructive">الخصم</div>
+                          <div className="mt-1 font-semibold tabular-nums text-destructive">
                             {formatMoneyAr(row.discount)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">
+                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">
                             المدفوع
                           </div>
-                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                          <div className="mt-1 font-semibold tabular-nums text-success">
                             {formatMoneyAr(row.paidValue)}
                           </div>
                         </div>
@@ -590,9 +590,10 @@ export default function ReceiptsInquiry() {
                       {rows.map((row) => (
                         <tr
                           key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
                           tabIndex={0}
                           role="button"
+                          aria-label={`إيصال رقم ${row.trNo}، ${trTyLabel(row.trTy)}، المريض ${row.patientName ?? "غير معروف"}، ${formatDateAr(row.transactionDate)}، المدفوع ${formatMoneyAr(row.paidValue)}`}
                           onClick={() =>
                             setLocation(
                               receiptDetailUrl(
@@ -658,7 +659,7 @@ export default function ReceiptsInquiry() {
             {!receiptsQuery.isLoading &&
               !receiptsQuery.isError &&
               rows.length >= 500 && (
-                <div className="px-4 py-2 text-[11px] text-amber-600 bg-amber-50 border-t border-border/30 mt-2">
+                <div className="px-4 py-2 text-[11px] text-warning bg-warning/10 border-t border-border/30 mt-2">
                   قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
                 </div>
               )}

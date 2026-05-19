@@ -521,7 +521,7 @@ export default function PatientSummary() {
                   "border-s-2 px-4 py-2 text-right text-sm transition-colors",
                   activeSection === s.id
                     ? "border-s-info bg-info/10 font-semibold text-info"
-                    : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
                 )}
               >
                 {s.label}
@@ -708,7 +708,7 @@ export default function PatientSummary() {
                     {Array.from(visitsByDate.entries()).map(([date, visits]) => (
                       <div key={date}>
                         <div className="mb-2 flex items-center gap-2">
-                          <span className="rounded bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                          <span className="rounded bg-muted text-muted-foreground">
                             {date}
                           </span>
                           <span className="text-xs text-muted-foreground">({visits.length})</span>

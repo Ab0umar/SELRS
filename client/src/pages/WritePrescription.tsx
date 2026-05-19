@@ -1015,8 +1015,7 @@ export default function WritePrescription({
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                      size="icon-sm"
                       onClick={() => setMedicationsOpen((prev) => !prev)}
                       title={medicationsOpen ? "إخفاء الأدوية" : "عرض الأدوية"}
                       aria-label={medicationsOpen ? "إخفاء الأدوية" : "عرض الأدوية"}
@@ -1308,7 +1307,7 @@ export default function WritePrescription({
                               className="min-h-12 text-center w-full print:hidden"
                             />
                           </div>
-                          <Button size="icon" variant="destructive" onClick={() => handleRemoveItem(item.id)} className="print:hidden">
+                          <Button size="icon" variant="destructive" onClick={() => handleRemoveItem(item.id)} className="print:hidden" aria-label="حذف">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1449,6 +1448,7 @@ export default function WritePrescription({
           height: 14px;
         }
           @media print {
+            /* print fidelity: black ink, white paper for physical output */
             .prescription-root,
             .prescription-root * {
               color: #000 !important;

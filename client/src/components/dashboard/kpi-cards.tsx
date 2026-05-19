@@ -17,10 +17,10 @@ import { trpc } from '@/lib/trpc'
 import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
 
 const iconBgMap = {
-  users: 'bg-primary/10 text-primary',
-  calendar: 'bg-warning/15 text-warning',
-  heart: 'bg-secondary/15 text-secondary',
-  stethoscope: 'bg-primary/8 text-primary/80',
+  users: 'bg-primary text-primary-foreground',
+  calendar: 'bg-warning text-warning-foreground',
+  heart: 'bg-secondary text-secondary-foreground',
+  stethoscope: 'bg-primary text-primary-foreground/80',
 } as const
 
 type IconKey = keyof typeof iconBgMap

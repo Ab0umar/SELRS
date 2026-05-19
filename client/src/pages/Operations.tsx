@@ -64,9 +64,11 @@ export default function Operations() {
         historySearch={operations.historySearch}
         onHistorySearchChange={operations.setHistorySearch}
         activeTab={operations.activeTab}
+        listDate={String(operations.listDate)}
         historyQuery={operations.historyQuery}
+        operationBookings={operations.operationBookingsQuery.data ?? []}
         onLoadListById={actions.handleLoadListById}
-      onDeleteListById={(args) => actions.deleteListByIdMutation.mutate(args)}
+        onDeleteListById={(args) => actions.deleteListByIdMutation.mutate(args)}
         canManageList={operations.canManageList}
         tabLabelByKey={operations.tabLabelByKey}
       />
@@ -91,7 +93,7 @@ export default function Operations() {
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Syringe className="h-5 w-5" aria-hidden />
           </div>
           <div className="min-w-0">
@@ -178,19 +180,19 @@ export default function Operations() {
                                     {delConfirm === booking.id ? (
                                       <div className="flex items-center gap-1">
                                         <button type="button" aria-label="تأكيد الحذف"
-                                          className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                          className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                           onClick={() => { deleteBookingMutation.mutate({ id: booking.id }); setDelConfirm(null); }}>
                                           تأكيد
                                         </button>
                                         <button type="button" aria-label="إلغاء الحذف"
-                                          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                          className="rounded bg-muted text-muted-foreground hover:bg-border"
                                           onClick={() => setDelConfirm(null)}>
                                           ✕
                                         </button>
                                       </div>
                                     ) : (
                                       <button type="button" aria-label="حذف الحجز"
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                         disabled={deleteBookingMutation.isPending}
                                         onClick={() => setDelConfirm(booking.id)}>
                                         <Trash2 className="h-3.5 w-3.5" />

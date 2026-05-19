@@ -100,7 +100,7 @@ export default function AdminSheets() {
         />
         <Button
           type="button"
-          className="selrs-gradient-btn shrink-0 gap-2 self-start text-white sm:mt-1"
+          className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
           onClick={() => setLocation("/sheet-designer")}
         >
           <Plus className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function AdminSheets() {
               variant={statusFilter === opt.value ? "default" : "outline"}
               className={cn(
                 "rounded-full px-4",
-                statusFilter === opt.value ? "selrs-gradient-btn border-0 text-white" : "border-border/80",
+                statusFilter === opt.value ? "selrs-gradient-btn border-0 text-primary-foreground" : "border-border/80",
               )}
               onClick={() => setStatusFilter(opt.value === "all" ? "all" : opt.value)}
             >
@@ -150,7 +150,7 @@ export default function AdminSheets() {
                   className={cn(
                     "font-semibold",
                     sheet.status === "approved"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                      ? "border-success/30 bg-success/10 text-success"
                       : "border-border bg-muted text-muted-foreground",
                   )}
                   variant="outline"
@@ -183,8 +183,9 @@ export default function AdminSheets() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="h-9 w-9 text-destructive-foreground bg-destructive text-destructive-foreground"
                   title="حذف غير متاح للقوالب"
+                  aria-label="حذف غير متاح للقوالب"
                   onClick={() => toast.message("قوالب النظام ثابتة — لا يمكن حذفها من هنا.")}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -209,7 +210,7 @@ export default function AdminSheets() {
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  className="flex-1 selrs-gradient-btn text-sm text-white"
+                  className="flex-1 selrs-gradient-btn text-sm text-primary-foreground"
                   disabled={!patientId}
                   onClick={() => {
                     if (!patientId) return;
@@ -221,7 +222,7 @@ export default function AdminSheets() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 rounded-lg border-amber-200 bg-amber-50 text-amber-900 hover:border-amber-300 hover:bg-amber-100 dark:text-amber-950"
+                  className="flex-1 rounded-lg border-warning/50 bg-warning/10 text-warning hover:border-warning hover:bg-warning/20"
                   disabled={!patientId}
                   onClick={() => {
                     if (!patientId) return;

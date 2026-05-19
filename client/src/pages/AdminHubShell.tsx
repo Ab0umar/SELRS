@@ -61,126 +61,126 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "الصلاحيات",
     description: "تحديد صلاحيات الوصول للأدوار المختلفة.",
     icon: Shield,
-    iconWrap: "bg-violet-50 text-violet-600",
+    iconWrap: "bg-secondary/[0.07] text-secondary",
   },
   {
     href: "/admin-hub/doctors",
     title: "إدارة الأطباء",
     description: "تنظيم قائمة الأطباء والتخصصات.",
     icon: Stethoscope,
-    iconWrap: "bg-emerald-50 text-emerald-600",
+    iconWrap: "bg-success/10 text-success",
   },
   {
     href: "/admin-hub/users",
     title: "إدارة المستخدمين",
     description: "إضافة وتعديل بيانات الموظفين والمستخدمين.",
     icon: Users,
-    iconWrap: "bg-sky-50 text-sky-700",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/admin-hub/status",
     title: "حالة النظام",
     description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
     icon: Terminal,
-    iconWrap: "bg-cyan-50 text-cyan-700",
+    iconWrap: "bg-primary/[0.07] text-primary",
   },
   {
     href: "/admin-hub/migrations",
     title: "ترحيل البيانات",
     description: "تطبيق ترحيلات Drizzle وأدوات الصيانة.",
     icon: Database,
-    iconWrap: "bg-orange-50 text-orange-700",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/admin-hub/services",
     title: "الخدمات والأسعار",
     description: "إدارة قائمة الخدمات الطبية ومطابقة الأطباء.",
     icon: HeartPulse,
-    iconWrap: "bg-pink-50 text-pink-700",
+    iconWrap: "bg-secondary/[0.07] text-secondary",
   },
   { 
     href: "/admin-hub/data-source-audit", 
     title: "تدقيق مصدر البيانات",
     description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
     icon: FileSearch,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/settings", 
     title: "الإعدادات العامة",
     description: "ضبط إعدادات النظام والتسعير.",
     icon: Settings,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/api-tools", 
     title: "أدوات API",
     description: "أدوات للمطورين لفحص tRPC.",
     icon: Plug,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/tests", 
     title: "التحاليل",
     description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
     icon: TestTube2,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/card-visibility", 
     title: "ظهور الكروت",
     description: "التحكم في الكروت التي تظهر في الداشبورد.",
     icon: Eye,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/notifications", 
     title: "إخطارات التطبيق",
     description: "إدارة إعدادات الإخطارات داخل التطبيق.",
     icon: Bell,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   { 
     href: "/admin-hub/forms", 
     title: "مركز النماذج",
     description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
     icon: Layers,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   {
     href: "/admin-hub/pentacam-failed",
     title: "بنتاكام الفاشل",
     description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
     icon: Scan,
-    iconWrap: "bg-muted text-foreground",
+    iconWrap: "bg-muted text-muted-foreground",
   },
   {
     href: "/admin-hub/patients",
     title: "إدارة المرضى",
     description: "مراجعة بيانات المرضى والمزامنة مع النظام.",
     icon: UserCheck,
-    iconWrap: "bg-blue-50 text-blue-600",
+    iconWrap: "bg-primary text-primary-foreground",
   },
   {
     href: "/admin-hub/sheets",
     title: "الشيتات",
     description: "إدارة الشيتات الطبية المتاحة في النظام.",
     icon: Layers,
-    iconWrap: "bg-indigo-50 text-indigo-600",
+    iconWrap: "bg-primary/[0.07] text-primary",
   },
   {
     href: "/admin-hub/sheet-designer",
     title: "مصمم الشيتات",
     description: "تصميم وتخصيص قوالب الشيتات الطبية.",
     icon: PenSquare,
-    iconWrap: "bg-indigo-50 text-indigo-700",
+    iconWrap: "bg-primary/[0.07] text-primary",
   },
   {
     href: "/admin-hub/sheet-copies",
     title: "نسخ الشيتات",
     description: "إدارة ونسخ الشيتات المحفوظة للمرضى.",
     icon: Copy,
-    iconWrap: "bg-indigo-50 text-indigo-500",
+    iconWrap: "bg-primary/[0.07] text-primary",
   },
 ];
 
@@ -252,18 +252,18 @@ export default function AdminHubShell() {
 
       {/* Critical Actions Tier */}
       <Link href="/admin-hub/diagnostics">
-        <Card className="group relative overflow-hidden border-emerald-200/60 bg-emerald-50/40 transition-all hover:border-emerald-300 hover:bg-emerald-50/60 active:scale-[0.99]">
+        <Card className="group relative overflow-hidden border-success/30/60 bg-success/10/40 transition-all hover:border-success/40 hover:bg-success/10/60 active:scale-[0.99]">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4 text-right">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-transform group-hover:scale-110">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/15 text-success transition-transform group-hover:scale-110">
                 <Wrench className="h-5 w-5" />
               </div>
               <div className="space-y-0.5">
-                <div className="font-bold text-emerald-900">التشخيص والإصلاح</div>
-                <p className="text-xs text-emerald-800/70">أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.</p>
+                <div className="font-bold text-foreground">التشخيص والإصلاح</div>
+                <p className="text-xs text-success/70">أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.</p>
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 text-emerald-400 rotate-180 transition-transform group-hover:-translate-x-1" />
+            <ArrowRight className="h-4 w-4 text-success/70 rotate-180 transition-transform group-hover:-translate-x-1" />
           </CardContent>
         </Card>
       </Link>

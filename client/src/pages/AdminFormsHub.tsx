@@ -10,21 +10,21 @@ const FORM_MODULES = [
     title: "النماذج",
     description: "إدارة وعرض جميع نماذج المرضى المسجلة.",
     icon: FileText,
-    iconWrap: "bg-sky-50 text-sky-700",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/admin-hub/sheet-designer",
     title: "مصمم النماذج",
     description: "تخصيص وتصميم حقول وبيانات النماذج الطبية.",
     icon: PenSquare,
-    iconWrap: "bg-amber-50 text-amber-700",
+    iconWrap: "bg-warning/10 text-warning/90",
   },
   {
     href: "/admin-hub/sheet-copies",
     title: "نسخ النماذج",
     description: "أداة لنسخ بيانات النماذج بين المرضى.",
     icon: Copy,
-    iconWrap: "bg-violet-50 text-violet-600",
+    iconWrap: "bg-secondary/[0.07] text-secondary",
   },
 ];
 

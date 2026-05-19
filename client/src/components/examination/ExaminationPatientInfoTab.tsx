@@ -88,7 +88,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
               <Badge variant={!patientInfo.id ? "warning" : "default"} className="px-2 py-0.5 text-[10px] uppercase font-bold">
                 {!patientInfo.id ? "تسجيل جديد" : "ملف حالي"}
               </Badge>
-              <h2 className={cn("text-lg font-bold whitespace-nowrap", !patientInfo.id ? "text-orange-600" : "text-blue-600")}>
+              <h2 className={cn("text-lg font-bold whitespace-nowrap", !patientInfo.id ? "text-secondary" : "text-primary")}>
                 {!patientInfo.id ? "مريض جديد" : patientInfo.name}
               </h2>
             </div>
@@ -104,14 +104,14 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                   onChange={(e) => setVisitDate(e.target.value)}
                   className="text-xs border h-8 px-2 w-32"
                 />
-                <label className="flex items-center gap-2 cursor-pointer rounded-md border border-amber-200 bg-amber-50/30 px-3 py-1.5 h-8">
+                <label className="flex items-center gap-2 cursor-pointer rounded-md border border-warning/50 bg-warning/10/30 px-3 py-1.5 h-8">
                   <Checkbox
                     checked={isFollowup}
                     onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
                     id="followup-main"
-                    className="h-4 w-4 border-amber-600 data-[state=checked]:bg-amber-600"
+                    className="h-4 w-4 border-warning data-[state=checked]:bg-warning"
                   />
-                  <span className="text-[11px] font-bold text-amber-900">متابعة</span>
+                  <span className="text-[11px] font-bold text-warning">متابعة</span>
                 </label>
               </div>
             </div>
@@ -198,11 +198,11 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
             </div>
 
             {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
-            <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100 space-y-3 order-2 h-full flex flex-col">
+            <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-blue-900">الطبيب المعالج</Label>
+                <Label className="font-bold text-[11px] text-primary">الطبيب المعالج</Label>
                 <Select value={doctorName || ""} onValueChange={(name) => setDoctorName(name)}>
-                  <SelectTrigger className="h-9 bg-background border-blue-200 text-xs">
+                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
                     <SelectValue placeholder="اختر الطبيب" />
                   </SelectTrigger>
                   <SelectContent>
@@ -216,13 +216,13 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
               </div>
 
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                <div className="flex items-center justify-between sticky top-0 bg-blue-50/40 z-10 py-1">
-                   <Label className="font-bold text-[11px] text-blue-900">الخدمات المطلوبة</Label>
+                <div className="flex items-center justify-between sticky top-0 bg-primary/40 z-10 py-1">
+                   <Label className="font-bold text-[11px] text-primary">الخدمات المطلوبة</Label>
                    <Button 
                     type="button" 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 text-[10px] text-blue-700 hover:text-blue-800 hover:bg-blue-100/50"
+                    className="h-6 text-[10px] text-card-foreground hover:text-primary hover:bg-primary/50"
                     onClick={addService}
                    >
                      + إضافة خدمة
@@ -231,7 +231,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
 
                 <div className="space-y-2">
                   {services.map((srv, idx) => (
-                    <div key={idx} className="bg-background p-2 rounded-lg border border-blue-100 shadow-sm space-y-1.5 relative group">
+                    <div key={idx} className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group">
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <SearchableCombobox
@@ -260,7 +260,8 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+                            className="h-8 w-8 text-destructive/60 hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground shrink-0"
+                            aria-label="حذف الخدمة"
                             onClick={() => removeService(idx)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -275,7 +276,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                             type="number"
                             value={srv.qty || "1"}
                             onChange={(e) => updateService(idx, { qty: e.target.value })}
-                            className="h-7 border-blue-100 text-center font-bold text-[11px]"
+                            className="h-7 border-primary/20 text-center font-bold text-[11px]"
                             min="1"
                           />
                         </div>
@@ -286,7 +287,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                             min="0"
                             value={srv.price}
                             onChange={(e) => updateService(idx, { price: Math.max(0, Number(e.target.value) || 0) })}
-                            className="h-7 border-blue-100 text-center font-bold text-[11px]"
+                            className="h-7 border-primary/20 text-center font-bold text-[11px]"
                           />
                         </div>
                         <div>
@@ -301,7 +302,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                               const total = srv.price * (Number(srv.qty) || 1);
                               updateService(idx, { discount: Math.min(value, total) });
                             }}
-                            className="h-7 border-blue-100 text-center font-bold text-[11px] text-red-600"
+                            className="h-7 border-primary/20 text-center font-bold text-[11px] text-destructive"
                           />
                         </div>
                       </div>
@@ -310,10 +311,10 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                 </div>
               </div>
 
-              <div className="mt-auto pt-3 border-t border-blue-100 flex items-center justify-between">
+              <div className="mt-auto pt-3 border-t border-primary/20 flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="font-bold text-[11px] text-emerald-900 block">المطلوب تحصيله</Label>
-                  <div className="text-2xl font-black text-emerald-600 tabular-nums">
+                  <Label className="font-bold text-[11px] text-foreground block">المطلوب تحصيله</Label>
+                  <div className="text-2xl font-black text-success tabular-nums">
                     <span className="text-[10px] font-normal opacity-60 ml-1">EGP</span>
                     {patientShare.toFixed(2)}
                   </div>

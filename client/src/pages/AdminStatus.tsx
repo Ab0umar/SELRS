@@ -248,28 +248,28 @@ export default function AdminStatus() {
           title="خادم التطبيق"
           value={opsHealthQuery.isLoading ? "…" : serverOk ? "متصل" : "غير متصل"}
           icon={Server}
-          iconColor={serverOk ? "bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100" : "bg-destructive/10 text-destructive"}
+          iconColor={serverOk ? "bg-success/10 text-success shadow-sm shadow-success/15" : "bg-destructive text-destructive-foreground"}
           description={health?.env ? `البيئة: ${health.env}` : "جاري التحقق…"}
         />
         <StatCard
           title="سرعة الاستجابة"
           value={healthLatencyMs != null ? `${healthLatencyMs} ms` : "—"}
           icon={Timer}
-          iconColor="bg-sky-50 text-sky-600 shadow-sm shadow-sky-100"
+          iconColor="bg-primary/10 text-primary shadow-sm shadow-primary/10"
           description="زمن جولة المتصفح"
         />
         <StatCard
           title="قاعدة البيانات"
           value={opsHealthQuery.isLoading ? "…" : dbOk ? "مستقرة" : "خطأ اتصال"}
           icon={Database}
-          iconColor={dbOk ? "bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100" : "bg-destructive/10 text-destructive"}
+          iconColor={dbOk ? "bg-success/10 text-success shadow-sm shadow-success/15" : "bg-destructive text-destructive-foreground"}
           description={health?.patientsCount != null ? `السجلات: ${health.patientsCount}` : "لا توجد بيانات"}
         />
         <StatCard
           title="النسخ الاحتياطي"
           value={backupOk ? "مفعل" : "معطل"}
           icon={HardDrive}
-          iconColor={backupOk ? "bg-amber-50 text-amber-700 shadow-sm shadow-amber-100" : "bg-muted text-muted-foreground"}
+          iconColor={backupOk ? "bg-warning/10 text-warning/90 shadow-sm shadow-warning/15" : "bg-muted text-muted-foreground"}
           description={health?.latestBackupAt ? "تتوفر نسخ حديثة" : "يتطلب فحص يدوي"}
         />
       </div>
@@ -313,7 +313,7 @@ export default function AdminStatus() {
               ].map((s) => (
                 <div key={s.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={cn("p-2 rounded-lg bg-background shadow-sm border", s.ok ? "text-emerald-600 border-emerald-100" : "text-destructive border-destructive/20")}>
+                    <div className={cn("p-2 rounded-lg bg-background shadow-sm border", s.ok ? "text-success border-success/20" : "text-destructive border-destructive/20")}>
                       {s.ok ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                     </div>
                     <div>
@@ -336,17 +336,17 @@ export default function AdminStatus() {
           <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
             <CardHeader className="border-b bg-muted/5 py-4">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Timer className="h-4 w-4 text-sky-600" />
+                <Timer className="h-4 w-4 text-primary" />
                 سجل مختصر للأحداث
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table dir="rtl" className="text-right">
-                <TableHeader className="bg-sky-50/50">
+                <TableHeader className="bg-primary/5">
                   <TableRow className="hover:bg-transparent h-10">
-                    <TableHead className="text-right font-bold text-sky-900 text-xs">التوقيت</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900 text-xs">الحدث</TableHead>
-                    <TableHead className="text-center font-bold text-sky-900 text-xs w-24">الحالة</TableHead>
+                    <TableHead className="text-right font-bold text-primary text-xs">التوقيت</TableHead>
+                    <TableHead className="text-right font-bold text-primary text-xs">الحدث</TableHead>
+                    <TableHead className="text-center font-bold text-primary text-xs w-24">الحالة</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -423,7 +423,7 @@ export default function AdminStatus() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-9 text-xs font-bold border-dashed text-amber-800 border-amber-200 bg-amber-50 hover:bg-amber-100"
+                className="w-full h-9 text-xs font-bold border-dashed text-warning border-warning/50 bg-warning/10 hover:bg-warning/20"
                 onClick={() => void resetAppCache()}
               >
                 إعادة ضبط ذاكرة الكاش

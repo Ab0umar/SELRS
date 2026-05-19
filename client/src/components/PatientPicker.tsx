@@ -99,7 +99,7 @@ export default function PatientPicker({
     <div className="space-y-2">
       <label className="block text-sm font-medium hidden">{label}</label>
       <div className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}>
-        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-slate-400">
+        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-muted-foreground">
           <Search className="h-4 w-4" />
         </div>
         <Input

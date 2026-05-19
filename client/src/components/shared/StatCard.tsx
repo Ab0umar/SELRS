@@ -16,7 +16,7 @@ interface StatCardProps {
   trend?: { value: number; positive: boolean } | "up" | "down";
   change?: string;
   description?: string;
-  /** Muted by default; use e.g. text-emerald-600 for emphasis */
+  /** Muted by default; use e.g. text-success for emphasis */
   descriptionClassName?: string;
   className?: string;
 }
@@ -57,7 +57,7 @@ export function StatCard({
           <div
             className={cn(
               "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8",
-              iconColor || "bg-primary/10 text-primary",
+              iconColor || "bg-primary text-primary-foreground",
             )}
           >
             {IconComponent ? <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : (icon as ReactNode)}
@@ -71,7 +71,7 @@ export function StatCard({
             <div
               className={cn(
                 "flex items-center gap-0.5 text-[10px] font-semibold",
-                trendDir === "up" ? "text-secondary dark:text-secondary" : "text-red-600 dark:text-red-400",
+                trendDir === "up" ? "text-secondary" : "text-destructive",
               )}
             >
               {trendDir === "up" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}

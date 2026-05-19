@@ -288,7 +288,7 @@ export default function AdminSheetDesigner() {
         />
         <Button
           type="button"
-          className="selrs-gradient-btn shrink-0 gap-2 self-start text-white sm:mt-1"
+          className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
           onClick={() => setLocation("/medical-sheets")}
         >
           <Plus className="h-4 w-4" />
@@ -355,7 +355,7 @@ export default function AdminSheetDesigner() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button className="selrs-gradient-btn text-white hover:opacity-95" onClick={handleSave} disabled={updateSettingMutation.isPending}>
+          <Button className="selrs-gradient-btn text-primary-foreground hover:opacity-95" onClick={handleSave} disabled={updateSettingMutation.isPending}>
             {updateSettingMutation.isPending ? "جاري الحفظ…" : "حفظ الكل"}
           </Button>
           <Button variant="outline" onClick={handleReset} disabled={updateSettingMutation.isPending}>

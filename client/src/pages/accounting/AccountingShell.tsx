@@ -42,8 +42,8 @@ export default function AccountingShell({ children }: { children: ReactNode }) {
                   "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-medium transition-colors",
                   iconOnly ? "w-10 px-0" : "px-3",
                   active
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted",
+                    ? "border-primary/30 bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground bg-muted",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -53,7 +53,7 @@ export default function AccountingShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-5">
+      <main className="mx-auto max-w-7xl px-4 py-4 pb-[env(safe-area-inset-bottom)] lg:px-6 lg:py-5">
         {children}
       </main>
     </div>

@@ -369,8 +369,8 @@ export default function Dashboard() {
                     className={cn(
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
                       isAccent
-                        ? 'bg-primary/12 text-primary'
-                        : 'bg-primary/8 text-primary/70'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-primary text-primary-foreground/70'
                     )}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
@@ -414,7 +414,7 @@ export default function Dashboard() {
                 className={cn(
                   'h-full rounded-full transition-all duration-500',
                   completionRate >= 80
-                    ? 'bg-emerald-500'
+                    ? 'bg-success/100'
                     : completionRate >= 50
                       ? 'bg-primary'
                       : 'bg-secondary'

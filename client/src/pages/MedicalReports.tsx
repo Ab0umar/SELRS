@@ -101,11 +101,11 @@ function typeLabel(cat: Exclude<MedicalReportCategory, "all">) {
 
 function typeBadgeClass(cat: Exclude<MedicalReportCategory, "all">) {
   const m: Record<string, string> = {
-    labs: "bg-violet-100 text-violet-800 border-0 dark:bg-violet-950/60 dark:text-violet-300",
-    xrays: "bg-sky-100 text-sky-800 border-0 dark:bg-sky-950/60 dark:text-sky-300",
-    images: "bg-teal-100 text-teal-800 border-0 dark:bg-teal-950/60 dark:text-teal-300",
-    consult: "bg-amber-100 text-amber-900 border-0 dark:bg-amber-950/50 dark:text-amber-200",
-    discharge: "bg-rose-100 text-rose-800 border-0 dark:bg-rose-950/60 dark:text-rose-300",
+    labs: "bg-secondary/15 text-secondary border-0",
+    xrays: "bg-primary/10 text-primary border-0",
+    images: "bg-success/15 text-success border-0",
+    consult: "bg-warning/20 text-warning border-0",
+    discharge: "bg-destructive/10 text-destructive border-0",
   };
   return m[cat] ?? "bg-muted text-muted-foreground border-0";
 }
@@ -127,9 +127,9 @@ function statusLabel(st: ReturnType<typeof deriveReportStatus>) {
 }
 
 function statusTone(st: ReturnType<typeof deriveReportStatus>) {
-  if (st === "final") return "text-emerald-700 dark:text-emerald-400 font-semibold";
-  if (st === "review") return "text-sky-700 dark:text-sky-400 font-semibold";
-  return "text-amber-700 dark:text-amber-400 font-semibold";
+  if (st === "final") return "text-success font-semibold";
+  if (st === "review") return "text-primary font-semibold";
+  return "text-warning/90 font-semibold";
 }
 
 function overviewReportTitleSnippet(row: Record<string, unknown>) {
@@ -905,37 +905,37 @@ export default function MedicalReports() {
             title="إجمالي التقارير"
             value={overviewStats.total}
             icon={ClipboardList}
-            iconColor="bg-primary/10 text-primary"
+            iconColor="bg-primary text-primary-foreground"
           />
           <StatCard
             title="تحاليل"
             value={overviewStats.labs}
             icon={FlaskConical}
-            iconColor="bg-violet-100 text-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
+            iconColor="bg-secondary/15 text-secondary"
           />
           <StatCard
             title="أشعة"
             value={overviewStats.xrays}
             icon={Scan}
-            iconColor="bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300"
+            iconColor="bg-primary/10 text-primary"
           />
           <StatCard
             title="صور"
             value={overviewStats.images}
             icon={ImageLucide}
-            iconColor="bg-teal-100 text-teal-600 dark:bg-teal-950/60 dark:text-teal-300"
+            iconColor="bg-success/15 text-success"
           />
           <StatCard
             title="استشارة"
             value={overviewStats.consult}
             icon={MessageSquare}
-            iconColor="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+            iconColor="bg-warning/20 text-warning"
           />
           <StatCard
             title="خروج"
             value={overviewStats.discharge}
             icon={DoorOpen}
-            iconColor="bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+            iconColor="bg-destructive/10 text-destructive"
           />
         </div>
 
@@ -1035,19 +1035,19 @@ export default function MedicalReports() {
                               delConfirm === Number(row.id) ? (
                                 <div className="flex items-center gap-1">
                                   <button type="button" aria-label="تأكيد الحذف"
-                                    className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                    className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                     onClick={() => { void handleDeleteReport(Number(row.id)); setDelConfirm(null); }}>
                                     تأكيد
                                   </button>
                                   <button type="button" aria-label="إلغاء الحذف"
-                                    className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                    className="rounded bg-muted text-muted-foreground hover:bg-border"
                                     onClick={() => setDelConfirm(null)}>
                                     ✕
                                   </button>
                                 </div>
                               ) : (
                                 <button type="button" aria-label="حذف التقرير"
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                   onClick={() => setDelConfirm(Number(row.id))}>
                                   <Trash2 className="h-4 w-4" />
                                 </button>

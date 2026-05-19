@@ -59,22 +59,22 @@ const STAGE_META: Record<
   next: {
     label: "التالي",
     icon: ArrowUpRight,
-    tone: "text-warning",
-    softTone: "bg-warning/10 text-warning",
+    tone: "text-card-foreground",
+    softTone: "bg-warning text-warning-foreground",
     accent: "border-warning/35 bg-warning/5",
   },
   clinic: {
     label: "عيادة",
     icon: Stethoscope,
-    tone: "text-primary",
-    softTone: "bg-primary/10 text-primary",
+    tone: "text-card-foreground",
+    softTone: "bg-primary text-primary-foreground",
     accent: "border-primary/30 bg-primary/5",
   },
   treated: {
     label: "معالج",
     icon: CheckCircle2,
-    tone: "text-success",
-    softTone: "bg-success/10 text-success",
+    tone: "text-card-foreground",
+    softTone: "bg-success text-success-foreground",
     accent: "border-success/30 bg-success/5",
   },
 };
@@ -256,7 +256,7 @@ function CompactPatientCard({
             size="sm"
             disabled={markingThis}
             aria-label={`تسجيل ${getPatientLabel(patient)} كمعالج`}
-            className="h-7 gap-1.5 border-success/30 bg-success/10 px-2.5 text-[11px] text-success hover:bg-success/15"
+            className="h-7 gap-1.5 border-success/30 bg-success text-success-foreground hover:bg-success/15"
             onClick={(e) => {
               e.stopPropagation();
               if (visitId != null) onMarkVisitTreated(visitId);
@@ -347,7 +347,7 @@ function GridPatientCard({
               size="sm"
               disabled={markingThis}
               aria-label={`تسجيل ${getPatientLabel(patient)} كمعالج`}
-              className="h-11 w-11 shrink-0 border-success/30 bg-success/10 p-0 text-success hover:border-success/50 hover:bg-success/15"
+              className="h-11 w-11 shrink-0 border-success/30 bg-success text-success-foreground hover:border-success/50 hover:bg-success/15"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -394,7 +394,7 @@ function BookingRequestCard({
   return (
     <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-right shadow-sm">
       <div className="flex items-start gap-3">
-        <label className="mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-warning transition-colors hover:bg-warning/10">
+        <label className="mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-card-foreground transition-colors hover:bg-warning/10">
           <input
             type="checkbox"
             className="h-4 w-4 accent-primary"
@@ -736,7 +736,7 @@ export function TodayBottleneckBoard({
               className={cn(
                 "text-[10px] font-semibold tabular-nums",
                 isHistoricalDate
-                  ? "border-warning/30 bg-warning/10 text-warning"
+                  ? "border-warning/30 bg-warning text-warning-foreground"
                   : "bg-muted/70 text-muted-foreground",
               )}
             >
@@ -935,7 +935,7 @@ export function TodayBottleneckBoard({
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
                       active
                         ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        : "border-border bg-card text-foreground",
                     )}
                   >
                     {label}{" "}
@@ -1014,7 +1014,7 @@ export function TodayBottleneckBoard({
             </div>
           ) : todayOperationListsQuery.isError ? (
             <div
-              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-12 text-center text-sm text-destructive"
+              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive text-destructive-foreground"
               role="alert"
             >
               {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}

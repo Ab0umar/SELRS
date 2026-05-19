@@ -548,12 +548,12 @@ export default function RefractionPage() {
               className="refraction-print-card w-full max-w-full overflow-x-auto bg-background text-black print:overflow-visible"
               dir="ltr"
               style={{
-                border: "2px solid #2ea3f2",
+                border: "2px solid var(--primary)",
                 borderTop: "0",
                 borderRadius: 14,
                 padding: 12,
                 textAlign: "center",
-                background: "#fff",
+                background: "var(--background)",
               }}
             >
               <div className="mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-2 sm:gap-3 sm:text-sm">
@@ -622,9 +622,9 @@ export default function RefractionPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <div
-                    className="text-center text-white font-bold py-1"
+                    className="text-center text-card-foreground font-bold py-1"
                     style={{
-                      background: "#2ea3f2",
+                      background: "var(--primary)",
                       borderRadius: "8px 8px 0 0",
                     }}
                   >
@@ -637,15 +637,15 @@ export default function RefractionPage() {
                     <thead>
                       <tr>
                         <th
-                          style={{ border: "2px solid #2ea3f2", padding: 6 }}
+                          style={{ border: "2px solid var(--primary)", padding: 6 }}
                         ></th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Sph.
                         </th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Cyl.
                         </th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Axis
                         </th>
                       </tr>
@@ -654,13 +654,13 @@ export default function RefractionPage() {
                       <tr style={{ height: 58 }}>
                         <td
                           style={{
-                            border: "2px solid #2ea3f2",
+                            border: "2px solid var(--primary)",
                             fontWeight: 700,
                           }}
                         >
                           DIST
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.sOD}
                           </span>
@@ -674,7 +674,7 @@ export default function RefractionPage() {
                             />
                           </span>
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.cOD}
                           </span>
@@ -688,7 +688,7 @@ export default function RefractionPage() {
                             />
                           </span>
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.aOD}
                           </span>
@@ -706,13 +706,13 @@ export default function RefractionPage() {
                       <tr style={{ height: 58 }}>
                         <td
                           style={{
-                            border: "2px solid #2ea3f2",
+                            border: "2px solid var(--primary)",
                             fontWeight: 700,
                           }}
                         >
                           NEAR
                         </td>
-                        <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
+                        <td colSpan={3} style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             Add {form.addOD || ""}
                           </span>
@@ -736,9 +736,9 @@ export default function RefractionPage() {
 
                 <div>
                   <div
-                    className="text-center text-white font-bold py-1"
+                    className="text-center text-card-foreground font-bold py-1"
                     style={{
-                      background: "#2ea3f2",
+                      background: "var(--primary)",
                       borderRadius: "8px 8px 0 0",
                     }}
                   >
@@ -751,15 +751,15 @@ export default function RefractionPage() {
                     <thead>
                       <tr>
                         <th
-                          style={{ border: "2px solid #2ea3f2", padding: 6 }}
+                          style={{ border: "2px solid var(--primary)", padding: 6 }}
                         ></th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Sph.
                         </th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Cyl.
                         </th>
-                        <th style={{ border: "2px solid #2ea3f2", padding: 6 }}>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
                           Axis
                         </th>
                       </tr>
@@ -768,13 +768,13 @@ export default function RefractionPage() {
                       <tr style={{ height: 58 }}>
                         <td
                           style={{
-                            border: "2px solid #2ea3f2",
+                            border: "2px solid var(--primary)",
                             fontWeight: 700,
                           }}
                         >
                           DIST
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.sOS}
                           </span>
@@ -788,7 +788,7 @@ export default function RefractionPage() {
                             />
                           </span>
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.cOS}
                           </span>
@@ -802,7 +802,7 @@ export default function RefractionPage() {
                             />
                           </span>
                         </td>
-                        <td style={{ border: "2px solid #2ea3f2" }}>
+                        <td style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             {form.aOS}
                           </span>
@@ -820,13 +820,13 @@ export default function RefractionPage() {
                       <tr style={{ height: 58 }}>
                         <td
                           style={{
-                            border: "2px solid #2ea3f2",
+                            border: "2px solid var(--primary)",
                             fontWeight: 700,
                           }}
                         >
                           NEAR
                         </td>
-                        <td colSpan={3} style={{ border: "2px solid #2ea3f2" }}>
+                        <td colSpan={3} style={{ border: "2px solid var(--primary)" }}>
                           <span className="hidden print:inline">
                             Add {form.addOS || ""}
                           </span>
@@ -855,3 +855,4 @@ export default function RefractionPage() {
     </div>
   );
 }
+

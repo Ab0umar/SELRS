@@ -65,6 +65,7 @@ export type MoneyTotals = z.infer<typeof moneyTotalsSchema>;
 
 export const dashboardSummaryInputSchema = z.object({
   sectionCode: z.number().int().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export const dashboardSummaryOutputSchema = z.object({
@@ -270,6 +271,7 @@ export type ExtendedDashboardSummaryOutput = z.infer<typeof extendedDashboardSum
 export const transactionsInputSchema = z.object({
   sectionCode: z.number().int().optional(),
   limit: z.number().int().positive().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export type TransactionsInput = z.infer<typeof transactionsInputSchema>;

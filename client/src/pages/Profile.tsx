@@ -9,6 +9,7 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { KeyRound } from "lucide-react";
+import type { User } from "@shared/types";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -21,9 +22,9 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
-    setName(String((user as any)?.name ?? ""));
-    setEmail(String((user as any)?.email ?? ""));
-    setUsername(String((user as any)?.username ?? ""));
+    setName(String((user as User | null)?.name ?? ""));
+    setEmail(String((user as User | null)?.email ?? ""));
+    setUsername(String((user as User | null)?.username ?? ""));
   }, [user]);
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
@@ -62,7 +63,7 @@ export default function Profile() {
       };
       utils.auth.me.setData(undefined, nextUserAfterEmail);
       persistSessionUser(nextUserAfterEmail);
-      const currentUsername = String((user as any)?.username ?? "").trim();
+      const currentUsername = String((user as User | null)?.username ?? "").trim();
       const nextUsername = username.trim();
       if (nextUsername && nextUsername !== currentUsername) {
         await changeUsernameMutation.mutateAsync({ username: nextUsername });
@@ -130,7 +131,7 @@ export default function Profile() {
       <Card className="border-border/80 bg-background/95 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-slate-500" />
+            <KeyRound className="h-4 w-4 text-muted-foreground" />
             تغيير كلمة المرور
           </CardTitle>
         </CardHeader>

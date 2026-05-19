@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import type { User } from "@shared/types";
 import { AppTopNav } from "./AppTopNav";
 import { AppBottomNav } from "./AppBottomNav";
 
@@ -38,7 +39,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   });
 
   const utils = trpc.useUtils();
-  const mustForcePasswordChange = Boolean((user as any)?.mustChangePassword);
+  const mustForcePasswordChange = Boolean((user as (User & { mustChangePassword?: boolean }) | null)?.mustChangePassword);
 
   const changeUsernameMutation = trpc.auth.changeUsername.useMutation({
     onSuccess: async () => {
@@ -63,9 +64,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   });
 
   useEffect(() => {
-    setAccountUsername(String((user as any)?.username ?? ""));
-    setAccountName(String((user as any)?.name ?? ""));
-    setAccountEmail(String((user as any)?.email ?? ""));
+    setAccountUsername(String((user as User | null)?.username ?? ""));
+    setAccountName(String((user as User | null)?.name ?? ""));
+    setAccountEmail(String((user as User | null)?.email ?? ""));
   }, [user]);
 
   useEffect(() => {
@@ -114,11 +115,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       toast.error("Username Must Be At Least 3 Characters");
       return false;
     }
-    if (nextUsername === String((user as any)?.username ?? "").trim()) return true;
+    if (nextUsername === String((user as User | null)?.username ?? "").trim()) return true;
     try {
       await changeUsernameMutation.mutateAsync({ username: nextUsername });
-      const nextUser = { ...(user as any), username: nextUsername };
-      utils.auth.me.setData(undefined, nextUser);
+      const nextUser = { ...(user as User & { mustChangePassword?: boolean }), username: nextUsername, mustChangePassword: mustForcePasswordChange };
+      utils.auth.me.setData(undefined, nextUser as any);
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
@@ -130,11 +131,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const handleUpdateProfile = async () => {
     const nextEmail = accountEmail.trim();
     try {
-      const currentEmail = String((user as any)?.email ?? "").trim();
+      const currentEmail = String((user as User | null)?.email ?? "").trim();
       if (nextEmail === currentEmail) return true;
       await updateProfileMutation.mutateAsync({ email: nextEmail });
-      const nextUser = { ...(user as any), email: nextEmail };
-      utils.auth.me.setData(undefined, nextUser);
+      const nextUser = { ...(user as User & { mustChangePassword?: boolean }), email: nextEmail, mustChangePassword: mustForcePasswordChange };
+      utils.auth.me.setData(undefined, nextUser as any);
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
@@ -158,9 +159,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           onNavigate={setLocation}
           onOpenAccount={() => {
             if (mustForcePasswordChange) return;
-            setAccountUsername(String((user as any)?.username ?? ""));
-            setAccountName(String((user as any)?.name ?? ""));
-            setAccountEmail(String((user as any)?.email ?? ""));
+            setAccountUsername(String((user as User | null)?.username ?? ""));
+            setAccountName(String((user as User | null)?.name ?? ""));
+            setAccountEmail(String((user as User | null)?.email ?? ""));
             setIsAccountDialogOpen(true);
           }}
           onOpenPassword={() => setIsPasswordDialogOpen(true)}
@@ -190,9 +191,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
         onOpenChange={(open) => {
           setIsAccountDialogOpen(open);
           if (!open) {
-            setAccountUsername(String((user as any)?.username ?? ""));
-            setAccountName(String((user as any)?.name ?? ""));
-            setAccountEmail(String((user as any)?.email ?? ""));
+            setAccountUsername(String((user as User | null)?.username ?? ""));
+            setAccountName(String((user as User | null)?.name ?? ""));
+            setAccountEmail(String((user as User | null)?.email ?? ""));
           }
         }}
       >
@@ -269,7 +270,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           </DialogHeader>
           <div className="space-y-4">
             {mustForcePasswordChange ? (
-              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning">
                 For Security, You Must Change Your Password Before Continuing.
               </div>
             ) : null}

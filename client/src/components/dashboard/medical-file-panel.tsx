@@ -601,7 +601,7 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
                   {selectedDiseases.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
                       {selectedDiseases.map((d) => (
-                        <Badge key={d} variant="secondary" className="text-xs gap-1 px-2.5 py-1 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary border-primary/20 dark:border-primary/30">
+                        <Badge key={d} variant="secondary" className="text-xs gap-1 px-2.5 py-1 bg-primary text-primary-foreground border-primary/20">
                           {d}
                           <button
                             onClick={() => setSelectedDiseases((p) => toggleItem(p, d))}
@@ -662,11 +662,11 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
 
                 {/* Selected medications */}
                 {selectedMeds.length > 0 && (
-                  <div className="mb-4 p-3 rounded-lg border bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30">
-                    <div className="text-xs font-semibold mb-2 text-primary dark:text-primary">الأدوية المختارة:</div>
+                  <div className="mb-4 p-3 rounded-lg border bg-primary/5 border-primary/20">
+                    <div className="text-xs font-semibold mb-2 text-primary">الأدوية المختارة:</div>
                     <div className="flex flex-wrap gap-2 sm:gap-3">
                       {selectedMeds.map((med) => (
-                        <Badge key={med} variant="outline" className="text-xs gap-1 px-2.5 py-1 border-primary/30 dark:border-primary/40">
+                        <Badge key={med} variant="outline" className="text-xs gap-1 px-2.5 py-1 border-primary/30">
                           {med}
                           <button
                             onClick={() => setSelectedMeds((p) => toggleItem(p, med))}
@@ -713,7 +713,7 @@ export function MedicalFilePanel({ patient, open, onClose }: MedicalFilePanelPro
           <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={onClose}>
             إغلاق
           </Button>
-          <Button size="sm" className="selrs-gradient-btn text-white gap-2 text-xs sm:text-sm" onClick={() => toast.success('تم الحفظ', { description: 'تم حفظ الملف الطبي بنجاح' })}>
+          <Button size="sm" className="selrs-gradient-btn text-primary-foreground gap-2 text-xs sm:text-sm" onClick={() => toast.success('تم الحفظ', { description: 'تم حفظ الملف الطبي بنجاح' })}>
             <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             حفظ
           </Button>

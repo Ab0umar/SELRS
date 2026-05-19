@@ -29,7 +29,7 @@ export function TreatmentTab({ treatmentRows, treatmentData, medications }: Trea
           {treatmentRows.length > 0 && (
             <div className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
               <table className="w-full min-w-[920px] border-collapse text-center">
-                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   <tr>
                     <th className="border px-3 py-3">Date</th><th className="border px-3 py-3">Medication</th>
                     <th className="border px-3 py-3">Dosage</th><th className="border px-3 py-3">Frequency</th>
@@ -38,7 +38,7 @@ export function TreatmentTab({ treatmentRows, treatmentData, medications }: Trea
                 </thead>
                 <tbody>
                   {treatmentRows.map((row) => (
-                    <tr key={row.key} className="bg-background text-sm font-medium text-slate-800">
+                    <tr key={row.key} className="bg-background text-sm font-medium text-foreground">
                       <td className="border px-3 py-3">{row.date || "-"}</td>
                       <td className="border px-3 py-3">{row.medication || "-"}</td>
                       <td className="border px-3 py-3">{row.dosage || "-"}</td>

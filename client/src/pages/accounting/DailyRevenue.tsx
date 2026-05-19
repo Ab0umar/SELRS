@@ -263,7 +263,7 @@ export default function DailyRevenue() {
               />
             </label>
             {dateError && (
-              <p className="col-span-full text-sm text-red-600">{dateError}</p>
+              <p className="col-span-full text-sm text-destructive">{dateError}</p>
             )}
             <label
               htmlFor="daily-section-code"
@@ -401,21 +401,21 @@ export default function DailyRevenue() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-muted-foreground">
                             {formatDateAr(row.date)}
                           </div>
                           <div className="mt-1 text-sm font-semibold text-foreground">
                             الإيراد اليومي
                           </div>
                         </div>
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        <span className="rounded-full bg-primary text-primary-foreground">
                           {formatCountAr(row.totalReceipts)} إيصال
                         </span>
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-muted-foreground">
                             الإجمالي
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -423,34 +423,34 @@ export default function DailyRevenue() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-muted-foreground">
                             الخصم
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {formatMoneyAr(row.totalDiscount)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">
+                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">
                             نقدي
                           </div>
-                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                          <div className="mt-1 font-semibold tabular-nums text-success">
                             {formatMoneyAr(row.totalCash)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">
+                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">
                             المدفوع
                           </div>
-                          <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                          <div className="mt-1 font-semibold tabular-nums text-success">
                             {formatMoneyAr(row.totalPaid)}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-blue-50 px-3 py-2">
-                          <div className="text-[10px] text-blue-700">
+                        <div className="col-span-2 rounded-xl bg-primary/5 px-3 py-2">
+                          <div className="text-[10px] text-primary">
                             الصافي
                           </div>
-                          <div className="mt-1 text-lg font-bold tabular-nums text-blue-700">
+                          <div className="mt-1 text-lg font-bold tabular-nums text-primary">
                             {formatMoneyAr(row.netAfterDiscount)}
                           </div>
                         </div>
@@ -458,13 +458,13 @@ export default function DailyRevenue() {
                     </div>
                   ))}
 
-                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                    <div className="text-xs font-semibold text-blue-700">
+                  <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                    <div className="text-xs font-semibold text-primary">
                       الإجمالي العام
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-muted-foreground">
                           الإيصالات
                         </div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -472,7 +472,7 @@ export default function DailyRevenue() {
                         </div>
                       </div>
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-muted-foreground">
                           الإجمالي
                         </div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -480,19 +480,19 @@ export default function DailyRevenue() {
                         </div>
                       </div>
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">الخصم</div>
+                        <div className="text-[10px] text-muted-foreground">الخصم</div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
                           {formatMoneyAr(totals.totalDiscount)}
                         </div>
                       </div>
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">نقدي</div>
+                        <div className="text-[10px] text-muted-foreground">نقدي</div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
                           {formatMoneyAr(totals.totalCash)}
                         </div>
                       </div>
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-muted-foreground">
                           المدفوع
                         </div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -500,7 +500,7 @@ export default function DailyRevenue() {
                         </div>
                       </div>
                       <div className="rounded-xl bg-background px-3 py-2">
-                        <div className="text-[10px] text-slate-500">الصافي</div>
+                        <div className="text-[10px] text-muted-foreground">الصافي</div>
                         <div className="mt-1 font-semibold tabular-nums text-foreground">
                           {formatMoneyAr(totals.netAfterDiscount)}
                         </div>

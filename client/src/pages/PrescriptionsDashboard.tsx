@@ -56,12 +56,12 @@ function classifyPrescription(dateInput: unknown): Exclude<RxStatus, "all"> {
 
 function statusBadge(status: Exclude<RxStatus, "all">) {
   if (status === "active") {
-    return <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">فعالة</span>;
+    return <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">فعالة</span>;
   }
   if (status === "expired") {
     return <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">منتهية</span>;
   }
-  return <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700">مكتملة</span>;
+  return <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">مكتملة</span>;
 }
 
 function toDateLabel(value: string | Date | null | undefined) {
@@ -144,9 +144,9 @@ export default function PrescriptionsDashboard() {
 
       <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-4 sm:gap-4")}>
         <StatCard title="الإجمالي" value={stats.total} icon={Pill} description="الروشتات المتاحة" />
-        <StatCard title="فعالة" value={stats.active} icon={Clock3} description={`آخر ${ACTIVE_DAYS} يومًا`} iconColor="bg-emerald-100 text-emerald-700" />
-        <StatCard title="مكتملة" value={stats.completed} icon={CheckCircle2} description="خارج نافذة النشاط" iconColor="bg-sky-100 text-sky-700" />
-        <StatCard title="منتهية" value={stats.expired} icon={XCircle} description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`} iconColor="bg-muted text-foreground" />
+        <StatCard title="فعالة" value={stats.active} icon={Clock3} description={`آخر ${ACTIVE_DAYS} يومًا`} iconColor="bg-success/15 text-success" />
+        <StatCard title="مكتملة" value={stats.completed} icon={CheckCircle2} description="خارج نافذة النشاط" iconColor="bg-primary/10 text-primary" />
+        <StatCard title="منتهية" value={stats.expired} icon={XCircle} description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`} iconColor="bg-muted text-muted-foreground" />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -208,7 +208,7 @@ export default function PrescriptionsDashboard() {
                         </td>
                         <td className="px-4 py-3 align-top">{statusBadge(status)}</td>
                         <td className="px-4 py-3 text-center align-top">
-                          <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setLocation(`/prescription/${row.patientId}`)}>
+                          <Button type="button" variant="ghost" size="sm" className="h-11 w-11 p-0" aria-label={`فتح وصفة المريض ${row.patientName ?? row.patientId}`} onClick={() => setLocation(`/prescription/${row.patientId}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </td>

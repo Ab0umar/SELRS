@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Activity, AlertTriangle, ScanSearch, Plus } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, ScanSearch, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -77,9 +77,9 @@ function formatStatus(row: AutoRow): AutoStatus {
 
 function statusBadge(status: AutoStatus) {
   if (status === "complete") {
-    return <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">مكتمل</span>;
+    return <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">مكتمل</span>;
   }
-  return <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">ناقص</span>;
+  return <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning/90">ناقص</span>;
 }
 
 export default function AutorefsDashboard() {
@@ -90,6 +90,7 @@ export default function AutorefsDashboard() {
   const [statusFilter, setStatusFilter] = useState<AutoStatus>("all");
   const [page, setPage] = useState(1);
   const pageSize = 50;
+  const [dismissedReviews, setDismissedReviews] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     setPage(1);
@@ -123,7 +124,10 @@ export default function AutorefsDashboard() {
     return { total: rows.length, complete, partial };
   }, [rows]);
 
-  const reviewList = useMemo(() => rows.filter((row) => formatStatus(row) === "partial").slice(0, 5), [rows]);
+  const reviewList = useMemo(
+    () => rows.filter((row) => formatStatus(row) === "partial" && !dismissedReviews.has(row.id)).slice(0, 5),
+    [rows, dismissedReviews],
+  );
 
   if (!isAuthenticated) return null;
 
@@ -153,8 +157,8 @@ export default function AutorefsDashboard() {
 
       <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
         <StatCard title="إجمالي السجلات" value={stats.total} icon={Activity} description="السجلات المتاحة" />
-        <StatCard title="مكتمل" value={stats.complete} icon={ScanSearch} description="RT و LT موجودان" iconColor="bg-sky-100 text-sky-700" />
-        <StatCard title="ناقص" value={stats.partial} icon={AlertTriangle} description="يحتاج مراجعة" iconColor="bg-amber-100 text-amber-700" />
+        <StatCard title="مكتمل" value={stats.complete} icon={ScanSearch} description="RT و LT موجودان" iconColor="bg-primary/10 text-primary" />
+        <StatCard title="ناقص" value={stats.partial} icon={AlertTriangle} description="يحتاج مراجعة" iconColor="bg-warning/20 text-warning/90" />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -229,7 +233,7 @@ export default function AutorefsDashboard() {
                         </td>
                         <td className="px-4 py-3 align-top">{statusBadge(status)}</td>
                         <td className="px-4 py-3 text-center align-top">
-                          <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setLocation(`/examination/${row.patientId}`)}>
+                          <Button type="button" variant="ghost" size="sm" className="h-11 w-11 p-0" aria-label={`فتح فحص Autoref للمريض ${row.patientName ?? row.patientId}`} onClick={() => setLocation(`/examination/${row.patientId}`)}>
                             <ScanSearch className="h-4 w-4" />
                           </Button>
                         </td>
@@ -251,26 +255,35 @@ export default function AutorefsDashboard() {
             ) : (
               <div className="space-y-3">
                 {reviewList.map((row) => (
-                  <button
-                    key={row.id}
-                    type="button"
-                    onClick={() => setLocation(`/examination/${row.patientId}`)}
-                    className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-right transition-colors hover:bg-muted/40"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                  <div key={row.id} className="rounded-xl border border-border/80 bg-muted/20 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLocation(`/examination/${row.patientId}`)}
+                        className="min-w-0 flex-1 text-right"
+                      >
                         <div className="font-semibold">{row.patientName || `مريض #${row.patientId}`}</div>
                         <div className="mt-1 text-[11px] text-muted-foreground" dir="ltr">
                           {row.patientCode || "—"}
                         </div>
+                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning-foreground">ناقص</span>
+                        <button
+                          type="button"
+                          aria-label="تجاهل التنبيه"
+                          onClick={() => setDismissedReviews((prev) => new Set(prev).add(row.id))}
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">ناقص</span>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
                       <div>RT {formatTriplet(row.sphereOD, row.cylinderOD, row.axisOD)}</div>
                       <div>LT {formatTriplet(row.sphereOS, row.cylinderOS, row.axisOS)}</div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

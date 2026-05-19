@@ -142,9 +142,9 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <Card className="border-l-4 border-blue-600">
+        <Card className="border border-primary/25 bg-primary/5">
           <CardHeader>
-            <CardTitle className="text-blue-600">العين اليمنى (OD)</CardTitle>
+            <CardTitle className="text-primary">العين اليمنى (OD)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -182,9 +182,9 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-green-600">
+        <Card className="border border-success/40 bg-success/5">
           <CardHeader>
-            <CardTitle className="text-green-600">العين اليسرى (OS)</CardTitle>
+            <CardTitle className="text-success">العين اليسرى (OS)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>

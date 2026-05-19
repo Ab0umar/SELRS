@@ -81,7 +81,7 @@ export default function DoctorPatientView() {
         {!patientId ? (
           <Card>
             <CardContent className="flex items-center justify-center py-12">
-              <p className="text-sm text-slate-500">اختر مريضًا للعرض</p>
+              <p className="text-sm text-muted-foreground">اختر مريضًا للعرض</p>
             </CardContent>
           </Card>
         ) : (
@@ -122,7 +122,7 @@ export default function DoctorPatientView() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No examinations recorded</p>
+                <p className="text-sm text-muted-foreground">No examinations recorded</p>
               )}
             </CardContent>
           </Card>
@@ -153,7 +153,7 @@ export default function DoctorPatientView() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No reports available</p>
+                <p className="text-sm text-muted-foreground">No reports available</p>
               )}
             </CardContent>
           </Card>
@@ -184,12 +184,12 @@ export default function DoctorPatientView() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">No medication items</p>
+                      <p className="text-sm text-muted-foreground">No medication items</p>
                     );
                   })()}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No prescriptions recorded</p>
+                <p className="text-sm text-muted-foreground">No prescriptions recorded</p>
               )}
             </CardContent>
           </Card>

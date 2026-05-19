@@ -1,12 +1,12 @@
 param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
-  [string]$OutDir = "E:\SRV100\desktop\publish"
+  [string]$OutDir = (Join-Path $PSScriptRoot "publish")
 )
 
 $ErrorActionPreference = "Stop"
 
-$project = "E:\SRV100\desktop\SelrsDesktop\SelrsDesktop.csproj"
+$project = Join-Path $PSScriptRoot "SelrsDesktop\SelrsDesktop.csproj"
 
 Write-Host "[SELRS] Publishing..." -ForegroundColor Cyan
 dotnet publish $project `
@@ -16,5 +16,8 @@ dotnet publish $project `
   -p:PublishSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `
   -o $OutDir
+if ($LASTEXITCODE -ne 0) {
+  throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "[SELRS] Done: $OutDir" -ForegroundColor Green

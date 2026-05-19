@@ -46,31 +46,31 @@ export function FollowupTab({
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-semibold">زيارة رقم {exam.id}</span>
-                      <p className="text-xs text-slate-500 mt-1">النوع: {exam.visitType === "followup" ? "متابعة" : "فحص"}</p>
+                      <p className="text-xs text-muted-foreground mt-1">النوع: {exam.visitType === "followup" ? "متابعة" : "فحص"}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {isEditing && isAdmin ? (
                         <>
                           <Input type="date" value={editVisitDate} onChange={(e) => setEditVisitDate(e.target.value)} className="w-32 h-7 text-xs" dir="ltr" />
                           <Button size="sm" variant="ghost" onClick={() => updateVisitDateMutation.mutate({ visitId: exam.visitId, visitDate: editVisitDate })} disabled={updateVisitDateMutation.isPending}>
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className="h-4 w-4 text-success" />
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditingVisitId(null)}>
-                            <X className="h-4 w-4 text-red-600" />
+                            <X className="h-4 w-4 text-destructive" />
                           </Button>
                         </>
                       ) : (
                         <>
                           <span className="text-xs text-muted-foreground">{formatDate(displayDate)}</span>
                           {isAdmin && (
-                            <Button size="sm" variant="ghost" onClick={() => { const dateStr = new Date(displayDate).toISOString().split("T")[0]; setEditVisitDate(dateStr); setEditingVisitId(exam.visitId); }} className="text-blue-600 hover:bg-blue-50">
+                            <Button size="sm" variant="ghost" onClick={() => { const dateStr = new Date(displayDate).toISOString().split("T")[0]; setEditVisitDate(dateStr); setEditingVisitId(exam.visitId); }} className="text-card-foreground hover:bg-primary/5">
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
                         </>
                       )}
                       {isAdmin && (
-                        <Button variant="ghost" size="sm" disabled={deleteVisitMutation.isPending || !exam.visitId} className="h-6 w-6 p-0"
+                        <Button variant="ghost" size="sm" aria-label="حذف الزيارة" disabled={deleteVisitMutation.isPending || !exam.visitId} className="h-11 w-11 p-0"
                           onClick={async () => {
                             if (!exam.visitId) { toast.error("خطأ: لا يوجد رقم زيارة"); return; }
                             if (confirm(`هل أنت متأكد من حذف الزيارة رقم ${exam.visitId} (${formatDate(exam.createdAt)}) وكل بياناتها فقط؟\n\nسيتم حذف هذه الزيارة فقط، الزيارات الأخرى ستبقى محفوظة.`)) {
@@ -86,7 +86,7 @@ export function FollowupTab({
                             }
                           }}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-red-500 hover:text-red-700" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive hover:text-destructive" />
                         </Button>
                       )}
                     </div>
@@ -147,7 +147,7 @@ export function FollowupTab({
               <div key={followup.id} className="rounded-2xl border border-border bg-muted/70 p-4 space-y-2">
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="font-semibold">متابعة #{followup.id}</span>
-                  <span className="text-xs font-medium text-blue-600">{formatDate(followup.followupDate)}</span>
+                  <span className="text-xs font-medium text-primary">{formatDate(followup.followupDate)}</span>
                 </div>
                 {(followup.visualAcuityOD || followup.visualAcuityOS) && (
                   <div className="text-sm"><span className="font-medium text-foreground">الإبصار:</span><span className="ml-2 text-muted-foreground">{followup.visualAcuityOD && `OD: ${followup.visualAcuityOD}`}{followup.visualAcuityOD && followup.visualAcuityOS && " | "}{followup.visualAcuityOS && `OS: ${followup.visualAcuityOS}`}</span></div>

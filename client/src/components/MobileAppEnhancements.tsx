@@ -183,10 +183,10 @@ function PullToRefresh() {
         }}
       >
         {isRefreshing ? (
-          <Loader2 className="h-4 w-4 animate-spin text-white" />
+          <Loader2 className="h-4 w-4 animate-spin text-card-foreground" />
         ) : (
           <RefreshCw
-            className={cn("h-4 w-4", ready ? "text-white" : "text-muted-foreground")}
+            className={cn("h-4 w-4", ready ? "text-card-foreground" : "text-muted-foreground")}
             style={{ transform: `rotate(${pullY * 4}deg)` }}
           />
         )}

@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { operationTypeLabel } from "@/lib/operationsPricing";
 import { type ListData } from "@/hooks/operations/operationsShared";
 
+const tableInputClass = "h-11 w-full text-center text-sm sm:h-6 sm:text-[11px]";
+const tableSelectClass = "h-11 w-full border-0 bg-transparent text-center text-sm sm:h-6 sm:text-[11px]";
+
 type OperationsTableProps = {
   canManageList: boolean;
   currentList: ListData[];
@@ -58,16 +61,16 @@ export function OperationsTable({
               <tr key={appointment.id} className="border border-gray-500">
                 <td className="w-6 border border-gray-500 p-1 text-center font-bold">{index + 1}</td>
                 <td className="w-36 border border-gray-500 p-1">
-                  <Input dir="rtl" value={appointment.name} onChange={(event) => onUpdateRow(appointment.id, "name", event.target.value)} readOnly={!canManageList} className="h-6 w-full !max-w-none text-center text-[11px]" />
+                  <Input dir="rtl" value={appointment.name} onChange={(event) => onUpdateRow(appointment.id, "name", event.target.value)} readOnly={!canManageList} className={`${tableInputClass} !max-w-none`} />
                 </td>
                 <td className="w-24 border border-gray-500 p-1">
-                  <Input dir="rtl" value={appointment.phone} onChange={(event) => onUpdateRow(appointment.id, "phone", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                  <Input dir="rtl" value={appointment.phone} onChange={(event) => onUpdateRow(appointment.id, "phone", event.target.value)} readOnly={!canManageList} className={tableInputClass} />
                 </td>
                 <td className="w-20 border border-gray-500 p-1">
-                  <Input dir="rtl" value={appointment.doctor} onChange={(event) => onUpdateRow(appointment.id, "doctor", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                  <Input dir="rtl" value={appointment.doctor} onChange={(event) => onUpdateRow(appointment.id, "doctor", event.target.value)} readOnly={!canManageList} className={tableInputClass} />
                 </td>
                 <td className="w-12 border border-gray-500 p-1 text-center">
-                  <select value={appointment.operation || ""} onChange={(event) => onUpdateRow(appointment.id, "operation", event.target.value)} disabled={!canManageList} className="h-6 w-full border-0 bg-transparent text-center text-[11px]">
+                  <select value={appointment.operation || ""} onChange={(event) => onUpdateRow(appointment.id, "operation", event.target.value)} disabled={!canManageList} className={tableSelectClass}>
                     <option value="">-</option>
                     {operationOptions.map((option) => (
                       <option key={option} value={option}>
@@ -77,7 +80,7 @@ export function OperationsTable({
                   </select>
                 </td>
                 <td className="w-14 border border-gray-500 p-1 text-center">
-                  <select value={appointment.eye || ""} onChange={(event) => onUpdateRow(appointment.id, "eye", event.target.value)} disabled={!canManageList} className="h-6 w-full border-0 bg-transparent text-center text-[11px]">
+                  <select value={appointment.eye || ""} onChange={(event) => onUpdateRow(appointment.id, "eye", event.target.value)} disabled={!canManageList} className={tableSelectClass}>
                     <option value="">-</option>
                     <option value="OD">OD</option>
                     <option value="OS">OS</option>
@@ -86,7 +89,7 @@ export function OperationsTable({
                 </td>
                 {hasCataract && (
                   <td className="w-16 border border-gray-500 p-1 text-center">
-                    <select value={appointment.hospital || ""} onChange={(event) => onUpdateRow(appointment.id, "hospital", event.target.value)} disabled={!canManageList} className="h-6 w-full border-0 bg-transparent text-center text-[11px]">
+                    <select value={appointment.hospital || ""} onChange={(event) => onUpdateRow(appointment.id, "hospital", event.target.value)} disabled={!canManageList} className={tableSelectClass}>
                       <option value="">-</option>
                       <option value="الشروق">الشروق</option>
                       <option value="الأمل">الأمل</option>
@@ -94,19 +97,21 @@ export function OperationsTable({
                   </td>
                 )}
                 <td className="w-6 border border-gray-500 p-1 text-center">
-                  <input type="checkbox" checked={appointment.center} onChange={(event) => onUpdateRow(appointment.id, "center", event.target.checked)} disabled={!canManageList} />
+                  <label className="inline-flex h-11 w-11 items-center justify-center sm:h-6 sm:w-6">
+                    <input type="checkbox" checked={appointment.center} onChange={(event) => onUpdateRow(appointment.id, "center", event.target.checked)} disabled={!canManageList} className="h-5 w-5 sm:h-4 sm:w-4" />
+                  </label>
                 </td>
                 <td className="w-12 border border-gray-500 p-1">
-                  <Input value={appointment.payment} onChange={(event) => onUpdateRow(appointment.id, "payment", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                  <Input value={appointment.payment} onChange={(event) => onUpdateRow(appointment.id, "payment", event.target.value)} readOnly={!canManageList} className={tableInputClass} />
                 </td>
                 <td className="w-12 border border-gray-500 p-1">
-                  <Input dir="rtl" value={appointment.code} onChange={(event) => onUpdateRow(appointment.id, "code", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                  <Input dir="rtl" value={appointment.code} onChange={(event) => onUpdateRow(appointment.id, "code", event.target.value)} readOnly={!canManageList} className={tableInputClass} />
                 </td>
                 <td className="w-24 border border-gray-500 p-1">
-                  <Input dir="rtl" value={appointment.notes ?? ""} onChange={(event) => onUpdateRow(appointment.id, "notes", event.target.value)} readOnly={!canManageList} className="h-6 w-full text-center text-[11px]" />
+                  <Input dir="rtl" value={appointment.notes ?? ""} onChange={(event) => onUpdateRow(appointment.id, "notes", event.target.value)} readOnly={!canManageList} className={tableInputClass} />
                 </td>
                 <td className="w-12 border border-gray-500 p-1 text-center">
-                  <Button variant="destructive" size="sm" onClick={() => onDeleteRow(appointment.id)} disabled={!canManageList}>
+                  <Button variant="destructive" size="sm" className="h-11 w-11 px-0 sm:h-8 sm:w-8" onClick={() => onDeleteRow(appointment.id)} disabled={!canManageList} aria-label="حذف الحالة">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </td>

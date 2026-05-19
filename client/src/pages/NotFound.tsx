@@ -20,13 +20,13 @@ export default function NotFound() {
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary" aria-hidden />
         <CardContent className="relative pt-8 pb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-rose-600" />
+            <Sparkles className="h-3.5 w-3.5 text-destructive" />
             Missing Route
           </div>
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
+              <div className="absolute inset-0 bg-destructive/10 rounded-full animate-pulse" />
+              <AlertCircle className="relative h-16 w-16 text-destructive" />
             </div>
           </div>
 

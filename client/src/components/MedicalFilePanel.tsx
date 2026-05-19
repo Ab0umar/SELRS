@@ -86,6 +86,7 @@ export default function MedicalFilePanel({
   const hubRo = Boolean(patientHubReadOnly);
   const queryClient = useQueryClient();
   const [activeMedicalTab, setActiveMedicalTab] = useState("data");
+  const [planEverActive, setPlanEverActive] = useState(false);
   const [fundusOpen, setFundusOpen] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -1458,7 +1459,7 @@ export default function MedicalFilePanel({
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-muted-foreground bg-muted/60 transition-colors"
                   aria-label="إغلاق"
                 >
                   <svg
@@ -1482,7 +1483,7 @@ export default function MedicalFilePanel({
         <div className="flex items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2 flex-shrink-0 flex-wrap">
           <label
             className={cn(
-              "inline-flex items-center gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 px-2.5 py-1.5 text-xs font-semibold text-amber-800",
+              "inline-flex items-center gap-2 rounded-md border border-warning/60 bg-warning/10/60 px-2.5 py-1.5 text-xs font-semibold text-warning",
               hubRo && "opacity-60",
             )}
           >
@@ -1526,7 +1527,7 @@ export default function MedicalFilePanel({
                       });
                     }
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground disabled:opacity-40 transition-colors"
                   aria-label="حذف الفحص"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -1542,12 +1543,12 @@ export default function MedicalFilePanel({
             <button
               key={sec}
               type="button"
-              onClick={() => setActiveMedicalTab(sec)}
+              onClick={() => { setActiveMedicalTab(sec); if (sec === "plan") setPlanEverActive(true); }}
               className={cn(
                 "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                 activeMedicalTab === sec
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted text-muted-foreground",
               )}
             >
               {sec === "data" ? "القياسات والبيانات" : "الخطة العلاجية"}
@@ -1560,8 +1561,7 @@ export default function MedicalFilePanel({
           className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-5"
           dir="rtl"
         >
-          {activeMedicalTab === "data" && (
-            <>
+          <div className={activeMedicalTab !== "data" ? "hidden" : undefined}>
               {examinations && examinations.length > 1 && (
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground">تاريخ الزيارة</span>
@@ -2895,11 +2895,10 @@ export default function MedicalFilePanel({
                   </>
                 )}
               </div>
-            </>
-          )}
+          </div>
 
-          {activeMedicalTab === "plan" && (
-            <>
+          {planEverActive && (
+            <div className={activeMedicalTab !== "plan" ? "hidden" : undefined}>
               {/* Patient profile */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2999,7 +2998,7 @@ export default function MedicalFilePanel({
                         return disease ? (
                           <span
                             key={diseaseId}
-                            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                            className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground"
                           >
                             {disease.name}
                             <button
@@ -3339,7 +3338,7 @@ export default function MedicalFilePanel({
                     </div>
                   )}
               </div>
-            </>
+            </div>
           )}
         </div>
 

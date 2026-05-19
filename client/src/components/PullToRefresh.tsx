@@ -28,12 +28,8 @@ export function PullToRefresh({
     const mediaQuery = window.matchMedia("(pointer: coarse)");
     const apply = () => setIsCoarsePointer(mediaQuery.matches);
     apply();
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", apply);
-      return () => mediaQuery.removeEventListener("change", apply);
-    }
-    mediaQuery.addListener(apply);
-    return () => mediaQuery.removeListener(apply);
+    mediaQuery.addEventListener("change", apply);
+    return () => mediaQuery.removeEventListener("change", apply);
   }, []);
 
   const resetPull = React.useCallback(() => {
@@ -128,10 +124,10 @@ export function PullToRefresh({
               <ArrowDown className="h-3.5 w-3.5 text-primary" />
             )}
             {isRefreshing
-              ? "Refreshing..."
+              ? "جاري التحديث..."
               : pullDistance >= REFRESH_THRESHOLD
-                ? "Release to refresh"
-                : "Pull to refresh"}
+                ? "اترك للتحديث"
+                : "اسحب للتحديث"}
           </span>
         </div>
       </div>

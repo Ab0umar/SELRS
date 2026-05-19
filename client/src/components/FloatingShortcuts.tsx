@@ -25,7 +25,7 @@ export function ShortcutsMenu({
           variant="outline"
           size="icon"
           onClick={() => setLocation("/")}
-          className="h-9 w-9 shrink-0 rounded-md"
+          className="shrink-0 rounded-md"
           aria-label="الرئيسية"
         >
           <Home className="h-4 w-4" />
@@ -35,7 +35,7 @@ export function ShortcutsMenu({
           variant="outline"
           size="icon"
           onClick={() => setLocation("/profile")}
-          className="h-9 w-9 shrink-0 rounded-md"
+          className="shrink-0 rounded-md"
           aria-label="الملف الشخصي"
         >
           <UserCog className="h-4 w-4" />

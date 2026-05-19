@@ -42,9 +42,9 @@ function formatTime(isoDate: string) {
 
 function ProtoBadge({ tone, children }: { tone: "blue" | "emerald" | "amber"; children: ReactNode }) {
   const classes = {
-    blue: "bg-blue-50 text-blue-700 border-blue-200",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    blue: "bg-primary text-primary-foreground border-ring/30",
+    emerald: "bg-success/10 text-success border-success/30",
+    amber: "bg-warning/10 text-warning border-warning/50",
   }[tone];
   return <span className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold", classes)}>{children}</span>;
 }
@@ -54,24 +54,24 @@ function SideRail({ title, subtitle, compact = false }: { title: string; subtitl
     <div className={cn("rounded-[28px] border border-border bg-background shadow-sm", compact ? "p-4" : "p-5")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</div>
           <div className="mt-1 text-sm font-semibold text-foreground">{subtitle}</div>
         </div>
-        <ArrowUpRight className="h-4 w-4 text-slate-300" />
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="mt-4 space-y-2">
         {reports.slice(0, 3).map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-2xl border border-border bg-muted/70 px-3 py-2.5 transition-colors hover:bg-blue-50/70">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-background text-blue-700 shadow-sm">
+            <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-2xl border border-border bg-muted/70 px-3 py-2.5 transition-colors hover:bg-primary/50">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-foreground">{item.label}</div>
-                <div className="truncate text-xs text-slate-500">{item.desc}</div>
+                <div className="truncate text-xs text-muted-foreground">{item.desc}</div>
               </div>
-              <ArrowUpRight className="h-4 w-4 text-slate-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           );
         })}
@@ -98,27 +98,27 @@ function MetricsRow({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-700/80">إيراد اليوم</div>
+      <div className="rounded-2xl border border-primary/20 bg-primary/80 p-4">
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary/80">إيراد اليوم</div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
-        <div className="mt-1 text-xs text-slate-500">مؤشر سريع</div>
+        <div className="mt-1 text-xs text-muted-foreground">مؤشر سريع</div>
       </div>
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700/80">إيصالات اليوم</div>
+      <div className="rounded-2xl border border-success/20 bg-success/10 p-4">
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-success/80">إيصالات اليوم</div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
-        <div className="mt-1 text-xs text-slate-500">نشاط اليوم</div>
+        <div className="mt-1 text-xs text-muted-foreground">نشاط اليوم</div>
       </div>
-      <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700/80">إجمالي الإيراد</div>
+      <div className="rounded-2xl border border-warning/15 bg-warning/10/80 p-4">
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-warning/80">إجمالي الإيراد</div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalIncome ?? 0)}</div>
-        <div className="mt-1 text-xs text-slate-500">من الخزنة</div>
+        <div className="mt-1 text-xs text-muted-foreground">من الخزنة</div>
       </div>
       <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">رصيد الخزنة</div>
-        <div className={cn("mt-2 text-2xl font-bold tabular-nums", (cashbook?.currentBalance ?? 0) >= 0 ? "text-blue-700" : "text-rose-700")}>
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">رصيد الخزنة</div>
+        <div className={cn("mt-2 text-2xl font-bold tabular-nums", (cashbook?.currentBalance ?? 0) >= 0 ? "text-primary" : "text-destructive")}>
           {formatMoneyAr(cashbook?.currentBalance ?? 0)}
         </div>
-        <div className="mt-1 text-xs text-slate-500">آخر إجمالي متاح</div>
+        <div className="mt-1 text-xs text-muted-foreground">آخر إجمالي متاح</div>
       </div>
     </div>
   );
@@ -130,14 +130,14 @@ function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: 
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
           <h3 className="text-sm font-bold text-foreground">حركات اليوم</h3>
-          <p className="mt-1 text-xs text-slate-500">صفوف فعلية، بدون حشو بصري.</p>
+          <p className="mt-1 text-xs text-muted-foreground">صفوف فعلية، بدون حشو بصري.</p>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{formatCountAr(rows.length)} حركة</span>
+        <span className="rounded-full bg-primary text-primary-foreground">{formatCountAr(rows.length)} حركة</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted text-[11px] font-semibold text-slate-500">
+            <tr className="border-b border-border bg-muted text-[11px] font-semibold text-muted-foreground">
               <th scope="col" className="w-20 px-4 py-3 text-right">الوقت</th>
               <th scope="col" className="w-24 px-4 py-3 text-right">الإيصال</th>
               <th scope="col" className="px-4 py-3 text-right">المريض</th>
@@ -150,13 +150,13 @@ function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: 
             {rows.map((r) => {
               const remaining = r.total - r.discount - r.paidValue;
               return (
-                <tr key={`${r.trTy}-${r.trNo}`} className="hover:bg-blue-50/70">
-                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-slate-500" dir="ltr">{formatTime(r.transactionDate)}</td>
+                <tr key={`${r.trTy}-${r.trNo}`} className="hover:bg-primary/50">
+                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted-foreground" dir="ltr">{formatTime(r.transactionDate)}</td>
                   <td className="px-4 py-2.5 font-semibold tabular-nums text-foreground" dir="ltr">{r.trNo}</td>
                   <td className="px-4 py-2.5 truncate text-foreground">{r.patientName || "—"}</td>
-                  <td className="px-4 py-2.5 tabular-nums text-slate-500" dir="ltr">{r.patientCode || "—"}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-muted-foreground" dir="ltr">{r.patientCode || "—"}</td>
                   <td className={cn("px-4 py-2.5 tabular-nums", remaining > 0 && "font-semibold text-foreground")} dir="ltr">{formatMoneyAr(r.total - r.discount)}</td>
-                  <td className={cn("px-4 py-2.5 tabular-nums font-medium", remaining <= 0 ? "text-emerald-700" : "text-amber-700")} dir="ltr">{formatMoneyAr(r.paidValue)}</td>
+                  <td className={cn("px-4 py-2.5 tabular-nums font-medium", remaining <= 0 ? "text-success" : "text-warning")} dir="ltr">{formatMoneyAr(r.paidValue)}</td>
                 </tr>
               );
             })}
@@ -196,9 +196,9 @@ function PrototypePanel({
   variant: "command" | "workspace" | "mixed";
 }) {
   const toneClasses = {
-    blue: "border-blue-100 bg-blue-50/70 text-blue-700",
-    emerald: "border-emerald-100 bg-emerald-50/70 text-emerald-700",
-    amber: "border-amber-100 bg-amber-50/70 text-amber-700",
+    blue: "border-primary/20 bg-primary text-primary-foreground",
+    emerald: "border-success/20 bg-success/10 text-success",
+    amber: "border-warning/15 bg-warning/10/70 text-warning",
   }[tone];
 
   return (
@@ -219,7 +219,7 @@ function PrototypePanel({
             </div>
           </div>
         </div>
-        <Link href="/accounting" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+        <Link href="/accounting" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
           فتح الصفحة
         </Link>
       </div>
@@ -232,15 +232,15 @@ function PrototypePanel({
             {variant === "workspace" ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-slate-500">إيراد الشهر</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">إيراد الشهر</div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueThisMonth ?? 0)}</div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-slate-500">إيصالات الشهر</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">إيصالات الشهر</div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsThisMonth ?? 0)}</div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-slate-500">المصروف</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">المصروف</div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalExpense ?? 0)}</div>
                 </div>
               </div>
@@ -253,14 +253,14 @@ function PrototypePanel({
               <>
                 <SideRail title="التقارير" subtitle="مسارات سريعة" compact />
                 <div className="rounded-[28px] border border-border bg-muted/80 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">الملخص</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">الملخص</div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-slate-500">اليوم</div>
+                      <div className="text-[11px] text-muted-foreground">اليوم</div>
                       <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
                     </div>
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-slate-500">الرصيد</div>
+                      <div className="text-[11px] text-muted-foreground">الرصيد</div>
                       <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
                     </div>
                   </div>
@@ -270,19 +270,19 @@ function PrototypePanel({
               <>
                 <div className="rounded-[28px] border border-border bg-background p-4 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <PanelRight className="h-5 w-5 text-slate-400" />
+                    <PanelRight className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">الخلاصة</div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">الخلاصة</div>
                       <div className="mt-1 text-sm font-semibold text-foreground">بطاقات صغيرة، مساحة أكبر للجدول</div>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-slate-500">الخزنة</div>
+                      <div className="text-[11px] text-muted-foreground">الخزنة</div>
                       <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
                     </div>
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-slate-500">إيراد اليوم</div>
+                      <div className="text-[11px] text-muted-foreground">إيراد اليوم</div>
                       <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
                     </div>
                   </div>
@@ -313,12 +313,12 @@ export default function AccountingPrototypes() {
   return (
     <AccountingShell>
       <div dir="rtl" className="space-y-5">
-        <section className="overflow-hidden rounded-[30px] border border-blue-100 bg-background/85 p-5 shadow-sm backdrop-blur-sm">
+        <section className="overflow-hidden rounded-[30px] border border-primary/20 bg-background/85 p-5 shadow-sm backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700">النسخ المقارنة</span>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">بيانات حية</span>
+                <span className="rounded-full bg-primary text-primary-foreground">النسخ المقارنة</span>
+                <span className="rounded-full bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">بيانات حية</span>
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">تصميم الحسابات</h1>
@@ -328,10 +328,10 @@ export default function AccountingPrototypes() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/accounting" className="rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted">
+              <Link href="/accounting" className="rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted">
                 العودة للحسابات
               </Link>
-              <Link href="/accounting/cashbook" className="rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">
+              <Link href="/accounting/cashbook" className="rounded-full border border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90">
                 فتح الخزنة
               </Link>
             </div>

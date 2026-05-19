@@ -191,7 +191,7 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "flex flex-col bg-card text-foreground rounded-lg border shadow-sm",
         className
       )}
       style={{ height }}
@@ -257,11 +257,11 @@ export function AIChatBox({
                         "max-w-[80%] rounded-lg px-4 py-2.5",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
+                          : "bg-muted text-muted-foreground"
                       )}
                     >
                       {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm max-w-none">
                           <Streamdown>{message.content}</Streamdown>
                         </div>
                       ) : (
@@ -320,6 +320,7 @@ export function AIChatBox({
         <Button
           type="submit"
           size="icon"
+          aria-label="إرسال"
           disabled={!input.trim() || isLoading}
           className="shrink-0 h-[38px] w-[38px]"
         >

@@ -1,12 +1,11 @@
-:: This script builds and deploys the desktop Electron application.
+:: This script builds and deploys the SELRS desktop application.
 :: Prerequisites:
 ::   - PowerShell must be installed and available in PATH.
-::   - Node.js and npm should be installed if required by build.ps1.
 :: Usage:
-::   deploy-exe.cmd [build.ps1 arguments]
+::   deploy-exe.cmd [build-complete.ps1 arguments]
 @echo off
 setlocal
 
 cd /d "%~dp0\.."
 
-powershell -ExecutionPolicy Bypass -File "desktop-electron\build.ps1" %*
+powershell -ExecutionPolicy Bypass -File "desktop\build-complete.ps1" %*

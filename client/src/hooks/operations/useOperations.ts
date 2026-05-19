@@ -184,9 +184,9 @@ export function useOperations() {
 
   const operationOptions = useMemo(() => {
     if (activeTab === TAB_SAWAF || activeTab === TAB_OTHERS) {
-      return ["PRK", "Lasik", "Lasik Moria", "Lasik Metal", "Femto"];
+      return ["PRK", "Lasik Moria 130", "Lasik Moria 90", "Lasik Metal"];
     }
-    return ["PRK", "Lasik", "Lasik Moria", "Lasik Metal", "Femto", "Cataract", "Yag", "Other"];
+    return ["Cataract", "PRK", "Lasik Moria 130", "Lasik Moria 90", "Lasik Metal", "Femto", "IOL", "ICL", "Yag", "Other"];
   }, [activeTab]);
 
   useEffect(() => {

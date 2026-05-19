@@ -140,15 +140,15 @@ export default function AccountingLedger() {
                 {
                   label: "إجمالي الإيراد",
                   val: s?.totalIncome,
-                  cls: "text-emerald-700",
-                  bg: "bg-emerald-50",
+                  cls: "text-success",
+                  bg: "bg-success/10",
                   icon: TrendingUp,
                 },
                 {
                   label: "إجمالي المصروف",
                   val: s?.totalExpense,
-                  cls: "text-red-700",
-                  bg: "bg-rose-50",
+                  cls: "text-destructive",
+                  bg: "bg-destructive/10",
                   icon: TrendingDown,
                 },
                 {
@@ -156,10 +156,10 @@ export default function AccountingLedger() {
                   val: s?.currentBalance,
                   cls:
                     (s?.currentBalance ?? 0) >= 0
-                      ? "text-blue-700"
-                      : "text-red-700",
+                      ? "text-primary"
+                      : "text-destructive",
                   bg:
-                    (s?.currentBalance ?? 0) >= 0 ? "bg-blue-50" : "bg-rose-50",
+                    (s?.currentBalance ?? 0) >= 0 ? "bg-primary/5" : "bg-destructive/10",
                   icon: Wallet,
                 },
               ] as const
@@ -182,7 +182,7 @@ export default function AccountingLedger() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-[10px] font-medium text-slate-500 lg:text-xs">
+                    <div className="truncate text-[10px] font-medium text-muted-foreground lg:text-xs">
                       {m.label}
                     </div>
                     <div
@@ -223,13 +223,13 @@ export default function AccountingLedger() {
                     type="date"
                     value={txDate}
                     onChange={(e) => setTxDate(e.target.value)}
-                    className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="income"
-                    className="text-xs font-medium text-emerald-700"
+                    className="text-xs font-medium text-success"
                   >
                     إيراد
                   </label>
@@ -240,13 +240,13 @@ export default function AccountingLedger() {
                     value={income}
                     onChange={(e) => setIncome(e.target.value)}
                     placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-emerald-700 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success focus:ring-2 focus:ring-success/30"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="expense"
-                    className="text-xs font-medium text-red-700"
+                    className="text-xs font-medium text-destructive"
                   >
                     مصروف
                   </label>
@@ -257,7 +257,7 @@ export default function AccountingLedger() {
                     value={expense}
                     onChange={(e) => setExpense(e.target.value)}
                     placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-red-700 placeholder:text-slate-400 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-destructive placeholder:text-muted-foreground outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/30"
                   />
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function AccountingLedger() {
                     onFocus={() => setNotesFocused(true)}
                     onBlur={() => setNotesFocused(false)}
                     placeholder="ملاحظات..."
-                    className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                   />
                   <button
                     type="button"
@@ -286,10 +286,10 @@ export default function AccountingLedger() {
                     onClick={() => void handleSave()}
                     aria-label={entrySaved ? "تم الحفظ" : "إضافة قيد"}
                     className={cn(
-                      "flex h-11 w-full flex-shrink-0 items-center justify-center rounded-lg text-white transition-colors font-medium sm:w-11 sm:min-h-11 sm:min-w-11",
+                      "flex h-11 w-full flex-shrink-0 items-center justify-center rounded-lg text-card-foreground transition-colors font-medium sm:w-11 sm:min-h-11 sm:min-w-11",
                       entrySaved
-                        ? "bg-emerald-600 hover:bg-emerald-700"
-                        : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                        ? "bg-success hover:bg-success/80"
+                        : "bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed",
                     )}
                   >
                     {busy ? (
@@ -307,7 +307,7 @@ export default function AccountingLedger() {
             {addErr && (
               <p
                 role="alert"
-                className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+                className="rounded-lg bg-destructive text-destructive-foreground"
               >
                 {addErr}
               </p>
@@ -333,8 +333,8 @@ export default function AccountingLedger() {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       notes.trim() === c.name
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-border bg-background text-blue-800 hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-card-foreground hover:border-ring hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                     )}
                   >
                     {c.name}
@@ -353,7 +353,7 @@ export default function AccountingLedger() {
               onClick={() => setTableCollapsed((c) => !c)}
               aria-expanded={!tableCollapsed}
               aria-label={tableCollapsed ? "إظهار الجدول" : "إخفاء الجدول"}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <svg
                 className={cn(
@@ -391,17 +391,17 @@ export default function AccountingLedger() {
                   className={cn(
                     "px-2 py-1.5 text-xs font-medium transition-colors",
                     year === y
-                      ? "bg-blue-600 text-white"
-                      : "bg-background text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset",
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                   )}
                 >
                   {y}
                 </button>
               ))}
             </fieldset>
-            <div className="flex h-10 w-full flex-1 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100 sm:w-auto">
+            <div className="flex h-10 w-full flex-1 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 sm:w-auto">
               <Search
-                className="h-4 w-4 shrink-0 text-slate-400"
+                className="h-4 w-4 shrink-0 text-muted-foreground"
                 aria-hidden="true"
               />
               <label htmlFor="ledger-search" className="sr-only">
@@ -416,7 +416,7 @@ export default function AccountingLedger() {
                   setPage(1);
                 }}
                 placeholder="بحث في البيان..."
-                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
               {filterNotes ? (
                 <button
@@ -426,13 +426,13 @@ export default function AccountingLedger() {
                     setFilterNotes("");
                     setPage(1);
                   }}
-                  className="p-1 text-slate-400 hover:text-muted-foreground"
+                  className="p-1 text-muted-foreground hover:text-muted-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>
-            <div className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground">
+            <div className="rounded-full bg-muted text-muted-foreground">
               {total.toLocaleString("ar-EG")} قيد
             </div>
           </div>
@@ -441,12 +441,12 @@ export default function AccountingLedger() {
             <>
               <div className="grid gap-3 px-4 py-3 sm:hidden">
                 {ledgerQ.isLoading && (
-                  <div className="py-6 text-center text-sm text-slate-500">
+                  <div className="py-6 text-center text-sm text-muted-foreground">
                     جاري التحميل...
                   </div>
                 )}
                 {!ledgerQ.isLoading && rows.length === 0 && (
-                  <div className="py-6 text-center text-sm text-slate-500">
+                  <div className="py-6 text-center text-sm text-muted-foreground">
                     لا توجد قيود — أضف قيداً من الأعلى.
                   </div>
                 )}
@@ -463,14 +463,14 @@ export default function AccountingLedger() {
                       }
                     }}
                     className={cn(
-                      "rounded-2xl border border-border bg-background p-3.5 shadow-sm transition-colors hover:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300",
+                      "rounded-2xl border border-border bg-background p-3.5 shadow-sm transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       delConfirm === row.id &&
-                        "bg-muted ring-1 ring-slate-300",
+                        "bg-muted ring-1 ring-border",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           {fmtDate(row.txDate)}
                         </div>
                         <div className="mt-1 line-clamp-2 text-[15px] font-medium leading-snug text-foreground">
@@ -481,8 +481,8 @@ export default function AccountingLedger() {
                         className={cn(
                           "inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1",
                           (row.balance ?? 0) < 0
-                            ? "bg-red-50 text-red-700 ring-red-100"
-                            : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                            ? "bg-destructive text-destructive-foreground ring-destructive/20"
+                            : "bg-success/10 text-success ring-success/20",
                         )}
                       >
                         {fmt(row.balance)}
@@ -491,26 +491,26 @@ export default function AccountingLedger() {
 
                     <div className="mt-4 space-y-2 border-t border-border pt-3">
                       <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="font-medium text-slate-500">
+                        <span className="font-medium text-muted-foreground">
                           إيراد
                         </span>
                         <span
                           className={cn(
                             "font-semibold tabular-nums",
-                            row.income ? "text-emerald-700" : "text-slate-300",
+                            row.income ? "text-success" : "text-muted-foreground",
                           )}
                         >
                           {row.income ? fmt(row.income) : "—"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="font-medium text-slate-500">
+                        <span className="font-medium text-muted-foreground">
                           مصروف
                         </span>
                         <span
                           className={cn(
                             "font-semibold tabular-nums",
-                            row.expense ? "text-red-700" : "text-slate-300",
+                            row.expense ? "text-destructive" : "text-muted-foreground",
                           )}
                         >
                           {row.expense ? fmt(row.expense) : "—"}
@@ -524,7 +524,7 @@ export default function AccountingLedger() {
               <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-muted text-xs text-slate-500">
+                    <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                       <th
                         scope="col"
                         aria-sort={
@@ -539,10 +539,10 @@ export default function AccountingLedger() {
                             setPage(1);
                           }}
                           aria-label={`ترتيب حسب التاريخ ${sortDir === "desc" ? "تصاعدياً" : "تنازلياً"}`}
-                          className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                          className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           التاريخ{" "}
-                          <span className="text-slate-400" aria-hidden="true">
+                          <span className="text-muted-foreground" aria-hidden="true">
                             {sortDir === "desc" ? "↓" : "↑"}
                           </span>
                         </button>
@@ -555,13 +555,13 @@ export default function AccountingLedger() {
                       </th>
                       <th
                         scope="col"
-                        className="px-4 py-2.5 text-left font-medium tabular-nums text-emerald-700"
+                        className="px-4 py-2.5 text-left font-medium tabular-nums text-success"
                       >
                         إيراد
                       </th>
                       <th
                         scope="col"
-                        className="px-4 py-2.5 text-left font-medium tabular-nums text-red-700"
+                        className="px-4 py-2.5 text-left font-medium tabular-nums text-destructive"
                       >
                         مصروف
                       </th>
@@ -584,12 +584,12 @@ export default function AccountingLedger() {
                       <th scope="col" className="w-8 px-2" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {ledgerQ.isLoading && (
                       <tr>
                         <td
                           colSpan={8}
-                          className="px-4 py-8 text-center text-sm text-slate-500"
+                          className="px-4 py-8 text-center text-sm text-muted-foreground"
                         >
                           جاري التحميل...
                         </td>
@@ -599,7 +599,7 @@ export default function AccountingLedger() {
                       <tr>
                         <td
                           colSpan={8}
-                          className="px-4 py-8 text-center text-sm text-slate-500"
+                          className="px-4 py-8 text-center text-sm text-muted-foreground"
                         >
                           لا توجد قيود — أضف قيداً من الأعلى.
                         </td>
@@ -617,7 +617,7 @@ export default function AccountingLedger() {
                         }}
                         role="button"
                         tabIndex={0}
-                        className="group cursor-pointer transition-colors hover:bg-blue-50 focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                        className="group cursor-pointer transition-colors hover:bg-primary/5 focus:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring"
                       >
                         <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">
                           {fmtDate(row.txDate)}
@@ -629,8 +629,8 @@ export default function AccountingLedger() {
                           className={cn(
                             "px-4 py-2.5 text-left tabular-nums text-xs",
                             row.income
-                              ? "font-medium text-emerald-700"
-                              : "text-slate-400",
+                              ? "font-medium text-success"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.income ? fmt(row.income) : "—"}
@@ -639,8 +639,8 @@ export default function AccountingLedger() {
                           className={cn(
                             "px-4 py-2.5 text-left tabular-nums text-xs",
                             row.expense
-                              ? "font-medium text-red-700"
-                              : "text-slate-400",
+                              ? "font-medium text-destructive"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.expense ? fmt(row.expense) : "—"}
@@ -649,8 +649,8 @@ export default function AccountingLedger() {
                           className={cn(
                             "px-4 py-2.5 text-left tabular-nums text-xs font-medium",
                             (row.balance ?? 0) < 0
-                              ? "text-red-700"
-                              : "text-emerald-700",
+                              ? "text-destructive"
+                              : "text-success",
                           )}
                         >
                           {fmt(row.balance)}
@@ -659,7 +659,7 @@ export default function AccountingLedger() {
                           {fmt(row.total)}
                         </td>
                         <td className="hidden px-2 py-2.5 sm:table-cell">
-                          <PenLine className="h-4 w-4 text-slate-500 transition-colors group-hover:text-blue-600" />
+                          <PenLine className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
                         </td>
                         <td
                           className="w-12 px-2 py-2 text-center"
@@ -670,7 +670,7 @@ export default function AccountingLedger() {
                               <button
                                 type="button"
                                 aria-label="تأكيد الحذف"
-                                className="rounded bg-destructive px-1.5 py-0.5 text-xs font-medium text-white hover:bg-destructive/80"
+                                className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                 onClick={() => {
                                   deleteMut.mutate({ id: row.id });
                                   setDelConfirm(null);
@@ -681,7 +681,7 @@ export default function AccountingLedger() {
                               <button
                                 type="button"
                                 aria-label="إلغاء الحذف"
-                                className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-border"
+                                className="rounded bg-muted text-muted-foreground hover:bg-border"
                                 onClick={() => setDelConfirm(null)}
                               >
                                 ✕
@@ -692,7 +692,7 @@ export default function AccountingLedger() {
                               type="button"
                               aria-label="حذف القيد"
                               disabled={deleteMut.isPending}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                               onClick={() => setDelConfirm(row.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -717,9 +717,9 @@ export default function AccountingLedger() {
                       size="icon"
                       variant="ghost"
                       className="h-11 w-11 min-h-11 min-w-11"
+                      aria-label="الصفحة السابقة"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      aria-label="الصفحة السابقة"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </Button>
@@ -727,9 +727,9 @@ export default function AccountingLedger() {
                       size="icon"
                       variant="ghost"
                       className="h-11 w-11 min-h-11 min-w-11"
+                      aria-label="الصفحة التالية"
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      aria-label="الصفحة التالية"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </Button>

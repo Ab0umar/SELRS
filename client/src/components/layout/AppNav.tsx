@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
+  Archive,
   Banknote,
   Bell,
   BookOpen,
@@ -141,6 +142,7 @@ export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
   { icon: Clock, label: "مرضى اليوم", path: "/today", isMain: true },
   accountingNavGroup,
+  { icon: Archive, label: "المخزن", path: "/stockroom", isMain: true },
   { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },
   { icon: Network, label: "مركز المريض", path: "/patient-hub", isMain: true },
   {

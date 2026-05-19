@@ -207,7 +207,7 @@ export default function LasikFollowupPage() {
             <div className="w-72 max-w-[45vw]">
               <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
             </div>
-            <Button type="button" variant="default" size="sm" onClick={handleSaveFollowup} disabled={saveFollowupSheetMutation.isPending} className="bg-green-600 hover:bg-green-700 text-white">{saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}</Button>
+            <Button type="button" variant="default" size="sm" onClick={handleSaveFollowup} disabled={saveFollowupSheetMutation.isPending} className="bg-success text-success-foreground">{saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}</Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)}>الاستمارة</Button>
             <Button type="button" variant="outline" size="sm" onClick={() => void printOrExportPdf(`lasik-followup-${initialPatientId ?? "sheet"}.pdf`)}><Printer className="h-4 w-4 mr-2"/>طباعة</Button>
           </div>

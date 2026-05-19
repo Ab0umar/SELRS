@@ -72,7 +72,7 @@ export function OperationsBookingInlinePanel({
           onClick={() => setPanelOpen((prev) => !prev)}
           aria-expanded={panelOpen}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <CalendarPlus className="h-4 w-4" aria-hidden />
           </div>
           <div className="min-w-0">
@@ -94,7 +94,7 @@ export function OperationsBookingInlinePanel({
           </Button>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground hover:bg-muted text-muted-foreground transition-colors"
             onClick={() => setPanelOpen((prev) => !prev)}
             aria-label={panelOpen ? "إخفاء حجز عملية جديدة" : "إظهار حجز عملية جديدة"}
             aria-expanded={panelOpen}

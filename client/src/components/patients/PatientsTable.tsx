@@ -58,12 +58,8 @@ export const PatientsTable = memo(function PatientsTable({
     const mq = window.matchMedia("(max-width: 640px)");
     const apply = () => setIsMobile(mq.matches);
     apply();
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", apply);
-      return () => mq.removeEventListener("change", apply);
-    }
-    mq.addListener(apply);
-    return () => mq.removeListener(apply);
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -250,8 +246,12 @@ export const PatientsTable = memo(function PatientsTable({
           return (
             <Card
               key={String((patient as any).__rowKey ?? patient.id)}
-              className="cursor-pointer overflow-hidden border-border/80 bg-card shadow-sm transition-colors hover:border-primary/25 hover:bg-accent/30"
+              className="cursor-pointer overflow-hidden border-border/80 bg-card shadow-sm transition-colors hover:border-primary/25 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              tabIndex={0}
+              role="button"
+              aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
               onClick={() => onOpenDetails(patient.id)}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenDetails(patient.id); } }}
             >
               <PatientMedicalStatusStrip status={medicalStatuses?.[patient.id]} />
               <CardContent className="space-y-3 p-3">
@@ -271,7 +271,7 @@ export const PatientsTable = memo(function PatientsTable({
                     <span />
                   )}
                   <span
-                    className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+                    className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground"
                   >
                     {serviceLabel}
                   </span>
@@ -282,7 +282,8 @@ export const PatientsTable = memo(function PatientsTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 w-7 rounded-lg border-border bg-background p-0"
+                    className="h-11 w-11 rounded-lg border-border bg-background p-0 sm:h-9 sm:w-9"
+                    aria-label={isExpanded(Number(patient.id)) ? "طي معاملات المريض" : "عرض معاملات المريض"}
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleExpanded(Number(patient.id));
@@ -312,7 +313,7 @@ export const PatientsTable = memo(function PatientsTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 w-9 rounded-xl border-primary/25 bg-primary/5 p-0 text-primary shadow-sm hover:border-primary/40 hover:bg-primary/10"
+                    className="h-9 w-9 rounded-xl border-primary/25 bg-primary text-primary-foreground shadow-sm hover:border-primary/40 hover:bg-primary/90"
                     title="فتح الشيت"
                     aria-label="فتح الشيت"
                     onClick={(event) => {
@@ -326,7 +327,7 @@ export const PatientsTable = memo(function PatientsTable({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 w-9 rounded-xl border-amber-200 bg-amber-50 p-0 text-amber-700 shadow-sm hover:border-amber-300 hover:bg-amber-100"
+                      className="h-9 w-9 rounded-xl border-warning/50 bg-warning/10 p-0 text-warning/90 shadow-sm hover:border-warning hover:bg-warning/20"
                       title="تعديل المريض"
                       aria-label="تعديل المريض"
                       onClick={(event) => {
@@ -421,8 +422,12 @@ export const PatientsTable = memo(function PatientsTable({
               {desktopPatients.map((patient) => (
                 <Fragment key={String((patient as any).__rowKey ?? patient.id)}>
                   <tr
-                    className="cursor-pointer border-b border-border transition-colors hover:bg-primary/5"
+                    className="cursor-pointer border-b border-border transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
                     onClick={() => onOpenDetails(patient.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenDetails(patient.id); } }}
                   >
                     {canBulkManage ? (
                       <td className="py-0 px-0.5 text-center" dir="ltr" onClick={(event) => event.stopPropagation()}>
@@ -446,7 +451,8 @@ export const PatientsTable = memo(function PatientsTable({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 w-7 rounded-lg border-border bg-background p-0"
+                            className="h-9 w-9 rounded-lg border-border bg-background p-0"
+                            aria-label={isExpanded(Number(patient.id)) ? "طي معاملات المريض" : "عرض معاملات المريض"}
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleExpanded(Number(patient.id));

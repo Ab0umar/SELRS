@@ -39,63 +39,63 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "الفحوصات",
     description: "إجراء فحوصات العيون الشاملة وتسجيل النتائج.",
     icon: Eye,
-    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/clinics-hub/medical-reports",
     title: "التقارير الطبية",
     description: "عرض وإدارة التقارير الطبية للمرضى.",
     icon: ClipboardList,
-    iconWrap: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
   {
     href: "/clinics-hub/patient-summary",
     title: "تقرير المريض",
     description: "ملخص شامل لحالة المريض والفحوصات السابقة.",
     icon: FileSpreadsheet,
-    iconWrap: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    iconWrap: "bg-success/15 text-success",
   },
   {
     href: "/clinics-hub/pentacam",
     title: "نتائج البنتكام",
     description: "عرض نتائج فحص البنتكام والتحليلات المتقدمة.",
     icon: CircleDot,
-    iconWrap: "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
+    iconWrap: "bg-primary/15 text-primary",
   },
   {
     href: "/clinics-hub/refractions-dashboard",
     title: "لوحة الانكسارات",
     description: "استعراض سريع لسجلات الانكسار مع البحث والمراجعة.",
     icon: Eye,
-    iconWrap: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    iconWrap: "bg-primary/10 text-primary",
   },
   {
     href: "/clinics-hub/autorefs-dashboard",
     title: "لوحة Autoref",
     description: "مراجعة الانكسار الآلي والضغط من نفس مساحة العيادة.",
     icon: FileSpreadsheet,
-    iconWrap: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+    iconWrap: "bg-primary/15 text-primary",
   },
   {
     href: "/clinics-hub/prescriptions-dashboard",
     title: "لوحة الروشتات",
     description: "متابعة سريعة للوصفات وحالتها من داخل العيادة.",
     icon: Pill,
-    iconWrap: "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
   {
     href: "/clinics-hub/prescriptions",
     title: "الروشتات",
     description: "كتابة وإدارة روشتات العلاج والأدوية.",
     icon: Pill,
-    iconWrap: "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300",
+    iconWrap: "bg-secondary/15 text-secondary",
   },
   {
     href: "/clinics-hub/request-tests",
     title: "طلب تحاليل",
     description: "طلب الفحوصات والتحاليل الإضافية للمريض.",
     icon: TestTube2,
-    iconWrap: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+    iconWrap: "bg-primary/15 text-primary",
   },
 ];
 
@@ -163,7 +163,7 @@ export default function ClinicsHubShell() {
                   </div>
                 </div>
                 <div className="mt-auto pt-2">
-                  <Button asChild className="w-full selrs-gradient-btn text-white hover:opacity-95 gap-2">
+                  <Button asChild className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2">
                     <Link href={mod.href}>
                       <LayoutGrid className="h-4 w-4" />
                       فتح الموديول

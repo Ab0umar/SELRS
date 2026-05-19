@@ -162,8 +162,8 @@ export default function PatientDetails() {
                   className={cn(
                     "flex items-center gap-3 border-s-2 px-4 py-2.5 text-sm transition-colors",
                     active
-                      ? "border-s-primary bg-primary/10 font-semibold text-primary"
-                      : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                      ? "border-s-primary bg-primary text-primary-foreground"
+                      : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
                   )}
                 >
                   <Icon
@@ -200,7 +200,7 @@ export default function PatientDetails() {
                 variant="ghost"
                 size="sm"
                 disabled={pd.deletePatientMutation.isPending}
-                className="w-full justify-start gap-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="w-full justify-start gap-2 text-xs text-destructive-foreground bg-destructive text-destructive-foreground"
                 onClick={async () => {
                   if (
                     confirm(

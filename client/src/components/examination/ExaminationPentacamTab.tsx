@@ -98,7 +98,7 @@ export default function ExaminationPentacamTab({ form }: ExaminationPentacamTabP
                 <div className="max-w-4xl mx-auto mt-2 overflow-x-auto grid grid-cols-2 gap-4" dir="ltr">
                   {/* RT (Right Eye) */}
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-blue-500 text-white font-bold p-2 text-center">RT فحص القرنية</div>
+                    <div className="bg-primary text-primary-foreground font-bold p-2 text-center">RT فحص القرنية</div>
                     <table className="w-full border-collapse text-sm">
                       <tbody>
                         <tr>
@@ -137,7 +137,7 @@ export default function ExaminationPentacamTab({ form }: ExaminationPentacamTabP
 
                   {/* LT (Left Eye) */}
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-blue-500 text-white font-bold p-2 text-center">LT فحص القرنية</div>
+                    <div className="bg-primary text-primary-foreground font-bold p-2 text-center">LT فحص القرنية</div>
                     <table className="w-full border-collapse text-sm">
                       <tbody>
                         <tr>

@@ -1,6 +1,12 @@
 # SELRS
 
+
 SELRS is a full-stack TypeScript application with a React/Vite frontend and a Node/Express + tRPC backend.
+
+Read first:
+- specs/AI_CONTEXT.md
+
+Then follow the project Constitution and Project Principles strictly.
 
 ## Structure
 - `client/src`: frontend app

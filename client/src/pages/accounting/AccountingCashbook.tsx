@@ -80,15 +80,15 @@ export default function AccountingCashbook() {
                   label: "إجمالي الإيراد",
                   val: summary?.totalIncome,
                   icon: TrendingUp,
-                  cls: "text-emerald-700",
-                  bg: "bg-emerald-50",
+                  cls: "text-success",
+                  bg: "bg-success/10",
                 },
                 {
                   label: "إجمالي المصروف",
                   val: summary?.totalExpense,
                   icon: TrendingDown,
-                  cls: "text-rose-700",
-                  bg: "bg-rose-50",
+                  cls: "text-destructive",
+                  bg: "bg-destructive/10",
                 },
                 {
                   label: "رصيد الخزنة",
@@ -96,12 +96,12 @@ export default function AccountingCashbook() {
                   icon: Wallet,
                   cls:
                     (summary?.currentBalance ?? 0) >= 0
-                      ? "text-blue-700"
-                      : "text-rose-700",
+                      ? "text-primary"
+                      : "text-destructive",
                   bg:
                     (summary?.currentBalance ?? 0) >= 0
-                      ? "bg-blue-50"
-                      : "bg-rose-50",
+                      ? "bg-primary/5"
+                      : "bg-destructive/10",
                 },
               ] as const
             ).map((m) => {
@@ -123,7 +123,7 @@ export default function AccountingCashbook() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[11px] font-medium text-slate-500">
+                    <div className="text-[11px] font-medium text-muted-foreground">
                       {m.label}
                     </div>
                     <div
@@ -148,11 +148,11 @@ export default function AccountingCashbook() {
                 <h2 className="text-sm font-bold text-foreground">
                   حركات الخزنة
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   حرّك بين القيود حسب التاريخ والبيان ونوع الحركة.
                 </p>
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+              <div className="rounded-full bg-primary text-primary-foreground">
                 {total.toLocaleString("ar-EG")} حركة
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function AccountingCashbook() {
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
                   <label
                     htmlFor="cb-date-from"
-                    className="text-xs text-slate-400"
+                    className="text-xs text-muted-foreground"
                   >
                     من
                   </label>
@@ -180,7 +180,7 @@ export default function AccountingCashbook() {
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
                   <label
                     htmlFor="cb-date-to"
-                    className="text-xs text-slate-400"
+                    className="text-xs text-muted-foreground"
                   >
                     إلى
                   </label>
@@ -195,9 +195,9 @@ export default function AccountingCashbook() {
                     className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none"
                   />
                 </div>
-                <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
                   <Search
-                    className="h-4 w-4 shrink-0 text-slate-400"
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
                   <label htmlFor="cb-notes" className="sr-only">
@@ -212,7 +212,7 @@ export default function AccountingCashbook() {
                       resetPage();
                     }}
                     placeholder="بحث في الملاحظات والبيان..."
-                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                   {notes ? (
                     <button
@@ -222,7 +222,7 @@ export default function AccountingCashbook() {
                         setNotes("");
                         resetPage();
                       }}
-                      className="p-1 text-slate-400 hover:text-muted-foreground"
+                      className="p-1 text-muted-foreground hover:text-muted-foreground"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -242,7 +242,7 @@ export default function AccountingCashbook() {
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-medium transition-colors",
                       type === t
-                        ? "border-blue-600 bg-blue-600 text-white"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background text-muted-foreground hover:border-border hover:bg-muted",
                     )}
                   >
@@ -261,7 +261,7 @@ export default function AccountingCashbook() {
                 <h3 className="text-sm font-bold text-foreground">
                   سجل الحركات
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   اضغط على التاريخ لتبديل الترتيب.
                 </p>
               </div>
@@ -279,7 +279,7 @@ export default function AccountingCashbook() {
           )}
 
           {!ledgerQ.isLoading && rows.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-slate-500">
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
               لا توجد حركات
             </div>
           ) : null}
@@ -295,24 +295,24 @@ export default function AccountingCashbook() {
                 className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground"
               >
                 التاريخ{" "}
-                <span className="text-slate-400">
+                <span className="text-muted-foreground">
                   {sortDir === "desc" ? "↓" : "↑"}
                 </span>
               </button>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">
                 {totalPages.toLocaleString("ar-EG")} صفحة
               </span>
             </div>
 
             <div className="grid gap-3 px-4 py-3">
               {ledgerQ.isLoading && (
-                <div className="py-6 text-center text-sm text-slate-500">
+                <div className="py-6 text-center text-sm text-muted-foreground">
                   جاري التحميل...
                 </div>
               )}
 
               {!ledgerQ.isLoading && rows.length === 0 && (
-                <div className="py-6 text-center text-sm text-slate-500">
+                <div className="py-6 text-center text-sm text-muted-foreground">
                   لا توجد حركات
                 </div>
               )}
@@ -323,12 +323,12 @@ export default function AccountingCashbook() {
                   className={cn(
                     "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors",
                     delConfirm === row.id &&
-                      "bg-muted ring-1 ring-slate-300",
+                      "bg-muted ring-1 ring-border",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-muted-foreground">
                         {fmtDate(row.txDate)}
                       </div>
                       <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground">
@@ -339,8 +339,8 @@ export default function AccountingCashbook() {
                       className={cn(
                         "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1",
                         (row.balance ?? 0) < 0
-                          ? "bg-red-50 text-red-700 ring-red-100"
-                          : "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                          ? "bg-destructive text-destructive-foreground ring-destructive/20"
+                          : "bg-success/10 text-success ring-success/20",
                       )}
                     >
                       {fmt(row.balance)}
@@ -348,23 +348,23 @@ export default function AccountingCashbook() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl bg-emerald-50 px-3 py-2">
-                      <div className="text-[10px] text-emerald-700">إيراد</div>
+                    <div className="rounded-xl bg-success/10 px-3 py-2">
+                      <div className="text-[10px] text-success">إيراد</div>
                       <div
                         className={cn(
                           "mt-1 font-semibold tabular-nums",
-                          row.income ? "text-emerald-700" : "text-slate-300",
+                          row.income ? "text-success" : "text-muted-foreground",
                         )}
                       >
                         {row.income ? fmt(row.income) : "—"}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-rose-50 px-3 py-2">
-                      <div className="text-[10px] text-rose-700">مصروف</div>
+                    <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                      <div className="text-[10px] text-destructive">مصروف</div>
                       <div
                         className={cn(
                           "mt-1 font-semibold tabular-nums",
-                          row.expense ? "text-rose-700" : "text-slate-300",
+                          row.expense ? "text-destructive" : "text-muted-foreground",
                         )}
                       >
                         {row.expense ? fmt(row.expense) : "—"}
@@ -373,7 +373,7 @@ export default function AccountingCashbook() {
                   </div>
 
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-muted-foreground">
                       الإجمالي:{" "}
                       <span className="font-semibold tabular-nums text-foreground">
                         {fmt(row.total)}
@@ -383,7 +383,7 @@ export default function AccountingCashbook() {
                       type="button"
                       aria-label="حذف القيد"
                       disabled={deleteMut.isPending}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground disabled:opacity-40"
                       onClick={() => setDelConfirm(row.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -395,7 +395,7 @@ export default function AccountingCashbook() {
                       <button
                         type="button"
                         aria-label="تأكيد الحذف"
-                        className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-white hover:bg-destructive/80"
+                        className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/80"
                         onClick={() => {
                           deleteMut.mutate({ id: row.id });
                           setDelConfirm(null);
@@ -406,7 +406,7 @@ export default function AccountingCashbook() {
                       <button
                         type="button"
                         aria-label="إلغاء الحذف"
-                        className="rounded-lg bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-border"
+                        className="rounded-lg bg-muted text-muted-foreground hover:bg-border"
                         onClick={() => setDelConfirm(null)}
                       >
                         إلغاء
@@ -421,7 +421,7 @@ export default function AccountingCashbook() {
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full table-fixed text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted text-xs text-slate-500">
+                <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th
                     scope="col"
                     aria-sort={sortDir === "desc" ? "descending" : "ascending"}
@@ -434,10 +434,10 @@ export default function AccountingCashbook() {
                         setPage(1);
                       }}
                       aria-label={`ترتيب حسب التاريخ ${sortDir === "desc" ? "تصاعدياً" : "تنازلياً"}`}
-                      className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       التاريخ{" "}
-                      <span className="text-slate-400" aria-hidden="true">
+                      <span className="text-muted-foreground" aria-hidden="true">
                         {sortDir === "desc" ? "↓" : "↑"}
                       </span>
                     </button>
@@ -450,13 +450,13 @@ export default function AccountingCashbook() {
                   </th>
                   <th
                     scope="col"
-                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-emerald-700 sm:px-4 sm:py-2.5"
+                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-success sm:px-4 sm:py-2.5"
                   >
                     إيراد
                   </th>
                   <th
                     scope="col"
-                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-rose-700 sm:px-4 sm:py-2.5"
+                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 sm:py-2.5"
                   >
                     مصروف
                   </th>
@@ -475,12 +475,12 @@ export default function AccountingCashbook() {
                   <th scope="col" className="w-8 px-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {ledgerQ.isLoading && (
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-4 py-8 text-center text-sm text-slate-500"
+                      className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
                       جاري التحميل...
                     </td>
@@ -490,7 +490,7 @@ export default function AccountingCashbook() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-4 py-8 text-center text-sm text-slate-500"
+                      className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
                       لا توجد حركات
                     </td>
@@ -499,7 +499,7 @@ export default function AccountingCashbook() {
                 {rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="transition-colors hover:bg-blue-50/70"
+                    className="transition-colors hover:bg-primary/50"
                   >
                     <td className="whitespace-nowrap px-2 py-2 text-[11px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
                       {fmtDate(row.txDate)}
@@ -511,7 +511,7 @@ export default function AccountingCashbook() {
                       className={cn(
                         "px-2 py-2 text-left tabular-nums text-sm sm:px-4 sm:py-2.5",
                         row.income
-                          ? "font-medium text-emerald-700"
+                          ? "font-medium text-success"
                           : "text-muted-foreground/30",
                       )}
                     >
@@ -521,7 +521,7 @@ export default function AccountingCashbook() {
                       className={cn(
                         "px-2 py-2 text-left tabular-nums text-sm sm:px-4 sm:py-2.5",
                         row.expense
-                          ? "font-medium text-rose-700"
+                          ? "font-medium text-destructive"
                           : "text-muted-foreground/30",
                       )}
                     >
@@ -531,8 +531,8 @@ export default function AccountingCashbook() {
                       className={cn(
                         "hidden px-4 py-2.5 text-left tabular-nums text-xs sm:table-cell",
                         (row.balance ?? 0) < 0
-                          ? "text-rose-600"
-                          : "text-emerald-700",
+                          ? "text-destructive"
+                          : "text-success",
                       )}
                     >
                       {fmt(row.balance)}
@@ -546,7 +546,7 @@ export default function AccountingCashbook() {
                           <button
                             type="button"
                             aria-label="تأكيد الحذف"
-                            className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                            className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                             onClick={() => {
                               deleteMut.mutate({ id: row.id });
                               setDelConfirm(null);
@@ -557,7 +557,7 @@ export default function AccountingCashbook() {
                           <button
                             type="button"
                             aria-label="إلغاء الحذف"
-                            className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                            className="rounded bg-muted text-muted-foreground hover:bg-border"
                             onClick={() => setDelConfirm(null)}
                           >
                             ✕
@@ -568,7 +568,7 @@ export default function AccountingCashbook() {
                           type="button"
                           aria-label="حذف القيد"
                           disabled={deleteMut.isPending}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 transition-colors hover:bg-destructive/10 hover:opacity-100"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground hover:opacity-100"
                           onClick={() => setDelConfirm(row.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -593,6 +593,7 @@ export default function AccountingCashbook() {
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9"
+                  aria-label="الصفحة السابقة"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
@@ -602,6 +603,7 @@ export default function AccountingCashbook() {
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9"
+                  aria-label="الصفحة التالية"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >

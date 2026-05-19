@@ -266,9 +266,9 @@ function AppNotificationPanel() {
 
   const toneClass = (kind?: string) => {
     if (kind === "success") return "border-secondary/40 bg-secondary/10 text-foreground";
-    if (kind === "warning") return "border-amber-400 bg-amber-50/80 text-amber-900";
-    if (kind === "error") return "border-rose-400 bg-rose-50/80 text-rose-900";
-    return "border-border bg-muted/80 text-foreground";
+    if (kind === "warning") return "border-warning bg-warning/10/80 text-warning";
+    if (kind === "error") return "border-destructive/30 bg-destructive/10/80 text-destructive";
+    return "border-border bg-muted text-muted-foreground";
   };
 
   return (

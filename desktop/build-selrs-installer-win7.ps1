@@ -1,10 +1,10 @@
 param(
-  [string]$IssPath = "E:\SELRS.cc\desktop\SelrsDesktopInstaller.Win7.iss"
+  [string]$IssPath = (Join-Path $PSScriptRoot "SelrsDesktopInstaller.Win7.iss")
 )
 
 $ErrorActionPreference = "Stop"
 
-$packageJsonPath = "E:\SELRS.cc\package.json"
+$packageJsonPath = Join-Path (Split-Path -Parent $PSScriptRoot) "package.json"
 $packageJson = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
 $version = $packageJson.version
 
@@ -27,9 +27,23 @@ if (-not $iscc) {
 }
 
 Write-Host "[SELRS Win7 Installer] Building desktop publish..." -ForegroundColor Cyan
-powershell -ExecutionPolicy Bypass -File "E:\SELRS.cc\desktop\build-selrs-desktop-win7.ps1"
+powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "build-selrs-desktop-win7.ps1")
+if ($LASTEXITCODE -ne 0) {
+  throw "desktop publish failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "[SELRS Win7 Installer] Compiling Inno Setup..." -ForegroundColor Cyan
-& $iscc $IssPath
+$outputDir = Join-Path $PSScriptRoot "installer"
+New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+Push-Location $PSScriptRoot
+try {
+  & $iscc $IssPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE"
+  }
+}
+finally {
+  Pop-Location
+}
 
-Write-Host "[SELRS Win7 Installer] Done -> C:\Users\SELRS\OneDrive\Documents\SELRS.cc\SELRS-Desktop-Setup-Win7-$version.exe" -ForegroundColor Green
+Write-Host "[SELRS Win7 Installer] Done -> desktop\installer\SELRS-Desktop-Setup-Win7-$version.exe" -ForegroundColor Green

@@ -46,7 +46,7 @@ function SummaryTile({
       className={cn(
         "rounded-md border px-3 py-2",
         tone === "accent" && "border-primary/20 bg-primary/5",
-        tone === "danger" && "border-rose-200 bg-rose-50/80"
+        tone === "danger" && "border-destructive/30 bg-destructive/10/80"
       )}
     >
       <div className="text-[11px] text-muted-foreground">{label}</div>
@@ -88,7 +88,7 @@ export function OperationsSettlementRail({
   return (
     <aside
       className={cn(
-        "overflow-hidden rounded-lg border border-border/50 bg-background shadow-sm transition-[width] duration-300 ease-out",
+        "overflow-hidden rounded-lg border border-border/50 bg-background shadow-sm transition-[background-color,border-color,box-shadow] duration-200 ease-out",
         railOpen ? "xl:w-[380px]" : "xl:w-14",
         "w-full"
       )}
@@ -97,7 +97,7 @@ export function OperationsSettlementRail({
         <div className="space-y-4 px-4 py-4">
           <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
             <div className="flex min-w-0 items-center gap-2 text-right">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <Calculator className="h-4 w-4" aria-hidden />
               </div>
               <div className="min-w-0">
@@ -109,12 +109,12 @@ export function OperationsSettlementRail({
               <div className="rounded-md bg-muted/40 px-2 py-1 text-[11px] font-medium text-muted-foreground">
                 {openCount} مفتوحة
               </div>
-              <div className="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
+              <div className="rounded-md bg-success/10 px-2 py-1 text-[11px] font-medium text-success">
                 {settledCount} مسددة
               </div>
               <button
                 type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground hover:bg-muted text-muted-foreground transition-colors"
                 onClick={() => onOpenChange(false)}
                 aria-label="إخفاء تسوية اليوم"
                 aria-expanded={railOpen}
@@ -208,7 +208,7 @@ export function OperationsSettlementRail({
             <div className="flex h-full min-h-[220px] items-stretch justify-center xl:min-h-[calc(100vh-2rem)]">
               <button
                 type="button"
-                className="flex w-full flex-col items-center justify-center gap-2 border-r border-border/50 px-2 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+                className="flex w-full flex-col items-center justify-center gap-2 border-r border-border/50 px-2 text-muted-foreground hover:bg-muted text-muted-foreground transition-colors"
                 onClick={() => onOpenChange(true)}
                 aria-label="إظهار تسوية اليوم"
                 aria-expanded={railOpen}

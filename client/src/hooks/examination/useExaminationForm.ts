@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { deletePatientCachePages } from "@/lib/patientCacheCleanup";
+import type { User } from "@shared/types";
 
 interface DoctorOption {
   id: string;
@@ -199,7 +200,7 @@ export function useExaminationForm(
   const lastSyncedRef = useRef<Record<string, string>>({});
 
   const hasPatient = Boolean(patientInfo.id);
-  const normalizedRole = String((user as any)?.role ?? "").toLowerCase();
+  const normalizedRole = String((user as User | null)?.role ?? "").toLowerCase();
   const myPermissions = (permissionsQuery.data ?? []) as string[];
   const receptionHasPatientEditPermission =
     normalizedRole === "reception" &&
@@ -211,7 +212,7 @@ export function useExaminationForm(
   }
 
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const currentUserDisplayName = String((user as any)?.name ?? (user as any)?.username ?? "").trim();
+  const currentUserDisplayName = String((user as User | null)?.name ?? (user as User | null)?.username ?? "").trim();
   const mobileExamInputClass = "h-10 text-sm text-center border-input";
   const desktopVisionSelectClass = "h-7 w-28 text-sm text-center tabular-nums border-input";
   const desktopRefractionInputClass = "h-7 w-24 text-sm text-center tabular-nums border-input";
@@ -277,7 +278,7 @@ export function useExaminationForm(
   // Auto-fill signatures based on logged-in user role
   useEffect(() => {
     if (!currentUserDisplayName) return;
-    const role = String((user as any)?.role ?? "").toLowerCase();
+    const role = String((user as User | null)?.role ?? "").toLowerCase();
     if (role === "reception") {
       setReceptionSignature((prev) => prev || currentUserDisplayName);
       return;
@@ -293,7 +294,7 @@ export function useExaminationForm(
     if (role === "doctor") {
       setDoctorName((prev) => prev || currentUserDisplayName);
     }
-  }, [currentUserDisplayName, (user as any)?.role]);
+  }, [currentUserDisplayName, (user as User | null)?.role]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -855,7 +856,15 @@ export function useExaminationForm(
         const doctorCode = selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "").trim() : "";
         console.log(`[ExaminationForm] Creating patient with doctor code: "${doctorCode}"`);
 
-        const firstService = services[0];
+        const validServices = services
+          .filter(s => s.code.trim())
+          .map(s => ({
+            code: s.code.trim(),
+            qty: Number(s.qty) || 1,
+            price: s.price ?? 0,
+            discount: s.discount ?? 0,
+          }));
+
         const created = await createPatientFromExamMutation.mutateAsync({
           patientCode: patientInfo.code || undefined,
           fullName: patientInfo.name.trim(),
@@ -867,10 +876,7 @@ export function useExaminationForm(
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           ...(doctorCode ? { doctorCode } : {}),
-          serviceCode: firstService?.code || undefined,
-          serviceQty: firstService ? Number(firstService.qty) : undefined,
-          servicePrice: firstService?.price || undefined,
-          discountValue: firstService?.discount || undefined,
+          ...(validServices.length > 0 ? { services: validServices } : {}),
         });
         effectivePatientId = created.id;
         setPatientInfo((prev) => ({
@@ -878,26 +884,6 @@ export function useExaminationForm(
           id: effectivePatientId,
           code: created.patientCode || prev.code,
         }));
-
-        // Link additional services
-        if (services.length > 1) {
-          for (let i = 1; i < services.length; i++) {
-            const srv = services[i];
-            if (srv.code.trim()) {
-              try {
-                await linkPatientServiceToMssqlMutation.mutateAsync({
-                  patientId: effectivePatientId,
-                  serviceCode: srv.code,
-                  quantity: Number(srv.qty) || 1,
-                  doctorCode: doctorCode || undefined,
-                  doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
-                });
-              } catch (err) {
-                console.warn(`Failed to link extra service ${srv.code}:`, err);
-              }
-            }
-          }
-        }
       } else {
         // Existing patient - link all services
         for (const srv of services) {

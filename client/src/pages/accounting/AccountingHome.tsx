@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ArrowUpRight,
   Banknote,
@@ -181,6 +181,11 @@ export default function AccountingHome() {
     paidAmount: string;
     discount: string;
   } | null>(null);
+  const [activityEverVisible, setActivityEverVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setActivityEverVisible(true));
+  }, []);
 
   const catalogQ = trpc.accounting.serviceEntryCatalog.useQuery(undefined, {
     enabled: activeTab === "service",
@@ -226,10 +231,13 @@ export default function AccountingHome() {
 
   const catalogServices = useMemo(() => catalogQ.data?.services ?? [], [catalogQ.data]);
   const catalogDoctors = useMemo(() => catalogQ.data?.doctors ?? [], [catalogQ.data]);
-  const canSaveService =
-    servicePat.trim().length > 0 &&
-    serviceLines.some((l) => l.svcCode.trim()) &&
-    !addServicesMut.isPending;
+  const canSaveService = useMemo(
+    () =>
+      servicePat.trim().length > 0 &&
+      serviceLines.some((l) => l.svcCode.trim()) &&
+      !addServicesMut.isPending,
+    [servicePat, serviceLines, addServicesMut.isPending],
+  );
 
   function updateServiceLine(idx: number, patch: Partial<{ svcCode: string; qty: string; discount: string; price: string }>) {
     setServiceLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
@@ -275,32 +283,35 @@ export default function AccountingHome() {
 
   const s = summaryQuery.data;
   const cashbook = cashbookSummaryQuery.data;
-  const receipts = activityQuery.data ?? [];
-  const cats = categoriesQ.data ?? [];
+  const receipts = useMemo(() => activityQuery.data ?? [], [activityQuery.data]);
+  const cats = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data]);
   const hasSummaryError = summaryQuery.isError || cashbookSummaryQuery.isError;
-  const refreshSummary = () => {
-    void summaryQuery.refetch();
-    void cashbookSummaryQuery.refetch();
-  };
+  const refreshSummary = useMemo(
+    () => () => {
+      void summaryQuery.refetch();
+      void cashbookSummaryQuery.refetch();
+    },
+    [summaryQuery, cashbookSummaryQuery],
+  );
 
   return (
     <AccountingShell>
       <div dir="rtl" className="space-y-4">
         <section
-          className="rounded-[24px] border border-border bg-background p-4 lg:p-5"
+          className="rounded-lg border border-border bg-background p-4 lg:p-5"
           dir="rtl"
         >
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {isToday ? "مؤشرات اليوم" : "مؤشرات اليوم المحدد"}
                 </div>
                 {!isToday && (
                   <button
                     type="button"
                     onClick={() => setViewDate(today)}
-                    className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-muted"
+                    className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted"
                   >
                     اليوم
                   </button>
@@ -309,10 +320,11 @@ export default function AccountingHome() {
               <div className="flex items-center gap-2 sm:gap-3">
                 <input
                   type="date"
+                  aria-label="تاريخ العرض"
                   value={viewDate}
                   max={today}
                   onChange={(e) => e.target.value && setViewDate(e.target.value)}
-                  className="rounded-lg border border-border bg-background px-2 py-1 text-xs tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  className="rounded-lg border border-border bg-background px-2 py-1 text-xs tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                 />
                 {[
                   {
@@ -336,7 +348,7 @@ export default function AccountingHome() {
                     href={m.href}
                     className="group hidden flex-col items-end gap-0.5 no-underline sm:flex"
                   >
-                    <span className="text-[10px] font-medium text-slate-400 group-hover:text-muted-foreground transition-colors">
+                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
                       {m.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums leading-none text-foreground">
@@ -369,7 +381,7 @@ export default function AccountingHome() {
                   href={m.href}
                   className="group flex flex-col gap-0.5 no-underline"
                 >
-                  <span className="text-[10px] font-medium text-slate-400 group-hover:text-muted-foreground transition-colors">
+                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
                     {m.label}
                   </span>
                   <span className="text-sm font-bold tabular-nums leading-none text-foreground">
@@ -387,8 +399,8 @@ export default function AccountingHome() {
                       className={cn(
                         "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                         activeTab === "cashbook"
-                          ? "bg-slate-900 text-white"
-                          : "border border-border text-slate-500 hover:border-border",
+                          ? "bg-foreground text-background"
+                          : "border border-border text-muted-foreground hover:border-border",
                       )}
                     >
                       <Wallet className="h-3 w-3" />
@@ -400,16 +412,16 @@ export default function AccountingHome() {
                   className={cn(
                     "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                     activeTab === "service"
-                      ? "bg-blue-600 text-white"
-                      : "border border-dashed border-blue-300 bg-background text-blue-700 hover:border-blue-500 hover:bg-blue-50",
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-dashed border-ring/50 bg-background text-card-foreground hover:border-ring hover:bg-primary/5",
                   )}
                 >
                   <span
                     className={cn(
                       "inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none",
                       activeTab === "service"
-                        ? "bg-background/20 text-white"
-                        : "bg-blue-500 text-white",
+                        ? "bg-background/20 text-card-foreground"
+                        : "bg-primary text-primary-foreground",
                     )}
                   >
                     +
@@ -430,7 +442,7 @@ export default function AccountingHome() {
                             type="date"
                             value={txDate}
                             onChange={(e) => setTxDate(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                         ),
                       },
@@ -446,7 +458,7 @@ export default function AccountingHome() {
                             value={income}
                             onChange={(e) => setIncome(e.target.value)}
                             placeholder="0"
-                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-success focus:ring-1 focus:ring-success/20"
                           />
                         ),
                       },
@@ -462,7 +474,7 @@ export default function AccountingHome() {
                             value={expense}
                             onChange={(e) => setExpense(e.target.value)}
                             placeholder="0"
-                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-destructive/30 focus:ring-1 focus:ring-destructive/20"
                           />
                         ),
                       },
@@ -478,7 +490,7 @@ export default function AccountingHome() {
                             onFocus={() => setNotesFocused(true)}
                             onBlur={() => setNotesFocused(false)}
                             placeholder="اسم الموظف أو البيان..."
-                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                         ),
                       },
@@ -487,7 +499,7 @@ export default function AccountingHome() {
                     <div key={row.label} className="flex items-center gap-3">
                       <label
                         htmlFor={row.id}
-                        className="w-16 shrink-0 text-xs font-medium text-slate-500"
+                        className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
                       >
                         {row.label}
                       </label>
@@ -496,7 +508,7 @@ export default function AccountingHome() {
                   ))}
                   {cats.length > 0 && (notesFocused || notes.length > 0) && (
                     <div className="flex items-start gap-3">
-                      <span className="w-16 shrink-0 pt-0.5 text-xs font-medium text-slate-500">
+                      <span className="w-16 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground">
                         التصنيف
                       </span>
                       <div className="flex flex-1 flex-wrap gap-1.5">
@@ -509,9 +521,9 @@ export default function AccountingHome() {
                               setNotes(notes.trim() === c.name ? "" : c.name)
                             }
                             className={cn(
-                              "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
+                              "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
                               notes.trim() === c.name
-                                ? "border-blue-300 bg-blue-50 text-blue-700"
+                                ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border text-muted-foreground hover:border-border hover:bg-muted",
                             )}
                           >
@@ -531,8 +543,8 @@ export default function AccountingHome() {
                       className={cn(
                         "rounded-lg px-5 py-1.5 text-sm font-semibold transition-colors",
                         saved
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                          : "bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40",
+                          ? "bg-success/10 text-success ring-1 ring-success/30"
+                          : "bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40",
                       )}
                     >
                       {saved ? "تم ✓" : "حفظ"}
@@ -544,7 +556,7 @@ export default function AccountingHome() {
                 <div className="flex flex-col gap-1.5">
                   {/* Patient + Doctor (shared) */}
                   <div className="flex items-center gap-3">
-                    <label htmlFor="qk-svc-pat" className="w-16 shrink-0 text-xs font-medium text-slate-500">
+                    <label htmlFor="qk-svc-pat" className="w-16 shrink-0 text-xs font-medium text-muted-foreground">
                       المريض
                     </label>
                     <div className="flex flex-1 items-center gap-2">
@@ -555,10 +567,10 @@ export default function AccountingHome() {
                         onChange={(e) => setServicePat(e.target.value)}
                         placeholder="كود المريض"
                         dir="ltr"
-                        className="w-28 rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                        className="w-28 rounded-lg border border-border bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                       />
                       {servicePat.trim().length > 0 && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-muted-foreground">
                           {servicePatLookup.isFetching
                             ? "..."
                             : servicePatLookup.data?.patientName ?? "غير موجود"}
@@ -567,14 +579,14 @@ export default function AccountingHome() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <label htmlFor="qk-svc-doctor" className="w-16 shrink-0 text-xs font-medium text-slate-500">
+                    <label htmlFor="qk-svc-doctor" className="w-16 shrink-0 text-xs font-medium text-muted-foreground">
                       الدكتور
                     </label>
                     <select
                       id="qk-svc-doctor"
                       value={serviceDocCode}
                       onChange={(e) => setServiceDocCode(e.target.value)}
-                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                     >
                       <option value="">بدون</option>
                       {catalogDoctors.map((d) => (
@@ -601,7 +613,7 @@ export default function AccountingHome() {
                                 price: svcInfo && line.price === "" ? String(svcInfo.price ?? "") : line.price,
                               });
                             }}
-                            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           >
                             <option value="">الخدمة</option>
                             {catalogServices.map((svc) => (
@@ -618,7 +630,7 @@ export default function AccountingHome() {
                             value={line.price}
                             onChange={(e) => updateServiceLine(idx, { price: e.target.value })}
                             placeholder={info ? String(info.price ?? "سعر") : "سعر"}
-                            className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                            className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                           <input
                             type="number"
@@ -627,7 +639,7 @@ export default function AccountingHome() {
                             aria-label="العدد"
                             value={line.qty}
                             onChange={(e) => updateServiceLine(idx, { qty: e.target.value })}
-                            className="w-14 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                            className="w-14 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                           <input
                             type="number"
@@ -637,14 +649,14 @@ export default function AccountingHome() {
                             value={line.discount}
                             onChange={(e) => updateServiceLine(idx, { discount: e.target.value })}
                             placeholder="خصم"
-                            className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                            className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-warning focus:ring-1 focus:ring-warning/20"
                           />
                           {serviceLines.length > 1 && (
                             <button
                               type="button"
                               aria-label="حذف السطر"
                               onClick={() => setServiceLines((prev) => prev.filter((_, i) => i !== idx))}
-                              className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                              className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -656,7 +668,7 @@ export default function AccountingHome() {
                   <button
                     type="button"
                     onClick={() => setServiceLines((prev) => [...prev, { svcCode: "", qty: "1", discount: "", price: "" }])}
-                    className="self-start rounded-full border border-dashed border-blue-200 px-3 py-0.5 text-xs font-medium text-blue-600 hover:border-blue-400 hover:bg-blue-50"
+                    className="self-start rounded-full border border-dashed border-ring/30 px-3 py-0.5 text-xs font-medium text-card-foreground hover:border-ring hover:bg-primary/5"
                   >
                     + خدمة
                   </button>
@@ -675,21 +687,21 @@ export default function AccountingHome() {
                     const net = Math.max(0, gross - disc);
                     return (
                       <div className="flex items-center gap-3 rounded-xl bg-muted px-3 py-2 text-xs">
-                        <span className="text-slate-500">ما يخص المريض</span>
+                        <span className="text-muted-foreground">ما يخص المريض</span>
                         <span className="font-semibold tabular-nums text-foreground">{formatMoneyAr(gross)}</span>
                         {disc > 0 && (
                           <>
-                            <span className="text-slate-400">خصم</span>
-                            <span className="tabular-nums text-amber-700">{formatMoneyAr(disc)}</span>
+                            <span className="text-muted-foreground">خصم</span>
+                            <span className="tabular-nums text-warning">{formatMoneyAr(disc)}</span>
                           </>
                         )}
-                        <span className="text-slate-400">الإجمالي</span>
-                        <span className="font-bold tabular-nums text-emerald-700">{formatMoneyAr(net)}</span>
+                        <span className="text-muted-foreground">الإجمالي</span>
+                        <span className="font-bold tabular-nums text-success">{formatMoneyAr(net)}</span>
                       </div>
                     );
                   })()}
                   {addServicesMut.error && (
-                    <p className="text-xs text-rose-600">{addServicesMut.error.message}</p>
+                    <p className="text-xs text-destructive">{addServicesMut.error.message}</p>
                   )}
                   <div className="flex justify-start pt-0.5">
                     <button
@@ -699,8 +711,8 @@ export default function AccountingHome() {
                       className={cn(
                         "rounded-lg px-5 py-1.5 text-sm font-semibold transition-colors",
                         serviceSaved
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                          : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40",
+                          ? "bg-success/10 text-success ring-1 ring-success/30"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40",
                       )}
                     >
                       {serviceSaved ? "تم ✓" : "حفظ"}
@@ -712,7 +724,7 @@ export default function AccountingHome() {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
+        <section className="rounded-lg border border-border bg-background p-4 lg:p-5">
           <button
             type="button"
             onClick={() => setMoreQuickLinksOpen((v) => !v)}
@@ -737,12 +749,12 @@ export default function AccountingHome() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="group flex flex-col gap-1.5 rounded-2xl border border-blue-100 bg-blue-50 px-2.5 py-2.5 transition-colors hover:bg-blue-100/70 sm:gap-2 sm:px-3 sm:py-3"
+                      className="group flex flex-col gap-1.5 rounded-2xl border border-primary/20 bg-primary/5 px-2.5 py-2.5 transition-colors hover:bg-primary/70 sm:gap-2 sm:px-3 sm:py-3"
                     >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-700 text-white ring-1 ring-blue-300 sm:h-8 sm:w-8">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary text-primary-foreground ring-1 ring-primary/30 sm:h-8 sm:w-8">
                         <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
-                      <div className="truncate text-xs font-semibold text-blue-900 sm:text-sm">
+                      <div className="truncate text-xs font-semibold text-primary sm:text-sm">
                         {item.label}
                       </div>
                     </Link>
@@ -752,21 +764,22 @@ export default function AccountingHome() {
           ) : null}
         </section>
 
-        <section className="w-full overflow-hidden rounded-[24px] border border-border bg-background">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        {activityEverVisible && (
+          <section className="w-full overflow-hidden rounded-lg border border-border bg-background">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
               <h2 className="text-sm font-bold text-foreground">
                 {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {activityQuery.isFetching && !activityQuery.isLoading ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
               ) : null}
-              <span className="rounded-full bg-muted px-3 py-1 font-semibold text-foreground">
+              <span className="rounded-full bg-muted text-muted-foreground">
                 {activityQuery.isLoading
                   ? "..."
                   : formatCountAr(receipts.length)}
@@ -775,26 +788,26 @@ export default function AccountingHome() {
           </div>
 
           {activityQuery.isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
+            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
               <Loader className="h-4 w-4 animate-spin" />
               جاري التحميل...
             </div>
           ) : activityQuery.isError ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-sm text-slate-500">
+            <div className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground">
               <span>تعذر تحميل الحركات</span>
               <button
                 type="button"
-                className="text-blue-700 hover:underline"
+                className="text-primary hover:underline"
                 onClick={() => activityQuery.refetch()}
               >
                 إعادة المحاولة
               </button>
             </div>
           ) : receipts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-sm text-slate-500">
-              <FileText className="h-6 w-6 text-slate-300" />
+            <div className="flex flex-col items-center gap-2 py-16 text-sm text-muted-foreground">
+              <FileText className="h-6 w-6 text-muted-foreground" />
               <span>لا توجد حركات مسجلة اليوم</span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 ستظهر الإيصالات هنا تلقائيًا عندما يبدأ القسم بالحركة
               </span>
             </div>
@@ -806,8 +819,8 @@ export default function AccountingHome() {
                   const remaining = r.total - r.discount - r.paidValue;
                   const balanceTone =
                     remaining > 0
-                      ? "bg-amber-50 text-amber-700 ring-amber-100"
-                      : "bg-emerald-50 text-emerald-700 ring-emerald-100";
+                      ? "bg-warning/10 text-warning ring-warning/15"
+                      : "bg-success/10 text-success ring-success/20";
                   const isDeleting = deletingTrNo === r.trNo;
                   const isEditing = editingReceipt?.trNo === r.trNo;
                   return (
@@ -815,13 +828,13 @@ export default function AccountingHome() {
                       key={`${r.trTy}-${r.trNo}`}
                       className={cn(
                         "rounded-2xl border bg-background p-4 shadow-sm",
-                        isDeleting ? "border-rose-200 bg-rose-50" : "border-border",
+                        isDeleting ? "border-destructive/30 bg-destructive/10" : "border-border",
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <Link href={href} className="min-w-0 flex-1 no-underline">
                           <div className="flex items-center gap-2">
-                            <div className="text-[11px] font-medium text-slate-500">
+                            <div className="text-[11px] font-medium text-muted-foreground">
                               {formatTime(r.transactionDate)}
                             </div>
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -843,21 +856,21 @@ export default function AccountingHome() {
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">الكود</div>
+                          <div className="text-[10px] text-muted-foreground">الكود</div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {r.patientCode || "—"}
                           </div>
                         </div>
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-slate-500">ما يخص المريض</div>
+                          <div className="text-[10px] text-muted-foreground">ما يخص المريض</div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {formatMoneyAr(r.total)}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-emerald-50 px-3 py-2">
-                          <div className="text-[10px] text-emerald-700">المدفوع</div>
+                        <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
+                          <div className="text-[10px] text-success">المدفوع</div>
                           <div className="mt-1 flex items-end justify-between gap-3">
-                            <div className="font-semibold tabular-nums text-emerald-700">
+                            <div className="font-semibold tabular-nums text-success">
                               {formatMoneyAr(r.paidValue)}
                             </div>
                             <div
@@ -883,29 +896,29 @@ export default function AccountingHome() {
                               discount: editingReceipt.discount !== "" ? parseFloat(editingReceipt.discount) : undefined,
                             });
                           }}
-                          className="mt-3 flex flex-wrap gap-2 border-t border-blue-100 pt-3"
+                          className="mt-3 flex flex-wrap gap-2 border-t border-primary/20 pt-3"
                         >
                           <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-500">المدفوع</label>
+                            <label className="text-xs font-medium text-muted-foreground">المدفوع</label>
                             <input
                               type="number" min="0" step="0.01"
                               value={editingReceipt?.paidAmount ?? ""}
                               onChange={(e) => setEditingReceipt((p) => p ? { ...p, paidAmount: e.target.value } : null)}
-                              className="w-28 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400"
+                              className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-500">الخصم</label>
+                            <label className="text-xs font-medium text-muted-foreground">الخصم</label>
                             <input
                               type="number" min="0" step="0.01"
                               value={editingReceipt?.discount ?? ""}
                               onChange={(e) => setEditingReceipt((p) => p ? { ...p, discount: e.target.value } : null)}
-                              className="w-24 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400"
+                              className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
                             />
                           </div>
                           <div className="flex gap-1.5">
                             <button type="submit" disabled={updateReceiptMut.isPending}
-                              className="rounded-lg bg-blue-600 px-4 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                              className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
                               {updateReceiptMut.isPending ? "..." : "حفظ"}
                             </button>
                             <button type="button" onClick={() => setEditingReceipt(null)}
@@ -922,7 +935,7 @@ export default function AccountingHome() {
                               type="button"
                               disabled={deleteReceiptMut.isPending}
                               onClick={() => deleteReceiptMut.mutate({ patientCode: r.patientCode, trNo: Number(r.trNo) })}
-                              className="rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
                             >
                               {deleteReceiptMut.isPending ? "..." : "تأكيد الحذف"}
                             </button>
@@ -936,12 +949,12 @@ export default function AccountingHome() {
                             <button
                               type="button"
                               onClick={() => setEditingReceipt(isEditing ? null : { trNo: r.trNo, patientCode: r.patientCode, paidAmount: String(r.paidValue ?? ""), discount: String(r.discount ?? "") })}
-                              className={cn("rounded-full p-1.5 transition-colors", isEditing ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:bg-muted hover:text-foreground")}
+                              className={cn("rounded-full p-1.5 transition-colors", isEditing ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted text-muted-foreground")}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button type="button" onClick={() => setDeletingTrNo(r.trNo)}
-                              className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600">
+                              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </>
@@ -957,7 +970,7 @@ export default function AccountingHome() {
               <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-muted text-[11px] font-semibold text-slate-500">
+                    <tr className="border-b border-border bg-muted text-[11px] font-semibold text-muted-foreground">
                       <th scope="col" className="w-20 px-3 py-2.5 text-right">
                         الوقت
                       </th>
@@ -992,7 +1005,7 @@ export default function AccountingHome() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {receipts.map((r) => {
                       const remaining = r.total - r.discount - r.paidValue;
                       const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
@@ -1004,12 +1017,12 @@ export default function AccountingHome() {
                             key={`${r.trTy}-${r.trNo}`}
                             className={cn(
                               "transition-colors hover:bg-muted",
-                              isDeleting && "bg-rose-50",
-                              isEditing && "bg-blue-50/40",
+                              isDeleting && "bg-destructive/10",
+                              isEditing && "bg-primary/40",
                             )}
                           >
                             <td
-                              className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-500"
+                              className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground"
                               dir="ltr"
                             >
                               {formatTime(r.transactionDate)}
@@ -1024,7 +1037,7 @@ export default function AccountingHome() {
                               {r.patientName || "—"}
                             </td>
                             <td
-                              className="hidden px-3 py-2 tabular-nums text-slate-500 sm:table-cell"
+                              className="hidden px-3 py-2 tabular-nums text-muted-foreground sm:table-cell"
                               dir="ltr"
                             >
                               {r.patientCode || "—"}
@@ -1041,7 +1054,7 @@ export default function AccountingHome() {
                             <td
                               className={cn(
                                 "px-3 py-2 tabular-nums font-medium",
-                                remaining <= 0 ? "text-emerald-700" : "text-amber-700",
+                                remaining <= 0 ? "text-success" : "text-warning",
                               )}
                               dir="ltr"
                             >
@@ -1053,7 +1066,7 @@ export default function AccountingHome() {
                                   <Link
                                     href={href}
                                     aria-label={`فتح الإيصال ${r.trNo}`}
-                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-blue-800 transition-colors hover:border-blue-200 hover:bg-blue-50"
+                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-card-foreground transition-colors hover:border-ring/30 hover:bg-primary/5"
                                   >
                                     عرض
                                     <ArrowUpRight className="h-3 w-3" />
@@ -1078,8 +1091,8 @@ export default function AccountingHome() {
                                     className={cn(
                                       "rounded-full p-1.5 transition-colors",
                                       isEditing
-                                        ? "bg-blue-100 text-blue-700"
-                                        : "text-slate-400 hover:bg-muted hover:text-foreground",
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted text-muted-foreground",
                                     )}
                                   >
                                     <Pencil className="h-3 w-3" />
@@ -1096,14 +1109,14 @@ export default function AccountingHome() {
                                           trNo: Number(r.trNo),
                                         })
                                       }
-                                      className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                      className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
                                     >
                                       {deleteReceiptMut.isPending ? "..." : "تأكيد"}
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => setDeletingTrNo(null)}
-                                      className="rounded-full p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+                                      className="rounded-full p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
                                     >
                                       <X className="h-3 w-3" />
                                     </button>
@@ -1113,7 +1126,7 @@ export default function AccountingHome() {
                                     type="button"
                                     title="حذف"
                                     onClick={() => setDeletingTrNo(r.trNo)}
-                                    className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </button>
@@ -1122,7 +1135,7 @@ export default function AccountingHome() {
                             </td>
                           </tr>
                           {isEditing && (
-                            <tr key={`edit-${r.trNo}`} className="bg-blue-50/60">
+                            <tr key={`edit-${r.trNo}`} className="bg-primary/50">
                               <td colSpan={7} className="px-4 py-3">
                                 <form
                                   onSubmit={async (e) => {
@@ -1138,7 +1151,7 @@ export default function AccountingHome() {
                                   className="flex flex-wrap items-center gap-3"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <label className="text-xs font-medium text-slate-500">المدفوع</label>
+                                    <label className="text-xs font-medium text-muted-foreground">المدفوع</label>
                                     <input
                                       type="number"
                                       min="0"
@@ -1149,11 +1162,11 @@ export default function AccountingHome() {
                                           prev ? { ...prev, paidAmount: e.target.value } : null,
                                         )
                                       }
-                                      className="w-28 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                                      className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                                     />
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <label className="text-xs font-medium text-slate-500">الخصم</label>
+                                    <label className="text-xs font-medium text-muted-foreground">الخصم</label>
                                     <input
                                       type="number"
                                       min="0"
@@ -1164,17 +1177,17 @@ export default function AccountingHome() {
                                           prev ? { ...prev, discount: e.target.value } : null,
                                         )
                                       }
-                                      className="w-24 rounded-lg border border-blue-200 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                                      className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                                     />
                                   </div>
                                   {updateReceiptMut.error && (
-                                    <span className="text-xs text-rose-600">{updateReceiptMut.error.message}</span>
+                                    <span className="text-xs text-destructive">{updateReceiptMut.error.message}</span>
                                   )}
                                   <div className="flex gap-1.5">
                                     <button
                                       type="submit"
                                       disabled={updateReceiptMut.isPending}
-                                      className="rounded-lg bg-blue-600 px-4 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                      className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                                     >
                                       {updateReceiptMut.isPending ? "..." : "حفظ"}
                                     </button>
@@ -1198,7 +1211,7 @@ export default function AccountingHome() {
                     <tr className="border-t border-border bg-muted/80">
                       <td
                         colSpan={3}
-                        className="px-3 py-2.5 text-xs font-semibold text-slate-500"
+                        className="px-3 py-2.5 text-xs font-semibold text-muted-foreground"
                       >
                         {formatCountAr(receipts.length)} إيصال
                       </td>
@@ -1212,7 +1225,7 @@ export default function AccountingHome() {
                         )}
                       </td>
                       <td
-                        className="px-3 py-2.5 text-left tabular-nums font-bold text-emerald-700"
+                        className="px-3 py-2.5 text-left tabular-nums font-bold text-success"
                         dir="ltr"
                       >
                         {formatMoneyAr(
@@ -1227,6 +1240,7 @@ export default function AccountingHome() {
             </>
           )}
         </section>
+        )}
       </div>
     </AccountingShell>
   );

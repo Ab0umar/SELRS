@@ -29,7 +29,7 @@ export const PatientDetailsHeader: React.FC<PatientDetailsHeaderProps> = ({
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary">
-            <UserRound className="h-8 w-8 text-white" />
+            <UserRound className="h-8 w-8 text-card-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">

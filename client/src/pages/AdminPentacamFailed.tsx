@@ -193,10 +193,10 @@ export default function AdminPentacamFailed() {
 
   const badgeClass = (tone: "good" | "warn" | "muted") =>
     tone === "good"
-      ? "border-secondary/40 bg-secondary/10 text-secondary"
+      ? "border-secondary/40 bg-secondary text-secondary-foreground"
       : tone === "warn"
-        ? "border-amber-300 bg-amber-50 text-amber-900"
-        : "border-border bg-muted text-foreground";
+        ? "border-warning bg-warning/10 text-warning"
+        : "border-border bg-muted text-muted-foreground";
 
   const loadPreview = async (key: string, fileNames: string[], idCode: string) => {
     const result = await previewMutation.mutateAsync({ fileNames, idCode });
@@ -248,7 +248,7 @@ export default function AdminPentacamFailed() {
       </Card>
 
       {filesQuery.isError ? (
-        <Card className="border-red-200 bg-red-50/80">
+        <Card className="border-destructive/30 bg-destructive/80">
           <CardContent className="py-6 text-sm text-destructive">
             {getTrpcErrorMessage(filesQuery.error, "Failed to load Pentacam failed files")}
           </CardContent>
@@ -344,7 +344,7 @@ export default function AdminPentacamFailed() {
                         <div className="mb-2 font-medium">
                           Rename preview
                           {groupPreview.some((row) => row.willDuplicate) ? (
-                            <span className="ml-2 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-amber-900">
+                            <span className="ml-2 rounded-full border border-warning bg-warning/10 px-2 py-0.5 text-warning">
                               {groupPreview.filter((row) => row.willDuplicate).length} duplicates
                             </span>
                           ) : null}
@@ -377,7 +377,7 @@ export default function AdminPentacamFailed() {
                             <span className="text-muted-foreground">
                               score {row.score} | {formatFileSize(row.size)} | {new Date(row.modifiedAt).toLocaleString()}
                             </span>
-                            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-foreground">
+                            <span className="rounded-full border border-border bg-muted text-muted-foreground">
                               {row.pageType}
                             </span>
                           </div>

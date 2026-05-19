@@ -26,9 +26,9 @@ import type { PageKey } from "@/lib/dashboard-data";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 
 const semanticColors = {
-  success: { text: "text-success", bg: "hover:bg-success/10", border: "border-success/20" },
+  success: { text: "text-card-foreground", bg: "hover:bg-success/10", border: "border-success/20" },
   info:    { text: "text-info",    bg: "hover:bg-info/10",    border: "border-info/20"    },
-  warning: { text: "text-warning", bg: "hover:bg-warning/10", border: "border-warning/20" },
+  warning: { text: "text-card-foreground", bg: "hover:bg-warning/10", border: "border-warning/20" },
   error:   { text: "text-error",   bg: "hover:bg-error/10",   border: "border-error/20"   },
 } as const;
 

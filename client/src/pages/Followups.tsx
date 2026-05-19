@@ -205,13 +205,13 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
   const getStatusBadge = (status: FollowupStatus) => {
     switch (status) {
       case "upcoming":
-        return <Badge className="border-0 bg-sky-100 text-[10px] text-sky-700 hover:bg-sky-100 dark:bg-sky-950/60 dark:text-sky-400">قادمة</Badge>;
+        return <Badge className="border-0 bg-primary/10 text-[10px] text-primary hover:bg-primary/10">قادمة</Badge>;
       case "completed":
         return (
-          <Badge className="border-0 bg-emerald-100 text-[10px] text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400">مكتملة</Badge>
+          <Badge className="border-0 bg-success/15 text-[10px] text-success hover:bg-success/15">مكتملة</Badge>
         );
       case "overdue":
-        return <Badge className="border-0 bg-rose-100 text-[10px] text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-400">متأخرة</Badge>;
+        return <Badge className="border-0 bg-destructive/10 text-[10px] text-destructive hover:bg-destructive/10">متأخرة</Badge>;
       default:
         return (
           <Badge variant="secondary" className="text-[10px]">
@@ -232,7 +232,7 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
             subtitle="إدارة مواعيد المتابعة"
             icon={<CalendarCheck className="h-5 w-5" />}
             action={
-              <Button size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setLocation("/patients")} type="button">
+              <Button size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setLocation("/patients")} type="button">
                 <Plus className="h-4 w-4" />
                 <span className="text-xs sm:text-sm">متابعة جديدة</span>
               </Button>
@@ -245,21 +245,21 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
               value={stats.total}
               icon={CalendarDays}
               description="إجمالي السجلات"
-              iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
+              iconColor="bg-primary text-primary-foreground"
             />
             <StatCard
               title="متابعة هذا الأسبوع"
               value={stats.thisWeek}
               icon={CalendarCheck}
               description="خلال الأسبوع الحالي"
-              iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+              iconColor="bg-success/15 text-success"
             />
             <StatCard
               title="متأخرة"
               value={stats.overdue}
               icon={AlertTriangle}
               description="تحتاج تواصل"
-              iconColor="bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+              iconColor="bg-destructive/10 text-destructive"
             />
           </div>
         </>
@@ -344,7 +344,7 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
                   <Card key={fid} className="border-border transition-shadow hover:shadow-md">
                     <div className="flex items-stretch gap-0">
                       <button type="button" onClick={() => setExpandedFollowupId(isExpanded ? null : fid)} className="min-w-0 flex-1 text-right">
-                        <CardHeader className="cursor-pointer hover:bg-muted/40">
+                        <CardHeader className="hover:bg-muted/40">
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <CardTitle className="text-base text-right">

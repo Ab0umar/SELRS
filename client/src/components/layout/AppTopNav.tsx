@@ -1,9 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/BrandLogo";
 import { BRAND_NAME_AR } from "@/lib/brand";
+import type { User } from "@shared/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, KeyRound, LogOut, Moon, Search, Settings, Sun, UserCog } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, Search, Settings, UserCog } from "lucide-react";
 import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -60,7 +60,6 @@ export function AppTopNav({
   onLogout,
 }: AppTopNavProps) {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
 
@@ -125,9 +124,9 @@ export function AppTopNav({
     : "";
 
   const userName =
-    typeof (user as any)?.name === "string" && String((user as any).name).trim()
-      ? String((user as any).name).trim()
-      : String((user as any)?.username ?? "").trim() || "—";
+    user && typeof user.name === "string" && String(user.name).trim()
+      ? String((user as User).name).trim()
+      : String((user as User | null)?.username ?? "").trim() || "—";
 
   const accountingActive = tabActive(location, "/accounting");
 
@@ -154,7 +153,7 @@ export function AppTopNav({
           aria-label="الرئيسية"
         >
           <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-background" />
-          <span className="hidden text-sm font-black text-foreground lg:block">{BRAND_NAME_AR}</span>
+          <span className="hidden text-sm font-black text-foreground md:block">{BRAND_NAME_AR}</span>
         </button>
 
         {/* Main tabs + الحسابات — desktop only */}
@@ -170,8 +169,8 @@ export function AppTopNav({
                 className={cn(
                   "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
                   active
-                    ? "border-b-primary bg-primary/5 font-semibold text-primary"
-                    : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                    ? "border-b-primary bg-primary text-primary-foreground"
+                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
                 )}
               >
                 <Icon
@@ -193,8 +192,8 @@ export function AppTopNav({
                 className={cn(
                   "flex h-full items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-none",
                   accountingActive
-                    ? "border-b-primary bg-primary/5 font-semibold text-primary"
-                    : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                    ? "border-b-primary bg-primary text-primary-foreground"
+                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
                 )}
               >
                 <span>الحسابات</span>
@@ -206,8 +205,8 @@ export function AppTopNav({
                     className={cn(
                       "flex h-full items-center border-b-2 px-2.5 text-sm transition-colors focus-visible:outline-none",
                       accountingActive
-                        ? "border-b-primary bg-primary/5 text-primary"
-                        : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                        ? "border-b-primary bg-primary text-primary-foreground"
+                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
                     )}
                     aria-label="فتح قائمة الحسابات"
                   >
@@ -293,7 +292,7 @@ export function AppTopNav({
                       <button
                         type="button"
                         onClick={() => toggleSection(key)}
-                        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-muted-foreground bg-muted/40"
                       >
                         <span>{group.label}</span>
                         <ChevronDown
@@ -310,7 +309,7 @@ export function AppTopNav({
                             <button
                               key={item.path}
                               type="button"
-                              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
                               onClick={() => {
                                 onNavigate(item.path);
                                 setMoreOpen(false);
@@ -348,30 +347,16 @@ export function AppTopNav({
             variant="outline"
             className="hidden whitespace-nowrap py-1 text-[10px] font-normal sm:inline-flex"
           >
-            <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+            <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
           </Badge>
-
-          {/* Theme toggle */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="relative h-8 w-8 shrink-0"
-            onClick={() => toggleTheme?.()}
-            title={theme === "light" ? "Dark mode" : "Light mode"}
-            aria-label={theme === "light" ? "Dark mode" : "Light mode"}
-          >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
-          </Button>
 
           {/* Avatar + user dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 shrink-0 gap-1.5 px-1.5">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-blue-50 text-xs font-semibold text-blue-800">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     {userName.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>

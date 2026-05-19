@@ -1,0 +1,26 @@
+{
+  "id": "c1576629",
+  "phase": "completed",
+  "pageUrl": "/accounting/",
+  "sourceFile": "client\\src\\pages\\accounting\\AccountingHome.tsx",
+  "expectedVariants": 3,
+  "arrivedVariants": 3,
+  "visibleVariant": 3,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 9,
+  "activeOwner": "abbd8b73",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "carbonize_cleanup_required",
+      "file": "client\\src\\pages\\accounting\\AccountingHome.tsx",
+      "message": "Accepted variant still has carbonize markers that must be folded into source CSS."
+    }
+  ],
+  "updatedAt": "2026-05-17T18:17:54.371Z"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "1e762d4c",
+  "phase": "agent_error",
+  "pageUrl": "/accounting/ledger",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "14554ac8",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Added main accounting page link directly"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:35:40.689Z"
+}

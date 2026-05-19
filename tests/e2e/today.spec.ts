@@ -33,14 +33,15 @@ test.describe("today operations board", () => {
     const page = await context.newPage();
 
     await page.goto("/today");
-    await expect(page.locator("h1").filter({ hasText: "اختناق الطابور" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /إضافة مريض/ })).toBeVisible();
-    await expect(page.locator("summary").filter({ hasText: "إجراءات سريعة" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "مرضى اليوم" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /تسجيل مريض/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /إجراءات سريعة/ })).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
-    await expect(page.getByRole("button", { name: /إضافة مريض/ })).toBeVisible();
-    await expect(page.getByText(/الأطول انتظارًا|لا يوجد مرضى في هذه المرحلة/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "تسجيل", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /معالج/ })).toBeVisible();
+    await expect(page.getByText(/لا يوجد مرضى في هذه الفئة|لا توجد حجوزات لهذا التاريخ/)).toBeVisible();
 
     await context.close();
   });

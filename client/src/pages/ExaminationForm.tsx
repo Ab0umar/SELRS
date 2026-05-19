@@ -23,7 +23,7 @@ export default function ExaminationForm() {
           <ExaminationFormHeader form={form} />
           <Tabs defaultValue="patient-info" persistKey="examination-form" className="w-full">
             <TabsList className="mb-4 flex h-auto w-full gap-2 overflow-x-auto whitespace-nowrap rounded-3xl border border-border/80 bg-background/90 p-2 shadow-sm">
-              <div className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
+              <div className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">
                 <Stethoscope className="h-4 w-4" />
                 Sections
               </div>

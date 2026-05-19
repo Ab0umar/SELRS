@@ -294,7 +294,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                         className="h-9 text-xs font-mono"
                         dir="ltr"
                       />
-                      <Button onClick={handleSave} size="sm" className="bg-primary text-white h-9 px-4">
+                      <Button onClick={handleSave} size="sm" className="bg-primary text-primary-foreground h-9 px-4">
                         حفظ
                       </Button>
                     </div>
@@ -320,7 +320,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
               <Card className="border-border/60 bg-card shadow-sm h-full">
                 <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-600" />
+                    <Activity className="h-4 w-4 text-success" />
                     إعدادات الإخطارات
                   </CardTitle>
                 </CardHeader>
@@ -357,7 +357,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                   <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={handleResetPricing}>
                     إعادة ضبط
                   </Button>
-                  <Button onClick={handleSavePricingForm} size="sm" className="h-8 text-[10px] font-bold bg-primary text-white" disabled={updateSettingMutation.isPending}>
+                  <Button onClick={handleSavePricingForm} size="sm" className="h-8 text-[10px] font-bold bg-primary text-primary-foreground" disabled={updateSettingMutation.isPending}>
                     حفظ القواعد
                   </Button>
                 </div>
@@ -367,7 +367,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <h4 className="text-[11px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">أسعار الكشوفات (Amount)</h4>
+                    <h4 className="text-[11px] font-black text-card-foreground uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">أسعار الكشوفات (Amount)</h4>
                     <div className="space-y-1">
                       <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
                       <PriceField label="د. السعدني" value={pricingForm.amount.prk.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultantSaadany = v; })} />
@@ -384,7 +384,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
 
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <h4 className="text-[11px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded">حساب المركز (Doctor Account)</h4>
+                    <h4 className="text-[11px] font-black text-success uppercase tracking-widest bg-success/10 px-2 py-1 rounded">حساب المركز (Doctor Account)</h4>
                     <div className="space-y-1">
                       <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
                       <PriceField label="د. السعدني" value={pricingForm.doctorAccount.prk.saadany} onChange={(v) => setField((d) => { d.doctorAccount.prk.saadany = v; })} />

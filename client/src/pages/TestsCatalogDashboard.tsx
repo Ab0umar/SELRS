@@ -266,11 +266,11 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
             isTx ? "sm:grid sm:grid-cols-2 lg:grid-cols-4" : "sm:grid sm:grid-cols-3",
           )}
         >
-          <StatCard title={isTx ? "المرجع الخارجي" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary/10 text-primary" />
-          <StatCard title={isTx ? "مفعلة" : "فعالة"} value={stats.active} icon={CheckCircle2} iconColor="bg-emerald-500/10 text-emerald-600" />
-          <StatCard title={isTx ? "غير مرتبطة" : "معطلة"} value={stats.inactive} icon={XCircle} iconColor="bg-red-500/10 text-red-600" />
+          <StatCard title={isTx ? "المرجع الخارجي" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary text-primary-foreground" />
+          <StatCard title={isTx ? "مفعلة" : "فعالة"} value={stats.active} icon={CheckCircle2} iconColor="bg-success/100/10 text-success" />
+          <StatCard title={isTx ? "غير مرتبطة" : "معطلة"} value={stats.inactive} icon={XCircle} iconColor="bg-destructive text-destructive-foreground" />
           {isTx ? (
-            <StatCard title="بلا مدى طبيعي" value={stats.missingRef} icon={AlertTriangle} iconColor="bg-amber-500/10 text-amber-700 dark:text-amber-400" />
+            <StatCard title="بلا مدى طبيعي" value={stats.missingRef} icon={AlertTriangle} iconColor="bg-warning/100/10 text-warning/90" />
           ) : null}
         </div>
 
@@ -338,7 +338,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                           </td>
                           <td className="p-3 text-muted-foreground">{String(row.category ?? "").trim() || "—"}</td>
                           <td className="p-3">
-                            <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                            <span className="inline-flex rounded-full bg-primary text-primary-foreground">
                               {categoryLabel(String(row.type))}
                             </span>
                           </td>
@@ -346,7 +346,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                             className={cn(
                               "p-3 text-xs whitespace-pre-wrap",
                               missingRef
-                                ? "bg-amber-500/10 text-amber-900 dark:text-amber-100"
+                                ? "bg-warning/100/10 text-warning"
                                 : "font-medium text-foreground",
                             )}
                           >
@@ -358,7 +358,7 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                               className={cn(
                                 "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
                                 active
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/55 dark:text-emerald-200"
+                                  ? "bg-success/15 text-success"
                                   : "bg-muted text-muted-foreground",
                               )}
                             >
@@ -367,25 +367,25 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                           </td>
                           <td className="p-3">
                             <div className="flex justify-center gap-1">
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)} title="تعديل">
+                              <Button type="button" variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEdit(row)} title="تعديل" aria-label="تعديل الفحص">
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               {delConfirm === id ? (
                                 <div className="flex items-center gap-1">
                                   <button type="button" aria-label="تأكيد الحذف"
-                                    className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                    className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                     onClick={() => { void remove(id); setDelConfirm(null); }}>
                                     تأكيد
                                   </button>
                                   <button type="button" aria-label="إلغاء الحذف"
-                                    className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                    className="rounded bg-muted text-muted-foreground hover:bg-border"
                                     onClick={() => setDelConfirm(null)}>
                                     ✕
                                   </button>
                                 </div>
                               ) : (
                                 <button type="button" aria-label="حذف الفحص"
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                   onClick={() => setDelConfirm(id)}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>

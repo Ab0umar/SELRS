@@ -23,7 +23,7 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
       <CardContent className="space-y-3 pt-4">
         {/* Autoref + IOP */}
         <div className="rounded-xl border border-border bg-background">
-          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-slate-800 hover:bg-muted" onClick={() => toggleExamSection("autoref")}>
+          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted" onClick={() => toggleExamSection("autoref")}>
             <span>Autoref + IOP</span>
             {openExamSections.autoref ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
@@ -32,7 +32,7 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
               {autorefractionRows.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[560px] border-collapse text-center">
-                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <tr>
                         <th className="border px-3 py-3">Eye</th><th className="border px-3 py-3">UCVA</th>
                         <th className="border px-3 py-3">S</th><th className="border px-3 py-3">C</th>
@@ -41,7 +41,7 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
                     </thead>
                     <tbody>
                       {autorefractionRows.map((row) => (
-                        <tr key={row.eye} className="bg-background text-sm font-medium text-slate-800">
+                        <tr key={row.eye} className="bg-background text-sm font-medium text-foreground">
                           <td className="border px-3 py-3 font-bold">{row.eye}</td>
                           <td className="border px-3 py-3">{row.ucva || "-"}</td>
                           <td className="border px-3 py-3">{row.s || "-"}</td>
@@ -59,12 +59,12 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
                 <div className="overflow-x-auto">
                   <div className="mb-2 text-xs font-semibold text-muted-foreground">After</div>
                   <table className="w-full min-w-[440px] border-collapse text-center">
-                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <tr><th className="border px-3 py-3">Eye</th><th className="border px-3 py-3">S</th><th className="border px-3 py-3">C</th><th className="border px-3 py-3">Axis</th></tr>
                     </thead>
                     <tbody>
                       {afterRows.map((row) => (
-                        <tr key={`after-${row.eye}`} className="bg-background text-sm font-medium text-slate-800">
+                        <tr key={`after-${row.eye}`} className="bg-background text-sm font-medium text-foreground">
                           <td className="border px-3 py-3 font-bold">{row.eye}</td>
                           <td className="border px-3 py-3">{row.s || "-"}</td>
                           <td className="border px-3 py-3">{row.c || "-"}</td>
@@ -81,7 +81,7 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
 
         {/* Glasses */}
         <div className="rounded-xl border border-border bg-background">
-          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-slate-800 hover:bg-muted" onClick={() => toggleExamSection("glasses")}>
+          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted" onClick={() => toggleExamSection("glasses")}>
             <span>👓 مقاس النظاره</span>
             {openExamSections.glasses ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
@@ -89,12 +89,12 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
             <div className="overflow-x-auto border-t border-border">
               {glassesRows.length ? (
                 <table className="w-full min-w-[520px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <tr><th className="border px-3 py-3">Eye</th><th className="border px-3 py-3">S</th><th className="border px-3 py-3">C</th><th className="border px-3 py-3">Axis</th><th className="border px-3 py-3">PD</th><th className="border px-3 py-3">BCVA</th></tr>
                   </thead>
                   <tbody>
                     {glassesRows.map((row) => (
-                      <tr key={`glass-${row.eye}`} className="bg-background text-sm font-medium text-slate-800">
+                      <tr key={`glass-${row.eye}`} className="bg-background text-sm font-medium text-foreground">
                         <td className="border px-3 py-3 font-bold">{row.eye}</td>
                         <td className="border px-3 py-3">{row.s || "-"}</td>
                         <td className="border px-3 py-3">{row.c || "-"}</td>
@@ -112,7 +112,7 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
 
         {/* Fundus */}
         <div className="rounded-xl border border-border bg-background">
-          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-slate-800 hover:bg-muted" onClick={() => toggleExamSection("fundus")}>
+          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted" onClick={() => toggleExamSection("fundus")}>
             <span>Fundus</span>
             {openExamSections.fundus ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
@@ -120,12 +120,12 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
             <div className="overflow-x-auto border-t border-border">
               {fundusRows.length ? (
                 <table className="w-full min-w-[360px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <tr><th className="border px-3 py-3">Eye</th><th className="border px-3 py-3">Findings</th></tr>
                   </thead>
                   <tbody>
                     {fundusRows.map((row) => (
-                      <tr key={`fundus-${row.eye}`} className="bg-background text-sm font-medium text-slate-800">
+                      <tr key={`fundus-${row.eye}`} className="bg-background text-sm font-medium text-foreground">
                         <td className="border px-3 py-3 font-bold">{row.eye}</td>
                         <td className="border px-3 py-3 text-left">{row.findings || "-"}</td>
                       </tr>
@@ -139,21 +139,21 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
 
         {/* Radiology + Tests */}
         <div className="rounded-xl border border-border bg-background">
-          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-slate-800 hover:bg-muted" onClick={() => toggleExamSection("requestTests")}>
+          <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted" onClick={() => toggleExamSection("requestTests")}>
             <span>الأشعات + التحاليل (من طلب الفحوصات)</span>
             {openExamSections.requestTests ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
           {openExamSections.requestTests && (
             <div className="overflow-x-auto border-t border-border space-y-4 p-4">
               {parsedExamSources.some((s) => s?.radiologyLabsNotes) && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">📋 ملخص الأشعات والتحاليل من الزيارات:</h4>
+                <div className="bg-primary/5 border border-ring/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-primary mb-2">📋 ملخص الأشعات والتحاليل من الزيارات:</h4>
                   {parsedExamSources.map((source, idx) => {
                     if (!source?.radiologyLabsNotes) return null;
                     try {
                       const data = JSON.parse(source.radiologyLabsNotes);
                       return (
-                        <div key={idx} className="text-sm text-blue-800 mb-2">
+                        <div key={idx} className="text-sm text-primary mb-2">
                           {data.tests?.length > 0 && <p>🔬 <strong>الاختبارات:</strong> {data.tests.join(", ")}</p>}
                           {data.diagnosis?.length > 0 && <p>⚕️ <strong>التشخيص:</strong> {data.diagnosis.join(", ")}</p>}
                           {data.treatment?.length > 0 && <p>💊 <strong>العلاج:</strong> {data.treatment.join(", ")}</p>}
@@ -165,12 +165,12 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
               )}
               {requestedImagingAndLabs.length ? (
                 <table className="w-full min-w-[640px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <tr><th className="border px-3 py-3">Type</th><th className="border px-3 py-3">Test Name</th><th className="border px-3 py-3">Category</th><th className="border px-3 py-3">Notes</th></tr>
                   </thead>
                   <tbody>
                     {requestedImagingAndLabs.map((test: any, index: number) => (
-                      <tr key={`req-${String(test?.id ?? "")}-${index}`} className="bg-background text-sm font-medium text-slate-800">
+                      <tr key={`req-${String(test?.id ?? "")}-${index}`} className="bg-background text-sm font-medium text-foreground">
                         <td className="border px-3 py-3">{classifyTest(test) === "imaging" ? "Imaging" : "Lab"}</td>
                         <td className="border px-3 py-3">{String(test?.name ?? "—")}</td>
                         <td className="border px-3 py-3">{String(test?.category ?? "—")}</td>

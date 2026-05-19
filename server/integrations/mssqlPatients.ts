@@ -586,7 +586,9 @@ async function applyPapatSrvDefaults(
     if (Number.isFinite(p)) basePrice = p;
   }
   const linePx = options?.serviceLinePrice;
-  if (linePx != null && Number.isFinite(Number(linePx)) && Number(linePx) >= 0) {
+  // Only use the frontend-supplied price if it is > 0; a zero price means "not entered"
+  // and should not override a catalog price found in SRVLSTD/SRVCMF.
+  if (linePx != null && Number.isFinite(Number(linePx)) && Number(linePx) > 0) {
     basePrice = Number(linePx);
   }
   if (cols.has("PRC") && basePrice != null) {
@@ -615,30 +617,14 @@ async function applyPapatSrvDefaults(
     );
   }
   if (cols.has("PA_VL")) {
-    const paOpt = options?.paValue;
-    if (paOpt != null && Number.isFinite(Number(paOpt))) {
-      await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
-        req.input("PA_VL", Number(paOpt)),
-      );
-    } else {
-      const discountExpr = cols.has("DISC_VL")
-        ? "CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END"
-        : "0";
-      const discReq = pool.request();
-      discReq.input("PAT_CD", patientCode);
-      discReq.input("SRV_CD", serviceCode);
-      if (hasScopedTrNo) discReq.input("TR_NO", Math.trunc(scopedTrNo));
-      const discRs = await discReq.query(`
-        SELECT TOP 1 ${discountExpr} AS D FROM op2026.dbo.PAPAT_SRV WHERE ${whereSrv}
-      `);
-      const discRow = Array.isArray(discRs?.recordset) && discRs.recordset.length > 0 ? discRs.recordset[0] : {};
-      const disc = Number.isFinite(Number(discRow?.D)) ? Number(discRow?.D) : 0;
-      const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
-      const total = Math.max(0, price * qty - disc);
-      await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
-        req.input("PA_VL", total),
-      );
-    }
+    // PA_VL in PAPAT_SRV = gross (PRC × QTY, before discount).
+    // The op reporting query computes net as: PA_VL - DISC_VL.
+    // Setting PA_VL to net here causes the report to double-deduct the discount.
+    const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
+    const gross = Math.max(0, price * qty);
+    await run(`UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`, (req) =>
+      req.input("PA_VL", gross),
+    );
   }
 
   let patientNameForSrv = String(options?.patientNameAr ?? "").trim();
@@ -773,7 +759,41 @@ async function applyPapatSrvDefaults(
       if (ioCols.has("PAT_EK")) {
         ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_EK = NULL WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
       }
-      await pool.request().input("PAT_CD", patientCode).input("VST_NO", Math.trunc(vstNo)).input("TR_NO", Number.isFinite(trNo) ? Math.trunc(trNo) : null).input("VISIT_DT", visitDt).query(`
+      if (ioCols.has("RLTN")) {
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      if (ioCols.has("PRC_DGR")) {
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      if (ioCols.has("PAT_TYP")) {
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      if (ioCols.has("LN_SRC")) {
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      const srvNetAmt = (() => {
+        const lp = Number(options?.serviceLinePrice);
+        const disc = Number(options?.discountValue ?? 0);
+        const qty2 = Math.max(1, Math.trunc(desiredQty || 1));
+        if (Number.isFinite(lp) && lp > 0) return Math.max(0, lp * qty2 - disc);
+        const pv = Number(options?.paValue);
+        if (Number.isFinite(pv) && pv > 0) return pv;
+        return 0;
+      })();
+      const ioReq = pool.request();
+      ioReq.input("PAT_CD", patientCode);
+      ioReq.input("VST_NO", Math.trunc(vstNo));
+      ioReq.input("TR_NO", Number.isFinite(trNo) ? Math.trunc(trNo) : null);
+      ioReq.input("VISIT_DT", visitDt);
+      if (ioCols.has("BAL") && srvNetAmt > 0) {
+        ioReq.input("IO_SRV_BAL", srvNetAmt);
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_SRV_BAL) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      if (ioCols.has("PAY") && srvNetAmt > 0) {
+        ioReq.input("IO_SRV_PAY", srvNetAmt);
+        ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_SRV_PAY) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
+      }
+      await ioReq.query(`
         IF NOT EXISTS (
           SELECT 1
           FROM op2026.dbo.PAPAT_IO
@@ -863,7 +883,8 @@ async function ensurePapatMfDefaults(
   pool: any,
   patientCode: string,
   visitDt: Date | null,
-  patientNameAr?: string | null
+  patientNameAr?: string | null,
+  enteredBy?: string | null
 ): Promise<void> {
   const cols = await getTableColumns(pool, "op2026.dbo.PAPATMF");
   if (!cols.has("PAT_CD")) return;
@@ -1125,6 +1146,26 @@ async function ensurePapatMfDefaults(
       WHERE PAT_CD = @PAT_CD
     `);
   }
+  if (cols.has("UPDATEDBY") && enteredBy) {
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    req.input("UPDATEDBY", enteredBy);
+    await req.query(`
+      UPDATE op2026.dbo.PAPATMF
+      SET UPDATEDBY = @UPDATEDBY
+      WHERE PAT_CD = @PAT_CD
+    `);
+  }
+  if (cols.has("UPDATEDATE")) {
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    req.input("UPDATEDATE", new Date());
+    await req.query(`
+      UPDATE op2026.dbo.PAPATMF
+      SET UPDATEDATE = @UPDATEDATE
+      WHERE PAT_CD = @PAT_CD
+    `);
+  }
 }
 
 async function ensurePapatIoDefaults(
@@ -1133,52 +1174,137 @@ async function ensurePapatIoDefaults(
   trNo: number | null,
   vstNo: number | null,
   visitDt: Date | null,
-  doctorCode?: string | null
+  doctorCode?: string | null,
+  fullName?: string | null,
+  enteredBy?: string | null,
+  serviceNetAmount?: number | null
 ): Promise<void> {
   if (!Number.isFinite(Number(vstNo))) return;
   const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_IO");
   if (!cols.has("PAT_CD") || !cols.has("VST_NO")) return;
 
-  const req = pool.request();
-  req.input("PAT_CD", patientCode);
-  req.input("VST_NO", Math.trunc(Number(vstNo)));
-  req.input("TR_NO", Number.isFinite(Number(trNo)) ? Math.trunc(Number(trNo)) : null);
-  req.input("VISIT_DT", visitDt);
-  if (doctorCode) {
-    req.input("DRS_CD", doctorCode);
+  const vstNoInt = Math.trunc(Number(vstNo));
+  const netAmt = Number.isFinite(Number(serviceNetAmount)) ? Number(serviceNetAmount) : 0;
+  const now = new Date();
+
+  // Build dynamic INSERT with all reference fields
+  const insertCols: string[] = ["PAT_CD", "VST_NO"];
+  const insertVals: string[] = ["@IO_PAT_CD", "@IO_VST_NO"];
+  const insReq = pool.request();
+  insReq.input("IO_PAT_CD", patientCode);
+  insReq.input("IO_VST_NO", vstNoInt);
+
+  if (cols.has("PAT_EK")) { insertCols.push("PAT_EK"); insertVals.push("NULL"); }
+  if (cols.has("VST_DT")) { insertCols.push("VST_DT"); insertVals.push("@IO_VST_DT"); insReq.input("IO_VST_DT", visitDt); }
+  if (cols.has("CA_CD")) { insertCols.push("CA_CD"); insertVals.push("'00000'"); }
+  if (cols.has("RLTN")) { insertCols.push("RLTN"); insertVals.push("1"); }
+  if (cols.has("PRC_DGR")) { insertCols.push("PRC_DGR"); insertVals.push("1"); }
+  if (cols.has("BAL")) { insertCols.push("BAL"); insertVals.push("@IO_BAL"); insReq.input("IO_BAL", netAmt); }
+  if (cols.has("CA_BAL")) { insertCols.push("CA_BAL"); insertVals.push("0"); }
+  if (cols.has("DISC")) { insertCols.push("DISC"); insertVals.push("0"); }
+  if (cols.has("PAY")) { insertCols.push("PAY"); insertVals.push("@IO_PAY"); insReq.input("IO_PAY", netAmt); }
+  if (cols.has("MNGEXP")) { insertCols.push("MNGEXP"); insertVals.push("0"); }
+  if (cols.has("PMNGEXP")) { insertCols.push("PMNGEXP"); insertVals.push("0"); }
+  for (let i = 1; i <= 4; i++) {
+    if (cols.has(`TAX${i}`)) { insertCols.push(`TAX${i}`); insertVals.push("0"); }
+    if (cols.has(`PTAX${i}`)) { insertCols.push(`PTAX${i}`); insertVals.push("0"); }
   }
-  const ioUpdates: string[] = [];
-  if (cols.has("TR_NO")) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @TR_NO) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  if (cols.has("SRV_DT")) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  if (cols.has("MF_DT")) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  if (cols.has("CA_CD")) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  if (cols.has("PAT_EK")) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_EK = NULL WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  if (cols.has("DRS_CD") && doctorCode) {
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET DRS_CD = @DRS_CD WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`);
-  }
-  await req.query(`
+  if (cols.has("PAT_TYP")) { insertCols.push("PAT_TYP"); insertVals.push("2"); }
+  if (cols.has("NAM") && fullName) { insertCols.push("NAM"); insertVals.push("@IO_NAM"); insReq.input("IO_NAM", String(fullName).trim()); }
+  if (cols.has("LN_SRC")) { insertCols.push("LN_SRC"); insertVals.push("'PAJRNRCV'"); }
+  if (cols.has("CLOSD_DT")) { insertCols.push("CLOSD_DT"); insertVals.push("''"); }
+  if (cols.has("RLTN_TY")) { insertCols.push("RLTN_TY"); insertVals.push("''"); }
+  if (cols.has("ENTEREDBY") && enteredBy) { insertCols.push("ENTEREDBY"); insertVals.push("@IO_ENTEREDBY"); insReq.input("IO_ENTEREDBY", enteredBy); }
+  if (cols.has("UPDATEDBY") && enteredBy) { insertCols.push("UPDATEDBY"); insertVals.push("@IO_UPDATEDBY"); insReq.input("IO_UPDATEDBY", enteredBy); }
+  if (cols.has("ENTRYDATE")) { insertCols.push("ENTRYDATE"); insertVals.push("@IO_ENTRYDATE"); insReq.input("IO_ENTRYDATE", now); }
+  if (cols.has("UPDATEDATE")) { insertCols.push("UPDATEDATE"); insertVals.push("@IO_UPDATEDATE"); insReq.input("IO_UPDATEDATE", now); }
+  if (cols.has("TR_NO") && Number.isFinite(Number(trNo))) { insertCols.push("TR_NO"); insertVals.push("@IO_TR_NO"); insReq.input("IO_TR_NO", Math.trunc(Number(trNo))); }
+  if (cols.has("DRS_CD") && doctorCode) { insertCols.push("DRS_CD"); insertVals.push("@IO_DRS_CD"); insReq.input("IO_DRS_CD", doctorCode); }
+
+  await insReq.query(`
     IF NOT EXISTS (
-      SELECT 1
-      FROM op2026.dbo.PAPAT_IO
-      WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO
+      SELECT 1 FROM op2026.dbo.PAPAT_IO
+      WHERE PAT_CD = @IO_PAT_CD AND VST_NO = @IO_VST_NO
     )
     BEGIN
-      INSERT INTO op2026.dbo.PAPAT_IO (PAT_CD, VST_NO, PAT_EK)
-      VALUES (@PAT_CD, @VST_NO, NULL)
+      INSERT INTO op2026.dbo.PAPAT_IO (${insertCols.join(", ")})
+      VALUES (${insertVals.join(", ")})
     END
-
-    ${ioUpdates.join("\n")}
   `);
+
+  // UPDATE pass ensures values are correct on both new and pre-existing rows
+  const ioUpdates: string[] = [];
+  const updReq = pool.request();
+  updReq.input("IO_PAT_CD2", patientCode);
+  updReq.input("IO_VST_NO2", vstNoInt);
+  const W = "WHERE PAT_CD = @IO_PAT_CD2 AND VST_NO = @IO_VST_NO2";
+
+  if (cols.has("TR_NO") && Number.isFinite(Number(trNo))) {
+    updReq.input("IO_TR_NO2", Math.trunc(Number(trNo)));
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @IO_TR_NO2) ${W};`);
+  }
+  if (cols.has("VST_DT")) {
+    updReq.input("IO_VST_DT2", visitDt);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET VST_DT = ISNULL(VST_DT, @IO_VST_DT2) ${W};`);
+  }
+  if (cols.has("SRV_DT")) {
+    updReq.input("IO_SRV_DT", visitDt);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @IO_SRV_DT) ${W};`);
+  }
+  if (cols.has("MF_DT")) {
+    updReq.input("IO_MF_DT", visitDt);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @IO_MF_DT) ${W};`);
+  }
+  if (cols.has("CA_CD")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') ${W};`);
+  if (cols.has("RLTN")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) ${W};`);
+  if (cols.has("PRC_DGR")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) ${W};`);
+  if (cols.has("PAT_EK")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_EK = NULL ${W};`);
+  if (cols.has("PAT_TYP")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) ${W};`);
+  if (cols.has("LN_SRC")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') ${W};`);
+  if (cols.has("BAL") && netAmt > 0) {
+    updReq.input("IO_BAL2", netAmt);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_BAL2) ${W};`);
+  }
+  if (cols.has("PAY") && netAmt > 0) {
+    updReq.input("IO_PAY2", netAmt);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_PAY2) ${W};`);
+  }
+  if (cols.has("CA_BAL")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET CA_BAL = ISNULL(CA_BAL, 0) ${W};`);
+  if (cols.has("DISC")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET DISC = ISNULL(DISC, 0) ${W};`);
+  if (cols.has("MNGEXP")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET MNGEXP = ISNULL(MNGEXP, 0) ${W};`);
+  if (cols.has("PMNGEXP")) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PMNGEXP = ISNULL(PMNGEXP, 0) ${W};`);
+  for (let i = 1; i <= 4; i++) {
+    if (cols.has(`TAX${i}`)) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET TAX${i} = ISNULL(TAX${i}, 0) ${W};`);
+    if (cols.has(`PTAX${i}`)) ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PTAX${i} = ISNULL(PTAX${i}, 0) ${W};`);
+  }
+  if (cols.has("DRS_CD") && doctorCode) {
+    updReq.input("IO_DRS_CD2", doctorCode);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET DRS_CD = @IO_DRS_CD2 ${W};`);
+  }
+  if (cols.has("NAM") && fullName) {
+    updReq.input("IO_NAM2", String(fullName).trim());
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET NAM = ISNULL(NULLIF(NAM, ''), @IO_NAM2) ${W};`);
+  }
+  if (cols.has("ENTEREDBY") && enteredBy) {
+    updReq.input("IO_ENTEREDBY2", enteredBy);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET ENTEREDBY = ISNULL(NULLIF(ENTEREDBY, ''), @IO_ENTEREDBY2) ${W};`);
+  }
+  if (cols.has("UPDATEDBY") && enteredBy) {
+    updReq.input("IO_UPDATEDBY2", enteredBy);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET UPDATEDBY = @IO_UPDATEDBY2 ${W};`);
+  }
+  if (cols.has("ENTRYDATE")) {
+    updReq.input("IO_ENTRYDATE2", now);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET ENTRYDATE = ISNULL(ENTRYDATE, @IO_ENTRYDATE2) ${W};`);
+  }
+  if (cols.has("UPDATEDATE")) {
+    updReq.input("IO_UPDATEDATE2", now);
+    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET UPDATEDATE = @IO_UPDATEDATE2 ${W};`);
+  }
+
+  if (ioUpdates.length > 0) {
+    await updReq.query(ioUpdates.join("\n"));
+  }
 }
 
 async function applyPajrnrCvhDefaults(
@@ -1696,9 +1822,9 @@ export async function insertPatientToMssql(
     console.log(`[MSSQL Insert] Setting DRS_CD in PAJRNRCVH...`);
     await applyPajrnrCvhDefaults(pool, targetTable, patientCode, gender, payValue, doctorCode);
     console.log(`[MSSQL Insert] Ensuring PAPAT_IO defaults...`);
-    await ensurePapatIoDefaults(pool, patientCode, Number.isFinite(trNo) ? trNo : null, Number.isFinite(headerVstNo) ? headerVstNo : 1, headerDt, doctorCode);
+    await ensurePapatIoDefaults(pool, patientCode, Number.isFinite(trNo) ? trNo : null, Number.isFinite(headerVstNo) ? headerVstNo : 1, headerDt, doctorCode, fullName, enteredBy, netServiceValue);
     console.log(`[MSSQL Insert] Ensuring PAPATMF defaults...`);
-    await ensurePapatMfDefaults(pool, patientCode, new Date(todayDateOnly), fullName);
+    await ensurePapatMfDefaults(pool, patientCode, new Date(todayDateOnly), fullName, enteredBy);
     console.log(`[MSSQL Insert] All defaults applied successfully!`);
 
     console.log(`[MSSQL Insert] Service row creation: serviceCode="${serviceCode}", allowCreateFlowServiceInsert=${allowCreateFlowServiceInsert}`);
@@ -2043,9 +2169,12 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
       Number.isFinite(Number(latestH?.TR_NO)) ? Math.trunc(Number(latestH?.TR_NO)) : null,
       Number.isFinite(Number(latestH?.VST_NO)) ? Math.trunc(Number(latestH?.VST_NO)) : 1,
       latestH?.DT ? new Date(latestH.DT) : new Date(todayDateOnly),
-      doctorCode
+      doctorCode,
+      fullName,
+      enteredBy,
+      netServiceValue
     );
-    await ensurePapatMfDefaults(pool, patientCode, new Date(todayDateOnly), fullName);
+    await ensurePapatMfDefaults(pool, patientCode, new Date(todayDateOnly), fullName, enteredBy);
 
     if (serviceCode) {
       try {

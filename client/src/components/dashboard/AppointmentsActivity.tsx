@@ -18,10 +18,10 @@ interface AppointmentsActivityProps {
 }
 
 const queueBorderColors: Record<string, string> = {
-  checkedin: 'border-r-primary',
-  next: 'border-r-amber-500',
-  clinic: 'border-r-orange-500',
-  treated: 'border-r-green-500',
+  checkedin: 'border border-primary/40 bg-primary/5',
+  next: 'border border-warning/40 bg-warning/5',
+  clinic: 'border border-warning/40 bg-warning/5',
+  treated: 'border border-success/40 bg-success/5',
 }
 
 const serviceTypeLabels: Record<string, string> = {
@@ -32,10 +32,10 @@ const serviceTypeLabels: Record<string, string> = {
 }
 
 const serviceTypeStyles: Record<string, string> = {
-  consultant: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
-  specialist: 'bg-secondary/15 text-secondary dark:bg-secondary/25 dark:text-secondary',
-  lasik: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
-  external: 'bg-muted text-muted-foreground dark:bg-gray-800/60 dark:text-gray-400',
+  consultant: 'bg-primary text-primary-foreground',
+  specialist: 'bg-secondary text-secondary-foreground',
+  lasik: 'bg-primary text-primary-foreground',
+  external: 'bg-muted text-muted-foreground',
 }
 
 export function AppointmentsActivity({ patients, className }: AppointmentsActivityProps) {
@@ -61,8 +61,8 @@ export function AppointmentsActivity({ patients, className }: AppointmentsActivi
               key={patient.id}
               dir="rtl"
               className={cn(
-                'rounded-xl border bg-card p-3 sm:p-4 shadow-sm border-r-4 hover:shadow-md transition-all',
-                queueBorderColors[patient.queueStatus] || 'border-r-gray-500'
+                'rounded-xl border bg-card p-3 sm:p-4 shadow-sm hover:shadow-md transition-all',
+                queueBorderColors[patient.queueStatus] || 'border border-muted/40 bg-muted/5'
               )}
             >
               <div className="flex items-start justify-between gap-2 mb-3">
@@ -101,7 +101,7 @@ export function AppointmentsActivity({ patients, className }: AppointmentsActivi
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0 border-secondary/30 bg-secondary/10 text-secondary hover:border-secondary/50 hover:bg-secondary/15 dark:border-secondary/40 dark:bg-secondary/20 dark:text-secondary dark:hover:border-secondary/60 dark:hover:bg-secondary/25"
+                      className="h-6 w-6 p-0 border-secondary/30 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/15:border-secondary/60:bg-secondary/25"
                       title="معالج"
                       onClick={() => handleTreat(patient.id)}
                     >

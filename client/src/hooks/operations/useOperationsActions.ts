@@ -439,6 +439,7 @@ export function useOperationsActions(operations: OperationsState) {
         code: row.code,
         discountType: row.discountType,
         discountValue: row.discountValue,
+        notes: row.notes ?? undefined,
       })),
     };
     const snapshot = JSON.stringify(payload);
@@ -494,6 +495,7 @@ export function useOperationsActions(operations: OperationsState) {
           doctorAmount: row.doctorAmount === null || row.doctorAmount === undefined ? null : Number(row.doctorAmount),
           discountType: (row.discountType === "percent" ? "percent" : "amount") as "amount" | "percent",
           discountValue: Number(row.discountValue ?? 0),
+          notes: row.notes ?? undefined,
         };
         const defaults = getPricingDefaults(operations.activeTab, mapped, operations.pricingConfig);
         return {
@@ -543,6 +545,7 @@ export function useOperationsActions(operations: OperationsState) {
         code: row.code,
         discountType: row.discountType,
         discountValue: row.discountValue,
+        notes: row.notes ?? undefined,
       })),
     };
     const snapshot = JSON.stringify(payload);
@@ -632,6 +635,7 @@ export function useOperationsActions(operations: OperationsState) {
         payment: sanitizePayment(item.payment),
         hospital: item.hospital ?? "",
         code: item.code ?? "",
+        notes: item.notes ?? "",
         amount: 0,
         paidAmount: 0,
         doctorAmount: null,

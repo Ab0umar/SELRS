@@ -127,14 +127,14 @@ export default function AccEntryDrawer({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
-            <p className="text-xs font-medium text-slate-500">الخزنة</p>
+            <p className="text-xs font-medium text-muted-foreground">الخزنة</p>
             <h2 className="text-base font-bold text-foreground">
               {mode === "add" ? "قيد جديد" : "تعديل القيد"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -145,10 +145,11 @@ export default function AccEntryDrawer({
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {/* Date */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor="entry-tx-date" className="text-xs font-medium text-muted-foreground">
               التاريخ
             </label>
             <Input
+              id="entry-tx-date"
               type="date"
               value={txDate}
               onChange={(e) => setTxDate(e.target.value)}
@@ -159,10 +160,11 @@ export default function AccEntryDrawer({
           {/* Income / Expense */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-emerald-700">
+              <label htmlFor="entry-income" className="text-xs font-medium text-success">
                 إيراد
               </label>
               <Input
+                id="entry-income"
                 type="number"
                 min="0"
                 step="0.01"
@@ -173,8 +175,9 @@ export default function AccEntryDrawer({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-rose-700">مصروف</label>
+              <label htmlFor="entry-expense" className="text-xs font-medium text-destructive">مصروف</label>
               <Input
+                id="entry-expense"
                 type="number"
                 min="0"
                 step="0.01"
@@ -189,13 +192,13 @@ export default function AccEntryDrawer({
           {/* Balance preview */}
           {(income || expense) && (
             <div className="rounded-xl border border-border bg-muted px-4 py-2.5 flex items-center justify-between">
-              <span className="text-xs text-slate-500">الرصيد</span>
+              <span className="text-xs text-muted-foreground">الرصيد</span>
               <span
                 className={cn(
                   "text-sm font-semibold tabular-nums",
                   (parseFloat(income) || 0) - (parseFloat(expense) || 0) >= 0
-                    ? "text-emerald-700"
-                    : "text-rose-700",
+                    ? "text-success"
+                    : "text-destructive",
                 )}
               >
                 {(
@@ -207,15 +210,16 @@ export default function AccEntryDrawer({
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor="entry-notes" className="text-xs font-medium text-muted-foreground">
               ملاحظات
             </label>
             <textarea
+              id="entry-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="البيان أو اسم الموظف..."
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 resize-none"
             />
             {/* Category quick-fill */}
             {cats.length > 0 && (
@@ -228,7 +232,7 @@ export default function AccEntryDrawer({
                     className={cn(
                       "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                       notes.trim() === c.name
-                        ? "border-blue-300 bg-blue-50 text-blue-700"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border text-muted-foreground hover:border-border hover:bg-muted",
                     )}
                   >
@@ -240,7 +244,7 @@ export default function AccEntryDrawer({
           </div>
 
           {err && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {err}
             </p>
           )}
@@ -285,7 +289,7 @@ export default function AccEntryDrawer({
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 border-rose-200"
+                  className="w-full text-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
                   onClick={handleDelete}
                   disabled={busy}
                 >

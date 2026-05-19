@@ -27,9 +27,9 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
-  next: "bg-warning/10 text-warning",
-  clinic: "bg-primary/10 text-primary",
-  treated: "bg-success/10 text-success",
+  next: "bg-warning text-warning-foreground",
+  clinic: "bg-primary text-primary-foreground",
+  treated: "bg-success text-success-foreground",
 };
 
 const queueCardStyles: Record<QueueStatus, string> = {
@@ -40,9 +40,9 @@ const queueCardStyles: Record<QueueStatus, string> = {
 };
 
 const serviceTypeStyles: Record<string, string> = {
-  consultant: "bg-secondary/10 text-secondary",
-  specialist: "bg-secondary/15 text-secondary",
-  lasik: "bg-primary/10 text-primary",
+  consultant: "bg-secondary text-secondary-foreground",
+  specialist: "bg-secondary text-secondary-foreground",
+  lasik: "bg-primary text-primary-foreground",
   external: "bg-muted text-muted-foreground",
   surgery: "bg-error/10 text-error",
 };
@@ -350,7 +350,7 @@ export function AppointmentsSection({
                     "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
                     active
                       ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      : "border-border bg-card text-foreground",
                   )}
                 >
                   {label}{" "}
@@ -400,7 +400,7 @@ export function AppointmentsSection({
             </div>
           ) : todayOperationListsQuery.isError ? (
             <div
-              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-12 text-center text-sm text-destructive"
+              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive text-destructive-foreground"
               role="alert"
             >
               {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}
@@ -469,7 +469,7 @@ function QueuePatientCard({
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {st === "treated" ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
           ) : null}
           <Badge className={cn("max-w-full truncate text-[10px] sm:text-xs", queueStatusStyles[st])}>
             {queueStatusLabelsAr[st] ?? st}
@@ -498,7 +498,7 @@ function QueuePatientCard({
               disabled={markingThis}
               title="معالج"
               aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
-              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary/10 p-0 text-secondary hover:border-secondary/50 hover:bg-secondary/15 dark:border-secondary/40 dark:bg-secondary/20 dark:hover:border-secondary/60 dark:hover:bg-secondary/25"
+              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/15:border-secondary/60:bg-secondary/25"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -538,8 +538,8 @@ function TodayOperationListItemCard({
   doctorNameByCode: Map<string, string>;
 }) {
   const accent = row.isAutoFromMssql
-    ? "border-violet-300 bg-violet-50/45 dark:bg-violet-950/20"
-    : "border-rose-300 bg-rose-50/45 dark:bg-rose-950/20";
+    ? "border-secondary/30 bg-secondary/[0.05]"
+    : "border-destructive/40 bg-destructive/5";
   const rawDoctor = String(row.item.doctor ?? row.listDoctorName ?? "").trim();
   const doctorDisplay = (() => {
     if (!rawDoctor) return "طبيب غير محدد";
@@ -584,7 +584,7 @@ function TodayOperationListItemCard({
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
         {row.item.payment ? (
-          <Badge className="bg-amber-50 text-[10px] text-amber-800 sm:text-xs">{row.item.payment}</Badge>
+          <Badge className="bg-warning/10 text-[10px] text-warning sm:text-xs">{row.item.payment}</Badge>
         ) : (
           <span />
         )}

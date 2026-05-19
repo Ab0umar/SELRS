@@ -21,7 +21,7 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
                   <p className="text-xs font-semibold text-muted-foreground">
                     {request.requestDate ? new Date(request.requestDate).toLocaleDateString("ar-EG") : "—"}
                   </p>
-                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                  <span className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded">
                     {request.items?.length || 0} فحص
                   </span>
                 </div>
@@ -30,7 +30,7 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
                     <p className="text-xs font-semibold text-foreground mb-2">الفحوصات المطلوبة:</p>
                     <div className="flex flex-wrap gap-2">
                       {request.items.map((item: any) => (
-                        <span key={item.id} className="text-xs bg-background px-2 py-1 border border-blue-200 rounded text-blue-900">
+                        <span key={item.id} className="text-xs bg-background px-2 py-1 border border-ring/30 rounded text-primary">
                           {item.testName}
                         </span>
                       ))}

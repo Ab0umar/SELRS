@@ -1,0 +1,25 @@
+{
+  "id": "f3661770",
+  "phase": "agent_error",
+  "pageUrl": "/accounting/ledger",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "8ecc348b",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Applied requested nav links directly in AccountingShell"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:26:22.176Z"
+}

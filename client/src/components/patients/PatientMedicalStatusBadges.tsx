@@ -14,11 +14,11 @@ type Badge = { color: string; title: string };
 
 function getBadges(status: PatientMedicalStatus): Badge[] {
   const badges: Badge[] = [];
-  if (status.autoref && status.afterRef) badges.push({ color: "bg-emerald-500", title: "قياس الانكسار الآلي + ما بعد الانكسار" });
-  if (status.glasses) badges.push({ color: "bg-blue-500", title: "مقاس النظارة / الانكسار" });
-  if (status.pentacam) badges.push({ color: "bg-red-500", title: "بيانات بنتاكام" });
-  if (status.prescription || status.tests || status.reports) badges.push({ color: "bg-purple-500", title: "تشخيص / روشتة / تحاليل" });
-  if (badges.length === 0) badges.push({ color: "bg-slate-600", title: "لا توجد بيانات طبية" });
+  if (status.autoref && status.afterRef) badges.push({ color: "bg-success/100", title: "قياس الانكسار الآلي + ما بعد الانكسار" });
+  if (status.glasses) badges.push({ color: "bg-primary/50", title: "مقاس النظارة / الانكسار" });
+  if (status.pentacam) badges.push({ color: "bg-destructive/100", title: "بيانات بنتاكام" });
+  if (status.prescription || status.tests || status.reports) badges.push({ color: "bg-secondary", title: "تشخيص / روشتة / تحاليل" });
+  if (badges.length === 0) badges.push({ color: "bg-muted", title: "لا توجد بيانات طبية" });
   return badges;
 }
 

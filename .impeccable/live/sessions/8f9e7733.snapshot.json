@@ -1,0 +1,25 @@
+{
+  "id": "8f9e7733",
+  "phase": "agent_error",
+  "pageUrl": "/accounting/ledger",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "37972b64",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Applied the accounting links directly in AccountingShell"
+    }
+  ],
+  "updatedAt": "2026-05-17T14:22:23.361Z"
+}

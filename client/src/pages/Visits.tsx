@@ -30,10 +30,10 @@ const visitTypeLabels: Record<string, string> = {
 };
 
 const visitTypeStyles: Record<string, string> = {
-  examination: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  followup: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  consultation: "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300",
-  surgery: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+  examination: "bg-primary text-primary-foreground",
+  followup: "bg-success/15 text-success",
+  consultation: "bg-primary text-primary-foreground",
+  surgery: "bg-warning/20 text-warning",
 };
 
 function visitRowId(row: Record<string, unknown>, fallback: number): number {
@@ -264,21 +264,21 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
               value={stats.total}
               icon={ClipboardList}
               description="كل السجلات المعروضة"
-              iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"
+              iconColor="bg-primary text-primary-foreground"
             />
             <StatCard
               title="زيارات هذا الأسبوع"
               value={stats.thisWeek}
               icon={CalendarDays}
               description="ضمن الأسبوع الحالي"
-              iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+              iconColor="bg-success/15 text-success"
             />
             <StatCard
               title="زيارات متابعة"
               value={stats.followups}
               icon={CalendarRange}
               description={`نوع: متابعة`}
-              iconColor="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+              iconColor="bg-secondary/15 text-secondary"
             />
           </div>
         </>
@@ -338,7 +338,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                 return (
                   <Card key={vid} className="border-border transition-shadow hover:shadow-md">
                       {/* Visit Header - Expandable */}
-                      <CardHeader className="cursor-pointer hover:bg-muted/40">
+                      <CardHeader className="hover:bg-muted/40">
                         <div className="flex items-center justify-between gap-2">
                           <button
                             type="button"
@@ -840,7 +840,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
 
                           {/* Empty State */}
                           {!visit.autorefraction && !visit.pentacam && (
-                            <div className="text-center text-slate-500 py-4">
+                            <div className="text-center text-muted-foreground py-4">
                               لا توجد بيانات مسجلة لهذه الزيارة
                             </div>
                           )}

@@ -1892,9 +1892,18 @@ export const medicalRouter = router({
         }));
         if (notificationSettings.manualPatientInAppEnabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole((ctx.user as any)?.role);
+          const visitKind = String(input.branch ?? "").toLowerCase() === "examinations" ? "اشعه" : "كشف";
+          const serviceTypeLabel = (() => {
+            const st = String(input.serviceType ?? "consultant").toLowerCase();
+            if (st === "specialist") return "أخصائي";
+            if (st === "external") return "خارجي";
+            if (st === "lasik") return "فحوصات";
+            if (st === "surgery") return "عمليات";
+            return "استشاري";
+          })();
           await pushAppNotification({
-            title: "تمت إضافة مريض جديد",
-            message: `${input.fullName} (${code})`,
+            title: `حجز ${visitKind} ${serviceTypeLabel} جديد`,
+            message: String(input.fullName ?? "").trim(),
             kind: "success",
             targetRoles,
             source: "manual_patient_create",
@@ -5361,6 +5370,7 @@ export const medicalRouter = router({
         code: z.string().optional(),
         discountType: z.string().optional(),
         discountValue: z.number().optional(),
+        notes: z.string().optional(),
       })),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -5385,17 +5395,25 @@ export const medicalRouter = router({
       }));
 
       if (notificationSettings.operationsPushEnabled && Array.isArray(notificationSettings.operationsPushUserIds) && notificationSettings.operationsPushUserIds.length > 0) {
-        const tabLabel = input.doctorTab.includes("saadany") ? "د/سعدني" : input.doctorTab.includes("sawaf") ? "د/صواف" : "آخرون";
-        const itemNames = (input.items ?? [])
-          .map((item) => item.name)
-          .filter(Boolean)
-          .slice(0, 3)
-          .join(", ");
-        const countSuffix = input.items?.length ?? 0 > 3 ? ` و${(input.items?.length ?? 0) - 3} آخرين` : "";
+        const opsCaseCount = input.items?.length ?? 0;
+        const opsDate = new Date(`${input.listDate}T00:00:00`);
+        const opsDay = opsDate.toLocaleDateString("ar-EG", { timeZone: "Africa/Cairo", weekday: "long" });
+        const opsTimeRaw = String(input.listTime ?? "").trim();
+        const opsTime = opsTimeRaw
+          ? (() => {
+              const [h, m] = opsTimeRaw.split(":").map(Number);
+              const ampm = h < 12 ? "ص" : "م";
+              return `${h % 12 || 12}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
+            })()
+          : new Date().toLocaleTimeString("ar-EG", { timeZone: "Africa/Cairo", hour: "numeric", minute: "2-digit", hour12: true });
+        const rawOpsDrName = String(input.doctorName ?? "").trim() ||
+          (input.doctorTab.includes("saadany") ? "سعدني" : input.doctorTab.includes("sawaf") ? "صواف" : input.doctorTab);
+        const opsDoctorName = rawOpsDrName.replace(/^د[./]?\s*/u, "").trim() || rawOpsDrName;
+        const opsNotifText = `عمليات د. ${opsDoctorName} - ${opsCaseCount} حالة - ${opsDay} ${opsTime}`;
 
         await pushAppNotification({
-          title: `قائمة عمليات ${tabLabel}`,
-          message: `${itemNames}${countSuffix}`,
+          title: opsNotifText,
+          message: opsNotifText,
           kind: "info",
           targetUserIds: notificationSettings.operationsPushUserIds,
           source: "operation_list_save",
@@ -5505,18 +5523,24 @@ export const medicalRouter = router({
         Array.isArray(notificationSettings.operationsPushUserIds) &&
         notificationSettings.operationsPushUserIds.length > 0
       ) {
-        const patientNumbersLabel = `${Math.max(1, Math.trunc(Number(input.casesCount) || 1))} حالة`;
-        const doctorName = String(input.doctorName ?? "").trim();
-        const operationName = String(input.operationType ?? "").trim();
-        const bookingDate = String(input.bookingDate ?? "").trim();
-        const bookingTime = String(input.bookingTime ?? "").trim();
-        const messageParts = [`${patientNumbersLabel} - ${doctorName || "غير محدد"}`];
-        if (operationName) messageParts.push(operationName);
-        if (bookingDate || bookingTime) messageParts.push([bookingDate, bookingTime].filter(Boolean).join(" "));
+        const rawBkDrName = String(input.doctorName ?? "").trim();
+        const bkDoctorName = rawBkDrName.replace(/^د[./]?\s*/u, "").trim() || rawBkDrName;
+        const bkCaseCount = Math.max(1, Math.trunc(Number(input.casesCount) || 1));
+        const bkDate = new Date(`${input.bookingDate}T00:00:00`);
+        const bkDay = bkDate.toLocaleDateString("ar-EG", { timeZone: "Africa/Cairo", weekday: "long" });
+        const bkTimeRaw = String(input.bookingTime ?? "").trim();
+        const bkTime = bkTimeRaw
+          ? (() => {
+              const [h, m] = bkTimeRaw.split(":").map(Number);
+              const ampm = h < 12 ? "ص" : "م";
+              return `${h % 12 || 12}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
+            })()
+          : new Date().toLocaleTimeString("ar-EG", { timeZone: "Africa/Cairo", hour: "numeric", minute: "2-digit", hour12: true });
+        const bkNotifText = `عمليات د. ${bkDoctorName} - ${bkCaseCount} حالة - ${bkDay} ${bkTime}`;
 
         await pushAppNotification({
-          title: "تم حجز العملية",
-          message: messageParts.join(" - "),
+          title: bkNotifText,
+          message: bkNotifText,
           kind: "success",
           targetUserIds: notificationSettings.operationsPushUserIds,
           source: "operation_booking_create",
@@ -5525,12 +5549,8 @@ export const medicalRouter = router({
           meta: {
             type: "operation_booking",
             path: "/operations",
-            patientNumbers: patientNumbersLabel,
-            doctorName: doctorName || null,
-            operationName: operationName || null,
-            bookingDate: bookingDate || null,
-            bookingTime: bookingTime || null,
-            casesCount: Math.max(1, Math.trunc(Number(input.casesCount) || 1)),
+            doctorName: bkDoctorName || null,
+            casesCount: bkCaseCount,
           },
         }).catch((error) => {
           console.warn("[operation-booking] Failed to append app notification:", error);

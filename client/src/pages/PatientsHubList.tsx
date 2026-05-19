@@ -70,13 +70,13 @@ const HubPatientCard = memo(function HubPatientCard({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 gap-1 rounded-lg border-primary/25 bg-primary/5 px-2 text-xs text-primary hover:bg-primary/10"
+            className="h-8 gap-1 rounded-lg border-primary/25 bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => printPatient(patient)}
           >
             <Printer className="h-3.5 w-3.5" />
             طباعة
           </Button>
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="rounded-full bg-primary text-primary-foreground">
             {serviceLabel(patient.__serviceCodeSingle ?? patient.serviceType)}
           </span>
         </div>
@@ -124,7 +124,7 @@ const HubPatientRow = memo(function HubPatientRow({
         <Button
           size="sm"
           variant="outline"
-          className="h-7 gap-1 rounded-lg border-primary/25 bg-primary/5 px-2 text-xs text-primary hover:bg-primary/10"
+          className="h-7 gap-1 rounded-lg border-primary/25 bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => printPatient(patient)}
         >
           <Printer className="h-3 w-3" />

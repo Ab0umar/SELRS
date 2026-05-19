@@ -197,7 +197,7 @@ export default function PatientAccount() {
               />
             </label>
             {dateError && (
-              <p className="text-[11px] text-red-500 md:col-span-2">
+              <p className="text-[11px] text-destructive md:col-span-2">
                 تاريخ البداية بعد تاريخ النهاية
               </p>
             )}
@@ -341,31 +341,31 @@ export default function PatientAccount() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="text-[11px] text-slate-500">
+                                <div className="text-[11px] text-muted-foreground">
                                   {formatDateAr(String(r.transactionDate))}
                                 </div>
                                 <div className="mt-1 text-sm font-semibold text-foreground">
                                   إيصال {toArabicDigits(r.trNo)}
                                 </div>
                               </div>
-                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                              <span className="rounded-full bg-primary text-primary-foreground">
                                 {formatMoneyAr(r.paidValue)}
                               </span>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                               <div className="rounded-xl bg-muted px-3 py-2">
-                                <div className="text-[10px] text-slate-500">
+                                <div className="text-[10px] text-muted-foreground">
                                   الإجمالي
                                 </div>
                                 <div className="mt-1 font-semibold tabular-nums text-foreground">
                                   {formatMoneyAr(r.total)}
                                 </div>
                               </div>
-                              <div className="rounded-xl bg-rose-50 px-3 py-2">
-                                <div className="text-[10px] text-rose-700">
+                              <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                                <div className="text-[10px] text-destructive">
                                   المدفوع
                                 </div>
-                                <div className="mt-1 font-semibold tabular-nums text-rose-700">
+                                <div className="mt-1 font-semibold tabular-nums text-destructive">
                                   {formatMoneyAr(r.paidValue)}
                                 </div>
                               </div>
@@ -433,39 +433,39 @@ export default function PatientAccount() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="text-[11px] text-slate-500">
+                                <div className="text-[11px] text-muted-foreground">
                                   الخدمة
                                 </div>
                                 <div className="mt-1 text-sm font-semibold text-foreground">
                                   {s.serviceName || s.serviceCode}
                                 </div>
                               </div>
-                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                              <span className="rounded-full bg-primary text-primary-foreground">
                                 {formatCountAr(s.quantity)}
                               </span>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                               <div className="rounded-xl bg-muted px-3 py-2">
-                                <div className="text-[10px] text-slate-500">
+                                <div className="text-[10px] text-muted-foreground">
                                   السعر
                                 </div>
                                 <div className="mt-1 font-semibold tabular-nums text-foreground">
                                   {formatMoneyAr(s.price)}
                                 </div>
                               </div>
-                              <div className="rounded-xl bg-rose-50 px-3 py-2">
-                                <div className="text-[10px] text-rose-700">
+                              <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                                <div className="text-[10px] text-destructive">
                                   الخصم
                                 </div>
-                                <div className="mt-1 font-semibold tabular-nums text-rose-700">
+                                <div className="mt-1 font-semibold tabular-nums text-destructive">
                                   {formatMoneyAr(s.discountValue)}
                                 </div>
                               </div>
-                              <div className="col-span-2 rounded-xl bg-emerald-50 px-3 py-2">
-                                <div className="text-[10px] text-emerald-700">
+                              <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
+                                <div className="text-[10px] text-success">
                                   المشاركة
                                 </div>
-                                <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                                <div className="mt-1 font-semibold tabular-nums text-success">
                                   {formatMoneyAr(s.paidValue)}
                                 </div>
                               </div>

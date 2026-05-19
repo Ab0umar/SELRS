@@ -278,8 +278,8 @@ export default function AdminApiTools() {
                         variant={row.method === "query" ? "secondary" : "default"}
                         className={
                           row.method === "query"
-                            ? "bg-emerald-600/15 text-emerald-800 dark:text-emerald-300"
-                            : "bg-primary/15 text-primary"
+                            ? "bg-success/15 text-success"
+                            : "bg-primary text-primary-foreground"
                         }
                       >
                         {row.method === "query" ? "query" : "mutation"}
@@ -349,7 +349,7 @@ export default function AdminApiTools() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                className="selrs-gradient-btn text-white hover:opacity-95"
+                className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
                 onClick={async () => {
                   const input = {
                     patientId: patientIdNum,
@@ -411,7 +411,7 @@ export default function AdminApiTools() {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Button
-                className="selrs-gradient-btn text-white hover:opacity-95"
+                className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
                 onClick={async () => {
                   const input = { visitId: visitIdNum, patientId: patientIdNum, ucvaOD: "6/6" };
                   try {
@@ -502,7 +502,7 @@ export default function AdminApiTools() {
             />
             <div className="flex gap-2">
               <Button
-                className="selrs-gradient-btn text-white hover:opacity-95"
+                className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
                 onClick={async () => {
                   const input = {
                     visitId: visitIdNum,
@@ -554,7 +554,7 @@ export default function AdminApiTools() {
             </div>
             <div className="flex gap-2">
               <Button
-                className="selrs-gradient-btn text-white hover:opacity-95"
+                className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
                 onClick={async () => {
                   const input = {
                     visitId: visitIdNum,

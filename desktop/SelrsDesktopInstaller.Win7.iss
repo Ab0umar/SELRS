@@ -1,9 +1,9 @@
 #define AppName "SELRS"
-#define AppVersion "1.0.111"
+#define AppVersion "1.0.132"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
-#define BuildDir "E:\SELRS.cc\desktop\publish-win7"
-#define OutputDir "C:\Users\SELRS\OneDrive\Documents\SELRS.cc"
+#define BuildDir "publish-win7"
+#define OutputDir "installer"
 #define OutputBaseFilenameSuffix "-Desktop-Win7"
 
 [Setup]
@@ -21,7 +21,7 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x86 x64
 PrivilegesRequired=admin
-SetupIconFile=E:\SELRS.cc\desktop\SelrsDesktop\assets\app.ico
+SetupIconFile=SelrsDesktop\assets\app.ico
 UninstallDisplayIcon={app}\SELRS.exe
 
 [Languages]
@@ -33,7 +33,7 @@ Name: "autostart"; Description: "Start SELRS with Windows"; GroupDescription: "S
 
 [Files]
 Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.WebView2\*"
-Source: "E:\SELRS.cc\desktop\SELRS.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "SELRS.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\SELRS"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"

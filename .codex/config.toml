@@ -1,0 +1,139 @@
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
+approvals_reviewer = "user"
+service_tier = "fast"
+sandbox_mode = "workspace-write"
+[notice]
+hide_rate_limit_model_nudge = true
+hide_full_access_warning = true
+fast_default_opt_out = true
+
+[notice.model_migrations]
+"gpt-5.1-codex-mini" = "gpt-5.2-codex"
+"gpt-5.2-codex" = "gpt-5.3-codex"
+"gpt-5.3-codex" = "gpt-5.4"
+
+
+[projects.'C:\Users\drels']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\drels\Downloads\sales-center-accounting']
+trust_level = "trusted"
+
+[projects.'C:\Users\drels\Downloads']
+trust_level = "trusted"
+
+[projects.'C:\Users\drels\OneDrive\Desktop\New folder (3)\android']
+trust_level = "trusted"
+
+[projects.'C:\Users\drels\OneDrive\SELRS\MySQL']
+trust_level = "trusted"
+
+[projects.'D:\New folder (3)']
+trust_level = "trusted"
+
+[projects.'C:\Users\drels\Desktop']
+trust_level = "trusted"
+
+[projects.'D:\']
+trust_level = "trusted"
+
+[projects.'C:\Users\drels\Desktop\New folder (3)']
+trust_level = "trusted"
+
+[projects.'D:\OP.apk']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\drels\Downloads\api']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\drels\Downloads\API']
+trust_level = "trusted"
+
+[projects.'\\?\D:\OP\Web.selrs']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\drels\OneDrive\OfficeMobile\Web.selrs']
+trust_level = "trusted"
+
+[projects.'\\?\D:\']
+trust_level = "trusted"
+
+[projects.'d:\selrs.cc']
+trust_level = "trusted"
+
+[projects.'d:\new.selrs.cc']
+trust_level = "trusted"
+
+[projects.'d:\codex.selrs.cc']
+trust_level = "trusted"
+
+[projects.'d:\srv100']
+trust_level = "trusted"
+
+[projects.'d:\c\srv100']
+trust_level = "trusted"
+
+[projects.'d:\c\srv100_acc']
+trust_level = "trusted"
+
+[projects.'c:\']
+trust_level = "trusted"
+
+[windows]
+sandbox = "elevated"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[marketplaces.openai-bundled]
+last_updated = "2026-05-17T13:16:37Z"
+source_type = "local"
+source = '\\?\C:\Users\drels\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-17T11:21:15Z"
+source_type = "local"
+source = '\\?\C:\Users\drels\.cache\codex-runtimes\codex-primary-runtime\plugins\openai-primary-runtime'
+
+[marketplaces.impeccable]
+last_updated = "2026-05-17T13:49:16Z"
+last_revision = "4af581e23f17d112d8f9d6b7a5b7ff37823494e1"
+source_type = "git"
+source = "https://github.com/pbakaus/impeccable.git"
+
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."chatgpt-apps@openai-curated"]
+enabled = true
+
+[plugins."coderabbit@openai-curated"]
+enabled = true
+
+[plugins."superpowers@openai-curated"]
+enabled = true
+
+[plugins."impeccable@impeccable"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[features]
+memories = true
+
+[[skills.config]]
+path = 'D:\selrs.cc\.agents\skills\speckit-taskstoissues\SKILL.md'
+enabled = false
+
+[mcp_servers.socraticode]
+command = "npx"
+args = ["-y", "socraticode"]

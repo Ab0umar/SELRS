@@ -35,6 +35,15 @@ jobs:
       - name: Run TypeScript Check
         run: pnpm check
 
+      - name: Check for raw Tailwind palette tokens
+        run: |
+          if grep -r -E "(sky|cyan|pink|indigo|teal|emerald|rose|violet|fuchsia|amber|orange|yellow|lime|green|blue|red|purple)-[0-9]+" client/src --include="*.tsx" --include="*.ts" | grep -v "node_modules"; then
+            echo "❌ Raw Tailwind palette tokens found. Use semantic tokens instead (primary, secondary, success, warning, destructive, muted)."
+            exit 1
+          else
+            echo "✅ No raw Tailwind palette tokens detected."
+          fi
+
       - name: Run Tests
         run: pnpm test
 

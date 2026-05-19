@@ -146,8 +146,8 @@ export function AppSidebar({
         "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
         collapsed && !isMobile ? "justify-center px-0 py-2.5" : "text-right",
         isActive
-          ? "bg-primary/10 text-primary font-semibold"
-          : "font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+          ? "bg-primary text-primary-foreground font-semibold"
+          : "font-medium text-muted-foreground hover:bg-muted text-muted-foreground",
       )}
     >
       {(!collapsed || isMobile) && <span className="min-w-0 flex-1 truncate">{sub.label}</span>}
@@ -248,7 +248,7 @@ export function AppSidebar({
                             "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-sm transition-colors hover:bg-muted/50",
                             headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
                             headerActive
-                              ? "bg-primary/10 text-primary font-semibold"
+                              ? "bg-primary text-primary-foreground font-semibold"
                               : "font-medium text-muted-foreground",
                           )}
                         >

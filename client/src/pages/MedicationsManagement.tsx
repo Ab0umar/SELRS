@@ -705,7 +705,7 @@ export default function MedicationsManagement() {
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <Link2 className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">{editingId ? "تعديل دواء" : "إضافة دواء"}</CardTitle>
@@ -754,7 +754,7 @@ export default function MedicationsManagement() {
                   <Button
                     type="button"
                     onClick={() => void handleSaveMedication()}
-                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-primary-foreground sm:flex-none"
                     disabled={createMedicationMutation.isPending || updateMedicationMutation.isPending}
                   >
                     <Save className="h-4 w-4" />
@@ -793,25 +793,25 @@ export default function MedicationsManagement() {
                           {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
                         </div>
                         <div className="flex shrink-0 gap-1">
-                          <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditMedication(med)}>
+                          <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" aria-label="تعديل الدواء" onClick={() => handleEditMedication(med)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           {delConfirmMed === med.id ? (
                             <div className="flex items-center gap-1">
                               <button type="button" aria-label="تأكيد الحذف"
-                                className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                 onClick={() => { void handleDeleteMedication(med.id); setDelConfirmMed(null); }}>
                                 تأكيد
                               </button>
                               <button type="button" aria-label="إلغاء الحذف"
-                                className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                className="rounded bg-muted text-muted-foreground hover:bg-border"
                                 onClick={() => setDelConfirmMed(null)}>
                                 ✕
                               </button>
                             </div>
                           ) : (
                             <button type="button" aria-label="حذف الدواء"
-                              className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                               onClick={() => setDelConfirmMed(med.id)}>
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -831,7 +831,7 @@ export default function MedicationsManagement() {
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/[0.07]0/10 text-primary">
                     <FlaskConical className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">{editingTestId ? "تعديل فحص" : "إضافة فحص"}</CardTitle>
@@ -875,7 +875,7 @@ export default function MedicationsManagement() {
                   <Button
                     type="button"
                     onClick={() => void handleSaveTest()}
-                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-primary-foreground sm:flex-none"
                     disabled={createTestMutation.isPending || updateTestMutation.isPending}
                   >
                     <Save className="h-4 w-4" />
@@ -914,25 +914,25 @@ export default function MedicationsManagement() {
                         </div>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditTest(test)}>
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" aria-label="تعديل الفحص" onClick={() => handleEditTest(test)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         {delConfirmTest === test.id ? (
                           <div className="flex items-center gap-1">
                             <button type="button" aria-label="تأكيد الحذف"
-                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                               onClick={() => { void handleDeleteTest(test.id); setDelConfirmTest(null); }}>
                               تأكيد
                             </button>
                             <button type="button" aria-label="إلغاء الحذف"
-                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmTest(null)}>
                               ✕
                             </button>
                           </div>
                         ) : (
                           <button type="button" aria-label="حذف الفحص"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmTest(test.id)}>
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -951,7 +951,7 @@ export default function MedicationsManagement() {
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/[0.07]0/10 text-secondary">
                     <Microscope className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">{editingDiseaseId ? "تعديل مرض" : "إضافة مرض"}</CardTitle>
@@ -990,7 +990,7 @@ export default function MedicationsManagement() {
                   <Button
                     type="button"
                     onClick={() => void handleSaveDisease()}
-                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-primary-foreground sm:flex-none"
                     disabled={createDiseaseMutation.isPending || updateDiseaseMutation.isPending}
                   >
                     <Save className="h-4 w-4" />
@@ -1029,25 +1029,25 @@ export default function MedicationsManagement() {
                         </div>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditDisease(disease)}>
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" aria-label="تعديل المرض" onClick={() => handleEditDisease(disease)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         {delConfirmDisease === disease.id ? (
                           <div className="flex items-center gap-1">
                             <button type="button" aria-label="تأكيد الحذف"
-                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                               onClick={() => { void handleDeleteDisease(disease.id); setDelConfirmDisease(null); }}>
                               تأكيد
                             </button>
                             <button type="button" aria-label="إلغاء الحذف"
-                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmDisease(null)}>
                               ✕
                             </button>
                           </div>
                         ) : (
                           <button type="button" aria-label="حذف المرض"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmDisease(disease.id)}>
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -1066,7 +1066,7 @@ export default function MedicationsManagement() {
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/100/10 text-warning">
                     <MessageSquareWarning className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">{editingSymptomId ? "تعديل عرض" : "إضافة عرض"}</CardTitle>
@@ -1087,7 +1087,7 @@ export default function MedicationsManagement() {
                   <Button
                     type="button"
                     onClick={() => void handleSaveSymptom()}
-                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-white sm:flex-none"
+                    className="selrs-gradient-btn min-w-[8rem] flex-1 gap-2 text-primary-foreground sm:flex-none"
                     disabled={createSymptomMutation.isPending || updateSymptomMutation.isPending}
                   >
                     <Save className="h-4 w-4" />
@@ -1123,25 +1123,25 @@ export default function MedicationsManagement() {
                         <div className="font-semibold leading-snug">{symptom.name}</div>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" onClick={() => handleEditSymptom(symptom)}>
+                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-lg" title="تعديل" aria-label="تعديل العرض" onClick={() => handleEditSymptom(symptom)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         {delConfirmSymptom === symptom.id ? (
                           <div className="flex items-center gap-1">
                             <button type="button" aria-label="تأكيد الحذف"
-                              className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                              className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                               onClick={() => { void handleDeleteSymptom(symptom.id); setDelConfirmSymptom(null); }}>
                               تأكيد
                             </button>
                             <button type="button" aria-label="إلغاء الحذف"
-                              className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                              className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmSymptom(null)}>
                               ✕
                             </button>
                           </div>
                         ) : (
                           <button type="button" aria-label="حذف العرض"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmSymptom(symptom.id)}>
                             <Trash2 className="h-4 w-4" />
                           </button>

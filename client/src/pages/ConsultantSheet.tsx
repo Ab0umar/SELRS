@@ -548,6 +548,7 @@ export default function ConsultantSheet() {
             min-height: 430px !important;
           }
           .consultant-note-field {
+            /* print fidelity: physical sheet contrast */
             border: 1px solid #000 !important;
             background: #fff !important;
             -webkit-print-color-adjust: exact;

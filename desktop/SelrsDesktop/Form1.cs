@@ -1,8 +1,11 @@
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System;
+using System.Drawing;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SelrsDesktop;
@@ -13,15 +16,17 @@ namespace SelrsDesktop;
 /// </summary>
 public partial class Form1 : Form
 {
-    private const string DefaultHomeUrl = "http://192.168.0.100:4000";
+    private const string DefaultHomeUrl = "http://localhost:4000";
     private static readonly (string id, string label, string url)[] UrlPresets = [
-        ("local", "Local (192.168.0.100:4000)", "http://192.168.0.100:4000"),
+        ("local", "Local (localhost:4000)", "http://localhost:4000"),
+        ("lan", "LAN (192.168.0.100:4000)", "http://192.168.0.100:4000"),
         ("online", "Online (op.selrs.cc)", "https://op.selrs.cc"),
     ];
-    private readonly string _homeUrl;
+    private string _homeUrl;
     private readonly string _userDataDir;
     private string _currentUrl;
     private string _lastUri = string.Empty;
+    private readonly bool _hasSavedUrl;
     private const int WmNclbuttondown = 0xA1;
     private const int HtCaption = 0x2;
     private const int TopBarExpandedHeight = 40;
@@ -32,6 +37,7 @@ public partial class Form1 : Form
     {
         var configuredUrl = Environment.GetEnvironmentVariable("SELRS_DESKTOP_URL");
         var savedUrl = LoadSavedUrl();
+        _hasSavedUrl = !string.IsNullOrWhiteSpace(savedUrl);
         _homeUrl = NormalizeHomeUrl(configuredUrl ?? savedUrl);
         _currentUrl = _homeUrl;
         _userDataDir = Path.Combine(
@@ -64,30 +70,6 @@ public partial class Form1 : Form
         KeyPreview = true;
         KeyDown += HandleKeyDown;
         Shown += HandleShown;
-        if (webView != null)
-        {
-            // Only navigate to _homeUrl here if not already set by other means
-            webView.NavigationCompleted += (_, _) =>
-            {
-                // Optionally, handle post-navigation logic here
-            };
-            if (webView.CoreWebView2 != null)
-            {
-                webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
-                webView.CoreWebView2.Navigate(_homeUrl);
-            }
-            else
-            {
-                webView.CoreWebView2InitializationCompleted += (_, e) =>
-                {
-                    if (e.IsSuccess && webView.CoreWebView2 != null)
-                    {
-                        webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
-                        webView.CoreWebView2.Navigate(_homeUrl);
-                    }
-                };
-            }
-        }
         var chromeMode = (Environment.GetEnvironmentVariable("SELRS_WINDOW_CHROME") ?? "").Trim().ToLowerInvariant();
         var forceModernChrome = chromeMode == "modern" || chromeMode == "borderless";
 #if NETFRAMEWORK
@@ -225,13 +207,55 @@ private void UpdateMaximizeButtonText()
     }
 }
 
+    private async Task InitializeWebViewAsync()
+    {
+        try
+        {
+            Directory.CreateDirectory(_userDataDir);
+            Text = $"SELRS Desktop - Loading {_homeUrl}";
+
+            webView.CoreWebView2InitializationCompleted += HandleCoreWebView2InitializationCompleted;
+            webView.NavigationStarting += HandleNavigationStarting;
+            webView.NavigationCompleted += HandleNavigationCompleted;
+
+            var environment = await CoreWebView2Environment.CreateAsync(null, _userDataDir);
+            await webView.EnsureCoreWebView2Async(environment);
+
+            if (webView.CoreWebView2 == null)
+            {
+                throw new InvalidOperationException("WebView2 initialized without CoreWebView2.");
+            }
+
+            webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
+            webView.CoreWebView2.Navigate(_homeUrl);
+        }
+        catch (Exception ex)
+        {
+            LogError("WebView2 startup failed", ex);
+            ShowStartupErrorPage("WebView2 startup failed", ex.Message);
+        }
+    }
+
+    private void HandleCoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e)
+    {
+        if (e.IsSuccess) return;
+
+        var message = e.InitializationException?.Message ?? "Unknown WebView2 initialization error.";
+        LogError("WebView2 initialization failed", e.InitializationException);
+        ShowStartupErrorPage("WebView2 initialization failed", message);
+    }
+
     private void HandleNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
-            // Do not call UpdateMaximizeButtonText() here, as it is also called on the Resize event,
-            // which may be triggered by navigation failures and could cause infinite recursion.
-        var message = $"Navigation failed.\nError: {e.WebErrorStatus}\nURL: {webView.Source}";
-        Text = "SELRS Desktop - Offline";
-        MessageBox.Show(message, "SELRS Desktop", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        if (e.IsSuccess)
+        {
+            Text = "SELRS Desktop";
+            return;
+        }
+
+        var message = $"Navigation failed: {e.WebErrorStatus}";
+        LogError($"{message}. URL: {webView.Source}", null);
+        ShowStartupErrorPage(message, $"URL: {webView.Source}");
     }
 
     private void HandleNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
@@ -244,6 +268,8 @@ private void UpdateMaximizeButtonText()
             e.Cancel = true;
             return;
         }
+
+        _lastUri = e.Uri;
     }
 
     private static string NormalizeHomeUrl(string? value)
@@ -291,6 +317,110 @@ private void UpdateMaximizeButtonText()
         catch { }
     }
 
+    private bool ShowStartupUrlChooser()
+    {
+        using var dialog = new Form
+        {
+            Text = "Choose SELRS connection",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = false,
+            ClientSize = new Size(420, 260)
+        };
+
+        var title = new Label
+        {
+            Text = "Choose where SELRS should open",
+            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+            AutoSize = false,
+            Location = new Point(20, 18),
+            Size = new Size(380, 26)
+        };
+
+        var group = new Panel
+        {
+            Location = new Point(20, 56),
+            Size = new Size(380, 126)
+        };
+
+        var buttons = new RadioButton[UrlPresets.Length];
+        for (var i = 0; i < UrlPresets.Length; i++)
+        {
+            var preset = UrlPresets[i];
+            var button = new RadioButton
+            {
+                Text = preset.label,
+                Tag = preset.url,
+                AutoSize = false,
+                Location = new Point(0, i * 38),
+                Size = new Size(360, 28),
+                Checked = NormalizeHomeUrl(preset.url) == _currentUrl
+            };
+            buttons[i] = button;
+            group.Controls.Add(button);
+        }
+
+        var hasCheckedButton = false;
+        foreach (var button in buttons)
+        {
+            if (!button.Checked) continue;
+            hasCheckedButton = true;
+            break;
+        }
+
+        if (!hasCheckedButton)
+        {
+            buttons[0].Checked = true;
+        }
+
+        var openButton = new Button
+        {
+            Text = "Open",
+            DialogResult = DialogResult.OK,
+            Location = new Point(220, 206),
+            Size = new Size(84, 32)
+        };
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            DialogResult = DialogResult.Cancel,
+            Location = new Point(316, 206),
+            Size = new Size(84, 32)
+        };
+
+        dialog.AcceptButton = openButton;
+        dialog.CancelButton = cancelButton;
+        dialog.Controls.Add(title);
+        dialog.Controls.Add(group);
+        dialog.Controls.Add(openButton);
+        dialog.Controls.Add(cancelButton);
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return false;
+        }
+
+        string? selected = null;
+        foreach (var button in buttons)
+        {
+            if (!button.Checked) continue;
+            selected = button.Tag?.ToString();
+            break;
+        }
+        if (string.IsNullOrWhiteSpace(selected))
+        {
+            return false;
+        }
+
+        var normalized = NormalizeHomeUrl(selected);
+        _homeUrl = normalized;
+        _currentUrl = normalized;
+        SaveUrl(normalized);
+        return true;
+    }
+
     private void SwitchUrl(string newUrl)
     {
         var normalized = NormalizeHomeUrl(newUrl);
@@ -336,12 +466,21 @@ private void UpdateMaximizeButtonText()
         }
     }
 
-    private void HandleShown(object? sender, EventArgs e)
+    private async void HandleShown(object? sender, EventArgs e)
     {
         // Set initial window size and position
         Width = 1200;
         Height = 800;
         StartPosition = FormStartPosition.CenterScreen;
+        if (!_hasSavedUrl &&
+            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SELRS_DESKTOP_URL")) &&
+            !ShowStartupUrlChooser())
+        {
+            Close();
+            return;
+        }
+
+        await InitializeWebViewAsync();
     }
 
     private void HandleContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e)
@@ -364,5 +503,102 @@ private void UpdateMaximizeButtonText()
             return parsed.ToString();
         }
         return uri.Trim();
+    }
+
+    private void ShowStartupErrorPage(string title, string details)
+    {
+        var safeTitle = WebUtility.HtmlEncode(title);
+        var safeDetails = WebUtility.HtmlEncode(details);
+        var safeUrl = WebUtility.HtmlEncode(_homeUrl);
+        var html = $$"""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #172033;
+      background: #f5f7fb;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    main {
+      width: min(680px, calc(100vw - 48px));
+      background: #fff;
+      border: 1px solid #d8dee9;
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px;
+    }
+    p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    code {
+      background: #eef2f7;
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>{{safeTitle}}</h1>
+    <p>{{safeDetails}}</p>
+    <p>Configured URL: <code>{{safeUrl}}</code></p>
+    <p>Check that the SELRS server is running and reachable from this machine.</p>
+  </main>
+</body>
+</html>
+""";
+
+        Text = "SELRS Desktop - Offline";
+        try
+        {
+            if (webView.CoreWebView2 != null)
+            {
+                webView.NavigateToString(html);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogError("Failed to render startup error page", ex);
+        }
+
+        var label = new Label
+        {
+            Dock = DockStyle.Fill,
+            TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+            Padding = new Padding(32),
+            Text = $"{title}{Environment.NewLine}{details}{Environment.NewLine}{_homeUrl}"
+        };
+        Controls.Remove(webView);
+        Controls.Add(label);
+        label.BringToFront();
+    }
+
+    private static void LogError(string message, Exception? exception)
+    {
+        try
+        {
+            var logPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SELRSDesktop",
+                "error.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            File.AppendAllText(logPath, $"[{DateTime.Now}] {message}{Environment.NewLine}{exception}{Environment.NewLine}");
+        }
+        catch
+        {
+            System.Diagnostics.Debug.WriteLine($"{message}: {exception}");
+        }
     }
 }

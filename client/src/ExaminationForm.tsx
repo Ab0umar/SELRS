@@ -15,6 +15,7 @@ import { trpc } from "@/lib/trpc";
 import { formatDateLabel } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
 import { CYLINDER_OPTIONS, SPHERE_OPTIONS, UCVA_BCVA_OPTIONS } from "@/lib/refractionOptions";
+import type { User } from "@shared/types";
 
 interface DoctorOption {
   id: string;
@@ -136,10 +137,10 @@ export default function ExaminationForm() {
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const lastSyncedRef = useRef<Record<string, string>>({});
   const hasPatient = Boolean(patientInfo.id);
-  const normalizedRole = String((user as any)?.role ?? "").toLowerCase();
+  const normalizedRole = String((user as User | null)?.role ?? "").toLowerCase();
   const canEditPatientData = normalizedRole === "admin";
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const currentUserDisplayName = String((user as any)?.name ?? (user as any)?.username ?? "").trim();
+  const currentUserDisplayName = String((user as User | null)?.name ?? (user as User | null)?.username ?? "").trim();
 
   useEffect(() => {
     const routeId = Number((routeParams as any)?.id ?? 0);
@@ -162,7 +163,7 @@ export default function ExaminationForm() {
 
   useEffect(() => {
     if (!currentUserDisplayName) return;
-    const role = String((user as any)?.role ?? "").toLowerCase();
+    const role = String((user as User | null)?.role ?? "").toLowerCase();
     if (role === "reception") {
       setReceptionSignature((prev) => prev || currentUserDisplayName);
       return;
@@ -178,7 +179,7 @@ export default function ExaminationForm() {
     if (role === "doctor") {
       setDoctorName((prev) => prev || currentUserDisplayName);
     }
-  }, [currentUserDisplayName, (user as any)?.role]);
+  }, [currentUserDisplayName, (user as User | null)?.role]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1039,7 +1040,7 @@ export default function ExaminationForm() {
               </Card>
             )}
             {hasPatient && (
-            <div className="bg-white p-3 sm:p-4">
+            <div className="bg-background p-3 sm:p-4">
               {!isMobileViewport && (
                 <div className="mb-2 text-[11px] text-muted-foreground text-right">اسحب الجدول يمين/يسار لعرض كل الأعمدة</div>
               )}
@@ -1091,7 +1092,7 @@ export default function ExaminationForm() {
                   <div className="border min-w-[680px] sm:min-w-0">
                     <table className="w-full text-center lasik-table exam-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override" }}>
                       <thead>
-                        <tr className="border-b bg-gray-100">
+                        <tr className="border-b bg-muted">
                           <th className="border-r p-1 text-center">Eye</th>
                           <th className="border-r p-1 text-center">UCVA</th>
                           <th className="border-r p-1 text-center">BCVA</th>
@@ -1348,7 +1349,7 @@ export default function ExaminationForm() {
               </Card>
             )}
             {hasPatient && (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+              <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
                 <table className="text-sm w-full table-fixed" dir="ltr">
                   <colgroup>
                     <col style={{ width: "25px" }} />
@@ -1359,7 +1360,7 @@ export default function ExaminationForm() {
                     <col style={{ width: "26px" }} />
                   </colgroup>
                   <thead>
-                    <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                    <tr className="bg-gradient-to-r from-primary to-primary text-card-foreground">
                       <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-sm">العين</th>
                       <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-sm">S</th>
                       <th className="px-1 py-1 text-center font-bold whitespace-nowrap text-sm">C</th>
@@ -1369,8 +1370,8 @@ export default function ExaminationForm() {
                   </thead>
                   <tbody>
                     {["od", "os"].map((eye) => (
-                      <tr key={eye} className="border-b hover:bg-blue-50 transition-colors">
-                        <td className="px-1 py-1 text-center font-bold text-slate-900 bg-slate-50 text-sm">{eye === "od" ? "OD" : "OS"}</td>
+                      <tr key={eye} className="border-b hover:bg-primary/5 transition-colors">
+                        <td className="px-1 py-1 text-center font-bold text-muted-foreground bg-muted text-sm">{eye === "od" ? "OD" : "OS"}</td>
                         <td className="px-1 py-1 text-center">
                           <Input
                             value={(examData.glasses?.[eye as "od" | "os"]?.s ?? "") as string}
@@ -1383,7 +1384,7 @@ export default function ExaminationForm() {
                               });
                             }}
                             placeholder="—"
-                            className="text-center h-7 text-sm border-slate-300 focus:border-blue-500 p-0.5"
+                            className="text-center h-7 text-sm border-border focus:border-ring p-0.5"
                           />
                         </td>
                         <td className="px-1 py-1 text-center">
@@ -1398,7 +1399,7 @@ export default function ExaminationForm() {
                               });
                             }}
                             placeholder="—"
-                            className="text-center h-7 text-sm border-slate-300 focus:border-blue-500 p-0.5"
+                            className="text-center h-7 text-sm border-border focus:border-ring p-0.5"
                           />
                         </td>
                         <td className="px-1 py-1 text-center">
@@ -1413,7 +1414,7 @@ export default function ExaminationForm() {
                               });
                             }}
                             placeholder="—"
-                            className="text-center h-7 text-sm border-slate-300 focus:border-blue-500 p-0.5"
+                            className="text-center h-7 text-sm border-border focus:border-ring p-0.5"
                           />
                         </td>
                         <td className="px-1 py-1 text-center">
@@ -1428,7 +1429,7 @@ export default function ExaminationForm() {
                               });
                             }}
                             placeholder="—"
-                            className="text-center h-7 text-sm border-slate-300 focus:border-blue-500 p-0.5"
+                            className="text-center h-7 text-sm border-border focus:border-ring p-0.5"
                           />
                         </td>
                       </tr>
@@ -1508,7 +1509,7 @@ export default function ExaminationForm() {
             {!isMobileViewport && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border">
-                  <div className="bg-gray-100 p-2 text-center font-bold text-sm border-b">
+                  <div className="bg-muted p-2 text-center font-bold text-sm border-b">
                     RT فحص القرنية
                   </div>
                   <table className="w-full text-center lasik-table pentacam-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override" }}>
@@ -1684,7 +1685,7 @@ export default function ExaminationForm() {
                 </div>
 
                 <div className="border">
-                  <div className="bg-gray-100 p-2 text-center font-bold text-sm border-b">
+                  <div className="bg-muted p-2 text-center font-bold text-sm border-b">
                     LT فحص القرنية
                   </div>
                   <table className="w-full text-center lasik-table pentacam-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override" }}>

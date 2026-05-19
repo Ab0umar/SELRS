@@ -24,6 +24,31 @@
 - **Error**: `#EF4444` (critical, alerts, urgent)
 - **Info**: `#3B82F6` (notification, guidance)
 
+### Color discipline (no third brand color)
+
+The palette is **navy + orange + semantic tokens**. No `--accent-3`. When a feature reaches for a third color (violet, cyan, teal, etc.) to differentiate a category or role:
+
+1. First option: use **secondary (orange)** with opacity variants (`bg-secondary/10`, `bg-secondary/15`, `text-secondary`). This is the canonical "second identity color" in the system.
+2. Second option: use a **semantic token** if the meaning matches (success / warning / destructive / info).
+3. Third option: use **muted neutrals** if the distinction is decorative, not semantic.
+
+**Rationale**: A two-color brand is harder to dilute. Every additional named color is a future migration debt. Violet, indigo, teal, and emerald palettes were normalized to `secondary` in 2026-05 (Pass 3 audit).
+
+### Hub-shell category palette (token-only)
+
+Multi-hub navigation surfaces (Clinics / Admin / Services / Medical Reports / Patients / Workflow) need visual identity per hub. Use this **fixed rotation of semantic tokens**, not Tailwind raw palette names:
+
+| Slot | iconWrap | Use for |
+|---|---|---|
+| 1 | `bg-primary/10 text-primary` | Main / clinical / default hub |
+| 2 | `bg-secondary/15 text-secondary` | Secondary identity (orange-warm) |
+| 3 | `bg-success/15 text-success` | Health / completed / labs |
+| 4 | `bg-warning/20 text-warning` | Admin / caution / migrations |
+| 5 | `bg-destructive/10 text-destructive` | Critical / errors only |
+| 6 | `bg-muted text-muted-foreground` | Utility / neutral hub |
+
+Never reach for `sky-*`, `cyan-*`, `pink-*`, `indigo-*`, `teal-*`, `emerald-*`, `rose-*`, `amber-*`, `violet-*`. They were swept in Pass 4 (2026-05) and should not return.
+
 ## Typography
 
 ### Font Family

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { evaluateMedicalReference, findMedicalReference, medicalReferenceClass, type MedicalReference } from "@/lib/medical-reference";
-import { Activity, AlertTriangle, Eye } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Eye } from "lucide-react";
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -309,9 +309,15 @@ export default function PentacamResultsDashboard({
     return { total, abnormal, repeat, accepted };
   }, [rowsWithAttention]);
 
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => new Set());
+
   const alertRows = useMemo(
-    () => rowsWithAttention.filter((entry) => entry.attention.severity !== "normal").slice(0, 6),
-    [rowsWithAttention],
+    () =>
+      rowsWithAttention
+        .filter((entry) => entry.attention.severity !== "normal")
+        .filter((entry) => !dismissedAlerts.has(`${entry.row.resultId}-${entry.row.eye}`))
+        .slice(0, 6),
+    [rowsWithAttention, dismissedAlerts],
   );
 
   const visibleRowCount = activeFilter === "all" ? groupedPatientRows.length : rowsWithAttention.length;
@@ -327,7 +333,7 @@ export default function PentacamResultsDashboard({
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              entry.row.eye === "OD" ? "bg-blue-100 text-blue-800" : "bg-violet-100 text-violet-800",
+              entry.row.eye === "OD" ? "bg-primary text-primary-foreground" : "bg-secondary/15 text-secondary",
             )}
           >
             {entry.row.eye === "OD" ? "RT" : "LT"}
@@ -335,7 +341,7 @@ export default function PentacamResultsDashboard({
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              entry.row.quality === "accepted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+              entry.row.quality === "accepted" ? "bg-success/15 text-success" : "bg-warning/20 text-warning/90",
             )}
           >
             {entry.row.quality === "accepted" ? "مقبول" : "تكرار"}
@@ -446,63 +452,63 @@ export default function PentacamResultsDashboard({
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-xl border border-blue-200 bg-blue-50/80 p-3">
+                  <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-blue-700">فحوصات اليوم</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-blue-950">
+                        <p className="text-xs font-medium text-primary">فحوصات اليوم</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
                         </p>
-                        <p className="mt-1 text-xs text-blue-700/80">
+                        <p className="mt-1 text-xs text-primary/70">
                           {statsQuery.isLoading ? "..." : `${Math.abs(trendDelta)} مقارنة بالأمس`}
                         </p>
                       </div>
-                      <span className="rounded-full bg-blue-100 p-2 text-blue-700">
+                      <span className="rounded-full bg-primary p-2 text-primary-foreground">
                         <Activity className="h-4 w-4" />
                       </span>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3">
+                  <div className="rounded-xl border border-success/30 bg-success/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-emerald-700">مقبولة</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-950">
+                        <p className="text-xs font-medium text-success">مقبولة</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.accepted}
                         </p>
-                        <p className="mt-1 text-xs text-emerald-700/80">جاهزة للمراجعة السريعة</p>
+                        <p className="mt-1 text-xs text-success/70">جاهزة للمراجعة السريعة</p>
                       </div>
-                      <span className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                      <span className="rounded-full bg-success/15 p-2 text-success">
                         <Eye className="h-4 w-4" />
                       </span>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+                  <div className="rounded-xl border border-warning/50 bg-warning/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-amber-700">بحاجة لتكرار</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-950">
+                        <p className="text-xs font-medium text-warning-foreground">بحاجة لتكرار</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.repeat}
                         </p>
-                        <p className="mt-1 text-xs text-amber-700/80">جودة أو اكتمال يحتاج مراجعة</p>
+                        <p className="mt-1 text-xs text-warning-foreground/70">جودة أو اكتمال يحتاج مراجعة</p>
                       </div>
-                      <span className="rounded-full bg-amber-100 p-2 text-amber-700">
+                      <span className="rounded-full bg-warning/20 p-2 text-warning-foreground">
                         <AlertTriangle className="h-4 w-4" />
                       </span>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-red-200 bg-red-50/80 p-3">
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-red-700">شاذة</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-red-950">
+                        <p className="text-xs font-medium text-destructive">شاذة</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.abnormal}
                         </p>
-                        <p className="mt-1 text-xs text-red-700/80">قيم خارجة عن المرجع</p>
+                        <p className="mt-1 text-xs text-destructive/70">قيم خارجة عن المرجع</p>
                       </div>
-                      <span className="rounded-full bg-red-100 p-2 text-red-700">
+                      <span className="rounded-full bg-destructive/15 p-2 text-destructive">
                         <AlertTriangle className="h-4 w-4" />
                       </span>
                     </div>
@@ -571,7 +577,7 @@ export default function PentacamResultsDashboard({
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1100px] text-right text-sm">
                   <thead>
-                    <tr className="border-b bg-blue-100 text-[11px] font-semibold text-blue-900 sm:text-xs">
+                    <tr className="border-b bg-primary/10 text-[11px] font-semibold text-primary sm:text-xs">
                       <th className="p-2.5 whitespace-nowrap">المريض</th>
                       <th className="p-2.5 whitespace-nowrap">الطبيب</th>
                       <th className="p-2.5 whitespace-nowrap">التاريخ</th>
@@ -617,11 +623,11 @@ export default function PentacamResultsDashboard({
                             <tr
                               key={`patient-${group.patientId}`}
                               className={cn(
-                                "border-b last:border-0 transition-colors hover:bg-blue-50/60",
+                                "border-b last:border-0 transition-colors hover:bg-primary/50",
                                 group.attention.severity === "abnormal"
-                                  ? "bg-red-50/70 hover:bg-red-50"
+                                  ? "bg-destructive/70 hover:bg-destructive/10"
                                   : group.attention.severity === "repeat"
-                                    ? "bg-amber-50/70 hover:bg-amber-50"
+                                    ? "bg-warning/10/70 hover:bg-warning/10"
                                     : "",
                               )}
                             >
@@ -638,10 +644,10 @@ export default function PentacamResultsDashboard({
                                     className={cn(
                                       "rounded-full px-2 py-0.5 text-xs font-semibold",
                                       group.attention.severity === "normal"
-                                        ? "bg-emerald-100 text-emerald-700"
+                                        ? "bg-success/15 text-success"
                                         : group.attention.severity === "repeat"
-                                          ? "bg-amber-100 text-amber-700"
-                                          : "bg-red-100 text-red-700",
+                                          ? "bg-warning/20 text-warning/90"
+                                          : "bg-destructive/10 text-destructive",
                                     )}
                                   >
                                     {group.attention.severity === "normal"
@@ -658,7 +664,7 @@ export default function PentacamResultsDashboard({
                                     <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
                                   </span>
                                 ) : (
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
+                                  <Button variant="ghost" size="icon" className="h-11 w-11" asChild title="عرض" aria-label="عرض نتيجة Pentacam">
                                     <Link href={`/sheets/pentacam/${group.patientId}`}>
                                       <Eye className="h-4 w-4" />
                                     </Link>
@@ -685,10 +691,10 @@ export default function PentacamResultsDashboard({
                               className={cn(
                                 "border-b last:border-0 transition-colors",
                                 attention.severity === "abnormal"
-                                  ? "bg-red-50/70 hover:bg-red-50"
+                                  ? "bg-destructive/70 hover:bg-destructive/10"
                                   : attention.severity === "repeat"
-                                    ? "bg-amber-50/70 hover:bg-amber-50"
-                                    : "hover:bg-blue-50/60",
+                                    ? "bg-warning/10/70 hover:bg-warning/10"
+                                    : "hover:bg-primary/50",
                               )}
                             >
                               <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">{row.patientName}</td>
@@ -713,13 +719,13 @@ export default function PentacamResultsDashboard({
                                   <span
                                     className={cn(
                                       "rounded-full px-2 py-0.5 text-xs font-semibold",
-                                      row.quality === "accepted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+                                      row.quality === "accepted" ? "bg-success/15 text-success" : "bg-warning/20 text-warning/90",
                                     )}
                                   >
                                     {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
                                   </span>
                                   {attention.severity === "abnormal" ? (
-                                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                                       شاذة
                                     </span>
                                   ) : null}
@@ -731,7 +737,7 @@ export default function PentacamResultsDashboard({
                                     <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
                                   </span>
                                 ) : (
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="عرض">
+                                  <Button variant="ghost" size="icon" className="h-11 w-11" asChild title="عرض" aria-label="عرض نتيجة Pentacam">
                                     <Link href={`/sheets/pentacam/${row.patientId}`}>
                                       <Eye className="h-4 w-4" />
                                     </Link>
@@ -759,19 +765,19 @@ export default function PentacamResultsDashboard({
                     الحالات الشاذة أو التي تحتاج تكرار تبقى هنا حتى لا تضيع أثناء التصفح.
                   </p>
                 </div>
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">مراجعة</span>
+                <span className="rounded-full bg-primary text-primary-foreground">مراجعة</span>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-                  <p className="text-[11px] font-medium text-amber-700">بحاجة لتكرار</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-amber-950">
+                <div className="rounded-lg border border-warning/50 bg-warning/10 p-3">
+                  <p className="text-[11px] font-medium text-warning-foreground">بحاجة لتكرار</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.repeat}
                   </p>
                 </div>
-                <div className="rounded-lg border border-red-200 bg-red-50/70 p-3">
-                  <p className="text-[11px] font-medium text-red-700">شاذة</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-red-950">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                  <p className="text-[11px] font-medium text-destructive">شاذة</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.abnormal}
                   </p>
                 </div>
@@ -800,25 +806,37 @@ export default function PentacamResultsDashboard({
                       className={cn(
                         "rounded-lg border p-3",
                         attention.severity === "abnormal"
-                          ? "border-red-200 bg-red-50/70"
-                          : "border-amber-200 bg-amber-50/70",
+                          ? "border-destructive/30 bg-destructive/10"
+                          : "border-warning/50 bg-warning/10",
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-foreground">{row.patientName}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {row.doctorName || "—"} • {formatVisitDateAr(row.visitDate)}
                           </p>
                         </div>
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                            attention.severity === "abnormal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
-                          )}
-                        >
-                          {attention.severity === "abnormal" ? "شاذة" : "تكرار"}
-                        </span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              attention.severity === "abnormal" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground",
+                            )}
+                          >
+                            {attention.severity === "abnormal" ? "شاذة" : "تكرار"}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="تجاهل التنبيه"
+                            onClick={() =>
+                              setDismissedAlerts((prev) => new Set(prev).add(`${row.resultId}-${row.eye}`))
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {attention.reasons.length > 0 ? (
@@ -828,7 +846,7 @@ export default function PentacamResultsDashboard({
                               key={`${row.resultId}-${row.eye}-${reason}`}
                               className={cn(
                                 "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                                attention.severity === "abnormal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
+                                attention.severity === "abnormal" ? "bg-destructive/10 text-destructive" : "bg-warning/20 text-warning/90",
                               )}
                             >
                               {formatReasonBadge(reason)}

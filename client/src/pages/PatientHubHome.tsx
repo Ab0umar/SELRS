@@ -184,7 +184,7 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                   }}
                 >
                   <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
                     aria-hidden
                   >
                     {r.name.trim()[0] ?? "م"}

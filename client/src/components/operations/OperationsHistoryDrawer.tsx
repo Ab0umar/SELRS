@@ -1,9 +1,18 @@
-import { X, Search, Loader, Trash2 } from "lucide-react";
+import { X, Search, Loader, Trash2, CalendarClock } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { operationTypeLabel } from "@/lib/operationsPricing";
+import { TAB_OTHERS, TAB_SAWAF, OPERATION_LABELS, operationTypeLabel } from "@/lib/operationsPricing";
 import { formatDayDate } from "@/hooks/operations/operationsShared";
+
+type OperationBooking = {
+  id: number;
+  bookingDate: string;
+  bookingTime: string;
+  doctorName: string;
+  operationType: string;
+  casesCount: number;
+};
 
 type OperationsHistoryDrawerProps = {
   open: boolean;
@@ -11,17 +20,20 @@ type OperationsHistoryDrawerProps = {
   historySearch: string;
   onHistorySearchChange: (value: string) => void;
   activeTab: string;
+  listDate?: string;
   historyQuery: any;
+  operationBookings?: OperationBooking[];
   onLoadListById: (id: number) => void;
   onDeleteListById: (args: { listId: number }) => void;
   canManageList: boolean;
   tabLabelByKey: (key: string) => string;
 };
 
-const HISTORY_GROUPS = [
-  { key: "PRK / ليزك", match: ["PRK", "Lasik"] },
-  { key: "مياه بيضاء", match: ["Cataract"] },
-  { key: "أخرى", match: [null, "", "Other"] },
+// For السعدني: group all known operation types + catch-all
+const HISTORY_GROUPS_SAADANY = [
+  { key: "PRK / ليزك", match: ["PRK", "Lasik", "Lasik Moria", "Lasik Moria N", "Lasik Moria D", "Lasik Moria 130", "Lasik Moria 90", "Lasik Metal", "Lasik Metal N", "Lasik Metal D", "Femto"] },
+  { key: "مياه بيضاء", match: ["Cataract", "IOL"] },
+  { key: "أخرى", match: [] as string[], catchAll: true },
 ] as const;
 
 export function OperationsHistoryDrawer({
@@ -30,7 +42,9 @@ export function OperationsHistoryDrawer({
   historySearch,
   onHistorySearchChange,
   activeTab,
+  listDate,
   historyQuery,
+  operationBookings = [],
   onLoadListById,
   onDeleteListById,
   canManageList,
@@ -74,7 +88,7 @@ export function OperationsHistoryDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-muted-foreground bg-muted/60 transition-colors"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -117,64 +131,135 @@ export function OperationsHistoryDrawer({
 
           {!historyQuery.isLoading && itemsWithMatches.length > 0 && (
             <div className="space-y-4">
-              {HISTORY_GROUPS.map((group) => {
-                const groupItems = itemsWithMatches.filter(
-                  ({ item, hasMatch }) => hasMatch && (group.match as readonly string[]).includes(item.operationType ?? "Other")
-                );
-                return (
-                  <div key={group.key}>
-                    <div className="mb-2 text-xs font-semibold text-muted-foreground">{group.key}</div>
-                    {groupItems.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/60 pb-2">لا توجد نتائج</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {groupItems.map(({ item, matches }) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-2 rounded-md px-2.5 py-2 hover:bg-muted/40 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              className="flex-1 text-right min-w-0"
-                              onClick={() => { onLoadListById(item.id); onClose(); }}
-                              aria-label={`تحميل قائمة ${item.doctorName ?? tabLabelByKey(item.doctorTab)}`}
-                            >
-                              <div className="text-xs font-medium truncate">
-                                {item.doctorName ?? tabLabelByKey(item.doctorTab)}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground" dir="ltr">
-                                {formatDayDate(item.listDate)} {operationTypeLabel(item.operationType ?? "Other")} {matches[0] ?? item.items?.[0]?.name ?? " "}
-                              </div>
-                            </button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[10px] shrink-0"
-                              onClick={() => { onLoadListById(item.id); onClose(); }}
-                            >
-                              تحميل
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-error shrink-0"
-                              onClick={() => onDeleteListById({ listId: item.id })}
-                              disabled={!canManageList}
-                              aria-label="حذف"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+              {/* ======= الصواف: flat list, no grouping ======= */}
+              {activeTab === TAB_SAWAF && (
+                <div className="flex flex-col gap-1">
+                  {itemsWithMatches.filter(({ hasMatch }) => hasMatch).map(({ item, matches }) => (
+                    <HistoryItem key={item.id} item={item} matches={matches} canManageList={canManageList} onLoadListById={onLoadListById} onClose={onClose} onDeleteListById={onDeleteListById} tabLabelByKey={tabLabelByKey} />
+                  ))}
+                </div>
+              )}
+
+              {/* ======= آخرون: grouped by doctor name (lists + bookings) ======= */}
+              {activeTab === TAB_OTHERS && (() => {
+                const drMap = new Map<string, { lists: typeof itemsWithMatches; bookings: OperationBooking[] }>();
+                for (const entry of itemsWithMatches.filter(({ hasMatch }) => hasMatch)) {
+                  const dr = String(entry.item.doctorName ?? "").trim() || "غير محدد";
+                  if (!drMap.has(dr)) drMap.set(dr, { lists: [], bookings: [] });
+                  drMap.get(dr)!.lists.push(entry);
+                }
+                for (const bk of operationBookings) {
+                  const dr = String(bk.doctorName ?? "").trim() || "غير محدد";
+                  if (!drMap.has(dr)) drMap.set(dr, { lists: [], bookings: [] });
+                  drMap.get(dr)!.bookings.push(bk);
+                }
+                return Array.from(drMap.entries()).map(([dr, { lists, bookings }]) => (
+                  <div key={dr}>
+                    <div className="mb-2 text-xs font-semibold text-muted-foreground">{dr}</div>
+                    <div className="flex flex-col gap-1">
+                      {lists.map(({ item, matches }) => (
+                        <HistoryItem key={`list-${item.id}`} item={item} matches={matches} canManageList={canManageList} onLoadListById={onLoadListById} onClose={onClose} onDeleteListById={onDeleteListById} tabLabelByKey={tabLabelByKey} />
+                      ))}
+                      {bookings.map((bk) => (
+                        <div key={`bk-${bk.id}`} className="flex items-center gap-2 rounded-md px-2.5 py-2 bg-muted/20">
+                          <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <div className="flex-1 min-w-0 text-right">
+                            <div className="text-xs font-medium">{operationTypeLabel(bk.operationType)} — {bk.casesCount} حالة</div>
+                            <div className="text-[10px] text-muted-foreground" dir="ltr">{bk.bookingDate} {bk.bookingTime || ""}</div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                );
-              })}
+                ));
+              })()}
+
+              {/* ======= السعدني وغيره: grouped by operation type ======= */}
+              {activeTab !== TAB_SAWAF && activeTab !== TAB_OTHERS && (() => {
+                const matched = new Set<number>();
+                return HISTORY_GROUPS_SAADANY.map((group) => {
+                  const groupItems = itemsWithMatches.filter(({ item, hasMatch }) => {
+                    if (!hasMatch) return false;
+                    const op = item.operationType ?? "";
+                    if ((group as any).catchAll) return !matched.has(item.id);
+                    const isMatch = (group.match as readonly string[]).includes(op);
+                    if (isMatch) matched.add(item.id);
+                    return isMatch;
+                  });
+                  return (
+                    <div key={group.key}>
+                      <div className="mb-2 text-xs font-semibold text-muted-foreground">{group.key}</div>
+                      {groupItems.length === 0 ? (
+                        <p className="text-xs text-muted-foreground/60 pb-2">لا توجد نتائج</p>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          {groupItems.map(({ item, matches }) => (
+                            <HistoryItem key={item.id} item={item} matches={matches} canManageList={canManageList} onLoadListById={onLoadListById} onClose={onClose} onDeleteListById={onDeleteListById} tabLabelByKey={tabLabelByKey} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
       </aside>
     </>
+  );
+}
+
+function HistoryItem({
+  item,
+  matches,
+  canManageList,
+  onLoadListById,
+  onClose,
+  onDeleteListById,
+  tabLabelByKey,
+}: {
+  item: any;
+  matches: string[];
+  canManageList: boolean;
+  onLoadListById: (id: number) => void;
+  onClose: () => void;
+  onDeleteListById: (args: { listId: number }) => void;
+  tabLabelByKey: (key: string) => string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-md px-2.5 py-2 hover:bg-muted/40 transition-colors">
+      <button
+        type="button"
+        className="flex-1 text-right min-w-0"
+        onClick={() => { onLoadListById(item.id); onClose(); }}
+        aria-label={`تحميل قائمة ${item.doctorName ?? tabLabelByKey(item.doctorTab)}`}
+      >
+        <div className="text-xs font-medium truncate">
+          {item.doctorName ?? tabLabelByKey(item.doctorTab)}
+        </div>
+        <div className="text-[10px] text-muted-foreground" dir="ltr">
+          {formatDayDate(item.listDate)} {operationTypeLabel(item.operationType ?? "Other")} {matches[0] ?? item.items?.[0]?.name ?? " "}
+        </div>
+      </button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-[10px] shrink-0"
+        onClick={() => { onLoadListById(item.id); onClose(); }}
+      >
+        تحميل
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-error shrink-0"
+        onClick={() => onDeleteListById({ listId: item.id })}
+        disabled={!canManageList}
+        aria-label="حذف"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </div>
   );
 }

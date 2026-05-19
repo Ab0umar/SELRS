@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { requestAppReload } from "@/lib/appRuntime";
 import { AppShell } from "@/components/layout/AppShell";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
+import type { User } from "@shared/types";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -32,7 +33,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
-  const mustChangePassword = Boolean((user as any)?.mustChangePassword);
+  const mustChangePassword = Boolean((user as (User & { mustChangePassword?: boolean }) | null)?.mustChangePassword);
   const forcePasswordRoute = "/force-password-change";
   const [location, setLocation] = useLocation();
   const navStackRef = useRef<string[]>([]);
@@ -146,6 +147,11 @@ export default function ProtectedRoute({
       return;
     }
 
+    if (userRole === "accountant" && (cleanPath === "/" || cleanPath === "/dashboard")) {
+      setLocation("/accounting");
+      return;
+    }
+
     const roleMismatch =
       requiredRoles &&
       !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
@@ -180,9 +186,9 @@ export default function ProtectedRoute({
 
   if (userRole !== "admin" && permissionsQuery.isError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
         <div className="w-full max-w-md rounded-2xl border bg-background p-6 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <p className="text-base font-semibold text-foreground">Unable to verify page permissions</p>
@@ -209,15 +215,15 @@ export default function ProtectedRoute({
 
   if (roleMismatch && !roleOverrideByPermission) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-red-600 font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
+          <p className="text-destructive font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
           <button
             onClick={() => setLocation("/")}
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
           </button>
@@ -232,15 +238,15 @@ export default function ProtectedRoute({
     !requiredBranches.includes(user.branch)
   ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-red-600 font-semibold mb-4">هذه الصفحة غير متاحة لفرعك</p>
+          <p className="text-destructive font-semibold mb-4">هذه الصفحة غير متاحة لفرعك</p>
           <button
             onClick={() => setLocation("/")}
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
           </button>
@@ -251,15 +257,15 @@ export default function ProtectedRoute({
 
   if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.12),_transparent_34%),linear-gradient(180deg,_#fff,_#f8fafc)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-red-600 font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
+          <p className="text-destructive font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
           <button
             onClick={() => setLocation("/")}
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
           </button>

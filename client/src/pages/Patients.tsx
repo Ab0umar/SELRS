@@ -133,7 +133,7 @@ export default function Patients() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl" style={{ direction: "rtl", textAlign: "center" }}>
+    <div className="min-h-screen bg-background" dir="rtl">
       <PatientsHeader 
         canEditPatients={canEditPatients} 
         onAddNewPatient={() => setLocation("/examination")} 
@@ -152,10 +152,10 @@ export default function Patients() {
       >
         <main className="max-w-[1280px] mx-auto w-full px-4 py-8">
           <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
-            <StatCard title="إجمالي المرضى" value={currentPatients.length} icon={Users} iconColor="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400" />
-            <StatCard title="القسم الحالي" value={filteredPatients.length} icon={Stethoscope} iconColor="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" />
-            <StatCard title="المحدد" value={selectedCount} icon={Eye} iconColor="bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400" />
-            <StatCard title="الأطباء" value={availableDoctors.length} icon={CalendarCheck} iconColor="bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400" />
+            <StatCard title="إجمالي المرضى" value={currentPatients.length} icon={Users} iconColor="bg-primary text-primary-foreground" />
+            <StatCard title="القسم الحالي" value={filteredPatients.length} icon={Stethoscope} iconColor="bg-primary text-primary-foreground" />
+            <StatCard title="المحدد" value={selectedCount} icon={Eye} iconColor="bg-warning/20 text-warning" />
+            <StatCard title="الأطباء" value={availableDoctors.length} icon={CalendarCheck} iconColor="bg-primary/10 text-secondary" />
           </div>
 
           {(patientsQuery.isError || doctorDirectoryQuery.isError || serviceDirectoryQuery.isError) && (
@@ -226,7 +226,7 @@ export default function Patients() {
               />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm text-muted-foreground rounded-xl border border-border bg-background/80 px-3 py-2">
-                  Page {currentPage}
+                  صفحة {currentPage}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -241,7 +241,7 @@ export default function Patients() {
                     }}
                     disabled={cursorHistory.length === 0}
                   >
-                    Prev
+                    السابق
                   </Button>
                   <Button
                     variant="outline"
@@ -253,7 +253,7 @@ export default function Patients() {
                     }}
                     disabled={!hasMore || !nextCursor}
                   >
-                    Next
+                    التالي
                   </Button>
                 </div>
               </div>

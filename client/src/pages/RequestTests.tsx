@@ -545,6 +545,7 @@ export default function RequestTests({
       </main>
         <style>{`
           @media print {
+            /* print fidelity: black ink, white paper for physical output */
             .request-tests-root,
             .request-tests-root * {
               color: #000 !important;

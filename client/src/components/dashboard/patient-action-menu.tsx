@@ -111,7 +111,7 @@ const menuItems: MenuItemDef[] = [
 
 const semanticColors = {
   success: {
-    text: 'text-success',
+    text: 'text-card-foreground',
     bg: 'hover:bg-success/10',
     border: 'border-success/20',
   },
@@ -121,7 +121,7 @@ const semanticColors = {
     border: 'border-info/20',
   },
   warning: {
-    text: 'text-warning',
+    text: 'text-card-foreground',
     bg: 'hover:bg-warning/10',
     border: 'border-warning/20',
   },

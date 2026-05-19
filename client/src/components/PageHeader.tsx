@@ -27,7 +27,7 @@ export default function PageHeader({ backTo, label = "العودة", hideOnPrint
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-muted-foreground bg-muted/60"
         >
           <ArrowRight className="h-4 w-4 shrink-0" />
           {label}
@@ -35,7 +35,7 @@ export default function PageHeader({ backTo, label = "العودة", hideOnPrint
         <button
           type="button"
           onClick={() => setLocation("/dashboard")}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-muted-foreground bg-muted/60"
         >
           <Home className="h-4 w-4 shrink-0" />
           الصفحة الرئيسية

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { KeyRound, ShieldAlert, UserRound } from "lucide-react";
+import type { User } from "@shared/types";
 
 export default function ForcePasswordChange() {
   const { user } = useAuth();
@@ -38,12 +39,12 @@ export default function ForcePasswordChange() {
   });
 
   useEffect(() => {
-    setUsername(String((user as any)?.username ?? ""));
+    setUsername(String((user as User | null)?.username ?? ""));
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    if (!(user as any).mustChangePassword) {
+    if (!(user as (User & { mustChangePassword?: boolean })).mustChangePassword) {
       setLocation("/dashboard");
     }
   }, [setLocation, user]);
@@ -107,7 +108,7 @@ export default function ForcePasswordChange() {
       <Card className="selrs-glass-card relative w-full max-w-xl overflow-hidden border-white/80 bg-background/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary" aria-hidden />
         <CardHeader className="relative">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-700">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-warning/50 bg-warning/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-warning/90">
             <ShieldAlert className="h-3.5 w-3.5" />
             Security Step
           </div>
@@ -120,7 +121,7 @@ export default function ForcePasswordChange() {
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="fullNameReadonly">الاسم الكامل</Label>
-              <Input id="fullNameReadonly" value={String((user as any)?.name ?? "")} readOnly />
+              <Input id="fullNameReadonly" value={String((user as User | null)?.name ?? "")} readOnly />
             </div>
             <div className="space-y-2">
               <Label htmlFor="usernameEditable">اسم المستخدم</Label>

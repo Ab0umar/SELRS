@@ -13,7 +13,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "لوحات المعلومات العلوية",
     description: "الكروت الرئيسية التي تظهر فوق الداشبورد الأساسي.",
-    color: "bg-sky-50 text-sky-700",
+    color: "bg-primary/10 text-primary",
     icon: LayoutDashboard,
     options: [
       { key: "showPatientDataPanel", label: "بيانات المريض" },
@@ -24,7 +24,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت الإدارة الأساسية",
     description: "كروت الوصول السريع للمرضى، الفحوصات، والعمليات.",
-    color: "bg-primary/5 text-primary",
+    color: "bg-primary text-primary-foreground",
     icon: Users,
     options: [
       { key: "showPatients", label: "المرضى" },
@@ -37,7 +37,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت الفحوصات المتخصصة",
     description: "كروت الوصول إلى أنواع معينة من الفحوصات والتقارير.",
-    color: "bg-emerald-50 text-emerald-700",
+    color: "bg-success/10 text-success",
     icon: FileHeart,
     options: [
       { key: "showPentacam", label: "بنتاكام" },
@@ -49,7 +49,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت مهام سير العمل",
     description: "أدوات الإدخال السريع والمهام التشغيلية اليومية.",
-    color: "bg-amber-50 text-amber-700",
+    color: "bg-warning/10 text-warning/90",
     icon: Zap,
     options: [
       { key: "showQuickEntry", label: "إدخال سريع" },
@@ -61,7 +61,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت الأدوية والروشتات",
     description: "الوصول السريع إلى الروشتات، الأدوية، والتحاليل.",
-    color: "bg-violet-50 text-violet-600",
+    color: "bg-secondary/[0.07] text-secondary",
     icon: Pill,
     options: [
       { key: "showPrescription", label: "الروشتة" },
@@ -145,8 +145,8 @@ export default function AdminCardVisibility() {
   if (user?.role !== "admin") {
     return (
       <div className="container mx-auto px-4 py-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-right">
-          <p className="text-sm font-medium text-red-800">لا توجد صلاحية للوصول إلى هذه الصفحة</p>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-right">
+          <p className="text-sm font-medium text-destructive">لا توجد صلاحية للوصول إلى هذه الصفحة</p>
         </div>
       </div>
     );
@@ -163,7 +163,7 @@ export default function AdminCardVisibility() {
             onClick={handleSave}
             disabled={updateCardVisibilityMutation.isPending || cardVisibilityQuery.isLoading}
             size="sm"
-            className="selrs-gradient-btn text-white h-9 px-6 font-bold shadow-sm"
+            className="selrs-gradient-btn text-primary-foreground h-9 px-6 font-bold shadow-sm"
           >
             {updateCardVisibilityMutation.isPending ? "جاري الحفظ..." : "حفظ الإعدادات"}
           </Button>

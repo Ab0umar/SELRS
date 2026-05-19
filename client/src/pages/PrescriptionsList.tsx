@@ -34,12 +34,12 @@ function classifyPrescription(dateInput: unknown): RxStatus {
 
 function statusBadge(st: RxStatus) {
   if (st === "active") {
-    return <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">فعال</span>;
+    return <span className="text-xs font-semibold text-success">فعال</span>;
   }
   if (st === "expired") {
     return <span className="text-xs font-semibold text-muted-foreground">منتهي</span>;
   }
-  return <span className="text-xs font-semibold text-emerald-700/90 dark:text-emerald-400/90">مكتمل</span>;
+  return <span className="text-xs font-semibold text-success/90">مكتمل</span>;
 }
 
 export default function PrescriptionsList() {
@@ -107,7 +107,7 @@ export default function PrescriptionsList() {
         subtitle="إدارة الوصفات الطبية"
         icon={<Pill className="h-5 w-5" />}
         action={
-          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-white" onClick={() => setLocation("/prescription")}>
+          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setLocation("/prescription")}>
             <Plus className="h-4 w-4" />
             <span className="text-xs sm:text-sm">روشتة جديدة</span>
           </Button>
@@ -130,14 +130,14 @@ export default function PrescriptionsList() {
           value={stats.active}
           icon={Clock}
           description={`آخر ${ACTIVE_DAYS} يومًا`}
-          iconColor="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+          iconColor="bg-success/15 text-success"
         />
         <StatCard
           title="مكتملة"
           value={stats.completed}
           icon={CheckCircle2}
           description="بعد فترة السريان وحتى انتهاء المدة"
-          iconColor="bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400"
+          iconColor="bg-primary/10 text-primary"
         />
         <StatCard
           title="منتهية"

@@ -42,8 +42,8 @@ function SummaryField({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-muted px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</div>
-      <div className="mt-1 text-sm font-medium text-slate-800">{value}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
@@ -52,7 +52,7 @@ function EmptyPanel() {
   return (
     <div className="flex h-full min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background px-6 py-10 text-center">
       <div className="max-w-sm space-y-3">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
           <Search className="h-6 w-6" />
         </div>
         <div className="space-y-1">
@@ -115,7 +115,7 @@ export default function PentacamSheet() {
   return (
     <div
       dir="rtl"
-      className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f9fbfd_0%,#f4f7fb_100%)] text-slate-800"
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background to-muted/50 text-foreground"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-6rem] top-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08)_0%,transparent_72%)] blur-3xl" />
@@ -134,7 +134,7 @@ export default function PentacamSheet() {
               رجوع
             </button>
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary text-primary-foreground">
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 Pentacam Sheet
               </div>
@@ -145,7 +145,7 @@ export default function PentacamSheet() {
             </div>
           </div>
 
-          <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700 sm:inline-flex">
+          <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
             <ShieldCheck className="h-3.5 w-3.5" />
             بحث بالكود وربط مباشر
           </div>
@@ -178,7 +178,7 @@ export default function PentacamSheet() {
                   (locationType === "all" || patient.locationType === locationType || !patient.locationType)
                 }
               />
-              <p className="mt-3 text-[11px] leading-5 text-slate-500">
+              <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
                 قاعدة البيانات تكبر باستمرار, لذلك البحث يبدأ بالكود مباشرة.
               </p>
             </section>
@@ -192,7 +192,7 @@ export default function PentacamSheet() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-lg font-bold text-foreground">{selectedPatient.fullName}</div>
-                    <div className="mt-1 text-sm text-slate-500">
+                    <div className="mt-1 text-sm text-muted-foreground">
                       {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
                     </div>
                   </div>

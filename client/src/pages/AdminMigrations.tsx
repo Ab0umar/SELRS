@@ -77,12 +77,12 @@ export default function AdminMigrations() {
   if (user?.role !== "admin") {
     return (
       <div className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 sm:px-0">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/30 bg-destructive/10">
           <CardHeader>
-            <CardTitle className="text-red-700">لا توجد صلاحيات</CardTitle>
+            <CardTitle className="text-destructive">لا توجد صلاحيات</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-600">أنت لا تملك صلاحية الوصول لهذه الصفحة.</p>
+            <p className="text-destructive">أنت لا تملك صلاحية الوصول لهذه الصفحة.</p>
           </CardContent>
         </Card>
       </div>
@@ -126,7 +126,7 @@ export default function AdminMigrations() {
               size="sm"
               onClick={() => void handleApply()}
               disabled={pendingCount === 0 || applyMutation.isPending}
-              className="selrs-gradient-btn text-white h-9 px-6 font-bold shadow-sm"
+              className="selrs-gradient-btn text-primary-foreground h-9 px-6 font-bold shadow-sm"
             >
               {applyMutation.isPending ? "جاري التطبيق…" : `تطبيق المعلّقة (${pendingCount})`}
             </Button>
@@ -139,35 +139,35 @@ export default function AdminMigrations() {
           title="إجمالي الترحيلات"
           value={migrationTotal}
           icon={ListChecks}
-          iconColor="bg-sky-50 text-sky-600 shadow-sm shadow-sky-100"
+          iconColor="bg-primary/10 text-primary shadow-sm shadow-primary/10"
           description="ملفات SQL المسجلة"
         />
         <StatCard
           title="الترحيلات المطبقة"
           value={migrationApplied}
           icon={Shield}
-          iconColor="bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100"
+          iconColor="bg-success/10 text-success shadow-sm shadow-success/15"
           description={appliedPct != null ? `اكتمال: ${appliedPct}%` : undefined}
         />
         <StatCard
           title="ترحيلات معلقة"
           value={pendingCount}
           icon={Clock}
-          iconColor={pendingCount > 0 ? "bg-amber-50 text-amber-700 shadow-sm shadow-amber-100" : "bg-muted text-muted-foreground"}
+          iconColor={pendingCount > 0 ? "bg-warning/10 text-warning/90 shadow-sm shadow-warning/15" : "bg-muted text-muted-foreground"}
         />
         <StatCard
           title="الأخطاء والتنبيهات"
           value={failureSignal > 0 ? failureSignal : 0}
           icon={XCircle}
-          iconColor={failureSignal > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}
+          iconColor={failureSignal > 0 ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground"}
           description={failureSignal > 0 ? "يوجد خطأ في التوافق" : "المخطط سليم"}
         />
       </div>
 
       {!migrationsQuery.isLoading && migrationsQuery.data?.source === "journal" && (
-        <Card className="border-amber-200 bg-amber-50 shadow-sm border-dashed">
-          <CardContent className="flex items-center gap-3 p-3 text-amber-900 text-xs font-bold">
-            <Shield className="h-4 w-4 text-amber-700" />
+        <Card className="border-warning/50 bg-warning/10 shadow-sm border-dashed">
+          <CardContent className="flex items-center gap-3 p-3 text-warning text-xs font-bold">
+            <Shield className="h-4 w-4 text-warning/90" />
             تنبيه: تم عرض الترحيلات من سجل Drizzle المحلي لتعذر الاتصال المباشر.
             {migrationsQuery.data.dbError && <span className="opacity-70 font-mono">[{migrationsQuery.data.dbError}]</span>}
           </CardContent>
@@ -177,7 +177,7 @@ export default function AdminMigrations() {
       <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col gap-2 border-b bg-muted/5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-sky-600" />
+            <ListChecks className="h-4 w-4 text-primary" />
             سجل الترحيل والمزامنة
           </CardTitle>
           <Badge variant="outline" className="text-[10px] font-bold h-5 bg-background">
@@ -186,13 +186,13 @@ export default function AdminMigrations() {
         </CardHeader>
         <CardContent className="p-0">
           <Table dir="rtl" className="text-right">
-            <TableHeader className="sticky top-0 z-10 bg-sky-50/90 backdrop-blur-sm shadow-sm">
+            <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
               <TableRow className="hover:bg-transparent border-b-primary/10 h-11">
-                <TableHead className="min-w-[200px] px-6 font-bold text-sky-900 text-xs">ملف الترحيل (SQL)</TableHead>
-                <TableHead className="px-4 font-bold text-sky-900 text-xs">تاريخ التطبيق</TableHead>
-                <TableHead className="text-center font-bold text-sky-900 text-xs">السجلات</TableHead>
-                <TableHead className="text-center font-bold text-sky-900 text-xs">الحالة</TableHead>
-                <TableHead className="text-center font-bold text-sky-900 text-xs">المدة</TableHead>
+                <TableHead className="min-w-[200px] px-6 font-bold text-primary text-xs">ملف الترحيل (SQL)</TableHead>
+                <TableHead className="px-4 font-bold text-primary text-xs">تاريخ التطبيق</TableHead>
+                <TableHead className="text-center font-bold text-primary text-xs">السجلات</TableHead>
+                <TableHead className="text-center font-bold text-primary text-xs">الحالة</TableHead>
+                <TableHead className="text-center font-bold text-primary text-xs">المدة</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -219,7 +219,7 @@ export default function AdminMigrations() {
                   <TableCell className="whitespace-nowrap py-3 text-[11px] font-medium text-muted-foreground tabular-nums">{formatAt(migration.appliedAt)}</TableCell>
                   <TableCell className="text-center text-muted-foreground py-3 opacity-30">—</TableCell>
                   <TableCell className="text-center py-3">
-                    <Badge variant={migration.pending ? "destructive" : "secondary"} className={cn("h-5 text-[9px] px-2 font-bold", !migration.pending && "bg-emerald-50 text-emerald-700 border-emerald-100")}>
+                    <Badge variant={migration.pending ? "destructive" : "secondary"} className={cn("h-5 text-[9px] px-2 font-bold", !migration.pending && "bg-success/10 text-success border-success/20")}>
                       {migration.pending ? "معلّقة" : "مطبقة"}
                     </Badge>
                   </TableCell>
@@ -234,7 +234,7 @@ export default function AdminMigrations() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60 bg-muted/5 shadow-sm border-dashed">
           <CardContent className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-inner">
               <Upload className="h-5 w-5" />
             </div>
             <div className="space-y-1">
@@ -247,26 +247,26 @@ export default function AdminMigrations() {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200/60 bg-amber-50/40 shadow-sm border-dashed">
+        <Card className="border-warning/50/60 bg-warning/10/40 shadow-sm border-dashed">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-amber-700" />
-              <CardTitle className="text-sm font-bold text-amber-900">أدوات إصلاح المخطط</CardTitle>
+              <Activity className="h-4 w-4 text-warning/90" />
+              <CardTitle className="text-sm font-bold text-warning">أدوات إصلاح المخطط</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-[11px] text-amber-800 leading-relaxed">
+            <p className="text-[11px] text-warning leading-relaxed">
               تحديث الفحوصات التي تفتقر لمعرف زيارة صحيح (visitId=0) وربطها بالسجلات التاريخية.
             </p>
             {confirmFixOrphans ? (
               <div className="flex items-center gap-1">
                 <button type="button" aria-label="تأكيد"
-                  className="rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/80"
+                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                   onClick={() => { fixOrphanedExaminationsMutation.mutate(); setConfirmFixOrphans(false); }}>
                   تأكيد
                 </button>
                 <button type="button" aria-label="إلغاء"
-                  className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-border"
+                  className="rounded bg-muted text-muted-foreground hover:bg-border"
                   onClick={() => setConfirmFixOrphans(false)}>
                   إلغاء
                 </button>
@@ -276,7 +276,7 @@ export default function AdminMigrations() {
                 size="sm"
                 onClick={() => setConfirmFixOrphans(true)}
                 disabled={fixOrphanedExaminationsMutation.isPending}
-                className="w-full h-9 bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 shadow-sm"
+                className="w-full h-9 bg-warning text-warning-foreground font-bold text-xs hover:bg-warning/90 shadow-sm"
               >
                 {fixOrphanedExaminationsMutation.isPending ? "جاري المعالجة…" : "إصلاح الفحوصات الأيتام"}
               </Button>
@@ -287,3 +287,4 @@ export default function AdminMigrations() {
     </div>
   );
 }
+

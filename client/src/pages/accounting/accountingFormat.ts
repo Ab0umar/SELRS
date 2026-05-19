@@ -24,3 +24,16 @@ export function formatDateAr(value: string | null | undefined): string {
   if (value == null || value === "") return "—";
   return toArabicDigits(String(value).slice(0, 10));
 }
+
+export function fmt(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return n.toLocaleString("ar-EG", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+export function fmtDate(iso: string): string {
+  try {
+    return new Date(`${iso}T12:00:00`).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
+  } catch { return iso; }
+}
+
+export function todayIso(): string { return new Date().toISOString().split("T")[0]; }

@@ -199,7 +199,7 @@ export default function DoctorAccount() {
               />
             </label>
             {dateError && (
-              <p className="text-[11px] text-red-500 md:col-span-2">
+              <p className="text-[11px] text-destructive md:col-span-2">
                 تاريخ البداية بعد تاريخ النهاية
               </p>
             )}
@@ -349,52 +349,52 @@ export default function DoctorAccount() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="text-[11px] text-slate-500">
+                                <div className="text-[11px] text-muted-foreground">
                                   الخدمة
                                 </div>
                                 <div className="mt-1 text-sm font-semibold text-foreground">
                                   {s.serviceName || s.serviceCode}
                                 </div>
                               </div>
-                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                              <span className="rounded-full bg-primary text-primary-foreground">
                                 {formatCountAr(s.rowCount)} سطر
                               </span>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                               <div className="rounded-xl bg-muted px-3 py-2">
-                                <div className="text-[10px] text-slate-500">
+                                <div className="text-[10px] text-muted-foreground">
                                   الإجمالي
                                 </div>
                                 <div className="mt-1 font-semibold tabular-nums text-foreground">
                                   {formatMoneyAr(s.totalGross)}
                                 </div>
                               </div>
-                              <div className="rounded-xl bg-rose-50 px-3 py-2">
-                                <div className="text-[10px] text-rose-700">
+                              <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                                <div className="text-[10px] text-destructive">
                                   الخصم
                                 </div>
-                                <div className="mt-1 font-semibold tabular-nums text-rose-700">
+                                <div className="mt-1 font-semibold tabular-nums text-destructive">
                                   {formatMoneyAr(s.totalDiscount)}
                                 </div>
                               </div>
-                              <div className="col-span-2 rounded-xl bg-emerald-50 px-3 py-2">
-                                <div className="text-[10px] text-emerald-700">
+                              <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
+                                <div className="text-[10px] text-success">
                                   المدفوع
                                 </div>
-                                <div className="mt-1 font-semibold tabular-nums text-emerald-700">
+                                <div className="mt-1 font-semibold tabular-nums text-success">
                                   {formatMoneyAr(s.totalPaid)}
                                 </div>
                               </div>
                             </div>
                           </div>
                         ))}
-                        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                          <div className="text-xs font-semibold text-blue-700">
+                        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                          <div className="text-xs font-semibold text-primary">
                             إجمالي القسم
                           </div>
                           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                             <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-slate-500">
+                              <div className="text-[10px] text-muted-foreground">
                                 الأسطر
                               </div>
                               <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -402,7 +402,7 @@ export default function DoctorAccount() {
                               </div>
                             </div>
                             <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-slate-500">
+                              <div className="text-[10px] text-muted-foreground">
                                 الإجمالي
                               </div>
                               <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -410,7 +410,7 @@ export default function DoctorAccount() {
                               </div>
                             </div>
                             <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-slate-500">
+                              <div className="text-[10px] text-muted-foreground">
                                 الخصم
                               </div>
                               <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -418,7 +418,7 @@ export default function DoctorAccount() {
                               </div>
                             </div>
                             <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-slate-500">
+                              <div className="text-[10px] text-muted-foreground">
                                 المدفوع
                               </div>
                               <div className="mt-1 font-semibold tabular-nums text-foreground">

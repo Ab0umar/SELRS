@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $desktopDir = $PSScriptRoot
 $issPath = Join-Path $desktopDir "SelrsDesktopInstaller.iss"
-$outputDir = "C:\Users\SELRS\OneDrive\Documents\SELRS.cc"
+$outputDir = Join-Path $desktopDir "installer"
 
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host "SELRS Desktop Build (Auto-Sync Version)" -ForegroundColor Cyan
@@ -52,6 +52,9 @@ dotnet publish `
   -p:PublishSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `
   -o $publishDir
+if ($LASTEXITCODE -ne 0) {
+  throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "[Build] Application published successfully" -ForegroundColor Green
 
@@ -69,7 +72,17 @@ if (-not $iscc) {
   throw "ISCC.exe not found. Install Inno Setup 6. Checked: $($candidates -join ', ')"
 }
 
-& $iscc $issPath
+New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+Push-Location $desktopDir
+try {
+  & $iscc $issPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE"
+  }
+}
+finally {
+  Pop-Location
+}
 
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Green

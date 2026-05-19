@@ -125,7 +125,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px]"
+        className="fixed inset-0 z-40 bg-muted/40 backdrop-blur-[1px]"
         onClick={onClose}
       />
       <div
@@ -135,7 +135,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground">
               <Scissors className="h-3.5 w-3.5" />
               الخدمات
             </div>
@@ -146,7 +146,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -171,8 +171,8 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
               className={cn(
                 "min-w-[150px] rounded-xl px-3 py-2 text-xs ring-1",
                 patientLookup.data
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                  : "bg-muted text-slate-500 ring-slate-200",
+                  ? "bg-success/10 text-success ring-success/20"
+                  : "bg-muted text-muted-foreground ring-border",
               )}
             >
               {patientLookup.isFetching
@@ -189,7 +189,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
               id="acc-service-doctor"
               value={doctorCode}
               onChange={(event) => setDoctorCode(event.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
             >
               <option value="">بدون دكتور محدد</option>
               {doctors.map((doctor) => (
@@ -208,7 +208,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
               <button
                 type="button"
                 onClick={() => setLines((current) => [...current, createLine()])}
-                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Plus className="h-3.5 w-3.5" />
                 خدمة أخرى
@@ -229,7 +229,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
                       onChange={(event) =>
                         updateLine(line.id, { serviceCode: event.target.value })
                       }
-                      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                     >
                       <option value="">اختر الخدمة</option>
                       {services.map((item) => (
@@ -239,7 +239,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
                       ))}
                     </select>
                     {service ? (
-                      <div className="mt-1 text-[11px] text-slate-500">
+                      <div className="mt-1 text-[11px] text-muted-foreground">
                         السعر: {Number(service.price || 0).toLocaleString("ar-EG")}
                       </div>
                     ) : null}
@@ -259,7 +259,7 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
                     type="button"
                     onClick={() => removeLine(line.id)}
                     disabled={lines.length === 1}
-                    className="mt-1 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-30"
+                    className="mt-1 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -268,13 +268,13 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
             })}
           </div>
 
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+          <div className="rounded-2xl border border-primary/20 bg-primary text-primary-foreground">
             سيتم الحفظ في MySQL وتحديث MSSQL لنفس كود المريض. الإجمالي:{" "}
             <span className="font-bold tabular-nums">{totalQuantity}</span> خدمة.
           </div>
 
           {addServices.error ? (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {addServices.error.message}
             </p>
           ) : null}

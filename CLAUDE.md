@@ -2,6 +2,12 @@
 
 For code tasks in this repo only.
 
+Read first:
+- specs/AI_CONTEXT.md
+
+Then follow the project Constitution and Project Principles strictly.
+
+
 ## Goal
 - Make the smallest correct diff.
 - Prefer root-cause fixes.

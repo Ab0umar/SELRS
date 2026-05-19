@@ -48,9 +48,9 @@ function resolveInventoryStatus(row: Record<string, unknown>): InventoryStatus {
 }
 
 function statusBadgeClasses(s: InventoryStatus): string {
-  if (s === "available") return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300";
-  if (s === "reserved") return "bg-amber-100 text-amber-900 dark:bg-amber-950/55 dark:text-amber-200";
-  return "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300";
+  if (s === "available") return "bg-success/15 text-success";
+  if (s === "reserved") return "bg-warning/20 text-warning";
+  return "bg-destructive/10 text-destructive";
 }
 
 function statusLabel(s: InventoryStatus): string {
@@ -240,15 +240,15 @@ export default function MedicationsCatalogPage() {
             title="إجمالي الأدوية"
             value={stats.total}
             icon={Pill}
-            iconColor="bg-primary/10 text-primary"
+            iconColor="bg-primary text-primary-foreground"
           />
           <StatCard
             title="متوفرة"
             value={stats.available}
             icon={CheckCircle2}
-            iconColor="bg-emerald-500/10 text-emerald-600"
+            iconColor="bg-success/100/10 text-success"
           />
-          <StatCard title="نفذت" value={stats.out} icon={XCircle} iconColor="bg-red-500/10 text-red-600" />
+          <StatCard title="نفذت" value={stats.out} icon={XCircle} iconColor="bg-destructive text-destructive-foreground" />
         </div>
 
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
@@ -306,25 +306,25 @@ export default function MedicationsCatalogPage() {
                         </td>
                         <td className="p-3">
                           <div className="flex justify-center gap-1">
-                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(row)} title="تعديل">
+                            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => openEdit(row)} title="تعديل" aria-label="تعديل الدواء">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {delConfirm === id ? (
                               <div className="flex items-center gap-1">
                                 <button type="button" aria-label="تأكيد الحذف"
-                                  className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-destructive/80"
+                                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
                                   onClick={() => { void remove(id); setDelConfirm(null); }}>
                                   تأكيد
                                 </button>
                                 <button type="button" aria-label="إلغاء الحذف"
-                                  className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-border"
+                                  className="rounded bg-muted text-muted-foreground hover:bg-border"
                                   onClick={() => setDelConfirm(null)}>
                                   ✕
                                 </button>
                               </div>
                             ) : (
                               <button type="button" aria-label="حذف الدواء"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive opacity-40 hover:opacity-100 hover:bg-destructive/10 transition-colors"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                 onClick={() => setDelConfirm(id)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>

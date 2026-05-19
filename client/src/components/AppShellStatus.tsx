@@ -68,17 +68,17 @@ export function AppShellStatus({
       ) : null}
 
       {showConnectivityBanner ? (
-        <div className="fixed inset-x-0 top-0 z-[1200] border-b border-amber-300 bg-[linear-gradient(90deg,rgba(255,251,235,0.96),rgba(255,247,237,0.96))] backdrop-blur print:hidden">
-          <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+        <div className="fixed inset-x-0 top-0 z-[1200] border-b border-warning bg-[linear-gradient(90deg,rgba(255,251,235,0.96),rgba(255,247,237,0.96))] backdrop-blur print:hidden">
+          <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-700">
+              <div className="mt-0.5 rounded-full bg-warning/20 p-2 text-warning/90">
                 {!online ? <WifiOff className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
               </div>
               <div>
               <div className="font-semibold">{connectivityTitle}</div>
-              <div className="text-amber-800">{connectivityBody}</div>
+              <div className="text-warning">{connectivityBody}</div>
               {offlineCacheCount > 0 ? (
-                <div className="mt-1 text-xs text-amber-700">
+                <div className="mt-1 text-xs text-warning/90">
                   Cached setup data available{offlineCacheTimeLabel ? ` from ${offlineCacheTimeLabel}` : ""}.
                 </div>
               ) : null}
@@ -99,20 +99,20 @@ export function AppShellStatus({
       {apiIssue ? (
         <div className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-primary/10 p-2 text-primary">
+            <div className="rounded-2xl bg-primary text-primary-foreground">
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-foreground">Sync issue</div>
           <div className="mt-1 text-sm text-foreground break-words">{apiIssue.message}</div>
           {apiIssue.path ? (
-            <div className="mt-1 text-xs text-slate-500">Path: {apiIssue.path}</div>
+            <div className="mt-1 text-xs text-muted-foreground">Path: {apiIssue.path}</div>
           ) : null}
           {typeof apiIssue.status === "number" ? (
-            <div className="mt-1 text-xs text-slate-500">Status: {apiIssue.status}</div>
+            <div className="mt-1 text-xs text-muted-foreground">Status: {apiIssue.status}</div>
           ) : null}
           {offlineCacheCount > 0 ? (
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs text-muted-foreground">
               Safe reference data is cached locally{offlineCacheTimeLabel ? ` (${offlineCacheTimeLabel})` : ""}.
             </div>
           ) : null}
@@ -132,7 +132,7 @@ export function AppShellStatus({
       {updateAvailable ? (
         <div className={`fixed bottom-3 left-1/2 z-[1100] w-[min(92vw,28rem)] -translate-x-1/2 border-secondary/40 ${cardClassName} print:hidden`}>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-secondary/15 p-2 text-secondary">
+            <div className="rounded-2xl bg-secondary text-secondary-foreground">
               <Rocket className="h-4 w-4" />
             </div>
             <div>
@@ -157,21 +157,21 @@ export function AppShellStatus({
       ) : null}
 
       {runtimeIssue ? (
-        <div className={`fixed bottom-3 right-3 z-[1100] w-[min(92vw,30rem)] border-rose-300 ${cardClassName} print:hidden`}>
+        <div className={`fixed bottom-3 right-3 z-[1100] w-[min(92vw,30rem)] border-destructive/40 ${cardClassName} print:hidden`}>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-rose-100 p-2 text-rose-700">
+            <div className="rounded-2xl bg-destructive/10 p-2 text-destructive">
               <ShieldAlert className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-rose-700">Runtime issue detected</div>
+          <div className="text-sm font-semibold text-destructive">Runtime issue detected</div>
           <div className="mt-1 text-sm text-foreground break-words">{runtimeIssue.message}</div>
-          <div className="mt-1 text-xs text-slate-500">
+          <div className="mt-1 text-xs text-muted-foreground">
             {runtimeIssue.source} at {new Date(runtimeIssue.time).toLocaleString()}
           </div>
             </div>
           </div>
           {runtimeIssue.stack ? (
-            <pre className="mt-3 max-h-28 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-slate-100">
+            <pre className="mt-3 max-h-28 overflow-auto rounded-xl bg-muted p-3 text-[11px] leading-relaxed text-card-foreground">
               {runtimeIssue.stack}
             </pre>
           ) : null}

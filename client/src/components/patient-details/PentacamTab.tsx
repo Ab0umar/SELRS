@@ -41,7 +41,7 @@ export function PentacamTab({ pentacamRows }: PentacamTabProps) {
           {pentacamRows.length ? (
             <div className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
               <table className="w-full min-w-[720px] border-collapse text-center">
-                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-slate-500">
+                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   <tr>
                     <th className="border px-3 py-3">Eye</th><th className="border px-3 py-3">K1</th>
                     <th className="border px-3 py-3">K2</th><th className="border px-3 py-3">Thinnest</th>
@@ -51,7 +51,7 @@ export function PentacamTab({ pentacamRows }: PentacamTabProps) {
                 </thead>
                 <tbody>
                   {pentacamRows.map((row) => (
-                    <tr key={`pent-${row.eye}`} className="bg-background text-sm font-medium text-slate-800">
+                    <tr key={`pent-${row.eye}`} className="bg-background text-sm font-medium text-foreground">
                       <td className="border px-3 py-3 font-bold">{row.eye}</td>
                       <RefCell value={row.k1} reference={k1Ref} />
                       <RefCell value={row.k2} reference={k2Ref} />

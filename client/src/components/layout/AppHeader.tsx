@@ -81,15 +81,15 @@ export function AppHeader({
             title={theme === "light" ? "Dark mode" : "Light mode"}
             aria-label={theme === "light" ? "Dark mode" : "Light mode"}
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform" />
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 shrink-0 gap-2 px-2">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-blue-50 text-xs font-semibold text-blue-800">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     {userName?.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>
@@ -150,7 +150,7 @@ export function AppHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <Badge variant="outline" className="inline-flex gap-1.5 whitespace-nowrap py-1 text-[10px] font-normal sm:text-xs">
-            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
           </Badge>
           {isMobile && showMobileNavToggle ? (

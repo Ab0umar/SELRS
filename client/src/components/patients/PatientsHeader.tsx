@@ -21,7 +21,7 @@ export const PatientsHeader: React.FC<PatientsHeaderProps> = ({
         canEditPatients && (
           <Button
             size="sm"
-            className="selrs-gradient-btn text-white gap-2"
+            className="selrs-gradient-btn text-primary-foreground gap-2"
             onClick={onAddNewPatient}
           >
             <Plus className="h-4 w-4" />

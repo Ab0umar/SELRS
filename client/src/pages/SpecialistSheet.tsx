@@ -436,7 +436,7 @@ export default function SpecialistSheet() {
               variant="outline"
               size="sm"
               onClick={() => setLocation("/dashboard")}
-              className="border-primary text-primary hover:bg-primary/10"
+              className="border-primary text-card-foreground hover:bg-primary/10"
             >
               الصفحة الرئيسية
             </Button>

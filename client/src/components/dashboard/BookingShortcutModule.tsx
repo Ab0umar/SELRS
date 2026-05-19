@@ -49,7 +49,7 @@ export function BookingShortcutModule({ onAddBooking }: BookingShortcutModulePro
           variant="outline" 
           size="sm" 
           onClick={onAddBooking}
-          className="h-7 gap-1.5 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+          className="h-7 gap-1.5 border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <PlusCircle className="h-3.5 w-3.5" />
           حجز جديد
