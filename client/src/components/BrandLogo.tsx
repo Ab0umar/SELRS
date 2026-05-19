@@ -41,6 +41,8 @@ export function BrandLogo({ className, imgClassName, fallbackClassName }: BrandL
         onError={() => setIdx((i) => i + 1)}
         decoding="async"
         fetchPriority="high"
+        width="40"
+        height="40"
       />
     </div>
   );

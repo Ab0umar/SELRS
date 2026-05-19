@@ -111,6 +111,35 @@ export const stockTransactions = mysqlTable("stock_transactions", {
 export type StockTransaction = typeof stockTransactions.$inferSelect;
 export type InsertStockTransaction = typeof stockTransactions.$inferInsert;
 
+export const attendanceShifts = mysqlTable("attendance_shifts", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  startTime: varchar("startTime", { length: 8 }).notNull(),
+  endTime: varchar("endTime", { length: 8 }).notNull(),
+  gracePeriodMinutes: int("gracePeriodMinutes").default(15),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+export const employeeAttendanceMapping = mysqlTable("employee_attendance_mapping", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  machineUserId: varchar("machineUserId", { length: 50 }).notNull().unique(),
+  shiftId: int("shiftId"),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+export const attendanceLogs = mysqlTable("attendance_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  machineUserId: varchar("machineUserId", { length: 50 }).notNull(),
+  timestamp: timestamp("timestamp").notNull(),
+  type: mysqlEnum("type", ["check_in", "check_out", "unknown"]).default("check_in"),
+  machineName: varchar("machineName", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+export type AttendanceLog = typeof attendanceLogs.$inferSelect;
+export type InsertAttendanceLog = typeof attendanceLogs.$inferInsert;
+
 /**
  * Appointments table - ط¬ط¯ظˆظ„ ط§ظ„ظ…ظˆط§ط¹ظٹط¯
  */

@@ -6,6 +6,8 @@ type PentacamThumbnailProps = {
   alt: string;
   className?: string;
   loading?: "eager" | "lazy";
+  width?: number | string;
+  height?: number | string;
 };
 
 export default function PentacamThumbnail({
@@ -13,6 +15,8 @@ export default function PentacamThumbnail({
   alt,
   className,
   loading = "lazy",
+  width,
+  height,
 }: PentacamThumbnailProps) {
   const [failed, setFailed] = useState(false);
 
@@ -36,6 +40,8 @@ export default function PentacamThumbnail({
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
+      width={width}
+      height={height}
     />
   );
 }

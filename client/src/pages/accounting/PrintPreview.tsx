@@ -28,6 +28,8 @@ function PrintClinicLogo({ className }: { className?: string }) {
       alt=""
       className={className}
       onError={() => setIdx((i) => i + 1)}
+      width="60"
+      height="60"
     />
   );
 }

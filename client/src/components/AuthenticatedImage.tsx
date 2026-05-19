@@ -8,6 +8,8 @@ type AuthenticatedImageProps = {
   alt: string;
   className?: string;
   loading?: "eager" | "lazy";
+  width?: number | string;
+  height?: number | string;
 };
 
 type CachedImageEntry = {
@@ -112,6 +114,8 @@ export default function AuthenticatedImage({
   alt,
   className,
   loading = "lazy",
+  width,
+  height,
 }: AuthenticatedImageProps) {
   const normalizedSrc = useMemo(() => {
     const raw = String(src ?? "").trim();
@@ -173,5 +177,5 @@ export default function AuthenticatedImage({
     };
   }, [authHeaders, normalizedSrc]);
 
-  return <img src={resolvedSrc || undefined} alt={alt} className={cn(className)} loading={loading} />;
+  return <img src={resolvedSrc || undefined} alt={alt} className={cn(className)} loading={loading} width={width} height={height} />;
 }

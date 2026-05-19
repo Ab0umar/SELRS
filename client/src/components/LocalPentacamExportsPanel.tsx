@@ -40,7 +40,7 @@ function openPentacamPdfView(items: LocalExportItem[], title: string) {
       return `
         <section class="page">
           <div class="label">${safeName}</div>
-          <img src="${assetUrl}" alt="${safeName}" />
+          <img src="${assetUrl}" alt="${safeName}" width="512" height="512" />
         </section>
       `;
     })
