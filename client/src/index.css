@@ -254,6 +254,49 @@
   }
 }
 
+/* P6: Performance — Cumulative Layout Shift fixes */
+img {
+  aspect-ratio: auto;
+}
+
+/* Image containers for medical/pentacam images */
+.image-container,
+.pentacam-image,
+.patient-photo,
+.medical-file-image {
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+/* Dashboard chart containers — prevent LCP shift */
+.chart-container {
+  aspect-ratio: auto;
+  min-height: 160px;
+}
+
+/* Skeleton loaders match content height to prevent shift on load */
+[class*="Skeleton"],
+.skeleton {
+  background: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Ensure loading states don't cause margin/padding shifts */
+.skeleton {
+  margin: 0;
+  padding: 0;
+}
+
+/* KPI card values maintain height during loading */
+.card:has(.skeleton) {
+  min-height: auto;
+}
+
 @layer utilities {
   .scrollbar-none {
     scrollbar-width: none;
