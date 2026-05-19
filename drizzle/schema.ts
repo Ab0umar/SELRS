@@ -1018,6 +1018,157 @@ export const doctorsLookup = mysqlTable("doctors", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
 
+/**
+ * Attendance Module — Phase 1
+ * Fully isolated from Medical and Accounting modules
+ */
+
+export const attendanceEmployees = mysqlTable("attendance_employees", {
+  empCd: varchar("emp_cd", { length: 32 }).primaryKey(),
+  fullName: varchar("full_name", { length: 255 }).notNull(),
+  department: varchar("department", { length: 128 }),
+  defaultShiftId: int("default_shift_id"),
+  active: boolean("active").default(true).notNull(),
+  sourceHash: varchar("source_hash", { length: 40 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxActive: index("idx_active").on(table.active),
+  idxDept: index("idx_dept").on(table.department),
+}));
+
+export type AttendanceEmployee = typeof attendanceEmployees.$inferSelect;
+export type InsertAttendanceEmployee = typeof attendanceEmployees.$inferInsert;
+
+export const attendancePunches = mysqlTable("attendance_punches", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  punchAt: timestamp("punch_at").notNull(),
+  direction: mysqlEnum("direction", ["in", "out", "unknown"]).default("unknown").notNull(),
+  deviceId: varchar("device_id", { length: 64 }),
+  source: mysqlEnum("source", ["access", "tcp", "manual"]).notNull(),
+  sourceRowId: varchar("source_row_id", { length: 64 }),
+  sourceHash: varchar("source_hash", { length: 40 }).notNull(),
+  note: varchar("note", { length: 255 }),
+  insertedBy: int("inserted_by"),
+  importedAt: timestamp("importedAt").defaultNow().notNull(),
+}, (table) => ({
+  uqPunch: uniqueIndex("uq_punch").on(table.empCd, table.punchAt, table.sourceRowId),
+  idxEmpTime: index("idx_emp_time").on(table.empCd, table.punchAt),
+  idxPunchAt: index("idx_punch_at").on(table.punchAt),
+  idxSource: index("idx_source").on(table.source),
+}));
+
+export type AttendancePunch = typeof attendancePunches.$inferSelect;
+export type InsertAttendancePunch = typeof attendancePunches.$inferInsert;
+
+export const attendanceShifts = mysqlTable("attendance_shifts", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 64 }).notNull(),
+  startTime: varchar("start_time", { length: 8 }).notNull(),
+  endTime: varchar("end_time", { length: 8 }).notNull(),
+  crossesMidnight: boolean("crosses_midnight").default(false).notNull(),
+  graceLateMin: int("grace_late_min").default(0).notNull(),
+  graceEarlyMin: int("grace_early_min").default(0).notNull(),
+  breakMinutes: int("break_minutes").default(0).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxActive: index("idx_active").on(table.active),
+}));
+
+export type AttendanceShift = typeof attendanceShifts.$inferSelect;
+export type InsertAttendanceShift = typeof attendanceShifts.$inferInsert;
+
+export const attendanceShiftAssignments = mysqlTable("attendance_shift_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  shiftId: int("shift_id").notNull(),
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  weekdayMask: int("weekday_mask").unsigned().default(127).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxEmpFrom: index("idx_emp_from").on(table.empCd, table.effectiveFrom),
+}));
+
+export type AttendanceShiftAssignment = typeof attendanceShiftAssignments.$inferSelect;
+export type InsertAttendanceShiftAssignment = typeof attendanceShiftAssignments.$inferInsert;
+
+export const attendanceLeaves = mysqlTable("attendance_leaves", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  dateFrom: date("date_from").notNull(),
+  dateTo: date("date_to").notNull(),
+  type: mysqlEnum("type", ["annual", "sick", "unpaid", "other"]).notNull(),
+  approved: boolean("approved").default(false).notNull(),
+  note: varchar("note", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxEmpFrom: index("idx_emp_from").on(table.empCd, table.dateFrom),
+}));
+
+export type AttendanceLeave = typeof attendanceLeaves.$inferSelect;
+export type InsertAttendanceLeave = typeof attendanceLeaves.$inferInsert;
+
+export const attendanceHolidays = mysqlTable("attendance_holidays", {
+  date: date("date").primaryKey(),
+  label: varchar("label", { length: 128 }).notNull(),
+  paid: boolean("paid").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AttendanceHoliday = typeof attendanceHolidays.$inferSelect;
+export type InsertAttendanceHoliday = typeof attendanceHolidays.$inferInsert;
+
+export const attendanceDaily = mysqlTable("attendance_daily", {
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  workDate: date("work_date").notNull(),
+  shiftId: int("shift_id"),
+  firstIn: timestamp("first_in"),
+  lastOut: timestamp("last_out"),
+  workedMinutes: int("worked_minutes"),
+  lateMinutes: int("late_minutes").default(0).notNull(),
+  earlyLeaveMin: int("early_leave_min").default(0).notNull(),
+  overtimeMinutes: int("overtime_minutes").default(0).notNull(),
+  status: mysqlEnum("status", ["present", "absent", "leave", "holiday", "partial", "missing_checkout"]).notNull(),
+  insideNow: boolean("inside_now").default(false).notNull(),
+  computedAt: timestamp("computedAt").notNull(),
+}, (table) => ({
+  pkAttendanceDaily: primaryKey({ columns: [table.empCd, table.workDate] }),
+  idxDateStatus: index("idx_date_status").on(table.workDate, table.status),
+  idxInsideNow: index("idx_inside_now").on(table.insideNow),
+}));
+
+export type AttendanceDaily = typeof attendanceDaily.$inferSelect;
+export type InsertAttendanceDaily = typeof attendanceDaily.$inferInsert;
+
+export const attendanceSyncRuns = mysqlTable("attendance_sync_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  startedAt: timestamp("started_at").notNull(),
+  finishedAt: timestamp("finished_at"),
+  source: mysqlEnum("source", ["access", "tcp"]).notNull(),
+  trigger: mysqlEnum("trigger", ["cron", "manual"]).notNull(),
+  triggeredBy: int("triggered_by"),
+  rowsSeen: int("rows_seen").default(0).notNull(),
+  rowsInserted: int("rows_inserted").default(0).notNull(),
+  rowsSkipped: int("rows_skipped").default(0).notNull(),
+  rowsQuarantined: int("rows_quarantined").default(0).notNull(),
+  status: mysqlEnum("status", ["running", "ok", "partial", "failed", "locked"]).notNull(),
+  error: text("error"),
+  highWaterMark: timestamp("high_water_mark"),
+}, (table) => ({
+  idxStarted: index("idx_started").on(table.startedAt),
+  idxStatus: index("idx_status").on(table.status),
+}));
+
+export type AttendanceSyncRun = typeof attendanceSyncRuns.$inferSelect;
+export type InsertAttendanceSyncRun = typeof attendanceSyncRuns.$inferInsert;
+
 
 
 

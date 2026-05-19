@@ -7188,12 +7188,29 @@ export const medicalRouter = router({
         const role = String(user.role ?? "").trim().toLowerCase() as keyof typeof input;
         const previousRolePermissions = previousPermissions[role] ?? [];
         const nextRolePermissions = nextPermissions[role] ?? [];
+        const previousRoleBases = db.normalizePermissionPathsForTeamMirror(previousRolePermissions);
+        const nextRoleBases = db.normalizePermissionPathsForTeamMirror(nextRolePermissions);
+        const newlyAddedRoleBases = nextRoleBases.filter((pageId) => !previousRoleBases.includes(pageId));
         const currentUserPermissions = await db.getUserPermissionState(user.id);
         if (currentUserPermissions.hasExplicitEmptyOverride) continue;
         if (!currentUserPermissions.hasOverride) continue;
         if (currentUserPermissions.hasInheritExtrasMarker) continue;
         if (db.userPermissionsMirrorTeamSnapshot(currentUserPermissions.pageIds, previousRolePermissions)) {
           await db.setUserPermissions(user.id, nextRolePermissions, { emptyMode: "inherit" });
+          continue;
+        }
+
+        // Preserve custom explicit overrides, but backfill newly introduced role pages
+        // so newly added screens (e.g., accounting/stockroom) start working immediately.
+        if (newlyAddedRoleBases.length > 0) {
+          const merged = db.normalizePermissionList([
+            ...currentUserPermissions.pageIds,
+            ...newlyAddedRoleBases,
+          ]);
+          await db.setUserPermissions(user.id, merged, {
+            emptyMode: "explicit",
+            nonEmptyMode: "replace",
+          });
         }
       }
       await db.logAuditEvent(ctx.user.id, "SET_TEAM_PERMISSIONS", "systemSetting", 0, {
