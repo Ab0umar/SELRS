@@ -113,12 +113,19 @@ export type InsertStockTransaction = typeof stockTransactions.$inferInsert;
 
 export const attendanceShifts = mysqlTable("attendance_shifts", {
   id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
-  startTime: varchar("startTime", { length: 8 }).notNull(),
-  endTime: varchar("endTime", { length: 8 }).notNull(),
-  gracePeriodMinutes: int("gracePeriodMinutes").default(15),
-  createdAt: timestamp("createdAt").defaultNow(),
-});
+  name: varchar("name", { length: 64 }).notNull(),
+  startTime: varchar("start_time", { length: 8 }).notNull(),
+  endTime: varchar("end_time", { length: 8 }).notNull(),
+  crossesMidnight: boolean("crosses_midnight").default(false).notNull(),
+  graceLateMin: int("grace_late_min").default(0).notNull(),
+  graceEarlyMin: int("grace_early_min").default(0).notNull(),
+  breakMinutes: int("break_minutes").default(0).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxActive: index("idx_active").on(table.active),
+}));
 
 export const employeeAttendanceMapping = mysqlTable("employee_attendance_mapping", {
   id: int("id").autoincrement().primaryKey(),
@@ -1062,32 +1069,13 @@ export const attendancePunches = mysqlTable("attendance_punches", {
 export type AttendancePunch = typeof attendancePunches.$inferSelect;
 export type InsertAttendancePunch = typeof attendancePunches.$inferInsert;
 
-export const attendanceShifts = mysqlTable("attendance_shifts", {
-  id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 64 }).notNull(),
-  startTime: varchar("start_time", { length: 8 }).notNull(),
-  endTime: varchar("end_time", { length: 8 }).notNull(),
-  crossesMidnight: boolean("crosses_midnight").default(false).notNull(),
-  graceLateMin: int("grace_late_min").default(0).notNull(),
-  graceEarlyMin: int("grace_early_min").default(0).notNull(),
-  breakMinutes: int("break_minutes").default(0).notNull(),
-  active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  idxActive: index("idx_active").on(table.active),
-}));
-
-export type AttendanceShift = typeof attendanceShifts.$inferSelect;
-export type InsertAttendanceShift = typeof attendanceShifts.$inferInsert;
-
 export const attendanceShiftAssignments = mysqlTable("attendance_shift_assignments", {
   id: int("id").autoincrement().primaryKey(),
   empCd: varchar("emp_cd", { length: 32 }).notNull(),
   shiftId: int("shift_id").notNull(),
   effectiveFrom: date("effective_from").notNull(),
   effectiveTo: date("effective_to"),
-  weekdayMask: int("weekday_mask").unsigned().default(127).notNull(),
+  weekdayMask: int("weekday_mask").default(127).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({

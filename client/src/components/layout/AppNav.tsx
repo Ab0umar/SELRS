@@ -41,6 +41,9 @@ import {
   Wallet,
   Webhook,
   Wrench,
+  LayoutDashboard,
+  Calendar,
+  BarChart3,
 } from "lucide-react";
 
 export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
@@ -57,6 +60,65 @@ export type NavGroupSection = {
 };
 
 export type NavGroup = NavGroupSection | NavLeaf;
+
+/** Attendance — nested routes; section title opens dashboard */
+export const attendanceNavGroup: NavGroupSection = {
+  label: "Attendance",
+  groupPath: "/attendance",
+  navKey: "attendance",
+  items: [
+    {
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      path: "/attendance",
+    },
+    {
+      icon: Activity,
+      label: "Live",
+      path: "/attendance/live",
+    },
+    {
+      icon: Calendar,
+      label: "Daily",
+      path: "/attendance/daily",
+    },
+    {
+      icon: Users,
+      label: "Employees",
+      path: "/attendance/employees",
+    },
+    {
+      icon: FileText,
+      label: "Raw Logs",
+      path: "/attendance/logs",
+    },
+    {
+      icon: BarChart3,
+      label: "Reports",
+      path: "/attendance/reports",
+    },
+    {
+      icon: CalendarCheck,
+      label: "Leaves",
+      path: "/attendance/leaves",
+    },
+    {
+      icon: Settings,
+      label: "Settings",
+      path: "/attendance/settings",
+    },
+    {
+      icon: Wrench,
+      label: "Admin",
+      path: "/attendance/admin",
+    },
+    {
+      icon: Smartphone,
+      label: "Device",
+      path: "/attendance/admin/device",
+    },
+  ],
+};
 
 /** الحسابات — روابط متداخلة؛ عنوان القسم يفتح لوحة الحسابات */
 export const accountingNavGroup: NavGroupSection = {
@@ -141,6 +203,7 @@ export const accountingNavGroup: NavGroupSection = {
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
   { icon: Clock, label: "مرضى اليوم", path: "/today", isMain: true },
+  attendanceNavGroup,
   accountingNavGroup,
   { icon: Archive, label: "المخزن", path: "/stockroom", isMain: true },
   { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },

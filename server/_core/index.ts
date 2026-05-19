@@ -14,6 +14,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerWsServer } from "./ws";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
+import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
+import { startPunchReception } from "../services/attendance/punchReception.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
 const execFile = promisify(execFileCb);
@@ -1402,6 +1404,8 @@ async function startServer() {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);
   });
   startMssqlSyncScheduler();
+  startAttendanceSyncScheduler();
+  startPunchReception();
   await startBlackIceFolderImporter();
   await startBlackIceOcrLinker();
 }

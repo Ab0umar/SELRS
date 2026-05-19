@@ -11,6 +11,7 @@ export const PERMISSION_SECTIONS = [
   "مرضى اليوم",
   "الحسابات",
   "العمليات",
+  "الحضور والانصراف",
   "مركز المريض",
   "العيادات",
   "المرضى",
@@ -59,8 +60,21 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/operations", label: "قائمة العمليات", group: "العمليات" },
   { id: "/operations/accounts", label: "العمليات — الحسابات", group: "العمليات" },
 
+  // ── الحضور والانصراف ──
+  { id: "/attendance", label: "الحضور والانصراف (الرئيسية)", group: "الحضور والانصراف" },
+  { id: "/attendance/live", label: "الحضور المباشر", group: "الحضور والانصراف" },
+  { id: "/attendance/daily", label: "الحضور اليومي", group: "الحضور والانصراف" },
+  { id: "/attendance/employees", label: "موظفو الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/employees/:empCd", label: "ملف موظف الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/logs", label: "سجلات الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/reports", label: "تقارير الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/settings", label: "إعدادات الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/admin/sync", label: "مزامنة الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/admin/device", label: "أجهزة الحضور", group: "الحضور والانصراف" },
+
   // ── مركز المريض ──
   { id: "/patient-hub", label: "مركز المريض (Patient hub)", group: "مركز المريض" },
+  { id: "/workflow-hub", label: "مركز سير العمل", group: "مركز المريض" },
 
   // ── العيادات ──
   { id: "/clinics-hub", label: "مركز العيادات (Clinics hub)", group: "العيادات" },
@@ -100,11 +114,17 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/patients", label: "المرضى", group: "المرضى" },
   { id: "/patients/:id", label: "تفاصيل المريض", group: "المرضى" },
   { id: "/patient-file", label: "الملف الطبي", group: "المرضى" },
+  { id: "/patient-file/:id", label: "الملف الطبي (برقم مريض)", group: "المرضى" },
+  { id: "/medicalfile", label: "الملف الطبي (مسار بديل)", group: "المرضى" },
+  { id: "/medicalfile/:id", label: "الملف الطبي (مسار بديل برقم مريض)", group: "المرضى" },
   { id: "/quick-entry", label: "دخول سريع للمريض", group: "المرضى" },
+  { id: "/quick-entry/:id", label: "دخول سريع (برقم مريض)", group: "المرضى" },
   { id: "/new-cases", label: "حالات جديدة", group: "المرضى" },
+  { id: "/new-cases/:id", label: "حالة جديدة (برقم مريض)", group: "المرضى" },
   { id: "/followup/:id", label: "نموذج متابعة", group: "المرضى" },
   { id: "/followups", label: "قائمة المتابعات", group: "المرضى" },
   { id: "/visits", label: "زيارات المرضى", group: "المرضى" },
+  { id: "/visits/:id", label: "زيارة مريض (تفاصيل)", group: "المرضى" },
   { id: "/sheet-copies", label: "نسخ الشيتات", group: "المرضى" },
 
   // ── مركز الخدمات ──

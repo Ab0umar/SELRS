@@ -106,6 +106,20 @@ const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const StockroomShell = lazy(() => import("./pages/StockroomShell"));
+// Attendance module
+const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
+const AttendanceLive = lazy(() => import("./pages/attendance/LiveBoard"));
+const AttendanceDaily = lazy(() => import("./pages/attendance/DailyView"));
+const AttendanceEmployees = lazy(() => import("./pages/attendance/EmployeesList"));
+const AttendanceEmployeeDetail = lazy(() => import("./pages/attendance/EmployeeDetail"));
+const AttendanceLogs = lazy(() => import("./pages/attendance/RawLogs"));
+const AttendanceReports = lazy(() => import("./pages/attendance/Reports"));
+const AttendanceLeaves = lazy(() => import("./pages/attendance/LeaveManagement"));
+const AttendanceSettings = lazy(() => import("./pages/attendance/Settings"));
+const AttendanceAdminDashboard = lazy(() => import("./pages/attendance/admin/AdminDashboard"));
+const AttendanceSyncStatus = lazy(() => import("./pages/attendance/admin/SyncStatus"));
+const AttendanceDevice = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
+const AttendanceConsole = lazy(() => import("./pages/attendance/admin/DeviceConsole"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -270,6 +284,22 @@ const Router = memo(function Router() {
       <Route path={"/dashboard"} component={DashboardRouteGate} />
 
       {/* Accounting routes */}
+      {/* Attendance Module Routes */}
+      <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceHome /></ProtectedRoute>} />
+      <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLive /></ProtectedRoute>} />
+      <Route path={"/attendance/daily"} component={() => <ProtectedRoute><AttendanceDaily /></ProtectedRoute>} />
+      <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceEmployeeDetail /></ProtectedRoute>} />
+      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceEmployees /></ProtectedRoute>} />
+      <Route path={"/attendance/logs"} component={() => <ProtectedRoute><AttendanceLogs /></ProtectedRoute>} />
+      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceReports /></ProtectedRoute>} />
+      <Route path={"/attendance/leaves"} component={() => <ProtectedRoute><AttendanceLeaves /></ProtectedRoute>} />
+      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceSettings /></ProtectedRoute>} />
+      <Route path={"/attendance/admin"} component={() => <ProtectedRoute><AttendanceAdminDashboard /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceSyncStatus /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceDevice /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceConsole /></ProtectedRoute>} />
+
+      {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
       <Route path={"/accounting/prototypes"} component={() => <ProtectedRoute><AccountingPrototypes /></ProtectedRoute>} />
       <Route path={"/accounting/daily-revenue"} component={() => <ProtectedRoute><DailyRevenue /></ProtectedRoute>} />
