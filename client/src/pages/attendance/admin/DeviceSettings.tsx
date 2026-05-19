@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,6 @@ import { trpc } from '@/lib/trpc';
 const tRPC = trpc as any;
 
 export default function DeviceSettings() {
-  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -20,35 +18,18 @@ export default function DeviceSettings() {
     // Client uses local form state
   }, []);
 
-  const updateSettings = useMutation({
-    mutationFn: (updates: any) => tRPC.attendance.updateDeviceSettings.mutate(updates),
+  const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation({
     onSuccess: () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-      queryClient.invalidateQueries({ queryKey: ['attendance.deviceSettings'] });
     },
   });
 
-  const connectDevice = useMutation({
-    mutationFn: () => tRPC.attendance.connectDevice.mutate(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
-    },
-  });
+  const connectDevice = tRPC.attendance.connectDevice.useMutation();
 
-  const disconnectDevice = useMutation({
-    mutationFn: () => tRPC.attendance.disconnectDevice.mutate(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
-    },
-  });
+  const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
 
-  const resetConnection = useMutation({
-    mutationFn: () => tRPC.attendance.resetDeviceConnection.mutate(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
-    },
-  });
+  const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
 
   // Placeholder device status (will be implemented when procedures are available)
   const status = { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
