@@ -221,3 +221,99 @@ export const protectedProcedure = t.procedure.use(
     });
   }),
 );
+
+// Attendance viewer procedure - gate by attendance.view permission
+export const attendanceViewerProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+    }
+
+    if (ctx.user.role === "admin" || ctx.user.role === "manager") {
+      return next({
+        ctx: {
+          ...ctx,
+          user: ctx.user,
+        },
+      });
+    }
+
+    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const canAccessAttendance = permissions.some((p) => {
+      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      return clean === "/attendance" || clean.startsWith("/attendance/");
+    });
+
+    if (!canAccessAttendance) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Attendance view access required" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+// Attendance manager procedure - gate by attendance.manage permission (admin, manager)
+export const attendanceManagerProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+    }
+
+    if (ctx.user.role === "admin" || ctx.user.role === "manager") {
+      return next({
+        ctx: {
+          ...ctx,
+          user: ctx.user,
+        },
+      });
+    }
+
+    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const canManageAttendance = permissions.some((p) => {
+      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      return clean === "/attendance" || clean.startsWith("/attendance/");
+    });
+
+    if (!canManageAttendance) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Attendance manage access required" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+// Attendance admin procedure - admin only
+export const attendanceAdminProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+    }
+
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can access this resource" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);

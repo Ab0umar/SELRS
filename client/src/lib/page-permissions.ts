@@ -15,6 +15,7 @@ export const PERMISSION_SECTIONS = [
   "العيادات",
   "المرضى",
   "مركز الخدمات",
+  "المخزن",
   "مركز الإدارة",
   "أخرى",
 ] as const;
@@ -31,13 +32,27 @@ export const PAGE_PERMISSION_DEFINITIONS = [
 
   // ── الحسابات ──
   { id: "/accounting", label: "لوحة الحسابات", group: "الحسابات" },
+  { id: "/accounting/prototypes", label: "نماذج الحسابات", group: "الحسابات" },
   { id: "/accounting/daily-revenue", label: "الإيراد اليومي", group: "الحسابات" },
   { id: "/accounting/service-revenue", label: "إيراد الخدمات", group: "الحسابات" },
+  { id: "/accounting/receipts/:secCd/:trTy/:trNo", label: "تفاصيل الإيصال", group: "الحسابات" },
   { id: "/accounting/receipts", label: "الإيصالات", group: "الحسابات" },
   { id: "/accounting/services", label: "الخدمات", group: "الحسابات" },
+  { id: "/accounting/patients-inquiry", label: "استعلام المرضى (جديد)", group: "الحسابات" },
   { id: "/accounting/patients", label: "استعلام المرضى", group: "الحسابات" },
+  { id: "/accounting/patient/:patientCode", label: "حساب مريض (برمز)", group: "الحسابات" },
   { id: "/accounting/patient", label: "حساب مريض", group: "الحسابات" },
+  { id: "/accounting/patient-account", label: "حساب مريض (مسار بديل)", group: "الحسابات" },
+  { id: "/accounting/doctor/:doctorCode", label: "حساب طبيب (برمز)", group: "الحسابات" },
   { id: "/accounting/doctor", label: "حساب طبيب", group: "الحسابات" },
+  { id: "/accounting/doctor-account", label: "حساب طبيب (مسار بديل)", group: "الحسابات" },
+  { id: "/accounting/cashbook", label: "دفتر الخزينة", group: "الحسابات" },
+  { id: "/accounting/ledger", label: "دفتر الأستاذ", group: "الحسابات" },
+  { id: "/accounting/advances", label: "السلف", group: "الحسابات" },
+  { id: "/accounting/loans", label: "القروض", group: "الحسابات" },
+  { id: "/accounting/home-fund", label: "عهدة المنزل", group: "الحسابات" },
+  { id: "/accounting/instapay", label: "Instapay", group: "الحسابات" },
+  { id: "/accounting/dr-saadany", label: "حساب د. سعدني", group: "الحسابات" },
   { id: "/accounting/print", label: "معاينة الطباعة", group: "الحسابات" },
 
   // ── العمليات ──
@@ -85,6 +100,17 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/tests-management", label: "إدارة الاختبارات (إداري)", group: "مركز الخدمات" },
   { id: "/examinations/catalog", label: "كتالوج الفحوصات", group: "مركز الخدمات" },
   { id: "/txhub", label: "TXhub (تحاليل وأشعة)", group: "مركز الخدمات" },
+
+  // ── المخزن ──
+  { id: "/stockroom", label: "المخزن (الرئيسية)", group: "المخزن" },
+  { id: "/stockroom/reports", label: "تقارير المخزن", group: "المخزن" },
+  { id: "/stockroom/:category", label: "تصنيف مخزن (عام)", group: "المخزن" },
+  { id: "/stockroom/eye-drops", label: "مخزن: قطرات العين", group: "المخزن" },
+  { id: "/stockroom/op-room", label: "مخزن: مستلزمات غرفة العمليات", group: "المخزن" },
+  { id: "/stockroom/surgical", label: "مخزن: مستلزمات وأدوات جراحية", group: "المخزن" },
+  { id: "/stockroom/office", label: "مخزن: مستلزمات مكتبية", group: "المخزن" },
+  { id: "/stockroom/extra", label: "مخزن: متنوع / إضافي", group: "المخزن" },
+  { id: "/stockroom/*", label: "المخزن (كافة المسارات الفرعية)", group: "المخزن" },
 
   // ── مركز الإدارة ──
   { id: "/admin-hub", label: "مركز الإدارة (الرئيسية)", group: "مركز الإدارة" },

@@ -15,6 +15,16 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional().default(""),
   VAPID_PRIVATE_KEY: z.string().optional().default(""),
   NODE_ENV: z.enum(["development", "production", "test"]).optional().default("development"),
+  ATTENDANCE_ENABLED: z.enum(["true", "false"]).optional().default("true"),
+  ATTENDANCE_SOURCE: z.enum(["access", "tcp"]).optional().default("access"),
+  ATTENDANCE_ACCESS_PATH: z.string().optional().default(""),
+  ATTENDANCE_ACCESS_COPY_FIRST: z.enum(["true", "false"]).optional().default("true"),
+  ATTENDANCE_ACCESS_USE_ODBC: z.enum(["true", "false"]).optional().default("false"),
+  ATTENDANCE_SYNC_BIZ_INTERVAL_MS: z.string().optional().default("120000"),
+  ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS: z.string().optional().default("900000"),
+  ATTENDANCE_BIZ_HOURS_START: z.string().optional().default("7"),
+  ATTENDANCE_BIZ_HOURS_END: z.string().optional().default("20"),
+  ATTENDANCE_SAFETY_WINDOW_MIN: z.string().optional().default("120"),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -44,4 +54,14 @@ export const ENV = {
   fcmServiceAccountJson: parsed.FCM_SERVICE_ACCOUNT_JSON,
   vapidPublicKey: parsed.VAPID_PUBLIC_KEY,
   vapidPrivateKey: parsed.VAPID_PRIVATE_KEY,
+  attendanceEnabled: parsed.ATTENDANCE_ENABLED === "true",
+  attendanceSource: parsed.ATTENDANCE_SOURCE,
+  attendanceAccessPath: parsed.ATTENDANCE_ACCESS_PATH,
+  attendanceAccessCopyFirst: parsed.ATTENDANCE_ACCESS_COPY_FIRST === "true",
+  attendanceAccessUseOdbc: parsed.ATTENDANCE_ACCESS_USE_ODBC === "true",
+  attendanceSyncBizIntervalMs: parseInt(parsed.ATTENDANCE_SYNC_BIZ_INTERVAL_MS, 10),
+  attendanceSyncOffhoursIntervalMs: parseInt(parsed.ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS, 10),
+  attendanceBizHoursStart: parseInt(parsed.ATTENDANCE_BIZ_HOURS_START, 10),
+  attendanceBizHoursEnd: parseInt(parsed.ATTENDANCE_BIZ_HOURS_END, 10),
+  attendanceSafetyWindowMin: parseInt(parsed.ATTENDANCE_SAFETY_WINDOW_MIN, 10),
 };
