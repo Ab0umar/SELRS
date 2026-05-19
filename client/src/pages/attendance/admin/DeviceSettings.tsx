@@ -18,18 +18,10 @@ export default function DeviceSettings() {
     // Client uses local form state
   }, []);
 
-  const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation({
-    onSuccess: () => {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-    },
-  });
-
-  const connectDevice = tRPC.attendance.connectDevice.useMutation();
-
-  const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
-
-  const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
+  // Device control mutations (procedures not yet implemented)
+  // const connectDevice = tRPC.attendance.connectDevice.useMutation();
+  // const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
+  // const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
 
   // Placeholder device status (will be implemented when procedures are available)
   const status = { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
@@ -95,26 +87,14 @@ export default function DeviceSettings() {
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button
-              onClick={() => connectDevice.mutate()}
-              disabled={status?.connected || connectDevice.isPending}
-              variant="default"
-            >
-              {connectDevice.isPending ? 'Connecting...' : 'Connect'}
+            <Button disabled variant="default" title="Not yet implemented">
+              Connect
             </Button>
-            <Button
-              onClick={() => disconnectDevice.mutate()}
-              disabled={!status?.connected || disconnectDevice.isPending}
-              variant="outline"
-            >
-              {disconnectDevice.isPending ? 'Disconnecting...' : 'Disconnect'}
+            <Button disabled variant="outline" title="Not yet implemented">
+              Disconnect
             </Button>
-            <Button
-              onClick={() => resetConnection.mutate()}
-              disabled={resetConnection.isPending}
-              variant="outline"
-            >
-              {resetConnection.isPending ? 'Resetting...' : 'Reset Connection'}
+            <Button disabled variant="outline" title="Not yet implemented">
+              Reset Connection
             </Button>
           </div>
         </CardContent>
@@ -170,11 +150,11 @@ export default function DeviceSettings() {
           </div>
 
           <Button
-            onClick={() => updateSettings.mutate(formData)}
-            disabled={updateSettings.isPending}
+            disabled
             className="w-full"
+            title="Procedures not yet implemented on server"
           >
-            {updateSettings.isPending ? 'Saving...' : 'Save Configuration'}
+            Save Configuration (Unavailable)
           </Button>
         </CardContent>
       </Card>
