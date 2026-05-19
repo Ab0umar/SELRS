@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Terminal, Send, X } from 'lucide-react';
+import { Terminal, Send, X, Zap, CheckCircle, AlertCircle } from 'lucide-react';
 
 const tRPC = require('@/lib/trpc').trpc as any;
 
@@ -20,6 +20,8 @@ export default function DeviceConsole() {
   const [commandInput, setCommandInput] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logId, setLogId] = useState(1);
+  const [diagnosticIP, setDiagnosticIP] = useState('192.168.1.100');
+  const [diagnosticPort, setDiagnosticPort] = useState('5005');
 
   const addLog = (type: 'command' | 'response' | 'error', message: string) => {
     setLogs((prev) => [
@@ -64,6 +66,33 @@ export default function DeviceConsole() {
     },
     onError: (error: any) => {
       addLog('error', `Failed: ${error.message}`);
+    },
+  });
+
+  const runDiagnostics = useMutation({
+    mutationFn: () =>
+      tRPC.attendance.runDeviceDiagnostics.mutate({
+        ip: diagnosticIP,
+        port: parseInt(diagnosticPort) || 5005,
+      }),
+    onSuccess: (result: any) => {
+      addLog('command', `Running diagnostics on ${diagnosticIP}:${diagnosticPort}`);
+      if (result.success) {
+        addLog('response', '✓ All diagnostic tests passed!');
+        result.results.forEach((r: any) => {
+          addLog('response', `${r.success ? '✓' : '✗'} ${r.test}: ${r.message}`);
+        });
+      } else {
+        addLog('error', '✗ Some diagnostic tests failed');
+        result.results.forEach((r: any) => {
+          if (!r.success) {
+            addLog('error', `${r.test}: ${r.message}`);
+          }
+        });
+      }
+    },
+    onError: (error: any) => {
+      addLog('error', `Diagnostics failed: ${error.message}`);
     },
   });
 
@@ -183,6 +212,53 @@ export default function DeviceConsole() {
               {sendCommand.isPending ? 'Sending...' : 'Send Command'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Diagnostics */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Zap className="w-5 h-5" />
+            Device Diagnostics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1">Device IP</label>
+              <Input
+                type="text"
+                value={diagnosticIP}
+                onChange={(e) => setDiagnosticIP(e.target.value)}
+                placeholder="192.168.1.100"
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Port</label>
+              <Input
+                type="number"
+                value={diagnosticPort}
+                onChange={(e) => setDiagnosticPort(e.target.value)}
+                placeholder="5005"
+                className="text-sm"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={() => runDiagnostics.mutate()}
+                disabled={runDiagnostics.isPending}
+                className="w-full"
+              >
+                <Zap className="w-4 h-4 mr-1" />
+                {runDiagnostics.isPending ? 'Testing...' : 'Run Tests'}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600">
+            Tests TCP connectivity, device response, and adapter status. Helps diagnose connection issues.
+          </p>
         </CardContent>
       </Card>
 

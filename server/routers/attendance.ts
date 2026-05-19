@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import crypto from 'crypto';
+import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
 import { router, attendanceViewerProcedure, attendanceManagerProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
@@ -543,6 +544,25 @@ export const attendanceRouter = router({
         total: input.punches.length,
         successful: results.filter((r) => r.success).length,
         results,
+      };
+    }),
+
+  runDeviceDiagnostics: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string(),
+        port: z.number().int().min(1).max(65535),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const diagnostics = getDeviceDiagnostics();
+      const results = await diagnostics.runFullDiagnostics(input.ip, input.port);
+      const report = diagnostics.generateReport();
+
+      return {
+        success: results.every((r) => r.success),
+        results,
+        report,
       };
     }),
 });
