@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
-const tRPC = require('@/lib/trpc').trpc as any;
+const tRPC = trpc as any;
 
 export default function DeviceSettings() {
   const queryClient = useQueryClient();

@@ -16,6 +16,7 @@ import { registerWsServer } from "./ws";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
 import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { startPunchReception } from "../services/attendance/punchReception.service";
+import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
 const execFile = promisify(execFileCb);
@@ -1403,6 +1404,7 @@ async function startServer() {
   server.listen(port, host, () => {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);
   });
+  await DeviceSettingsService.initializeSettings();
   startMssqlSyncScheduler();
   startAttendanceSyncScheduler();
   startPunchReception();

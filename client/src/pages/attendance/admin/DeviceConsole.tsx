@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Terminal, Send, X, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
-const tRPC = require('@/lib/trpc').trpc as any;
+const tRPC = trpc as any;
 
 interface LogEntry {
   id: number;
@@ -31,9 +32,7 @@ export default function DeviceConsole() {
     setLogId((prev) => prev + 1);
   };
 
-  const { data: deviceStatus } = useQuery({
-    queryKey: ['deviceStatus'],
-    queryFn: () => tRPC.attendance.deviceStatus.query(),
+  const deviceStatusQuery = tRPC.attendance.deviceStatus.useQuery(undefined, {
     refetchInterval: 3000,
   });
 
@@ -132,7 +131,7 @@ export default function DeviceConsole() {
             <div>
               <p className="text-gray-600">Status</p>
               <p className="font-semibold">
-                {deviceStatus?.connected ? (
+                {deviceStatusQuery.data?.connected ? (
                   <span className="text-green-600">Connected</span>
                 ) : (
                   <span className="text-red-600">Offline</span>
@@ -141,13 +140,13 @@ export default function DeviceConsole() {
             </div>
             <div>
               <p className="text-gray-600">Total Punches</p>
-              <p className="font-mono">{deviceStatus?.punchCount ?? 0}</p>
+              <p className="font-mono">{deviceStatusQuery.data?.punchCount ?? 0}</p>
             </div>
             <div>
               <p className="text-gray-600">Last Punch</p>
               <p className="font-mono text-xs">
-                {deviceStatus?.lastPunch
-                  ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
+                {deviceStatusQuery.data?.lastPunch
+                  ? new Date(deviceStatusQuery.data.lastPunch).toLocaleTimeString()
                   : 'Never'}
               </p>
             </div>

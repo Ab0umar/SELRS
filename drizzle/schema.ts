@@ -1157,6 +1157,20 @@ export const attendanceSyncRuns = mysqlTable("attendance_sync_runs", {
 export type AttendanceSyncRun = typeof attendanceSyncRuns.$inferSelect;
 export type InsertAttendanceSyncRun = typeof attendanceSyncRuns.$inferInsert;
 
+export const attendanceDeviceSettings = mysqlTable("attendance_device_settings", {
+  id: int("id").primaryKey().default(1), // Single row per deployment
+  enabled: boolean("enabled").default(false).notNull(),
+  ip: varchar("ip", { length: 255 }).default("192.168.1.100").notNull(),
+  port: int("port").default(5005).notNull(),
+  protocol: mysqlEnum("protocol", ["tcp", "udp"]).default("tcp").notNull(),
+  fallbackToAccess: boolean("fallback_to_access").default(true).notNull(),
+  realTimeSync: boolean("real_time_sync").default(true).notNull(),
+  lastConfigUpdate: timestamp("last_config_update"),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AttendanceDeviceSettings = typeof attendanceDeviceSettings.$inferSelect;
+export type InsertAttendanceDeviceSettings = typeof attendanceDeviceSettings.$inferInsert;
 
 
 

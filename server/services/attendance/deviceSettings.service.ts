@@ -1,9 +1,13 @@
 /**
  * Device Settings Service
  * Manages fingerprint device configuration and state
+ * Persists settings to MySQL database for durability across server restarts
  */
 
 import { getDefaultDevice, DeviceAdapterService, DeviceStatus } from './deviceAdapter.service';
+import { getDb } from '../../db';
+import { attendanceDeviceSettings } from '../../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 export interface DeviceSettings {
   enabled: boolean;
@@ -15,7 +19,7 @@ export interface DeviceSettings {
   lastConfigUpdate?: Date;
 }
 
-// In-memory settings (in production, would persist to DB)
+// In-memory settings cache (synced with DB)
 let deviceSettings: DeviceSettings = {
   enabled: process.env.ATTENDANCE_DEVICE_ENABLED === 'true',
   ip: process.env.ATTENDANCE_DEVICE_IP || '192.168.1.100',
@@ -25,12 +29,64 @@ let deviceSettings: DeviceSettings = {
   realTimeSync: true,
 };
 
+let settingsLoaded = false;
+
 export class DeviceSettingsService {
+  // Load settings from database on startup
+  static async initializeSettings(): Promise<void> {
+    if (settingsLoaded) return;
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        console.warn('[DeviceSettings] Database not available, using environment defaults');
+        settingsLoaded = true;
+        return;
+      }
+
+      const [dbSettings] = await db
+        .select()
+        .from(attendanceDeviceSettings)
+        .where(eq(attendanceDeviceSettings.id, 1))
+        .limit(1);
+
+      if (dbSettings) {
+        deviceSettings = {
+          enabled: dbSettings.enabled,
+          ip: dbSettings.ip,
+          port: dbSettings.port,
+          protocol: dbSettings.protocol as 'tcp' | 'udp',
+          fallbackToAccess: dbSettings.fallbackToAccess,
+          realTimeSync: dbSettings.realTimeSync,
+          lastConfigUpdate: dbSettings.lastConfigUpdate || undefined,
+        };
+        console.log('[DeviceSettings] Loaded from database:', { ip: deviceSettings.ip, port: deviceSettings.port });
+      } else {
+        // Create default entry if none exists
+        await db.insert(attendanceDeviceSettings).values({
+          id: 1,
+          enabled: deviceSettings.enabled,
+          ip: deviceSettings.ip,
+          port: deviceSettings.port,
+          protocol: deviceSettings.protocol,
+          fallbackToAccess: deviceSettings.fallbackToAccess,
+          realTimeSync: deviceSettings.realTimeSync,
+        });
+        console.log('[DeviceSettings] Created default settings in database');
+      }
+
+      settingsLoaded = true;
+    } catch (err) {
+      console.error('[DeviceSettings] Failed to initialize settings:', err);
+      settingsLoaded = true;
+    }
+  }
+
   static getSettings(): DeviceSettings {
     return { ...deviceSettings };
   }
 
-  static updateSettings(updates: Partial<DeviceSettings>): DeviceSettings {
+  static async updateSettings(updates: Partial<DeviceSettings>): Promise<DeviceSettings> {
     // Validate IP format
     if (updates.ip && !this.isValidIP(updates.ip)) {
       throw new Error('Invalid IP address format');
@@ -46,6 +102,38 @@ export class DeviceSettingsService {
       ...updates,
       lastConfigUpdate: new Date(),
     };
+
+    // Persist to database
+    try {
+      const db = await getDb();
+      if (db) {
+        await db
+          .insert(attendanceDeviceSettings)
+          .values({
+            id: 1,
+            enabled: deviceSettings.enabled,
+            ip: deviceSettings.ip,
+            port: deviceSettings.port,
+            protocol: deviceSettings.protocol,
+            fallbackToAccess: deviceSettings.fallbackToAccess,
+            realTimeSync: deviceSettings.realTimeSync,
+            lastConfigUpdate: deviceSettings.lastConfigUpdate,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              enabled: deviceSettings.enabled,
+              ip: deviceSettings.ip,
+              port: deviceSettings.port,
+              fallbackToAccess: deviceSettings.fallbackToAccess,
+              realTimeSync: deviceSettings.realTimeSync,
+              lastConfigUpdate: deviceSettings.lastConfigUpdate,
+            },
+          });
+        console.log('[DeviceSettings] Updated in database:', { ip: deviceSettings.ip, port: deviceSettings.port });
+      }
+    } catch (err) {
+      console.error('[DeviceSettings] Failed to persist settings:', err);
+    }
 
     return { ...deviceSettings };
   }

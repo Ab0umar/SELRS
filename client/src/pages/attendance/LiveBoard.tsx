@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wifi, WifiOff, ArrowRightFromLine, ArrowLeftFromLine, AlertCircle } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
-const tRPC = require('@/lib/trpc').trpc as any;
+const tRPC = trpc as any;
 
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 
@@ -22,18 +23,14 @@ export default function LiveBoard() {
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
 
-  // Load initial punch history
-  const { data: punchesData, isLoading } = useQuery({
-    queryKey: ['recentPunches'],
-    queryFn: async () => {
-      const result = await tRPC.attendance.rawPunches.query({
-        limit: 50,
-        fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0],
-      });
-      return result.punches || [];
+  // Load initial punch history - don't use for live updates, only periodic sync
+  const punchesQuery = tRPC.attendance.rawPunches.useQuery(
+    {
+      limit: 50,
+      fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0],
     },
-    refetchInterval: 30000, // Periodic refresh every 30s
-  });
+    { refetchInterval: 30000 }
+  );
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -89,8 +86,8 @@ export default function LiveBoard() {
 
   // Load initial punch history on mount
   useEffect(() => {
-    if (punchesData) {
-      const formatted = punchesData.map((p: any) => ({
+    if (punchesQuery.data?.punches) {
+      const formatted = punchesQuery.data.punches.map((p: any) => ({
         empCd: p.empCd,
         timestamp: new Date(p.punchAt),
         direction: p.direction,
@@ -98,7 +95,7 @@ export default function LiveBoard() {
       }));
       setPunches((prev) => [...formatted, ...prev].slice(0, 100)); // Merge with WS punches
     }
-  }, [punchesData]);
+  }, [punchesQuery.data]);
 
   // Device status
   const { data: deviceStatus } = useQuery({
@@ -187,7 +184,7 @@ export default function LiveBoard() {
         <CardHeader>
           <CardTitle>
             Recent Punches ({punches.length})
-            {isLoading && <span className="text-xs text-gray-500 ml-2">Refreshing...</span>}
+            {punchesQuery.isLoading && <span className="text-xs text-gray-500 ml-2">Refreshing...</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>
