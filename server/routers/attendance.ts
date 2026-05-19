@@ -565,6 +565,15 @@ export const attendanceRouter = router({
         report,
       };
     }),
+
+  healthCheck: attendanceViewerProcedure.query(async () => {
+    const db = await getDb();
+    return {
+      status: 'ok',
+      database: db ? 'connected' : 'disconnected',
+      timestamp: new Date().toISOString(),
+    };
+  }),
 });
 
 export type AttendanceRouter = typeof attendanceRouter;
