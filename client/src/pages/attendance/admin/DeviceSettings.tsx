@@ -1,66 +1,73 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
 
-const tRPC = trpc as any;
+const tRPC = require('@/lib/trpc').trpc as any;
 
 export default function DeviceSettings() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const { data: settings, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
-    queryKey: ['deviceSettings'],
-    queryFn: async () => {
-      const result = await tRPC.attendance.deviceSettings.query();
-      setFormData({ ip: result.ip, port: result.port, enabled: result.enabled });
-      return result;
-    },
-    staleTime: 30000, // Keep fresh for 30 seconds
+  // Use tRPC hooks directly
+  const settingsQuery = tRPC.attendance.deviceSettings.useQuery(undefined, {
+    refetchOnWindowFocus: false,
   });
 
-  const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery({
-    queryKey: ['deviceStatus'],
-    queryFn: () => tRPC.attendance.deviceStatus.query(),
-    staleTime: 5000, // Keep fresh for 5 seconds
+  const statusQuery = tRPC.attendance.deviceStatus.useQuery(undefined, {
+    refetchInterval: 10000,
+    refetchOnWindowFocus: false,
   });
+
+  // Update form when settings load
+  useEffect(() => {
+    if (settingsQuery.data) {
+      setFormData({
+        ip: settingsQuery.data.ip,
+        port: settingsQuery.data.port,
+        enabled: settingsQuery.data.enabled,
+      });
+    }
+  }, [settingsQuery.data]);
 
   const updateSettings = useMutation({
     mutationFn: (updates: any) => tRPC.attendance.updateDeviceSettings.mutate(updates),
     onSuccess: () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-      queryClient.invalidateQueries({ queryKey: ['deviceSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance.deviceSettings'] });
     },
   });
 
   const connectDevice = useMutation({
     mutationFn: () => tRPC.attendance.connectDevice.mutate(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deviceStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
     },
   });
 
   const disconnectDevice = useMutation({
     mutationFn: () => tRPC.attendance.disconnectDevice.mutate(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deviceStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
     },
   });
 
   const resetConnection = useMutation({
     mutationFn: () => tRPC.attendance.resetDeviceConnection.mutate(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deviceStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance.deviceStatus'] });
     },
   });
 
-  if (settingsLoading) return <div className="p-6">Loading device settings...</div>;
+  const status = statusQuery.data;
+  const isLoading = settingsQuery.isLoading || statusQuery.isLoading;
+
+  if (isLoading) return <div className="p-6">Loading device settings...</div>;
 
   return (
     <div className="p-6 space-y-6">
@@ -84,12 +91,12 @@ export default function DeviceSettings() {
               )}
             </CardTitle>
             <Button
-              onClick={() => refetchStatus()}
-              disabled={statusLoading}
+              onClick={() => statusQuery.refetch()}
+              disabled={statusQuery.isLoading}
               variant="outline"
               size="sm"
             >
-              <RefreshCw className={`w-4 h-4 ${statusLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${statusQuery.isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardHeader>
@@ -103,7 +110,9 @@ export default function DeviceSettings() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-gray-600">Last Connected</p>
-              <p className="font-mono">{status?.lastConnected ? new Date(status.lastConnected).toLocaleString() : 'Never'}</p>
+              <p className="font-mono">
+                {status?.lastConnected ? new Date(status.lastConnected).toLocaleString() : 'Never'}
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Uptime (seconds)</p>
@@ -111,7 +120,9 @@ export default function DeviceSettings() {
             </div>
             <div>
               <p className="text-gray-600">Last Punch</p>
-              <p className="font-mono">{status?.lastPunch ? new Date(status.lastPunch).toLocaleString() : 'Never'}</p>
+              <p className="font-mono">
+                {status?.lastPunch ? new Date(status.lastPunch).toLocaleString() : 'Never'}
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Total Punches</p>
@@ -164,7 +175,7 @@ export default function DeviceSettings() {
               type="text"
               value={formData.ip}
               onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
-              placeholder="192.168.1.100"
+              placeholder="192.168.0.10"
             />
             <p className="text-xs text-gray-500 mt-1">Enter device IP address or hostname</p>
           </div>
@@ -210,7 +221,7 @@ export default function DeviceSettings() {
           <CardTitle>Advanced Commands</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-gray-600">
-          <p>Raw device command interface (future scope) will be available here.</p>
+          <p>Raw device command interface available in Device Console at /attendance/admin/console</p>
         </CardContent>
       </Card>
     </div>
