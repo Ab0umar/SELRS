@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/procedures"
 import { medicalRouter } from "./routers/medical";
 import { patientRouter } from "./routers/patient";
 import { accountingRouter } from "./routers/accounting";
+import { stockroomRouter } from "./routers/stockroom";
 import * as db from "./db";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./_core/auth";
 import { TRPCError } from "@trpc/server";
@@ -128,6 +129,7 @@ export const appRouter = router({
   medical: medicalRouter,
   patient: patientRouter,
   accounting: accountingRouter,
+  stockroom: stockroomRouter,
 });
 
 export type AppRouter = typeof appRouter;

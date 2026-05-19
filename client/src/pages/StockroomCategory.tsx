@@ -221,7 +221,7 @@ export default function StockroomCategory() {
 
           <div className="rounded-lg border border-border/60 bg-white">
             <Table>
-              <TableHeader className="bg-blue-50/50">
+              <TableHeader className="bg-primary/5">
                 <TableRow>
                   <TableHead className="text-right">الكود</TableHead>
                   <TableHead className="text-right">اسم الصنف</TableHead>
@@ -232,7 +232,7 @@ export default function StockroomCategory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itemsQuery.isLoading ? (
+                {itemsQuery.isPending ? (
                   Array(5).fill(0).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
@@ -244,7 +244,7 @@ export default function StockroomCategory() {
                     </TableRow>
                   ))
                 ) : itemsQuery.data?.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-blue-50/30">
+                  <TableRow key={item.id} className="hover:bg-primary/5">
                     <TableCell className="font-mono text-xs text-muted-foreground text-right">{item.itemCode || "-"}</TableCell>
                     <TableCell className="font-medium text-foreground text-right">{item.name}</TableCell>
                     <TableCell className="font-semibold text-foreground text-right">{item.quantity}</TableCell>
@@ -389,9 +389,9 @@ export default function StockroomCategory() {
                 <Button 
                   onClick={handleSubmitAdd} 
                   className="bg-primary text-white"
-                  disabled={receiveMutation.isLoading}
+                  disabled={receiveMutation.isPending}
                 >
-                  {receiveMutation.isLoading ? "جاري الحفظ..." : "حفظ إذن الإضافة"}
+                  {receiveMutation.isPending ? "جاري الحفظ..." : "حفظ إذن الإضافة"}
                 </Button>
               </div>
             </div>
@@ -444,9 +444,9 @@ export default function StockroomCategory() {
                 <Button 
                   onClick={handleSubmitDispense} 
                   className="bg-warning text-warning-foreground hover:bg-warning/90"
-                  disabled={dispenseMutation.isLoading}
+                  disabled={dispenseMutation.isPending}
                 >
-                  {dispenseMutation.isLoading ? "جاري الحفظ..." : "تأكيد إذن الصرف"}
+                  {dispenseMutation.isPending ? "جاري الحفظ..." : "تأكيد إذن الصرف"}
                 </Button>
               </div>
             </div>
@@ -508,9 +508,9 @@ export default function StockroomCategory() {
             <Button 
               onClick={handleCreateNewItem} 
               className="bg-primary text-white"
-              disabled={createItemMutation.isLoading}
+              disabled={createItemMutation.isPending}
             >
-              {createItemMutation.isLoading ? "جاري الحفظ..." : "حفظ الصنف"}
+              {createItemMutation.isPending ? "جاري الحفظ..." : "حفظ الصنف"}
             </Button>
           </DialogFooter>
         </DialogContent>
