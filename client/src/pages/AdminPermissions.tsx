@@ -46,6 +46,7 @@ type TeamRole =
 
 type AccessLevel = PermissionAccessLevel;
 type TeamPermissionsMap = Record<TeamRole, string[]>;
+type SectionFilter = PermissionSection | "all";
 
 const DEFAULT_TEAM_PERMISSIONS: TeamPermissionsMap = {
   admin: [],
@@ -156,9 +157,7 @@ export default function AdminPermissions() {
   );
   const [confirmReset, setConfirmReset] = useState(false);
   const [selectedRole, setSelectedRole] = useState<TeamRole>("manager");
-  const [selectedSection, setSelectedSection] = useState<PermissionSection>(
-    PERMISSION_SECTIONS[0],
-  );
+  const [selectedSection, setSelectedSection] = useState<SectionFilter>("all");
 
   const permissionsQuery = trpc.medical.getTeamPermissions.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -207,9 +206,10 @@ export default function AdminPermissions() {
   if (!isAuthenticated || user?.role !== "admin") return null;
 
   const rolePerms = permissions[selectedRole] ?? [];
-  const sectionPerms = PAGE_PERMISSIONS.filter(
-    (p) => p.group === selectedSection,
-  );
+  const sectionPerms =
+    selectedSection === "all"
+      ? PAGE_PERMISSIONS
+      : PAGE_PERMISSIONS.filter((p) => p.group === selectedSection);
   const hasUnsavedChanges =
     normalizePermissionsSignature(permissions) !==
     normalizePermissionsSignature(serverPermissions);
@@ -221,10 +221,13 @@ export default function AdminPermissions() {
     }));
   };
 
-  const SECTION_FILTER_OPTIONS = PERMISSION_SECTIONS.map((s) => ({
-    value: s,
-    label: s,
-  }));
+  const SECTION_FILTER_OPTIONS = [
+    { value: "all", label: "الكل" },
+    ...PERMISSION_SECTIONS.map((s) => ({
+      value: s,
+      label: s,
+    })),
+  ];
   const writeAccessColumns = getWriteAccessColumns();
 
   return (
@@ -301,7 +304,7 @@ export default function AdminPermissions() {
                   <FilterBar
                     filters={SECTION_FILTER_OPTIONS}
                     selected={selectedSection}
-                    onSelect={(v) => setSelectedSection(v as PermissionSection)}
+                    onSelect={(v) => setSelectedSection(v as SectionFilter)}
                     className="max-w-full"
                   />
                 </div>
@@ -438,4 +441,3 @@ export default function AdminPermissions() {
     </div>
   );
 }
-
