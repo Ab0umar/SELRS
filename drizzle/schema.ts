@@ -1113,6 +1113,38 @@ export const attendanceHolidays = mysqlTable("attendance_holidays", {
 export type AttendanceHoliday = typeof attendanceHolidays.$inferSelect;
 export type InsertAttendanceHoliday = typeof attendanceHolidays.$inferInsert;
 
+export const attendanceLeaveBalances = mysqlTable("attendance_leave_balances", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  annualAllocation: int("annual_allocation").default(21).notNull(),
+  carryOver: int("carry_over").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  uqLeaveBalEmpYear: uniqueIndex("uq_leave_bal_emp_year").on(table.empCd, table.year),
+}));
+
+export type AttendanceLeaveBalance = typeof attendanceLeaveBalances.$inferSelect;
+export type InsertAttendanceLeaveBalance = typeof attendanceLeaveBalances.$inferInsert;
+
+export const attendancePermissions = mysqlTable("attendance_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  date: date("date").notNull(),
+  type: mysqlEnum("perm_type", ["in", "out"]).notNull(),
+  durationMinutes: int("duration_minutes").notNull(),
+  approved: boolean("approved").default(false).notNull(),
+  note: varchar("note", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxPermEmpDate: index("idx_perm_emp_date").on(table.empCd, table.date),
+}));
+
+export type AttendancePermission = typeof attendancePermissions.$inferSelect;
+export type InsertAttendancePermission = typeof attendancePermissions.$inferInsert;
+
 export const attendanceDaily = mysqlTable("attendance_daily", {
   empCd: varchar("emp_cd", { length: 32 }).notNull(),
   workDate: date("work_date").notNull(),
