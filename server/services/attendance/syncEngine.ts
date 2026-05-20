@@ -51,9 +51,17 @@ export async function runSyncOnce(
   let acquired = false;
 
   try {
-    // Try to acquire advisory lock (0 timeout = non-blocking)
-    const lockResult = await db.execute(sql`SELECT GET_LOCK(${SYNC_LOCK_NAME}, 0) as lockAcquired`);
-    acquired = (lockResult as any)?.[0]?.lockAcquired === 1;
+    // Release any stale locks from previous crashed sessions
+    try {
+      await db.execute(sql`SELECT RELEASE_LOCK(${SYNC_LOCK_NAME})`);
+    } catch {
+      // Ignore if no lock exists
+    }
+
+    // Try to acquire advisory lock (5 second timeout, then fail)
+    const lockResult = await db.execute(sql`SELECT GET_LOCK(${SYNC_LOCK_NAME}, 5) as lockAcquired`);
+    const rows = lockResult as any;
+    acquired = rows?.[0]?.[0]?.lockAcquired === 1;
 
     if (!acquired) {
       // Lock not acquired - another sync is running
