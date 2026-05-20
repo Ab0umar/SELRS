@@ -12,6 +12,7 @@ import { runSyncOnce, resetSyncHistory } from '../services/attendance/syncEngine
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
+import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte } from 'drizzle-orm';
 
 /**
@@ -778,8 +779,8 @@ export const attendanceRouter = router({
             startTime: '08:00',
             endTime: '17:00',
             crossesMidnight: false,
-            graceLateMin: 10,
-            graceEarlyMin: 0,
+            graceLateMin: 15,
+            graceEarlyMin: 15,
             breakMinutes: 60,
             active: true,
           });
@@ -794,9 +795,8 @@ export const attendanceRouter = router({
           .from(attendanceEmployees)
           .where(eq(attendanceEmployees.active, true));
 
-        // Assign all employees to the shift from today onwards
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Assign all employees to the shift from Jan 1, 2026
+        const startDate = new Date(2026, 0, 1);
         let assigned = 0;
 
         for (const emp of employees) {
@@ -810,9 +810,9 @@ export const attendanceRouter = router({
             await db.insert(attendanceShiftAssignments).values({
               empCd: emp.empCd,
               shiftId,
-              effectiveFrom: today,
+              effectiveFrom: startDate,
               effectiveTo: null,
-              weekdayMask: 127, // All 7 days
+              weekdayMask: 127,
             });
             assigned++;
           }
@@ -842,6 +842,270 @@ export const attendanceRouter = router({
           success: false,
           error,
         };
+      }
+    }),
+
+  listShifts: attendanceViewerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error('Database not available');
+
+    const shifts = await db
+      .select()
+      .from(attendanceShifts)
+      .where(eq(attendanceShifts.active, true))
+      .orderBy(attendanceShifts.name);
+
+    return shifts.map((s) => ({
+      id: s.id,
+      name: s.name,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      crossesMidnight: s.crossesMidnight,
+      graceLateMin: s.graceLateMin,
+      graceEarlyMin: s.graceEarlyMin,
+      breakMinutes: s.breakMinutes,
+      active: s.active,
+    }));
+  }),
+
+  createShift: attendanceManagerProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(64),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/),
+        crossesMidnight: z.boolean().optional(),
+        graceLateMin: z.number().int().min(0).default(15),
+        graceEarlyMin: z.number().int().min(0).default(15),
+        breakMinutes: z.number().int().min(0).default(60),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        const result = await db.insert(attendanceShifts).values({
+          name: input.name,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          crossesMidnight: input.crossesMidnight ?? false,
+          graceLateMin: input.graceLateMin,
+          graceEarlyMin: input.graceEarlyMin,
+          breakMinutes: input.breakMinutes,
+          active: true,
+        });
+
+        const shiftId = (result as any).insertId;
+
+        AuditLogService.log({
+          action: 'shift_created',
+          details: { shiftId, name: input.name },
+          status: 'success',
+        });
+
+        return { success: true, shiftId };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'shift_created',
+          details: { error },
+          status: 'error',
+        });
+        return { success: false, error };
+      }
+    }),
+
+  updateShift: attendanceManagerProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).max(64).optional(),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        graceLateMin: z.number().int().min(0).optional(),
+        graceEarlyMin: z.number().int().min(0).optional(),
+        breakMinutes: z.number().int().min(0).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        const updateData: any = {};
+        if (input.name) updateData.name = input.name;
+        if (input.startTime) updateData.startTime = input.startTime;
+        if (input.endTime) updateData.endTime = input.endTime;
+        if (input.graceLateMin !== undefined) updateData.graceLateMin = input.graceLateMin;
+        if (input.graceEarlyMin !== undefined) updateData.graceEarlyMin = input.graceEarlyMin;
+        if (input.breakMinutes !== undefined) updateData.breakMinutes = input.breakMinutes;
+
+        await db
+          .update(attendanceShifts)
+          .set(updateData)
+          .where(eq(attendanceShifts.id, input.id));
+
+        AuditLogService.log({
+          action: 'shift_updated',
+          details: { shiftId: input.id, changes: Object.keys(updateData) },
+          status: 'success',
+        });
+
+        return { success: true };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { success: false, error };
+      }
+    }),
+
+  listAssignments: attendanceViewerProcedure
+    .input(z.object({ empCd: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const conditions = [];
+      if (input?.empCd) {
+        conditions.push(eq(attendanceShiftAssignments.empCd, input.empCd));
+      }
+
+      const assignments = await db
+        .select({
+          id: attendanceShiftAssignments.id,
+          empCd: attendanceShiftAssignments.empCd,
+          empName: attendanceEmployees.fullName,
+          shiftId: attendanceShiftAssignments.shiftId,
+          shiftName: attendanceShifts.name,
+          effectiveFrom: attendanceShiftAssignments.effectiveFrom,
+          effectiveTo: attendanceShiftAssignments.effectiveTo,
+          weekdayMask: attendanceShiftAssignments.weekdayMask,
+        })
+        .from(attendanceShiftAssignments)
+        .innerJoin(attendanceEmployees, eq(attendanceShiftAssignments.empCd, attendanceEmployees.empCd))
+        .innerJoin(attendanceShifts, eq(attendanceShiftAssignments.shiftId, attendanceShifts.id))
+        .where(conditions.length > 0 ? and(...(conditions as any)) : undefined)
+        .orderBy(attendanceShiftAssignments.empCd);
+
+      return assignments.map((a) => ({
+        id: a.id,
+        empCd: a.empCd,
+        empName: a.empName,
+        shiftId: a.shiftId,
+        shiftName: a.shiftName,
+        effectiveFrom: a.effectiveFrom.toISOString().split('T')[0],
+        effectiveTo: a.effectiveTo ? a.effectiveTo.toISOString().split('T')[0] : null,
+        weekdayMask: a.weekdayMask,
+      }));
+    }),
+
+  assignShift: attendanceManagerProcedure
+    .input(
+      z.object({
+        empCd: z.string(),
+        shiftId: z.number(),
+        effectiveFrom: z.string(), // YYYY-MM-DD
+        effectiveTo: z.string().optional(), // YYYY-MM-DD
+        weekdayMask: z.number().int().min(0).max(127).default(127),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        const effectiveFrom = new Date(input.effectiveFrom);
+        const effectiveTo = input.effectiveTo ? new Date(input.effectiveTo) : null;
+
+        // Check if already assigned (and mark previous as ended if needed)
+        const existing = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, input.empCd),
+              isNull(attendanceShiftAssignments.effectiveTo)
+            )
+          );
+
+        if (existing.length > 0) {
+          // End the previous assignment
+          await db
+            .update(attendanceShiftAssignments)
+            .set({ effectiveTo: new Date(effectiveFrom.getTime() - 86400000) }) // Day before
+            .where(eq(attendanceShiftAssignments.id, existing[0].id));
+        }
+
+        // Create new assignment
+        const result = await db.insert(attendanceShiftAssignments).values({
+          empCd: input.empCd,
+          shiftId: input.shiftId,
+          effectiveFrom,
+          effectiveTo,
+          weekdayMask: input.weekdayMask,
+        });
+
+        AuditLogService.log({
+          action: 'shift_assigned',
+          details: { empCd: input.empCd, shiftId: input.shiftId, effectiveFrom: input.effectiveFrom },
+          status: 'success',
+        });
+
+        return { success: true };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { success: false, error };
+      }
+    }),
+
+  updateAssignment: attendanceManagerProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        shiftId: z.number().optional(),
+        effectiveFrom: z.string().optional(),
+        effectiveTo: z.string().optional(),
+        weekdayMask: z.number().int().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        const updateData: any = {};
+        if (input.shiftId !== undefined) updateData.shiftId = input.shiftId;
+        if (input.effectiveFrom) updateData.effectiveFrom = new Date(input.effectiveFrom);
+        if (input.effectiveTo) updateData.effectiveTo = new Date(input.effectiveTo);
+        if (input.weekdayMask !== undefined) updateData.weekdayMask = input.weekdayMask;
+
+        await db
+          .update(attendanceShiftAssignments)
+          .set(updateData)
+          .where(eq(attendanceShiftAssignments.id, input.id));
+
+        return { success: true };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { success: false, error };
+      }
+    }),
+
+  deleteAssignment: attendanceManagerProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        await db
+          .delete(attendanceShiftAssignments)
+          .where(eq(attendanceShiftAssignments.id, input.id));
+
+        return { success: true };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { success: false, error };
       }
     }),
 });

@@ -121,6 +121,8 @@ const AttendanceSyncStatus = lazy(() => import("./pages/attendance/admin/SyncSta
 const AttendanceDevice = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
 const AttendanceConsole = lazy(() => import("./pages/attendance/admin/DeviceConsole"));
 const AttendanceCorrections = lazy(() => import("./pages/attendance/admin/BatchCorrections"));
+const AttendanceShiftManagement = lazy(() => import("./pages/attendance/ShiftManagement"));
+const AttendanceShiftAssignments = lazy(() => import("./pages/attendance/ShiftAssignments"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -300,6 +302,8 @@ const Router = memo(function Router() {
       <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceDevice /></ProtectedRoute>} />
       <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceConsole /></ProtectedRoute>} />
       <Route path={"/attendance/admin/corrections"} component={() => <ProtectedRoute><AttendanceCorrections /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/shifts"} component={() => <ProtectedRoute><AttendanceShiftManagement /></ProtectedRoute>} />
+      <Route path={"/attendance/admin/assignments"} component={() => <ProtectedRoute><AttendanceShiftAssignments /></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
