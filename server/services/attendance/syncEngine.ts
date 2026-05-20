@@ -279,7 +279,6 @@ async function finishSyncRun(
       rowsSkipped: data.rowsSkipped ?? undefined,
       rowsQuarantined: data.rowsQuarantined ?? undefined,
       finishedAt: data.finishedAt,
-      updatedAt: new Date(),
     })
     .where(eq(attendanceSyncRuns.id, runId));
 }
@@ -305,7 +304,6 @@ async function updateHwm(db: any, runId: number, hwm: Date): Promise<void> {
     .update(attendanceSyncRuns)
     .set({
       highWaterMark: hwm,
-      updatedAt: new Date(),
     })
     .where(eq(attendanceSyncRuns.id, runId));
 }
@@ -318,7 +316,6 @@ export async function resetSyncHistory(): Promise<void> {
     .update(attendanceSyncRuns)
     .set({
       highWaterMark: null,
-      updatedAt: new Date(),
     })
     .where(eq(attendanceSyncRuns.source, 'access'));
 }
