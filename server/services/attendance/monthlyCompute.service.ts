@@ -9,10 +9,11 @@ export class MonthlyComputeService {
     return `${year}-${month}`;
   }
 
-  static getMonthRange(year: number, month: number): [Date, Date] {
-    const from = new Date(year, month - 1, 1);
-    const to = new Date(year, month, 0);
-    return [from, to];
+  static getMonthRange(year: number, month: number): [string, string] {
+    const mm = String(month).padStart(2, '0');
+    const lastDay = new Date(year, month, 0).getDate();
+    const dd = String(lastDay).padStart(2, '0');
+    return [`${year}-${mm}-01`, `${year}-${mm}-${dd}`];
   }
 
   static async buildMonthly(year: number, month: number): Promise<any[]> {
@@ -186,14 +187,15 @@ export class MonthlyComputeService {
     let savedCount = 0;
 
     for (const m of monthly) {
+      const [saveFrom, saveTo] = MonthlyComputeService.getMonthRange(year, month);
       const allDailyRecords = await db
         .select()
         .from(attendanceDaily)
         .where(
           and(
             eq(attendanceDaily.empCd, m.empCd),
-            gte(attendanceDaily.workDate, new Date(year, month - 1, 1)),
-            lte(attendanceDaily.workDate, new Date(year, month, 0))
+            gte(attendanceDaily.workDate, saveFrom),
+            lte(attendanceDaily.workDate, saveTo)
           )
         );
 

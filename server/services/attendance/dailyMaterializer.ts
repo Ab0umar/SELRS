@@ -108,11 +108,12 @@ export class DailyMaterializer {
         const result = computeDay(ctx);
 
         // UPSERT to attendance_daily
+        const workDateStr = this.dateKey(result.workDate); // 'YYYY-MM-DD' — avoids UTC timezone shift
         await db
           .insert(attendanceDaily)
           .values({
             empCd: result.empCd,
-            workDate: result.workDate,
+            workDate: workDateStr as any,
             shiftId: result.shiftId,
             firstIn: result.firstIn,
             lastOut: result.lastOut,
