@@ -183,11 +183,15 @@ export const attendanceRouter = router({
         empCd: d.empCd,
         workDate: d.workDate.toISOString().split('T')[0],
         shiftId: d.shiftId,
+        firstIn: d.firstIn?.toISOString() ?? null,
+        lastOut: d.lastOut?.toISOString() ?? null,
+        workedMinutes: d.workedMinutes,
         lateMinutes: d.lateMinutes,
         earlyLeaveMin: d.earlyLeaveMin,
         overtimeMinutes: d.overtimeMinutes,
         status: d.status,
         insideNow: d.insideNow,
+        computedAt: d.computedAt.toISOString(),
       }));
     }),
 
@@ -223,11 +227,15 @@ export const attendanceRouter = router({
         empCd: d.empCd,
         workDate: d.workDate.toISOString().split('T')[0],
         shiftId: d.shiftId,
+        firstIn: d.firstIn?.toISOString() ?? null,
+        lastOut: d.lastOut?.toISOString() ?? null,
+        workedMinutes: d.workedMinutes,
         lateMinutes: d.lateMinutes,
         earlyLeaveMin: d.earlyLeaveMin,
         overtimeMinutes: d.overtimeMinutes,
         status: d.status,
         insideNow: d.insideNow,
+        computedAt: d.computedAt.toISOString(),
       }));
     }),
 
