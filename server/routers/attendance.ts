@@ -9,6 +9,7 @@ import { PermissionAdjustmentService } from '../services/attendance/permissionAd
 import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
 import { runSyncOnce, resetSyncHistory } from '../services/attendance/syncEngine';
+import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendance/deviceSyncEngine';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
@@ -642,6 +643,121 @@ export const attendanceRouter = router({
         AuditLogService.log({
           action: 'sync_history_reset',
           details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
+
+  // Device Sync Procedures (ZKTeco direct connection)
+  deviceSyncNow: attendanceManagerProcedure
+    .input(z.object({}).optional())
+    .mutation(async ({ ctx }) => {
+      try {
+        const engine = getDeviceSyncEngine();
+        if (!engine) {
+          throw new Error('Device sync not initialized. Configure device IP in settings.');
+        }
+
+        const result = await engine.syncNow();
+        AuditLogService.log({
+          action: 'device_sync_triggered',
+          details: {
+            recordsImported: result.recordsImported,
+            recordsSkipped: result.recordsSkipped
+          },
+          status: result.status === 'completed' ? 'success' : 'error',
+        });
+
+        return {
+          success: result.status === 'completed',
+          status: result.status,
+          recordsImported: result.recordsImported,
+          recordsSkipped: result.recordsSkipped,
+          error: result.error,
+          completedAt: result.completedAt?.toISOString(),
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'device_sync_triggered',
+          details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
+
+  deviceSyncStatus: attendanceViewerProcedure
+    .input(z.object({}).optional())
+    .query(async () => {
+      const engine = getDeviceSyncEngine();
+      if (!engine) {
+        return {
+          initialized: false,
+          currentSync: null,
+        };
+      }
+
+      const status = engine.getCurrentSyncStatus();
+      return {
+        initialized: true,
+        currentSync: status
+          ? {
+              status: status.status,
+              recordsImported: status.recordsImported,
+              recordsSkipped: status.recordsSkipped,
+              startedAt: status.startedAt.toISOString(),
+              completedAt: status.completedAt?.toISOString(),
+              error: status.error,
+            }
+          : null,
+      };
+    }),
+
+  initializeDeviceSync: attendanceManagerProcedure
+    .input(
+      z.object({
+        deviceIp: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
+        devicePort: z.number().int().min(1).max(65535).default(5005),
+        enableAutoSync: z.boolean().default(false),
+        syncIntervalMinutes: z.number().int().min(5).max(1440).default(60),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const engine = await initializeDeviceSync({
+          deviceIp: input.deviceIp,
+          devicePort: input.devicePort,
+          enableAutoSync: input.enableAutoSync,
+          syncIntervalMinutes: input.syncIntervalMinutes,
+        });
+
+        AuditLogService.log({
+          action: 'device_sync_initialized',
+          details: {
+            deviceIp: input.deviceIp,
+            devicePort: input.devicePort,
+            autoSyncEnabled: input.enableAutoSync,
+          },
+          status: 'success',
+        });
+
+        return {
+          success: true,
+          message: `Connected to device at ${input.deviceIp}:${input.devicePort}`,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'device_sync_initialized',
+          details: { deviceIp: input.deviceIp, error },
           status: 'error',
         });
         return {

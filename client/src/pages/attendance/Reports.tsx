@@ -2,43 +2,47 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download } from "lucide-react";
+import { Download, Calendar } from "lucide-react";
 
-type ReportTab = "monthly" | "late" | "absent" | "ot" | "summary";
+type ReportTab = "summary" | "late" | "absent" | "ot" | "monthly";
 
 export default function Reports() {
-  const [date, setDate] = useState({
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
+  const [dates, setDates] = useState({
+    from: new Date().toISOString().split('T')[0],
+    to: new Date().toISOString().split('T')[0],
   });
 
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
 
+  // Extract year and month from selected dates for the monthly report queries
+  const selectedDate = new Date(dates.from);
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth() + 1;
+
   const monthlyQuery = (trpc as any).attendance.monthlyReport.useQuery({
-    year: date.year,
-    month: date.month,
+    year,
+    month,
   });
 
   const lateQuery = (trpc as any).attendance.lateReport.useQuery({
-    year: date.year,
-    month: date.month,
+    year,
+    month,
   });
 
   const absentQuery = (trpc as any).attendance.absentReport.useQuery({
-    year: date.year,
-    month: date.month,
+    year,
+    month,
   });
 
   const otQuery = (trpc as any).attendance.otReport.useQuery({
-    year: date.year,
-    month: date.month,
+    year,
+    month,
   });
 
   const summaryQuery = (trpc as any).attendance.summaryReport.useQuery({
-    year: date.year,
-    month: date.month,
+    year,
+    month,
   });
 
   const handleExportCSV = (data: any[], filename: string) => {
@@ -65,7 +69,7 @@ export default function Reports() {
 
   const renderTable = (data: any[], columns: string[]) => {
     if (!data || data.length === 0) {
-      return <div className="text-center py-8 text-gray-500">No data</div>;
+      return <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>;
     }
 
     return (
@@ -74,7 +78,7 @@ export default function Reports() {
           <thead>
             <tr className="border-b bg-gray-50">
               {columns.map((col) => (
-                <th key={col} className="text-left py-3 px-4 font-semibold">
+                <th key={col} className="text-right py-3 px-4 font-semibold">
                   {col}
                 </th>
               ))}
@@ -84,7 +88,7 @@ export default function Reports() {
             {data.map((row: any, idx: number) => (
               <tr key={idx} className="border-b hover:bg-gray-50">
                 {columns.map((col) => (
-                  <td key={col} className="py-2 px-4">
+                  <td key={col} className="py-2 px-4 text-right">
                     {row[col]}
                   </td>
                 ))}
@@ -96,65 +100,70 @@ export default function Reports() {
     );
   };
 
+  const getTabLabel = (tab: ReportTab) => {
+    const labels: { [key in ReportTab]: string } = {
+      summary: 'ملخص',
+      late: 'التأخير',
+      absent: 'الغياب',
+      ot: 'الساعات الإضافية',
+      monthly: 'شهري',
+    };
+    return labels[tab];
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Attendance Reports</h1>
+    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
+      <h1 className="text-3xl font-bold mb-6">تقارير الحضور</h1>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-lg">Period Selection</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            اختيار الفترة
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="w-32">
-              <label className="block text-sm font-medium mb-1">Year</label>
-              <Input
-                type="number"
-                min="2020"
-                max="2099"
-                value={date.year}
-                onChange={(e) =>
-                  setDate({ ...date, year: parseInt(e.target.value) })
-                }
+          <div className="flex gap-4 items-end flex-row-reverse">
+            <div>
+              <label className="block text-sm font-medium mb-1">إلى</label>
+              <input
+                type="date"
+                value={dates.to}
+                onChange={(e) => setDates({ ...dates, to: e.target.value })}
+                className="px-3 py-2 border rounded-md"
               />
             </div>
-            <div className="w-32">
-              <label className="block text-sm font-medium mb-1">Month</label>
-              <select
-                value={date.month}
-                onChange={(e) =>
-                  setDate({ ...date, month: parseInt(e.target.value) })
-                }
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>
-                    {new Date(2024, m - 1).toLocaleString("en-US", {
-                      month: "long",
-                    })}
-                  </option>
-                ))}
-              </select>
+            <div>
+              <label className="block text-sm font-medium mb-1">من</label>
+              <input
+                type="date"
+                value={dates.from}
+                onChange={(e) => setDates({ ...dates, from: e.target.value })}
+                className="px-3 py-2 border rounded-md"
+              />
             </div>
           </div>
+          <p className="text-sm text-gray-600 mt-3">
+            التقارير تُعرض بناءً على الشهر المختار: {year}/{month}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <div className="flex gap-2 border-b">
+          <div className="flex gap-2 border-b overflow-x-auto">
             {(["summary", "late", "absent", "ot", "monthly"] as ReportTab[]).map(
               (tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 font-medium ${
+                  className={`px-4 py-2 font-medium whitespace-nowrap ${
                     activeTab === tab
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {getTabLabel(tab)}
                 </button>
               )
             )}
@@ -172,17 +181,15 @@ export default function Reports() {
                     if (summaryQuery.data) {
                       handleExportCSV(
                         summaryQuery.data,
-                        `summary-${date.year}-${String(date.month).padStart(
-                          2,
-                          "0"
-                        )}.csv`
+                        `ملخص-${year}-${String(month).padStart(2, "0")}.csv`
                       );
                     }
                   }}
                   disabled={!summaryQuery.data || summaryQuery.data.length === 0}
+                  className="gap-2"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                  <Download className="w-4 h-4" />
+                  تصدير
                 </Button>
               </div>
               {summaryQuery.isLoading ? (
@@ -199,7 +206,6 @@ export default function Reports() {
                   "absentDays",
                   "leaveDays",
                   "totalLateMins",
-                  "totalOTHours",
                 ])
               )}
             </div>
@@ -215,17 +221,15 @@ export default function Reports() {
                     if (lateQuery.data) {
                       handleExportCSV(
                         lateQuery.data,
-                        `late-${date.year}-${String(date.month).padStart(
-                          2,
-                          "0"
-                        )}.csv`
+                        `تأخير-${year}-${String(month).padStart(2, "0")}.csv`
                       );
                     }
                   }}
                   disabled={!lateQuery.data || lateQuery.data.length === 0}
+                  className="gap-2"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                  <Download className="w-4 h-4" />
+                  تصدير
                 </Button>
               </div>
               {lateQuery.isLoading ? (
@@ -240,7 +244,6 @@ export default function Reports() {
                   "empName",
                   "lateDays",
                   "totalLateMins",
-                  "avgLateMins",
                 ])
               )}
             </div>
@@ -256,17 +259,15 @@ export default function Reports() {
                     if (absentQuery.data) {
                       handleExportCSV(
                         absentQuery.data,
-                        `absent-${date.year}-${String(date.month).padStart(
-                          2,
-                          "0"
-                        )}.csv`
+                        `غياب-${year}-${String(month).padStart(2, "0")}.csv`
                       );
                     }
                   }}
                   disabled={!absentQuery.data || absentQuery.data.length === 0}
+                  className="gap-2"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                  <Download className="w-4 h-4" />
+                  تصدير
                 </Button>
               </div>
               {absentQuery.isLoading ? (
@@ -291,17 +292,15 @@ export default function Reports() {
                     if (otQuery.data) {
                       handleExportCSV(
                         otQuery.data,
-                        `ot-${date.year}-${String(date.month).padStart(
-                          2,
-                          "0"
-                        )}.csv`
+                        `ساعات-إضافية-${year}-${String(month).padStart(2, "0")}.csv`
                       );
                     }
                   }}
                   disabled={!otQuery.data || otQuery.data.length === 0}
+                  className="gap-2"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                  <Download className="w-4 h-4" />
+                  تصدير
                 </Button>
               </div>
               {otQuery.isLoading ? (
@@ -326,17 +325,15 @@ export default function Reports() {
                     if (monthlyQuery.data) {
                       handleExportCSV(
                         monthlyQuery.data,
-                        `monthly-${date.year}-${String(date.month).padStart(
-                          2,
-                          "0"
-                        )}.csv`
+                        `شهري-${year}-${String(month).padStart(2, "0")}.csv`
                       );
                     }
                   }}
                   disabled={!monthlyQuery.data || monthlyQuery.data.length === 0}
+                  className="gap-2"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                  <Download className="w-4 h-4" />
+                  تصدير
                 </Button>
               </div>
               {monthlyQuery.isLoading ? (
@@ -354,7 +351,6 @@ export default function Reports() {
                   "absentDays",
                   "leaveDays",
                   "totalLateMins",
-                  "totalOTMins",
                 ])
               )}
             </div>
