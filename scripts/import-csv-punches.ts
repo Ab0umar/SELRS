@@ -11,6 +11,10 @@
  *   npx tsx scripts/import-csv-punches.ts "D:\Programs\fp\pulled_old_logs_p0_m0.csv" --from 2026-05-10 --to 2026-05-20
  */
 
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { getDb } from '../server/db';
@@ -77,9 +81,14 @@ async function main() {
     console.log(`  Range: ${fromDate?.toISOString() ?? 'start'} → ${toDate?.toISOString() ?? 'end'}`);
   }
 
+  if (!process.env.DATABASE_URL) {
+    console.error('DATABASE_URL is not set. Check that .env exists in the project root.');
+    process.exit(1);
+  }
+
   const db = await getDb();
   if (!db) {
-    console.error('Database not available');
+    console.error('Database not available. Verify DATABASE_URL:', process.env.DATABASE_URL);
     process.exit(1);
   }
 
