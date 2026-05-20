@@ -12,8 +12,9 @@
  */
 
 import * as path from 'path';
+import * as url from 'url';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(url.fileURLToPath(import.meta.url), '../../.env') });
 
 import * as fs from 'fs';
 import * as crypto from 'crypto';
