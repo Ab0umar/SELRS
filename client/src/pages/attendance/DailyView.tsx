@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ export default function DailyView() {
   });
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const utils = trpc.useUtils();
 
   const handleLoadRange = async () => {
     if (!dates.from || !dates.to) return;
@@ -25,7 +26,7 @@ export default function DailyView() {
     for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       try {
-        const response = await (trpc as any).attendance.dailyByDate.fetch({ date: dateStr });
+        const response = await utils.attendance.dailyByDate.fetch({ date: dateStr });
         allRecords = [...allRecords, ...response];
       } catch (e) {
         console.error(`Failed to load ${dateStr}:`, e);
