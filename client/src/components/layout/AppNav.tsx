@@ -64,92 +64,17 @@ export type NavGroupSection = {
 
 export type NavGroup = NavGroupSection | NavLeaf;
 
-/** Attendance — nested routes; section title opens dashboard */
+/** Attendance — 5 items only */
 export const attendanceNavGroup: NavGroupSection = {
-  label: "Attendance",
+  label: "الحضور",
   groupPath: "/attendance",
   navKey: "attendance",
   items: [
-    {
-      icon: LayoutDashboard,
-      label: "Dashboard",
-      path: "/attendance",
-    },
-    {
-      icon: Activity,
-      label: "Live",
-      path: "/attendance/live",
-    },
-    {
-      icon: Calendar,
-      label: "Daily",
-      path: "/attendance/daily",
-    },
-    {
-      icon: Users,
-      label: "Employees",
-      path: "/attendance/employees",
-    },
-    {
-      icon: FileText,
-      label: "Raw Logs",
-      path: "/attendance/logs",
-    },
-    {
-      icon: BarChart3,
-      label: "Reports",
-      path: "/attendance/reports",
-    },
-    {
-      icon: CalendarCheck,
-      label: "Leaves",
-      path: "/attendance/leaves",
-    },
-    {
-      icon: Settings,
-      label: "Settings",
-      path: "/attendance/settings",
-    },
-    {
-      icon: Wrench,
-      label: "Admin",
-      path: "/attendance/admin",
-    },
-    {
-      icon: Smartphone,
-      label: "Device",
-      path: "/attendance/admin/device",
-    },
-    {
-      icon: Timer,
-      label: "Shifts",
-      path: "/attendance/admin/shifts",
-    },
-    {
-      icon: UserCog,
-      label: "Shift Assignments",
-      path: "/attendance/admin/assignments",
-    },
-    {
-      icon: Clock,
-      label: "Permissions",
-      path: "/attendance/permissions",
-    },
-    {
-      icon: FileText,
-      label: "Perm. Report",
-      path: "/attendance/permission-report",
-    },
-    {
-      icon: CalendarCheck,
-      label: "Leave Balance",
-      path: "/attendance/leave-balance",
-    },
-    {
-      icon: Star,
-      label: "Holidays",
-      path: "/attendance/holidays",
-    },
+    { icon: LayoutDashboard, label: "لوحة التحكم",  path: "/attendance" },
+    { icon: Activity,        label: "مباشر",         path: "/attendance/live" },
+    { icon: Users,           label: "الموظفون",      path: "/attendance/employees" },
+    { icon: BarChart3,       label: "التقارير",      path: "/attendance/reports" },
+    { icon: Settings,        label: "الإعدادات",     path: "/attendance/settings" },
   ],
 };
 

@@ -110,24 +110,10 @@ const StockroomShell = lazy(() => import("./pages/StockroomShell"));
 import AttendanceLayout from "./pages/attendance/AttendanceLayout";
 const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
 const AttendanceLive = lazy(() => import("./pages/attendance/LiveBoard"));
-const AttendanceDaily = lazy(() => import("./pages/attendance/DailyView"));
-const AttendanceEmployees = lazy(() => import("./pages/attendance/EmployeesList"));
 const AttendanceEmployeeDetail = lazy(() => import("./pages/attendance/EmployeeDetail"));
-const AttendanceLogs = lazy(() => import("./pages/attendance/RawLogs"));
-const AttendanceReports = lazy(() => import("./pages/attendance/Reports"));
-const AttendanceLeaves = lazy(() => import("./pages/attendance/LeaveManagement"));
-const AttendanceSettings = lazy(() => import("./pages/attendance/Settings"));
-const AttendanceAdminDashboard = lazy(() => import("./pages/attendance/admin/AdminDashboard"));
-const AttendanceSyncStatus = lazy(() => import("./pages/attendance/admin/SyncStatus"));
-const AttendanceDevice = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
-const AttendanceConsole = lazy(() => import("./pages/attendance/admin/DeviceConsole"));
-const AttendanceCorrections = lazy(() => import("./pages/attendance/admin/BatchCorrections"));
-const AttendanceShiftManagement = lazy(() => import("./pages/attendance/ShiftManagement"));
-const AttendanceShiftAssignments = lazy(() => import("./pages/attendance/ShiftAssignments"));
-const AttendancePermissions = lazy(() => import("./pages/attendance/Permissions"));
-const AttendanceHolidays = lazy(() => import("./pages/attendance/Holidays"));
-const AttendancePermissionReport = lazy(() => import("./pages/attendance/PermissionReport"));
-const AttendanceLeaveBalanceReport = lazy(() => import("./pages/attendance/LeaveBalanceReport"));
+const AttendanceEmployeesHub = lazy(() => import("./pages/attendance/EmployeesHub"));
+const AttendanceReportsHub = lazy(() => import("./pages/attendance/ReportsHub"));
+const AttendanceSettingsHub = lazy(() => import("./pages/attendance/SettingsHub"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -291,28 +277,13 @@ const Router = memo(function Router() {
 
       <Route path={"/dashboard"} component={DashboardRouteGate} />
 
-      {/* Accounting routes */}
-      {/* Attendance Module Routes */}
+      {/* Attendance Module Routes — 5 top-level pages */}
       <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHome /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLive /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/daily"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDaily /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeeDetail /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployees /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/logs"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLogs /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReports /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/leaves"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLeaves /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettings /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceAdminDashboard /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSyncStatus /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDevice /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceConsole /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/corrections"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceCorrections /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/shifts"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceShiftManagement /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/assignments"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceShiftAssignments /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/permissions"} component={() => <ProtectedRoute><AttendanceLayout><AttendancePermissions /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/holidays"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHolidays /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/permission-report"} component={() => <ProtectedRoute><AttendanceLayout><AttendancePermissionReport /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/leave-balance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLeaveBalanceReport /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeesHub /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReportsHub /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettingsHub /></AttendanceLayout></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
