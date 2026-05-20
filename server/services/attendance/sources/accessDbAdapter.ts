@@ -60,6 +60,16 @@ export class AccessDbAdapter implements AttendanceSource {
         return;
       }
 
+      // Log available tables for debugging
+      try {
+        const allTables = db.getTableNames?.() || [];
+        console.log('[attendance:accessDbAdapter] Available tables:', allTables);
+        const punchTableExists = allTables.includes(PUNCH_TABLE);
+        console.log(`[attendance:accessDbAdapter] Punch table "${PUNCH_TABLE}" exists:`, punchTableExists);
+      } catch (e) {
+        // Silent fail on debug logging
+      }
+
       // Query punches where punchTime >= sinceLocal, sorted ascending
       // mdb-reader interface is approximate; exact API will depend on the package
       const rows = db.getTable(PUNCH_TABLE).getData();
