@@ -7,12 +7,13 @@
 export interface Shift {
   id: number;
   name: string;
-  startTime: string; // HH:mm
+  startTime: string; // HH:mm (or multiple times for split shifts, comma-separated)
   endTime: string;
   crossesMidnight: boolean;
-  graceLateMin: number;
-  graceEarlyMin: number;
+  graceLateMin: number; // Default: 15 (Taratus: Adjusted value)
+  graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
   breakMinutes: number;
+  roundingMinutes?: number; // Default: 30 (Taratus: Round value)
 }
 
 export interface RawPunchRecord {
@@ -206,12 +207,22 @@ export function computeDay(ctx: DayContext): DayResult {
     const lateMs = inMs - shiftStartDt.getTime();
     const lateMin = Math.round(lateMs / 60_000);
     result.lateMinutes = Math.max(0, lateMin - ctx.shift.graceLateMin);
+    // Round to Taratus rounding increment (default 30 minutes)
+    const roundingMin = ctx.shift.roundingMinutes ?? 30;
+    if (roundingMin > 0 && result.lateMinutes > 0) {
+      result.lateMinutes = Math.ceil(result.lateMinutes / roundingMin) * roundingMin;
+    }
   }
 
   if (outMs < shiftEndDt.getTime()) {
     const earlyMs = shiftEndDt.getTime() - outMs;
     const earlyMin = Math.round(earlyMs / 60_000);
     result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
+    // Round to Taratus rounding increment (default 30 minutes)
+    const roundingMin = ctx.shift.roundingMinutes ?? 30;
+    if (roundingMin > 0 && result.earlyLeaveMin > 0) {
+      result.earlyLeaveMin = Math.ceil(result.earlyLeaveMin / roundingMin) * roundingMin;
+    }
   }
 
   // Compute overtime
@@ -220,6 +231,11 @@ export function computeDay(ctx: DayContext): DayResult {
 
   if (result.workedMinutes && result.workedMinutes > shiftDurationMin) {
     result.overtimeMinutes = result.workedMinutes - shiftDurationMin;
+    // Round to Taratus rounding increment (default 30 minutes)
+    const roundingMin = ctx.shift.roundingMinutes ?? 30;
+    if (roundingMin > 0 && result.overtimeMinutes > 0) {
+      result.overtimeMinutes = Math.ceil(result.overtimeMinutes / roundingMin) * roundingMin;
+    }
   }
 
   // Determine status
