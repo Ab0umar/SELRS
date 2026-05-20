@@ -9,6 +9,7 @@ import { PermissionAdjustmentService } from '../services/attendance/permissionAd
 import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
 import { runSyncOnce } from '../services/attendance/syncEngine';
+import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves } from '../../drizzle/schema';
 import { desc, eq, and, gte, lte } from 'drizzle-orm';
@@ -68,6 +69,28 @@ export const attendanceRouter = router({
               error: current.error,
             }
           : null,
+      };
+    }),
+
+  employeesList: attendanceViewerProcedure
+    .input(z.object({}).optional())
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const employees = await db
+        .select()
+        .from(attendanceEmployees)
+        .orderBy(attendanceEmployees.empCd);
+
+      return {
+        employees: employees.map((e) => ({
+          empCd: e.empCd,
+          fullName: e.fullName,
+          department: e.department,
+          active: e.active,
+        })),
+        total: employees.length,
       };
     }),
 
@@ -589,6 +612,47 @@ export const attendanceRouter = router({
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
           action: 'manual_sync_triggered',
+          details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
+
+  materializeDaily: attendanceManagerProcedure
+    .input(
+      z.object({
+        fromDate: z.string().optional(), // YYYY-MM-DD, defaults to 30 days ago
+        toDate: z.string().optional(), // YYYY-MM-DD, defaults to today
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const toDate = input.toDate ? new Date(input.toDate) : new Date();
+        const fromDate = input.fromDate
+          ? new Date(input.fromDate)
+          : new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const rowsWritten = await dailyMaterializer.recomputeRange(fromDate, toDate);
+
+        AuditLogService.log({
+          action: 'materialize_daily_triggered',
+          details: { fromDate: fromDate.toISOString(), toDate: toDate.toISOString(), rowsWritten },
+          status: 'success',
+        });
+
+        return {
+          success: true,
+          rowsWritten,
+          message: `Materialized ${rowsWritten} daily attendance records`,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'materialize_daily_triggered',
           details: { error },
           status: 'error',
         });

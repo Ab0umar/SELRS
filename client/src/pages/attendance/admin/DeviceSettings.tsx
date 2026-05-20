@@ -22,6 +22,7 @@ export default function DeviceSettings() {
   const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncNow = tRPC.attendance.syncNow.useMutation();
+  const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
 
   // Populate form when settings load from server
   useEffect(() => {
@@ -90,6 +91,16 @@ export default function DeviceSettings() {
       setShowSuccess(true);
     } catch (error) {
       console.error('Failed to sync:', error);
+    }
+  };
+
+  const handleMaterializeDaily = async () => {
+    try {
+      const result = await materializeDaily.mutateAsync({});
+      console.log('Materialize result:', result);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Failed to materialize:', error);
     }
   };
 
@@ -269,6 +280,39 @@ export default function DeviceSettings() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{String(syncNow.error)}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Materialize Daily Attendance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Materialize Daily Attendance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Build daily attendance records from raw punch data. Use this if daily records are missing or need to be refreshed after sync.
+          </p>
+          <Button
+            onClick={handleMaterializeDaily}
+            disabled={materializeDaily.isPending}
+            className="w-full bg-amber-600 hover:bg-amber-700"
+          >
+            {materializeDaily.isPending ? 'Computing...' : 'Materialize Daily Records'}
+          </Button>
+          {materializeDaily.data && (
+            <Alert className="border-green-600 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                {materializeDaily.data.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          {materializeDaily.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{String(materializeDaily.error)}</AlertDescription>
             </Alert>
           )}
         </CardContent>
