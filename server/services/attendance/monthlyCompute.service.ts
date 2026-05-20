@@ -58,7 +58,7 @@ export class MonthlyComputeService {
       const agg = grouped.get(key)!;
       agg.totalDays++;
 
-      if (d.status === 'present') {
+      if (d.status === 'present' || d.status === 'partial' || d.status === 'missing_checkout') {
         agg.presentDays++;
       } else if (d.status === 'absent') {
         agg.absentDays++;
@@ -186,18 +186,6 @@ export class MonthlyComputeService {
     let savedCount = 0;
 
     for (const m of monthly) {
-      // Count partial and missing_checkout days
-      const [dailyData] = await db
-        .select()
-        .from(attendanceDaily)
-        .where(
-          and(
-            eq(attendanceDaily.empCd, m.empCd),
-            gte(attendanceDaily.workDate, new Date(year, month - 1, 1)),
-            lte(attendanceDaily.workDate, new Date(year, month, 0))
-          )
-        );
-
       const allDailyRecords = await db
         .select()
         .from(attendanceDaily)
@@ -211,6 +199,11 @@ export class MonthlyComputeService {
 
       const partialDays = allDailyRecords.filter((d) => d.status === 'partial').length;
       const missingCheckoutDays = allDailyRecords.filter((d) => d.status === 'missing_checkout').length;
+      // Recalculate presentDays to include partial + missing_checkout
+      m.presentDays = allDailyRecords.filter(
+        (d) => d.status === 'present' || d.status === 'partial' || d.status === 'missing_checkout'
+      ).length;
+      m.absentDays = allDailyRecords.filter((d) => d.status === 'absent').length;
 
       await db
         .insert(attendanceMonthlyReport)

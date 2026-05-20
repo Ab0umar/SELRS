@@ -82,6 +82,9 @@ export class DailyMaterializer {
         // Get punches for this day and empCd
         const punches = await PunchesService.getPunchesByRange(workDate, workDate, empCd);
 
+        // Skip days with no shift assignment AND no punches — not a working day
+        if (!shift && punches.length === 0) continue;
+
         // Get break minutes for this day (TODO: configurable breaks)
         const breakMinutes = 0;
 
