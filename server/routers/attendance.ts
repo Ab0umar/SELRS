@@ -166,24 +166,6 @@ export const attendanceRouter = router({
         date: z.string(), // YYYY-MM-DD
       })
     )
-    .output(
-      z.array(
-        z.object({
-          empCd: z.string(),
-          workDate: z.string(),
-          shiftId: z.number().nullable(),
-          firstIn: z.string().nullable(),
-          lastOut: z.string().nullable(),
-          workedMinutes: z.number().nullable(),
-          lateMinutes: z.number(),
-          earlyLeaveMin: z.number(),
-          overtimeMinutes: z.number(),
-          status: z.string(),
-          insideNow: z.boolean(),
-          computedAt: z.string(),
-        })
-      )
-    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('Database not available');
@@ -220,24 +202,6 @@ export const attendanceRouter = router({
         fromDate: z.string(), // YYYY-MM-DD
         toDate: z.string(), // YYYY-MM-DD
       })
-    )
-    .output(
-      z.array(
-        z.object({
-          empCd: z.string(),
-          workDate: z.string(),
-          shiftId: z.number().nullable(),
-          firstIn: z.string().nullable(),
-          lastOut: z.string().nullable(),
-          workedMinutes: z.number().nullable(),
-          lateMinutes: z.number(),
-          earlyLeaveMin: z.number(),
-          overtimeMinutes: z.number(),
-          status: z.string(),
-          insideNow: z.boolean(),
-          computedAt: z.string(),
-        })
-      )
     )
     .query(async ({ input }) => {
       const db = await getDb();
