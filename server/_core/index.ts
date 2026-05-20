@@ -1406,7 +1406,7 @@ async function startServer() {
   });
   await DeviceSettingsService.initializeSettings();
   startMssqlSyncScheduler();
-  startAttendanceSyncScheduler();
+  // startAttendanceSyncScheduler(); // Disabled: Use manual sync via attendance.syncNow procedure
   startPunchReception();
   await startBlackIceFolderImporter();
   await startBlackIceOcrLinker();

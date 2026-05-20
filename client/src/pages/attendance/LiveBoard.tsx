@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -98,11 +97,7 @@ export default function LiveBoard() {
   }, [punchesQuery.data]);
 
   // Device status
-  const { data: deviceStatus } = useQuery({
-    queryKey: ['deviceStatus'],
-    queryFn: () => tRPC.attendance.deviceStatus.query(),
-    refetchInterval: 5000,
-  });
+  const { data: deviceStatus } = tRPC.attendance.deviceStatus.useQuery(undefined, { refetchInterval: 5000 });
 
   const toggleMonitoring = () => {
     setIsMonitoring(!isMonitoring);

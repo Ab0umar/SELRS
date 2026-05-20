@@ -21,6 +21,7 @@ export default function DeviceSettings() {
   const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
   const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
+  const syncNow = tRPC.attendance.syncNow.useMutation();
 
   // Populate form when settings load from server
   useEffect(() => {
@@ -79,6 +80,16 @@ export default function DeviceSettings() {
       await statusQuery.refetch();
     } catch (error) {
       console.error('Failed to reset connection:', error);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    try {
+      const result = await syncNow.mutateAsync();
+      console.log('Sync result:', result);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Failed to sync:', error);
     }
   };
 
@@ -227,6 +238,39 @@ export default function DeviceSettings() {
           >
             {updateSettings.isPending ? 'Saving...' : 'Save Configuration'}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Sync from Access DB */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Database Sync</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Sync attendance data from Tararus Access DB to MySQL database
+          </p>
+          <Button
+            onClick={handleSyncNow}
+            disabled={syncNow.isPending}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            {syncNow.isPending ? 'Syncing...' : 'Sync Now'}
+          </Button>
+          {syncNow.data && (
+            <Alert className="border-green-600 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Sync {syncNow.data.status} - Rows: {syncNow.data.rowsInserted} inserted
+              </AlertDescription>
+            </Alert>
+          )}
+          {syncNow.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{String(syncNow.error)}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

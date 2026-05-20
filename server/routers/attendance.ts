@@ -8,6 +8,7 @@ import { LeaveManagementService } from '../services/attendance/leaveManagement.s
 import { PermissionAdjustmentService } from '../services/attendance/permissionAdjustment.service';
 import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
+import { runSyncOnce } from '../services/attendance/syncEngine';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves } from '../../drizzle/schema';
 import { desc, eq, and, gte, lte } from 'drizzle-orm';
@@ -564,6 +565,38 @@ export const attendanceRouter = router({
         results,
         report,
       };
+    }),
+
+  syncNow: attendanceManagerProcedure
+    .input(z.object({}).optional())
+    .mutation(async ({ ctx }) => {
+      try {
+        const result = await runSyncOnce({ trigger: 'manual', triggeredBy: ctx.user.id });
+        AuditLogService.log({
+          action: 'manual_sync_triggered',
+          details: { runId: result.runId, status: result.status },
+          status: result.status === 'failed' ? 'error' : 'success',
+        });
+        return {
+          success: result.status !== 'failed',
+          runId: result.runId,
+          status: result.status,
+          error: result.error,
+          rowsInserted: result.rowsInserted,
+          rowsSeen: result.rowsSeen,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'manual_sync_triggered',
+          details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
     }),
 
   healthCheck: attendanceViewerProcedure.query(async () => {
