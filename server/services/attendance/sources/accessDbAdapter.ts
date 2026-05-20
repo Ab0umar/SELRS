@@ -74,6 +74,13 @@ export class AccessDbAdapter implements AttendanceSource {
       // mdb-reader interface is approximate; exact API will depend on the package
       const rows = db.getTable(PUNCH_TABLE).getData();
 
+      if (rows.length > 0) {
+        console.log(`[attendance:accessDbAdapter] ${PUNCH_TABLE} columns:`, Object.keys(rows[0]));
+        console.log(`[attendance:accessDbAdapter] First punch row:`, rows[0]);
+      } else {
+        console.log(`[attendance:accessDbAdapter] ${PUNCH_TABLE} is empty (0 rows)`);
+      }
+
       for (const row of rows) {
         const punchAt = this.parseDate(row[PUNCH_TIME_COL]);
 
