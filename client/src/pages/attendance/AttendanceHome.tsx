@@ -31,6 +31,8 @@ const navCards = [
   { icon: Timer,          label: "الورديات",            desc: "إعداد أوقات الدوام",              path: "/attendance/admin/shifts" },
   { icon: UserCog,        label: "تعيين الورديات",      desc: "ربط الموظفين بالورديات",          path: "/attendance/admin/assignments" },
   { icon: Clock,          label: "الأذونات",            desc: "أذونات الدخول والخروج",            path: "/attendance/permissions" },
+  { icon: FileText,       label: "تقرير الأذونات",      desc: "ملخص الأذونات المستخدمة شهرياً",   path: "/attendance/permission-report" },
+  { icon: CalendarCheck,  label: "رصيد الإجازات",       desc: "الرصيد والمستخدم والمتبقي",        path: "/attendance/leave-balance" },
   { icon: Star,           label: "الإجازات الرسمية",    desc: "العطل والإجازات الرسمية",         path: "/attendance/holidays" },
   { icon: Wrench,         label: "لوحة الإدارة",        desc: "إدارة عامة للوحدة",              path: "/attendance/admin" },
   { icon: LayoutDashboard,label: "حالة المزامنة",       desc: "آخر تشغيل وسجل الأخطاء",         path: "/attendance/admin/sync" },

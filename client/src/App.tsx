@@ -126,6 +126,8 @@ const AttendanceShiftManagement = lazy(() => import("./pages/attendance/ShiftMan
 const AttendanceShiftAssignments = lazy(() => import("./pages/attendance/ShiftAssignments"));
 const AttendancePermissions = lazy(() => import("./pages/attendance/Permissions"));
 const AttendanceHolidays = lazy(() => import("./pages/attendance/Holidays"));
+const AttendancePermissionReport = lazy(() => import("./pages/attendance/PermissionReport"));
+const AttendanceLeaveBalanceReport = lazy(() => import("./pages/attendance/LeaveBalanceReport"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -309,6 +311,8 @@ const Router = memo(function Router() {
       <Route path={"/attendance/admin/assignments"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceShiftAssignments /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/permissions"} component={() => <ProtectedRoute><AttendanceLayout><AttendancePermissions /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/holidays"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHolidays /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/permission-report"} component={() => <ProtectedRoute><AttendanceLayout><AttendancePermissionReport /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/leave-balance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLeaveBalanceReport /></AttendanceLayout></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />

@@ -136,6 +136,16 @@ export const attendanceNavGroup: NavGroupSection = {
       path: "/attendance/permissions",
     },
     {
+      icon: FileText,
+      label: "Perm. Report",
+      path: "/attendance/permission-report",
+    },
+    {
+      icon: CalendarCheck,
+      label: "Leave Balance",
+      path: "/attendance/leave-balance",
+    },
+    {
       icon: Star,
       label: "Holidays",
       path: "/attendance/holidays",
