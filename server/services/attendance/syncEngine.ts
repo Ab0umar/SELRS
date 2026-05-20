@@ -123,16 +123,26 @@ export async function runSyncOnce(
         const punch = record.row;
 
         // Try to insert (dedup via UNIQUE constraint + source_hash)
-        const inserted = await PunchesService.insertPunchIgnore(punch, source.name);
-        if (inserted) {
-          rowsInserted++;
-          if (!maxPunchAt || punch.punchAt > maxPunchAt) {
-            maxPunchAt = punch.punchAt;
+        try {
+          const inserted = await PunchesService.insertPunchIgnore(punch, source.name);
+          if (inserted) {
+            rowsInserted++;
+            if (!maxPunchAt || punch.punchAt > maxPunchAt) {
+              maxPunchAt = punch.punchAt;
+            }
+          } else {
+            rowsSkipped++;
           }
-        } else {
+        } catch (punchErr) {
+          console.error('[attendance:sync] Punch insert error:', punchErr);
           rowsSkipped++;
         }
       }
+
+      console.log(
+        `[attendance:sync] Punch sync summary: rowsSeen=${rowsSeen}, ` +
+        `rowsInserted=${rowsInserted}, rowsSkipped=${rowsSkipped}, rowsQuarantined=${rowsQuarantined}`
+      );
 
       // Update HWM if we saw any punches
       if (maxPunchAt) {
