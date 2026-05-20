@@ -25,17 +25,33 @@ export class PunchesService {
     const now = new Date();
 
     try {
-      const result = await db.execute(
-        sql`INSERT IGNORE INTO ${attendancePunches}
-          (emp_cd, punch_at, direction, device_id, source, source_row_id, source_hash, imported_at)
-          VALUES (${punch.empCd}, ${punch.punchAt}, ${punch.direction ?? 'unknown'}, ${punch.deviceId ?? null},
-                  ${source}, ${punch.sourceRowId}, ${sourceHash}, ${now})`
-      );
+      // Use Drizzle insert with proper structure
+      await db.insert(attendancePunches).values({
+        empCd: punch.empCd,
+        punchAt: punch.punchAt,
+        direction: punch.direction ?? 'unknown',
+        deviceId: punch.deviceId ?? null,
+        source,
+        sourceRowId: punch.sourceRowId,
+        sourceHash,
+        importedAt: now,
+      });
 
-      // INSERT IGNORE returns affectedRows=0 if duplicate, 1 if inserted
-      return (result as any)?.[0]?.affectedRows > 0;
-    } catch {
-      // Likely duplicate, return false
+      return true;
+    } catch (err: any) {
+      // If error is duplicate key (error code 1062), return false (not inserted)
+      if (err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062) {
+        return false; // Duplicate, skipped
+      }
+      // Log unexpected errors
+      console.error('[PunchesService] insertPunchIgnore unexpected error:', {
+        empCd: punch.empCd,
+        punchAt: punch.punchAt.toISOString(),
+        sourceRowId: punch.sourceRowId,
+        error: err instanceof Error ? err.message : String(err),
+        code: err?.code,
+        errno: err?.errno,
+      });
       return false;
     }
   }
