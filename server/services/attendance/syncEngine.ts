@@ -90,9 +90,8 @@ export async function runSyncOnce(
     // Load previous HWM and apply safety window rewind
     const prevHwm = await getLastHwm(db, source.name);
     const safetyRewindMs = SAFETY_WINDOW_MINUTES * 60 * 1000;
-    // If no HWM exists, start from 2 years ago to capture historical data
-    const defaultSince = new Date();
-    defaultSince.setDate(defaultSince.getDate() - 730);
+    // If no HWM exists, start from Jan 1 of current year (2026 only)
+    const defaultSince = new Date(new Date().getFullYear(), 0, 1);
     const sinceLocal = prevHwm && prevHwm instanceof Date ? new Date(prevHwm.getTime() - safetyRewindMs) : defaultSince;
 
     // Sync employees first
