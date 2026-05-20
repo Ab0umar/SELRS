@@ -8,7 +8,7 @@ import { LeaveManagementService } from '../services/attendance/leaveManagement.s
 import { PermissionAdjustmentService } from '../services/attendance/permissionAdjustment.service';
 import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
-import { runSyncOnce } from '../services/attendance/syncEngine';
+import { runSyncOnce, resetSyncHistory } from '../services/attendance/syncEngine';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
@@ -612,6 +612,34 @@ export const attendanceRouter = router({
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
           action: 'manual_sync_triggered',
+          details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
+
+  resetSyncHistory: attendanceManagerProcedure
+    .input(z.object({}).optional())
+    .mutation(async ({ ctx }) => {
+      try {
+        await resetSyncHistory();
+        AuditLogService.log({
+          action: 'sync_history_reset',
+          details: { triggeredBy: ctx.user.id },
+          status: 'success',
+        });
+        return {
+          success: true,
+          message: 'Sync history cleared. Next sync will import all data from last 2 years.',
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'sync_history_reset',
           details: { error },
           status: 'error',
         });

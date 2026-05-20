@@ -90,9 +90,9 @@ export async function runSyncOnce(
     // Load previous HWM and apply safety window rewind
     const prevHwm = await getLastHwm(db, source.name);
     const safetyRewindMs = SAFETY_WINDOW_MINUTES * 60 * 1000;
-    // If no HWM exists, start from 60 days ago (not 1970!)
+    // If no HWM exists, start from 2 years ago to capture historical data
     const defaultSince = new Date();
-    defaultSince.setDate(defaultSince.getDate() - 60);
+    defaultSince.setDate(defaultSince.getDate() - 730);
     const sinceLocal = prevHwm && prevHwm instanceof Date ? new Date(prevHwm.getTime() - safetyRewindMs) : defaultSince;
 
     // Sync employees first
@@ -308,6 +308,19 @@ async function updateHwm(db: any, runId: number, hwm: Date): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(attendanceSyncRuns.id, runId));
+}
+
+export async function resetSyncHistory(): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+
+  await db
+    .update(attendanceSyncRuns)
+    .set({
+      highWaterMark: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(attendanceSyncRuns.source, 'access'));
 }
 
 function sanitizeError(err: unknown): string {
