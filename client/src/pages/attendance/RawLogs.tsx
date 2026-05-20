@@ -129,13 +129,13 @@ export default function RawLogs() {
             </div>
           ) : rawPunchesQuery.data?.punches && rawPunchesQuery.data.punches.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-4">Employee</th>
-                    <th className="text-left py-2 px-4">Date Time</th>
-                    <th className="text-left py-2 px-4">Direction</th>
-                    <th className="text-left py-2 px-4">Device</th>
+                    <th className="text-right py-2 px-4">الموظف</th>
+                    <th className="text-right py-2 px-4">التاريخ والوقت</th>
+                    <th className="text-right py-2 px-4">الاتجاه</th>
+                    <th className="text-right py-2 px-4">الجهاز</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -143,7 +143,7 @@ export default function RawLogs() {
                     <tr key={idx} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-4 font-mono">{punch.empCd}</td>
                       <td className="py-2 px-4">
-                        {new Date(punch.punchAt).toLocaleString()}
+                        {new Date(punch.punchAt).toLocaleString('ar-EG')}
                       </td>
                       <td className="py-2 px-4">
                         <span
@@ -153,7 +153,7 @@ export default function RawLogs() {
                               : "bg-blue-100 text-blue-800"
                           }`}
                         >
-                          {punch.direction === "in" ? "IN" : "OUT"}
+                          {punch.direction === "in" ? "دخول" : "خروج"}
                         </span>
                       </td>
                       <td className="py-2 px-4 text-xs text-gray-500">

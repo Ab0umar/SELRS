@@ -147,17 +147,17 @@ export default function EmployeeDetail() {
             </div>
           ) : dailyQuery.data && dailyQuery.data.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-4 font-semibold">Date</th>
-                    <th className="text-left py-3 px-4 font-semibold">First In</th>
-                    <th className="text-left py-3 px-4 font-semibold">Last Out</th>
-                    <th className="text-right py-3 px-4 font-semibold">Worked (min)</th>
-                    <th className="text-right py-3 px-4 font-semibold">Late (min)</th>
-                    <th className="text-right py-3 px-4 font-semibold">Early (min)</th>
-                    <th className="text-right py-3 px-4 font-semibold">OT (min)</th>
-                    <th className="text-left py-3 px-4 font-semibold">Status</th>
+                    <th className="text-right py-3 px-4 font-semibold">التاريخ</th>
+                    <th className="text-right py-3 px-4 font-semibold">أول دخول</th>
+                    <th className="text-right py-3 px-4 font-semibold">آخر خروج</th>
+                    <th className="text-right py-3 px-4 font-semibold">وقت العمل (د)</th>
+                    <th className="text-right py-3 px-4 font-semibold">التأخير (د)</th>
+                    <th className="text-right py-3 px-4 font-semibold">مبكر (د)</th>
+                    <th className="text-right py-3 px-4 font-semibold">إضافي (د)</th>
+                    <th className="text-right py-3 px-4 font-semibold">الحالة</th>
                   </tr>
                 </thead>
                 <tbody>

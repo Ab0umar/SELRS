@@ -106,10 +106,10 @@ export function pairPunches(
     }
   }
 
-  // First and last
+  // First and last — need at least 2 distinct punches to have a lastOut
   return {
     firstIn: collapsed[0] ?? null,
-    lastOut: collapsed[collapsed.length - 1] ?? null,
+    lastOut: collapsed.length > 1 ? collapsed[collapsed.length - 1] : null,
   };
 }
 

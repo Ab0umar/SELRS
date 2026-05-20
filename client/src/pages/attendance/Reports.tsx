@@ -74,7 +74,7 @@ export default function Reports() {
 
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" dir="rtl">
           <thead>
             <tr className="border-b bg-gray-50">
               {columns.map((col) => (

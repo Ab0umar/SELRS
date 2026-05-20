@@ -44,6 +44,8 @@ import {
   LayoutDashboard,
   Calendar,
   BarChart3,
+  Timer,
+  UserCog,
 } from "lucide-react";
 
 export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
@@ -116,6 +118,16 @@ export const attendanceNavGroup: NavGroupSection = {
       icon: Smartphone,
       label: "Device",
       path: "/attendance/admin/device",
+    },
+    {
+      icon: Timer,
+      label: "Shifts",
+      path: "/attendance/admin/shifts",
+    },
+    {
+      icon: UserCog,
+      label: "Shift Assignments",
+      path: "/attendance/admin/assignments",
     },
   ],
 };

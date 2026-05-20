@@ -165,49 +165,21 @@ export default function DailyView() {
               <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-right py-3 px-4 font-semibold">الحالة</th>
-                    <th className="text-right py-3 px-4 font-semibold">الساعات الإضافية</th>
-                    <th className="text-right py-3 px-4 font-semibold">المغادرة المبكرة</th>
-                    <th className="text-right py-3 px-4 font-semibold">التأخير (دقيقة)</th>
+                    <th className="text-right py-3 px-4 font-semibold">الموظف</th>
+                    <th className="text-right py-3 px-4 font-semibold">التاريخ</th>
                     <th className="text-right py-3 px-4 font-semibold">وقت الحضور</th>
                     <th className="text-right py-3 px-4 font-semibold">وقت المغادرة</th>
-                    <th className="text-right py-3 px-4 font-semibold">التاريخ</th>
-                    <th className="text-right py-3 px-4 font-semibold">الموظف</th>
+                    <th className="text-right py-3 px-4 font-semibold">التأخير (دقيقة)</th>
+                    <th className="text-right py-3 px-4 font-semibold">المغادرة المبكرة</th>
+                    <th className="text-right py-3 px-4 font-semibold">الساعات الإضافية</th>
+                    <th className="text-right py-3 px-4 font-semibold">الحالة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map((record: any, idx: number) => (
                     <tr key={idx} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(
-                            record.status
-                          )}`}
-                        >
-                          {getStatusLabel(record.status)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {record.overtimeMinutes > 0 ? (
-                          <span className="text-blue-600 font-semibold">{record.overtimeMinutes}</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {record.earlyLeaveMin > 0 ? (
-                          <span className="text-orange-600 font-semibold">{record.earlyLeaveMin}</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {record.lateMinutes > 0 ? (
-                          <span className="text-red-600 font-semibold">{record.lateMinutes}</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold">{record.empCd}</td>
+                      <td className="py-3 px-4 text-gray-600">{record.workDate}</td>
                       <td className="py-3 px-4">
                         {record.firstIn ? (
                           <span className="inline-flex items-center gap-1 text-green-600 font-medium">
@@ -228,8 +200,32 @@ export default function DailyView() {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{record.workDate}</td>
-                      <td className="py-3 px-4 font-mono font-semibold">{record.empCd}</td>
+                      <td className="py-3 px-4 text-right">
+                        {record.lateMinutes > 0 ? (
+                          <span className="text-red-600 font-semibold">{record.lateMinutes}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {record.earlyLeaveMin > 0 ? (
+                          <span className="text-orange-600 font-semibold">{record.earlyLeaveMin}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {record.overtimeMinutes > 0 ? (
+                          <span className="text-blue-600 font-semibold">{record.overtimeMinutes}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(record.status)}`}>
+                          {getStatusLabel(record.status)}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

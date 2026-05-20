@@ -55,13 +55,13 @@ export default function EmployeesList() {
             </div>
           ) : filteredEmployees.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-4 font-semibold">Code</th>
-                    <th className="text-left py-3 px-4 font-semibold">Full Name</th>
-                    <th className="text-left py-3 px-4 font-semibold">Department</th>
-                    <th className="text-left py-3 px-4 font-semibold">Status</th>
+                    <th className="text-right py-3 px-4 font-semibold">الكود</th>
+                    <th className="text-right py-3 px-4 font-semibold">الاسم</th>
+                    <th className="text-right py-3 px-4 font-semibold">القسم</th>
+                    <th className="text-right py-3 px-4 font-semibold">الحالة</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -80,7 +80,7 @@ export default function EmployeesList() {
                             emp.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                           }`}
                         >
-                          {emp.active ? 'Active' : 'Inactive'}
+                          {emp.active ? 'نشط' : 'غير نشط'}
                         </span>
                       </td>
                     </tr>

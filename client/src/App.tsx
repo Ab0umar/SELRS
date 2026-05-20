@@ -107,6 +107,7 @@ const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const StockroomShell = lazy(() => import("./pages/StockroomShell"));
 // Attendance module
+import AttendanceLayout from "./pages/attendance/AttendanceLayout";
 const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
 const AttendanceLive = lazy(() => import("./pages/attendance/LiveBoard"));
 const AttendanceDaily = lazy(() => import("./pages/attendance/DailyView"));
@@ -288,22 +289,22 @@ const Router = memo(function Router() {
 
       {/* Accounting routes */}
       {/* Attendance Module Routes */}
-      <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceHome /></ProtectedRoute>} />
-      <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLive /></ProtectedRoute>} />
-      <Route path={"/attendance/daily"} component={() => <ProtectedRoute><AttendanceDaily /></ProtectedRoute>} />
-      <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceEmployeeDetail /></ProtectedRoute>} />
-      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceEmployees /></ProtectedRoute>} />
-      <Route path={"/attendance/logs"} component={() => <ProtectedRoute><AttendanceLogs /></ProtectedRoute>} />
-      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceReports /></ProtectedRoute>} />
-      <Route path={"/attendance/leaves"} component={() => <ProtectedRoute><AttendanceLeaves /></ProtectedRoute>} />
-      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceSettings /></ProtectedRoute>} />
-      <Route path={"/attendance/admin"} component={() => <ProtectedRoute><AttendanceAdminDashboard /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceSyncStatus /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceDevice /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceConsole /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/corrections"} component={() => <ProtectedRoute><AttendanceCorrections /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/shifts"} component={() => <ProtectedRoute><AttendanceShiftManagement /></ProtectedRoute>} />
-      <Route path={"/attendance/admin/assignments"} component={() => <ProtectedRoute><AttendanceShiftAssignments /></ProtectedRoute>} />
+      <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHome /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLive /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/daily"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDaily /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeeDetail /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployees /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/logs"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLogs /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReports /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/leaves"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLeaves /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettings /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceAdminDashboard /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSyncStatus /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDevice /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/console"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceConsole /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/corrections"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceCorrections /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/shifts"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceShiftManagement /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/admin/assignments"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceShiftAssignments /></AttendanceLayout></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
