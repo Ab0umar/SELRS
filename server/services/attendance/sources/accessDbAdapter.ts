@@ -83,6 +83,9 @@ export class AccessDbAdapter implements AttendanceSource {
 
       let processedCount = 0;
       let skippedBeforeSince = 0;
+      let quarantinedCount = 0;
+      let yieldedCount = 0;
+
       for (const row of rows) {
         processedCount++;
         const punchAt = this.parseDate(row[PUNCH_TIME_COL]);
@@ -96,6 +99,7 @@ export class AccessDbAdapter implements AttendanceSource {
         // Reject future-dated punches (>24h in future)
         const now = new Date();
         if (punchAt.getTime() - now.getTime() > 24 * 60 * 60 * 1000) {
+          quarantinedCount++;
           yield {
             kind: 'quarantine',
             reason: 'future-dated punch (>24h)',
@@ -106,6 +110,7 @@ export class AccessDbAdapter implements AttendanceSource {
 
         const empCd = String(row[PUNCH_EMP_COL] ?? '').trim();
         if (!empCd) {
+          quarantinedCount++;
           yield {
             kind: 'quarantine',
             reason: 'missing employee ID',
@@ -128,12 +133,14 @@ export class AccessDbAdapter implements AttendanceSource {
           deviceId: row.DeviceID ? String(row.DeviceID) : undefined,
         };
 
+        yieldedCount++;
         yield { kind: 'punch', row: punch };
       }
 
       console.log(
-        `[attendance:accessDbAdapter] Processed ${processedCount} punches, ` +
-        `skipped ${skippedBeforeSince} before sinceLocal (${sinceLocal.toISOString()})`
+        `[attendance:accessDbAdapter] Summary: processed=${processedCount}, ` +
+        `skippedBeforeSince=${skippedBeforeSince}, quarantined=${quarantinedCount}, ` +
+        `yielded=${yieldedCount}`
       );
     } catch (err) {
       // Log error but do not throw; let sync engine handle it
