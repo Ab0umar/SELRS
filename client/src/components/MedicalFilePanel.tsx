@@ -53,6 +53,14 @@ const READY_TABS = [
   "أخرى 3",
 ];
 const MEDICAL_TABS = ["data", "plan"];
+const MEASUREMENT_VIEWS = [
+  { value: "all", label: "الكل" },
+  { value: "autoref", label: "AutoRef | IOP" },
+  { value: "after", label: "After Refraction" },
+  { value: "refraction", label: "Refraction" },
+  { value: "pentacam", label: "Pentacam" },
+  { value: "fundus", label: "Fundus" },
+] as const;
 const CollapsibleChevron = ({ open }: { open: boolean }) => (
   <svg
     className={cn(
@@ -176,7 +184,7 @@ export default function MedicalFilePanel({
   const [destinationTab, setDestinationTab] = useState<string | null>(null);
   const [shouldSaveAfterCreate, setShouldSaveAfterCreate] = useState(false);
   const [isFollowup, setIsFollowup] = useState(false);
-  const [autorefSectionTab, setAutorefSectionTab] = useState("autoref");
+  const [autorefSectionTab, setAutorefSectionTab] = useState("all");
 
   // Get patient data
   const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
@@ -1585,7 +1593,24 @@ export default function MedicalFilePanel({
                 </div>
               )}
 
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-xs font-medium text-muted-foreground">عرض القياسات</span>
+                <Select value={autorefSectionTab} onValueChange={setAutorefSectionTab}>
+                  <SelectTrigger className="h-7 w-[180px] text-xs">
+                    <SelectValue placeholder="الكل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MEASUREMENT_VIEWS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* AutoRef | IOP */}
+              {(autorefSectionTab === "all" || autorefSectionTab === "autoref") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   AutoRef | IOP
@@ -1962,8 +1987,10 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* After Refraction */}
+              {(autorefSectionTab === "all" || autorefSectionTab === "after") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   After Refraction
@@ -2185,8 +2212,10 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Glasses / Refraction */}
+              {(autorefSectionTab === "all" || autorefSectionTab === "refraction") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Refraction
@@ -2481,8 +2510,10 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Pentacam */}
+              {(autorefSectionTab === "all" || autorefSectionTab === "pentacam") && (
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -2615,8 +2646,10 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Fundus (collapsible) */}
+              {(autorefSectionTab === "all" || autorefSectionTab === "fundus") && (
               <div>
                 <button
                   type="button"
@@ -2895,7 +2928,8 @@ export default function MedicalFilePanel({
                   </>
                 )}
               </div>
-          </div>
+              )}
+            </div>
 
           {planEverActive && (
             <div className={activeMedicalTab !== "plan" ? "hidden" : undefined}>
