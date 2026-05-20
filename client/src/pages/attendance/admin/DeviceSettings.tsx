@@ -12,19 +12,77 @@ export default function DeviceSettings() {
   const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Load settings from DB on mount (procedures not yet implemented - using local state)
+  // Load current settings from server
+  const settingsQuery = tRPC.attendance.deviceSettings.useQuery();
+  const statusQuery = tRPC.attendance.deviceStatus.useQuery({ refetchInterval: 10000 });
+
+  // Device control mutations
+  const connectDevice = tRPC.attendance.connectDevice.useMutation();
+  const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
+  const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
+  const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
+
+  // Populate form when settings load from server
   useEffect(() => {
-    // Settings are now persisted in DB and loaded on server startup
-    // Client uses local form state
-  }, []);
+    if (settingsQuery.data) {
+      setFormData({
+        ip: settingsQuery.data.ip,
+        port: settingsQuery.data.port,
+        enabled: settingsQuery.data.enabled,
+      });
+    }
+  }, [settingsQuery.data]);
 
-  // Device control mutations (procedures not yet implemented)
-  // const connectDevice = tRPC.attendance.connectDevice.useMutation();
-  // const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
-  // const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
-  // Placeholder device status (will be implemented when procedures are available)
-  const status = { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
+  const handleSaveConfig = async () => {
+    try {
+      await updateSettings.mutateAsync({
+        ip: formData.ip,
+        port: formData.port,
+        enabled: formData.enabled,
+      });
+      setShowSuccess(true);
+      await settingsQuery.refetch();
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      await connectDevice.mutateAsync();
+      await statusQuery.refetch();
+    } catch (error) {
+      console.error('Failed to connect:', error);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectDevice.mutateAsync();
+      await statusQuery.refetch();
+    } catch (error) {
+      console.error('Failed to disconnect:', error);
+    }
+  };
+
+  const handleResetConnection = async () => {
+    try {
+      await resetConnection.mutateAsync();
+      await statusQuery.refetch();
+    } catch (error) {
+      console.error('Failed to reset connection:', error);
+    }
+  };
+
+  const status = statusQuery.data || { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
 
   return (
     <div className="p-6 space-y-6">
@@ -50,9 +108,10 @@ export default function DeviceSettings() {
             <Button
               variant="outline"
               size="sm"
-              disabled
+              onClick={() => statusQuery.refetch()}
+              disabled={statusQuery.isRefetching}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${statusQuery.isRefetching ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardHeader>
@@ -87,14 +146,26 @@ export default function DeviceSettings() {
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button disabled variant="default" title="Not yet implemented">
-              Connect
+            <Button
+              variant="default"
+              onClick={handleConnect}
+              disabled={connectDevice.isPending}
+            >
+              {connectDevice.isPending ? 'Connecting...' : 'Connect'}
             </Button>
-            <Button disabled variant="outline" title="Not yet implemented">
-              Disconnect
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={disconnectDevice.isPending}
+            >
+              {disconnectDevice.isPending ? 'Disconnecting...' : 'Disconnect'}
             </Button>
-            <Button disabled variant="outline" title="Not yet implemented">
-              Reset Connection
+            <Button
+              variant="outline"
+              onClick={handleResetConnection}
+              disabled={resetConnection.isPending}
+            >
+              {resetConnection.isPending ? 'Resetting...' : 'Reset Connection'}
             </Button>
           </div>
         </CardContent>
@@ -150,11 +221,11 @@ export default function DeviceSettings() {
           </div>
 
           <Button
-            disabled
+            onClick={handleSaveConfig}
+            disabled={updateSettings.isPending}
             className="w-full"
-            title="Procedures not yet implemented on server"
           >
-            Save Configuration (Unavailable)
+            {updateSettings.isPending ? 'Saving...' : 'Save Configuration'}
           </Button>
         </CardContent>
       </Card>
