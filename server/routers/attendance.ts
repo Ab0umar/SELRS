@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import crypto from 'crypto';
 import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
+import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
 import { router, attendanceViewerProcedure, attendanceManagerProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
@@ -638,6 +639,50 @@ export const attendanceRouter = router({
         return {
           success: false,
           error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }),
+
+  pullDeviceLogs: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const config = input.ip ? { ip: input.ip, port: input.port } : undefined;
+        const punches = await FKAttendLogPuller.pullLogs(config);
+
+        AuditLogService.log({
+          action: 'device_logs_pulled',
+          details: {
+            count: punches.length,
+            ip: input.ip || '192.168.0.10',
+          },
+          status: 'success',
+        });
+
+        return {
+          success: true,
+          count: punches.length,
+          sample: punches.slice(0, 3).map((p) => ({
+            empNo: p.enrollNo,
+            timestamp: p.timestamp.toISOString(),
+            direction: p.inOutMode === 1 ? 'in' : 'out',
+          })),
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        AuditLogService.log({
+          action: 'device_logs_pulled',
+          details: { error: errorMsg },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error: errorMsg,
         };
       }
     }),
