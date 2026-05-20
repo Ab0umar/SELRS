@@ -162,7 +162,7 @@ export default function DailyView() {
             </div>
           ) : records && records.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-right py-3 px-4 font-semibold">الحالة</th>
