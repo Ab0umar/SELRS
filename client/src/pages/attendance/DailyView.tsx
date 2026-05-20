@@ -96,7 +96,7 @@ export default function DailyView() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
+    <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">الحضور اليومي</h1>
 
       <Card className="mb-6">
@@ -169,8 +169,8 @@ export default function DailyView() {
                     <th className="text-right py-3 px-4 font-semibold">الساعات الإضافية</th>
                     <th className="text-right py-3 px-4 font-semibold">المغادرة المبكرة</th>
                     <th className="text-right py-3 px-4 font-semibold">التأخير (دقيقة)</th>
-                    <th className="text-right py-3 px-4 font-semibold">وقت المغادرة</th>
                     <th className="text-right py-3 px-4 font-semibold">وقت الحضور</th>
+                    <th className="text-right py-3 px-4 font-semibold">وقت المغادرة</th>
                     <th className="text-right py-3 px-4 font-semibold">التاريخ</th>
                     <th className="text-right py-3 px-4 font-semibold">الموظف</th>
                   </tr>
@@ -208,11 +208,25 @@ export default function DailyView() {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {record.lastOut ? new Date(record.lastOut).toLocaleTimeString('ar-EG') : '-'}
+                      <td className="py-3 px-4">
+                        {record.firstIn ? (
+                          <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                            <span>↑</span>
+                            <span>{new Date(record.firstIn).toLocaleTimeString('ar-EG')}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {record.firstIn ? new Date(record.firstIn).toLocaleTimeString('ar-EG') : '-'}
+                      <td className="py-3 px-4">
+                        {record.lastOut ? (
+                          <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+                            <span>↓</span>
+                            <span>{new Date(record.lastOut).toLocaleTimeString('ar-EG')}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-gray-600">{record.workDate}</td>
                       <td className="py-3 px-4 font-mono font-semibold">{record.empCd}</td>
