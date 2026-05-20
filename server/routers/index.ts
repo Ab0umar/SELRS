@@ -16,4 +16,7 @@ export const appRouter = router({
   stockroom: stockroomRouter,
 });
 
+// Debug: Log router contents
+console.log('[routers] appRouter created with keys:', Object.keys(appRouter._def.routes || {}));
+
 export type AppRouter = typeof appRouter;
