@@ -141,6 +141,13 @@
       "when": 1779154817349,
       "tag": "0031_crazy_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1779240146300,
+      "tag": "0032_long_george_stacy",
+      "breakpoints": true
     }
   ]
 }
