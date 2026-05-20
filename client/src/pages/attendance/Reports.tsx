@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Calendar, Printer } from "lucide-react";
 
-type ReportTab = "summary" | "late" | "absent" | "ot" | "permissions";
+type ReportTab = "summary" | "late" | "absent" | "ot" | "permissions" | "leaves" | "monthly";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -15,23 +15,22 @@ const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1
 export default function Reports() {
   const [dates, setDates] = useState({ from: firstOfMonth, to: todayStr });
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
+  const [balanceYear, setBalanceYear] = useState(new Date().getFullYear());
 
-  // Year/month for permission report
   const selectedDate = new Date(dates.from);
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth() + 1;
 
-  const tableRef = useRef<HTMLDivElement>(null);
-
   const rangeQuery = trpc.attendance.rangeReport.useQuery({ from: dates.from, to: dates.to });
   const permQuery = trpc.attendance.permissionReport.useQuery({ year, month });
+  const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({ year: balanceYear });
 
   const handleExportCSV = (data: any[], filename: string) => {
     if (!data || data.length === 0) return;
     const headers = Object.keys(data[0]);
     const csv = [
       headers.join(","),
-      ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+      ...data.map((row: any) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
     ].join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
@@ -44,8 +43,43 @@ export default function Reports() {
     document.body.removeChild(a);
   };
 
-  const data = rangeQuery.data ?? [];
-  const perms = permQuery.data ?? [];
+  const handlePrint = (rows: any[], title: string) => {
+    if (!rows.length) return;
+    const cols = Object.keys(rows[0]);
+    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
+      <title>${title}</title>
+      <style>
+        body{font-family:Arial,sans-serif;direction:rtl;font-size:12px;}
+        h2{font-size:16px;margin-bottom:4px;}
+        p{font-size:11px;color:#555;margin:0 0 12px;}
+        table{width:100%;border-collapse:collapse;}
+        th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;}
+        th{background:#f0f0f0;font-weight:bold;}
+        tr:nth-child(even){background:#f9f9f9;}
+        @media print{@page{margin:15mm;}}
+      </style></head><body>
+      <h2>${title}</h2>
+      <p>الفترة: ${dates.from} إلى ${dates.to}</p>
+      <table><thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map((r: any) => `<tr>${cols.map((c) => `<td>${r[c] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table></body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
+  const data: any[] = rangeQuery.data ?? [];
+  const perms: any[] = (permQuery.data as any[]) ?? [];
+  const balances: any[] = (balanceQuery.data as any[]) ?? [];
+
+  // Build a permission lookup: empCd → { totalInMins, totalOutMins }
+  const permByEmp = new Map<string, { inMins: number; outMins: number }>();
+  for (const p of perms) {
+    permByEmp.set(p.empCd, { inMins: p.totalInMins ?? 0, outMins: p.totalOutMins ?? 0 });
+  }
 
   const summaryData = data.map((r: any) => ({
     كود: r.empCd,
@@ -58,6 +92,22 @@ export default function Reports() {
     "مبكر (د)": r.totalEarlyMins,
     "إضافي (د)": r.totalOTMins,
   }));
+
+  const monthlyData = data.map((r: any) => {
+    const perm = permByEmp.get(r.empCd);
+    return {
+      كود: r.empCd,
+      الاسم: r.empName ?? "—",
+      حاضر: r.presentDays,
+      غائب: r.absentDays,
+      إجازة: r.leaveDays,
+      "تأخير (د)": r.totalLateMins,
+      "مبكر (د)": r.totalEarlyMins,
+      "إضافي (د)": r.totalOTMins,
+      "إذن دخول (د)": perm?.inMins ?? 0,
+      "إذن خروج (د)": perm?.outMins ?? 0,
+    };
+  });
 
   const lateData = data
     .filter((r: any) => r.totalLateMins > 0)
@@ -78,7 +128,7 @@ export default function Reports() {
     }))
     .sort((a: any, b: any) => parseFloat(b["ساعات إضافية"]) - parseFloat(a["ساعات إضافية"]));
 
-  const permData = (perms as any[]).map((p) => ({
+  const permData = perms.map((p: any) => ({
     كود: p.empCd,
     الاسم: p.empName ?? "—",
     "أذونات دخول": p.inCount,
@@ -87,39 +137,15 @@ export default function Reports() {
     "مجموع خروج (د)": p.totalOutMins,
   }));
 
-  const handlePrint = () => {
-    const rows = activeData();
-    if (!rows.length) return;
-    const cols = Object.keys(rows[0]);
-    const tabLabel = tabs.find((t) => t.key === activeTab)?.label ?? activeTab;
-    const html = `
-      <!DOCTYPE html><html dir="rtl" lang="ar">
-      <head><meta charset="utf-8"/><title>تقرير الحضور - ${tabLabel}</title>
-      <style>
-        body { font-family: Arial, sans-serif; direction: rtl; font-size: 12px; }
-        h2 { font-size: 16px; margin-bottom: 4px; }
-        p { font-size: 11px; color: #555; margin: 0 0 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: right; }
-        th { background: #f0f0f0; font-weight: bold; }
-        tr:nth-child(even) { background: #f9f9f9; }
-        @media print { @page { margin: 15mm; } }
-      </style></head>
-      <body>
-        <h2>تقرير الحضور — ${tabLabel}</h2>
-        <p>الفترة: ${dates.from} إلى ${dates.to}</p>
-        <table>
-          <thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
-          <tbody>${rows.map((r: any) => `<tr>${cols.map((c) => `<td>${r[c] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
-        </table>
-      </body></html>`;
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    win.print();
-  };
+  const balanceData = balances.map((b: any) => ({
+    كود: b.empCd,
+    الاسم: b.empName ?? "—",
+    "الرصيد السنوي": b.annualAllocation,
+    "مرحّل": b.carryOver,
+    "الإجمالي": b.total,
+    "المستخدم": b.usedDays,
+    "المتبقي": b.remainingDays,
+  }));
 
   const renderTable = (rows: any[]) => {
     if (!rows.length) return <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>;
@@ -133,7 +159,7 @@ export default function Reports() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {rows.map((row: any, i: number) => (
               <tr key={i} className="border-b hover:bg-gray-50">
                 {cols.map((c) => <td key={c} className="py-2 px-4 text-right">{row[c]}</td>)}
               </tr>
@@ -145,23 +171,32 @@ export default function Reports() {
   };
 
   const tabs: { key: ReportTab; label: string }[] = [
+    { key: "monthly", label: "شهري موسع" },
     { key: "summary", label: "ملخص" },
     { key: "late", label: "التأخير" },
     { key: "absent", label: "الغياب" },
-    { key: "ot", label: "الساعات الإضافية" },
+    { key: "ot", label: "الإضافي" },
     { key: "permissions", label: "الأذونات" },
+    { key: "leaves", label: "رصيد الإجازات" },
   ];
 
-  const activeData = () => {
+  const activeRows = () => {
     if (activeTab === "summary") return summaryData;
+    if (activeTab === "monthly") return monthlyData;
     if (activeTab === "late") return lateData;
     if (activeTab === "absent") return absentData;
     if (activeTab === "ot") return otData;
     if (activeTab === "permissions") return permData;
+    if (activeTab === "leaves") return balanceData;
     return [];
   };
 
-  const isLoading = activeTab === "permissions" ? permQuery.isLoading : rangeQuery.isLoading;
+  const isLoading =
+    activeTab === "leaves"
+      ? balanceQuery.isLoading
+      : rangeQuery.isLoading || (activeTab === "permissions" || activeTab === "monthly" ? permQuery.isLoading : false);
+
+  const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
@@ -185,16 +220,29 @@ export default function Reports() {
               <input type="date" value={dates.to} onChange={(e) => setDates({ ...dates, to: e.target.value })} className="px-3 py-2 border rounded-md" />
             </div>
             <Button onClick={() => { rangeQuery.refetch(); permQuery.refetch(); }} variant="outline">تحديث</Button>
+
+            {activeTab === "leaves" && (
+              <div className="flex items-end gap-2 mr-auto">
+                <div>
+                  <label className="block text-sm font-medium mb-1">سنة الرصيد</label>
+                  <input type="number" min={2020} max={2099} value={balanceYear} onChange={(e) => setBalanceYear(parseInt(e.target.value))} className="w-24 px-3 py-2 border rounded-md" />
+                </div>
+                <Button onClick={() => balanceQuery.refetch()} variant="outline">تحديث</Button>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">تقرير الأذونات يعرض الشهر المحدد في تاريخ البداية: {year}/{String(month).padStart(2,"0")}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            الشهر المحدد للأذونات والتقرير الشهري: {year}/{String(month).padStart(2, "0")}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <div className="flex gap-2 border-b overflow-x-auto">
+          <div className="flex gap-1 border-b overflow-x-auto flex-wrap">
             {tabs.map(({ key, label }) => (
-              <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === key ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-900"}`}>
+              <button key={key} onClick={() => setActiveTab(key)}
+                className={`px-4 py-2 font-medium whitespace-nowrap text-sm ${activeTab === key ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-900"}`}>
                 {label}
               </button>
             ))}
@@ -202,16 +250,16 @@ export default function Reports() {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="mb-4 flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExportCSV(activeData(), `تقرير-${activeTab}-${dates.from}-${dates.to}.csv`)} disabled={!activeData().length} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleExportCSV(activeRows(), `${activeLabel}-${dates.from}-${dates.to}.csv`)} disabled={!activeRows().length} className="gap-2">
               <Download className="w-4 h-4" /> تصدير CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint} disabled={!activeData().length} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => handlePrint(activeRows(), activeLabel)} disabled={!activeRows().length} className="gap-2">
               <Printer className="w-4 h-4" /> طباعة / PDF
             </Button>
           </div>
-          {isLoading ? (
-            <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : renderTable(activeData())}
+          {isLoading
+            ? <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+            : renderTable(activeRows())}
         </CardContent>
       </Card>
     </div>
