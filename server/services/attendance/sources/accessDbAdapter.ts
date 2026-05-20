@@ -81,11 +81,15 @@ export class AccessDbAdapter implements AttendanceSource {
         console.log(`[attendance:accessDbAdapter] ${PUNCH_TABLE} is empty (0 rows)`);
       }
 
+      let processedCount = 0;
+      let skippedBeforeSince = 0;
       for (const row of rows) {
+        processedCount++;
         const punchAt = this.parseDate(row[PUNCH_TIME_COL]);
 
         // Skip rows before sinceLocal
         if (!punchAt || punchAt < sinceLocal) {
+          skippedBeforeSince++;
           continue;
         }
 
@@ -126,6 +130,11 @@ export class AccessDbAdapter implements AttendanceSource {
 
         yield { kind: 'punch', row: punch };
       }
+
+      console.log(
+        `[attendance:accessDbAdapter] Processed ${processedCount} punches, ` +
+        `skipped ${skippedBeforeSince} before sinceLocal (${sinceLocal.toISOString()})`
+      );
     } catch (err) {
       // Log error but do not throw; let sync engine handle it
       console.error('[attendance:accessDbAdapter] fetchPunchesSince error:', err instanceof Error ? err.message : String(err));
