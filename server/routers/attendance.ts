@@ -10,6 +10,7 @@ import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
 import { runSyncOnce, resetSyncHistory } from '../services/attendance/syncEngine';
 import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendance/deviceSyncEngine';
+import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
@@ -590,6 +591,55 @@ export const attendanceRouter = router({
         results,
         report,
       };
+    }),
+
+  testZKTecoConnection: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
+        port: z.number().int().min(1).max(65535).default(5005),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const device = new ZKTecoDevice({
+        ip: input.ip,
+        port: input.port,
+        timeout: 5000,
+      });
+
+      try {
+        await device.connect();
+        const isValid = await device.verifyConnection();
+
+        if (!isValid) {
+          device.disconnect();
+          return {
+            success: false,
+            error: "Device did not respond to verification command",
+          };
+        }
+
+        const info = await device.getDeviceInfo();
+        device.disconnect();
+
+        return {
+          success: true,
+          deviceInfo: {
+            model: info.model,
+            serialNumber: info.serialNumber,
+            firmware: info.firmware,
+            userCount: info.userCount,
+            fpCount: info.fpCount,
+            recordCount: info.recordCount,
+          },
+        };
+      } catch (error) {
+        device.disconnect();
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     }),
 
   syncNow: attendanceManagerProcedure
