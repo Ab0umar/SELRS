@@ -2,6 +2,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
 import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
+import { FKDeviceSyncService, syncFromFKDevice } from '../services/attendance/fkDeviceSyncService';
 import { router, attendanceViewerProcedure, attendanceManagerProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
@@ -683,6 +684,84 @@ export const attendanceRouter = router({
         return {
           success: false,
           error: errorMsg,
+        };
+      }
+    }),
+
+  syncFromFKDevice: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const deviceConfig = input.ip ? { ip: input.ip, port: input.port } : undefined;
+        const result = await FKDeviceSyncService.syncNow(ctx.user.id, deviceConfig);
+
+        AuditLogService.log({
+          action: 'fk_device_sync',
+          details: {
+            recordsSeen: result.recordsSeen,
+            recordsInserted: result.recordsInserted,
+            recordsSkipped: result.recordsSkipped,
+            duration: result.duration,
+          },
+          status: result.success ? 'success' : 'error',
+        });
+
+        return {
+          success: result.success,
+          recordsSeen: result.recordsSeen,
+          recordsInserted: result.recordsInserted,
+          recordsSkipped: result.recordsSkipped,
+          duration: result.duration,
+          error: result.error,
+          startedAt: result.startedAt.toISOString(),
+          completedAt: result.completedAt.toISOString(),
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        AuditLogService.log({
+          action: 'fk_device_sync',
+          details: { error: errorMsg },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error: errorMsg,
+        };
+      }
+    }),
+
+  testFKDeviceConnection: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const deviceConfig = input.ip ? { ip: input.ip, port: input.port } : undefined;
+        const connected = await FKAttendLogPuller.testConnection(deviceConfig);
+
+        if (connected) {
+          return {
+            success: true,
+            message: 'Device connected successfully',
+          };
+        } else {
+          return {
+            success: false,
+            message: 'Device connection test failed',
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
         };
       }
     }),
