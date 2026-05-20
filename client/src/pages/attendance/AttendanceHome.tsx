@@ -16,6 +16,7 @@ import {
   Users,
   Wrench,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ const navCards = [
   { icon: CalendarCheck,  label: "الإجازات",            desc: "إدارة إجازات الموظفين",          path: "/attendance/leaves" },
   { icon: Timer,          label: "الورديات",            desc: "إعداد أوقات الدوام",              path: "/attendance/admin/shifts" },
   { icon: UserCog,        label: "تعيين الورديات",      desc: "ربط الموظفين بالورديات",          path: "/attendance/admin/assignments" },
+  { icon: Clock,          label: "الأذونات",            desc: "أذونات الدخول والخروج",            path: "/attendance/permissions" },
+  { icon: Star,           label: "الإجازات الرسمية",    desc: "العطل والإجازات الرسمية",         path: "/attendance/holidays" },
   { icon: Wrench,         label: "لوحة الإدارة",        desc: "إدارة عامة للوحدة",              path: "/attendance/admin" },
   { icon: LayoutDashboard,label: "حالة المزامنة",       desc: "آخر تشغيل وسجل الأخطاء",         path: "/attendance/admin/sync" },
   { icon: Smartphone,     label: "الجهاز",              desc: "إعدادات جهاز البصمة",            path: "/attendance/admin/device" },

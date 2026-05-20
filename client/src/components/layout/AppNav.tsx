@@ -46,6 +46,7 @@ import {
   BarChart3,
   Timer,
   UserCog,
+  Star,
 } from "lucide-react";
 
 export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
@@ -128,6 +129,16 @@ export const attendanceNavGroup: NavGroupSection = {
       icon: UserCog,
       label: "Shift Assignments",
       path: "/attendance/admin/assignments",
+    },
+    {
+      icon: Clock,
+      label: "Permissions",
+      path: "/attendance/permissions",
+    },
+    {
+      icon: Star,
+      label: "Holidays",
+      path: "/attendance/holidays",
     },
   ],
 };

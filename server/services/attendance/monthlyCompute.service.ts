@@ -27,8 +27,8 @@ export class MonthlyComputeService {
       .from(attendanceDaily)
       .where(
         and(
-          gte(attendanceDaily.workDate, dateFrom),
-          lte(attendanceDaily.workDate, dateTo)
+          gte(attendanceDaily.workDate, dateFrom as any),
+          lte(attendanceDaily.workDate, dateTo as any)
         )
       );
 
@@ -194,8 +194,8 @@ export class MonthlyComputeService {
         .where(
           and(
             eq(attendanceDaily.empCd, m.empCd),
-            gte(attendanceDaily.workDate, saveFrom),
-            lte(attendanceDaily.workDate, saveTo)
+            gte(attendanceDaily.workDate, saveFrom as any),
+            lte(attendanceDaily.workDate, saveTo as any)
           )
         );
 

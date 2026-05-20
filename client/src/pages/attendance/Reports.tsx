@@ -1,62 +1,39 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Calendar } from "lucide-react";
+import { Download, Calendar, Printer } from "lucide-react";
 
-type ReportTab = "summary" | "late" | "absent" | "ot" | "monthly";
+type ReportTab = "summary" | "late" | "absent" | "ot" | "permissions";
+
+const todayStr = new Date().toISOString().split("T")[0];
+const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  .toISOString()
+  .split("T")[0];
 
 export default function Reports() {
-  const [dates, setDates] = useState({
-    from: new Date().toISOString().split('T')[0],
-    to: new Date().toISOString().split('T')[0],
-  });
-
+  const [dates, setDates] = useState({ from: firstOfMonth, to: todayStr });
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
 
-  // Extract year and month from selected dates for the monthly report queries
+  // Year/month for permission report
   const selectedDate = new Date(dates.from);
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth() + 1;
 
-  const monthlyQuery = (trpc as any).attendance.monthlyReport.useQuery({
-    year,
-    month,
-  });
+  const tableRef = useRef<HTMLDivElement>(null);
 
-  const lateQuery = (trpc as any).attendance.lateReport.useQuery({
-    year,
-    month,
-  });
-
-  const absentQuery = (trpc as any).attendance.absentReport.useQuery({
-    year,
-    month,
-  });
-
-  const otQuery = (trpc as any).attendance.otReport.useQuery({
-    year,
-    month,
-  });
-
-  const summaryQuery = (trpc as any).attendance.summaryReport.useQuery({
-    year,
-    month,
-  });
+  const rangeQuery = trpc.attendance.rangeReport.useQuery({ from: dates.from, to: dates.to });
+  const permQuery = trpc.attendance.permissionReport.useQuery({ year, month });
 
   const handleExportCSV = (data: any[], filename: string) => {
     if (!data || data.length === 0) return;
-
     const headers = Object.keys(data[0]);
     const csv = [
       headers.join(","),
-      ...data.map((row) =>
-        headers.map((h) => `"${row[h]}"`).join(",")
-      ),
+      ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
     ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -67,31 +44,98 @@ export default function Reports() {
     document.body.removeChild(a);
   };
 
-  const renderTable = (data: any[], columns: string[]) => {
-    if (!data || data.length === 0) {
-      return <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>;
-    }
+  const data = rangeQuery.data ?? [];
+  const perms = permQuery.data ?? [];
 
+  const summaryData = data.map((r: any) => ({
+    كود: r.empCd,
+    الاسم: r.empName ?? "—",
+    أيام: r.totalDays,
+    حاضر: r.presentDays,
+    غائب: r.absentDays,
+    إجازة: r.leaveDays,
+    "تأخير (د)": r.totalLateMins,
+    "مبكر (د)": r.totalEarlyMins,
+    "إضافي (د)": r.totalOTMins,
+  }));
+
+  const lateData = data
+    .filter((r: any) => r.totalLateMins > 0)
+    .map((r: any) => ({ كود: r.empCd, الاسم: r.empName ?? "—", "تأخير (د)": r.totalLateMins }))
+    .sort((a: any, b: any) => b["تأخير (د)"] - a["تأخير (د)"]);
+
+  const absentData = data
+    .filter((r: any) => r.absentDays > 0)
+    .map((r: any) => ({ كود: r.empCd, الاسم: r.empName ?? "—", غياب: r.absentDays }))
+    .sort((a: any, b: any) => b.غياب - a.غياب);
+
+  const otData = data
+    .filter((r: any) => r.totalOTMins > 0)
+    .map((r: any) => ({
+      كود: r.empCd,
+      الاسم: r.empName ?? "—",
+      "ساعات إضافية": (r.totalOTMins / 60).toFixed(2),
+    }))
+    .sort((a: any, b: any) => parseFloat(b["ساعات إضافية"]) - parseFloat(a["ساعات إضافية"]));
+
+  const permData = (perms as any[]).map((p) => ({
+    كود: p.empCd,
+    الاسم: p.empName ?? "—",
+    "أذونات دخول": p.inCount,
+    "مجموع دخول (د)": p.totalInMins,
+    "أذونات خروج": p.outCount,
+    "مجموع خروج (د)": p.totalOutMins,
+  }));
+
+  const handlePrint = () => {
+    const rows = activeData();
+    if (!rows.length) return;
+    const cols = Object.keys(rows[0]);
+    const tabLabel = tabs.find((t) => t.key === activeTab)?.label ?? activeTab;
+    const html = `
+      <!DOCTYPE html><html dir="rtl" lang="ar">
+      <head><meta charset="utf-8"/><title>تقرير الحضور - ${tabLabel}</title>
+      <style>
+        body { font-family: Arial, sans-serif; direction: rtl; font-size: 12px; }
+        h2 { font-size: 16px; margin-bottom: 4px; }
+        p { font-size: 11px; color: #555; margin: 0 0 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: right; }
+        th { background: #f0f0f0; font-weight: bold; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        @media print { @page { margin: 15mm; } }
+      </style></head>
+      <body>
+        <h2>تقرير الحضور — ${tabLabel}</h2>
+        <p>الفترة: ${dates.from} إلى ${dates.to}</p>
+        <table>
+          <thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
+          <tbody>${rows.map((r: any) => `<tr>${cols.map((c) => `<td>${r[c] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+      </body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
+  const renderTable = (rows: any[]) => {
+    if (!rows.length) return <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>;
+    const cols = Object.keys(rows[0]);
     return (
       <div className="overflow-x-auto">
         <table className="w-full text-sm" dir="rtl">
           <thead>
             <tr className="border-b bg-gray-50">
-              {columns.map((col) => (
-                <th key={col} className="text-right py-3 px-4 font-semibold">
-                  {col}
-                </th>
-              ))}
+              {cols.map((c) => <th key={c} className="text-right py-3 px-4 font-semibold">{c}</th>)}
             </tr>
           </thead>
           <tbody>
-            {data.map((row: any, idx: number) => (
-              <tr key={idx} className="border-b hover:bg-gray-50">
-                {columns.map((col) => (
-                  <td key={col} className="py-2 px-4 text-right">
-                    {row[col]}
-                  </td>
-                ))}
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                {cols.map((c) => <td key={c} className="py-2 px-4 text-right">{row[c]}</td>)}
               </tr>
             ))}
           </tbody>
@@ -100,16 +144,24 @@ export default function Reports() {
     );
   };
 
-  const getTabLabel = (tab: ReportTab) => {
-    const labels: { [key in ReportTab]: string } = {
-      summary: 'ملخص',
-      late: 'التأخير',
-      absent: 'الغياب',
-      ot: 'الساعات الإضافية',
-      monthly: 'شهري',
-    };
-    return labels[tab];
+  const tabs: { key: ReportTab; label: string }[] = [
+    { key: "summary", label: "ملخص" },
+    { key: "late", label: "التأخير" },
+    { key: "absent", label: "الغياب" },
+    { key: "ot", label: "الساعات الإضافية" },
+    { key: "permissions", label: "الأذونات" },
+  ];
+
+  const activeData = () => {
+    if (activeTab === "summary") return summaryData;
+    if (activeTab === "late") return lateData;
+    if (activeTab === "absent") return absentData;
+    if (activeTab === "ot") return otData;
+    if (activeTab === "permissions") return permData;
+    return [];
   };
+
+  const isLoading = activeTab === "permissions" ? permQuery.isLoading : rangeQuery.isLoading;
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
@@ -123,238 +175,43 @@ export default function Reports() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end flex-row-reverse">
-            <div>
-              <label className="block text-sm font-medium mb-1">إلى</label>
-              <input
-                type="date"
-                value={dates.to}
-                onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="px-3 py-2 border rounded-md"
-              />
-            </div>
+          <div className="flex gap-4 items-end flex-wrap">
             <div>
               <label className="block text-sm font-medium mb-1">من</label>
-              <input
-                type="date"
-                value={dates.from}
-                onChange={(e) => setDates({ ...dates, from: e.target.value })}
-                className="px-3 py-2 border rounded-md"
-              />
+              <input type="date" value={dates.from} onChange={(e) => setDates({ ...dates, from: e.target.value })} className="px-3 py-2 border rounded-md" />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">إلى</label>
+              <input type="date" value={dates.to} onChange={(e) => setDates({ ...dates, to: e.target.value })} className="px-3 py-2 border rounded-md" />
+            </div>
+            <Button onClick={() => { rangeQuery.refetch(); permQuery.refetch(); }} variant="outline">تحديث</Button>
           </div>
-          <p className="text-sm text-gray-600 mt-3">
-            التقارير تُعرض بناءً على الشهر المختار: {year}/{month}
-          </p>
+          <p className="text-xs text-gray-500 mt-2">تقرير الأذونات يعرض الشهر المحدد في تاريخ البداية: {year}/{String(month).padStart(2,"0")}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <div className="flex gap-2 border-b overflow-x-auto">
-            {(["summary", "late", "absent", "ot", "monthly"] as ReportTab[]).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 font-medium whitespace-nowrap ${
-                    activeTab === tab
-                      ? "border-b-2 border-blue-600 text-blue-600"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {getTabLabel(tab)}
-                </button>
-              )
-            )}
+            {tabs.map(({ key, label }) => (
+              <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === key ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-900"}`}>
+                {label}
+              </button>
+            ))}
           </div>
         </CardHeader>
-
         <CardContent className="pt-6">
-          {activeTab === "summary" && (
-            <div>
-              <div className="mb-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (summaryQuery.data) {
-                      handleExportCSV(
-                        summaryQuery.data,
-                        `ملخص-${year}-${String(month).padStart(2, "0")}.csv`
-                      );
-                    }
-                  }}
-                  disabled={!summaryQuery.data || summaryQuery.data.length === 0}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
-              </div>
-              {summaryQuery.isLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                renderTable(summaryQuery.data || [], [
-                  "empCd",
-                  "empName",
-                  "presentDays",
-                  "absentDays",
-                  "leaveDays",
-                  "totalLateMins",
-                ])
-              )}
-            </div>
-          )}
-
-          {activeTab === "late" && (
-            <div>
-              <div className="mb-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (lateQuery.data) {
-                      handleExportCSV(
-                        lateQuery.data,
-                        `تأخير-${year}-${String(month).padStart(2, "0")}.csv`
-                      );
-                    }
-                  }}
-                  disabled={!lateQuery.data || lateQuery.data.length === 0}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
-              </div>
-              {lateQuery.isLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                renderTable(lateQuery.data || [], [
-                  "empCd",
-                  "empName",
-                  "lateDays",
-                  "totalLateMins",
-                ])
-              )}
-            </div>
-          )}
-
-          {activeTab === "absent" && (
-            <div>
-              <div className="mb-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (absentQuery.data) {
-                      handleExportCSV(
-                        absentQuery.data,
-                        `غياب-${year}-${String(month).padStart(2, "0")}.csv`
-                      );
-                    }
-                  }}
-                  disabled={!absentQuery.data || absentQuery.data.length === 0}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
-              </div>
-              {absentQuery.isLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                renderTable(absentQuery.data || [], ["empCd", "empName", "absentDays"])
-              )}
-            </div>
-          )}
-
-          {activeTab === "ot" && (
-            <div>
-              <div className="mb-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (otQuery.data) {
-                      handleExportCSV(
-                        otQuery.data,
-                        `ساعات-إضافية-${year}-${String(month).padStart(2, "0")}.csv`
-                      );
-                    }
-                  }}
-                  disabled={!otQuery.data || otQuery.data.length === 0}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
-              </div>
-              {otQuery.isLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                renderTable(otQuery.data || [], ["empCd", "empName", "otDays", "totalOTHours"])
-              )}
-            </div>
-          )}
-
-          {activeTab === "monthly" && (
-            <div>
-              <div className="mb-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (monthlyQuery.data) {
-                      handleExportCSV(
-                        monthlyQuery.data,
-                        `شهري-${year}-${String(month).padStart(2, "0")}.csv`
-                      );
-                    }
-                  }}
-                  disabled={!monthlyQuery.data || monthlyQuery.data.length === 0}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
-              </div>
-              {monthlyQuery.isLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                renderTable(monthlyQuery.data || [], [
-                  "empCd",
-                  "empName",
-                  "totalDays",
-                  "presentDays",
-                  "absentDays",
-                  "leaveDays",
-                  "totalLateMins",
-                ])
-              )}
-            </div>
-          )}
+          <div className="mb-4 flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleExportCSV(activeData(), `تقرير-${activeTab}-${dates.from}-${dates.to}.csv`)} disabled={!activeData().length} className="gap-2">
+              <Download className="w-4 h-4" /> تصدير CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrint} disabled={!activeData().length} className="gap-2">
+              <Printer className="w-4 h-4" /> طباعة / PDF
+            </Button>
+          </div>
+          {isLoading ? (
+            <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          ) : renderTable(activeData())}
         </CardContent>
       </Card>
     </div>
