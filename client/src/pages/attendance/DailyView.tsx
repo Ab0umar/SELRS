@@ -14,11 +14,6 @@ export default function DailyView() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const dailyQuery = (trpc as any).attendance.dailyByDate.useQuery(
-    { date: dates.from },
-    { enabled: !!dates.from }
-  );
-
   const handleLoadRange = async () => {
     if (!dates.from || !dates.to) return;
 
