@@ -10,8 +10,9 @@ import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
 import { runSyncOnce } from '../services/attendance/syncEngine';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
+import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
 import { getDb } from '../db';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves } from '../../drizzle/schema';
+import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
 import { desc, eq, and, gte, lte } from 'drizzle-orm';
 
 /**
@@ -638,22 +639,78 @@ export const attendanceRouter = router({
 
         const rowsWritten = await dailyMaterializer.recomputeRange(fromDate, toDate);
 
+        // Also generate monthly reports for affected months
+        const months = new Set<string>();
+        for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+          months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        }
+
+        let monthsGenerated = 0;
+        for (const month of months) {
+          const [year, monthNum] = month.split('-').map(Number);
+          try {
+            await MonthlyComputeService.saveMonthlyReports(year, monthNum);
+            monthsGenerated++;
+          } catch (e) {
+            console.error(`Failed to generate monthly report for ${month}:`, e);
+          }
+        }
+
         AuditLogService.log({
           action: 'materialize_daily_triggered',
-          details: { fromDate: fromDate.toISOString(), toDate: toDate.toISOString(), rowsWritten },
+          details: { fromDate: fromDate.toISOString(), toDate: toDate.toISOString(), rowsWritten, monthsGenerated },
           status: 'success',
         });
 
         return {
           success: true,
           rowsWritten,
-          message: `Materialized ${rowsWritten} daily attendance records`,
+          monthsGenerated,
+          message: `Materialized ${rowsWritten} daily records & generated ${monthsGenerated} monthly reports`,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
           action: 'materialize_daily_triggered',
           details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
+
+  generateMonthlyReports: attendanceManagerProcedure
+    .input(
+      z.object({
+        year: z.number().int().min(2020).max(2099),
+        month: z.number().int().min(1).max(12),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const savedCount = await MonthlyComputeService.saveMonthlyReports(input.year, input.month);
+
+        AuditLogService.log({
+          action: 'generate_monthly_reports',
+          details: { year: input.year, month: input.month, savedCount },
+          status: 'success',
+        });
+
+        return {
+          success: true,
+          message: `Generated/updated monthly reports for ${savedCount} employees`,
+          savedCount,
+          year: input.year,
+          month: input.month,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'generate_monthly_reports',
+          details: { year: input.year, month: input.month, error },
           status: 'error',
         });
         return {
@@ -671,6 +728,95 @@ export const attendanceRouter = router({
       timestamp: new Date().toISOString(),
     };
   }),
+
+  bootstrapShifts: attendanceManagerProcedure
+    .input(z.object({}).optional())
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      try {
+        // Create default 8am-5pm shift if it doesn't exist
+        const existingShifts = await db
+          .select()
+          .from(attendanceShifts)
+          .where(eq(attendanceShifts.name, 'Default (8AM-5PM)'));
+
+        let shiftId: number;
+
+        if (existingShifts.length === 0) {
+          // Create new shift
+          const result = await db.insert(attendanceShifts).values({
+            name: 'Default (8AM-5PM)',
+            startTime: '08:00',
+            endTime: '17:00',
+            crossesMidnight: false,
+            graceLateMin: 10,
+            graceEarlyMin: 0,
+            breakMinutes: 60,
+            active: true,
+          });
+          shiftId = (result as any).insertId || 1;
+        } else {
+          shiftId = existingShifts[0].id;
+        }
+
+        // Get all active employees
+        const employees = await db
+          .select()
+          .from(attendanceEmployees)
+          .where(eq(attendanceEmployees.active, true));
+
+        // Assign all employees to the shift from today onwards
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let assigned = 0;
+
+        for (const emp of employees) {
+          // Check if already assigned
+          const existing = await db
+            .select()
+            .from(attendanceShiftAssignments)
+            .where(eq(attendanceShiftAssignments.empCd, emp.empCd));
+
+          if (existing.length === 0) {
+            await db.insert(attendanceShiftAssignments).values({
+              empCd: emp.empCd,
+              shiftId,
+              effectiveFrom: today,
+              effectiveTo: null,
+              weekdayMask: 127, // All 7 days
+            });
+            assigned++;
+          }
+        }
+
+        AuditLogService.log({
+          action: 'bootstrap_shifts',
+          details: { shiftId, employeesAssigned: assigned, totalEmployees: employees.length },
+          status: 'success',
+        });
+
+        return {
+          success: true,
+          message: `Created shift and assigned ${assigned} employees. ${employees.length - assigned} were already assigned.`,
+          shiftId,
+          assignedCount: assigned,
+          totalEmployees: employees.length,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({
+          action: 'bootstrap_shifts',
+          details: { error },
+          status: 'error',
+        });
+        return {
+          success: false,
+          error,
+        };
+      }
+    }),
 });
 
 export type AttendanceRouter = typeof attendanceRouter;

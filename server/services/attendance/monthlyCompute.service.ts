@@ -1,5 +1,5 @@
 import { getDb } from '../../db';
-import { attendanceDaily, attendanceEmployees } from '../../../drizzle/schema';
+import { attendanceDaily, attendanceEmployees, attendanceMonthlyReport } from '../../../drizzle/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 
 export class MonthlyComputeService {
@@ -175,5 +175,85 @@ export class MonthlyComputeService {
         totalOTHours: (m.totalOTMins / 60).toFixed(2),
       }))
       .sort((a, b) => a.empName.localeCompare(b.empName));
+  }
+
+  static async saveMonthlyReports(year: number, month: number): Promise<number> {
+    const db = await getDb();
+    if (!db) throw new Error('Database not available');
+
+    const monthly = await this.buildMonthly(year, month);
+    const now = new Date();
+    let savedCount = 0;
+
+    for (const m of monthly) {
+      // Count partial and missing_checkout days
+      const [dailyData] = await db
+        .select()
+        .from(attendanceDaily)
+        .where(
+          and(
+            eq(attendanceDaily.empCd, m.empCd),
+            gte(attendanceDaily.workDate, new Date(year, month - 1, 1)),
+            lte(attendanceDaily.workDate, new Date(year, month, 0))
+          )
+        );
+
+      const allDailyRecords = await db
+        .select()
+        .from(attendanceDaily)
+        .where(
+          and(
+            eq(attendanceDaily.empCd, m.empCd),
+            gte(attendanceDaily.workDate, new Date(year, month - 1, 1)),
+            lte(attendanceDaily.workDate, new Date(year, month, 0))
+          )
+        );
+
+      const partialDays = allDailyRecords.filter((d) => d.status === 'partial').length;
+      const missingCheckoutDays = allDailyRecords.filter((d) => d.status === 'missing_checkout').length;
+
+      await db
+        .insert(attendanceMonthlyReport)
+        .values({
+          empCd: m.empCd,
+          year,
+          month,
+          totalDays: m.totalDays,
+          presentDays: m.presentDays,
+          absentDays: m.absentDays,
+          leaveDays: m.leaveDays,
+          holidayDays: m.holidayDays,
+          partialDays,
+          missingCheckoutDays,
+          totalLateMins: m.totalLateMins,
+          lateCount: m.lateCount,
+          totalEarlyLeaveMins: m.totalEarlyLeaveMins,
+          earlyLeaveCount: m.earlyLeaveCount,
+          totalOTMins: m.totalOTMins,
+          computedAt: now,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            totalDays: m.totalDays,
+            presentDays: m.presentDays,
+            absentDays: m.absentDays,
+            leaveDays: m.leaveDays,
+            holidayDays: m.holidayDays,
+            partialDays,
+            missingCheckoutDays,
+            totalLateMins: m.totalLateMins,
+            lateCount: m.lateCount,
+            totalEarlyLeaveMins: m.totalEarlyLeaveMins,
+            earlyLeaveCount: m.earlyLeaveCount,
+            totalOTMins: m.totalOTMins,
+            computedAt: now,
+            updatedAt: now,
+          },
+        });
+
+      savedCount++;
+    }
+
+    return savedCount;
   }
 }

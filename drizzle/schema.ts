@@ -1135,6 +1135,37 @@ export const attendanceDaily = mysqlTable("attendance_daily", {
 export type AttendanceDaily = typeof attendanceDaily.$inferSelect;
 export type InsertAttendanceDaily = typeof attendanceDaily.$inferInsert;
 
+/**
+ * Monthly Attendance Report
+ * Aggregated from daily attendance records
+ * Recomputed whenever daily records change
+ */
+export const attendanceMonthlyReport = mysqlTable("attendance_monthly_report", {
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  month: int("month").notNull(), // 1-12
+  totalDays: int("total_days").default(0).notNull(),
+  presentDays: int("present_days").default(0).notNull(),
+  absentDays: int("absent_days").default(0).notNull(),
+  leaveDays: int("leave_days").default(0).notNull(),
+  holidayDays: int("holiday_days").default(0).notNull(),
+  partialDays: int("partial_days").default(0).notNull(),
+  missingCheckoutDays: int("missing_checkout_days").default(0).notNull(),
+  totalLateMins: int("total_late_mins").default(0).notNull(),
+  lateCount: int("late_count").default(0).notNull(),
+  totalEarlyLeaveMins: int("total_early_leave_mins").default(0).notNull(),
+  earlyLeaveCount: int("early_leave_count").default(0).notNull(),
+  totalOTMins: int("total_ot_mins").default(0).notNull(),
+  computedAt: timestamp("computed_at").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  pkMonthlyReport: primaryKey({ columns: [table.empCd, table.year, table.month] }),
+  idxYearMonth: index("idx_year_month").on(table.year, table.month),
+}));
+
+export type AttendanceMonthlyReport = typeof attendanceMonthlyReport.$inferSelect;
+export type InsertAttendanceMonthlyReport = typeof attendanceMonthlyReport.$inferInsert;
+
 export const attendanceSyncRuns = mysqlTable("attendance_sync_runs", {
   id: int("id").autoincrement().primaryKey(),
   startedAt: timestamp("started_at").notNull(),

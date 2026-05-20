@@ -23,6 +23,7 @@ export default function DeviceSettings() {
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncNow = tRPC.attendance.syncNow.useMutation();
   const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
+  const bootstrapShifts = tRPC.attendance.bootstrapShifts.useMutation();
 
   // Populate form when settings load from server
   useEffect(() => {
@@ -101,6 +102,16 @@ export default function DeviceSettings() {
       setShowSuccess(true);
     } catch (error) {
       console.error('Failed to materialize:', error);
+    }
+  };
+
+  const handleBootstrapShifts = async () => {
+    try {
+      const result = await bootstrapShifts.mutateAsync({});
+      console.log('Bootstrap result:', result);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Failed to bootstrap shifts:', error);
     }
   };
 
@@ -313,6 +324,39 @@ export default function DeviceSettings() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{String(materializeDaily.error)}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bootstrap Shifts & Assignments */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Setup Shifts & Assignments</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Create a default shift (8AM-5PM) and assign all employees to it. Required for attendance computation.
+          </p>
+          <Button
+            onClick={handleBootstrapShifts}
+            disabled={bootstrapShifts.isPending}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            {bootstrapShifts.isPending ? 'Setting up...' : 'Setup Default Shifts'}
+          </Button>
+          {bootstrapShifts.data && (
+            <Alert className="border-green-600 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                {bootstrapShifts.data.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          {bootstrapShifts.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{String(bootstrapShifts.error)}</AlertDescription>
             </Alert>
           )}
         </CardContent>
