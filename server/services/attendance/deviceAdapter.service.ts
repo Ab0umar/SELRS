@@ -265,9 +265,13 @@ let defaultDevice: DeviceAdapterService | null = null;
 
 export function getDefaultDevice(): DeviceAdapterService {
   if (!defaultDevice) {
+    // Import DeviceSettingsService to get the correct settings from DB
+    const { DeviceSettingsService } = require('./deviceSettings.service');
+    const settings = DeviceSettingsService.getSettings();
+
     const config: DeviceConfig = {
-      ip: process.env.ATTENDANCE_DEVICE_IP || '192.168.1.100',
-      port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || '5005'),
+      ip: settings.ip,
+      port: settings.port,
       timeout: 10000,
       reconnectInterval: 5000,
       maxRetries: 10,
