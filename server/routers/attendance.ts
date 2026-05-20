@@ -17,7 +17,7 @@ import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
-import { desc, eq, and, gte, lte } from 'drizzle-orm';
+import { desc, eq, and, gte, lte, lt } from 'drizzle-orm';
 
 /**
  * AttendanceRouter - TRPC router for attendance module
@@ -171,11 +171,12 @@ export const attendanceRouter = router({
       if (!db) throw new Error('Database not available');
 
       const targetDate = new Date(input.date);
+      const nextDate = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
 
       const daily = await db
         .select()
         .from(attendanceDaily)
-        .where(eq(attendanceDaily.workDate, targetDate))
+        .where(and(gte(attendanceDaily.workDate, targetDate), lt(attendanceDaily.workDate, nextDate)))
         .orderBy(attendanceDaily.empCd);
 
       return daily.map((d) => ({
