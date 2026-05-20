@@ -6,6 +6,7 @@
 
 import { EventEmitter } from 'events';
 import * as net from 'net';
+import { DeviceSettingsService } from './deviceSettings.service';
 
 export interface DeviceConfig {
   ip: string;
@@ -265,8 +266,6 @@ let defaultDevice: DeviceAdapterService | null = null;
 
 export function getDefaultDevice(): DeviceAdapterService {
   if (!defaultDevice) {
-    // Import DeviceSettingsService to get the correct settings from DB
-    const { DeviceSettingsService } = require('./deviceSettings.service');
     const settings = DeviceSettingsService.getSettings();
 
     const config: DeviceConfig = {
