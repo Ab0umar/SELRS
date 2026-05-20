@@ -219,7 +219,9 @@ export class DeviceAdapterService extends EventEmitter {
    */
   private handleError(err: Error): void {
     this.connectionError = err.message;
-    this.emit('error', err);
+    if (this.listenerCount('error') > 0) {
+      this.emit('error', err);
+    }
     console.error(`[Device] Error: ${err.message}`);
     this.attemptReconnect();
   }
