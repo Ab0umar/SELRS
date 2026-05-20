@@ -177,7 +177,8 @@ export class AccessDbAdapter implements AttendanceSource {
     try {
       // Try direct open with mdb-reader: read file as buffer, pass to constructor
       const fileBuffer = await fs.promises.readFile(accessPath);
-      const MDBReader = require('mdb-reader').default;
+      const mdbModule = await import('mdb-reader');
+      const MDBReader = mdbModule.default;
       this.db = new MDBReader(fileBuffer);
       return this.db;
     } catch (primaryErr) {
@@ -190,7 +191,8 @@ export class AccessDbAdapter implements AttendanceSource {
           this.tempCopyPath = tempFile;
 
           const fileBuffer = await fs.promises.readFile(tempFile);
-          const MDBReader = require('mdb-reader').default;
+          const mdbModule = await import('mdb-reader');
+          const MDBReader = mdbModule.default;
           this.db = new MDBReader(fileBuffer);
           return this.db;
         } catch (copyErr) {
@@ -204,7 +206,9 @@ export class AccessDbAdapter implements AttendanceSource {
       // If ODBC fallback is enabled, try it
       if (this.config.useOdbc) {
         try {
-          const odbc = require('odbc');
+          // @ts-ignore - odbc is optional, only installed if needed
+          const odbcModule = await import('odbc');
+          const odbc = odbcModule.default;
           // Connection string for Access DB
           const connStr = `Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=${accessPath}`;
           this.db = await odbc.connect(connStr);
