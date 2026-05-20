@@ -90,7 +90,10 @@ export async function runSyncOnce(
     // Load previous HWM and apply safety window rewind
     const prevHwm = await getLastHwm(db, source.name);
     const safetyRewindMs = SAFETY_WINDOW_MINUTES * 60 * 1000;
-    const sinceLocal = prevHwm && prevHwm instanceof Date ? new Date(prevHwm.getTime() - safetyRewindMs) : new Date(0);
+    // If no HWM exists, start from 60 days ago (not 1970!)
+    const defaultSince = new Date();
+    defaultSince.setDate(defaultSince.getDate() - 60);
+    const sinceLocal = prevHwm && prevHwm instanceof Date ? new Date(prevHwm.getTime() - safetyRewindMs) : defaultSince;
 
     // Sync employees first
     let rowsSeen = 0;
