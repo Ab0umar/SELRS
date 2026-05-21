@@ -91,7 +91,7 @@ export function AppTopNav({
       (leaf: NavLeaf): boolean => {
         if (isAdmin) return true;
         const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
-        if (!permissionsQuery.isSuccess) return true;
+        if (!permissionsQuery.isSuccess) return false;
         return pathGrantedByRoots(cleanPath, allowedRoots);
       },
     [isAdmin, permissionsQuery.isSuccess, allowedRoots],

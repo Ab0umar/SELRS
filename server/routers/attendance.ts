@@ -15,6 +15,7 @@ import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendanc
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb, getAllUsers } from '../db';
+import { pushAppNotification } from '../_core/appNotifications';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
@@ -1869,12 +1870,25 @@ export const attendanceRouter = router({
 
       await db.insert(attendanceLeaves).values({
         empCd: mapping[0].machineUserId,
-        dateFrom: new Date(input.dateFrom) as any,
-        dateTo: new Date(input.dateTo) as any,
+        dateFrom: input.dateFrom as any,
+        dateTo: input.dateTo as any,
         type: input.type,
         approved: false,
         note: input.note ?? null,
       });
+
+      const userName = String(ctx.user.name || ctx.user.username || '');
+      const typeAr = input.type === 'annual' ? 'سنوية' : 'مرضية';
+      pushAppNotification({
+        title: 'طلب إجازة جديد',
+        message: `${userName} طلب إجازة ${typeAr} من ${input.dateFrom} إلى ${input.dateTo}`,
+        kind: 'info',
+        targetRoles: ['admin', 'manager'],
+        source: 'attendance',
+        entityType: 'leave_request',
+        meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
+      }).catch(() => {});
+
       return { success: true };
     }),
 
@@ -1901,6 +1915,19 @@ export const attendanceRouter = router({
         approved: false,
         note: input.note ?? null,
       });
+
+      const userName = String(ctx.user.name || ctx.user.username || '');
+      const typeAr = input.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
+      pushAppNotification({
+        title: 'طلب إذن جديد',
+        message: `${userName} طلب إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
+        kind: 'info',
+        targetRoles: ['admin', 'manager'],
+        source: 'attendance',
+        entityType: 'permission_request',
+        meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
+      }).catch(() => {});
+
       return { success: true };
     }),
 
