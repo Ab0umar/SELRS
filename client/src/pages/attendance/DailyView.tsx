@@ -7,10 +7,8 @@ import { Calendar, Download } from 'lucide-react';
 
 export default function DailyView() {
   const today = new Date().toISOString().split('T')[0];
-  const [dates, setDates] = useState({
-    from: today,
-    to: today,
-  });
+  const [dates, setDates] = useState({ from: today, to: today });
+  const [empFilter, setEmpFilter] = useState('');
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const utils = trpc.useUtils();
@@ -105,33 +103,27 @@ export default function DailyView() {
           <CardTitle>اختيار الفترة الزمنية</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end flex-row-reverse">
+          <div className="flex gap-4 items-end flex-wrap">
             <Button
               onClick={handleLoadRange}
               className="bg-blue-600 hover:bg-blue-700 text-white"
               disabled={loading}
             >
-              {loading ? 'جاري التحميل...' : 'تحميل الفترة'}
+              {loading ? 'جاري التحميل...' : 'تحميل'}
             </Button>
             <div>
               <label className="block text-sm font-medium mb-1">إلى</label>
-              <input
-                type="date"
-                value={dates.to}
-                onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="px-3 py-2 border rounded-md"
-              />
+              <input type="date" value={dates.to} onChange={(e) => setDates({ ...dates, to: e.target.value })} className="px-3 py-2 border rounded-md" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">من</label>
-              <input
-                type="date"
-                value={dates.from}
-                onChange={(e) => setDates({ ...dates, from: e.target.value })}
-                className="px-3 py-2 border rounded-md"
-              />
+              <input type="date" value={dates.from} onChange={(e) => setDates({ ...dates, from: e.target.value })} className="px-3 py-2 border rounded-md" />
             </div>
-            <Calendar className="w-5 h-5 text-gray-500" />
+            <div>
+              <label className="block text-sm font-medium mb-1">كود الموظف</label>
+              <input type="text" value={empFilter} onChange={(e) => setEmpFilter(e.target.value)} placeholder="كل الموظفين" className="px-3 py-2 border rounded-md w-36" />
+            </div>
+            <Calendar className="w-5 h-5 text-gray-500 self-end mb-2" />
           </div>
         </CardContent>
       </Card>
@@ -161,7 +153,11 @@ export default function DailyView() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : records && records.length > 0 ? (
+          ) : records && records.length > 0 ? (() => {
+            const filtered = empFilter.trim()
+              ? records.filter((r) => r.empCd.toLowerCase().includes(empFilter.trim().toLowerCase()) || (r.empName ?? '').toLowerCase().includes(empFilter.trim().toLowerCase()))
+              : records;
+            return (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
@@ -178,7 +174,7 @@ export default function DailyView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record: any, idx: number) => (
+                  {filtered.map((record: any, idx: number) => (
                     <tr key={idx} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-mono text-xs text-gray-500">{record.empCd}</td>
                       <td className="py-3 px-4 font-semibold">{record.empName ?? '—'}</td>
@@ -234,7 +230,8 @@ export default function DailyView() {
                 </tbody>
               </table>
             </div>
-          ) : (
+            );
+          })() : (
             <div className="text-center py-8 text-gray-500">لا توجد سجلات حضور</div>
           )}
         </CardContent>
