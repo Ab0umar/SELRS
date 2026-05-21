@@ -282,7 +282,7 @@ const Router = memo(function Router() {
       {/* Attendance Module Routes — 5 top-level pages */}
       <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHome /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLive /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/my"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceMyProfile /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/my"} component={() => <ProtectedRoute><AttendanceMyProfile /></ProtectedRoute>} />
       <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeeDetail /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeesHub /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReportsHub /></AttendanceLayout></ProtectedRoute>} />

@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
-  Calendar, Clock, ShieldCheck, TrendingDown, TrendingUp,
-  Hourglass, AlertCircle, CheckCircle2,
+  ArrowRight, Calendar, Clock, ShieldCheck, TrendingDown, TrendingUp,
+  Hourglass, AlertCircle,
 } from 'lucide-react';
 
 const todayStr = new Date().toISOString().split('T')[0];
@@ -81,7 +82,17 @@ export default function MyAttendanceProfile() {
   const stats = data.monthStats;
 
   return (
-    <div className="space-y-5 p-4" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="border-b border-border bg-muted/30 px-4 py-3 flex items-center gap-3">
+      <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+      <div>
+        <h1 className="text-base font-semibold">حضوري</h1>
+        <p className="text-xs text-muted-foreground">رصيد الإجازات والإحصائيات وطلب الأذونات</p>
+      </div>
+    </div>
+    <div className="space-y-5 p-4">
       {/* Leave balance */}
       <Card>
         <CardHeader className="pb-2">
@@ -273,6 +284,7 @@ export default function MyAttendanceProfile() {
           </Button>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }
