@@ -10,7 +10,7 @@ import { LeaveManagementService } from '../services/attendance/leaveManagement.s
 import { PermissionAdjustmentService } from '../services/attendance/permissionAdjustment.service';
 import { AuditLogService } from '../services/attendance/auditLog.service';
 import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
-import { runSyncOnce, resetSyncHistory } from '../services/attendance/syncEngine';
+import { resetSyncHistory } from '../services/attendance/syncEngine';
 import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendance/deviceSyncEngine';
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
@@ -826,19 +826,17 @@ export const attendanceRouter = router({
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
-        const result = await runSyncOnce({ trigger: 'manual', triggeredBy: ctx.user.id });
+        const result = await FKDeviceSyncService.syncNow(ctx.user.id);
         AuditLogService.log({
           action: 'manual_sync_triggered',
-          details: { runId: result.runId, status: result.status },
-          status: result.status === 'failed' ? 'error' : 'success',
+          details: { inserted: result.recordsInserted, seen: result.recordsSeen },
+          status: result.success ? 'success' : 'error',
         });
         return {
-          success: result.status !== 'failed',
-          runId: result.runId,
-          status: result.status,
+          success: result.success,
           error: result.error,
-          rowsInserted: result.rowsInserted,
-          rowsSeen: result.rowsSeen,
+          rowsInserted: result.recordsInserted,
+          rowsSeen: result.recordsSeen,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
