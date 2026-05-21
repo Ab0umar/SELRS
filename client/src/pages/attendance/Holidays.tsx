@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Trash2, CalendarDays, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 const EGYPT_HOLIDAYS_2026 = [
@@ -30,14 +30,17 @@ export default function Holidays() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ date: "", label: "", paid: true });
   const [seeding, setSeeding] = useState(false);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState({ label: "", paid: true });
 
   const holidaysQuery = trpc.attendance.listHolidays.useQuery({ year });
   const addMut = trpc.attendance.addHoliday.useMutation({
     onSuccess: () => {
       setShowForm(false);
+      setEditingDate(null);
       setForm({ date: "", label: "", paid: true });
       holidaysQuery.refetch();
-      toast.success("تم إضافة العطلة");
+      toast.success(editingDate ? "تم التعديل" : "تم إضافة العطلة");
     },
     onError: (e) => toast.error("خطأ: " + e.message),
   });
@@ -140,18 +143,55 @@ export default function Holidays() {
                   </tr>
                 </thead>
                 <tbody>
-                  {holidays.map((h: any) => (
-                    <tr key={h.date} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 font-mono">{h.date}</td>
-                      <td className="py-2 px-4 font-medium">{h.label}</td>
-                      <td className="py-2 px-4">{h.paid ? <span className="text-green-600">نعم</span> : <span className="text-gray-400">لا</span>}</td>
-                      <td className="py-2 px-4">
-                        <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: h.date })} disabled={deleteMut.isPending}>
-                          <Trash2 size={15} className="text-red-500" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {holidays.map((h: any) => {
+                    const isEditing = editingDate === h.date;
+                    return (
+                      <tr key={h.date} className={`border-b ${isEditing ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <td className="py-2 px-4 font-mono">{h.date}</td>
+                        {isEditing ? (
+                          <>
+                            <td className="py-2 px-2">
+                              <input value={editRow.label} onChange={(e) => setEditRow({ ...editRow, label: e.target.value })}
+                                className="w-full px-2 py-1 border rounded text-sm" />
+                            </td>
+                            <td className="py-2 px-2">
+                              <select value={editRow.paid ? '1' : '0'} onChange={(e) => setEditRow({ ...editRow, paid: e.target.value === '1' })}
+                                className="px-2 py-1 border rounded text-sm">
+                                <option value="1">نعم</option>
+                                <option value="0">لا</option>
+                              </select>
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" disabled={addMut.isPending}
+                                  onClick={() => addMut.mutate({ date: h.date, label: editRow.label, paid: editRow.paid })}>
+                                  <Check size={15} className="text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setEditingDate(null)}>
+                                  <X size={15} className="text-gray-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-2 px-4 font-medium">{h.label}</td>
+                            <td className="py-2 px-4">{h.paid ? <span className="text-green-600">نعم</span> : <span className="text-gray-400">لا</span>}</td>
+                            <td className="py-2 px-4">
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => { setEditingDate(h.date); setEditRow({ label: h.label, paid: h.paid }); }}>
+                                  <Pencil size={15} className="text-blue-500" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: h.date })} disabled={deleteMut.isPending}>
+                                  <Trash2 size={15} className="text-red-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
