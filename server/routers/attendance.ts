@@ -1766,12 +1766,11 @@ export const attendanceRouter = router({
     const empCd = mapping[0].machineUserId;
     const year = new Date().getFullYear();
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const monthStartStr = monthStart.toISOString().split('T')[0];
-    const monthEndStr = monthEnd.toISOString().split('T')[0];
-    const yearStart = new Date(year, 0, 1);
-    const yearEnd = new Date(year, 11, 31);
+    const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEndStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    const yearStartStr = `${year}-01-01`;
+    const yearEndStr = `${year}-12-31`;
 
     // Annual leave balance
     const annualLeaves = await db.select().from(attendanceLeaves).where(
@@ -1779,28 +1778,29 @@ export const attendanceRouter = router({
         eq(attendanceLeaves.empCd, empCd),
         eq(attendanceLeaves.type, 'annual'),
         eq(attendanceLeaves.approved, true),
-        gte(attendanceLeaves.dateFrom, yearStart as any),
-        lte(attendanceLeaves.dateTo, yearEnd as any),
+        sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
+        sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
       )
     );
     const usedAnnual = annualLeaves.reduce((s, l) => {
-      const d1 = new Date(l.dateFrom as any);
-      const d2 = new Date(l.dateTo as any);
+      const d1 = new Date(String(l.dateFrom));
+      const d2 = new Date(String(l.dateTo));
       return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
     }, 0);
 
-    // Sick leaves this year
+    // Sick leaves this year (approved only)
     const sickLeaves = await db.select().from(attendanceLeaves).where(
       and(
         eq(attendanceLeaves.empCd, empCd),
         eq(attendanceLeaves.type, 'sick'),
-        gte(attendanceLeaves.dateFrom, yearStart as any),
-        lte(attendanceLeaves.dateTo, yearEnd as any),
+        eq(attendanceLeaves.approved, true),
+        sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
+        sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
       )
     );
     const usedSick = sickLeaves.reduce((s, l) => {
-      const d1 = new Date(l.dateFrom as any);
-      const d2 = new Date(l.dateTo as any);
+      const d1 = new Date(String(l.dateFrom));
+      const d2 = new Date(String(l.dateTo));
       return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
     }, 0);
 

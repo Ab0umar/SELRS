@@ -238,7 +238,7 @@ export default function MyAttendanceProfile() {
               <label className="text-xs text-muted-foreground">النوع</label>
               <select
                 value={leaveForm.type}
-                onChange={e => setLeaveForm({ ...leaveForm, type: e.target.value as 'annual' | 'sick' })}
+                onChange={e => setLeaveForm(prev => ({ ...prev, type: e.target.value as 'annual' | 'sick' }))}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="annual">سنوية</option>
@@ -250,23 +250,31 @@ export default function MyAttendanceProfile() {
               <label className="text-xs text-muted-foreground">من</label>
               <input
                 type="date" value={leaveForm.dateFrom}
-                onChange={e => setLeaveForm({ ...leaveForm, dateFrom: e.target.value })}
+                onChange={e => {
+                  const from = e.target.value;
+                  setLeaveForm(prev => ({ ...prev, dateFrom: from, dateTo: prev.dateTo < from ? from : prev.dateTo }));
+                }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">إلى</label>
               <input
-                type="date" value={leaveForm.dateTo}
-                onChange={e => setLeaveForm({ ...leaveForm, dateTo: e.target.value })}
+                type="date" value={leaveForm.dateTo} min={leaveForm.dateFrom}
+                onChange={e => setLeaveForm(prev => ({ ...prev, dateTo: e.target.value }))}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
             </div>
+            {leaveForm.dateFrom && leaveForm.dateTo && leaveForm.dateTo >= leaveForm.dateFrom && (
+              <div className="col-span-2 text-xs text-muted-foreground">
+                {Math.round((new Date(leaveForm.dateTo).getTime() - new Date(leaveForm.dateFrom).getTime()) / 86400000) + 1} يوم
+              </div>
+            )}
             <div className="flex flex-col gap-1 col-span-2">
               <label className="text-xs text-muted-foreground">ملاحظة</label>
               <input
                 type="text" value={leaveForm.note} placeholder="اختياري"
-                onChange={e => setLeaveForm({ ...leaveForm, note: e.target.value })}
+                onChange={e => setLeaveForm(prev => ({ ...prev, note: e.target.value }))}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
             </div>
