@@ -23,6 +23,7 @@ const BLANK: ShiftForm = {
   graceEarlyMin: 15,
   breakMinutes: 60,
   weekdayMask: 31, // Sun-Thu (Egypt default)
+  requirePunch: true,
 };
 
 interface ShiftForm {
@@ -33,6 +34,7 @@ interface ShiftForm {
   graceEarlyMin: number;
   breakMinutes: number;
   weekdayMask: number;
+  requirePunch: boolean;
 }
 
 function WeekdayPicker({ mask, onChange }: { mask: number; onChange: (m: number) => void }) {
@@ -99,6 +101,7 @@ export default function ShiftManagement() {
       graceEarlyMin: s.graceEarlyMin,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask ?? 31,
+      requirePunch: s.requirePunch ?? true,
     });
     setShowForm(true);
   };
@@ -140,6 +143,22 @@ export default function ShiftManagement() {
                 <label className="block text-sm font-medium mb-2">أيام العمل</label>
                 <WeekdayPicker mask={form.weekdayMask} onChange={(m) => setForm({ ...form, weekdayMask: m })} />
                 <p className="text-xs text-gray-500 mt-1">الافتراضي: أح-خ (الأحد إلى الخميس)</p>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 border rounded-md bg-gray-50">
+                <input
+                  type="checkbox"
+                  id="requirePunch"
+                  checked={form.requirePunch}
+                  onChange={(e) => setForm({ ...form, requirePunch: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="requirePunch" className="text-sm font-medium cursor-pointer">
+                  يجب تسجيل البصمة (حضور وانصراف)
+                </label>
+                <span className="text-xs text-gray-500 mr-auto">
+                  {form.requirePunch ? 'بدون بصمة = غائب' : 'بدون بصمة = حاضر تلقائي'}
+                </span>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -187,6 +206,11 @@ export default function ShiftManagement() {
                       <span>استراحة: {s.breakMinutes} د</span>
                       <span>سماح حضور: {s.graceLateMin} د</span>
                       <span>سماح انصراف: {s.graceEarlyMin} د</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${s.requirePunch ?? true ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                        {s.requirePunch ?? true ? 'يجب البصمة' : 'حاضر تلقائي'}
+                      </span>
                     </div>
                     <div className="flex gap-1 mt-1">
                       {WEEKDAYS.map(({ bit, label }) => (

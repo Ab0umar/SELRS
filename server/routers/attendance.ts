@@ -1211,6 +1211,7 @@ export const attendanceRouter = router({
       graceEarlyMin: s.graceEarlyMin,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask,
+      requirePunch: s.requirePunch,
       active: s.active,
     }));
   }),
@@ -1226,6 +1227,7 @@ export const attendanceRouter = router({
         graceEarlyMin: z.number().int().min(0).default(15),
         breakMinutes: z.number().int().min(0).default(60),
         weekdayMask: z.number().int().min(0).max(127).default(62),
+        requirePunch: z.boolean().default(true),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -1242,6 +1244,7 @@ export const attendanceRouter = router({
           graceEarlyMin: input.graceEarlyMin,
           breakMinutes: input.breakMinutes,
           weekdayMask: input.weekdayMask,
+          requirePunch: input.requirePunch,
           active: true,
         });
 
@@ -1276,6 +1279,7 @@ export const attendanceRouter = router({
         graceEarlyMin: z.number().int().min(0).optional(),
         breakMinutes: z.number().int().min(0).optional(),
         weekdayMask: z.number().int().min(0).max(127).optional(),
+        requirePunch: z.boolean().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -1291,6 +1295,7 @@ export const attendanceRouter = router({
         if (input.graceEarlyMin !== undefined) updateData.graceEarlyMin = input.graceEarlyMin;
         if (input.breakMinutes !== undefined) updateData.breakMinutes = input.breakMinutes;
         if (input.weekdayMask !== undefined) updateData.weekdayMask = input.weekdayMask;
+        if (input.requirePunch !== undefined) updateData.requirePunch = input.requirePunch;
 
         await db
           .update(attendanceShifts)

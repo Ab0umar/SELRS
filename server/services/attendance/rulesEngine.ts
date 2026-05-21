@@ -14,6 +14,7 @@ export interface Shift {
   graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
   breakMinutes: number;
   weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
+  requirePunch: boolean; // false = auto-present even with no fingerprint
   roundingMinutes?: number; // Default: 30 (Taratus: Round value)
 }
 
@@ -175,9 +176,25 @@ export function computeDay(ctx: DayContext): DayResult {
   result.firstIn = paired.firstIn;
   result.lastOut = paired.lastOut;
 
-  // No punches = absent
+  // No punches
   if (!paired.firstIn) {
-    result.status = 'absent';
+    if (!ctx.shift.requirePunch) {
+      // Auto-present: assume full shift worked
+      result.status = 'present';
+      const shiftStartHmAuto = parseTime(ctx.shift.startTime);
+      const shiftEndHmAuto = parseTime(ctx.shift.endTime);
+      if (shiftStartHmAuto && shiftEndHmAuto) {
+        result.firstIn = buildDateTime(ctx.workDate, shiftStartHmAuto);
+        result.lastOut = buildDateTime(ctx.workDate, shiftEndHmAuto);
+        if (ctx.shift.crossesMidnight && result.lastOut <= result.firstIn) {
+          result.lastOut = new Date(result.lastOut.getTime() + 24 * 60 * 60 * 1000);
+        }
+        const workedMs = result.lastOut.getTime() - result.firstIn.getTime();
+        result.workedMinutes = Math.max(0, Math.round(workedMs / 60_000) - ctx.breakMinutes);
+      }
+    } else {
+      result.status = 'absent';
+    }
     return result;
   }
 

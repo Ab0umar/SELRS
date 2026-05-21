@@ -121,6 +121,7 @@ export const attendanceShifts = mysqlTable("attendance_shifts", {
   graceEarlyMin: int("grace_early_min").default(0).notNull(),
   breakMinutes: int("break_minutes").default(0).notNull(),
   weekdayMask: int("weekday_mask").default(62).notNull(), // bits 0-6 Sun-Sat; 62=Mon-Fri
+  requirePunch: boolean("require_punch").default(true).notNull(), // false = auto-present if shift assigned
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
