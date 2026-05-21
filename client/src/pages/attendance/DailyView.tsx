@@ -18,14 +18,17 @@ export default function DailyView() {
 
   const handleLoadRange = async () => {
     if (!dates.from || !dates.to) return;
-
     setLoading(true);
-    const fromDate = new Date(dates.from);
-    const toDate = new Date(dates.to);
     let allRecords: any[] = [];
 
+    // Parse as local dates to avoid UTC midnight timezone shift
+    const [fy, fm, fd] = dates.from.split('-').map(Number);
+    const [ty, tm, td] = dates.to.split('-').map(Number);
+    const fromDate = new Date(fy, fm - 1, fd);
+    const toDate = new Date(ty, tm - 1, td);
+
     for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       try {
         const response = await utils.attendance.dailyByDate.fetch({ date: dateStr });
         allRecords = [...allRecords, ...response];

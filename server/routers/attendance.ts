@@ -170,9 +170,6 @@ export const attendanceRouter = router({
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
-      const targetDate = new Date(input.date);
-      const nextDate = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
-
       const daily = await db
         .select({
           empCd: attendanceDaily.empCd,
@@ -191,7 +188,7 @@ export const attendanceRouter = router({
         })
         .from(attendanceDaily)
         .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
-        .where(and(gte(attendanceDaily.workDate, targetDate), lt(attendanceDaily.workDate, nextDate)))
+        .where(eq(attendanceDaily.workDate, input.date as any))
         .orderBy(attendanceDaily.empCd);
 
       return daily.map((d) => ({
