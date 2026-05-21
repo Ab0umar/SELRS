@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Users } from 'lucide-react';
+import { Plus, Trash2, Users, Pencil, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AssignmentForm {
@@ -57,10 +57,23 @@ export default function ShiftAssignments() {
     onError: (e) => toast.error('خطأ: ' + e.message),
   });
 
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editRow, setEditRow] = useState<{ shiftId: number; effectiveFrom: string; effectiveTo?: string; weekdayMask: number }>({ shiftId: 0, effectiveFrom: today, weekdayMask: 127 });
+
+  const updateAssignmentMutation = trpc.attendance.updateAssignment.useMutation({
+    onSuccess: () => { setEditingId(null); listAssignmentsQuery.refetch(); toast.success('تم التعديل'); },
+    onError: (e) => toast.error('خطأ: ' + e.message),
+  });
+
   const deleteAssignmentMutation = trpc.attendance.deleteAssignment.useMutation({
     onSuccess: () => { listAssignmentsQuery.refetch(); toast.success('تم الحذف'); },
     onError: (e) => toast.error('خطأ: ' + e.message),
   });
+
+  const startEdit = (a: any) => {
+    setEditingId(a.id);
+    setEditRow({ shiftId: a.shiftId, effectiveFrom: a.effectiveFrom, effectiveTo: a.effectiveTo ?? undefined, weekdayMask: a.weekdayMask ?? 127 });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,24 +245,74 @@ export default function ShiftAssignments() {
                     <th className="text-right py-3 px-4">الوردية</th>
                     <th className="text-right py-3 px-4">من</th>
                     <th className="text-right py-3 px-4">حتى</th>
+                    <th className="text-right py-3 px-4">أيام</th>
                     <th className="text-right py-3 px-4"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {assignments.map((a: any) => (
-                    <tr key={a.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 font-mono text-xs">{a.empCd}</td>
-                      <td className="py-2 px-4">{a.empName}</td>
-                      <td className="py-2 px-4">{a.shiftName}</td>
-                      <td className="py-2 px-4">{a.effectiveFrom}</td>
-                      <td className="py-2 px-4">{a.effectiveTo ?? '—'}</td>
-                      <td className="py-2 px-4">
-                        <Button variant="ghost" size="sm" onClick={() => deleteAssignmentMutation.mutate({ id: a.id })}>
-                          <Trash2 size={15} className="text-red-500" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {assignments.map((a: any) => {
+                    const isEditing = editingId === a.id;
+                    return (
+                      <tr key={a.id} className={`border-b ${isEditing ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <td className="py-2 px-4 font-mono text-xs">{a.empCd}</td>
+                        <td className="py-2 px-4">{a.empName}</td>
+                        {isEditing ? (
+                          <>
+                            <td className="py-2 px-2">
+                              <select value={editRow.shiftId} onChange={(e) => setEditRow({ ...editRow, shiftId: parseInt(e.target.value) })} className="w-full px-2 py-1 border rounded text-sm">
+                                {shifts.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                              </select>
+                            </td>
+                            <td className="py-2 px-2">
+                              <input type="date" value={editRow.effectiveFrom} onChange={(e) => setEditRow({ ...editRow, effectiveFrom: e.target.value })} className="px-2 py-1 border rounded text-sm w-32" />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input type="date" value={editRow.effectiveTo ?? ''} onChange={(e) => setEditRow({ ...editRow, effectiveTo: e.target.value || undefined })} className="px-2 py-1 border rounded text-sm w-32" />
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="flex gap-1">
+                                {WEEKDAYS.map(({ bit, label }) => (
+                                  <button key={bit} type="button" onClick={() => setEditRow((prev) => ({ ...prev, weekdayMask: prev.weekdayMask ^ (1 << bit) }))}
+                                    className={`w-7 h-7 rounded-full text-xs font-medium border transition-colors ${editRow.weekdayMask & (1 << bit) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => updateAssignmentMutation.mutate({ id: a.id, ...editRow })} disabled={updateAssignmentMutation.isPending}>
+                                  <Check size={15} className="text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                                  <X size={15} className="text-gray-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-2 px-4">{a.shiftName}</td>
+                            <td className="py-2 px-4">{a.effectiveFrom}</td>
+                            <td className="py-2 px-4">{a.effectiveTo ?? '—'}</td>
+                            <td className="py-2 px-4 text-xs text-gray-500">
+                              {WEEKDAYS.filter(({ bit }) => (a.weekdayMask ?? 127) & (1 << bit)).map(({ label }) => label).join(' ')}
+                            </td>
+                            <td className="py-2 px-4">
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => startEdit(a)}>
+                                  <Pencil size={15} className="text-blue-500" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => deleteAssignmentMutation.mutate({ id: a.id })}>
+                                  <Trash2 size={15} className="text-red-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1442,6 +1442,33 @@ export const attendanceRouter = router({
       }
     }),
 
+  // ─── Employee Edit / Delete ──────────────────────────────────────────────
+  updateEmployee: attendanceManagerProcedure
+    .input(z.object({
+      empCd: z.string(),
+      fullName: z.string().min(1),
+      department: z.string().optional(),
+      active: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      await db
+        .update(attendanceEmployees)
+        .set({ fullName: input.fullName, department: input.department ?? null, active: input.active })
+        .where(eq(attendanceEmployees.empCd, input.empCd));
+      return { success: true };
+    }),
+
+  deleteEmployee: attendanceManagerProcedure
+    .input(z.object({ empCd: z.string() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      await db.delete(attendanceEmployees).where(eq(attendanceEmployees.empCd, input.empCd));
+      return { success: true };
+    }),
+
   // ─── Bulk Shift Assignment ───────────────────────────────────────────────
   bulkAssignShift: attendanceManagerProcedure
     .input(z.object({
