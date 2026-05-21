@@ -1,12 +1,26 @@
 import { useState } from "react";
+import { Clock, Download, Printer } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, Clock } from "lucide-react";
 
 const thisYear = new Date().getFullYear();
 const thisMonth = new Date().getMonth() + 1;
+const MONTHS = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 
 export default function PermissionReport() {
   const [year, setYear] = useState(thisYear);
@@ -15,33 +29,41 @@ export default function PermissionReport() {
   const query = trpc.attendance.permissionReport.useQuery({ year, month });
   const rows: any[] = (query.data as any[]) ?? [];
 
-  const totalInCount = rows.reduce((s, r) => s + (r.inCount ?? 0), 0);
-  const totalOutCount = rows.reduce((s, r) => s + (r.outCount ?? 0), 0);
-  const totalInMins = rows.reduce((s, r) => s + (r.totalInMins ?? 0), 0);
-  const totalOutMins = rows.reduce((s, r) => s + (r.totalOutMins ?? 0), 0);
-
-  const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+  const totalInCount = rows.reduce((sum, row) => sum + (row.inCount ?? 0), 0);
+  const totalOutCount = rows.reduce((sum, row) => sum + (row.outCount ?? 0), 0);
+  const totalInMins = rows.reduce((sum, row) => sum + (row.totalInMins ?? 0), 0);
+  const totalOutMins = rows.reduce((sum, row) => sum + (row.totalOutMins ?? 0), 0);
 
   const handleExport = () => {
     if (!rows.length) return;
-    const headers = ["الكود","الاسم","أذونات دخول","مجموع دخول (د)","أذونات خروج","مجموع خروج (د)","إجمالي (د)"];
+    const headers = [
+      "الكود",
+      "الاسم",
+      "أذونات دخول",
+      "مجموع دخول (د)",
+      "أذونات خروج",
+      "مجموع خروج (د)",
+      "إجمالي (د)",
+    ];
     const csv = [
       headers.join(","),
-      ...rows.map((r) => [
-        `"${r.empCd}"`,
-        `"${r.empName ?? ""}"`,
-        r.inCount,
-        r.totalInMins,
-        r.outCount,
-        r.totalOutMins,
-        (r.totalInMins ?? 0) + (r.totalOutMins ?? 0),
-      ].join(",")),
+      ...rows.map((row) =>
+        [
+          `"${row.empCd}"`,
+          `"${row.empName ?? ""}"`,
+          row.inCount,
+          row.totalInMins,
+          row.outCount,
+          row.totalOutMins,
+          (row.totalInMins ?? 0) + (row.totalOutMins ?? 0),
+        ].join(","),
+      ),
     ].join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `تقرير-الأذونات-${year}-${String(month).padStart(2,"0")}.csv`;
+    a.download = `تقرير-الأذونات-${year}-${String(month).padStart(2, "0")}.csv`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -51,20 +73,20 @@ export default function PermissionReport() {
   const handlePrint = () => {
     if (!rows.length) return;
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
-      <title>تقرير الأذونات — ${MONTHS[month-1]} ${year}</title>
+      <title>تقرير الأذونات — ${MONTHS[month - 1]} ${year}</title>
       <style>
         body{font-family:Arial,sans-serif;direction:rtl;font-size:12px;}
-        h2{font-size:16px;margin-bottom:4px;}
-        p{font-size:11px;color:#555;margin:0 0 12px;}
+        h2{font-size:16px;margin-bottom:4px;color:#003d82;}
+        p{font-size:11px;color:#4b5563;margin:0 0 12px;}
         table{width:100%;border-collapse:collapse;}
-        th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;}
-        th{background:#f0f0f0;font-weight:bold;}
-        tr:nth-child(even){background:#f9f9f9;}
-        tfoot td{font-weight:bold;background:#e8e8e8;}
+        th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:right;}
+        th{background:#e8f0f8;font-weight:bold;color:#001f47;}
+        tr:nth-child(even){background:#f8fafc;}
+        tfoot td{font-weight:bold;background:#dbeafe;}
         @media print{@page{margin:15mm;}}
       </style></head><body>
       <h2>تقرير الأذونات</h2>
-      <p>${MONTHS[month-1]} ${year}</p>
+      <p>${MONTHS[month - 1]} ${year}</p>
       <table>
         <thead><tr>
           <th>الكود</th><th>الاسم</th>
@@ -73,18 +95,22 @@ export default function PermissionReport() {
           <th>إجمالي دقائق</th>
         </tr></thead>
         <tbody>
-          ${rows.map((r) => `<tr>
-            <td>${r.empCd}</td><td>${r.empName ?? "—"}</td>
-            <td>${r.inCount}</td><td>${r.totalInMins}</td>
-            <td>${r.outCount}</td><td>${r.totalOutMins}</td>
-            <td>${(r.totalInMins ?? 0)+(r.totalOutMins ?? 0)}</td>
-          </tr>`).join("")}
+          ${rows
+            .map(
+              (row) => `<tr>
+            <td>${row.empCd}</td><td>${row.empName ?? "—"}</td>
+            <td>${row.inCount}</td><td>${row.totalInMins}</td>
+            <td>${row.outCount}</td><td>${row.totalOutMins}</td>
+            <td>${(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}</td>
+          </tr>`,
+            )
+            .join("")}
         </tbody>
         <tfoot><tr>
           <td colspan="2">الإجمالي</td>
           <td>${totalInCount}</td><td>${totalInMins}</td>
           <td>${totalOutCount}</td><td>${totalOutMins}</td>
-          <td>${totalInMins+totalOutMins}</td>
+          <td>${totalInMins + totalOutMins}</td>
         </tr></tfoot>
       </table></body></html>`;
     const win = window.open("", "_blank");
@@ -95,107 +121,172 @@ export default function PermissionReport() {
     win.print();
   };
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">تقرير الأذونات</h1>
+  const summaryCards = [
+    { label: "أذونات الدخول", value: totalInCount, tone: "primary" },
+    { label: "دقائق الدخول", value: `${totalInMins} د`, tone: "info" },
+    { label: "أذونات الخروج", value: totalOutCount, tone: "secondary" },
+    { label: "دقائق الخروج", value: `${totalOutMins} د`, tone: "warning" },
+  ];
 
-      {/* Controls */}
-      <Card className="mb-6">
+  return (
+    <div className="mx-auto max-w-5xl p-6" dir="rtl">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground">تقرير الأذونات</h1>
+          <p className="text-sm text-muted-foreground">أذونات الدخول والخروج تظهر الآن بلون مختلف عن المجاميع والرصيد.</p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
+          <Clock className="h-3.5 w-3.5" />
+          {MONTHS[month - 1]}
+        </span>
+      </div>
+
+      <Card className="mb-6 border-border bg-muted/20">
         <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="block text-sm font-medium mb-1">السنة</label>
-              <input type="number" min={2020} max={2099} value={year}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-muted-foreground">السنة</label>
+              <input
+                type="number"
+                min={2020}
+                max={2099}
+                value={year}
                 onChange={(e) => setYear(parseInt(e.target.value))}
-                className="w-24 px-3 py-2 border rounded-md" />
+                className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">الشهر</label>
-              <select value={month} onChange={(e) => setMonth(parseInt(e.target.value))}
-                className="px-3 py-2 border rounded-md">
-                {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-muted-foreground">الشهر</label>
+              <select
+                value={month}
+                onChange={(e) => setMonth(parseInt(e.target.value))}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+              >
+                {MONTHS.map((m, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
               </select>
             </div>
-            <Button onClick={() => query.refetch()} variant="outline">تحديث</Button>
-            <div className="flex gap-2 mr-auto">
-              <Button variant="outline" size="sm" onClick={handleExport} disabled={!rows.length} className="gap-2">
-                <Download className="w-4 h-4" /> تصدير CSV
+            <Button onClick={() => query.refetch()} variant="outline" className="border-primary/20 text-primary hover:bg-primary/10">
+              تحديث
+            </Button>
+            <div className="mr-auto flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={!rows.length}
+                className="gap-2 border-info/20 text-info hover:bg-info/10"
+              >
+                <Download className="h-4 w-4" /> تصدير CSV
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-2">
-                <Printer className="w-4 h-4" /> طباعة / PDF
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                disabled={!rows.length}
+                className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
+              >
+                <Printer className="h-4 w-4" /> طباعة / PDF
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Summary cards */}
       {rows.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {[
-            { label: "عدد أذونات الدخول",    value: totalInCount,              color: "text-blue-600" },
-            { label: "دقائق أذونات الدخول",  value: `${totalInMins} د`,        color: "text-blue-700" },
-            { label: "عدد أذونات الخروج",    value: totalOutCount,             color: "text-orange-600" },
-            { label: "دقائق أذونات الخروج",  value: `${totalOutMins} د`,       color: "text-orange-700" },
-          ].map((c) => (
-            <Card key={c.label}>
-              <CardContent className="pt-4 pb-4 px-4">
-                <div className="text-xs text-muted-foreground mb-1">{c.label}</div>
-                <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {summaryCards.map((card) => (
+            <Card key={card.label} className="border-border bg-background">
+              <CardContent className="space-y-2 px-4 py-4">
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                    card.tone === "primary"
+                      ? "border-primary/20 bg-primary/10 text-primary"
+                      : card.tone === "info"
+                        ? "border-info/20 bg-info/10 text-info"
+                        : card.tone === "secondary"
+                          ? "border-secondary/20 bg-secondary/10 text-secondary"
+                          : "border-warning/30 bg-warning/10 text-warning"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
+                  {card.label}
+                </div>
+                <div
+                  className={`text-2xl font-bold tabular-nums ${
+                    card.tone === "primary"
+                      ? "text-primary"
+                      : card.tone === "info"
+                        ? "text-info"
+                        : card.tone === "secondary"
+                          ? "text-secondary"
+                          : "text-warning"
+                  }`}
+                >
+                  {card.value}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            {MONTHS[month-1]} {year} — {rows.length} موظف
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Clock className="h-5 w-5 text-secondary" />
+            {MONTHS[month - 1]} {year} ، {rows.length} موظف
           </CardTitle>
         </CardHeader>
         <CardContent>
           {query.isLoading ? (
-            <div className="space-y-2">{[1,2,3,4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
           ) : !rows.length ? (
-            <div className="text-center py-10 text-gray-500">لا توجد أذونات لهذا الشهر</div>
+            <div className="py-10 text-center text-muted-foreground">لا توجد أذونات لهذا الشهر</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-right py-3 px-4">الكود</th>
-                    <th className="text-right py-3 px-4">الاسم</th>
-                    <th className="text-right py-3 px-4 text-blue-700">أذونات دخول</th>
-                    <th className="text-right py-3 px-4 text-blue-700">دقائق دخول</th>
-                    <th className="text-right py-3 px-4 text-orange-700">أذونات خروج</th>
-                    <th className="text-right py-3 px-4 text-orange-700">دقائق خروج</th>
-                    <th className="text-right py-3 px-4">إجمالي (د)</th>
+                  <tr className="border-b bg-muted/60">
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">الكود</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">الاسم</th>
+                    <th className="px-4 py-3 text-right font-semibold text-primary">أذونات دخول</th>
+                    <th className="px-4 py-3 text-right font-semibold text-primary">دقائق دخول</th>
+                    <th className="px-4 py-3 text-right font-semibold text-secondary">أذونات خروج</th>
+                    <th className="px-4 py-3 text-right font-semibold text-secondary">دقائق خروج</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">إجمالي (د)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r: any) => (
-                    <tr key={r.empCd} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 font-mono text-xs">{r.empCd}</td>
-                      <td className="py-2 px-4 font-medium">{r.empName ?? "—"}</td>
-                      <td className="py-2 px-4 text-blue-700">{r.inCount}</td>
-                      <td className="py-2 px-4 text-blue-700">{r.totalInMins}</td>
-                      <td className="py-2 px-4 text-orange-700">{r.outCount}</td>
-                      <td className="py-2 px-4 text-orange-700">{r.totalOutMins}</td>
-                      <td className="py-2 px-4 font-semibold">{(r.totalInMins ?? 0) + (r.totalOutMins ?? 0)}</td>
+                  {rows.map((row: any) => (
+                    <tr key={row.empCd} className="border-b transition-colors hover:bg-muted/30">
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{row.empCd}</td>
+                      <td className="px-4 py-2 font-medium text-foreground">{row.empName ?? "—"}</td>
+                      <td className="px-4 py-2 text-primary">{row.inCount}</td>
+                      <td className="px-4 py-2 text-primary">{row.totalInMins}</td>
+                      <td className="px-4 py-2 text-secondary">{row.outCount}</td>
+                      <td className="px-4 py-2 text-secondary">{row.totalOutMins}</td>
+                      <td className="px-4 py-2 font-semibold text-foreground">{(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 bg-gray-100 font-bold">
-                    <td className="py-2 px-4" colSpan={2}>الإجمالي</td>
-                    <td className="py-2 px-4 text-blue-700">{totalInCount}</td>
-                    <td className="py-2 px-4 text-blue-700">{totalInMins}</td>
-                    <td className="py-2 px-4 text-orange-700">{totalOutCount}</td>
-                    <td className="py-2 px-4 text-orange-700">{totalOutMins}</td>
-                    <td className="py-2 px-4">{totalInMins + totalOutMins}</td>
+                  <tr className="border-t-2 bg-primary/5 font-bold">
+                    <td className="px-4 py-2" colSpan={2}>
+                      الإجمالي
+                    </td>
+                    <td className="px-4 py-2 text-primary">{totalInCount}</td>
+                    <td className="px-4 py-2 text-primary">{totalInMins}</td>
+                    <td className="px-4 py-2 text-secondary">{totalOutCount}</td>
+                    <td className="px-4 py-2 text-secondary">{totalOutMins}</td>
+                    <td className="px-4 py-2">{totalInMins + totalOutMins}</td>
                   </tr>
                 </tfoot>
               </table>
