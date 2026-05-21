@@ -4,14 +4,20 @@ import { Capacitor } from "@capacitor/core";
 import { Activity, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getApiUrl } from "@/const";
 import { useAuth } from "@/hooks/useAuth";
-import { getOfflineCacheSummary, subscribeNetworkStatus } from "@/lib/appRuntime";
+import {
+  getOfflineCacheSummary,
+  subscribeNetworkStatus,
+} from "@/lib/appRuntime";
 import { BRAND_NAME_AR } from "@/lib/brand";
-import { NATIVE_LAST_USERNAME_KEY, hydrateDurableValue, saveDurableValue } from "@/lib/nativeStorage";
+import {
+  NATIVE_LAST_USERNAME_KEY,
+  hydrateDurableValue,
+  saveDurableValue,
+} from "@/lib/nativeStorage";
 
 export default function Home() {
   const { loading, user } = useAuth();
@@ -38,12 +44,17 @@ export default function Home() {
     setLocation(role === "accountant" ? "/accounting" : "/dashboard");
   }, [loading, user, setLocation]);
 
-  useEffect(() => subscribeNetworkStatus((status) => setIsOnline(status.connected)), []);
+  useEffect(
+    () => subscribeNetworkStatus((status) => setIsOnline(status.connected)),
+    [],
+  );
 
   useEffect(() => {
-    void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then((stored) => {
-      if (stored) setUsername(stored);
-    });
+    void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then(
+      (stored) => {
+        if (stored) setUsername(stored);
+      },
+    );
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -68,12 +79,25 @@ export default function Home() {
       }
 
       if (typeof window !== "undefined") {
-        const usePersistentStorage = Capacitor.isNativePlatform() ? true : rememberMe;
-        window.localStorage.setItem("remember_me", usePersistentStorage ? "1" : "0");
+        const usePersistentStorage = Capacitor.isNativePlatform()
+          ? true
+          : rememberMe;
+        window.localStorage.setItem(
+          "remember_me",
+          usePersistentStorage ? "1" : "0",
+        );
         window.localStorage.setItem("last_username", username.trim());
-        void saveDurableValue(NATIVE_LAST_USERNAME_KEY, username.trim(), "last_username");
-        const store = usePersistentStorage ? window.localStorage : window.sessionStorage;
-        const clear = usePersistentStorage ? window.sessionStorage : window.localStorage;
+        void saveDurableValue(
+          NATIVE_LAST_USERNAME_KEY,
+          username.trim(),
+          "last_username",
+        );
+        const store = usePersistentStorage
+          ? window.localStorage
+          : window.sessionStorage;
+        const clear = usePersistentStorage
+          ? window.sessionStorage
+          : window.localStorage;
         clear.removeItem("user");
         clear.removeItem("token");
         store.removeItem("user");
@@ -114,23 +138,22 @@ export default function Home() {
       dir="rtl"
       className="relative min-h-dvh overflow-hidden bg-muted text-muted-foreground selection:bg-primary/10"
     >
-
       <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <section className="w-full max-w-[26rem]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-muted-foreground">
-                SELRS
-              </p>
-              <h1 className="mt-1 text-sm font-medium tracking-wide text-muted-foreground">
+              <h1 className="text-2xl font-black tracking-tight text-foreground">
                 بوابة الطاقم الطبي
               </h1>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">
+                تسجيل الدخول
+              </p>
             </div>
 
             <div
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold ${
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                 isOnline
-                  ? "border-success/30 bg-success/10 text-success"
+                  ? "border-primary/20 bg-primary/10 text-primary"
                   : "border-warning/50 bg-warning/10 text-warning"
               }`}
             >
@@ -139,14 +162,14 @@ export default function Home() {
             </div>
           </div>
 
-          <Card className="overflow-hidden rounded-[1.6rem] border border-border bg-background shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <CardContent className="space-y-5 px-6 py-7 sm:px-7">
+          <div className="overflow-hidden rounded-[1.25rem] border border-border bg-background shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+            <div className="space-y-5 px-6 py-7 sm:px-7">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-border bg-primary/10">
                   <BrandLogo className="h-8 w-8" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  <p className="text-sm font-semibold text-muted-foreground">
                     {BRAND_NAME_AR}
                   </p>
                   <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">
@@ -157,21 +180,30 @@ export default function Home() {
 
               <form onSubmit={handleLogin} className="space-y-4">
                 {error ? (
-                  <Alert variant="destructive" className="border-destructive/30 bg-destructive/10 text-destructive">
-                    <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+                  <Alert
+                    variant="destructive"
+                    className="border-destructive/30 bg-destructive/10 text-destructive"
+                  >
+                    <AlertDescription className="text-sm font-medium">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 ) : null}
 
                 {!isOnline ? (
                   <Alert className="border-warning/50 bg-warning/10 text-warning">
                     <AlertDescription className="text-sm font-medium">
-                      أنت تعمل في وضع عدم الاتصال، سيتم حفظ آخر اسم مستخدم فقط ({offlineCacheSummary.count} ملف مخزن)
+                      أنت تعمل في وضع عدم الاتصال، سيتم حفظ آخر اسم مستخدم فقط (
+                      {offlineCacheSummary.count} ملف مخزن)
                     </AlertDescription>
                   </Alert>
                 ) : null}
 
                 <div className="space-y-2">
-                  <label htmlFor="username" className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  <label
+                    htmlFor="username"
+                    className="text-sm font-semibold text-muted-foreground"
+                  >
                     اسم المستخدم
                   </label>
                   <div className="relative">
@@ -192,7 +224,10 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  <label
+                    htmlFor="password"
+                    className="text-sm font-semibold text-muted-foreground"
+                  >
                     كلمة المرور
                   </label>
                   <div className="relative">
@@ -214,9 +249,13 @@ export default function Home() {
 
                 <div className="flex items-center justify-between rounded-[1rem] border border-border bg-muted/70 px-4 py-3">
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">تذكرني</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {rememberMe ? "يبقى الدخول محفوظًا على هذا الجهاز" : "جلسة مؤقتة"}
+                    <div className="text-sm font-semibold text-foreground">
+                      تذكرني
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {rememberMe
+                        ? "يبقى الدخول محفوظًا على هذا الجهاز"
+                        : "جلسة مؤقتة"}
                     </div>
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center">
@@ -248,12 +287,16 @@ export default function Home() {
                 </Button>
               </form>
 
-              <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
                 <Activity className="h-3.5 w-3.5 text-primary" />
-                <span>{isOnline ? "متصل بالإنترنت" : `مخزن محليًا (${offlineCacheSummary.count})`}</span>
+                <span>
+                  {isOnline
+                    ? "متصل بالإنترنت"
+                    : `مخزن محليًا (${offlineCacheSummary.count})`}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </section>
       </main>
     </div>
