@@ -67,7 +67,7 @@ export default function AttendanceHome() {
     onSuccess: (res: any) => {
       setSyncMsg(
         res.success
-          ? `✓ تمت المزامنة — ${res.recordsInserted} سجل جديد`
+          ? `✓ تمت المزامنة — ${res.rowsInserted ?? 0} سجل جديد`
           : `✗ فشلت: ${res.error ?? "خطأ غير معروف"}`,
       );
       dashboardQuery.refetch();
@@ -75,7 +75,7 @@ export default function AttendanceHome() {
     onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
   });
 
-  const recomputeMutation = (trpc as any).attendance.recomputeRange.useMutation({
+  const recomputeMutation = (trpc as any).attendance.materializeDaily.useMutation({
     onSuccess: (res: any) => {
       setRecomputeMsg(`✓ تمت إعادة الحساب — ${res.rowsWritten ?? 0} يوم`);
       dashboardQuery.refetch();

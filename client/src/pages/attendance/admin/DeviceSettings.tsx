@@ -1,20 +1,32 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  CheckCircle,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+} from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const tRPC = trpc as any;
 
 export default function DeviceSettings() {
-  const [formData, setFormData] = useState({ ip: '', port: 5005, enabled: false });
+  const [formData, setFormData] = useState({
+    ip: "",
+    port: 5005,
+    enabled: false,
+  });
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Load current settings from server
   const settingsQuery = tRPC.attendance.deviceSettings.useQuery();
-  const statusQuery = tRPC.attendance.deviceStatus.useQuery({ refetchInterval: 10000 });
+  const statusQuery = tRPC.attendance.deviceStatus.useQuery({
+    refetchInterval: 10000,
+  });
 
   // Device control mutations
   const connectDevice = tRPC.attendance.connectDevice.useMutation();
@@ -54,7 +66,7 @@ export default function DeviceSettings() {
       setShowSuccess(true);
       await settingsQuery.refetch();
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error("Failed to save settings:", error);
     }
   };
 
@@ -63,7 +75,7 @@ export default function DeviceSettings() {
       await connectDevice.mutateAsync();
       await statusQuery.refetch();
     } catch (error) {
-      console.error('Failed to connect:', error);
+      console.error("Failed to connect:", error);
     }
   };
 
@@ -72,7 +84,7 @@ export default function DeviceSettings() {
       await disconnectDevice.mutateAsync();
       await statusQuery.refetch();
     } catch (error) {
-      console.error('Failed to disconnect:', error);
+      console.error("Failed to disconnect:", error);
     }
   };
 
@@ -81,45 +93,59 @@ export default function DeviceSettings() {
       await resetConnection.mutateAsync();
       await statusQuery.refetch();
     } catch (error) {
-      console.error('Failed to reset connection:', error);
+      console.error("Failed to reset connection:", error);
     }
   };
 
   const handleSyncNow = async () => {
     try {
       const result = await syncNow.mutateAsync();
-      console.log('Sync result:', result);
+      console.log("Sync result:", result);
       setShowSuccess(true);
     } catch (error) {
-      console.error('Failed to sync:', error);
+      console.error("Failed to sync:", error);
     }
   };
 
   const handleMaterializeDaily = async () => {
     try {
       const result = await materializeDaily.mutateAsync({});
-      console.log('Materialize result:', result);
+      console.log("Materialize result:", result);
       setShowSuccess(true);
     } catch (error) {
-      console.error('Failed to materialize:', error);
+      console.error("Failed to materialize:", error);
     }
   };
 
   const handleBootstrapShifts = async () => {
     try {
       const result = await bootstrapShifts.mutateAsync({});
-      console.log('Bootstrap result:', result);
+      console.log("Bootstrap result:", result);
       setShowSuccess(true);
     } catch (error) {
-      console.error('Failed to bootstrap shifts:', error);
+      console.error("Failed to bootstrap shifts:", error);
     }
   };
 
-  const status = statusQuery.data || { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
+  const status = statusQuery.data || {
+    connected: false,
+    lastConnected: null,
+    uptime: 0,
+    lastPunch: null,
+    punchCount: 0,
+    connectionError: null,
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Fingerprint Device Settings</h1>
+    <div className="space-y-6" dir="rtl">
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Device console
+        </p>
+        <h2 className="text-3xl font-bold text-foreground">
+          Fingerprint Device Settings
+        </h2>
+      </div>
 
       {/* Device Status Card */}
       <Card>
@@ -144,7 +170,9 @@ export default function DeviceSettings() {
               onClick={() => statusQuery.refetch()}
               disabled={statusQuery.isRefetching}
             >
-              <RefreshCw className={`w-4 h-4 ${statusQuery.isRefetching ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${statusQuery.isRefetching ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         </CardHeader>
@@ -157,23 +185,27 @@ export default function DeviceSettings() {
           )}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-600">Last Connected</p>
+              <p className="text-muted-foreground">Last Connected</p>
               <p className="font-mono">
-                {status?.lastConnected ? new Date(status.lastConnected).toLocaleString() : 'Never'}
+                {status?.lastConnected
+                  ? new Date(status.lastConnected).toLocaleString()
+                  : "Never"}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Uptime (seconds)</p>
+              <p className="text-muted-foreground">Uptime (seconds)</p>
               <p className="font-mono">{status?.uptime ?? 0}</p>
             </div>
             <div>
-              <p className="text-gray-600">Last Punch</p>
+              <p className="text-muted-foreground">Last Punch</p>
               <p className="font-mono">
-                {status?.lastPunch ? new Date(status.lastPunch).toLocaleString() : 'Never'}
+                {status?.lastPunch
+                  ? new Date(status.lastPunch).toLocaleString()
+                  : "Never"}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Total Punches</p>
+              <p className="text-muted-foreground">Total Punches</p>
               <p className="font-mono">{status?.punchCount ?? 0}</p>
             </div>
           </div>
@@ -184,21 +216,21 @@ export default function DeviceSettings() {
               onClick={handleConnect}
               disabled={connectDevice.isPending}
             >
-              {connectDevice.isPending ? 'Connecting...' : 'Connect'}
+              {connectDevice.isPending ? "Connecting..." : "Connect"}
             </Button>
             <Button
               variant="outline"
               onClick={handleDisconnect}
               disabled={disconnectDevice.isPending}
             >
-              {disconnectDevice.isPending ? 'Disconnecting...' : 'Disconnect'}
+              {disconnectDevice.isPending ? "Disconnecting..." : "Disconnect"}
             </Button>
             <Button
               variant="outline"
               onClick={handleResetConnection}
               disabled={resetConnection.isPending}
             >
-              {resetConnection.isPending ? 'Resetting...' : 'Reset Connection'}
+              {resetConnection.isPending ? "Resetting..." : "Reset Connection"}
             </Button>
           </div>
         </CardContent>
@@ -213,7 +245,9 @@ export default function DeviceSettings() {
           {showSuccess && (
             <Alert variant="default" className="border-green-600 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">Settings updated successfully</AlertDescription>
+              <AlertDescription className="text-green-800">
+                Settings updated successfully
+              </AlertDescription>
             </Alert>
           )}
 
@@ -225,7 +259,9 @@ export default function DeviceSettings() {
               onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
               placeholder="192.168.0.10"
             />
-            <p className="text-xs text-gray-500 mt-1">Enter device IP address or hostname</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter device IP address or hostname
+            </p>
           </div>
 
           <div>
@@ -233,11 +269,18 @@ export default function DeviceSettings() {
             <Input
               type="number"
               value={formData.port}
-              onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 5005 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  port: parseInt(e.target.value) || 5005,
+                })
+              }
               min="1"
               max="65535"
             />
-            <p className="text-xs text-gray-500 mt-1">TCP port (typically 5005)</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              TCP port (typically 5005)
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -245,10 +288,15 @@ export default function DeviceSettings() {
               type="checkbox"
               id="enabled"
               checked={formData.enabled}
-              onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-              className="rounded border-gray-300"
+              onChange={(e) =>
+                setFormData({ ...formData, enabled: e.target.checked })
+              }
+              className="rounded border-border text-primary focus:ring-primary/20"
             />
-            <label htmlFor="enabled" className="text-sm font-medium cursor-pointer">
+            <label
+              htmlFor="enabled"
+              className="text-sm font-medium cursor-pointer"
+            >
               Enable device integration
             </label>
           </div>
@@ -258,7 +306,7 @@ export default function DeviceSettings() {
             disabled={updateSettings.isPending}
             className="w-full"
           >
-            {updateSettings.isPending ? 'Saving...' : 'Save Configuration'}
+            {updateSettings.isPending ? "Saving..." : "Save Configuration"}
           </Button>
         </CardContent>
       </Card>
@@ -269,21 +317,22 @@ export default function DeviceSettings() {
           <CardTitle>Database Sync</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Sync attendance data from Tararus Access DB to MySQL database
           </p>
           <Button
             onClick={handleSyncNow}
             disabled={syncNow.isPending}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full"
           >
-            {syncNow.isPending ? 'Syncing...' : 'Sync Now'}
+            {syncNow.isPending ? "Syncing..." : "Sync Now"}
           </Button>
           {syncNow.data && (
             <Alert className="border-green-600 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Sync {syncNow.data.status} - Rows: {syncNow.data.rowsInserted} inserted
+                Sync {syncNow.data.status} - Rows: {syncNow.data.rowsInserted}{" "}
+                inserted
               </AlertDescription>
             </Alert>
           )}
@@ -302,15 +351,18 @@ export default function DeviceSettings() {
           <CardTitle>Materialize Daily Attendance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Build daily attendance records from raw punch data. Use this if daily records are missing or need to be refreshed after sync.
+          <p className="text-sm text-muted-foreground">
+            Build daily attendance records from raw punch data. Use this if
+            daily records are missing or need to be refreshed after sync.
           </p>
           <Button
             onClick={handleMaterializeDaily}
             disabled={materializeDaily.isPending}
-            className="w-full bg-amber-600 hover:bg-amber-700"
+            className="w-full"
           >
-            {materializeDaily.isPending ? 'Computing...' : 'Materialize Daily Records'}
+            {materializeDaily.isPending
+              ? "Computing..."
+              : "Materialize Daily Records"}
           </Button>
           {materializeDaily.data && (
             <Alert className="border-green-600 bg-green-50">
@@ -323,7 +375,9 @@ export default function DeviceSettings() {
           {materializeDaily.error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{String(materializeDaily.error)}</AlertDescription>
+              <AlertDescription>
+                {String(materializeDaily.error)}
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -335,15 +389,18 @@ export default function DeviceSettings() {
           <CardTitle>Setup Shifts & Assignments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Create a default shift (8AM-5PM) and assign all employees to it. Required for attendance computation.
+          <p className="text-sm text-muted-foreground">
+            Create a default shift (8AM-5PM) and assign all employees to it.
+            Required for attendance computation.
           </p>
           <Button
             onClick={handleBootstrapShifts}
             disabled={bootstrapShifts.isPending}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full"
           >
-            {bootstrapShifts.isPending ? 'Setting up...' : 'Setup Default Shifts'}
+            {bootstrapShifts.isPending
+              ? "Setting up..."
+              : "Setup Default Shifts"}
           </Button>
           {bootstrapShifts.data && (
             <Alert className="border-green-600 bg-green-50">
@@ -356,7 +413,9 @@ export default function DeviceSettings() {
           {bootstrapShifts.error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{String(bootstrapShifts.error)}</AlertDescription>
+              <AlertDescription>
+                {String(bootstrapShifts.error)}
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -367,8 +426,11 @@ export default function DeviceSettings() {
         <CardHeader>
           <CardTitle>Advanced Commands</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-gray-600">
-          <p>Raw device command interface available in Device Console at /attendance/admin/console</p>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>
+            Raw device command interface available in Device Console at
+            /attendance/admin/console
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Pencil } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Plus, Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 const WEEKDAYS = [
-  { bit: 0, label: 'أح', full: 'الأحد' },
-  { bit: 1, label: 'إث', full: 'الإثنين' },
-  { bit: 2, label: 'ث',  full: 'الثلاثاء' },
-  { bit: 3, label: 'أر', full: 'الأربعاء' },
-  { bit: 4, label: 'خ',  full: 'الخميس' },
-  { bit: 5, label: 'ج',  full: 'الجمعة' },
-  { bit: 6, label: 'س',  full: 'السبت' },
+  { bit: 0, label: "أح", full: "الأحد" },
+  { bit: 1, label: "إث", full: "الإثنين" },
+  { bit: 2, label: "ث", full: "الثلاثاء" },
+  { bit: 3, label: "أر", full: "الأربعاء" },
+  { bit: 4, label: "خ", full: "الخميس" },
+  { bit: 5, label: "ج", full: "الجمعة" },
+  { bit: 6, label: "س", full: "السبت" },
 ];
 
 const BLANK: ShiftForm = {
-  name: '',
-  startTime: '08:00',
-  endTime: '17:00',
+  name: "",
+  startTime: "08:00",
+  endTime: "17:00",
   graceLateMin: 15,
   graceEarlyMin: 15,
   breakMinutes: 60,
@@ -37,7 +36,13 @@ interface ShiftForm {
   requirePunch: boolean;
 }
 
-function WeekdayPicker({ mask, onChange }: { mask: number; onChange: (m: number) => void }) {
+function WeekdayPicker({
+  mask,
+  onChange,
+}: {
+  mask: number;
+  onChange: (m: number) => void;
+}) {
   return (
     <div className="flex gap-2 flex-wrap">
       {WEEKDAYS.map(({ bit, label }) => {
@@ -49,7 +54,9 @@ function WeekdayPicker({ mask, onChange }: { mask: number; onChange: (m: number)
             title={WEEKDAYS[bit].full}
             onClick={() => onChange(mask ^ (1 << bit))}
             className={`w-10 h-10 rounded-full text-sm font-medium border transition-colors ${
-              active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'
+              active
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-600 border-gray-300"
             }`}
           >
             {label}
@@ -61,7 +68,9 @@ function WeekdayPicker({ mask, onChange }: { mask: number; onChange: (m: number)
 }
 
 function maskLabel(mask: number): string {
-  return WEEKDAYS.filter(({ bit }) => mask & (1 << bit)).map(({ label }) => label).join(' ');
+  return WEEKDAYS.filter(({ bit }) => mask & (1 << bit))
+    .map(({ label }) => label)
+    .join(" ");
 }
 
 export default function ShiftManagement() {
@@ -73,13 +82,24 @@ export default function ShiftManagement() {
   const shifts: any[] = listShiftsQuery.data ?? [];
 
   const createMut = trpc.attendance.createShift.useMutation({
-    onSuccess: () => { setShowForm(false); setForm(BLANK); listShiftsQuery.refetch(); toast.success('تم إنشاء الوردية'); },
-    onError: (e) => toast.error('خطأ: ' + e.message),
+    onSuccess: () => {
+      setShowForm(false);
+      setForm(BLANK);
+      listShiftsQuery.refetch();
+      toast.success("تم إنشاء الوردية");
+    },
+    onError: (e) => toast.error("خطأ: " + e.message),
   });
 
   const updateMut = trpc.attendance.updateShift.useMutation({
-    onSuccess: () => { setShowForm(false); setEditingId(null); setForm(BLANK); listShiftsQuery.refetch(); toast.success('تم التعديل'); },
-    onError: (e) => toast.error('خطأ: ' + e.message),
+    onSuccess: () => {
+      setShowForm(false);
+      setEditingId(null);
+      setForm(BLANK);
+      listShiftsQuery.refetch();
+      toast.success("تم التعديل");
+    },
+    onError: (e) => toast.error("خطأ: " + e.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -107,130 +127,254 @@ export default function ShiftManagement() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl mx-auto" dir="rtl">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">الورديات</h1>
-        <Button onClick={() => { setEditingId(null); setForm(BLANK); setShowForm(!showForm); }} className="gap-2">
+    <div className="space-y-6" dir="rtl">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Shift setup
+          </p>
+          <h2 className="text-2xl font-bold text-foreground">الورديات</h2>
+        </div>
+        <Button
+          onClick={() => {
+            setEditingId(null);
+            setForm(BLANK);
+            setShowForm(!showForm);
+          }}
+          className="gap-2"
+        >
           <Plus size={16} /> وردية جديدة
         </Button>
       </div>
 
       {showForm && (
-        <Card>
-          <CardHeader><CardTitle>{editingId ? 'تعديل الوردية' : 'وردية جديدة'}</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">اسم الوردية</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="مثل: وردية الصباح" className="w-full px-3 py-2 border rounded-md" required />
+        <section className="rounded-xl border border-border bg-background">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="text-base font-semibold text-foreground">
+              {editingId ? "تعديل الوردية" : "وردية جديدة"}
+            </h3>
+          </div>
+          <div className="space-y-5 px-4 py-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  اسم الوردية
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="مثل: وردية الصباح"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  required
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">وقت الحضور</label>
-                  <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md" required />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    وقت الحضور
+                  </label>
+                  <input
+                    type="time"
+                    value={form.startTime}
+                    onChange={(e) =>
+                      setForm({ ...form, startTime: e.target.value })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">وقت الانصراف</label>
-                  <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md" required />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    وقت الانصراف
+                  </label>
+                  <input
+                    type="time"
+                    value={form.endTime}
+                    onChange={(e) =>
+                      setForm({ ...form, endTime: e.target.value })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">أيام العمل</label>
-                <WeekdayPicker mask={form.weekdayMask} onChange={(m) => setForm({ ...form, weekdayMask: m })} />
-                <p className="text-xs text-gray-500 mt-1">الافتراضي: أح-خ (الأحد إلى الخميس)</p>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  أيام العمل
+                </label>
+                <WeekdayPicker
+                  mask={form.weekdayMask}
+                  onChange={(m) => setForm({ ...form, weekdayMask: m })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  الافتراضي: أح-خ (الأحد إلى الخميس)
+                </p>
               </div>
 
-              <div className="flex items-center gap-3 p-3 border rounded-md bg-gray-50">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
                 <input
                   type="checkbox"
                   id="requirePunch"
                   checked={form.requirePunch}
-                  onChange={(e) => setForm({ ...form, requirePunch: e.target.checked })}
-                  className="w-4 h-4"
+                  onChange={(e) =>
+                    setForm({ ...form, requirePunch: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
                 />
-                <label htmlFor="requirePunch" className="text-sm font-medium cursor-pointer">
+                <label
+                  htmlFor="requirePunch"
+                  className="text-sm font-medium cursor-pointer text-foreground"
+                >
                   يجب تسجيل البصمة (حضور وانصراف)
                 </label>
-                <span className="text-xs text-gray-500 mr-auto">
-                  {form.requirePunch ? 'بدون بصمة = غائب' : 'بدون بصمة = حاضر تلقائي'}
+                <span className="mr-auto text-xs text-muted-foreground">
+                  {form.requirePunch
+                    ? "بدون بصمة = غائب"
+                    : "بدون بصمة = حاضر تلقائي"}
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">سماح التأخير (دقيقة)</label>
-                  <input type="number" value={form.graceLateMin} min={0}
-                    onChange={(e) => setForm({ ...form, graceLateMin: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-md" />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    سماح التأخير (دقيقة)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.graceLateMin}
+                    min={0}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        graceLateMin: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">سماح المغادرة (دقيقة)</label>
-                  <input type="number" value={form.graceEarlyMin} min={0}
-                    onChange={(e) => setForm({ ...form, graceEarlyMin: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-md" />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    سماح المغادرة (دقيقة)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.graceEarlyMin}
+                    min={0}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        graceEarlyMin: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">استراحة (دقيقة)</label>
-                  <input type="number" value={form.breakMinutes} min={0}
-                    onChange={(e) => setForm({ ...form, breakMinutes: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-md" />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    استراحة (دقيقة)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.breakMinutes}
+                    min={0}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        breakMinutes: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={createMut.isPending || updateMut.isPending}>
-                  {editingId ? 'حفظ التعديل' : 'إنشاء'}
+              <div className="flex gap-2 pt-1">
+                <Button
+                  type="submit"
+                  disabled={createMut.isPending || updateMut.isPending}
+                >
+                  {editingId ? "حفظ التعديل" : "إنشاء"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>إلغاء</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingId(null);
+                  }}
+                >
+                  إلغاء
+                </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
-      <div className="grid gap-4">
-        {shifts.map((s) => (
-          <Card key={s.id}>
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">{s.name}</h3>
-                  <div className="text-sm text-gray-600 space-y-0.5">
-                    <div>{s.startTime} ← → {s.endTime}</div>
-                    <div className="flex gap-4">
-                      <span>استراحة: {s.breakMinutes} د</span>
-                      <span>سماح حضور: {s.graceLateMin} د</span>
-                      <span>سماح انصراف: {s.graceEarlyMin} د</span>
+      <section className="rounded-xl border border-border bg-background">
+        <div className="border-b border-border px-4 py-3">
+          <h3 className="text-base font-semibold text-foreground">
+            قائمة الورديات
+          </h3>
+        </div>
+        <div className="space-y-3 px-4 py-4">
+          {shifts.map((s) => (
+            <div
+              key={s.id}
+              className="rounded-lg border border-border bg-muted/10 px-4 py-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-lg font-semibold text-foreground">
+                    {s.name}
+                  </h4>
+                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                      {s.startTime} ← → {s.endTime}
                     </div>
-                    <div className="mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${s.requirePunch ?? true ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                        {s.requirePunch ?? true ? 'يجب البصمة' : 'حاضر تلقائي'}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 mt-1">
-                      {WEEKDAYS.map(({ bit, label }) => (
-                        <span key={bit} className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                    <div>استراحة: {s.breakMinutes} د</div>
+                    <div>سماح حضور: {s.graceLateMin} د</div>
+                    <div>سماح انصراف: {s.graceEarlyMin} د</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                        (s.requirePunch ?? true)
+                          ? "border-warning/30 bg-warning/10 text-foreground"
+                          : "border-success/30 bg-success/10 text-success"
+                      }`}
+                    >
+                      {(s.requirePunch ?? true) ? "يجب البصمة" : "حاضر تلقائي"}
+                    </span>
+                    {WEEKDAYS.map(({ bit, label }) => (
+                      <span
+                        key={bit}
+                        className={`rounded-full border px-2 py-1 text-xs font-medium ${
                           (s.weekdayMask ?? 31) & (1 << bit)
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-400'
-                        }`}>{label}</span>
-                      ))}
-                    </div>
+                            ? "border-primary/20 bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    ))}
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleEdit(s)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(s)}
+                >
                   <Pencil size={15} />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

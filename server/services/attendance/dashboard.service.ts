@@ -5,7 +5,7 @@
 
 import { getDb } from '../../db';
 import { attendanceDaily, attendanceSyncRuns } from '../../../drizzle/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 export interface DashboardSummary {
   presentToday: number;
@@ -28,70 +28,46 @@ export class DashboardService {
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Use YYYY-MM-DD strings — Drizzle MySQL date columns compare as strings
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
 
     // Count present today (status in present, partial, holiday)
     const presentTodayResult = await db
       .select({ count: sql<number>`COUNT(*) as count` })
       .from(attendanceDaily)
-      .where(
-        and(
-          eq(attendanceDaily.workDate, today),
-          sql`${attendanceDaily.status} IN ('present', 'partial', 'holiday')`
-        )
-      );
+      .where(sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} IN ('present', 'partial', 'holiday')`);
     const presentToday = Number(presentTodayResult[0]?.count ?? 0);
 
     // Count absent today
     const absentTodayResult = await db
       .select({ count: sql<number>`COUNT(*) as count` })
       .from(attendanceDaily)
-      .where(
-        and(
-          eq(attendanceDaily.workDate, today),
-          eq(attendanceDaily.status, 'absent')
-        )
-      );
+      .where(sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} = 'absent'`);
     const absentToday = Number(absentTodayResult[0]?.count ?? 0);
 
     // Count late today (late_minutes > 0)
     const lateTodayResult = await db
       .select({ count: sql<number>`COUNT(*) as count` })
       .from(attendanceDaily)
-      .where(
-        and(
-          eq(attendanceDaily.workDate, today),
-          sql`${attendanceDaily.lateMinutes} > 0`
-        )
-      );
+      .where(sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.lateMinutes} > 0`);
     const lateToday = Number(lateTodayResult[0]?.count ?? 0);
 
     // Count inside now (today and inside_now = 1)
     const insideNowResult = await db
       .select({ count: sql<number>`COUNT(*) as count` })
       .from(attendanceDaily)
-      .where(
-        and(
-          eq(attendanceDaily.workDate, today),
-          eq(attendanceDaily.insideNow, true)
-        )
-      );
+      .where(sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.insideNow} = 1`);
     const insideNow = Number(insideNowResult[0]?.count ?? 0);
 
     // Count missing checkout yesterday
     const missingCheckoutResult = await db
       .select({ count: sql<number>`COUNT(*) as count` })
       .from(attendanceDaily)
-      .where(
-        and(
-          eq(attendanceDaily.workDate, yesterday),
-          eq(attendanceDaily.status, 'missing_checkout')
-        )
-      );
+      .where(sql`${attendanceDaily.workDate} = ${yesterdayStr} AND ${attendanceDaily.status} = 'missing_checkout'`);
     const missingCheckoutYesterday = Number(missingCheckoutResult[0]?.count ?? 0);
 
     // Get last sync run
