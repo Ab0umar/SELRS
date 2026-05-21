@@ -142,11 +142,11 @@ export default function Holidays() {
                 <tbody>
                   {holidays.map((h: any) => (
                     <tr key={h.date} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 font-mono">{String(h.date).split("T")[0]}</td>
+                      <td className="py-2 px-4 font-mono">{h.date}</td>
                       <td className="py-2 px-4 font-medium">{h.label}</td>
                       <td className="py-2 px-4">{h.paid ? <span className="text-green-600">نعم</span> : <span className="text-gray-400">لا</span>}</td>
                       <td className="py-2 px-4">
-                        <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: String(h.date).split("T")[0] })} disabled={deleteMut.isPending}>
+                        <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: h.date })} disabled={deleteMut.isPending}>
                           <Trash2 size={15} className="text-red-500" />
                         </Button>
                       </td>

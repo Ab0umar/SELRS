@@ -1645,9 +1645,14 @@ export const attendanceRouter = router({
       const db = await getDb();
       if (!db) throw new Error('Database not available');
       const year = input.year ?? new Date().getFullYear();
-      return db.select().from(attendanceHolidays)
+      const rows = await db.select().from(attendanceHolidays)
         .where(and(gte(attendanceHolidays.date, `${year}-01-01` as any), lte(attendanceHolidays.date, `${year}-12-31` as any)))
         .orderBy(attendanceHolidays.date);
+      return rows.map((h) => ({
+        date: h.date instanceof Date ? h.date.toISOString().split('T')[0] : String(h.date),
+        label: h.label,
+        paid: h.paid,
+      }));
     }),
 
   addHoliday: attendanceManagerProcedure
