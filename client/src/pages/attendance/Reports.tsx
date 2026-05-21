@@ -239,6 +239,16 @@ export default function Reports() {
     { key: "leaves", label: "رصيد الإجازات" },
   ];
 
+  const tabToneClasses: Record<ReportTab, string> = {
+    summary: "border-primary/20 bg-primary/10 text-primary",
+    monthly: "border-info/20 bg-info/10 text-info",
+    late: "border-destructive/20 bg-destructive/10 text-destructive",
+    absent: "border-warning/30 bg-warning/10 text-warning",
+    ot: "border-success/20 bg-success/10 text-success",
+    permissions: "border-secondary/20 bg-secondary/10 text-secondary",
+    leaves: "border-muted-foreground/20 bg-muted/70 text-foreground",
+  };
+
   const activeRows = () => {
     if (activeTab === "summary") return summaryData;
     if (activeTab === "monthly") return monthlyData;
@@ -259,24 +269,59 @@ export default function Reports() {
           : false);
 
   const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
+  const summaryCards = [
+    {
+      label: "أيام الحضور",
+      value: summaryData.reduce((sum, row) => sum + Number(row.أيام ?? 0), 0),
+      tone: "primary",
+    },
+    {
+      label: "التأخير",
+      value: summaryData.reduce((sum, row) => sum + Number(row["تأخير (د)"] ?? 0), 0),
+      tone: "destructive",
+    },
+    {
+      label: "الغياب",
+      value: summaryData.reduce((sum, row) => sum + Number(row.غائب ?? 0), 0),
+      tone: "warning",
+    },
+    {
+      label: "الإضافي",
+      value: summaryData.reduce((sum, row) => sum + Number(row["إضافي (د)"] ?? 0), 0),
+      tone: "success",
+    },
+  ];
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">تقارير الحضور</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground">تقارير الحضور</h1>
+          <p className="text-sm text-muted-foreground">
+            ملخصات ملوّنة للحضور، الأذونات، الإجازات، والسجلات الخام.
+          </p>
+        </div>
+        <span
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tabToneClasses[activeTab]}`}
+        >
+          <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
+          {activeLabel || "التقارير"}
+        </span>
+      </div>
 
-      <Card className="mb-6">
+      <Card className="mb-6 border-border bg-muted/20">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calendar className="h-5 w-5 text-primary" />
             اختيار الفترة
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end flex-wrap">
-            <div className="min-w-[10rem] flex-1 sm:flex-none">
+            <div className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
               <label
                 htmlFor="attendance-report-from"
-                className="block text-sm font-medium mb-1"
+                className="block text-sm font-medium text-muted-foreground"
               >
                 من
               </label>
@@ -285,13 +330,13 @@ export default function Reports() {
                 type="date"
                 value={dates.from}
                 onChange={(e) => setDates({ ...dates, from: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
-            <div className="min-w-[10rem] flex-1 sm:flex-none">
+            <div className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
               <label
                 htmlFor="attendance-report-to"
-                className="block text-sm font-medium mb-1"
+                className="block text-sm font-medium text-muted-foreground"
               >
                 إلى
               </label>
@@ -300,7 +345,7 @@ export default function Reports() {
                 type="date"
                 value={dates.to}
                 onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
             <Button
@@ -309,17 +354,17 @@ export default function Reports() {
                 permQuery.refetch();
               }}
               variant="outline"
-              className="w-full sm:w-auto"
+              className="w-full border-primary/20 text-primary hover:bg-primary/10 sm:w-auto"
             >
               تحديث
             </Button>
 
             {activeTab === "leaves" && (
-              <div className="flex flex-wrap items-end gap-2 mr-auto">
-                <div className="min-w-[9rem]">
+              <div className="mr-auto flex flex-wrap items-end gap-2">
+                <div className="min-w-[9rem] space-y-1">
                   <label
                     htmlFor="attendance-balance-year"
-                    className="block text-sm font-medium mb-1"
+                    className="block text-sm font-medium text-muted-foreground"
                   >
                     سنة الرصيد
                   </label>
@@ -330,13 +375,13 @@ export default function Reports() {
                     max={2099}
                     value={balanceYear}
                     onChange={(e) => setBalanceYear(parseInt(e.target.value))}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
                   />
                 </div>
                 <Button
                   onClick={() => balanceQuery.refetch()}
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full border-success/20 text-success hover:bg-success/10 sm:w-auto"
                 >
                   تحديث
                 </Button>
@@ -350,12 +395,50 @@ export default function Reports() {
         </CardContent>
       </Card>
 
+      {activeRows().length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {summaryCards.map((card) => (
+            <Card key={card.label} className="overflow-hidden border-border bg-background">
+              <CardContent className="space-y-2 px-4 py-4">
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                    card.tone === "primary"
+                      ? "border-primary/20 bg-primary/10 text-primary"
+                      : card.tone === "destructive"
+                        ? "border-destructive/20 bg-destructive/10 text-destructive"
+                        : card.tone === "warning"
+                          ? "border-warning/30 bg-warning/10 text-warning"
+                          : "border-success/20 bg-success/10 text-success"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
+                  {card.label}
+                </div>
+                <div
+                  className={`text-2xl font-bold tabular-nums ${
+                    card.tone === "primary"
+                      ? "text-primary"
+                      : card.tone === "destructive"
+                        ? "text-destructive"
+                        : card.tone === "warning"
+                          ? "text-warning"
+                          : "text-success"
+                  }`}
+                >
+                  {card.value}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <div
             role="tablist"
             aria-label="أنواع التقارير"
-            className="flex gap-1 border-b overflow-x-auto flex-wrap"
+            className="flex flex-wrap gap-2 border-b border-border overflow-x-auto"
           >
             {tabs.map(({ key, label }) => (
               <button
@@ -366,12 +449,18 @@ export default function Reports() {
                 aria-controls={`attendance-report-panel-${key}`}
                 tabIndex={activeTab === key ? 0 : -1}
                 onClick={() => setActiveTab(key)}
-                className={`px-4 py-2 font-medium whitespace-nowrap text-sm border-b-2 transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-t-xl border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
                   activeTab === key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    ? tabToneClasses[key]
+                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
                 }`}
               >
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    activeTab === key ? "bg-current" : "bg-muted-foreground/40"
+                  }`}
+                  aria-hidden
+                />
                 {label}
               </button>
             ))}
@@ -389,7 +478,7 @@ export default function Reports() {
                 )
               }
               disabled={!activeRows().length}
-              className="gap-2 w-full sm:w-auto"
+              className="w-full gap-2 border-primary/20 text-primary hover:bg-primary/10 sm:w-auto"
             >
               <Download className="w-4 h-4" /> تصدير CSV
             </Button>
@@ -398,7 +487,7 @@ export default function Reports() {
               size="sm"
               onClick={() => handlePrint(activeRows(), activeLabel)}
               disabled={!activeRows().length}
-              className="gap-2 w-full sm:w-auto"
+              className="w-full gap-2 border-secondary/20 text-secondary hover:bg-secondary/10 sm:w-auto"
             >
               <Printer className="w-4 h-4" /> طباعة / PDF
             </Button>
