@@ -1649,7 +1649,9 @@ export const attendanceRouter = router({
         .where(and(gte(attendanceHolidays.date, `${year}-01-01` as any), lte(attendanceHolidays.date, `${year}-12-31` as any)))
         .orderBy(attendanceHolidays.date);
       return rows.map((h) => ({
-        date: h.date instanceof Date ? h.date.toISOString().split('T')[0] : String(h.date),
+        date: h.date instanceof Date
+          ? `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, '0')}-${String(h.date.getDate()).padStart(2, '0')}`
+          : String(h.date),
         label: h.label,
         paid: h.paid,
       }));
