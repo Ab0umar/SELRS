@@ -146,7 +146,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground" dir="rtl">
       <div className="border-b border-orange-200/70 bg-gradient-to-b from-orange-50/70 via-background to-background">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-800">
@@ -188,7 +188,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[38rem] xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[34rem] xl:grid-cols-4">
               {metrics.map((metric) => (
                 <div
                   key={metric.label}
@@ -212,8 +212,8 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 grid gap-3 md:grid-cols-3">
+      <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-orange-200/80 bg-orange-50/70 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -277,7 +277,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-border bg-card/80 p-4 shadow-sm ring-1 ring-black/5 sm:p-6">
+        <div className="rounded-2xl border border-border bg-card/80 p-3 shadow-sm ring-1 ring-black/5 sm:p-4">
           {children}
         </div>
       </div>

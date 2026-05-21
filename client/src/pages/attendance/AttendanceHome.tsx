@@ -104,10 +104,10 @@ export default function AttendanceHome() {
     setRecomputeMsg(null);
     const today = new Date();
     const from = new Date(today);
-    from.setDate(from.getDate() - 6);
+    from.setDate(from.getDate() - 90);
     recomputeMutation.mutate({
-      from: from.toISOString().slice(0, 10),
-      to: today.toISOString().slice(0, 10),
+      fromDate: from.toISOString().slice(0, 10),
+      toDate: today.toISOString().slice(0, 10),
     });
   };
 
