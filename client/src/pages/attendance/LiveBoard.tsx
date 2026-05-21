@@ -31,14 +31,9 @@ export default function LiveBoard() {
     : "border-destructive/30 bg-destructive/10 text-destructive";
   const connectionDot = wsConnected ? "bg-success" : "bg-destructive";
 
-  // Load initial punch history - don't use for live updates, only periodic sync
+  // Load recent punch history, no date restriction — most recent 50
   const punchesQuery = tRPC.attendance.rawPunches.useQuery(
-    {
-      limit: 50,
-      fromDate: new Date(Date.now() - 1000 * 60 * 5)
-        .toISOString()
-        .split("T")[0],
-    },
+    { limit: 50 },
     { refetchInterval: 30000 },
   );
 
@@ -247,8 +242,8 @@ export default function LiveBoard() {
             </h2>
             <p className="text-sm text-muted-foreground">
               {punchesQuery.isLoading
-                ? "Refreshing live data."
-                : "Current feed from the last 5 minutes."}
+                ? "Refreshing data..."
+                : "Most recent punches from the database."}
             </p>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -258,7 +253,7 @@ export default function LiveBoard() {
         <div className="px-4 py-4">
           {punches.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-muted-foreground">
-              <p>No punches recorded in the last 5 minutes</p>
+              <p>لا توجد سجلات حضور</p>
             </div>
           ) : (
             <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
@@ -300,11 +295,7 @@ export default function LiveBoard() {
       </section>
 
       <div className="text-xs text-muted-foreground">
-        <p>Real-time updates via WebSocket. Periodic sync every 30 seconds.</p>
-        <p>
-          Shows punches from the last 5 minutes. Stores up to 100 recent
-          punches.
-        </p>
+        <p>يُحدَّث كل 30 ثانية. يعرض آخر 50 سجل.</p>
       </div>
     </div>
   );
