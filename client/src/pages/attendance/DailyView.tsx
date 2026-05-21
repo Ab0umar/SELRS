@@ -12,6 +12,9 @@ export default function DailyView() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const utils = trpc.useUtils();
+  const filtered = empFilter.trim()
+    ? records.filter((r) => r.empCd.toLowerCase().includes(empFilter.trim().toLowerCase()) || (r.empName ?? '').toLowerCase().includes(empFilter.trim().toLowerCase()))
+    : records;
 
   const handleLoadRange = async () => {
     if (!dates.from || !dates.to) return;
@@ -153,11 +156,7 @@ export default function DailyView() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : records && records.length > 0 ? (() => {
-            const filtered = empFilter.trim()
-              ? records.filter((r) => r.empCd.toLowerCase().includes(empFilter.trim().toLowerCase()) || (r.empName ?? '').toLowerCase().includes(empFilter.trim().toLowerCase()))
-              : records;
-            return (
+          ) : records.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
@@ -230,8 +229,7 @@ export default function DailyView() {
                 </tbody>
               </table>
             </div>
-            );
-          })() : (
+          ) : (
             <div className="text-center py-8 text-gray-500">لا توجد سجلات حضور</div>
           )}
         </CardContent>
