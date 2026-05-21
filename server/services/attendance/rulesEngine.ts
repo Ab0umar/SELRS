@@ -233,38 +233,19 @@ export function computeDay(ctx: DayContext): DayResult {
   const outMs = paired.lastOut.getTime();
 
   if (inMs > shiftStartDt.getTime()) {
-    const lateMs = inMs - shiftStartDt.getTime();
-    const lateMin = Math.round(lateMs / 60_000);
+    const lateMin = Math.round((inMs - shiftStartDt.getTime()) / 60_000);
     result.lateMinutes = Math.max(0, lateMin - ctx.shift.graceLateMin);
-    // Round to Taratus rounding increment (default 30 minutes)
-    const roundingMin = ctx.shift.roundingMinutes ?? 30;
-    if (roundingMin > 0 && result.lateMinutes > 0) {
-      result.lateMinutes = Math.ceil(result.lateMinutes / roundingMin) * roundingMin;
-    }
   }
 
   if (outMs < shiftEndDt.getTime()) {
-    const earlyMs = shiftEndDt.getTime() - outMs;
-    const earlyMin = Math.round(earlyMs / 60_000);
+    const earlyMin = Math.round((shiftEndDt.getTime() - outMs) / 60_000);
     result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
-    // Round to Taratus rounding increment (default 30 minutes)
-    const roundingMin = ctx.shift.roundingMinutes ?? 30;
-    if (roundingMin > 0 && result.earlyLeaveMin > 0) {
-      result.earlyLeaveMin = Math.ceil(result.earlyLeaveMin / roundingMin) * roundingMin;
-    }
   }
 
   // Compute overtime
-  const shiftDurationMs = shiftEndDt.getTime() - shiftStartDt.getTime();
-  const shiftDurationMin = shiftDurationMs / 60_000 - ctx.breakMinutes;
-
+  const shiftDurationMin = (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
   if (result.workedMinutes && result.workedMinutes > shiftDurationMin) {
-    result.overtimeMinutes = result.workedMinutes - shiftDurationMin;
-    // Round to Taratus rounding increment (default 30 minutes)
-    const roundingMin = ctx.shift.roundingMinutes ?? 30;
-    if (roundingMin > 0 && result.overtimeMinutes > 0) {
-      result.overtimeMinutes = Math.ceil(result.overtimeMinutes / roundingMin) * roundingMin;
-    }
+    result.overtimeMinutes = Math.round(result.workedMinutes - shiftDurationMin);
   }
 
   // Determine status
