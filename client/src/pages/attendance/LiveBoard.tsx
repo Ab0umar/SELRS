@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -27,6 +26,10 @@ export default function LiveBoard() {
   const [isMonitoring, setIsMonitoring] = useState(true);
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const connectionTone = wsConnected
+    ? "border-success/30 bg-success/10 text-success"
+    : "border-destructive/30 bg-destructive/10 text-destructive";
+  const connectionDot = wsConnected ? "bg-success" : "bg-destructive";
 
   // Load initial punch history - don't use for live updates, only periodic sync
   const punchesQuery = tRPC.attendance.rawPunches.useQuery(
@@ -111,6 +114,9 @@ export default function LiveBoard() {
     undefined,
     { refetchInterval: 5000 },
   );
+  const statusTone = deviceStatus?.connected
+    ? "border-success/30 bg-success/10 text-success"
+    : "border-warning/30 bg-warning/10 text-warning";
 
   const toggleMonitoring = () => {
     setIsMonitoring(!isMonitoring);
@@ -123,12 +129,19 @@ export default function LiveBoard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">Live Punch Feed</h1>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Attendance live
+          </p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Live Punch Feed
+          </h1>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs text-muted-foreground">
-            <div
-              className={`w-2 h-2 rounded-full ${wsConnected ? "bg-green-500" : "bg-red-500"}`}
-            />
+          <div
+            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${connectionTone}`}
+          >
+            <div className={`h-2.5 w-2.5 rounded-full ${connectionDot}`} />
             {wsConnected ? "WebSocket Connected" : "WebSocket Disconnected"}
           </div>
           <Button
@@ -147,95 +160,124 @@ export default function LiveBoard() {
         </div>
       </div>
 
-      {/* Device Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {deviceStatus?.connected ? (
-              <>
-                <Wifi className="w-5 h-5 text-green-600" />
-                Device Connected
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-5 h-5 text-red-600" />
-                Device Offline
-              </>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-muted-foreground">Status</p>
-              <p className="font-medium">
-                {deviceStatus?.connected ? "Connected" : "Disconnected"}
-              </p>
+      <section className="rounded-xl border border-border bg-background">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-muted/25 px-4 py-4">
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg border ${statusTone}`}
+            >
+              {deviceStatus?.connected ? (
+                <Wifi className="h-5 w-5" />
+              ) : (
+                <WifiOff className="h-5 w-5" />
+              )}
             </div>
-            <div>
-              <p className="text-muted-foreground">Punches Received</p>
-              <p className="font-medium">{deviceStatus?.punchCount ?? 0}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Last Punch</p>
-              <p className="font-mono text-xs">
-                {deviceStatus?.lastPunch
-                  ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
-                  : "Never"}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Uptime</p>
-              <p className="font-mono text-xs">
-                {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
-                {(deviceStatus?.uptime ?? 0) % 60}s
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">
+                {deviceStatus?.connected
+                  ? "Device Connected"
+                  : "Device Offline"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {deviceStatus?.connected
+                  ? "The attendance device is live."
+                  : "The device is not currently reporting."}
               </p>
             </div>
           </div>
-          {deviceStatus?.connectionError && (
-            <Alert variant="destructive" className="mt-4">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {deviceStatus?.punchCount ?? 0}
+            </span>
+            punches received
+          </div>
+        </div>
+        <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Status</p>
+            <p
+              className={`mt-1 text-sm font-semibold ${deviceStatus?.connected ? "text-success" : "text-warning"}`}
+            >
+              {deviceStatus?.connected ? "Connected" : "Disconnected"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Punches Received
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {deviceStatus?.punchCount ?? 0}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Last Punch
+            </p>
+            <p className="mt-1 font-mono text-xs text-foreground">
+              {deviceStatus?.lastPunch
+                ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
+                : "Never"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Uptime</p>
+            <p className="mt-1 font-mono text-xs text-foreground">
+              {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
+              {(deviceStatus?.uptime ?? 0) % 60}s
+            </p>
+          </div>
+        </div>
+        {deviceStatus?.connectionError && (
+          <div className="px-4 pb-4">
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 {deviceStatus.connectionError}
               </AlertDescription>
             </Alert>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </section>
 
-      {/* Punch Feed */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Recent Punches ({punches.length})
-            {punchesQuery.isLoading && (
-              <span className="text-xs text-gray-500 ml-2">Refreshing...</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section className="rounded-xl border border-border bg-background">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/25 px-4 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              Recent Punches ({punches.length})
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {punchesQuery.isLoading
+                ? "Refreshing live data."
+                : "Current feed from the last 5 minutes."}
+            </p>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Stores up to 100 recent punches
+          </div>
+        </div>
+        <div className="px-4 py-4">
           {punches.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-muted-foreground">
               <p>No punches recorded in the last 5 minutes</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
               {punches.map((punch, idx) => (
                 <div
                   key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                  className="flex flex-col gap-2 rounded border border-border bg-muted/30 p-3 sm:flex-row sm:items-center"
+                  className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background px-3 py-3 shadow-sm sm:flex-row sm:items-center"
                 >
                   <div className="flex-shrink-0">
                     {punch.direction === "in" ? (
-                      <ArrowRightFromLine className="w-5 h-5 text-success" />
+                      <ArrowRightFromLine className="h-5 w-5 text-success" />
                     ) : punch.direction === "out" ? (
-                      <ArrowLeftFromLine className="w-5 h-5 text-primary" />
+                      <ArrowLeftFromLine className="h-5 w-5 text-primary" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-warning" />
+                      <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono font-semibold text-sm">
+                    <div className="font-mono text-sm font-semibold text-foreground">
                       {punch.empCd}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -254,8 +296,8 @@ export default function LiveBoard() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <div className="text-xs text-muted-foreground">
         <p>Real-time updates via WebSocket. Periodic sync every 30 seconds.</p>

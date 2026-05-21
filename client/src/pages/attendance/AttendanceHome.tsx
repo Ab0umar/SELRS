@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,8 @@ import {
   Wrench,
   RefreshCw,
   Star,
+  Zap,
+  Cpu,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -49,6 +52,9 @@ const navCards = [
 ];
 
 export default function AttendanceHome() {
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
+
   const dashboardQuery = (trpc as any).attendance.dashboardSummary.useQuery(
     undefined,
     {
@@ -56,6 +62,43 @@ export default function AttendanceHome() {
       refetchIntervalInBackground: false,
     },
   );
+
+  const syncMutation = (trpc as any).attendance.syncNow.useMutation({
+    onSuccess: (res: any) => {
+      setSyncMsg(
+        res.success
+          ? `✓ تمت المزامنة — ${res.recordsInserted} سجل جديد`
+          : `✗ فشلت: ${res.error ?? "خطأ غير معروف"}`,
+      );
+      dashboardQuery.refetch();
+    },
+    onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
+  });
+
+  const recomputeMutation = (trpc as any).attendance.recomputeRange.useMutation({
+    onSuccess: (res: any) => {
+      setRecomputeMsg(`✓ تمت إعادة الحساب — ${res.rowsWritten ?? 0} يوم`);
+      dashboardQuery.refetch();
+    },
+    onError: (err: any) => setRecomputeMsg(`✗ ${err.message}`),
+  });
+
+  const handleSync = () => {
+    setSyncMsg(null);
+    syncMutation.mutate({});
+  };
+
+  const handleRecompute = () => {
+    setRecomputeMsg(null);
+    // recompute last 7 days
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(from.getDate() - 6);
+    recomputeMutation.mutate({
+      from: from.toISOString().slice(0, 10),
+      to: today.toISOString().slice(0, 10),
+    });
+  };
 
   const data = dashboardQuery.data;
   const isLoading = dashboardQuery.isLoading;
@@ -88,15 +131,35 @@ export default function AttendanceHome() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-3xl font-bold">الحضور والانصراف</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => dashboardQuery.refetch()}
-          disabled={isLoading}
-        >
-          <RefreshCw className="w-4 h-4 ml-2" />
-          تحديث
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncMutation.isPending}
+          >
+            <Zap className="w-4 h-4 ml-2" />
+            {syncMutation.isPending ? "جارٍ المزامنة…" : "مزامنة FK"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRecompute}
+            disabled={recomputeMutation.isPending}
+          >
+            <Cpu className="w-4 h-4 ml-2" />
+            {recomputeMutation.isPending ? "جارٍ الحساب…" : "إعادة الحساب"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => dashboardQuery.refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCw className="w-4 h-4 ml-2" />
+            تحديث
+          </Button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -121,7 +184,7 @@ export default function AttendanceHome() {
 
       {/* Last sync status */}
       {!isLoading && data?.lastSync && (
-        <div className="mb-6 text-sm text-muted-foreground text-right">
+        <div className="mb-2 text-sm text-muted-foreground text-right">
           آخر مزامنة:{" "}
           <span className="font-medium">
             {data.lastSync.status === "never"
@@ -137,6 +200,18 @@ export default function AttendanceHome() {
               — {new Date(data.lastSync.finishedAt).toLocaleString("ar-EG")}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Action feedback */}
+      {syncMsg && (
+        <div className="mb-2 text-sm text-right text-muted-foreground">
+          مزامنة FK: <span className="font-medium">{syncMsg}</span>
+        </div>
+      )}
+      {recomputeMsg && (
+        <div className="mb-4 text-sm text-right text-muted-foreground">
+          إعادة الحساب: <span className="font-medium">{recomputeMsg}</span>
         </div>
       )}
 

@@ -11,7 +11,7 @@ import {
   Syringe,
   CircleDot,
   Glasses,
-  CalendarCheck,
+  LayoutDashboard,
   Wallet,
   Archive,
   Search,
@@ -49,7 +49,7 @@ const TABS: Array<{
   icon: React.ComponentType<{ className?: string }>
   iconWrapCls: string
 }> = [
-  { id: 'today',      label: 'اليوم',        icon: CalendarCheck, iconWrapCls: 'bg-primary/10 text-primary' },
+  { id: 'today',      label: 'لوحة التحكم',  icon: LayoutDashboard, iconWrapCls: 'bg-primary/10 text-primary' },
   { id: 'hub',        label: 'مركز المريض',  icon: Users,         iconWrapCls: 'bg-secondary/15 text-secondary' },
   { id: 'accounting', label: 'الحسابات',     icon: Wallet,        iconWrapCls: 'bg-warning/20 text-warning' },
   { id: 'attendance', label: 'الحضور',       icon: Clock,         iconWrapCls: 'bg-success/15 text-success' },
