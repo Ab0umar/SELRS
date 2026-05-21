@@ -117,7 +117,7 @@ export default function Reports() {
 
   const summaryData = data.map((r: any) => ({
     كود: r.empCd,
-    الاسم: r.empName ?? "—",
+    الاسم: r.empName ?? "-",
     أيام: r.totalDays,
     حاضر: r.presentDays,
     غائب: r.absentDays,
@@ -131,7 +131,7 @@ export default function Reports() {
     const perm = permByEmp.get(r.empCd);
     return {
       كود: r.empCd,
-      الاسم: r.empName ?? "—",
+      الاسم: r.empName ?? "-",
       حاضر: r.presentDays,
       غائب: r.absentDays,
       إجازة: r.leaveDays,
@@ -147,7 +147,7 @@ export default function Reports() {
     .filter((r: any) => r.totalLateMins > 0)
     .map((r: any) => ({
       كود: r.empCd,
-      الاسم: r.empName ?? "—",
+      الاسم: r.empName ?? "-",
       "تأخير (د)": r.totalLateMins,
     }))
     .sort((a: any, b: any) => b["تأخير (د)"] - a["تأخير (د)"]);
@@ -156,7 +156,7 @@ export default function Reports() {
     .filter((r: any) => r.absentDays > 0)
     .map((r: any) => ({
       كود: r.empCd,
-      الاسم: r.empName ?? "—",
+      الاسم: r.empName ?? "-",
       غياب: r.absentDays,
     }))
     .sort((a: any, b: any) => b.غياب - a.غياب);
@@ -165,7 +165,7 @@ export default function Reports() {
     .filter((r: any) => r.totalOTMins > 0)
     .map((r: any) => ({
       كود: r.empCd,
-      الاسم: r.empName ?? "—",
+      الاسم: r.empName ?? "-",
       "ساعات إضافية": (r.totalOTMins / 60).toFixed(2),
     }))
     .sort(
@@ -175,7 +175,7 @@ export default function Reports() {
 
   const permData = perms.map((p: any) => ({
     كود: p.empCd,
-    الاسم: p.empName ?? "—",
+    الاسم: p.empName ?? "-",
     "أذونات دخول": p.inCount,
     "مجموع دخول (د)": p.totalInMins,
     "أذونات خروج": p.outCount,
@@ -184,7 +184,7 @@ export default function Reports() {
 
   const balanceData = balances.map((b: any) => ({
     كود: b.empCd,
-    الاسم: b.empName ?? "—",
+    الاسم: b.empName ?? "-",
     "الرصيد السنوي": b.annualAllocation,
     مرحّل: b.carryOver,
     الإجمالي: b.total,
@@ -277,7 +277,10 @@ export default function Reports() {
     },
     {
       label: "التأخير",
-      value: summaryData.reduce((sum, row) => sum + Number(row["تأخير (د)"] ?? 0), 0),
+      value: summaryData.reduce(
+        (sum, row) => sum + Number(row["تأخير (د)"] ?? 0),
+        0,
+      ),
       tone: "destructive",
     },
     {
@@ -287,7 +290,10 @@ export default function Reports() {
     },
     {
       label: "الإضافي",
-      value: summaryData.reduce((sum, row) => sum + Number(row["إضافي (د)"] ?? 0), 0),
+      value: summaryData.reduce(
+        (sum, row) => sum + Number(row["إضافي (د)"] ?? 0),
+        0,
+      ),
       tone: "success",
     },
   ];
@@ -398,7 +404,10 @@ export default function Reports() {
       {activeRows().length > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           {summaryCards.map((card) => (
-            <Card key={card.label} className="overflow-hidden border-border bg-background">
+            <Card
+              key={card.label}
+              className="overflow-hidden border-border bg-background"
+            >
               <CardContent className="space-y-2 px-4 py-4">
                 <div
                   className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
@@ -411,7 +420,10 @@ export default function Reports() {
                           : "border-success/20 bg-success/10 text-success"
                   }`}
                 >
-                  <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
+                  <span
+                    className="h-2 w-2 rounded-full bg-current"
+                    aria-hidden
+                  />
                   {card.label}
                 </div>
                 <div

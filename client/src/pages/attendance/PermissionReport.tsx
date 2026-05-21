@@ -31,8 +31,14 @@ export default function PermissionReport() {
 
   const totalInCount = rows.reduce((sum, row) => sum + (row.inCount ?? 0), 0);
   const totalOutCount = rows.reduce((sum, row) => sum + (row.outCount ?? 0), 0);
-  const totalInMins = rows.reduce((sum, row) => sum + (row.totalInMins ?? 0), 0);
-  const totalOutMins = rows.reduce((sum, row) => sum + (row.totalOutMins ?? 0), 0);
+  const totalInMins = rows.reduce(
+    (sum, row) => sum + (row.totalInMins ?? 0),
+    0,
+  );
+  const totalOutMins = rows.reduce(
+    (sum, row) => sum + (row.totalOutMins ?? 0),
+    0,
+  );
 
   const handleExport = () => {
     if (!rows.length) return;
@@ -73,7 +79,7 @@ export default function PermissionReport() {
   const handlePrint = () => {
     if (!rows.length) return;
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
-      <title>تقرير الأذونات — ${MONTHS[month - 1]} ${year}</title>
+      <title>تقرير الأذونات: ${MONTHS[month - 1]} ${year}</title>
       <style>
         body{font-family:Arial,sans-serif;direction:rtl;font-size:12px;}
         h2{font-size:16px;margin-bottom:4px;color:#003d82;}
@@ -98,7 +104,7 @@ export default function PermissionReport() {
           ${rows
             .map(
               (row) => `<tr>
-            <td>${row.empCd}</td><td>${row.empName ?? "—"}</td>
+            <td>${row.empCd}</td><td>${row.empName ?? "-"}</td>
             <td>${row.inCount}</td><td>${row.totalInMins}</td>
             <td>${row.outCount}</td><td>${row.totalOutMins}</td>
             <td>${(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}</td>
@@ -133,7 +139,9 @@ export default function PermissionReport() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-foreground">تقرير الأذونات</h1>
-          <p className="text-sm text-muted-foreground">أذونات الدخول والخروج تظهر الآن بلون مختلف عن المجاميع والرصيد.</p>
+          <p className="text-sm text-muted-foreground">
+            أذونات الدخول والخروج تظهر الآن بلون مختلف عن المجاميع والرصيد.
+          </p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
           <Clock className="h-3.5 w-3.5" />
@@ -145,7 +153,9 @@ export default function PermissionReport() {
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">السنة</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                السنة
+              </label>
               <input
                 type="number"
                 min={2020}
@@ -156,7 +166,9 @@ export default function PermissionReport() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">الشهر</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                الشهر
+              </label>
               <select
                 value={month}
                 onChange={(e) => setMonth(parseInt(e.target.value))}
@@ -169,7 +181,11 @@ export default function PermissionReport() {
                 ))}
               </select>
             </div>
-            <Button onClick={() => query.refetch()} variant="outline" className="border-primary/20 text-primary hover:bg-primary/10">
+            <Button
+              onClick={() => query.refetch()}
+              variant="outline"
+              className="border-primary/20 text-primary hover:bg-primary/10"
+            >
               تحديث
             </Button>
             <div className="mr-auto flex flex-wrap gap-2">
@@ -212,7 +228,10 @@ export default function PermissionReport() {
                           : "border-warning/30 bg-warning/10 text-warning"
                   }`}
                 >
-                  <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
+                  <span
+                    className="h-2 w-2 rounded-full bg-current"
+                    aria-hidden
+                  />
                   {card.label}
                 </div>
                 <div
@@ -249,31 +268,62 @@ export default function PermissionReport() {
               ))}
             </div>
           ) : !rows.length ? (
-            <div className="py-10 text-center text-muted-foreground">لا توجد أذونات لهذا الشهر</div>
+            <div className="py-10 text-center text-muted-foreground">
+              لا توجد أذونات لهذا الشهر
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/60">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الكود</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الاسم</th>
-                    <th className="px-4 py-3 text-right font-semibold text-primary">أذونات دخول</th>
-                    <th className="px-4 py-3 text-right font-semibold text-primary">دقائق دخول</th>
-                    <th className="px-4 py-3 text-right font-semibold text-secondary">أذونات خروج</th>
-                    <th className="px-4 py-3 text-right font-semibold text-secondary">دقائق خروج</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">إجمالي (د)</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الكود
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الاسم
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-primary">
+                      أذونات دخول
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-primary">
+                      دقائق دخول
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-secondary">
+                      أذونات خروج
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-secondary">
+                      دقائق خروج
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      إجمالي (د)
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row: any) => (
-                    <tr key={row.empCd} className="border-b transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{row.empCd}</td>
-                      <td className="px-4 py-2 font-medium text-foreground">{row.empName ?? "—"}</td>
+                    <tr
+                      key={row.empCd}
+                      className="border-b transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                        {row.empCd}
+                      </td>
+                      <td className="px-4 py-2 font-medium text-foreground">
+                        {row.empName ?? "-"}
+                      </td>
                       <td className="px-4 py-2 text-primary">{row.inCount}</td>
-                      <td className="px-4 py-2 text-primary">{row.totalInMins}</td>
-                      <td className="px-4 py-2 text-secondary">{row.outCount}</td>
-                      <td className="px-4 py-2 text-secondary">{row.totalOutMins}</td>
-                      <td className="px-4 py-2 font-semibold text-foreground">{(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}</td>
+                      <td className="px-4 py-2 text-primary">
+                        {row.totalInMins}
+                      </td>
+                      <td className="px-4 py-2 text-secondary">
+                        {row.outCount}
+                      </td>
+                      <td className="px-4 py-2 text-secondary">
+                        {row.totalOutMins}
+                      </td>
+                      <td className="px-4 py-2 font-semibold text-foreground">
+                        {(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -284,7 +334,9 @@ export default function PermissionReport() {
                     </td>
                     <td className="px-4 py-2 text-primary">{totalInCount}</td>
                     <td className="px-4 py-2 text-primary">{totalInMins}</td>
-                    <td className="px-4 py-2 text-secondary">{totalOutCount}</td>
+                    <td className="px-4 py-2 text-secondary">
+                      {totalOutCount}
+                    </td>
                     <td className="px-4 py-2 text-secondary">{totalOutMins}</td>
                     <td className="px-4 py-2">{totalInMins + totalOutMins}</td>
                   </tr>

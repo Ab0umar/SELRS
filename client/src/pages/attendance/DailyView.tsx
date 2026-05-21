@@ -34,7 +34,9 @@ export default function DailyView() {
     ? records.filter(
         (r) =>
           r.empCd.toLowerCase().includes(empFilter.trim().toLowerCase()) ||
-          (r.empName ?? "").toLowerCase().includes(empFilter.trim().toLowerCase()),
+          (r.empName ?? "")
+            .toLowerCase()
+            .includes(empFilter.trim().toLowerCase()),
       )
     : records;
 
@@ -53,7 +55,9 @@ export default function DailyView() {
         d.getDate(),
       ).padStart(2, "0")}`;
       try {
-        const response = await utils.attendance.dailyByDate.fetch({ date: dateStr });
+        const response = await utils.attendance.dailyByDate.fetch({
+          date: dateStr,
+        });
         allRecords = [...allRecords, ...response];
       } catch (error) {
         console.error(`Failed to load ${dateStr}:`, error);
@@ -111,7 +115,10 @@ export default function DailyView() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `daily-attendance-${dates.from}-to-${dates.to}.csv`);
+    link.setAttribute(
+      "download",
+      `daily-attendance-${dates.from}-to-${dates.to}.csv`,
+    );
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -121,7 +128,9 @@ export default function DailyView() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-foreground">الحضور اليومي</h1>
-          <p className="text-sm text-muted-foreground">الألوان تفرق بين الدخول والخروج والتأخير والحالة العامة بسرعة.</p>
+          <p className="text-sm text-muted-foreground">
+            الألوان تفرق بين الدخول والخروج والتأخير والحالة العامة بسرعة.
+          </p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
           <Calendar className="h-3.5 w-3.5" />
@@ -146,7 +155,9 @@ export default function DailyView() {
               {loading ? "جاري التحميل..." : "تحميل"}
             </Button>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">إلى</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                إلى
+              </label>
               <input
                 type="date"
                 value={dates.to}
@@ -155,7 +166,9 @@ export default function DailyView() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">من</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                من
+              </label>
               <input
                 type="date"
                 value={dates.from}
@@ -164,7 +177,9 @@ export default function DailyView() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">كود الموظف</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                كود الموظف
+              </label>
               <input
                 type="text"
                 value={empFilter}
@@ -208,28 +223,61 @@ export default function DailyView() {
               <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/60">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الكود</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الاسم</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">التاريخ</th>
-                    <th className="px-4 py-3 text-right font-semibold text-success">وقت الحضور</th>
-                    <th className="px-4 py-3 text-right font-semibold text-destructive">وقت المغادرة</th>
-                    <th className="px-4 py-3 text-right font-semibold text-destructive">التأخير (دقيقة)</th>
-                    <th className="px-4 py-3 text-right font-semibold text-warning">المغادرة المبكرة</th>
-                    <th className="px-4 py-3 text-right font-semibold text-primary">الساعات الإضافية</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الحالة</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الكود
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الاسم
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      التاريخ
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-success">
+                      وقت الحضور
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-destructive">
+                      وقت المغادرة
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-destructive">
+                      التأخير (دقيقة)
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-warning">
+                      المغادرة المبكرة
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-primary">
+                      الساعات الإضافية
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الحالة
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((record: any, idx: number) => (
-                    <tr key={idx} className="border-b transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{record.empCd}</td>
-                      <td className="px-4 py-3 font-semibold text-foreground">{record.empName ?? "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{record.workDate}</td>
+                    <tr
+                      key={idx}
+                      className="border-b transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {record.empCd}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-foreground">
+                        {record.empName ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {record.workDate}
+                      </td>
                       <td className="px-4 py-3">
                         {record.firstIn ? (
-                          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.in}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.in}`}
+                          >
                             <span>↑</span>
-                            <span>{new Date(record.firstIn).toLocaleTimeString("ar-EG")}</span>
+                            <span>
+                              {new Date(record.firstIn).toLocaleTimeString(
+                                "ar-EG",
+                              )}
+                            </span>
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -237,9 +285,15 @@ export default function DailyView() {
                       </td>
                       <td className="px-4 py-3">
                         {record.lastOut ? (
-                          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.out}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.out}`}
+                          >
                             <span>↓</span>
-                            <span>{new Date(record.lastOut).toLocaleTimeString("ar-EG")}</span>
+                            <span>
+                              {new Date(record.lastOut).toLocaleTimeString(
+                                "ar-EG",
+                              )}
+                            </span>
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -247,7 +301,9 @@ export default function DailyView() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {record.lateMinutes > 0 ? (
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.late}`}>
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.late}`}
+                          >
                             {record.lateMinutes}
                           </span>
                         ) : (
@@ -256,7 +312,9 @@ export default function DailyView() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {record.earlyLeaveMin > 0 ? (
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.early}`}>
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.early}`}
+                          >
                             {record.earlyLeaveMin}
                           </span>
                         ) : (
@@ -265,7 +323,9 @@ export default function DailyView() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {record.overtimeMinutes > 0 ? (
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.overtime}`}>
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.overtime}`}
+                          >
                             {record.overtimeMinutes}
                           </span>
                         ) : (
@@ -275,7 +335,8 @@ export default function DailyView() {
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                            statusTone[record.status] ?? "border-muted-foreground/20 bg-muted/70 text-foreground"
+                            statusTone[record.status] ??
+                            "border-muted-foreground/20 bg-muted/70 text-foreground"
                           }`}
                         >
                           {getStatusLabel(record.status)}
@@ -287,7 +348,9 @@ export default function DailyView() {
               </table>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground">لا توجد سجلات حضور</div>
+            <div className="py-8 text-center text-muted-foreground">
+              لا توجد سجلات حضور
+            </div>
           )}
         </CardContent>
       </Card>

@@ -49,11 +49,11 @@ export default function ReportsHub() {
       </div>
 
       <div>
-        {tab === "daily"   && <DailyView />}
+        {tab === "daily" && <DailyView />}
         {tab === "monthly" && <Reports />}
-        {tab === "perms"   && <PermissionReport />}
+        {tab === "perms" && <PermissionReport />}
         {tab === "balance" && <LeaveBalanceReport />}
-        {tab === "logs"    && <RawLogs />}
+        {tab === "logs" && <RawLogs />}
       </div>
     </div>
   );
