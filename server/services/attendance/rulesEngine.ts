@@ -12,7 +12,7 @@ export interface Shift {
   crossesMidnight: boolean;
   graceLateMin: number; // Default: 15 (Taratus: Adjusted value)
   graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
-  minOTMin: number; // Minimum minutes past shift end before OT is counted. Default: 30
+  allowOT: boolean; // If false, overtime is never counted regardless of hours worked
   breakMinutes: number;
   weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
   requirePunch: boolean; // false = auto-present even with no fingerprint
@@ -243,10 +243,9 @@ export function computeDay(ctx: DayContext): DayResult {
     result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
   }
 
-  // Compute overtime — only count if worked beyond shift end by at least minOTMin
+  // Compute overtime — only if allowOT is enabled for this shift
   const shiftDurationMin = (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
-  const minOT = ctx.shift.minOTMin ?? 30;
-  if (result.workedMinutes && result.workedMinutes > shiftDurationMin + minOT) {
+  if (ctx.shift.allowOT && result.workedMinutes && result.workedMinutes > shiftDurationMin) {
     result.overtimeMinutes = Math.round(result.workedMinutes - shiftDurationMin);
   }
 

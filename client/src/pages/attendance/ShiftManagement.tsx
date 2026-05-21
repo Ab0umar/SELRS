@@ -20,7 +20,7 @@ const BLANK: ShiftForm = {
   endTime: "17:00",
   graceLateMin: 15,
   graceEarlyMin: 15,
-  minOTMin: 30,
+  allowOT: false,
   breakMinutes: 60,
   weekdayMask: 31, // Sun-Thu (Egypt default)
   requirePunch: true,
@@ -32,7 +32,7 @@ interface ShiftForm {
   endTime: string;
   graceLateMin: number;
   graceEarlyMin: number;
-  minOTMin: number;
+  allowOT: boolean;
   breakMinutes: number;
   weekdayMask: number;
   requirePunch: boolean;
@@ -121,7 +121,7 @@ export default function ShiftManagement() {
       endTime: s.endTime,
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
-      minOTMin: s.minOTMin ?? 30,
+      allowOT: s.allowOT ?? false,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask ?? 31,
       requirePunch: s.requirePunch ?? true,
@@ -277,20 +277,17 @@ export default function ShiftManagement() {
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-foreground">
-                    حد الإضافي (دقيقة)
+                    وقت إضافي
                   </label>
-                  <input
-                    type="number"
-                    value={form.minOTMin}
-                    min={0}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        minOTMin: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
+                  <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={form.allowOT}
+                      onChange={(e) => setForm({ ...form, allowOT: e.target.checked })}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    تفعيل الإضافي
+                  </label>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-foreground">
@@ -358,7 +355,7 @@ export default function ShiftManagement() {
                     <div>استراحة: {s.breakMinutes} د</div>
                     <div>سماح حضور: {s.graceLateMin} د</div>
                     <div>سماح انصراف: {s.graceEarlyMin} د</div>
-                    <div>حد الإضافي: {s.minOTMin ?? 30} د</div>
+                    <div>وقت إضافي: {(s.allowOT ?? false) ? "مفعّل" : "معطّل"}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span

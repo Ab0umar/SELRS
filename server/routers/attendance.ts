@@ -1230,7 +1230,7 @@ export const attendanceRouter = router({
       crossesMidnight: s.crossesMidnight,
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
-      minOTMin: s.minOTMin,
+      allowOT: s.allowOT,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask,
       requirePunch: s.requirePunch,
@@ -1247,7 +1247,7 @@ export const attendanceRouter = router({
         crossesMidnight: z.boolean().optional(),
         graceLateMin: z.number().int().min(0).default(15),
         graceEarlyMin: z.number().int().min(0).default(15),
-        minOTMin: z.number().int().min(0).default(30),
+        allowOT: z.boolean().default(false),
         breakMinutes: z.number().int().min(0).default(60),
         weekdayMask: z.number().int().min(0).max(127).default(62),
         requirePunch: z.boolean().default(true),
@@ -1265,7 +1265,7 @@ export const attendanceRouter = router({
           crossesMidnight: input.crossesMidnight ?? false,
           graceLateMin: input.graceLateMin,
           graceEarlyMin: input.graceEarlyMin,
-          minOTMin: input.minOTMin,
+          allowOT: input.allowOT,
           breakMinutes: input.breakMinutes,
           weekdayMask: input.weekdayMask,
           requirePunch: input.requirePunch,
@@ -1301,7 +1301,7 @@ export const attendanceRouter = router({
         endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
         graceLateMin: z.number().int().min(0).optional(),
         graceEarlyMin: z.number().int().min(0).optional(),
-        minOTMin: z.number().int().min(0).optional(),
+        allowOT: z.boolean().optional(),
         breakMinutes: z.number().int().min(0).optional(),
         weekdayMask: z.number().int().min(0).max(127).optional(),
         requirePunch: z.boolean().optional(),
@@ -1318,7 +1318,7 @@ export const attendanceRouter = router({
         if (input.endTime) updateData.endTime = input.endTime;
         if (input.graceLateMin !== undefined) updateData.graceLateMin = input.graceLateMin;
         if (input.graceEarlyMin !== undefined) updateData.graceEarlyMin = input.graceEarlyMin;
-        if (input.minOTMin !== undefined) updateData.minOTMin = input.minOTMin;
+        if (input.allowOT !== undefined) updateData.allowOT = input.allowOT;
         if (input.breakMinutes !== undefined) updateData.breakMinutes = input.breakMinutes;
         if (input.weekdayMask !== undefined) updateData.weekdayMask = input.weekdayMask;
         if (input.requirePunch !== undefined) updateData.requirePunch = input.requirePunch;
