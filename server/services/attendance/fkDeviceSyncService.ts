@@ -163,7 +163,7 @@ export class FKDeviceSyncService {
       await db.insert(attendanceSyncRuns).values({
         startedAt: result.startedAt,
         finishedAt: result.completedAt,
-        source: 'fk',
+        source: 'tcp',
         trigger: 'manual',
         triggeredBy: userId,
         rowsSeen: result.recordsSeen,

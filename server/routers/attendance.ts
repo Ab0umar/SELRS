@@ -17,7 +17,7 @@ import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
-import { desc, eq, and, gte, lte, lt } from 'drizzle-orm';
+import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
 /**
  * AttendanceRouter - TRPC router for attendance module
@@ -509,7 +509,24 @@ export const attendanceRouter = router({
   }),
 
   deviceStatus: attendanceViewerProcedure.query(async () => {
-    return DeviceSettingsService.getDeviceStatus();
+    const db = await getDb();
+    if (!db) return { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
+
+    const [row] = await db
+      .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
+      .from(attendancePunches);
+
+    const settings = DeviceSettingsService.getSettings();
+    return {
+      connected: false,
+      lastConnected: null,
+      uptime: 0,
+      connectionError: null,
+      lastPunch: row?.lastPunch ?? null,
+      punchCount: row?.total ?? 0,
+      ip: settings.ip,
+      port: settings.port,
+    };
   }),
 
   updateDeviceSettings: attendanceManagerProcedure
