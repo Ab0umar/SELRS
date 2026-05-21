@@ -15,6 +15,7 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional().default(""),
   VAPID_PRIVATE_KEY: z.string().optional().default(""),
   NODE_ENV: z.enum(["development", "production", "test"]).optional().default("development"),
+  FK_PULLER_PATH: z.string().optional().default("D:\\Programs\\fp\\FKOldLogPuller.exe"),
   ATTENDANCE_ENABLED: z.enum(["true", "false"]).optional().default("true"),
   ATTENDANCE_SOURCE: z.enum(["access", "tcp"]).optional().default("access"),
   ATTENDANCE_ACCESS_PATH: z.string().optional().default(""),

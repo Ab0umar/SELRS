@@ -4,7 +4,8 @@
  * Non-blocking: errors logged, server startup not affected
  */
 
-import { runSyncOnce } from '../services/attendance/syncEngine';
+import { FKDeviceSyncService } from '../services/attendance/fkDeviceSyncService';
+import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
 
 function asBool(value: unknown, fallback = false): boolean {
   const raw = String(value ?? "").trim().toLowerCase();
@@ -19,8 +20,7 @@ function toNumber(value: unknown, fallback: number): number {
 
 let started = false;
 
-const ATTENDANCE_ENABLED = asBool(process.env.ATTENDANCE_ENABLED, false);
-const ATTENDANCE_ACCESS_PATH = process.env.ATTENDANCE_ACCESS_PATH ?? '';
+const ATTENDANCE_ENABLED = asBool(process.env.ATTENDANCE_ENABLED, true);
 const BUSINESS_HOURS_START = toNumber(process.env.ATTENDANCE_BIZ_HOURS_START, 8); // 08:00
 const BUSINESS_HOURS_END = toNumber(process.env.ATTENDANCE_BIZ_HOURS_END, 17); // 17:00
 const BIZ_INTERVAL_MS = toNumber(process.env.ATTENDANCE_SYNC_BIZ_INTERVAL_MS, 2 * 60_000); // 2 min
@@ -40,8 +40,13 @@ export function startAttendanceSyncScheduler() {
   if (started) return;
   started = true;
 
-  if (!ATTENDANCE_ENABLED || !ATTENDANCE_ACCESS_PATH) {
-    console.log('[attendance] disabled or not configured, scheduler not started');
+  if (!ATTENDANCE_ENABLED) {
+    console.log('[attendance] disabled, scheduler not started');
+    return;
+  }
+
+  if (!FKAttendLogPuller.isPullerAvailable()) {
+    console.warn(`[attendance] FKOldLogPuller.exe not found at ${FKAttendLogPuller.getPullerPath()}, scheduler not started`);
     return;
   }
 
@@ -59,17 +64,13 @@ export function startAttendanceSyncScheduler() {
 
     try {
       running = true;
-      const result = await runSyncOnce({ trigger: 'cron' });
-      if (result.status === 'ok' || result.status === 'partial') {
+      const result = await FKDeviceSyncService.syncNow();
+      if (result.success) {
         console.log(
-          `[attendance] sync ${result.status}: runId=${result.runId} inserted=${result.rowsInserted} seen=${result.rowsSeen}`
+          `[attendance] sync ok: inserted=${result.recordsInserted} seen=${result.recordsSeen} skipped=${result.recordsSkipped}`
         );
-      } else if (result.status === 'locked') {
-        console.debug(`[attendance] sync locked (another run in progress)`);
       } else {
-        console.error(
-          `[attendance] sync ${result.status}: runId=${result.runId} error=${result.error}`
-        );
+        console.error(`[attendance] sync failed: ${result.error}`);
       }
     } catch (err) {
       console.error('[attendance] sync error:', err instanceof Error ? err.message : String(err));
