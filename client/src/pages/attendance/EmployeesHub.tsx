@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import EmployeesList from "./EmployeesList";
 import LeaveManagement from "./LeaveManagement";
 import Permissions from "./Permissions";
 import ShiftAssignments from "./ShiftAssignments";
+import UserMappings from "./UserMappings";
 
-const TABS = [
+const BASE_TABS = [
   { key: "employees", label: "الموظفون" },
   { key: "leaves", label: "الإجازات" },
   { key: "permissions", label: "الأذونات" },
@@ -13,6 +15,11 @@ const TABS = [
 
 export default function EmployeesHub() {
   const [tab, setTab] = useState("employees");
+  const { user } = useAuth();
+  const isAdmin = String((user as any)?.role ?? "").toLowerCase() === "admin";
+  const TABS = isAdmin
+    ? [...BASE_TABS, { key: "mappings", label: "ربط المستخدمين" }]
+    : BASE_TABS;
 
   return (
     <div dir="rtl">
@@ -50,6 +57,7 @@ export default function EmployeesHub() {
         {tab === "leaves" && <LeaveManagement />}
         {tab === "permissions" && <Permissions />}
         {tab === "shifts" && <ShiftAssignments />}
+        {tab === "mappings" && <UserMappings />}
       </div>
     </div>
   );

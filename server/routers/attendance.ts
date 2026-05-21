@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
 import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
 import { FKDeviceSyncService, syncFromFKDevice } from '../services/attendance/fkDeviceSyncService';
-import { router, attendanceViewerProcedure, attendanceManagerProcedure, protectedProcedure } from '../_core/procedures';
+import { router, attendanceViewerProcedure, attendanceManagerProcedure, protectedProcedure, adminProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
 import { LeaveManagementService } from '../services/attendance/leaveManagement.service';
@@ -15,7 +15,7 @@ import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendanc
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
+import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping, users } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
@@ -1901,6 +1901,62 @@ export const attendanceRouter = router({
         approved: false,
         note: input.note ?? null,
       });
+      return { success: true };
+    }),
+
+  // Admin: list all system users with their current empCd mapping
+  listUserMappings: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error('Database not available');
+
+    const allUsers = await db.select({
+      id: users.id,
+      username: users.username,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+    }).from(users).orderBy(users.name);
+
+    const mappings = await db.select().from(employeeAttendanceMapping);
+    const byUserId = new Map(mappings.map(m => [m.userId, m]));
+
+    return allUsers.map(u => ({
+      ...u,
+      empCd: byUserId.get(u.id)?.machineUserId ?? null,
+      mappingId: byUserId.get(u.id)?.id ?? null,
+    }));
+  }),
+
+  // Admin: set or update empCd for a user (upsert by userId)
+  setUserMapping: adminProcedure
+    .input(z.object({
+      userId: z.number().int(),
+      empCd: z.string().max(50).nullable(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      if (!input.empCd) {
+        // Remove mapping
+        await db.delete(employeeAttendanceMapping)
+          .where(eq(employeeAttendanceMapping.userId, input.userId));
+        return { success: true };
+      }
+
+      const existing = await db.select().from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, input.userId)).limit(1);
+
+      if (existing[0]) {
+        await db.update(employeeAttendanceMapping)
+          .set({ machineUserId: input.empCd })
+          .where(eq(employeeAttendanceMapping.userId, input.userId));
+      } else {
+        await db.insert(employeeAttendanceMapping).values({
+          userId: input.userId,
+          machineUserId: input.empCd,
+        });
+      }
       return { success: true };
     }),
 });

@@ -58,9 +58,9 @@
   --selrs-light-blue: #E8F0F8;
   --selrs-light-orange: #FFE8CC;
 
-  /* Primary Colors - SELRS Orange */
-  --primary: #FF9500;
-  --primary-foreground: #001F47;
+  /* Primary Colors - Navy Blue */
+  --primary: #003D82;
+  --primary-foreground: #FFFFFF;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
 
@@ -69,14 +69,14 @@
   --chart-2: #0052A3;
   --chart-3: #FF9500;
   --chart-4: #FFB84D;
-  --chart-5: #FFD699;
+  --chart-5: #D7E7F7;
 
   --radius: 0.65rem;
 
   /* Light Mode */
-  --background: #FFFFFF;
+  --background: #FBFDFF;
   --foreground: #001F47;
-  --card: #F5F5F5;
+  --card: #FFFFFF;
   --card-foreground: #001F47;
   --popover: #FFFFFF;
   --popover-foreground: #001F47;
@@ -97,24 +97,24 @@
   --error: #EF4444;
   --error-foreground: #FFFFFF;
   --border: #E5E7EB;
-  --input: #FFFFFF;
+  --input: #E5E7EB;
   --ring: #003D82;
 
   --sidebar: #FFFFFF;
   --sidebar-foreground: #001F47;
-  --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-accent: #E8F0F8;
+  --sidebar-accent-foreground: #001F47;
   --sidebar-border: #E5E7EB;
   --sidebar-ring: #003D82;
 }
 
 .dark {
   /* SELRS is a light-theme clinical product. Keep dark-mode fallbacks tinted and readable if the class is present. */
-  --background: #f7fafc;
+  --background: #F7FAFC;
   --foreground: #001F47;
-  --card: #f2f6fb;
+  --card: #F2F6FB;
   --card-foreground: #001F47;
-  --popover: #f7fafc;
+  --popover: #F7FAFC;
   --popover-foreground: #001F47;
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
@@ -134,24 +134,24 @@
   --warning-foreground: #78350F;
   --error: #EF4444;
   --error-foreground: #FFFFFF;
-  --border: #cbd5e1;
+  --border: #CBD5E1;
   --input: #FFFFFF;
-  --ring: #FF9500;
+  --ring: #003D82;
 
   --chart-1: #003D82;
   --chart-2: #0052A3;
   --chart-3: #FF9500;
   --chart-4: #FFB84D;
-  --chart-5: #FFD699;
+  --chart-5: #D7E7F7;
 
-  --sidebar: #f7fafc;
+  --sidebar: #F7FAFC;
   --sidebar-foreground: #001F47;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FF9500;
   --sidebar-accent-foreground: #001F47;
-  --sidebar-border: #cbd5e1;
-  --sidebar-ring: #FF9500;
+  --sidebar-border: #CBD5E1;
+  --sidebar-ring: #003D82;
 }
 
 @media print {
@@ -285,7 +285,7 @@
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
     background-image:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 34%),
+      radial-gradient(circle at top left, rgba(0, 61, 130, 0.08), transparent 34%),
       linear-gradient(
         135deg,
         color-mix(in oklch, var(--card) 96%, transparent),
@@ -788,7 +788,7 @@ select {
 
 /* SELRS Brand Utilities */
 .selrs-gradient-primary {
-  background: linear-gradient(135deg, #003D82 0%, #0052A3 100%);
+  background: linear-gradient(135deg, #003D82 0%, #001F47 100%);
 }
 
 .selrs-gradient-accent {
@@ -800,7 +800,7 @@ select {
 }
 
 .selrs-gradient-bar {
-  background: linear-gradient(90deg, #003D82 0%, #0052A3 48%, #FF9500 100%);
+  background: linear-gradient(90deg, #003D82 0%, #001F47 48%, #FF9500 100%);
 }
 
 .selrs-text-gradient {
@@ -867,14 +867,14 @@ select {
 
 .selrs-page-bg {
   background-image:
-    radial-gradient(circle at top, rgba(0, 61, 130, 0.06), transparent 24%),
-    linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 100%);
+    radial-gradient(circle at top, rgba(0, 61, 130, 0.08), transparent 24%),
+    linear-gradient(180deg, #FFFFFF 0%, #F7FAFC 100%);
   background-attachment: fixed;
 }
 
 .dark .selrs-page-bg {
-  background-color: #f7fafc;
-  background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
+  background-color: #F7FAFC;
+  background-image: linear-gradient(180deg, #F7FAFC 0%, #EEF4FA 100%);
 }
 
 /* Narrow viewports: one flat canvas (avoids stripes vs header / main) */
@@ -889,8 +889,8 @@ select {
   }
 
   .dark .selrs-page-bg {
-    background-color: #f7fafc !important;
-    background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%) !important;
+    background-color: #F7FAFC !important;
+    background-image: linear-gradient(180deg, #F7FAFC 0%, #EEF4FA 100%) !important;
     background-attachment: scroll !important;
   }
 }
@@ -898,7 +898,7 @@ select {
 .selrs-login-bg {
   background-image:
     radial-gradient(circle at top, rgba(0, 61, 130, 0.10) 0%, rgba(0, 61, 130, 0.04) 24%, transparent 50%),
-    linear-gradient(135deg, #FFFFFF 0%, #E8F0F8 34%, #F5F5F5 100%);
+    linear-gradient(135deg, #FFFFFF 0%, #E8F0F8 34%, #F7FAFC 100%);
   background-attachment: fixed;
 }
 
