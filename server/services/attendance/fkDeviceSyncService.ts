@@ -7,8 +7,10 @@ import { FKAttendLogPuller, FKPunch } from './fkAttendLogPuller';
 import { DailyMaterializer } from './dailyMaterializer';
 import { getDb } from '../../db';
 import { attendancePunches, attendanceSyncRuns } from '../../../drizzle/schema';
-import { eq, desc } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
+
+const BATCH_SIZE = 500;
 
 export interface SyncResult {
   success: boolean;
@@ -59,22 +61,43 @@ export class FKDeviceSyncService {
         return result;
       }
 
-      // Step 2: Import punches with deduplication
+      // Step 2: Batch import with INSERT IGNORE for deduplication
       console.log('[FKSync] Importing punches with deduplication...');
-      const affected = new Set<Date>();
+      const affected = new Set<string>();
+      let totalInserted = 0;
 
-      for (const punch of fkPunches) {
-        const inserted = await this.insertPunchWithDedup(db, punch);
-        if (inserted) {
-          result.recordsInserted++;
-          // Track affected dates for daily materialization
-          const date = new Date(punch.timestamp);
-          date.setHours(0, 0, 0, 0);
-          affected.add(date);
-        } else {
-          result.recordsSkipped++;
+      for (let i = 0; i < fkPunches.length; i += BATCH_SIZE) {
+        const batch = fkPunches.slice(i, i + BATCH_SIZE);
+        const rows = batch.map((punch) => ({
+          empCd: String(punch.enrollNo),
+          punchAt: punch.timestamp,
+          direction: (punch.inOutMode === 1 ? 'in' : 'out') as 'in' | 'out' | 'unknown',
+          deviceId: 'fk_device',
+          source: 'tcp' as const,
+          sourceRowId: `${punch.enrollNo}_${punch.timestamp.getTime()}`,
+          sourceHash: this.hashRecord(`${punch.enrollNo}|${punch.timestamp.toISOString()}|${punch.inOutMode}`),
+          importedAt: new Date(),
+        }));
+
+        // INSERT IGNORE skips duplicates via unique index (uq_punch)
+        const inserted = await db
+          .insert(attendancePunches)
+          .values(rows)
+          .onDuplicateKeyUpdate({ set: { importedAt: sql`importedAt` } });
+
+        const rowsInserted = (inserted as any)[0]?.affectedRows ?? rows.length;
+        totalInserted += rowsInserted;
+
+        // Track affected dates
+        for (const punch of batch) {
+          const d = punch.timestamp;
+          const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          affected.add(dateKey);
         }
       }
+
+      result.recordsInserted = totalInserted;
+      result.recordsSkipped = fkPunches.length - totalInserted;
 
       console.log(
         `[FKSync] Import complete: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`
@@ -82,21 +105,16 @@ export class FKDeviceSyncService {
 
       // Step 3: Recompute daily records for affected dates
       if (result.recordsInserted > 0 && affected.size > 0) {
-        console.log(
-          `[FKSync] Recomputing daily attendance for ${affected.size} affected dates...`
-        );
+        console.log(`[FKSync] Recomputing daily attendance for ${affected.size} affected dates...`);
 
-        const dates = Array.from(affected).sort(
-          (a, b) => a.getTime() - b.getTime()
-        );
-        const minDate = dates[0];
-        const maxDate = new Date(dates[dates.length - 1]);
-        maxDate.setDate(maxDate.getDate() + 1); // Include end date
+        const sorted = Array.from(affected).sort();
+        const [fy, fm, fd] = sorted[0].split('-').map(Number);
+        const [ty, tm, td] = sorted[sorted.length - 1].split('-').map(Number);
+        const minDate = new Date(fy, fm - 1, fd);
+        const maxDate = new Date(ty, tm - 1, td + 1); // exclusive end
 
         await DailyMaterializer.recomputeRange(minDate, maxDate);
-        console.log(
-          `[FKSync] Recomputed daily records from ${minDate.toDateString()} to ${maxDate.toDateString()}`
-        );
+        console.log(`[FKSync] Recomputed from ${sorted[0]} to ${sorted[sorted.length - 1]}`);
       }
 
       result.success = true;
@@ -130,57 +148,6 @@ export class FKDeviceSyncService {
       }
 
       return result;
-    }
-  }
-
-  /**
-   * Insert punch record with deduplication
-   * Returns true if inserted, false if duplicate
-   */
-  private static async insertPunchWithDedup(
-    db: any,
-    punch: FKPunch
-  ): Promise<boolean> {
-    try {
-      // Create source hash for deduplication
-      const sourceHash = this.hashRecord(
-        `${punch.enrollNo}|${punch.timestamp.toISOString()}|${punch.inOutMode}`
-      );
-
-      // Check if already exists
-      const existing = await db
-        .select()
-        .from(attendancePunches)
-        .where(eq(attendancePunches.sourceHash, sourceHash))
-        .limit(1);
-
-      if (existing.length > 0) {
-        return false; // Duplicate
-      }
-
-      // Insert new punch
-      await db.insert(attendancePunches).values({
-        empCd: String(punch.enrollNo),
-        punchAt: punch.timestamp,
-        direction: punch.inOutMode === 1 ? 1 : 0,
-        deviceId: 'fk623',
-        source: 'fk_device',
-        sourceRowId: `${punch.enrollNo}_${punch.timestamp.getTime()}`,
-        sourceHash: sourceHash,
-        importedAt: new Date(),
-      });
-
-      return true;
-    } catch (error: any) {
-      // Check for duplicate key error
-      if (
-        error?.code === 'ER_DUP_ENTRY' ||
-        error?.errno === 1062 ||
-        error?.message?.includes('Duplicate entry')
-      ) {
-        return false; // Duplicate
-      }
-      throw error;
     }
   }
 
