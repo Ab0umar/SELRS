@@ -91,7 +91,6 @@ export function AppTopNav({
       (leaf: NavLeaf): boolean => {
         if (isAdmin) return true;
         const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
-        if (cleanPath === "/attendance/my") return true;
         if (!permissionsQuery.isSuccess) return true;
         return pathGrantedByRoots(cleanPath, allowedRoots);
       },
@@ -101,8 +100,12 @@ export function AppTopNav({
   const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
 
   const mainTabs = useMemo(
-    () => navGroups.filter((item): item is NavLeaf => !("items" in item) && Boolean(item.isMain)),
-    [navGroups],
+    () =>
+      navGroups.filter(
+        (item): item is NavLeaf =>
+          !("items" in item) && Boolean(item.isMain) && leafVisible(item),
+      ),
+    [leafVisible, navGroups],
   );
 
   const adminQuickTabs = useMemo(

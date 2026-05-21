@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import {
+  normalizeNavPath,
+  pathGrantedByRoots,
+  permissionsToAllowedRoots,
+} from "@/lib/nav-permission-utils";
 import { Button } from "@/components/ui/button";
 import {
   Activity,
@@ -20,7 +26,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const quickLinks = [
+const attendanceQuickLinks = [
   {
     icon: Activity,
     label: "اللوحة المباشرة",
@@ -64,8 +70,21 @@ const quickLinks = [
 ];
 
 export default function AttendanceHome() {
+  const { user } = useAuth();
+  const userRole = String(user?.role ?? "").toLowerCase();
+  const isAdmin = userRole === "admin";
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
+
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+
+  const allowedRoots = useMemo(
+    () => permissionsToAllowedRoots((permissionsQuery.data ?? []) as string[]),
+    [permissionsQuery.data],
+  );
 
   const dashboardQuery = (trpc as any).attendance.dashboardSummary.useQuery(
     undefined,
@@ -161,6 +180,24 @@ export default function AttendanceHome() {
         ? "جارٍ الاتصال"
         : "غير متصل";
 
+  const visibleQuickLinks = useMemo(() => {
+    if (isAdmin) return attendanceQuickLinks;
+    if (!permissionsQuery.isSuccess) return [];
+    return attendanceQuickLinks.filter((link) =>
+      pathGrantedByRoots(normalizeNavPath(link.href), allowedRoots),
+    );
+  }, [allowedRoots, isAdmin, permissionsQuery.isSuccess]);
+  const quickLinks = visibleQuickLinks;
+  const canUseOperationalShortcuts =
+    isAdmin ||
+    pathGrantedByRoots(normalizeNavPath("/attendance/settings"), allowedRoots) ||
+    pathGrantedByRoots(normalizeNavPath("/attendance/admin/device"), allowedRoots) ||
+    pathGrantedByRoots(normalizeNavPath("/attendance/admin/sync"), allowedRoots);
+  const canSeeLiveShortcut =
+    isAdmin || pathGrantedByRoots(normalizeNavPath("/attendance/live"), allowedRoots);
+  const canSeeReportsShortcut =
+    isAdmin || pathGrantedByRoots(normalizeNavPath("/attendance/reports"), allowedRoots);
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-orange-200/80 bg-orange-50/60 p-5 shadow-sm">
@@ -220,48 +257,56 @@ export default function AttendanceHome() {
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <Button
-              variant="outline"
-              className="h-11 justify-between border-blue-200 bg-white text-blue-900 hover:bg-blue-50"
-              onClick={handleSync}
-              disabled={syncMutation.isPending}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                {syncMutation.isPending ? "جارٍ المزامنة…" : "مزامنة الآن"}
-              </span>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-11 justify-between border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"
-              onClick={handleRecompute}
-              disabled={recomputeMutation.isPending}
-            >
-              <span className="inline-flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                {recomputeMutation.isPending ? "جارٍ الاحتساب…" : "إعادة احتساب"}
-              </span>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button asChild variant="secondary" className="h-11 justify-between">
-              <Link href="/attendance/reports">
+            {canUseOperationalShortcuts ? (
+              <Button
+                variant="outline"
+                className="h-11 justify-between border-blue-200 bg-white text-blue-900 hover:bg-blue-50"
+                onClick={handleSync}
+                disabled={syncMutation.isPending}
+              >
                 <span className="inline-flex items-center gap-2">
-                  <Printer className="h-4 w-4" />
-                  طباعة التقارير
+                  <Zap className="h-4 w-4" />
+                  {syncMutation.isPending ? "جارٍ المزامنة…" : "مزامنة الآن"}
                 </span>
                 <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="h-11 justify-between">
-              <Link href="/attendance/live">
+              </Button>
+            ) : null}
+            {canUseOperationalShortcuts ? (
+              <Button
+                variant="outline"
+                className="h-11 justify-between border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"
+                onClick={handleRecompute}
+                disabled={recomputeMutation.isPending}
+              >
                 <span className="inline-flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  المراقبة المباشرة
+                  <RefreshCw className="h-4 w-4" />
+                  {recomputeMutation.isPending ? "جارٍ الاحتساب…" : "إعادة احتساب"}
                 </span>
                 <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            ) : null}
+            {canSeeReportsShortcut ? (
+              <Button asChild variant="secondary" className="h-11 justify-between">
+                <Link href="/attendance/reports">
+                  <span className="inline-flex items-center gap-2">
+                    <Printer className="h-4 w-4" />
+                    طباعة التقارير
+                  </span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
+            {canSeeLiveShortcut ? (
+              <Button asChild variant="secondary" className="h-11 justify-between">
+                <Link href="/attendance/live">
+                  <span className="inline-flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    المراقبة المباشرة
+                  </span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-4 rounded-2xl border border-border bg-card p-4">
