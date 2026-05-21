@@ -20,7 +20,7 @@ export default function SettingsHub() {
     <div className="space-y-5 p-6" dir="rtl">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Attendance settings
+          Attendance settings / إعدادات الحضور
         </p>
         <h1 className="text-3xl font-bold text-foreground">الإعدادات</h1>
       </div>

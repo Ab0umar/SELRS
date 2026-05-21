@@ -140,10 +140,10 @@ export default function DeviceSettings() {
     <div className="space-y-6" dir="rtl">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Device console
+          Device console / وحدة الجهاز
         </p>
         <h2 className="text-3xl font-bold text-foreground">
-          Fingerprint Device Settings
+          إعدادات جهاز البصمة
         </h2>
       </div>
 
@@ -155,12 +155,12 @@ export default function DeviceSettings() {
               {status?.connected ? (
                 <>
                   <Wifi className="w-5 h-5 text-green-600" />
-                  Device Connected
+                  الجهاز متصل
                 </>
               ) : (
                 <>
                   <WifiOff className="w-5 h-5 text-red-600" />
-                  Device Offline
+                  الجهاز غير متصل
                 </>
               )}
             </CardTitle>
@@ -185,7 +185,7 @@ export default function DeviceSettings() {
           )}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-muted-foreground">Last Connected</p>
+              <p className="text-muted-foreground">آخر اتصال</p>
               <p className="font-mono">
                 {status?.lastConnected
                   ? new Date(status.lastConnected).toLocaleString()
@@ -193,11 +193,11 @@ export default function DeviceSettings() {
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Uptime (seconds)</p>
+              <p className="text-muted-foreground">زمن التشغيل (ثانية)</p>
               <p className="font-mono">{status?.uptime ?? 0}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Last Punch</p>
+              <p className="text-muted-foreground">آخر بصمة</p>
               <p className="font-mono">
                 {status?.lastPunch
                   ? new Date(status.lastPunch).toLocaleString()
@@ -205,7 +205,7 @@ export default function DeviceSettings() {
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Total Punches</p>
+              <p className="text-muted-foreground">إجمالي البصمات</p>
               <p className="font-mono">{status?.punchCount ?? 0}</p>
             </div>
           </div>
@@ -216,21 +216,23 @@ export default function DeviceSettings() {
               onClick={handleConnect}
               disabled={connectDevice.isPending}
             >
-              {connectDevice.isPending ? "Connecting..." : "Connect"}
+              {connectDevice.isPending ? "جارٍ الاتصال..." : "اتصال"}
             </Button>
             <Button
               variant="outline"
               onClick={handleDisconnect}
               disabled={disconnectDevice.isPending}
             >
-              {disconnectDevice.isPending ? "Disconnecting..." : "Disconnect"}
+              {disconnectDevice.isPending ? "جارٍ الفصل..." : "فصل"}
             </Button>
             <Button
               variant="outline"
               onClick={handleResetConnection}
               disabled={resetConnection.isPending}
             >
-              {resetConnection.isPending ? "Resetting..." : "Reset Connection"}
+              {resetConnection.isPending
+                ? "جارٍ إعادة الضبط..."
+                : "إعادة الضبط"}
             </Button>
           </div>
         </CardContent>
@@ -239,20 +241,22 @@ export default function DeviceSettings() {
       {/* Device Configuration Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Device Configuration</CardTitle>
+          <CardTitle>إعداد الجهاز</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {showSuccess && (
             <Alert variant="default" className="border-green-600 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Settings updated successfully
+                تم حفظ الإعدادات بنجاح
               </AlertDescription>
             </Alert>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">Device IP</label>
+            <label className="mb-2 block text-sm font-medium">
+              عنوان الجهاز
+            </label>
             <Input
               type="text"
               value={formData.ip}
@@ -260,12 +264,12 @@ export default function DeviceSettings() {
               placeholder="192.168.0.10"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Enter device IP address or hostname
+              أدخل عنوان IP أو اسم المضيف
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Port</label>
+            <label className="mb-2 block text-sm font-medium">المنفذ</label>
             <Input
               type="number"
               value={formData.port}
@@ -279,7 +283,7 @@ export default function DeviceSettings() {
               max="65535"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              TCP port (typically 5005)
+              منفذ TCP, غالبا 5005
             </p>
           </div>
 
@@ -297,7 +301,7 @@ export default function DeviceSettings() {
               htmlFor="enabled"
               className="text-sm font-medium cursor-pointer"
             >
-              Enable device integration
+              تفعيل التكامل مع الجهاز
             </label>
           </div>
 
@@ -306,7 +310,7 @@ export default function DeviceSettings() {
             disabled={updateSettings.isPending}
             className="w-full"
           >
-            {updateSettings.isPending ? "Saving..." : "Save Configuration"}
+            {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
           </Button>
         </CardContent>
       </Card>
@@ -314,25 +318,25 @@ export default function DeviceSettings() {
       {/* Sync from Access DB */}
       <Card>
         <CardHeader>
-          <CardTitle>Database Sync</CardTitle>
+          <CardTitle>مزامنة قاعدة البيانات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Sync attendance data from Tararus Access DB to MySQL database
+            مزامنة بيانات الحضور من Access إلى MySQL
           </p>
           <Button
             onClick={handleSyncNow}
             disabled={syncNow.isPending}
             className="w-full"
           >
-            {syncNow.isPending ? "Syncing..." : "Sync Now"}
+            {syncNow.isPending ? "جارٍ المزامنة..." : "مزامنة الآن"}
           </Button>
           {syncNow.data && (
             <Alert className="border-green-600 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Sync {syncNow.data.status} - Rows: {syncNow.data.rowsInserted}{" "}
-                inserted
+                تم {syncNow.data.status}، عدد الصفوف المضافة:{" "}
+                {syncNow.data.rowsInserted}
               </AlertDescription>
             </Alert>
           )}
@@ -348,21 +352,18 @@ export default function DeviceSettings() {
       {/* Materialize Daily Attendance */}
       <Card>
         <CardHeader>
-          <CardTitle>Materialize Daily Attendance</CardTitle>
+          <CardTitle>توليد الحضور اليومي</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Build daily attendance records from raw punch data. Use this if
-            daily records are missing or need to be refreshed after sync.
+            إنشاء سجلات الحضور اليومي من البصمات الخام عند الحاجة.
           </p>
           <Button
             onClick={handleMaterializeDaily}
             disabled={materializeDaily.isPending}
             className="w-full"
           >
-            {materializeDaily.isPending
-              ? "Computing..."
-              : "Materialize Daily Records"}
+            {materializeDaily.isPending ? "جارٍ الحساب..." : "توليد السجلات"}
           </Button>
           {materializeDaily.data && (
             <Alert className="border-green-600 bg-green-50">
@@ -386,12 +387,11 @@ export default function DeviceSettings() {
       {/* Bootstrap Shifts & Assignments */}
       <Card>
         <CardHeader>
-          <CardTitle>Setup Shifts & Assignments</CardTitle>
+          <CardTitle>تهيئة الورديات والتعيينات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Create a default shift (8AM-5PM) and assign all employees to it.
-            Required for attendance computation.
+            إنشاء وردية افتراضية وتعيين كل الموظفين عليها.
           </p>
           <Button
             onClick={handleBootstrapShifts}
@@ -399,8 +399,8 @@ export default function DeviceSettings() {
             className="w-full"
           >
             {bootstrapShifts.isPending
-              ? "Setting up..."
-              : "Setup Default Shifts"}
+              ? "جارٍ الإعداد..."
+              : "تهيئة الورديات الافتراضية"}
           </Button>
           {bootstrapShifts.data && (
             <Alert className="border-green-600 bg-green-50">
@@ -424,12 +424,11 @@ export default function DeviceSettings() {
       {/* Device Commands Card (Future) */}
       <Card>
         <CardHeader>
-          <CardTitle>Advanced Commands</CardTitle>
+          <CardTitle>أوامر متقدمة</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>
-            Raw device command interface available in Device Console at
-            /attendance/admin/console
+            واجهة الأوامر الخام متاحة في وحدة الجهاز: /attendance/admin/console
           </p>
         </CardContent>
       </Card>

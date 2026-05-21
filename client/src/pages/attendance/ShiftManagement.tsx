@@ -131,7 +131,7 @@ export default function ShiftManagement() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Shift setup
+            إعداد الورديات
           </p>
           <h2 className="text-2xl font-bold text-foreground">الورديات</h2>
         </div>

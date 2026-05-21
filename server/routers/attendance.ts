@@ -517,8 +517,9 @@ export const attendanceRouter = router({
       .from(attendancePunches);
 
     const settings = DeviceSettingsService.getSettings();
+    const connected = DeviceSettingsService.isDeviceOnline();
     return {
-      connected: false,
+      connected,
       lastConnected: null,
       uptime: 0,
       connectionError: null,
