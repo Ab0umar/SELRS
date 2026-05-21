@@ -1,18 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wifi, WifiOff, ArrowRightFromLine, ArrowLeftFromLine, AlertCircle } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Wifi,
+  WifiOff,
+  ArrowRightFromLine,
+  ArrowLeftFromLine,
+  AlertCircle,
+} from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const tRPC = trpc as any;
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
 
 interface LivePunch {
   empCd: string;
   timestamp: Date;
-  direction: 'in' | 'out' | 'unknown';
+  direction: "in" | "out" | "unknown";
   deviceId: string;
 }
 
@@ -26,9 +32,11 @@ export default function LiveBoard() {
   const punchesQuery = tRPC.attendance.rawPunches.useQuery(
     {
       limit: 50,
-      fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0],
+      fromDate: new Date(Date.now() - 1000 * 60 * 5)
+        .toISOString()
+        .split("T")[0],
     },
-    { refetchInterval: 30000 }
+    { refetchInterval: 30000 },
   );
 
   // Initialize WebSocket connection
@@ -41,23 +49,23 @@ export default function LiveBoard() {
       ws.onopen = () => {
         setWsConnected(true);
         // Subscribe to attendance punches
-        ws.send(JSON.stringify({ type: 'subscribe-attendance' }));
+        ws.send(JSON.stringify({ type: "subscribe-attendance" }));
       };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'punch-received') {
+          if (msg.type === "punch-received") {
             const newPunch: LivePunch = {
               empCd: msg.empCd,
               timestamp: new Date(msg.timestamp),
               direction: msg.direction,
-              deviceId: msg.deviceId || 'unknown',
+              deviceId: msg.deviceId || "unknown",
             };
             setPunches((prev) => [newPunch, ...prev.slice(0, 99)]); // Keep last 100
           }
         } catch (err) {
-          console.error('Failed to parse WS message:', err);
+          console.error("Failed to parse WS message:", err);
         }
       };
 
@@ -66,7 +74,7 @@ export default function LiveBoard() {
       };
 
       ws.onerror = (err) => {
-        console.error('WebSocket error:', err);
+        console.error("WebSocket error:", err);
         setWsConnected(false);
       };
 
@@ -74,12 +82,14 @@ export default function LiveBoard() {
 
       return () => {
         if (wsRef.current) {
-          wsRef.current.send(JSON.stringify({ type: 'unsubscribe-attendance' }));
+          wsRef.current.send(
+            JSON.stringify({ type: "unsubscribe-attendance" }),
+          );
           wsRef.current.close();
         }
       };
     } catch (err) {
-      console.error('Failed to create WebSocket:', err);
+      console.error("Failed to create WebSocket:", err);
     }
   }, [isMonitoring]);
 
@@ -90,14 +100,17 @@ export default function LiveBoard() {
         empCd: p.empCd,
         timestamp: new Date(p.punchAt),
         direction: p.direction,
-        deviceId: p.deviceId || 'unknown',
+        deviceId: p.deviceId || "unknown",
       }));
       setPunches((prev) => [...formatted, ...prev].slice(0, 100)); // Merge with WS punches
     }
   }, [punchesQuery.data]);
 
   // Device status
-  const { data: deviceStatus } = tRPC.attendance.deviceStatus.useQuery(undefined, { refetchInterval: 5000 });
+  const { data: deviceStatus } = tRPC.attendance.deviceStatus.useQuery(
+    undefined,
+    { refetchInterval: 5000 },
+  );
 
   const toggleMonitoring = () => {
     setIsMonitoring(!isMonitoring);
@@ -109,17 +122,26 @@ export default function LiveBoard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Live Punch Feed</h1>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs px-3 py-1 rounded bg-gray-100">
-            <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-            {wsConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs text-muted-foreground">
+            <div
+              className={`w-2 h-2 rounded-full ${wsConnected ? "bg-green-500" : "bg-red-500"}`}
+            />
+            {wsConnected ? "WebSocket Connected" : "WebSocket Disconnected"}
           </div>
-          <Button variant={isMonitoring ? 'default' : 'outline'} onClick={toggleMonitoring}>
-            {isMonitoring ? 'Monitoring Active' : 'Monitoring Paused'}
+          <Button
+            variant={isMonitoring ? "default" : "outline"}
+            onClick={toggleMonitoring}
+          >
+            {isMonitoring ? "Monitoring Active" : "Monitoring Paused"}
           </Button>
-          <Button variant="outline" onClick={clearPunches} disabled={punches.length === 0}>
+          <Button
+            variant="outline"
+            onClick={clearPunches}
+            disabled={punches.length === 0}
+          >
             Clear Feed
           </Button>
         </div>
@@ -143,32 +165,39 @@ export default function LiveBoard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-gray-600">Status</p>
-              <p className="font-medium">{deviceStatus?.connected ? 'Connected' : 'Disconnected'}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Punches Received</p>
-              <p className="font-medium">{deviceStatus?.punchCount ?? 0}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Last Punch</p>
-              <p className="font-mono text-xs">
-                {deviceStatus?.lastPunch
-                  ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
-                  : 'Never'}
+              <p className="text-muted-foreground">Status</p>
+              <p className="font-medium">
+                {deviceStatus?.connected ? "Connected" : "Disconnected"}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Uptime</p>
-              <p className="font-mono text-xs">{(deviceStatus?.uptime ?? 0) / 60 | 0}m {(deviceStatus?.uptime ?? 0) % 60}s</p>
+              <p className="text-muted-foreground">Punches Received</p>
+              <p className="font-medium">{deviceStatus?.punchCount ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Last Punch</p>
+              <p className="font-mono text-xs">
+                {deviceStatus?.lastPunch
+                  ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
+                  : "Never"}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Uptime</p>
+              <p className="font-mono text-xs">
+                {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
+                {(deviceStatus?.uptime ?? 0) % 60}s
+              </p>
             </div>
           </div>
           {deviceStatus?.connectionError && (
             <Alert variant="destructive" className="mt-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{deviceStatus.connectionError}</AlertDescription>
+              <AlertDescription>
+                {deviceStatus.connectionError}
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -179,7 +208,9 @@ export default function LiveBoard() {
         <CardHeader>
           <CardTitle>
             Recent Punches ({punches.length})
-            {punchesQuery.isLoading && <span className="text-xs text-gray-500 ml-2">Refreshing...</span>}
+            {punchesQuery.isLoading && (
+              <span className="text-xs text-gray-500 ml-2">Refreshing...</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -192,28 +223,32 @@ export default function LiveBoard() {
               {punches.map((punch, idx) => (
                 <div
                   key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded border"
+                  className="flex flex-col gap-2 rounded border border-border bg-muted/30 p-3 sm:flex-row sm:items-center"
                 >
                   <div className="flex-shrink-0">
-                    {punch.direction === 'in' ? (
-                      <ArrowRightFromLine className="w-5 h-5 text-green-600" />
-                    ) : punch.direction === 'out' ? (
-                      <ArrowLeftFromLine className="w-5 h-5 text-blue-600" />
+                    {punch.direction === "in" ? (
+                      <ArrowRightFromLine className="w-5 h-5 text-success" />
+                    ) : punch.direction === "out" ? (
+                      <ArrowLeftFromLine className="w-5 h-5 text-primary" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                      <AlertCircle className="w-5 h-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono font-semibold text-sm">{punch.empCd}</div>
-                    <div className="text-xs text-gray-600">
+                    <div className="font-mono font-semibold text-sm">
+                      {punch.empCd}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
                       {punch.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-medium capitalize text-gray-600">
+                    <div className="text-xs font-medium capitalize text-muted-foreground">
                       {punch.direction}
                     </div>
-                    <div className="text-xs text-gray-500">{punch.deviceId}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {punch.deviceId}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -222,9 +257,12 @@ export default function LiveBoard() {
         </CardContent>
       </Card>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-muted-foreground">
         <p>Real-time updates via WebSocket. Periodic sync every 30 seconds.</p>
-        <p>Shows punches from the last 5 minutes. Stores up to 100 recent punches.</p>
+        <p>
+          Shows punches from the last 5 minutes. Stores up to 100 recent
+          punches.
+        </p>
       </div>
     </div>
   );

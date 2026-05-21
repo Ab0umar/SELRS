@@ -5,10 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Calendar, Printer } from "lucide-react";
 
-type ReportTab = "summary" | "late" | "absent" | "ot" | "permissions" | "leaves" | "monthly";
+type ReportTab =
+  | "summary"
+  | "late"
+  | "absent"
+  | "ot"
+  | "permissions"
+  | "leaves"
+  | "monthly";
 
 const todayStr = new Date().toISOString().split("T")[0];
-const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+const firstOfMonth = new Date(
+  new Date().getFullYear(),
+  new Date().getMonth(),
+  1,
+)
   .toISOString()
   .split("T")[0];
 
@@ -21,16 +32,31 @@ export default function Reports() {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth() + 1;
 
-  const rangeQuery = trpc.attendance.rangeReport.useQuery({ from: dates.from, to: dates.to });
+  const rangeQuery = trpc.attendance.rangeReport.useQuery({
+    from: dates.from,
+    to: dates.to,
+  });
   const permQuery = trpc.attendance.permissionReport.useQuery({ year, month });
-  const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({ year: balanceYear });
+  const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({
+    year: balanceYear,
+  });
+
+  const escapeHtml = (value: unknown) =>
+    String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
 
   const handleExportCSV = (data: any[], filename: string) => {
     if (!data || data.length === 0) return;
     const headers = Object.keys(data[0]);
     const csv = [
       headers.join(","),
-      ...data.map((row: any) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+      ...data.map((row: any) =>
+        headers.map((h) => `"${row[h] ?? ""}"`).join(","),
+      ),
     ].join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
@@ -47,7 +73,7 @@ export default function Reports() {
     if (!rows.length) return;
     const cols = Object.keys(rows[0]);
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
-      <title>${title}</title>
+      <title>${escapeHtml(title)}</title>
       <style>
         body{font-family:Arial,sans-serif;direction:rtl;font-size:12px;}
         h2{font-size:16px;margin-bottom:4px;}
@@ -58,10 +84,15 @@ export default function Reports() {
         tr:nth-child(even){background:#f9f9f9;}
         @media print{@page{margin:15mm;}}
       </style></head><body>
-      <h2>${title}</h2>
-      <p>الفترة: ${dates.from} إلى ${dates.to}</p>
-      <table><thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map((r: any) => `<tr>${cols.map((c) => `<td>${r[c] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+      <h2>${escapeHtml(title)}</h2>
+      <p>الفترة: ${escapeHtml(dates.from)} إلى ${escapeHtml(dates.to)}</p>
+      <table><thead><tr>${cols.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}</tr></thead>
+      <tbody>${rows
+        .map(
+          (r: any) =>
+            `<tr>${cols.map((c) => `<td>${escapeHtml(r[c])}</td>`).join("")}</tr>`,
+        )
+        .join("")}</tbody>
       </table></body></html>`;
     const win = window.open("", "_blank");
     if (!win) return;
@@ -78,7 +109,10 @@ export default function Reports() {
   // Build a permission lookup: empCd → { totalInMins, totalOutMins }
   const permByEmp = new Map<string, { inMins: number; outMins: number }>();
   for (const p of perms) {
-    permByEmp.set(p.empCd, { inMins: p.totalInMins ?? 0, outMins: p.totalOutMins ?? 0 });
+    permByEmp.set(p.empCd, {
+      inMins: p.totalInMins ?? 0,
+      outMins: p.totalOutMins ?? 0,
+    });
   }
 
   const summaryData = data.map((r: any) => ({
@@ -111,12 +145,20 @@ export default function Reports() {
 
   const lateData = data
     .filter((r: any) => r.totalLateMins > 0)
-    .map((r: any) => ({ كود: r.empCd, الاسم: r.empName ?? "—", "تأخير (د)": r.totalLateMins }))
+    .map((r: any) => ({
+      كود: r.empCd,
+      الاسم: r.empName ?? "—",
+      "تأخير (د)": r.totalLateMins,
+    }))
     .sort((a: any, b: any) => b["تأخير (د)"] - a["تأخير (د)"]);
 
   const absentData = data
     .filter((r: any) => r.absentDays > 0)
-    .map((r: any) => ({ كود: r.empCd, الاسم: r.empName ?? "—", غياب: r.absentDays }))
+    .map((r: any) => ({
+      كود: r.empCd,
+      الاسم: r.empName ?? "—",
+      غياب: r.absentDays,
+    }))
     .sort((a: any, b: any) => b.غياب - a.غياب);
 
   const otData = data
@@ -126,7 +168,10 @@ export default function Reports() {
       الاسم: r.empName ?? "—",
       "ساعات إضافية": (r.totalOTMins / 60).toFixed(2),
     }))
-    .sort((a: any, b: any) => parseFloat(b["ساعات إضافية"]) - parseFloat(a["ساعات إضافية"]));
+    .sort(
+      (a: any, b: any) =>
+        parseFloat(b["ساعات إضافية"]) - parseFloat(a["ساعات إضافية"]),
+    );
 
   const permData = perms.map((p: any) => ({
     كود: p.empCd,
@@ -141,27 +186,41 @@ export default function Reports() {
     كود: b.empCd,
     الاسم: b.empName ?? "—",
     "الرصيد السنوي": b.annualAllocation,
-    "مرحّل": b.carryOver,
-    "الإجمالي": b.total,
-    "المستخدم": b.usedDays,
-    "المتبقي": b.remainingDays,
+    مرحّل: b.carryOver,
+    الإجمالي: b.total,
+    المستخدم: b.usedDays,
+    المتبقي: b.remainingDays,
   }));
 
   const renderTable = (rows: any[]) => {
-    if (!rows.length) return <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>;
+    if (!rows.length)
+      return (
+        <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>
+      );
     const cols = Object.keys(rows[0]);
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" dir="rtl">
+        <table className="min-w-[42rem] w-full text-sm" dir="rtl">
           <thead>
-            <tr className="border-b bg-gray-50">
-              {cols.map((c) => <th key={c} className="text-right py-3 px-4 font-semibold">{c}</th>)}
+            <tr className="border-b bg-muted/50">
+              {cols.map((c) => (
+                <th
+                  key={c}
+                  className="text-right py-3 px-4 font-semibold text-foreground"
+                >
+                  {c}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row: any, i: number) => (
-              <tr key={i} className="border-b hover:bg-gray-50">
-                {cols.map((c) => <td key={c} className="py-2 px-4 text-right">{row[c]}</td>)}
+              <tr key={i} className="border-b hover:bg-muted/40">
+                {cols.map((c) => (
+                  <td key={c} className="py-2 px-4 text-right">
+                    {row[c]}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -194,7 +253,10 @@ export default function Reports() {
   const isLoading =
     activeTab === "leaves"
       ? balanceQuery.isLoading
-      : rangeQuery.isLoading || (activeTab === "permissions" || activeTab === "monthly" ? permQuery.isLoading : false);
+      : rangeQuery.isLoading ||
+        (activeTab === "permissions" || activeTab === "monthly"
+          ? permQuery.isLoading
+          : false);
 
   const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
 
@@ -211,55 +273,151 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end flex-wrap">
-            <div>
-              <label className="block text-sm font-medium mb-1">من</label>
-              <input type="date" value={dates.from} onChange={(e) => setDates({ ...dates, from: e.target.value })} className="px-3 py-2 border rounded-md" />
+            <div className="min-w-[10rem] flex-1 sm:flex-none">
+              <label
+                htmlFor="attendance-report-from"
+                className="block text-sm font-medium mb-1"
+              >
+                من
+              </label>
+              <input
+                id="attendance-report-from"
+                type="date"
+                value={dates.from}
+                onChange={(e) => setDates({ ...dates, from: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">إلى</label>
-              <input type="date" value={dates.to} onChange={(e) => setDates({ ...dates, to: e.target.value })} className="px-3 py-2 border rounded-md" />
+            <div className="min-w-[10rem] flex-1 sm:flex-none">
+              <label
+                htmlFor="attendance-report-to"
+                className="block text-sm font-medium mb-1"
+              >
+                إلى
+              </label>
+              <input
+                id="attendance-report-to"
+                type="date"
+                value={dates.to}
+                onChange={(e) => setDates({ ...dates, to: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
             </div>
-            <Button onClick={() => { rangeQuery.refetch(); permQuery.refetch(); }} variant="outline">تحديث</Button>
+            <Button
+              onClick={() => {
+                rangeQuery.refetch();
+                permQuery.refetch();
+              }}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              تحديث
+            </Button>
 
             {activeTab === "leaves" && (
-              <div className="flex items-end gap-2 mr-auto">
-                <div>
-                  <label className="block text-sm font-medium mb-1">سنة الرصيد</label>
-                  <input type="number" min={2020} max={2099} value={balanceYear} onChange={(e) => setBalanceYear(parseInt(e.target.value))} className="w-24 px-3 py-2 border rounded-md" />
+              <div className="flex flex-wrap items-end gap-2 mr-auto">
+                <div className="min-w-[9rem]">
+                  <label
+                    htmlFor="attendance-balance-year"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    سنة الرصيد
+                  </label>
+                  <input
+                    id="attendance-balance-year"
+                    type="number"
+                    min={2020}
+                    max={2099}
+                    value={balanceYear}
+                    onChange={(e) => setBalanceYear(parseInt(e.target.value))}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
                 </div>
-                <Button onClick={() => balanceQuery.refetch()} variant="outline">تحديث</Button>
+                <Button
+                  onClick={() => balanceQuery.refetch()}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  تحديث
+                </Button>
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            الشهر المحدد للأذونات والتقرير الشهري: {year}/{String(month).padStart(2, "0")}
+          <p className="mt-2 text-xs text-muted-foreground">
+            الشهر المحدد للأذونات والتقرير الشهري: {year}/
+            {String(month).padStart(2, "0")}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <div className="flex gap-1 border-b overflow-x-auto flex-wrap">
+          <div
+            role="tablist"
+            aria-label="أنواع التقارير"
+            className="flex gap-1 border-b overflow-x-auto flex-wrap"
+          >
             {tabs.map(({ key, label }) => (
-              <button key={key} onClick={() => setActiveTab(key)}
-                className={`px-4 py-2 font-medium whitespace-nowrap text-sm ${activeTab === key ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-900"}`}>
+              <button
+                key={key}
+                id={`attendance-report-tab-${key}`}
+                role="tab"
+                aria-selected={activeTab === key}
+                aria-controls={`attendance-report-panel-${key}`}
+                tabIndex={activeTab === key ? 0 : -1}
+                onClick={() => setActiveTab(key)}
+                className={`px-4 py-2 font-medium whitespace-nowrap text-sm border-b-2 transition-colors ${
+                  activeTab === key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                }`}
+              >
                 {label}
               </button>
             ))}
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="mb-4 flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExportCSV(activeRows(), `${activeLabel}-${dates.from}-${dates.to}.csv`)} disabled={!activeRows().length} className="gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                handleExportCSV(
+                  activeRows(),
+                  `${activeLabel}-${dates.from}-${dates.to}.csv`,
+                )
+              }
+              disabled={!activeRows().length}
+              className="gap-2 w-full sm:w-auto"
+            >
               <Download className="w-4 h-4" /> تصدير CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handlePrint(activeRows(), activeLabel)} disabled={!activeRows().length} className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrint(activeRows(), activeLabel)}
+              disabled={!activeRows().length}
+              className="gap-2 w-full sm:w-auto"
+            >
               <Printer className="w-4 h-4" /> طباعة / PDF
             </Button>
           </div>
-          {isLoading
-            ? <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-            : renderTable(activeRows())}
+          <div
+            id={`attendance-report-panel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`attendance-report-tab-${activeTab}`}
+          >
+            {isLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              renderTable(activeRows())
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
