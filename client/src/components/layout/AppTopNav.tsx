@@ -19,6 +19,7 @@ import {
   Activity,
   Archive,
   Banknote,
+  CalendarCheck,
   ChevronDown,
   KeyRound,
   LayoutDashboard,
@@ -110,6 +111,7 @@ export function AppTopNav({
       { icon: Banknote, label: "الحسابات", path: "/accounting" },
       { icon: Activity, label: "الحضور", path: "/attendance" },
       { icon: Archive, label: "المخزن", path: "/stockroom" },
+      { icon: Settings, label: "مركز الإدارة", path: "/admin-hub" },
     ],
     [],
   );
@@ -423,6 +425,13 @@ export function AppTopNav({
               >
                 <UserCog className="h-4 w-4" />
                 الملف الشخصي
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => onNavigate("/attendance/my")}
+              >
+                <CalendarCheck className="h-4 w-4" />
+                حضوري
               </DropdownMenuItem>
               {isAdmin && (
                 <DropdownMenuItem
