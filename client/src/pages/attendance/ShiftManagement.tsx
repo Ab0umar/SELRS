@@ -20,6 +20,7 @@ const BLANK: ShiftForm = {
   endTime: "17:00",
   graceLateMin: 15,
   graceEarlyMin: 15,
+  minOTMin: 30,
   breakMinutes: 60,
   weekdayMask: 31, // Sun-Thu (Egypt default)
   requirePunch: true,
@@ -31,6 +32,7 @@ interface ShiftForm {
   endTime: string;
   graceLateMin: number;
   graceEarlyMin: number;
+  minOTMin: number;
   breakMinutes: number;
   weekdayMask: number;
   requirePunch: boolean;
@@ -119,6 +121,7 @@ export default function ShiftManagement() {
       endTime: s.endTime,
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
+      minOTMin: s.minOTMin ?? 30,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask ?? 31,
       requirePunch: s.requirePunch ?? true,
@@ -237,7 +240,7 @@ export default function ShiftManagement() {
                 </span>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-foreground">
                     سماح التأخير (دقيقة)
@@ -267,6 +270,23 @@ export default function ShiftManagement() {
                       setForm({
                         ...form,
                         graceEarlyMin: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    حد الإضافي (دقيقة)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.minOTMin}
+                    min={0}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        minOTMin: parseInt(e.target.value) || 0,
                       })
                     }
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -338,6 +358,7 @@ export default function ShiftManagement() {
                     <div>استراحة: {s.breakMinutes} د</div>
                     <div>سماح حضور: {s.graceLateMin} د</div>
                     <div>سماح انصراف: {s.graceEarlyMin} د</div>
+                    <div>حد الإضافي: {s.minOTMin ?? 30} د</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span
