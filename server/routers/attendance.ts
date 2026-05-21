@@ -14,8 +14,8 @@ import { resetSyncHistory } from '../services/attendance/syncEngine';
 import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendance/deviceSyncEngine';
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
-import { getDb } from '../db';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping, users } from '../../drizzle/schema';
+import { getDb, getAllUsers } from '../db';
+import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
@@ -1909,22 +1909,22 @@ export const attendanceRouter = router({
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
-    const allUsers = await db.select({
-      id: users.id,
-      username: users.username,
-      name: users.name,
-      role: users.role,
-      isActive: users.isActive,
-    }).from(users).orderBy(users.name);
+    const allUsers = await getAllUsers();
 
     const mappings = await db.select().from(employeeAttendanceMapping);
     const byUserId = new Map(mappings.map(m => [m.userId, m]));
 
-    return allUsers.map(u => ({
-      ...u,
-      empCd: byUserId.get(u.id)?.machineUserId ?? null,
-      mappingId: byUserId.get(u.id)?.id ?? null,
-    }));
+    return allUsers
+      .sort((a, b) => (a.name || a.username).localeCompare(b.name || b.username, 'ar'))
+      .map(u => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        isActive: u.isActive,
+        empCd: byUserId.get(u.id)?.machineUserId ?? null,
+        mappingId: byUserId.get(u.id)?.id ?? null,
+      }));
   }),
 
   // Admin: set or update empCd for a user (upsert by userId)

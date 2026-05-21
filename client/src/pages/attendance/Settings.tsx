@@ -12,7 +12,7 @@ const sections = [
       "إعدادات الاتصال والمهلة",
     ],
     action: "اذهب إلى إعدادات الجهاز",
-    href: "/attendance/admin/sync",
+    href: "/attendance/admin/device",
   },
   {
     title: "الورديات",

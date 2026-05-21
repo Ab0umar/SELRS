@@ -63,14 +63,13 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   // ── الحضور والانصراف ──
   { id: "/attendance", label: "الحضور والانصراف (الرئيسية)", group: "الحضور والانصراف" },
   { id: "/attendance/live", label: "الحضور المباشر", group: "الحضور والانصراف" },
-  { id: "/attendance/daily", label: "الحضور اليومي", group: "الحضور والانصراف" },
+  { id: "/attendance/my", label: "ملفي في الحضور", group: "الحضور والانصراف" },
   { id: "/attendance/employees", label: "موظفو الحضور", group: "الحضور والانصراف" },
   { id: "/attendance/employees/:empCd", label: "ملف موظف الحضور", group: "الحضور والانصراف" },
-  { id: "/attendance/logs", label: "سجلات الحضور", group: "الحضور والانصراف" },
   { id: "/attendance/reports", label: "تقارير الحضور", group: "الحضور والانصراف" },
   { id: "/attendance/settings", label: "إعدادات الحضور", group: "الحضور والانصراف" },
+  { id: "/attendance/admin/device", label: "إعدادات الجهاز", group: "الحضور والانصراف" },
   { id: "/attendance/admin/sync", label: "مزامنة الحضور", group: "الحضور والانصراف" },
-  { id: "/attendance/admin/device", label: "أجهزة الحضور", group: "الحضور والانصراف" },
 
   // ── مركز المريض ──
   { id: "/patient-hub", label: "مركز المريض (Patient hub)", group: "مركز المريض" },
