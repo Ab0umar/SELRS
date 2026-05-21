@@ -69,10 +69,7 @@ export async function notifyOwner(
   const { title, content } = validatePayload(payload);
 
   if (!ENV.forgeApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service URL is not configured.",
-    });
+    return false;
   }
 
   if (!ENV.forgeApiKey) {
