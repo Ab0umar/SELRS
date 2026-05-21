@@ -174,13 +174,29 @@ export const attendanceRouter = router({
       const nextDate = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
 
       const daily = await db
-        .select()
+        .select({
+          empCd: attendanceDaily.empCd,
+          empName: attendanceEmployees.fullName,
+          workDate: attendanceDaily.workDate,
+          shiftId: attendanceDaily.shiftId,
+          firstIn: attendanceDaily.firstIn,
+          lastOut: attendanceDaily.lastOut,
+          workedMinutes: attendanceDaily.workedMinutes,
+          lateMinutes: attendanceDaily.lateMinutes,
+          earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+          overtimeMinutes: attendanceDaily.overtimeMinutes,
+          status: attendanceDaily.status,
+          insideNow: attendanceDaily.insideNow,
+          computedAt: attendanceDaily.computedAt,
+        })
         .from(attendanceDaily)
+        .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
         .where(and(gte(attendanceDaily.workDate, targetDate), lt(attendanceDaily.workDate, nextDate)))
         .orderBy(attendanceDaily.empCd);
 
       return daily.map((d) => ({
         empCd: d.empCd,
+        empName: d.empName ?? null,
         workDate: d.workDate.toISOString().split('T')[0],
         shiftId: d.shiftId,
         firstIn: d.firstIn?.toISOString() ?? null,

@@ -69,12 +69,13 @@ export default function DailyView() {
   const handleExportCSV = () => {
     if (!records || records.length === 0) return;
 
-    const headers = ['كود الموظف', 'تاريخ العمل', 'الحضور', 'المغادرة', 'الحالة', 'التأخير', 'المغادرة المبكرة'];
+    const headers = ['كود الموظف', 'الاسم', 'تاريخ العمل', 'الحضور', 'المغادرة', 'الحالة', 'التأخير', 'المغادرة المبكرة'];
     const csv = [
       headers.join(','),
       ...records.map((row) =>
         [
           row.empCd,
+          row.empName ?? '',
           row.workDate,
           row.firstIn ? new Date(row.firstIn).toLocaleTimeString('ar-EG') : '-',
           row.lastOut ? new Date(row.lastOut).toLocaleTimeString('ar-EG') : '-',
@@ -165,7 +166,8 @@ export default function DailyView() {
               <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-right py-3 px-4 font-semibold">الموظف</th>
+                    <th className="text-right py-3 px-4 font-semibold">الكود</th>
+                    <th className="text-right py-3 px-4 font-semibold">الاسم</th>
                     <th className="text-right py-3 px-4 font-semibold">التاريخ</th>
                     <th className="text-right py-3 px-4 font-semibold">وقت الحضور</th>
                     <th className="text-right py-3 px-4 font-semibold">وقت المغادرة</th>
@@ -178,7 +180,8 @@ export default function DailyView() {
                 <tbody>
                   {records.map((record: any, idx: number) => (
                     <tr key={idx} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-mono font-semibold">{record.empCd}</td>
+                      <td className="py-3 px-4 font-mono text-xs text-gray-500">{record.empCd}</td>
+                      <td className="py-3 px-4 font-semibold">{record.empName ?? '—'}</td>
                       <td className="py-3 px-4 text-gray-600">{record.workDate}</td>
                       <td className="py-3 px-4">
                         {record.firstIn ? (
