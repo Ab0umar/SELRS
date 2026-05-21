@@ -110,6 +110,7 @@ const StockroomShell = lazy(() => import("./pages/StockroomShell"));
 import AttendanceLayout from "./pages/attendance/AttendanceLayout";
 const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
 const AttendanceLive = lazy(() => import("./pages/attendance/LiveBoard"));
+const AttendanceMyProfile = lazy(() => import("./pages/attendance/MyAttendanceProfile"));
 const AttendanceEmployeeDetail = lazy(() => import("./pages/attendance/EmployeeDetail"));
 const AttendanceEmployeesHub = lazy(() => import("./pages/attendance/EmployeesHub"));
 const AttendanceReportsHub = lazy(() => import("./pages/attendance/ReportsHub"));
@@ -280,6 +281,7 @@ const Router = memo(function Router() {
       {/* Attendance Module Routes — 5 top-level pages */}
       <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHome /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLive /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/my"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceMyProfile /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeeDetail /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeesHub /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReportsHub /></AttendanceLayout></ProtectedRoute>} />

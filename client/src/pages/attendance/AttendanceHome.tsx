@@ -53,6 +53,14 @@ const quickLinks = [
     tone: "border-amber-200 bg-amber-50 text-amber-900",
     iconTone: "text-amber-700",
   },
+  {
+    icon: ShieldCheck,
+    label: "ملفي الشخصي",
+    description: "رصيد إجازاتي وإحصائياتي وطلب إذن أو إجازة",
+    href: "/attendance/my",
+    tone: "border-purple-200 bg-purple-50 text-purple-900",
+    iconTone: "text-purple-700",
+  },
 ];
 
 export default function AttendanceHome() {

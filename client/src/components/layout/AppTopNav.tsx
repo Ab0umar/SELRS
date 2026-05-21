@@ -15,7 +15,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, KeyRound, LogOut, Search, Settings, UserCog } from "lucide-react";
+import {
+  Activity,
+  Archive,
+  Banknote,
+  ChevronDown,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Network,
+  Search,
+  Settings,
+  UserCog,
+} from "lucide-react";
 import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -91,6 +103,17 @@ export function AppTopNav({
     [navGroups],
   );
 
+  const adminQuickTabs = useMemo(
+    () => [
+      { icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
+      { icon: Network, label: "مركز المريض", path: "/patient-hub" },
+      { icon: Banknote, label: "الحسابات", path: "/accounting" },
+      { icon: Activity, label: "الحضور", path: "/attendance" },
+      { icon: Archive, label: "المخزن", path: "/stockroom" },
+    ],
+    [],
+  );
+
   const accountingItems = useMemo(
     () => accountingNavGroup.items.filter(leafVisible),
     [leafVisible],
@@ -156,35 +179,60 @@ export function AppTopNav({
           <span className="hidden text-sm font-black text-foreground md:block">{BRAND_NAME_AR}</span>
         </button>
 
-        {/* Main tabs + الحسابات — desktop only */}
+        {/* Main tabs — desktop only */}
         <nav className="hidden items-stretch md:flex" aria-label="القائمة الرئيسية">
-          {mainTabs.map((tab) => {
-            const active = tabActive(location, tab.path);
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.path}
-                type="button"
-                onClick={() => onNavigate(tab.path)}
-                className={cn(
-                  "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
-                  active
-                    ? "border-b-primary bg-primary text-primary-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
-                )}
-              >
-                <Icon
-                  className="h-[15px] w-[15px] shrink-0"
-                  strokeWidth={active ? 2.2 : 1.8}
-                  aria-hidden
-                />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+          {isAdmin
+            ? adminQuickTabs.map((tab) => {
+                const active = tabActive(location, tab.path);
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.path}
+                    type="button"
+                    onClick={() => onNavigate(tab.path)}
+                    className={cn(
+                      "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
+                      active
+                        ? "border-b-primary bg-primary text-primary-foreground"
+                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Icon
+                      className="h-[15px] w-[15px] shrink-0"
+                      strokeWidth={active ? 2.2 : 1.8}
+                      aria-hidden
+                    />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })
+            : mainTabs.map((tab) => {
+                const active = tabActive(location, tab.path);
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.path}
+                    type="button"
+                    onClick={() => onNavigate(tab.path)}
+                    className={cn(
+                      "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
+                      active
+                        ? "border-b-primary bg-primary text-primary-foreground"
+                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Icon
+                      className="h-[15px] w-[15px] shrink-0"
+                      strokeWidth={active ? 2.2 : 1.8}
+                      aria-hidden
+                    />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
 
           {/* الحسابات dropdown */}
-          {accountingItems.length > 0 && (
+          {!isAdmin && accountingItems.length > 0 && (
             <div className="flex h-full items-stretch">
               <button
                 type="button"

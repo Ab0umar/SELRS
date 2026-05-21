@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
 import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
 import { FKDeviceSyncService, syncFromFKDevice } from '../services/attendance/fkDeviceSyncService';
-import { router, attendanceViewerProcedure, attendanceManagerProcedure } from '../_core/procedures';
+import { router, attendanceViewerProcedure, attendanceManagerProcedure, protectedProcedure } from '../_core/procedures';
 import { DashboardService } from '../services/attendance/dashboard.service';
 import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
 import { LeaveManagementService } from '../services/attendance/leaveManagement.service';
@@ -15,7 +15,7 @@ import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendanc
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb } from '../db';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions } from '../../drizzle/schema';
+import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
@@ -1745,6 +1745,163 @@ export const attendanceRouter = router({
         a.totalWorkedMins += d.workedMinutes ?? 0;
       }
       return Array.from(grouped.values()).sort((a, b) => a.empCd.localeCompare(b.empCd));
+    }),
+
+  // ─── Self-service: employee's own profile ────────────────────────────────
+
+  myAttendanceProfile: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error('Database not available');
+
+    // Resolve empCd from logged-in user
+    const mapping = await db
+      .select()
+      .from(employeeAttendanceMapping)
+      .where(eq(employeeAttendanceMapping.userId, ctx.user.id))
+      .limit(1);
+
+    if (!mapping[0]) return { linked: false };
+
+    const empCd = mapping[0].machineUserId;
+    const year = new Date().getFullYear();
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    const monthEndStr = monthEnd.toISOString().split('T')[0];
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+
+    // Annual leave balance
+    const annualLeaves = await db.select().from(attendanceLeaves).where(
+      and(
+        eq(attendanceLeaves.empCd, empCd),
+        eq(attendanceLeaves.type, 'annual'),
+        eq(attendanceLeaves.approved, true),
+        gte(attendanceLeaves.dateFrom, yearStart as any),
+        lte(attendanceLeaves.dateTo, yearEnd as any),
+      )
+    );
+    const usedAnnual = annualLeaves.reduce((s, l) => {
+      const d1 = new Date(l.dateFrom as any);
+      const d2 = new Date(l.dateTo as any);
+      return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+    }, 0);
+
+    // Sick leaves this year
+    const sickLeaves = await db.select().from(attendanceLeaves).where(
+      and(
+        eq(attendanceLeaves.empCd, empCd),
+        eq(attendanceLeaves.type, 'sick'),
+        gte(attendanceLeaves.dateFrom, yearStart as any),
+        lte(attendanceLeaves.dateTo, yearEnd as any),
+      )
+    );
+    const usedSick = sickLeaves.reduce((s, l) => {
+      const d1 = new Date(l.dateFrom as any);
+      const d2 = new Date(l.dateTo as any);
+      return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+    }, 0);
+
+    // Leave balance config (allocation)
+    const balRow = await db.select().from(attendanceLeaveBalances)
+      .where(and(eq(attendanceLeaveBalances.empCd, empCd), eq(attendanceLeaveBalances.year, year)))
+      .limit(1);
+    const annualAllocation = balRow[0]?.annualAllocation ?? 21;
+
+    // Current month daily stats
+    const monthlyDaily = await db.select({
+      lateMins: sql<number>`COALESCE(SUM(${attendanceDaily.lateMinutes}),0)`,
+      earlyMins: sql<number>`COALESCE(SUM(${attendanceDaily.earlyLeaveMin}),0)`,
+    }).from(attendanceDaily).where(
+      and(
+        eq(attendanceDaily.empCd, empCd),
+        sql`${attendanceDaily.workDate} >= ${monthStartStr}`,
+        sql`${attendanceDaily.workDate} <= ${monthEndStr}`,
+      )
+    );
+
+    // Current month permissions
+    const monthPerms = await db.select().from(attendancePermissions).where(
+      and(
+        eq(attendancePermissions.empCd, empCd),
+        eq(attendancePermissions.approved, true),
+        sql`${attendancePermissions.date} >= ${monthStartStr}`,
+        sql`${attendancePermissions.date} <= ${monthEndStr}`,
+      )
+    );
+    const permInMins = monthPerms.filter(p => p.type === 'in').reduce((s, p) => s + p.durationMinutes, 0);
+    const permOutMins = monthPerms.filter(p => p.type === 'out').reduce((s, p) => s + p.durationMinutes, 0);
+
+    // My pending requests
+    const pendingLeaves = await db.select().from(attendanceLeaves).where(
+      and(eq(attendanceLeaves.empCd, empCd), eq(attendanceLeaves.approved, false))
+    ).orderBy(desc(attendanceLeaves.createdAt));
+
+    const pendingPerms = await db.select().from(attendancePermissions).where(
+      and(eq(attendancePermissions.empCd, empCd), eq(attendancePermissions.approved, false))
+    ).orderBy(desc(attendancePermissions.createdAt));
+
+    return {
+      linked: true,
+      empCd,
+      leaveBalance: { annualAllocation, usedAnnual, remainingAnnual: Math.max(0, annualAllocation - usedAnnual), usedSick },
+      monthStats: { lateMins: monthlyDaily[0]?.lateMins ?? 0, earlyMins: monthlyDaily[0]?.earlyMins ?? 0, permInMins, permOutMins },
+      pendingLeaves,
+      pendingPerms,
+    };
+  }),
+
+  myRequestLeave: protectedProcedure
+    .input(z.object({
+      dateFrom: z.string(),
+      dateTo: z.string(),
+      type: z.enum(['annual', 'sick']),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const mapping = await db.select().from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
+      if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
+
+      await db.insert(attendanceLeaves).values({
+        empCd: mapping[0].machineUserId,
+        dateFrom: new Date(input.dateFrom) as any,
+        dateTo: new Date(input.dateTo) as any,
+        type: input.type,
+        approved: false,
+        note: input.note ?? null,
+      });
+      return { success: true };
+    }),
+
+  myRequestPermission: protectedProcedure
+    .input(z.object({
+      date: z.string(),
+      type: z.enum(['in', 'out']),
+      durationMinutes: z.number().int().min(1).max(480),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const mapping = await db.select().from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
+      if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
+
+      await db.insert(attendancePermissions).values({
+        empCd: mapping[0].machineUserId,
+        date: input.date as any,
+        type: input.type,
+        durationMinutes: input.durationMinutes,
+        approved: false,
+        note: input.note ?? null,
+      });
+      return { success: true };
     }),
 });
 
