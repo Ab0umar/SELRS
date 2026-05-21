@@ -13,6 +13,7 @@ export interface Shift {
   graceLateMin: number; // Default: 15 (Taratus: Adjusted value)
   graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
   breakMinutes: number;
+  weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
   roundingMinutes?: number; // Default: 30 (Taratus: Round value)
 }
 
@@ -75,8 +76,19 @@ export function resolveShift(
     }
   }
 
-  const shiftId = matchingAssignment?.shiftId ?? defaultShiftId;
-  return shiftId ? shiftsById.get(shiftId) ?? null : null;
+  if (matchingAssignment) {
+    return shiftsById.get(matchingAssignment.shiftId) ?? null;
+  }
+
+  // Fall back to default shift — but only if this weekday is in the shift's own mask
+  if (defaultShiftId) {
+    const defaultShift = shiftsById.get(defaultShiftId) ?? null;
+    if (defaultShift && (defaultShift.weekdayMask & (1 << weekday))) {
+      return defaultShift;
+    }
+  }
+
+  return null;
 }
 
 /**
