@@ -36,7 +36,7 @@ export default function Reports() {
     from: dates.from,
     to: dates.to,
   });
-  const permQuery = trpc.attendance.permissionReport.useQuery({ year, month });
+  const permQuery = trpc.attendance.permissionReport.useQuery({ from: dates.from, to: dates.to });
   const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({
     year: balanceYear,
   });
@@ -115,17 +115,22 @@ export default function Reports() {
     });
   }
 
-  const summaryData = data.map((r: any) => ({
-    كود: r.empCd,
-    الاسم: r.empName ?? "-",
-    أيام: r.totalDays,
-    حاضر: r.presentDays,
-    غائب: r.absentDays,
-    إجازة: r.leaveDays,
-    "تأخير (د)": r.totalLateMins,
-    "مبكر (د)": r.totalEarlyMins,
-    "إضافي (د)": r.totalOTMins,
-  }));
+  const summaryData = data.map((r: any) => {
+    const perm = permByEmp.get(r.empCd);
+    return {
+      كود: r.empCd,
+      الاسم: r.empName ?? "-",
+      أيام: r.totalDays,
+      حاضر: r.presentDays,
+      غائب: r.absentDays,
+      إجازة: r.leaveDays,
+      "تأخير (د)": r.totalLateMins,
+      "مبكر (د)": r.totalEarlyMins,
+      "إضافي (د)": r.totalOTMins,
+      "إذن دخول (د)": perm?.inMins ?? 0,
+      "إذن خروج (د)": perm?.outMins ?? 0,
+    };
+  });
 
   const monthlyData = data.map((r: any) => {
     const perm = permByEmp.get(r.empCd);

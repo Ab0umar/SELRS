@@ -5,28 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const thisYear = new Date().getFullYear();
-const thisMonth = new Date().getMonth() + 1;
-const MONTHS = [
-  "يناير",
-  "فبراير",
-  "مارس",
-  "أبريل",
-  "مايو",
-  "يونيو",
-  "يوليو",
-  "أغسطس",
-  "سبتمبر",
-  "أكتوبر",
-  "نوفمبر",
-  "ديسمبر",
-];
+const todayStr = new Date().toISOString().split("T")[0];
+const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  .toISOString()
+  .split("T")[0];
 
 export default function PermissionReport() {
-  const [year, setYear] = useState(thisYear);
-  const [month, setMonth] = useState(thisMonth);
+  const [from, setFrom] = useState(firstOfMonth);
+  const [to, setTo] = useState(todayStr);
 
-  const query = trpc.attendance.permissionReport.useQuery({ year, month });
+  const query = trpc.attendance.permissionReport.useQuery({ from, to });
   const rows: any[] = (query.data as any[]) ?? [];
 
   const totalInCount = rows.reduce((sum, row) => sum + (row.inCount ?? 0), 0);
@@ -69,7 +57,7 @@ export default function PermissionReport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `تقرير-الأذونات-${year}-${String(month).padStart(2, "0")}.csv`;
+    a.download = `تقرير-الأذونات-${from}-${to}.csv`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -79,7 +67,7 @@ export default function PermissionReport() {
   const handlePrint = () => {
     if (!rows.length) return;
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
-      <title>تقرير الأذونات: ${MONTHS[month - 1]} ${year}</title>
+      <title>تقرير الأذونات: ${from} — ${to}</title>
       <style>
         body{font-family:Arial,sans-serif;direction:rtl;font-size:12px;}
         h2{font-size:16px;margin-bottom:4px;color:#003d82;}
@@ -92,7 +80,7 @@ export default function PermissionReport() {
         @media print{@page{margin:15mm;}}
       </style></head><body>
       <h2>تقرير الأذونات</h2>
-      <p>${MONTHS[month - 1]} ${year}</p>
+      <p>${from} — ${to}</p>
       <table>
         <thead><tr>
           <th>الكود</th><th>الاسم</th>
@@ -145,7 +133,7 @@ export default function PermissionReport() {
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
           <Clock className="h-3.5 w-3.5" />
-          {MONTHS[month - 1]}
+          {from} — {to}
         </span>
       </div>
 
@@ -153,33 +141,24 @@ export default function PermissionReport() {
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                السنة
-              </label>
+              <label className="block text-sm font-medium text-muted-foreground">من</label>
               <input
-                type="number"
-                min={2020}
-                max={2099}
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value))}
-                className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+                type="date"
+                value={from}
+                max={to}
+                onChange={(e) => setFrom(e.target.value)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                الشهر
-              </label>
-              <select
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value))}
+              <label className="block text-sm font-medium text-muted-foreground">إلى</label>
+              <input
+                type="date"
+                value={to}
+                min={from}
+                onChange={(e) => setTo(e.target.value)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              >
-                {MONTHS.map((m, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <Button
               onClick={() => query.refetch()}
@@ -257,7 +236,7 @@ export default function PermissionReport() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Clock className="h-5 w-5 text-secondary" />
-            {MONTHS[month - 1]} {year} ، {rows.length} موظف
+            {from} — {to} ، {rows.length} موظف
           </CardTitle>
         </CardHeader>
         <CardContent>

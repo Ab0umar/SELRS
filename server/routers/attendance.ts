@@ -1633,14 +1633,14 @@ export const attendanceRouter = router({
     }),
 
   permissionReport: attendanceViewerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({
+      from: z.string(), // YYYY-MM-DD
+      to: z.string(),   // YYYY-MM-DD
+    }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('Database not available');
-      const mm = String(input.month).padStart(2, '0');
-      const lastDay = new Date(input.year, input.month, 0).getDate();
-      const from = `${input.year}-${mm}-01`;
-      const to = `${input.year}-${mm}-${String(lastDay).padStart(2, '0')}`;
+      const { from, to } = input;
       const perms = await db.select({
         empCd: attendancePermissions.empCd,
         empName: attendanceEmployees.fullName,
