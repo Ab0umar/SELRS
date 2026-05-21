@@ -1,8 +1,3 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +8,8 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -22,37 +18,38 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle } from "@/components/ui/card";
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
-  CarouselPrevious } from "@/components/ui/carousel";
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList } from "@/components/ui/command";
+  CommandList,
+} from "@/components/ui/command";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuTrigger } from "@/components/ui/context-menu";
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger } from "@/components/ui/dialog";
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -61,23 +58,27 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger } from "@/components/ui/drawer";
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   HoverCard,
   HoverCardContent,
-  HoverCardTrigger } from "@/components/ui/hover-card";
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import {
   InputOTP,
   InputOTPGroup,
-  InputOTPSlot } from "@/components/ui/input-otp";
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import {
   Menubar,
@@ -85,31 +86,36 @@ import {
   MenubarItem,
   MenubarMenu,
   MenubarSeparator,
-  MenubarTrigger } from "@/components/ui/menubar";
+  MenubarTrigger,
+} from "@/components/ui/menubar";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
   PaginationNext,
-  PaginationPrevious } from "@/components/ui/pagination";
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger } from "@/components/ui/popover";
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ResizableHandle,
   ResizablePanel,
-  ResizablePanelGroup } from "@/components/ui/resizable";
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from "@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -117,7 +123,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger } from "@/components/ui/sheet";
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -128,7 +135,8 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from "@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
@@ -136,7 +144,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger } from "@/components/ui/tooltip";
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -147,7 +156,8 @@ import {
   Clock,
   Moon,
   Sun,
-  X } from "lucide-react";
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast as sonnerToast } from "sonner";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
@@ -487,7 +497,7 @@ export default function ComponentsShowcase() {
                                   ? format(datePickerDate, "HH:mm")
                                   : "00:00"
                               }
-                              onChange={e => {
+                              onChange={(e) => {
                                 const [hours, minutes] =
                                   e.target.value.split(":");
                                 const newDate = datePickerDate
@@ -531,7 +541,8 @@ export default function ComponentsShowcase() {
                               { value: "nextjs", label: "Next.js" },
                               { value: "nuxt", label: "Nuxt" },
                               { value: "remix", label: "Remix" },
-                            ].find(fw => fw.value === selectedFramework)?.label
+                            ].find((fw) => fw.value === selectedFramework)
+                              ?.label
                           : "Select framework..."}
                         <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -550,15 +561,15 @@ export default function ComponentsShowcase() {
                               { value: "nextjs", label: "Next.js" },
                               { value: "nuxt", label: "Nuxt" },
                               { value: "remix", label: "Remix" },
-                            ].map(framework => (
+                            ].map((framework) => (
                               <CommandItem
                                 key={framework.value}
                                 value={framework.value}
-                                onSelect={currentValue => {
+                                onSelect={(currentValue) => {
                                   setSelectedFramework(
                                     currentValue === selectedFramework
                                       ? ""
-                                      : currentValue
+                                      : currentValue,
                                   );
                                   setOpenCombobox(false);
                                 }}
@@ -590,7 +601,7 @@ export default function ComponentsShowcase() {
                           { value: "nextjs", label: "Next.js" },
                           { value: "nuxt", label: "Nuxt" },
                           { value: "remix", label: "Remix" },
-                        ].find(fw => fw.value === selectedFramework)?.label
+                        ].find((fw) => fw.value === selectedFramework)?.label
                       }
                     </p>
                   )}
@@ -610,14 +621,14 @@ export default function ComponentsShowcase() {
                         </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                            month => (
+                            (month) => (
                               <SelectItem
                                 key={month}
                                 value={month.toString().padStart(2, "0")}
                               >
                                 {month.toString().padStart(2, "0")}
                               </SelectItem>
-                            )
+                            ),
                           )}
                         </SelectContent>
                       </Select>
@@ -636,8 +647,8 @@ export default function ComponentsShowcase() {
                         <SelectContent>
                           {Array.from(
                             { length: 10 },
-                            (_, i) => new Date().getFullYear() - 5 + i
-                          ).map(year => (
+                            (_, i) => new Date().getFullYear() - 5 + i,
+                          ).map((year) => (
                             <SelectItem key={year} value={year.toString()}>
                               {year}
                             </SelectItem>
@@ -719,18 +730,18 @@ export default function ComponentsShowcase() {
                       <PaginationItem>
                         <PaginationPrevious
                           href="#"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.preventDefault();
                             setCurrentPage(Math.max(1, currentPage - 1));
                           }}
                         />
                       </PaginationItem>
-                      {[1, 2, 3, 4, 5].map(page => (
+                      {[1, 2, 3, 4, 5].map((page) => (
                         <PaginationItem key={page}>
                           <PaginationLink
                             href="#"
                             isActive={currentPage === page}
-                            onClick={e => {
+                            onClick={(e) => {
                               e.preventDefault();
                               setCurrentPage(page);
                             }}
@@ -742,7 +753,7 @@ export default function ComponentsShowcase() {
                       <PaginationItem>
                         <PaginationNext
                           href="#"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.preventDefault();
                             setCurrentPage(Math.min(5, currentPage + 1));
                           }}
@@ -935,64 +946,6 @@ export default function ComponentsShowcase() {
             </Tabs>
           </section>
 
-          {/* Accordion Section */}
-          <section className="space-y-4">
-            <h3 className="text-2xl font-semibold">Accordion</h3>
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Is it accessible?</AccordionTrigger>
-                <AccordionContent>
-                  Yes. It adheres to the WAI-ARIA design pattern.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-2">
-                <AccordionTrigger>Is it styled?</AccordionTrigger>
-                <AccordionContent>
-                  Yes. It comes with default styles that matches the other
-                  components' aesthetic.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-3">
-                <AccordionTrigger>Is it animated?</AccordionTrigger>
-                <AccordionContent>
-                  Yes. It's animated by default, but you can disable it if you
-                  prefer.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </section>
-
-          {/* Collapsible Section */}
-          <section className="space-y-4">
-            <h3 className="text-2xl font-semibold">Collapsible</h3>
-            <Collapsible>
-              <Card>
-                <CardHeader>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-between">
-                      <CardTitle>@peduarte starred 3 repositories</CardTitle>
-                    </Button>
-                  </CollapsibleTrigger>
-                </CardHeader>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="rounded-md border px-4 py-3 font-mono text-sm">
-                        @radix-ui/primitives
-                      </div>
-                      <div className="rounded-md border px-4 py-3 font-mono text-sm">
-                        @radix-ui/colors
-                      </div>
-                      <div className="rounded-md border px-4 py-3 font-mono text-sm">
-                        @stitches/react
-                      </div>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          </section>
-
           {/* Dialog, Sheet, Drawer Section */}
           <section className="space-y-4">
             <h3 className="text-2xl font-semibold">Overlays</h3>
@@ -1007,7 +960,8 @@ export default function ComponentsShowcase() {
                       <DialogHeader>
                         <DialogTitle>Test Input</DialogTitle>
                         <DialogDescription>
-                          Enter some text below. Press Enter to submit (IME composition supported).
+                          Enter some text below. Press Enter to submit (IME
+                          composition supported).
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
@@ -1352,8 +1306,8 @@ export default function ComponentsShowcase() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const promise = new Promise(resolve =>
-                          setTimeout(resolve, 2000)
+                        const promise = new Promise((resolve) =>
+                          setTimeout(resolve, 2000),
                         );
                         sonnerToast.promise(promise, {
                           loading: "Processing...",
@@ -1378,11 +1332,13 @@ export default function ComponentsShowcase() {
                 <div className="space-y-4">
                   <div className="text-sm text-muted-foreground">
                     <p>
-                      A ready-to-use chat interface component that integrates with the LLM system.
-                      Features markdown rendering, auto-scrolling, and loading states.
+                      A ready-to-use chat interface component that integrates
+                      with the LLM system. Features markdown rendering,
+                      auto-scrolling, and loading states.
                     </p>
                     <p className="mt-2">
-                      This is a demo with simulated responses. In a real app, you'd connect it to a tRPC mutation.
+                      This is a demo with simulated responses. In a real app,
+                      you'd connect it to a tRPC mutation.
                     </p>
                   </div>
                   <AIChatBox

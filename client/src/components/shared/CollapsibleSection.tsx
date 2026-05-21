@@ -27,7 +27,9 @@ export function CollapsibleSection({
         className="flex items-center justify-between w-full px-4 py-3 text-right hover:bg-muted/30 transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          {icon ? <div className="flex items-center justify-center">{icon}</div> : null}
+          {icon ? (
+            <div className="flex items-center justify-center">{icon}</div>
+          ) : null}
           <span className="text-sm font-semibold">{title}</span>
         </div>
         <ChevronDown
@@ -38,15 +40,7 @@ export function CollapsibleSection({
         />
       </button>
 
-      <div
-        className={cn(
-          "transition-all duration-200 ease-in-out overflow-hidden",
-          open ? "opacity-100" : "max-h-0 opacity-0",
-        )}
-        style={!open ? { maxHeight: 0 } : undefined}
-      >
-        {children}
-      </div>
+      <div className={cn(open ? "block" : "hidden")}>{children}</div>
     </div>
   );
 }
