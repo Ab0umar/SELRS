@@ -160,7 +160,6 @@ export const accountingNavGroup: NavGroupSection = {
 /** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
-  { icon: Clock, label: "مرضى اليوم", path: "/today", isMain: true },
   attendanceNavGroup,
   accountingNavGroup,
   { icon: Archive, label: "المخزن", path: "/stockroom", isMain: true },

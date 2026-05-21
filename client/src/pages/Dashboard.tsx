@@ -17,6 +17,8 @@ import {
   Search,
   ChevronLeft,
   AlertTriangle,
+  Zap,
+  Cpu,
 } from 'lucide-react'
 import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { trpc } from '@/lib/trpc'
@@ -566,11 +568,37 @@ function AccountingPanel() {
 
 // ─── Attendance panel ────────────────────────────────────────────────────────
 function AttendancePanel() {
-  const q = trpc.attendance.dashboardSummary.useQuery(undefined, {
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  const q = (trpc as any).attendance.dashboardSummary.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   })
   const d = q.data
+
+  const syncMut = (trpc as any).attendance.syncNow.useMutation({
+    onSuccess: (res: any) => {
+      setSyncMsg(res.success ? `✓ ${res.rowsInserted ?? 0} سجل جديد` : `✗ ${res.error ?? 'خطأ'}`)
+      q.refetch()
+    },
+    onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
+  })
+
+  const matMut = (trpc as any).attendance.materializeDaily.useMutation({
+    onSuccess: (res: any) => {
+      setSyncMsg(`✓ حساب ${res.rowsWritten ?? 0} يوم`)
+      q.refetch()
+    },
+    onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
+  })
+
+  const handleSync = () => { setSyncMsg(null); syncMut.mutate({}) }
+  const handleMat = () => {
+    setSyncMsg(null)
+    const today = new Date()
+    const from = new Date(today); from.setDate(from.getDate() - 6)
+    matMut.mutate({ fromDate: from.toISOString().slice(0, 10), toDate: today.toISOString().slice(0, 10) })
+  }
 
   const stats = [
     { label: 'حاضر اليوم',         value: d?.presentToday ?? 0,            cls: 'text-success' },
@@ -616,6 +644,19 @@ function AttendancePanel() {
             )}
           </div>
         )}
+        <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2 flex-wrap">
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 px-2.5"
+            onClick={handleSync} disabled={syncMut.isPending}>
+            <Zap className="h-3 w-3" />
+            {syncMut.isPending ? 'جارٍ…' : 'مزامنة FK'}
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 px-2.5"
+            onClick={handleMat} disabled={matMut.isPending}>
+            <Cpu className="h-3 w-3" />
+            {matMut.isPending ? 'جارٍ…' : 'إعادة الحساب'}
+          </Button>
+          {syncMsg && <span className="text-xs text-muted-foreground">{syncMsg}</span>}
+        </div>
       </div>
 
       {/* Quick links */}

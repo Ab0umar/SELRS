@@ -53,8 +53,11 @@ export class DeviceAdapterService extends EventEmitter {
    * Connect to the fingerprint device
    */
   async connect(): Promise<boolean> {
-    if (this.isConnecting || this.socket) {
-      return false;
+    if (this.socket) {
+      return true; // already connected
+    }
+    if (this.isConnecting) {
+      return false; // connection in progress
     }
 
     this.isConnecting = true;

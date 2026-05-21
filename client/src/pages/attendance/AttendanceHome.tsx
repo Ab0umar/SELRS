@@ -218,22 +218,20 @@ export default function AttendanceHome() {
       {/* Navigation cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {navCards.map(({ icon: Icon, label, desc, path }) => (
-          <Link key={path} href={path}>
-            <a className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              <Card className="h-full border-border transition-colors hover:border-primary/40 hover:shadow-none">
-                <CardContent className="flex flex-col items-end gap-2 p-4">
-                  <Icon className="w-7 h-7 text-primary" />
-                  <div className="text-right">
-                    <div className="font-semibold text-sm text-foreground">
-                      {label}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 leading-5">
-                      {desc}
-                    </div>
+          <Link key={path} href={path} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            <Card className="h-full border-border transition-colors hover:border-primary/40 hover:shadow-none">
+              <CardContent className="flex flex-col items-end gap-2 p-4">
+                <Icon className="w-7 h-7 text-primary" />
+                <div className="text-right">
+                  <div className="font-semibold text-sm text-foreground">
+                    {label}
                   </div>
-                </CardContent>
-              </Card>
-            </a>
+                  <div className="text-xs text-muted-foreground mt-0.5 leading-5">
+                    {desc}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </Link>
         ))}
       </div>
