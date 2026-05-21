@@ -91,6 +91,7 @@ export function AppTopNav({
       (leaf: NavLeaf): boolean => {
         if (isAdmin) return true;
         const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+        if (cleanPath === "/attendance/my") return true;
         if (!permissionsQuery.isSuccess) return true;
         return pathGrantedByRoots(cleanPath, allowedRoots);
       },
