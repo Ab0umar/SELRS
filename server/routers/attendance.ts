@@ -578,7 +578,12 @@ export const attendanceRouter = router({
     }),
 
   sendDeviceCommand: attendanceManagerProcedure
-    .input(z.object({ hex: z.string() }))
+    .input(z.object({
+      hex: z.string()
+        .regex(/^[0-9a-fA-F]+$/, 'hex string contains invalid characters')
+        .max(256, 'hex string too long')
+        .refine(s => s.length % 2 === 0, 'hex string must have even length'),
+    }))
     .mutation(async ({ input }) => {
       try {
         const success = DeviceSettingsService.sendDeviceCommandHex(input.hex);
