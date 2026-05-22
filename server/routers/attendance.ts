@@ -20,6 +20,16 @@ import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmplo
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
+/** Format a DB date value (Date object or string) as YYYY-MM-DD using local time parts. */
+function fmtDate(d: Date | string | null | undefined): string {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /**
  * AttendanceRouter - TRPC router for attendance module
  */
@@ -354,20 +364,27 @@ export const attendanceRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const dateFrom = new Date(input.dateFrom);
-      const dateTo = new Date(input.dateTo);
-
-      if (dateTo < dateFrom) {
-        throw new Error('End date must be after start date');
+      if (input.dateTo < input.dateFrom) {
+        throw new Error('تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
       }
 
-      return LeaveManagementService.createLeave({
+      await LeaveManagementService.createLeave({
         empCd: input.empCd,
-        dateFrom,
-        dateTo,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
         type: input.type,
         note: input.note,
+        approved: true,
       });
+
+      // Recompute daily records immediately since leave is auto-approved
+      await PermissionAdjustmentService.recomputeRange(
+        input.empCd,
+        new Date(input.dateFrom + 'T12:00:00'),
+        new Date(input.dateTo + 'T12:00:00'),
+      );
+
+      return { success: true };
     }),
 
   approveLeave: attendanceManagerProcedure
@@ -393,8 +410,8 @@ export const attendanceRouter = router({
       // Recompute daily records for the leave date range
       await PermissionAdjustmentService.recomputeRange(
         leave[0].empCd,
-        leave[0].dateFrom,
-        leave[0].dateTo
+        new Date(String(leave[0].dateFrom) + 'T12:00:00'),
+        new Date(String(leave[0].dateTo) + 'T12:00:00'),
       );
 
       return { success: true, leaveId: input.leaveId };
@@ -435,8 +452,8 @@ export const attendanceRouter = router({
         .orderBy(desc(attendanceLeaves.dateFrom));
       return rows.map((r) => ({
         ...r,
-        dateFrom: String(r.dateFrom).split('T')[0],
-        dateTo: String(r.dateTo).split('T')[0],
+        dateFrom: fmtDate(r.dateFrom as any),
+        dateTo: fmtDate(r.dateTo as any),
       }));
     }),
 
@@ -1848,8 +1865,16 @@ export const attendanceRouter = router({
       empCd,
       leaveBalance: { annualAllocation, usedAnnual, remainingAnnual: Math.max(0, annualAllocation - usedAnnual), usedSick },
       monthStats: { lateMins: monthlyDaily[0]?.lateMins ?? 0, earlyMins: monthlyDaily[0]?.earlyMins ?? 0, permInMins, permOutMins },
-      pendingLeaves,
-      pendingPerms,
+      pendingLeaves: pendingLeaves.map(l => ({
+        ...l,
+        dateFrom: fmtDate(l.dateFrom as any),
+        dateTo: fmtDate(l.dateTo as any),
+        date: fmtDate((l as any).date),
+      })),
+      pendingPerms: pendingPerms.map(p => ({
+        ...p,
+        date: fmtDate(p.date as any),
+      })),
     };
   }),
 
@@ -1868,28 +1893,40 @@ export const attendanceRouter = router({
         .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
       if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
 
-      await db.insert(attendanceLeaves).values({
-        empCd: mapping[0].machineUserId,
-        dateFrom: input.dateFrom as any,
-        dateTo: input.dateTo as any,
-        type: input.type,
-        approved: false,
-        note: input.note ?? null,
-      });
+      const dateFrom = input.dateFrom;
+      const dateTo = input.dateTo < input.dateFrom ? input.dateFrom : input.dateTo;
+      const empCd = mapping[0].machineUserId;
+      const noteVal = input.note || null;
+
+      // Raw SQL insert — bypasses Drizzle date column mapping entirely
+      await db.execute(
+        sql`INSERT INTO attendance_leaves (emp_cd, date_from, date_to, type, approved, note)
+            VALUES (${empCd}, ${dateFrom}, ${dateTo}, ${input.type}, 0, ${noteVal})`
+      );
+
+      // Read back what was actually stored
+      const stored = await db.execute(
+        sql`SELECT date_from, date_to FROM attendance_leaves
+            WHERE emp_cd = ${empCd}
+            ORDER BY id DESC LIMIT 1`
+      );
+      const row = (stored as any)[0]?.[0] ?? {};
+      const storedFrom = fmtDate(row.date_from ?? dateFrom);
+      const storedTo   = fmtDate(row.date_to   ?? dateTo);
 
       const userName = String(ctx.user.name || ctx.user.username || '');
       const typeAr = input.type === 'annual' ? 'سنوية' : 'مرضية';
       pushAppNotification({
         title: 'طلب إجازة جديد',
-        message: `${userName} طلب إجازة ${typeAr} من ${input.dateFrom} إلى ${input.dateTo}`,
+        message: `${userName} طلب إجازة ${typeAr} من ${dateFrom} إلى ${dateTo}`,
         kind: 'info',
         targetRoles: ['admin', 'manager'],
         source: 'attendance',
         entityType: 'leave_request',
-        meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
+        meta: { path: '/attendance/employees', empCd },
       }).catch(() => {});
 
-      return { success: true };
+      return { success: true, dateFrom: storedFrom, dateTo: storedTo };
     }),
 
   myRequestPermission: protectedProcedure

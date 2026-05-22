@@ -156,23 +156,23 @@ export default function DailyView() {
             </Button>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-muted-foreground">
-                إلى
-              </label>
-              <input
-                type="date"
-                value={dates.to}
-                onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
                 من
               </label>
               <input
                 type="date"
                 value={dates.from}
                 onChange={(e) => setDates({ ...dates, from: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-muted-foreground">
+                إلى
+              </label>
+              <input
+                type="date"
+                value={dates.to}
+                onChange={(e) => setDates({ ...dates, to: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
@@ -188,7 +188,6 @@ export default function DailyView() {
                 className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-info focus:ring-2 focus:ring-info/15"
               />
             </div>
-            <Calendar className="mb-2 self-end text-info" />
           </div>
         </CardContent>
       </Card>

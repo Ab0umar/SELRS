@@ -143,6 +143,7 @@ tmp_*.txt
 /*.exe
 !/README.md
 !/*.md
+/*.png
 
 # Build assets in public (generated)
 client/public/assets/
@@ -178,3 +179,4 @@ scripts/New folder/
 scripts/New/
 .socraticodecontextartifacts.json
 scripts/*.cmd
+.impeccable/

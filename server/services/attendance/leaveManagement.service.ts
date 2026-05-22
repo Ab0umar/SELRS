@@ -2,14 +2,24 @@ import { getDb } from '../../db';
 import { attendanceLeaves, attendanceEmployees } from '../../../drizzle/schema';
 import { eq, and, gte, lte, or } from 'drizzle-orm';
 
+function fmtDate(d: Date | string | null | undefined): string {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export type LeaveType = 'annual' | 'sick' | 'unpaid' | 'other';
 
 export interface LeaveRequest {
   empCd: string;
-  dateFrom: Date;
-  dateTo: Date;
+  dateFrom: string; // YYYY-MM-DD
+  dateTo: string;   // YYYY-MM-DD
   type: LeaveType;
   note?: string;
+  approved?: boolean;
 }
 
 export class LeaveManagementService {
@@ -19,11 +29,11 @@ export class LeaveManagementService {
 
     const result = await db.insert(attendanceLeaves).values({
       empCd: req.empCd,
-      dateFrom: req.dateFrom,
-      dateTo: req.dateTo,
+      dateFrom: req.dateFrom as any,
+      dateTo: req.dateTo as any,
       type: req.type,
       note: req.note || null,
-      approved: false,
+      approved: req.approved ?? false,
     });
 
     return result;
@@ -52,8 +62,8 @@ export class LeaveManagementService {
     return leaves.map((l) => ({
       id: l.id,
       empCd: l.empCd,
-      dateFrom: l.dateFrom.toISOString().split('T')[0],
-      dateTo: l.dateTo.toISOString().split('T')[0],
+      dateFrom: fmtDate(l.dateFrom as any),
+      dateTo: fmtDate(l.dateTo as any),
       type: l.type,
       approved: l.approved,
       note: l.note,
@@ -98,8 +108,8 @@ export class LeaveManagementService {
       id: l.id,
       empCd: l.empCd,
       empName: 'TBD', // Will be enriched
-      dateFrom: l.dateFrom.toISOString().split('T')[0],
-      dateTo: l.dateTo.toISOString().split('T')[0],
+      dateFrom: fmtDate(l.dateFrom as any),
+      dateTo: fmtDate(l.dateTo as any),
       type: l.type,
       note: l.note,
       createdAt: l.createdAt.toISOString(),
@@ -115,8 +125,8 @@ export class LeaveManagementService {
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
-    const yearStart = new Date(year, 0, 1);
-    const yearEnd = new Date(year, 11, 31);
+    const yearStartStr = `${year}-01-01`;
+    const yearEndStr = `${year}-12-31`;
 
     const leaves = await db
       .select()
@@ -126,8 +136,8 @@ export class LeaveManagementService {
           eq(attendanceLeaves.empCd, empCd),
           eq(attendanceLeaves.type, 'annual'),
           eq(attendanceLeaves.approved, true),
-          gte(attendanceLeaves.dateFrom, yearStart),
-          lte(attendanceLeaves.dateTo, yearEnd)
+          gte(attendanceLeaves.dateFrom, yearStartStr as any),
+          lte(attendanceLeaves.dateTo, yearEndStr as any)
         )
       );
 

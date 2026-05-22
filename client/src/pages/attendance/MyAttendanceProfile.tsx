@@ -51,8 +51,10 @@ export default function MyAttendanceProfile() {
   });
 
   const leaveMut = (trpc as any).attendance.myRequestLeave.useMutation({
-    onSuccess: () => {
-      setLeaveMsg('✓ تم إرسال طلب الإجازة');
+    onSuccess: (res: any) => {
+      const from = res?.dateFrom ?? '';
+      const to = res?.dateTo ?? '';
+      setLeaveMsg(`✓ تم إرسال طلب الإجازة (${from} → ${to})`);
       profileQuery.refetch();
       setLeaveForm({ dateFrom: todayStr, dateTo: todayStr, type: 'annual', note: '' });
     },
@@ -115,7 +117,7 @@ export default function MyAttendanceProfile() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Clock className="h-4 w-4 text-orange-500" />
+            <Clock className="h-4 w-4 text-secondary" />
             إحصائيات هذا الشهر
           </CardTitle>
         </CardHeader>
@@ -123,10 +125,10 @@ export default function MyAttendanceProfile() {
           <StatBox label="تأخير" value={fmt(stats.lateMins)}
             cls="border-destructive/20 bg-destructive/5 text-foreground" />
           <StatBox label="خروج مبكر" value={fmt(stats.earlyMins)}
-            cls="border-amber-200 bg-amber-50 text-foreground" />
+            cls="border-warning/20 bg-warning/10 text-foreground" />
           <StatBox label="إجمالي (تأخير+مبكر)" value={fmt(stats.lateMins + stats.earlyMins)} />
           <StatBox label="أذونات دخول" value={fmt(stats.permInMins)}
-            cls="border-blue-200 bg-blue-50 text-foreground" />
+            cls="border-info/20 bg-info/10 text-foreground" />
         </CardContent>
         {stats.permOutMins > 0 && (
           <CardContent className="pt-0">
@@ -143,20 +145,20 @@ export default function MyAttendanceProfile() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Hourglass className="h-4 w-4 text-amber-500" />
+              <Hourglass className="h-4 w-4 text-warning" />
               طلبات قيد الانتظار
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.pendingLeaves.map((l: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-                <Calendar className="h-4 w-4 text-amber-600 shrink-0" />
+              <div key={i} className="flex items-center gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm">
+                <Calendar className="h-4 w-4 text-warning shrink-0" />
                 <span>إجازة {l.type === 'annual' ? 'سنوية' : 'مرضية'}: {String(l.dateFrom).slice(0, 10)} → {String(l.dateTo).slice(0, 10)}</span>
               </div>
             ))}
             {data.pendingPerms.map((p: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm">
-                <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+              <div key={i} className="flex items-center gap-2 rounded-md border border-info/20 bg-info/10 px-3 py-2 text-sm">
+                <ShieldCheck className="h-4 w-4 text-info shrink-0" />
                 <span>إذن {p.type === 'in' ? 'دخول متأخر' : 'خروج مبكر'} — {p.durationMinutes} دقيقة ({String(p.date).slice(0, 10)})</span>
               </div>
             ))}
@@ -168,7 +170,7 @@ export default function MyAttendanceProfile() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingDown className="h-4 w-4 text-blue-500" />
+            <TrendingDown className="h-4 w-4 text-info" />
             طلب إذن
           </CardTitle>
         </CardHeader>
@@ -228,7 +230,7 @@ export default function MyAttendanceProfile() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
+            <TrendingUp className="h-4 w-4 text-success" />
             طلب إجازة
           </CardTitle>
         </CardHeader>
@@ -284,6 +286,10 @@ export default function MyAttendanceProfile() {
           )}
           <Button size="sm" disabled={leaveMut.isPending}
             onClick={() => {
+              if (!leaveForm.dateFrom || !leaveForm.dateTo) {
+                setLeaveMsg('✗ يرجى تحديد تاريخ البداية والنهاية');
+                return;
+              }
               setLeaveMsg(null);
               leaveMut.mutate(leaveForm);
             }}

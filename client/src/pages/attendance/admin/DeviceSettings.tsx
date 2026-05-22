@@ -421,17 +421,6 @@ export default function DeviceSettings() {
         </CardContent>
       </Card>
 
-      {/* Device Commands Card (Future) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>أوامر متقدمة</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p>
-            واجهة الأوامر الخام متاحة في وحدة الجهاز: /attendance/admin/console
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }
