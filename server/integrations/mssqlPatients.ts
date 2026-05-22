@@ -1631,7 +1631,10 @@ export async function insertPatientToMssql(
   const allowCreateFlowServiceInsert = asBool(process.env.MSSQL_PUSH_CREATE_SERVICE_ROW, false);
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
-  const desiredQty = serviceCode ? await getDesiredServiceQty(serviceCode) : 1;
+  const inputQtyNum = Number(input.serviceQty ?? NaN);
+  const desiredQty = serviceCode
+    ? (Number.isFinite(inputQtyNum) && inputQtyNum > 0 ? Math.trunc(inputQtyNum) : await getDesiredServiceQty(serviceCode))
+    : 1;
   const servicePriceValue = Number(input.servicePrice ?? NaN);
   const discountValueNum = Number(input.discountValue ?? NaN);
   const grossServiceValue = Number.isFinite(servicePriceValue) ? servicePriceValue * desiredQty : 0;
@@ -1962,7 +1965,7 @@ export async function insertPatientToMssql(
           reqService.input("TR_NO", Number.isFinite(trNo) ? Math.trunc(trNo) : null);
           reqService.input("DEDUP_SECONDS", dedupWindowSeconds);
           await reqService.query(serviceSql);
-          await applyPapatSrvDefaults(pool, patientCode, serviceCode, await getDesiredServiceQty(serviceCode), {
+          await applyPapatSrvDefaults(pool, patientCode, serviceCode, desiredQty, {
             patientNameAr: fullName,
             enteredBy,
             entryDate: todayDateOnly,
@@ -2038,7 +2041,10 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
   const shft = resolveShiftNumber();
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
-  const desiredQty = serviceCode ? await getDesiredServiceQty(serviceCode) : 1;
+  const inputQtyNum2 = Number(input.serviceQty ?? NaN);
+  const desiredQty = serviceCode
+    ? (Number.isFinite(inputQtyNum2) && inputQtyNum2 > 0 ? Math.trunc(inputQtyNum2) : await getDesiredServiceQty(serviceCode))
+    : 1;
   const servicePriceValue = Number(input.servicePrice ?? NaN);
   const discountValueNum = Number(input.discountValue ?? NaN);
   const grossServiceValue = Number.isFinite(servicePriceValue) ? servicePriceValue * desiredQty : 0;
@@ -2284,7 +2290,7 @@ export async function upsertPatientToMssql(input: MssqlPatientInsertInput): Prom
           reqService.input("SRV_CD", serviceCode);
           reqService.input("SEC_CD", secCd);
           await reqService.query(serviceSql);
-          await applyPapatSrvDefaults(pool, patientCode, serviceCode, await getDesiredServiceQty(serviceCode), {
+          await applyPapatSrvDefaults(pool, patientCode, serviceCode, desiredQty, {
             patientNameAr: fullName,
             enteredBy,
             entryDate: todayDateOnly,
