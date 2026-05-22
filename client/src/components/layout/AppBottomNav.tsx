@@ -1,7 +1,8 @@
-import { Banknote, Clock, LayoutGrid, Syringe, Users } from "lucide-react"
+import { Activity, Archive, Banknote, Clock, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { normalizeNavPath, pathGrantedByRoots } from "@/lib/nav-permission-utils"
 
-const tabs = [
+const staffTabs = [
   {
     key: "today",
     label: "اليوم",
@@ -34,10 +35,50 @@ const tabs = [
   },
 ] as const
 
-type TabKey = (typeof tabs)[number]["key"]
+const adminTabs = [
+  {
+    key: "dashboard",
+    label: "لوحة التحكم",
+    icon: LayoutDashboard,
+    paths: ["/dashboard"],
+  },
+  {
+    key: "patients",
+    label: "مركز المريض",
+    icon: Network,
+    paths: ["/patient-hub", "/patients-hub", "/patients", "/new-cases", "/followups", "/visits"],
+  },
+  {
+    key: "accounting",
+    label: "الحسابات",
+    icon: Banknote,
+    paths: ["/accounting"],
+  },
+  {
+    key: "attendance",
+    label: "الحضور",
+    icon: Activity,
+    paths: ["/attendance"],
+  },
+  {
+    key: "stockroom",
+    label: "المخزن",
+    icon: Archive,
+    paths: ["/stockroom"],
+  },
+  {
+    key: "admin",
+    label: "الإدارة",
+    icon: Settings,
+    paths: ["/admin-hub"],
+  },
+] as const
 
-function isTabActive(location: string, tab: (typeof tabs)[number]): boolean {
-  if (tab.key === "more") return false
+type StaffTabKey = (typeof staffTabs)[number]["key"]
+type AdminTabKey = (typeof adminTabs)[number]["key"]
+
+function isTabActive(location: string, tab: (typeof staffTabs | typeof adminTabs)[number]): boolean {
+  if ("more" in tab && tab.key === "more") return false
   const base = location.split("?")[0]
   return tab.paths.some((p) => base === p || base.startsWith(`${p}/`))
 }
@@ -47,9 +88,22 @@ interface AppBottomNavProps {
   onNavigate: (path: string) => void
   onOpenMore: () => void
   moreOpen?: boolean
+  isAdmin?: boolean
+  allowedRoots?: unknown
+  permissionsLoaded?: boolean
 }
 
-export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen }: AppBottomNavProps) {
+export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdmin = false, allowedRoots, permissionsLoaded = true }: AppBottomNavProps) {
+  const allTabs = isAdmin ? adminTabs : staffTabs
+
+  const tabs = allTabs.filter((tab) => {
+    if (tab.key === "more") return true
+    if (isAdmin) return true
+    if (!permissionsLoaded) return false
+    const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "")
+    return pathGrantedByRoots(cleanPath, allowedRoots as any)
+  })
+
   return (
     <nav
       aria-label="التنقل الرئيسي"
@@ -57,7 +111,7 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen }: App
       className="md:hidden shrink-0 border-t border-border bg-background print:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex h-14 items-stretch">
+      <div className="flex h-14 items-stretch overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const active = tab.key === "more" ? moreOpen : isTabActive(location, tab)
@@ -69,7 +123,7 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen }: App
               aria-label={tab.label}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors",
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
                 active ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
               )}
               onClick={() => {

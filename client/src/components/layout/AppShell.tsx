@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { User } from "@shared/types";
 import { AppTopNav } from "./AppTopNav";
 import { AppBottomNav } from "./AppBottomNav";
+import { normalizeNavPath, pathGrantedByRoots, permissionsToAllowedRoots } from "@/lib/nav-permission-utils";
 
 type AppShellProps = {
   children: ReactNode;
@@ -21,11 +22,23 @@ type AppShellProps = {
 export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const userRole = String(user?.role ?? "").toLowerCase();
+  const isAdmin = userRole === "admin";
   const isAdminPatientsRoute = location === "/admin/patients" || location === "/admin-patients";
   const isDashboardLikeRoute =
     location === "/dashboard" ||
     location === "/today-patients" ||
     location === "/today";
+
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+
+  const allowedRoots = useMemo(
+    () => permissionsToAllowedRoots((permissionsQuery.data ?? []) as string[]) as unknown,
+    [permissionsQuery.data],
+  );
 
   const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const [accountUsername, setAccountUsername] = useState("");
@@ -183,6 +196,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           onNavigate={setLocation}
           onOpenMore={() => window.dispatchEvent(new Event("selrs:open-command-palette"))}
           moreOpen={false}
+          isAdmin={isAdmin}
+          allowedRoots={allowedRoots}
+          permissionsLoaded={permissionsQuery.isSuccess}
         />
       )}
 

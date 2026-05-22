@@ -21,13 +21,17 @@ import {
   Banknote,
   CalendarCheck,
   ChevronDown,
+  Clock,
   KeyRound,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   Network,
   Search,
   Settings,
+  Syringe,
   UserCog,
+  Users,
 } from "lucide-react";
 import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -106,6 +110,30 @@ export function AppTopNav({
           !("items" in item) && Boolean(item.isMain) && leafVisible(item),
       ),
     [leafVisible, navGroups],
+  );
+
+  const allNavTabs = useMemo(
+    () => [
+      { icon: Clock, label: "اليوم", path: "/dashboard", key: "today", paths: ["/today", "/today-patients", "/dashboard"], checkPath: "/dashboard" },
+      { icon: Users, label: "مركز المريض", path: "/patient-hub", key: "patients", paths: ["/patient-hub", "/patients-hub", "/patients", "/new-cases", "/followups", "/visits"], checkPath: "/patient-hub" },
+      { icon: Syringe, label: "العمليات", path: "/operations", key: "operations", paths: ["/operations"], checkPath: "/operations" },
+      { icon: Banknote, label: "الحسابات", path: "/accounting", key: "accounting", paths: ["/accounting"], checkPath: "/accounting" },
+      { icon: LayoutGrid, label: "المزيد", path: "#", key: "more", paths: [], checkPath: undefined },
+    ],
+    [],
+  );
+
+  const mainNavTabs = useMemo(
+    () => {
+      if (isAdmin) return [];
+      if (!permissionsQuery.isSuccess) return [];
+      return allNavTabs.filter((tab) => {
+        if (tab.key === "more") return true;
+        const cleanPath = normalizeNavPath(tab.checkPath?.split("?")[0] ?? "");
+        return pathGrantedByRoots(cleanPath, allowedRoots);
+      });
+    },
+    [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots],
   );
 
   const adminQuickTabs = useMemo(
@@ -212,14 +240,23 @@ export function AppTopNav({
                   </button>
                 );
               })
-            : mainTabs.map((tab) => {
-                const active = tabActive(location, tab.path);
+            : mainNavTabs.map((tab) => {
+                const active = tab.key === "more" ? false : tab.paths.some((p) => {
+                  const base = location.split("?")[0];
+                  return base === p || base.startsWith(`${p}/`);
+                });
                 const Icon = tab.icon;
                 return (
                   <button
-                    key={tab.path}
+                    key={tab.key}
                     type="button"
-                    onClick={() => onNavigate(tab.path)}
+                    onClick={() => {
+                      if (tab.key === "more") {
+                        window.dispatchEvent(new Event("selrs:open-command-palette"));
+                      } else {
+                        onNavigate(tab.path);
+                      }
+                    }}
                     className={cn(
                       "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
                       active
