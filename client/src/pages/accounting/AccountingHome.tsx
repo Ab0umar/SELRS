@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import {
   ArrowUpRight,
   Banknote,
@@ -1012,9 +1012,8 @@ export default function AccountingHome() {
                       const isDeleting = deletingTrNo === r.trNo;
                       const isEditing = editingReceipt?.trNo === r.trNo;
                       return (
-                        <>
+                        <Fragment key={`${r.trTy}-${r.trNo}`}>
                           <tr
-                            key={`${r.trTy}-${r.trNo}`}
                             className={cn(
                               "transition-colors hover:bg-muted",
                               isDeleting && "bg-destructive/10",
@@ -1135,7 +1134,7 @@ export default function AccountingHome() {
                             </td>
                           </tr>
                           {isEditing && (
-                            <tr key={`edit-${r.trNo}`} className="bg-primary/50">
+                            <tr className="bg-primary/50">
                               <td colSpan={7} className="px-4 py-3">
                                 <form
                                   onSubmit={async (e) => {
@@ -1203,7 +1202,7 @@ export default function AccountingHome() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </tbody>
