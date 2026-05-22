@@ -11,7 +11,7 @@ export async function setupVite(app: Express, server: Server) {
   const viteConfigFile = path.resolve(import.meta.dirname, "../..", "vite.config.ts");
   const serverOptions = {
     middlewareMode: true,
-    hmr: false,
+    hmr: { server },
     allowedHosts: true as const,
   };
 
