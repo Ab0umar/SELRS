@@ -222,6 +222,10 @@ export default defineConfig(({ mode }) => {
       fs: {
         strict: false,
       },
+      hmr: {
+        clientPort: 443,
+        protocol: "wss",
+      },
     },
   };
 });

@@ -1,5 +1,5 @@
 #define AppName "SELRS"
-#define AppVersion "1.0.132"
+#define AppVersion "1.0.134"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
 #define BuildDir "publish"
@@ -36,9 +36,9 @@ Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 Source: "SELRS.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\SELRS"; Filename: "{app}\SELRS.bat"; IconFilename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\SELRS"; Filename: "{app}\SELRS.bat"; IconFilename: "{app}\{#AppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\SELRS"; Filename: "{app}\SELRS.bat"; IconFilename: "{app}\{#AppExeName}"; Tasks: autostart
+Name: "{autoprograms}\SELRS"; Filename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\SELRS"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{userstartup}\SELRS"; Filename: "{app}\{#AppExeName}"; Tasks: autostart
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Launch SELRS"; Flags: nowait postinstall skipifsilent

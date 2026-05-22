@@ -29,22 +29,29 @@ type PushAppNotificationInput = {
   entityType?: string | null;
   entityId?: number | null;
   meta?: Record<string, unknown> | null;
+  /** Override which delivery channels fire. Both default to true when omitted. */
+  channels?: { inApp?: boolean; push?: boolean };
+};
+
+export type CategoryChannels = {
+  enabled: boolean;
+  inApp: boolean;
+  push: boolean;
+  local: boolean;
 };
 
 export type AppNotificationSettings = {
-  mssqlOwnerEnabled: boolean;
-  mssqlInAppEnabled: boolean;
-  manualPatientInAppEnabled: boolean;
-  operationsPushEnabled?: boolean;
-  operationsPushUserIds?: number[];
+  patients: CategoryChannels;
+  operations: CategoryChannels & { userIds: number[] };
+  attendance: CategoryChannels & { managerId: number | null };
+  stockroom: CategoryChannels;
 };
 
-const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
-  mssqlOwnerEnabled: true,
-  mssqlInAppEnabled: true,
-  manualPatientInAppEnabled: true,
-  operationsPushEnabled: false,
-  operationsPushUserIds: [],
+export const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
+  patients:   { enabled: true,  inApp: true,  push: false, local: false },
+  operations: { enabled: false, inApp: false, push: false, local: false, userIds: [] },
+  attendance: { enabled: true,  inApp: true,  push: false, local: false, managerId: null },
+  stockroom:  { enabled: false, inApp: false, push: false, local: false },
 };
 
 const normalizeFeed = (value: unknown): AppNotificationEntry[] => {
@@ -87,15 +94,8 @@ const normalizeFeed = (value: unknown): AppNotificationEntry[] => {
 };
 
 export async function pushAppNotification(input: PushAppNotificationInput): Promise<AppNotificationEntry> {
-  const row = await db.getSystemSetting(APP_NOTIFICATION_FEED_KEY).catch(() => null);
-  let existingFeed: AppNotificationEntry[] = [];
-  if (row?.value) {
-    try {
-      existingFeed = normalizeFeed(JSON.parse(String(row.value)));
-    } catch {
-      existingFeed = [];
-    }
-  }
+  const doInApp = input.channels?.inApp !== false;
+  const doPush = input.channels?.push !== false;
 
   const entry: AppNotificationEntry = {
     id: `app_ntf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -127,21 +127,36 @@ export async function pushAppNotification(input: PushAppNotificationInput): Prom
     meta: input.meta ?? null,
   };
 
-  const nextFeed = [entry, ...existingFeed].slice(0, APP_NOTIFICATION_FEED_LIMIT);
-  await db.updateSystemSettings(APP_NOTIFICATION_FEED_KEY, nextFeed);
-  await sendFcmPushToRegisteredDevices({
-    notificationId: entry.id,
-    title: entry.title,
-    body: entry.message,
-    kind: entry.kind,
-    targetRoles: entry.targetRoles ?? null,
-    targetUserIds: entry.targetUserIds ?? null,
-    path: entry.meta?.path ? String(entry.meta.path) : null,
-    entityType: entry.entityType ?? null,
-    entityId: entry.entityId ?? null,
-  }).catch((error) => {
-    console.warn("[FCM] pushAppNotification send failed:", error);
-  });
+  if (doInApp) {
+    const row = await db.getSystemSetting(APP_NOTIFICATION_FEED_KEY).catch(() => null);
+    let existingFeed: AppNotificationEntry[] = [];
+    if (row?.value) {
+      try {
+        existingFeed = normalizeFeed(JSON.parse(String(row.value)));
+      } catch {
+        existingFeed = [];
+      }
+    }
+    const nextFeed = [entry, ...existingFeed].slice(0, APP_NOTIFICATION_FEED_LIMIT);
+    await db.updateSystemSettings(APP_NOTIFICATION_FEED_KEY, nextFeed);
+  }
+
+  if (doPush) {
+    await sendFcmPushToRegisteredDevices({
+      notificationId: entry.id,
+      title: entry.title,
+      body: entry.message,
+      kind: entry.kind,
+      targetRoles: entry.targetRoles ?? null,
+      targetUserIds: entry.targetUserIds ?? null,
+      path: entry.meta?.path ? String(entry.meta.path) : null,
+      entityType: entry.entityType ?? null,
+      entityId: entry.entityId ?? null,
+    }).catch((error) => {
+      console.warn("[FCM] pushAppNotification send failed:", error);
+    });
+  }
+
   return entry;
 }
 
@@ -150,29 +165,58 @@ export async function getAppNotificationSettings(): Promise<AppNotificationSetti
   if (!row?.value) return DEFAULT_APP_NOTIFICATION_SETTINGS;
   try {
     const parsed = JSON.parse(String(row.value)) as Record<string, unknown>;
-    const operationsPushUserIdsRaw = Array.isArray(parsed.operationsPushUserIds) ? parsed.operationsPushUserIds : [];
-    const operationsPushUserIds = operationsPushUserIdsRaw
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value));
 
+    const parseCat = (raw: unknown, def: CategoryChannels): CategoryChannels => {
+      if (!raw || typeof raw !== "object") return def;
+      const r = raw as Record<string, unknown>;
+      return {
+        enabled: typeof r.enabled === "boolean" ? r.enabled : def.enabled,
+        inApp:   typeof r.inApp   === "boolean" ? r.inApp   : def.inApp,
+        push:    typeof r.push    === "boolean" ? r.push    : def.push,
+        local:   typeof r.local   === "boolean" ? r.local   : def.local,
+      };
+    };
+
+    if (parsed.patients && typeof parsed.patients === "object") {
+      // New nested format
+      const opsRaw = parsed.operations as Record<string, unknown> | undefined;
+      const userIds = Array.isArray(opsRaw?.userIds)
+        ? (opsRaw!.userIds as unknown[]).map(Number).filter((v) => Number.isFinite(v))
+        : [];
+      const attnRaw = parsed.attendance as Record<string, unknown> | undefined;
+      const managerId =
+        attnRaw?.managerId != null && Number.isFinite(Number(attnRaw.managerId))
+          ? Number(attnRaw.managerId)
+          : null;
+      return {
+        patients:   parseCat(parsed.patients,   DEFAULT_APP_NOTIFICATION_SETTINGS.patients),
+        operations: { ...parseCat(parsed.operations, DEFAULT_APP_NOTIFICATION_SETTINGS.operations), userIds },
+        attendance: { ...parseCat(parsed.attendance, DEFAULT_APP_NOTIFICATION_SETTINGS.attendance), managerId },
+        stockroom:  parseCat(parsed.stockroom,  DEFAULT_APP_NOTIFICATION_SETTINGS.stockroom),
+      };
+    }
+
+    // v1 flat format backward-compat
+    const legacyUserIds = Array.isArray(parsed.operationsPushUserIds)
+      ? (parsed.operationsPushUserIds as unknown[]).map(Number).filter((v) => Number.isFinite(v))
+      : [];
+    const legacyOpsPush =
+      typeof parsed.operationsPushEnabled === "boolean" ? parsed.operationsPushEnabled : false;
     return {
-      mssqlOwnerEnabled:
-        typeof parsed.mssqlOwnerEnabled === "boolean"
-          ? parsed.mssqlOwnerEnabled
-          : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlOwnerEnabled,
-      mssqlInAppEnabled:
-        typeof parsed.mssqlInAppEnabled === "boolean"
-          ? parsed.mssqlInAppEnabled
-          : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlInAppEnabled,
-      manualPatientInAppEnabled:
-        typeof parsed.manualPatientInAppEnabled === "boolean"
+      patients: {
+        ...DEFAULT_APP_NOTIFICATION_SETTINGS.patients,
+        inApp: typeof parsed.manualPatientInAppEnabled === "boolean"
           ? parsed.manualPatientInAppEnabled
-          : DEFAULT_APP_NOTIFICATION_SETTINGS.manualPatientInAppEnabled,
-      operationsPushEnabled:
-        typeof parsed.operationsPushEnabled === "boolean"
-          ? parsed.operationsPushEnabled
-          : DEFAULT_APP_NOTIFICATION_SETTINGS.operationsPushEnabled,
-      operationsPushUserIds: operationsPushUserIds.length > 0 ? operationsPushUserIds : DEFAULT_APP_NOTIFICATION_SETTINGS.operationsPushUserIds,
+          : DEFAULT_APP_NOTIFICATION_SETTINGS.patients.inApp,
+      },
+      operations: {
+        ...DEFAULT_APP_NOTIFICATION_SETTINGS.operations,
+        enabled: legacyOpsPush,
+        push:    legacyOpsPush,
+        userIds: legacyUserIds,
+      },
+      attendance: DEFAULT_APP_NOTIFICATION_SETTINGS.attendance,
+      stockroom:  DEFAULT_APP_NOTIFICATION_SETTINGS.stockroom,
     };
   } catch {
     return DEFAULT_APP_NOTIFICATION_SETTINGS;

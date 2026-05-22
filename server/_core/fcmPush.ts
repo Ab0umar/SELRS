@@ -61,6 +61,10 @@ function getFcmCredentials(): FcmCredentials | null {
   };
 }
 
+export function isFcmConfigured(): boolean {
+  return getFcmCredentials() !== null;
+}
+
 async function getAccessToken() {
   const now = Date.now();
   if (accessTokenCache && accessTokenCache.expiresAt - 60_000 > now) {

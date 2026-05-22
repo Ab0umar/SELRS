@@ -5,7 +5,8 @@ import * as XLSX from "xlsx";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, doctorProcedure, nurseProcedure, technicianProcedure, receptionProcedure, managerProcedure, adminProcedure, medicalStaffProcedure } from "../_core/procedures";
 import { authService } from "../_core/auth";
-import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
+import { getAppNotificationSettings, pushAppNotification, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
+import { isFcmConfigured } from "../_core/fcmPush";
 import * as db from "../db";
 import { eq, asc, desc, and, inArray, sql } from "drizzle-orm";
 import { services, doctorsLookup, patients, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions, patientServiceEntries } from "../../drizzle/schema";
@@ -38,13 +39,7 @@ const DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG = {
 const getSystemSettingFallbackValue = (key: string) => {
   if (key === "appointments_pricing_v1") return null;
   if (key === "app_notification_settings_v1")
-    return {
-      mssqlOwnerEnabled: true,
-      mssqlInAppEnabled: true,
-      manualPatientInAppEnabled: true,
-      operationsPushEnabled: false,
-      operationsPushUserIds: [],
-    };
+    return DEFAULT_APP_NOTIFICATION_SETTINGS;
   if (key === "app_notifications_feed_v1") return [];
   if (key === "mssql_sync_runtime_v1") return DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG;
   return null;
@@ -1885,12 +1880,8 @@ export const medicalRouter = router({
         await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
           message: `Created patient: ${input.fullName}`,
         });
-        const notificationSettings = await getAppNotificationSettings().catch(() => ({
-          mssqlOwnerEnabled: true,
-          mssqlInAppEnabled: true,
-          manualPatientInAppEnabled: true,
-        }));
-        if (notificationSettings.manualPatientInAppEnabled) {
+        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (notificationSettings.patients.enabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole((ctx.user as any)?.role);
           const visitKind = String(input.branch ?? "").toLowerCase() === "examinations" ? "اشعه" : "كشف";
           const serviceTypeLabel = (() => {
@@ -1914,6 +1905,7 @@ export const medicalRouter = router({
               fullName: input.fullName,
               createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
             },
+            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
           }).catch((error) => {
             console.warn("[patient-create] Failed to append app notification:", error);
           });
@@ -3463,12 +3455,8 @@ export const medicalRouter = router({
         });
         
         await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION", "examination", 0, { message: `Created examination for patient ${input.patientId}` });
-        const notificationSettings = await getAppNotificationSettings().catch(() => ({
-          mssqlOwnerEnabled: true,
-          mssqlInAppEnabled: true,
-          manualPatientInAppEnabled: true,
-        }));
-        if (notificationSettings.manualPatientInAppEnabled) {
+        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (notificationSettings.patients.enabled) {
           await pushAppNotification({
             title: "تم تسجيل فحص تمريض",
             message: `Patient #${input.patientId}`,
@@ -3482,6 +3470,7 @@ export const medicalRouter = router({
               patientId: input.patientId,
               createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
             },
+            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
           }).catch((error) => {
             console.warn("[examination-create] Failed to append app notification:", error);
           });
@@ -3873,12 +3862,8 @@ export const medicalRouter = router({
         });
         
         await db.logAuditEvent(ctx.user.id, "CREATE_PENTACAM", "pentacamResult", 0, { message: `Recorded Pentacam results for patient ${input.patientId}` });
-        const notificationSettings = await getAppNotificationSettings().catch(() => ({
-          mssqlOwnerEnabled: true,
-          mssqlInAppEnabled: true,
-          manualPatientInAppEnabled: true,
-        }));
-        if (notificationSettings.manualPatientInAppEnabled) {
+        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (notificationSettings.patients.enabled) {
           await pushAppNotification({
             title: "تم تسجيل بنتاكام",
             message: `Patient #${input.patientId}`,
@@ -3892,6 +3877,7 @@ export const medicalRouter = router({
               patientId: input.patientId,
               createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
             },
+            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
           }).catch((error) => {
             console.warn("[pentacam-create] Failed to append app notification:", error);
           });
@@ -5386,15 +5372,12 @@ export const medicalRouter = router({
       await db.logAuditEvent(ctx.user.id, "SAVE_OPERATION_LIST", "operationList", 0, { message: `Saved operation list for ${input.doctorTab}` });
 
       // Send notifications for operation lists
-      const notificationSettings = await getAppNotificationSettings().catch(() => ({
-        mssqlOwnerEnabled: true,
-        mssqlInAppEnabled: true,
-        manualPatientInAppEnabled: true,
-        operationsPushEnabled: false,
-        operationsPushUserIds: [],
-      }));
+      const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
 
-      if (notificationSettings.operationsPushEnabled && Array.isArray(notificationSettings.operationsPushUserIds) && notificationSettings.operationsPushUserIds.length > 0) {
+      if (notificationSettings.operations.enabled) {
+        const opsTargetUserIds = notificationSettings.operations.userIds.length > 0
+          ? notificationSettings.operations.userIds
+          : null;
         const opsCaseCount = input.items?.length ?? 0;
         const opsDate = new Date(`${input.listDate}T00:00:00`);
         const opsDay = opsDate.toLocaleDateString("ar-EG", { timeZone: "Africa/Cairo", weekday: "long" });
@@ -5415,7 +5398,7 @@ export const medicalRouter = router({
           title: opsNotifText,
           message: opsNotifText,
           kind: "info",
-          targetUserIds: notificationSettings.operationsPushUserIds,
+          targetUserIds: opsTargetUserIds,
           source: "operation_list_save",
           entityType: "operationList",
           meta: {
@@ -5423,6 +5406,7 @@ export const medicalRouter = router({
             listDate: input.listDate,
             itemCount: input.items?.length ?? 0,
           },
+          channels: { inApp: notificationSettings.operations.inApp, push: notificationSettings.operations.push },
         });
       }
 
@@ -5510,19 +5494,12 @@ export const medicalRouter = router({
         doctorName: input.doctorName,
       });
 
-      const notificationSettings = await getAppNotificationSettings().catch(() => ({
-        mssqlOwnerEnabled: true,
-        mssqlInAppEnabled: true,
-        manualPatientInAppEnabled: true,
-        operationsPushEnabled: false,
-        operationsPushUserIds: [],
-      }));
+      const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
 
-      if (
-        notificationSettings.operationsPushEnabled &&
-        Array.isArray(notificationSettings.operationsPushUserIds) &&
-        notificationSettings.operationsPushUserIds.length > 0
-      ) {
+      if (notificationSettings.operations.enabled) {
+        const bkTargetUserIds = notificationSettings.operations.userIds.length > 0
+          ? notificationSettings.operations.userIds
+          : null;
         const rawBkDrName = String(input.doctorName ?? "").trim();
         const bkDoctorName = rawBkDrName.replace(/^د[./]?\s*/u, "").trim() || rawBkDrName;
         const bkCaseCount = Math.max(1, Math.trunc(Number(input.casesCount) || 1));
@@ -5542,7 +5519,7 @@ export const medicalRouter = router({
           title: bkNotifText,
           message: bkNotifText,
           kind: "success",
-          targetUserIds: notificationSettings.operationsPushUserIds,
+          targetUserIds: bkTargetUserIds,
           source: "operation_booking_create",
           entityType: "operationBooking",
           entityId: booking.id,
@@ -5552,6 +5529,7 @@ export const medicalRouter = router({
             doctorName: bkDoctorName || null,
             casesCount: bkCaseCount,
           },
+          channels: { inApp: notificationSettings.operations.inApp, push: notificationSettings.operations.push },
         }).catch((error) => {
           console.warn("[operation-booking] Failed to append app notification:", error);
         });
@@ -7079,6 +7057,10 @@ export const medicalRouter = router({
   getAllUsers: adminProcedure.query(async () => {
     return await db.getAllUsers();
   }),
+
+  getNotificationMeta: adminProcedure.query(() => ({
+    fcmConfigured: isFcmConfigured(),
+  })),
 
   createUser: adminProcedure
     .input(z.object({

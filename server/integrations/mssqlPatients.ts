@@ -1,5 +1,5 @@
 import * as db from "../db";
-import { getAppNotificationSettings, pushAppNotification } from "../_core/appNotifications";
+import { getAppNotificationSettings, pushAppNotification, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
 import { notifyOwner } from "../_core/notification";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -4130,11 +4130,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         }
       }
       if (result.inserted > 0) {
-        const notificationSettings = await getAppNotificationSettings().catch(() => ({
-          mssqlOwnerEnabled: true,
-          mssqlInAppEnabled: true,
-          manualPatientInAppEnabled: true,
-        }));
+        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
         const sampleLines = insertedPatientsSample.map(
           ({ patientCode, fullName }) => `- ${patientCode} - ${String(fullName).trim()}`
         );
@@ -4142,23 +4138,22 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           sampleLines.length > 0
             ? `\n\nSample:\n${sampleLines.join("\n")}${result.inserted > insertedPatientsSample.length ? "\n- ..." : ""}`
             : "";
-        if (notificationSettings.mssqlOwnerEnabled) {
-          await notifyOwner({
-            title: `MSSQL Sync: ${result.inserted} new patient${result.inserted === 1 ? "" : "s"} added`,
-            content:
-              `Mode: ${incremental ? "incremental" : "full"}\n` +
-              `Fetched: ${result.fetched}\n` +
-              `Inserted: ${result.inserted}\n` +
-              `Updated: ${result.updated}\n` +
-              `Skipped: ${result.skipped}\n` +
-              `Started: ${result.startedAt}\n` +
-              `Finished: ${result.finishedAt || new Date().toISOString()}` +
-              sampleSuffix,
-          }).catch((error) => {
-            console.warn("[MSSQL Sync] Failed to send new-patient notification:", error);
-          });
-        }
-        if (notificationSettings.mssqlInAppEnabled) {
+        // mssqlOwnerEnabled was the old key; owner notifications always fire (admin-level, not user-facing)
+        await notifyOwner({
+          title: `MSSQL Sync: ${result.inserted} new patient${result.inserted === 1 ? "" : "s"} added`,
+          content:
+            `Mode: ${incremental ? "incremental" : "full"}\n` +
+            `Fetched: ${result.fetched}\n` +
+            `Inserted: ${result.inserted}\n` +
+            `Updated: ${result.updated}\n` +
+            `Skipped: ${result.skipped}\n` +
+            `Started: ${result.startedAt}\n` +
+            `Finished: ${result.finishedAt || new Date().toISOString()}` +
+            sampleSuffix,
+        }).catch((error) => {
+          console.warn("[MSSQL Sync] Failed to send new-patient notification:", error);
+        });
+        if (notificationSettings.patients.enabled) {
           await pushAppNotification({
             title: `تمت إضافة ${result.inserted} مريض جديد من MSSQL`,
             message:
@@ -4175,6 +4170,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
               incremental: result.incremental,
               sample: insertedPatientsSample,
             },
+            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
           }).catch((error) => {
             console.warn("[MSSQL Sync] Failed to append app notification:", error);
           });

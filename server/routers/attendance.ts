@@ -15,7 +15,7 @@ import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendanc
 import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb, getAllUsers } from '../db';
-import { pushAppNotification } from '../_core/appNotifications';
+import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from '../_core/appNotifications';
 import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
@@ -413,6 +413,29 @@ export const attendanceRouter = router({
         new Date(String(leave[0].dateFrom) + 'T12:00:00'),
         new Date(String(leave[0].dateTo) + 'T12:00:00'),
       );
+
+      // Notify the employee whose leave was approved
+      const empMapping = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.machineUserId, leave[0].empCd))
+        .limit(1);
+      if (empMapping[0]?.userId) {
+        const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (ns.attendance.enabled) {
+          const typeAr = String(leave[0].type ?? '') === 'annual' ? 'سنوية' : 'مرضية';
+          pushAppNotification({
+            title: 'تمت الموافقة على طلب الإجازة',
+            message: `تمت الموافقة على إجازتك ${typeAr} من ${leave[0].dateFrom} إلى ${leave[0].dateTo}`,
+            kind: 'success',
+            targetUserIds: [empMapping[0].userId],
+            source: 'attendance',
+            entityType: 'leave_approved',
+            meta: { empCd: leave[0].empCd, path: '/attendance/me' },
+            channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
+          }).catch(() => {});
+        }
+      }
 
       return { success: true, leaveId: input.leaveId };
     }),
@@ -1648,6 +1671,30 @@ export const attendanceRouter = router({
         type: input.type, durationMinutes: input.durationMinutes,
         approved: true, note: input.note ?? null,
       });
+
+      // Notify the employee that a permission was granted for them
+      const empMapping = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.machineUserId, input.empCd))
+        .limit(1);
+      if (empMapping[0]?.userId) {
+        const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (ns.attendance.enabled) {
+          const typeAr = input.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
+          pushAppNotification({
+            title: 'تم منح إذن',
+            message: `تمت الموافقة على إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
+            kind: 'success',
+            targetUserIds: [empMapping[0].userId],
+            source: 'attendance',
+            entityType: 'permission_granted',
+            meta: { empCd: input.empCd, path: '/attendance/me' },
+            channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
+          }).catch(() => {});
+        }
+      }
+
       return { success: true, id: (result as any)?.[0]?.insertId };
     }),
 
@@ -1916,15 +1963,20 @@ export const attendanceRouter = router({
 
       const userName = String(ctx.user.name || ctx.user.username || '');
       const typeAr = input.type === 'annual' ? 'سنوية' : 'مرضية';
-      pushAppNotification({
-        title: 'طلب إجازة جديد',
-        message: `${userName} طلب إجازة ${typeAr} من ${dateFrom} إلى ${dateTo}`,
-        kind: 'info',
-        targetRoles: ['admin', 'manager'],
-        source: 'attendance',
-        entityType: 'leave_request',
-        meta: { path: '/attendance/employees', empCd },
-      }).catch(() => {});
+      const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      if (ns.attendance.enabled) {
+        pushAppNotification({
+          title: 'طلب إجازة جديد',
+          message: `${userName} طلب إجازة ${typeAr} من ${dateFrom} إلى ${dateTo}`,
+          kind: 'info',
+          targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
+          targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
+          source: 'attendance',
+          entityType: 'leave_request',
+          meta: { path: '/attendance/employees', empCd },
+          channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
+        }).catch(() => {});
+      }
 
       return { success: true, dateFrom: storedFrom, dateTo: storedTo };
     }),
@@ -1955,15 +2007,20 @@ export const attendanceRouter = router({
 
       const userName = String(ctx.user.name || ctx.user.username || '');
       const typeAr = input.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
-      pushAppNotification({
-        title: 'طلب إذن جديد',
-        message: `${userName} طلب إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
-        kind: 'info',
-        targetRoles: ['admin', 'manager'],
-        source: 'attendance',
-        entityType: 'permission_request',
-        meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
-      }).catch(() => {});
+      const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      if (ns.attendance.enabled) {
+        pushAppNotification({
+          title: 'طلب إذن جديد',
+          message: `${userName} طلب إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
+          kind: 'info',
+          targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
+          targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
+          source: 'attendance',
+          entityType: 'permission_request',
+          meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
+          channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
+        }).catch(() => {});
+      }
 
       return { success: true };
     }),
