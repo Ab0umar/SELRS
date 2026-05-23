@@ -106,7 +106,13 @@ export class DailyMaterializer {
         const punches = await PunchesService.getPunchesByRange(workDate, workDate, empCd);
 
         // Skip days with no shift assignment AND no punches — not a working day
-        if (!shift && punches.length === 0) continue;
+        // Also delete any stale row (e.g. from a previous run that used defaultShift on a cycle rest day)
+        if (!shift && punches.length === 0) {
+          await db
+            .delete(attendanceDaily)
+            .where(and(eq(attendanceDaily.empCd, empCd), eq(attendanceDaily.workDate, workDateStr as any)));
+          continue;
+        }
 
         // Get break minutes for this day (TODO: configurable breaks)
         const breakMinutes = 0;
