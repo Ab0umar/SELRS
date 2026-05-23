@@ -65,15 +65,16 @@ export function resolveShift(
 ): Shift | null {
   const weekday = date.getDay(); // 0 = Sunday
 
+  const dateStr = ymd(date);
   // Find latest assignment that matches this date and weekday
   let matchingAssignment = null;
   for (const asn of assignments) {
     if (asn.empCd !== empCd) continue;
-    if (asn.effectiveFrom > date) continue;
-    if (asn.effectiveTo && asn.effectiveTo < date) continue;
+    if (ymd(asn.effectiveFrom) > dateStr) continue;
+    if (asn.effectiveTo && ymd(asn.effectiveTo) < dateStr) continue;
     if (!(asn.weekdayMask & (1 << weekday))) continue;
 
-    if (!matchingAssignment || asn.effectiveFrom > matchingAssignment.effectiveFrom) {
+    if (!matchingAssignment || ymd(asn.effectiveFrom) > ymd(matchingAssignment.effectiveFrom)) {
       matchingAssignment = asn;
     }
   }
@@ -82,12 +83,9 @@ export function resolveShift(
     return shiftsById.get(matchingAssignment.shiftId) ?? null;
   }
 
-  // Fall back to default shift — but only if this weekday is in the shift's own mask
+  // Fall back to default shift — cycle slots handle rest-day exclusion
   if (defaultShiftId) {
-    const defaultShift = shiftsById.get(defaultShiftId) ?? null;
-    if (defaultShift && (defaultShift.weekdayMask & (1 << weekday))) {
-      return defaultShift;
-    }
+    return shiftsById.get(defaultShiftId) ?? null;
   }
 
   return null;
@@ -167,6 +165,7 @@ export function computeDay(ctx: DayContext): DayResult {
       result.lastOut = paired.lastOut;
       if (paired.firstIn && !paired.lastOut) {
         result.status = 'missing_checkout';
+        result.insideNow = true; // checked in, not yet out
       }
     }
     return result;
@@ -206,8 +205,8 @@ export function computeDay(ctx: DayContext): DayResult {
   } else {
     // Missing checkout
     result.status = 'missing_checkout';
-    const elapsed = ctx.now.getTime() - paired.firstIn.getTime();
-    result.workedMinutes = null; // Don't compute for missing checkout
+    result.insideNow = true;
+    result.workedMinutes = null;
     return result;
   }
 
@@ -263,7 +262,70 @@ export function computeDay(ctx: DayContext): DayResult {
   return result;
 }
 
+// ============ Shift Cycle Resolution ============
+
+export interface ShiftCycle {
+  id: number;
+  period: 'day' | 'week' | 'month';
+  anchorDate: Date;
+  slots: { slotIndex: number; shiftId: number }[]; // sorted by slotIndex asc
+}
+
+export interface CycleAssignment {
+  empCd: string;
+  cycleId: number;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+}
+
+/**
+ * Resolve which shift applies via a rotating cycle assignment.
+ * Called as a fallback when no direct shift assignment exists.
+ */
+export function resolveCycleShift(
+  empCd: string,
+  date: Date,
+  cycleAssignments: CycleAssignment[],
+  cyclesById: Map<number, ShiftCycle>,
+  shiftsById: Map<number, Shift>
+): Shift | null {
+  const dateStr = ymd(date);
+  // Find latest active cycle assignment
+  let best: CycleAssignment | null = null;
+  for (const a of cycleAssignments) {
+    if (a.empCd !== empCd) continue;
+    if (ymd(a.effectiveFrom) > dateStr) continue;
+    if (a.effectiveTo && ymd(a.effectiveTo) < dateStr) continue;
+    if (!best || ymd(a.effectiveFrom) > ymd(best.effectiveFrom)) best = a;
+  }
+  if (!best) return null;
+
+  const cycle = cyclesById.get(best.cycleId);
+  if (!cycle || !cycle.slots.length) return null;
+
+  const idx = calcCycleSlotIndex(cycle.period, cycle.anchorDate, date, cycle.slots.length);
+  const slot = cycle.slots.find((s) => s.slotIndex === idx);
+  return slot ? (shiftsById.get(slot.shiftId) ?? null) : null;
+}
+
+function calcCycleSlotIndex(
+  period: 'day' | 'week' | 'month',
+  anchorDate: Date,
+  workDate: Date,
+  totalSlots: number
+): number {
+  // day / week: slot index = day of week (0=Sun … 6=Sat)
+  if (period === 'day' || period === 'week') return workDate.getDay();
+  // month: slot index = day of month (1-31)
+  return workDate.getDate();
+}
+
 // ============ Helpers ============
+
+/** YYYY-MM-DD using local getters — avoids UTC-vs-local shift on DB date strings */
+export function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function parseTime(hm: string): { h: number; m: number } | null {
   const [h, m] = hm.split(':').map(Number);

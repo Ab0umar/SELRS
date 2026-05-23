@@ -18,20 +18,22 @@ import { fmt, fmtDate } from "./accountingFormat";
 
 const PAGE_SIZE = 50;
 
+const YEARS = ["الكل", "2026", "2025", "2024"] as const;
+type Year = (typeof YEARS)[number];
 type TxType = "all" | "income" | "expense";
 
 export default function AccountingCashbook() {
   const utils = trpc.useUtils();
 
-  const firstOfYear = `${new Date().getFullYear()}-01-01`;
-
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
-  const [dateFrom, setDateFrom] = useState(firstOfYear);
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split("T")[0]);
+  const [year, setYear] = useState<Year>("الكل");
   const [type, setType] = useState<TxType>("all");
   const [notes, setNotes] = useState("");
   const [page, setPage] = useState(1);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const dateFrom = year !== "الكل" ? `${year}-01-01` : undefined;
+  const dateTo   = year !== "الكل" ? `${year}-12-31` : undefined;
 
   const filters = useMemo(
     () => ({
@@ -157,77 +159,42 @@ export default function AccountingCashbook() {
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))_minmax(0,1.4fr)]">
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
-                  <label
-                    htmlFor="cb-date-from"
-                    className="text-xs text-muted-foreground"
+            <div className="flex flex-wrap items-center gap-2">
+              <fieldset className="flex overflow-hidden rounded-lg border border-border bg-background">
+                <legend className="sr-only">تصفية السنة</legend>
+                {YEARS.map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => { setYear(y); resetPage(); }}
+                    className={cn(
+                      "px-2 py-1.5 text-xs font-medium transition-colors",
+                      year === y
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    )}
                   >
-                    من
-                  </label>
-                  <input
-                    id="cb-date-from"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => {
-                      setDateFrom(e.target.value);
-                      resetPage();
-                    }}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none"
-                  />
-                </div>
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
-                  <label
-                    htmlFor="cb-date-to"
-                    className="text-xs text-muted-foreground"
-                  >
-                    إلى
-                  </label>
-                  <input
-                    id="cb-date-to"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => {
-                      setDateTo(e.target.value);
-                      resetPage();
-                    }}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none"
-                  />
-                </div>
-                <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-                  <Search
-                    className="h-4 w-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <label htmlFor="cb-notes" className="sr-only">
-                    بحث في الملاحظات
-                  </label>
-                  <input
-                    id="cb-notes"
-                    type="text"
-                    value={notes}
-                    onChange={(e) => {
-                      setNotes(e.target.value);
-                      resetPage();
-                    }}
-                    placeholder="بحث في الملاحظات والبيان..."
-                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                  />
-                  {notes ? (
-                    <button
-                      type="button"
-                      aria-label="مسح البحث"
-                      onClick={() => {
-                        setNotes("");
-                        resetPage();
-                      }}
-                      className="p-1 text-muted-foreground hover:text-muted-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  ) : null}
-                </div>
+                    {y}
+                  </button>
+                ))}
+              </fieldset>
+
+              <div className="flex h-10 flex-1 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <label htmlFor="cb-notes" className="sr-only">بحث في الملاحظات</label>
+                <input
+                  id="cb-notes"
+                  type="text"
+                  value={notes}
+                  onChange={(e) => { setNotes(e.target.value); resetPage(); }}
+                  placeholder="بحث في الملاحظات والبيان..."
+                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+                {notes && (
+                  <button type="button" aria-label="مسح البحث" onClick={() => { setNotes(""); resetPage(); }} className="p-1 text-muted-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -235,15 +202,12 @@ export default function AccountingCashbook() {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => {
-                      setType(t);
-                      resetPage();
-                    }}
+                    onClick={() => { setType(t); resetPage(); }}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-medium transition-colors",
                       type === t
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-muted-foreground hover:border-border hover:bg-muted",
+                        : "border-border bg-background text-muted-foreground hover:bg-muted",
                     )}
                   >
                     {t === "all" ? "الكل" : t === "income" ? "إيراد" : "مصروف"}

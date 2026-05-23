@@ -1972,16 +1972,10 @@ export const medicalRouter = router({
       if (result.inserted > 0) {
         const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
         if (notificationSettings.patients.enabled) {
-          const resolveSheetTitle = (serviceType: string): string => {
-            const st = String(serviceType ?? "").toLowerCase();
-            if (st === "lasik") return "حجز فحص ليزك جديد";
-            if (st === "consultant") return "حجز كشف استشاري جديد";
-            if (st === "specialist") return "حجز كشف أخصائي جديد";
-            return "حجز جديد";
-          };
-          const sheetTitle = result.firstInserted
-            ? resolveSheetTitle(result.firstInserted.serviceType)
-            : "حجز جديد";
+          const sheetServiceCode = result.firstInserted
+            ? await resolveServiceCodeForType(result.firstInserted.serviceType).catch(() => "")
+            : "";
+          const sheetTitle = resolvePatientNotifTitle(sheetServiceCode ? [sheetServiceCode] : []);
           const sheetMessage = result.firstInserted
             ? result.inserted > 1
               ? `${result.firstInserted.fullName} (و ${result.inserted - 1} آخرين)`

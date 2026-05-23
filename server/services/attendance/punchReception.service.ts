@@ -11,6 +11,7 @@ import { eq, and, gte, lte } from 'drizzle-orm';
 import crypto from 'crypto';
 import { getDefaultDevice, DevicePunch } from './deviceAdapter.service';
 import { broadcastPunch } from '../../_core/ws';
+import { DailyMaterializer } from './dailyMaterializer';
 
 export class PunchReceptionService extends EventEmitter {
   private isListening = false;
@@ -74,6 +75,15 @@ export class PunchReceptionService extends EventEmitter {
 
       // Broadcast punch to all connected clients via WebSocket
       broadcastPunch(punch.empNo, punch.direction, punch.timestamp, punch.deviceId);
+
+      // Recompute daily record for this employee immediately so dashboard cards update
+      const punchDay = new Date(punch.timestamp);
+      punchDay.setHours(0, 0, 0, 0);
+      const nextDay = new Date(punchDay);
+      nextDay.setDate(nextDay.getDate() + 1);
+      DailyMaterializer.recomputeRange(punchDay, nextDay, { empCd: punch.empNo }).catch((err) => {
+        console.error('[PunchReception] Failed to recompute daily for', punch.empNo, err);
+      });
 
       // Emit event for subscribers
       this.emit('punch-recorded', {

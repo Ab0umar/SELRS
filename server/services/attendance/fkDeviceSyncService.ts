@@ -6,8 +6,8 @@
 import { FKAttendLogPuller, FKPunch } from './fkAttendLogPuller';
 import { DailyMaterializer } from './dailyMaterializer';
 import { getDb } from '../../db';
-import { attendancePunches, attendanceSyncRuns } from '../../../drizzle/schema';
-import { sql } from 'drizzle-orm';
+import { attendancePunches, attendanceSyncRuns, attendanceEmployees } from '../../../drizzle/schema';
+import { sql, eq, desc, inArray } from 'drizzle-orm';
 import crypto from 'crypto';
 
 const BATCH_SIZE = 500;
@@ -17,6 +17,7 @@ export interface SyncResult {
   recordsSeen: number;
   recordsInserted: number;
   recordsSkipped: number;
+  maxPunchAt?: Date | null; // max punch timestamp among processed punches
   error?: string;
   startedAt: Date;
   completedAt: Date;
@@ -46,11 +47,29 @@ export class FKDeviceSyncService {
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
-      // Step 1: Pull logs from device
+      // Step 0: Load last successful HWM so we only process new punches
+      const lastRun = await db
+        .select({ hwm: attendanceSyncRuns.highWaterMark })
+        .from(attendanceSyncRuns)
+        .where(
+          inArray(attendanceSyncRuns.status, ['ok', 'partial'] as any)
+        )
+        .orderBy(desc(attendanceSyncRuns.startedAt))
+        .limit(1);
+      const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
+      console.log(`[FKSync] Last HWM: ${lastHwm?.toISOString() ?? 'none (first run)'}`);
+
+      // Step 1: Pull logs from device (always returns all records from device memory)
       console.log('[FKSync] Pulling logs from device...');
-      const fkPunches = await FKAttendLogPuller.pullLogs(deviceConfig);
+      const allPunches = await FKAttendLogPuller.pullLogs(deviceConfig);
+      // Filter to new punches only (after last HWM)
+      const fkPunches = lastHwm
+        ? allPunches.filter((p) => p.timestamp > lastHwm)
+        : allPunches;
       result.recordsSeen = fkPunches.length;
-      console.log(`[FKSync] Received ${fkPunches.length} punch records from device`);
+      console.log(
+        `[FKSync] Device returned ${allPunches.length} total, ${fkPunches.length} new since HWM`
+      );
 
       if (fkPunches.length === 0) {
         console.log('[FKSync] No new records to import');
@@ -98,12 +117,35 @@ export class FKDeviceSyncService {
 
       result.recordsInserted = totalInserted;
       result.recordsSkipped = fkPunches.length - totalInserted;
+      // Track max punch timestamp for HWM (only among newly processed punches)
+      result.maxPunchAt = fkPunches.reduce<Date | null>(
+        (max, p) => (!max || p.timestamp > max ? p.timestamp : max),
+        null
+      );
 
       console.log(
         `[FKSync] Import complete: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`
       );
 
-      // Step 3: Recompute daily records for affected dates
+      // Step 3: Auto-register any new employee codes seen in this sync batch
+      // attendance_employees must be populated for the materializer to process punches
+      const uniqueEmpCds = [...new Set(fkPunches.map((p) => String(p.enrollNo)))];
+      if (uniqueEmpCds.length > 0) {
+        const now = new Date();
+        await db
+          .insert(attendanceEmployees)
+          .values(uniqueEmpCds.map((empCd) => ({
+            empCd,
+            fullName: empCd,
+            active: true,
+            createdAt: now,
+            updatedAt: now,
+          })))
+          .onDuplicateKeyUpdate({ set: { updatedAt: now } });
+        console.log(`[FKSync] Ensured ${uniqueEmpCds.length} employee records in attendance_employees`);
+      }
+
+      // Step 4: Recompute daily records for affected dates
       if (result.recordsInserted > 0 && affected.size > 0) {
         console.log(`[FKSync] Recomputing daily attendance for ${affected.size} affected dates...`);
 
@@ -172,7 +214,7 @@ export class FKDeviceSyncService {
         rowsQuarantined: 0,
         status: result.success ? 'ok' : 'failed',
         error: result.error,
-        highWaterMark: result.completedAt,
+        highWaterMark: result.maxPunchAt ?? result.completedAt,
       });
     } catch (error) {
       console.error(

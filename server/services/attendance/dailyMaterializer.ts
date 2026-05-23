@@ -9,6 +9,9 @@ import {
   attendanceDaily,
   attendanceShifts,
   attendanceShiftAssignments,
+  attendanceShiftCycles,
+  attendanceShiftCycleSlots,
+  attendanceShiftCycleAssignments,
   attendanceEmployees,
   attendanceLeaves,
   attendanceHolidays,
@@ -18,6 +21,9 @@ import {
   computeDay,
   DayContext,
   resolveShift,
+  resolveCycleShift,
+  ShiftCycle,
+  CycleAssignment,
   Shift,
 } from './rulesEngine';
 import { PunchesService } from './punches.service';
@@ -46,6 +52,8 @@ export class DailyMaterializer {
     const shiftsById = new Map(shifts.map((s) => [s.id, s]));
 
     const assignments = await this.loadAssignments(db, fromDate, toDate);
+    const cycleAssignments = await this.loadCycleAssignments(db, fromDate, toDate);
+    const cyclesById = await this.loadCycles(db);
     const employees = await this.loadEmployees(db, scope?.empCd);
     const leaves = await this.loadLeaves(db, fromDate, toDate);
     const holidays = await this.loadHolidays(db, fromDate, toDate);
@@ -76,8 +84,10 @@ export class DailyMaterializer {
         // Check if holiday
         const isHoliday = holidaySet.has(this.dateKey(workDate));
 
-        // Get shift for this day
-        const shift = resolveShift(empCd, workDate, empAssignments, defaultShift, shiftsById);
+        // Get shift for this day — direct assignment first, then cycle fallback
+        const shift =
+          resolveShift(empCd, workDate, empAssignments, defaultShift, shiftsById) ??
+          resolveCycleShift(empCd, workDate, cycleAssignments, cyclesById, shiftsById);
 
         // Get punches for this day and empCd
         const punches = await PunchesService.getPunchesByRange(workDate, workDate, empCd);
@@ -179,6 +189,45 @@ export class DailyMaterializer {
       .select()
       .from(attendanceEmployees)
       .where(eq(attendanceEmployees.active, true));
+  }
+
+  private static async loadCycleAssignments(db: any, from: Date, to: Date): Promise<CycleAssignment[]> {
+    const rows = await db
+      .select()
+      .from(attendanceShiftCycleAssignments)
+      .where(
+        and(
+          lte(attendanceShiftCycleAssignments.effectiveFrom, to),
+          or(
+            isNull(attendanceShiftCycleAssignments.effectiveTo),
+            gte(attendanceShiftCycleAssignments.effectiveTo, from)
+          )
+        )
+      );
+    return rows.map((r: any) => ({
+      empCd: r.empCd,
+      cycleId: r.cycleId,
+      effectiveFrom: new Date(r.effectiveFrom),
+      effectiveTo: r.effectiveTo ? new Date(r.effectiveTo) : null,
+    }));
+  }
+
+  private static async loadCycles(db: any): Promise<Map<number, ShiftCycle>> {
+    const cycles = await db.select().from(attendanceShiftCycles);
+    const slots = await db.select().from(attendanceShiftCycleSlots);
+    const map = new Map<number, ShiftCycle>();
+    for (const c of cycles) {
+      map.set(c.id, {
+        id: c.id,
+        period: c.period,
+        anchorDate: new Date(c.anchorDate),
+        slots: slots
+          .filter((s: any) => s.cycleId === c.id)
+          .sort((a: any, b: any) => a.slotIndex - b.slotIndex)
+          .map((s: any) => ({ slotIndex: s.slotIndex, shiftId: s.shiftId })),
+      });
+    }
+    return map;
   }
 
   private static async loadLeaves(db: any, from: Date, to: Date): Promise<any[]> {

@@ -391,8 +391,9 @@ export const accountingRouter = router({
         db.execute(sql.raw(
           `SELECT COALESCE(SUM(income),0) AS totalIncome, COALESCE(SUM(expense),0) AS totalExpense, COUNT(*) AS txCount FROM accLedger${where}`
         )),
+        // total = running cumulative (الاجمالي), auto-calculated by MySQL after sync
         db.execute(sql.raw(
-          `SELECT COALESCE(SUM(income),0) - COALESCE(SUM(expense),0) AS currentBalance FROM accLedger`
+          `SELECT COALESCE(total, 0) AS currentBalance FROM accLedger ORDER BY txDate DESC, accessId DESC LIMIT 1`
         )),
       ]);
       const p = (periodRes as any)[0]?.[0] ?? {};
@@ -859,6 +860,7 @@ export const accountingRouter = router({
           `UPDATE accLedger SET linkedTable=${sq(mirror.table)}, linkedId=${sq(mRes.insertId)} WHERE id=${ledgerId}`
         ));
       }
+      await recalcLedgerTotals(db);
       return { id: ledgerId };
     }),
 
@@ -902,6 +904,7 @@ export const accountingRouter = router({
           `UPDATE accLedger SET linkedTable=NULL, linkedId=NULL WHERE id=${input.id}`
         ));
       }
+      await recalcLedgerTotals(db);
       return { id: input.id };
     }),
 
@@ -918,6 +921,7 @@ export const accountingRouter = router({
         await deleteMirrorRow(db, cur.linkedTable, cur.linkedId);
       }
       await db.execute(sql.raw(`DELETE FROM accLedger WHERE id=${input.id}`));
+      await recalcLedgerTotals(db);
       return { ok: true };
     }),
 
@@ -1269,6 +1273,23 @@ async function deleteMirrorRow(db: any, table: string, id: number) {
   const allowed = Object.values(ENTITY_TABLE);
   if (!allowed.includes(table)) return;
   await db.execute(sql.raw(`DELETE FROM ${table} WHERE id=${id}`)).catch(() => {});
+}
+
+async function recalcLedgerTotals(db: any) {
+  // Recompute total only for UI-added rows (no accessId); accdb rows keep their synced total
+  await db.execute(sql.raw(`
+    UPDATE accLedger l
+    JOIN (
+      SELECT id,
+        SUM(COALESCE(balance, 0)) OVER (
+          ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC
+          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS running_total
+      FROM accLedger
+    ) sub ON l.id = sub.id
+    SET l.total = sub.running_total
+    WHERE l.accessId IS NULL
+  `));
 }
 
 function buildDateWhere(dateFrom?: string, dateTo?: string): string {

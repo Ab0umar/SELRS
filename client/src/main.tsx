@@ -464,13 +464,10 @@ const trpcClient = trpc.createClient({
 hydrateOfflineQueryCache();
 installOfflineQueryCachePersistence();
 
-// Prevent "mystery reloads" on web (Edge/Chrome sometimes reload a tab on focus / extensions trigger reload).
-// Skip this guard inside desktop wrappers (Electron/WebView2) because it can block closing the app window.
 const isDesktopShell =
   typeof navigator !== "undefined" &&
   (navigator.userAgent.includes("SELRSDesktop/1") || navigator.userAgent.includes("SELRS/1"));
 if (!Capacitor.isNativePlatform() && !isDesktopShell) {
-  installHardReloadBlocker();
   installBeforeUnloadGuard();
 }
 

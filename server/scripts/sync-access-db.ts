@@ -217,27 +217,57 @@ function sqlVal(v: string | null): string {
 // Requires a UNIQUE index on accessId — added during table creation.
 async function batchUpsertLedger(db: any, rows: any[]) {
   if (!rows.length) return;
-  // Ensure unique index exists
   await db.execute(sql.raw(
     "ALTER TABLE accLedger ADD UNIQUE INDEX IF NOT EXISTS uq_accessId (accessId)"
-  )).catch(() => {/* already exists */});
+  )).catch(() => {});
 
   const chunks = chunkArray(rows, 500);
   let count = 0;
   for (const chunk of chunks) {
+    // Only sync source columns (income, expense, txDate, notes).
+    // balance and total are auto-calculated by MySQL after upsert.
     const vals = chunk.map((r: any) => {
       const id = Number(r["ID"] ?? r["id"]);
       const txDate = toDate(r["التاريخ"]);
       if (!id || !txDate) return null;
-      return `(${id}, ${sqlVal(toDecimal(r["الاجمالي"]))}, ${sqlVal(toDecimal(r["الرصيد"]))}, ${sqlVal(toDecimal(r["الايراد"]))}, ${sqlVal(toDecimal(r["المصروف"]))}, '${txDate}', ${sqlVal(String(r["ملاحظات"] ?? "").slice(0, 500) || null)})`;
+      const income  = toDecimal(r["الايراد"]);
+      const expense = toDecimal(r["المصروف"]);
+      const balance = toDecimal(r["الرصيد"]) ?? String(((parseFloat(income ?? "0") || 0) - (parseFloat(expense ?? "0") || 0)).toFixed(2));
+      const total   = toDecimal(r["الاجمالي"]);
+      return `(${id}, ${sqlVal(income)}, ${sqlVal(expense)}, ${sqlVal(balance)}, ${sqlVal(total)}, '${txDate}', ${sqlVal(String(r["ملاحظات"] ?? "").slice(0, 500) || null)})`;
     }).filter(Boolean);
     if (!vals.length) continue;
     await db.execute(sql.raw(
-      `INSERT INTO accLedger (accessId, total, balance, income, expense, txDate, notes) VALUES ${vals.join(",")} ON DUPLICATE KEY UPDATE total=VALUES(total), balance=VALUES(balance), income=VALUES(income), expense=VALUES(expense), txDate=VALUES(txDate), notes=VALUES(notes), syncedAt=NOW()`
+      `INSERT INTO accLedger (accessId, income, expense, balance, total, txDate, notes) VALUES ${vals.join(",")} ON DUPLICATE KEY UPDATE income=VALUES(income), expense=VALUES(expense), balance=VALUES(balance), total=VALUES(total), txDate=VALUES(txDate), notes=VALUES(notes), syncedAt=NOW()`
     ));
     count += vals.length;
   }
-  console.log(`  accLedger: ${count} upserted`);
+
+  // Delete MySQL rows whose accessId is no longer in accdb (orphans from deleted accdb rows)
+  const allIds = rows.map((r: any) => Number(r["ID"] ?? r["id"])).filter(Boolean);
+  if (allIds.length) {
+    const idList = allIds.join(",");
+    await db.execute(sql.raw(
+      `DELETE FROM accLedger WHERE accessId IS NOT NULL AND accessId NOT IN (${idList})`
+    ));
+  }
+
+  // For UI-added rows (accessId IS NULL): compute total as continuation of accdb running sum
+  await db.execute(sql.raw(`
+    UPDATE accLedger l
+    JOIN (
+      SELECT id,
+        SUM(COALESCE(balance, 0)) OVER (
+          ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC
+          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS running_total
+      FROM accLedger
+    ) sub ON l.id = sub.id
+    SET l.total = sub.running_total
+    WHERE l.accessId IS NULL
+  `));
+
+  console.log(`  accLedger: ${count} upserted, balance+total recalculated`);
 }
 
 async function batchUpsertAdvances(db: any, rows: any[]) {

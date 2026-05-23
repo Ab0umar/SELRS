@@ -4,16 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-const WEEKDAYS = [
-  { bit: 0, label: "أح", full: "الأحد" },
-  { bit: 1, label: "إث", full: "الإثنين" },
-  { bit: 2, label: "ث", full: "الثلاثاء" },
-  { bit: 3, label: "أر", full: "الأربعاء" },
-  { bit: 4, label: "خ", full: "الخميس" },
-  { bit: 5, label: "ج", full: "الجمعة" },
-  { bit: 6, label: "س", full: "السبت" },
-];
-
 const BLANK: ShiftForm = {
   name: "",
   startTime: "08:00",
@@ -22,7 +12,6 @@ const BLANK: ShiftForm = {
   graceEarlyMin: 15,
   allowOT: false,
   breakMinutes: 60,
-  weekdayMask: 31, // Sun-Thu (Egypt default)
   requirePunch: true,
 };
 
@@ -34,45 +23,7 @@ interface ShiftForm {
   graceEarlyMin: number;
   allowOT: boolean;
   breakMinutes: number;
-  weekdayMask: number;
   requirePunch: boolean;
-}
-
-function WeekdayPicker({
-  mask,
-  onChange,
-}: {
-  mask: number;
-  onChange: (m: number) => void;
-}) {
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {WEEKDAYS.map(({ bit, label }) => {
-        const active = !!(mask & (1 << bit));
-        return (
-          <button
-            key={bit}
-            type="button"
-            title={WEEKDAYS[bit].full}
-            onClick={() => onChange(mask ^ (1 << bit))}
-            className={`w-10 h-10 rounded-full text-sm font-medium border transition-colors ${
-              active
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-300"
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function maskLabel(mask: number): string {
-  return WEEKDAYS.filter(({ bit }) => mask & (1 << bit))
-    .map(({ label }) => label)
-    .join(" ");
 }
 
 export default function ShiftManagement() {
@@ -123,7 +74,6 @@ export default function ShiftManagement() {
       graceEarlyMin: s.graceEarlyMin,
       allowOT: s.allowOT ?? false,
       breakMinutes: s.breakMinutes,
-      weekdayMask: s.weekdayMask ?? 31,
       requirePunch: s.requirePunch ?? true,
     });
     setShowForm(true);
@@ -202,19 +152,6 @@ export default function ShiftManagement() {
                     required
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-foreground">
-                  أيام العمل
-                </label>
-                <WeekdayPicker
-                  mask={form.weekdayMask}
-                  onChange={(m) => setForm({ ...form, weekdayMask: m })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  الافتراضي: أح-خ (الأحد إلى الخميس)
-                </p>
               </div>
 
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
@@ -367,18 +304,6 @@ export default function ShiftManagement() {
                     >
                       {(s.requirePunch ?? true) ? "يجب البصمة" : "حاضر تلقائي"}
                     </span>
-                    {WEEKDAYS.map(({ bit, label }) => (
-                      <span
-                        key={bit}
-                        className={`rounded-full border px-2 py-1 text-xs font-medium ${
-                          (s.weekdayMask ?? 31) & (1 << bit)
-                            ? "border-primary/20 bg-primary/10 text-primary"
-                            : "border-border bg-background text-muted-foreground"
-                        }`}
-                      >
-                        {label}
-                      </span>
-                    ))}
                   </div>
                 </div>
                 <Button

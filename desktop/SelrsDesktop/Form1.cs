@@ -6,6 +6,7 @@ using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace SelrsDesktop;

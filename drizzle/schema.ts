@@ -1088,6 +1088,41 @@ export const attendanceShiftAssignments = mysqlTable("attendance_shift_assignmen
 export type AttendanceShiftAssignment = typeof attendanceShiftAssignments.$inferSelect;
 export type InsertAttendanceShiftAssignment = typeof attendanceShiftAssignments.$inferInsert;
 
+// ── Shift Cycles ──────────────────────────────────────────────────────────────
+export const attendanceShiftCycles = mysqlTable("attendance_shift_cycles", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  period: mysqlEnum("period", ["day", "week", "month"]).notNull(),
+  anchorDate: date("anchor_date").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const attendanceShiftCycleSlots = mysqlTable("attendance_shift_cycle_slots", {
+  id: int("id").autoincrement().primaryKey(),
+  cycleId: int("cycle_id").notNull(),
+  slotIndex: int("slot_index").notNull(),
+  shiftId: int("shift_id").notNull(),
+}, (table) => ({
+  uqCycleSlot: uniqueIndex("uq_cycle_slot").on(table.cycleId, table.slotIndex),
+  idxCycle: index("idx_cycle_id").on(table.cycleId),
+}));
+
+export const attendanceShiftCycleAssignments = mysqlTable("attendance_shift_cycle_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  cycleId: int("cycle_id").notNull(),
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  idxCycleEmpFrom: index("idx_cycle_emp_from").on(table.empCd, table.effectiveFrom),
+}));
+
+export type AttendanceShiftCycle = typeof attendanceShiftCycles.$inferSelect;
+export type AttendanceShiftCycleSlot = typeof attendanceShiftCycleSlots.$inferSelect;
+export type AttendanceShiftCycleAssignment = typeof attendanceShiftCycleAssignments.$inferSelect;
+
 export const attendanceLeaves = mysqlTable("attendance_leaves", {
   id: int("id").autoincrement().primaryKey(),
   empCd: varchar("emp_cd", { length: 32 }).notNull(),

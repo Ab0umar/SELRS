@@ -24,6 +24,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import AccountingShell from "./AccountingShell";
 import { cn } from "@/lib/utils";
@@ -134,6 +135,9 @@ function formatTime(isoDate: string) {
 }
 
 export default function AccountingHome() {
+  const { user } = useAuth();
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+
   const [viewDate, setViewDate] = useState(
     () => new Date().toISOString().split("T")[0],
   );
@@ -215,6 +219,25 @@ export default function AccountingHome() {
       setTimeout(() => setServiceSaved(false), 2000);
     },
   });
+
+  const syncAccMut = trpc.accounting.triggerAccSync.useMutation();
+  const [syncResult, setSyncResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleAccSync = async () => {
+    setSyncResult(null);
+    try {
+      await syncAccMut.mutateAsync();
+      await Promise.all([
+        cashbookSummaryQuery.refetch(),
+        utils.accounting.accLedger.invalidate(),
+        utils.accounting.accLedgerSummary.invalidate(),
+      ]);
+      setSyncResult({ ok: true, msg: "تمت المزامنة بنجاح" });
+    } catch (e: any) {
+      setSyncResult({ ok: false, msg: e?.message?.slice(0, 120) ?? "فشلت المزامنة" });
+    }
+    setTimeout(() => setSyncResult(null), 4000);
+  };
 
   const deleteReceiptMut = trpc.accounting.deleteReceipt.useMutation({
     onSuccess: async () => {
@@ -392,7 +415,7 @@ export default function AccountingHome() {
             </div>
             <div className="h-px bg-muted" />
             <div className="flex flex-col gap-2.5">
-              <div className="flex gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setActiveTab("cashbook")}
@@ -428,7 +451,23 @@ export default function AccountingHome() {
                   </span>
                   خدمة
                 </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleAccSync}
+                    disabled={syncAccMut.isPending}
+                    className="mr-auto flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("h-3 w-3", syncAccMut.isPending && "animate-spin")} />
+                    {syncAccMut.isPending ? "جارٍ المزامنة..." : "مزامنة الخزنة"}
+                  </button>
+                )}
               </div>
+              {syncResult && (
+                <p className={cn("text-xs font-medium", syncResult.ok ? "text-green-600" : "text-destructive")}>
+                  {syncResult.msg}
+                </p>
+              )}
               {activeTab === "cashbook" && (
                 <div className="flex flex-col gap-1.5">
                   {(

@@ -16,7 +16,7 @@ import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
 import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
 import { getDb, getAllUsers } from '../db';
 import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from '../_core/appNotifications';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
+import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceShiftCycles, attendanceShiftCycleSlots, attendanceShiftCycleAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping } from '../../drizzle/schema';
 import { isNull } from 'drizzle-orm';
 import { desc, eq, and, gte, lte, lt, max, count, sql } from 'drizzle-orm';
 
@@ -917,6 +917,15 @@ export const attendanceRouter = router({
     .mutation(async ({ ctx }) => {
       try {
         const result = await FKDeviceSyncService.syncNow(ctx.user.id);
+
+        // Always recompute today so dashboard stat cards reflect current state
+        // even when no new punches were inserted (e.g. first run or duplicates)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        await dailyMaterializer.recomputeRange(today, tomorrow);
+
         AuditLogService.log({
           action: 'manual_sync_triggered',
           details: { inserted: result.recordsInserted, seen: result.recordsSeen },
@@ -1316,7 +1325,6 @@ export const attendanceRouter = router({
         graceEarlyMin: z.number().int().min(0).default(15),
         allowOT: z.boolean().default(false),
         breakMinutes: z.number().int().min(0).default(60),
-        weekdayMask: z.number().int().min(0).max(127).default(62),
         requirePunch: z.boolean().default(true),
       })
     )
@@ -1334,7 +1342,7 @@ export const attendanceRouter = router({
           graceEarlyMin: input.graceEarlyMin,
           allowOT: input.allowOT,
           breakMinutes: input.breakMinutes,
-          weekdayMask: input.weekdayMask,
+          weekdayMask: 127,
           requirePunch: input.requirePunch,
           active: true,
         });
@@ -1370,7 +1378,6 @@ export const attendanceRouter = router({
         graceEarlyMin: z.number().int().min(0).optional(),
         allowOT: z.boolean().optional(),
         breakMinutes: z.number().int().min(0).optional(),
-        weekdayMask: z.number().int().min(0).max(127).optional(),
         requirePunch: z.boolean().optional(),
       })
     )
@@ -1387,7 +1394,6 @@ export const attendanceRouter = router({
         if (input.graceEarlyMin !== undefined) updateData.graceEarlyMin = input.graceEarlyMin;
         if (input.allowOT !== undefined) updateData.allowOT = input.allowOT;
         if (input.breakMinutes !== undefined) updateData.breakMinutes = input.breakMinutes;
-        if (input.weekdayMask !== undefined) updateData.weekdayMask = input.weekdayMask;
         if (input.requirePunch !== undefined) updateData.requirePunch = input.requirePunch;
 
         await db
@@ -1582,6 +1588,61 @@ export const attendanceRouter = router({
       const db = await getDb();
       if (!db) throw new Error('Database not available');
       await db.delete(attendanceEmployees).where(eq(attendanceEmployees.empCd, input.empCd));
+      return { success: true };
+    }),
+
+  // ─── Swap Shifts Between Two Employees ──────────────────────────────────
+  swapShifts: attendanceManagerProcedure
+    .input(z.object({
+      empCdA: z.string(),
+      empCdB: z.string(),
+      dateFrom: z.string(), // YYYY-MM-DD — start of swap
+      dateTo: z.string(),   // YYYY-MM-DD — last day of swap (inclusive)
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const [aRows, bRows] = await Promise.all([
+        db.select().from(attendanceShiftAssignments)
+          .where(and(eq(attendanceShiftAssignments.empCd, input.empCdA), isNull(attendanceShiftAssignments.effectiveTo)))
+          .limit(1),
+        db.select().from(attendanceShiftAssignments)
+          .where(and(eq(attendanceShiftAssignments.empCd, input.empCdB), isNull(attendanceShiftAssignments.effectiveTo)))
+          .limit(1),
+      ]);
+
+      const aRow = aRows[0];
+      const bRow = bRows[0];
+
+      if (!aRow) throw new Error('لا توجد وردية نشطة للموظف الأول');
+      if (!bRow) throw new Error('لا توجد وردية نشطة للموظف الثاني');
+      if (aRow.shiftId === bRow.shiftId) throw new Error('الموظفان على نفس الوردية بالفعل');
+
+      const fromDate = new Date(input.dateFrom);
+      const toDate = new Date(input.dateTo);
+      const dayBefore = new Date(fromDate); dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter  = new Date(toDate);   dayAfter.setDate(dayAfter.getDate() + 1);
+      const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+      // Close current open assignments the day before the swap starts
+      await Promise.all([
+        db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, aRow.id)),
+        db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, bRow.id)),
+      ]);
+
+      // Insert swapped temp assignments for the swap period
+      await db.insert(attendanceShiftAssignments).values([
+        { empCd: input.empCdA, shiftId: bRow.shiftId, effectiveFrom: input.dateFrom as any, effectiveTo: input.dateTo as any, weekdayMask: aRow.weekdayMask },
+        { empCd: input.empCdB, shiftId: aRow.shiftId, effectiveFrom: input.dateFrom as any, effectiveTo: input.dateTo as any, weekdayMask: bRow.weekdayMask },
+      ]);
+
+      // Restore original shifts starting the day after the swap ends (open-ended)
+      await db.insert(attendanceShiftAssignments).values([
+        { empCd: input.empCdA, shiftId: aRow.shiftId, effectiveFrom: fmt(dayAfter) as any, effectiveTo: null, weekdayMask: aRow.weekdayMask },
+        { empCd: input.empCdB, shiftId: bRow.shiftId, effectiveFrom: fmt(dayAfter) as any, effectiveTo: null, weekdayMask: bRow.weekdayMask },
+      ]);
+
       return { success: true };
     }),
 
@@ -2127,6 +2188,174 @@ export const attendanceRouter = router({
           machineUserId: input.empCd,
         });
       }
+      return { success: true };
+    }),
+
+  // ─── Shift Cycles ────────────────────────────────────────────────────────
+
+  listShiftCycles: attendanceManagerProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      const cycles = await db.select().from(attendanceShiftCycles);
+      const slots = await db.select().from(attendanceShiftCycleSlots);
+      return cycles.map((c) => ({
+        id: c.id,
+        name: c.name,
+        period: c.period,
+        anchorDate: c.anchorDate instanceof Date
+          ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth()+1).padStart(2,'0')}-${String(c.anchorDate.getDate()).padStart(2,'0')}`
+          : String(c.anchorDate).slice(0, 10),
+        slots: slots
+          .filter((s) => s.cycleId === c.id)
+          .sort((a, b) => a.slotIndex - b.slotIndex)
+          .map((s) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
+      }));
+    }),
+
+  createShiftCycle: attendanceManagerProcedure
+    .input(z.object({
+      name: z.string().min(1).max(100),
+      period: z.enum(['day', 'week', 'month']),
+      anchorDate: z.string(),
+      slots: z.array(z.object({ slotIndex: z.number().int(), shiftId: z.number().int() })).min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      const [res] = await db.insert(attendanceShiftCycles).values({
+        name: input.name,
+        period: input.period,
+        anchorDate: input.anchorDate as any,
+      }) as any;
+      const cycleId = res.insertId;
+      for (const slot of input.slots) {
+        await db.insert(attendanceShiftCycleSlots).values({ cycleId, slotIndex: slot.slotIndex, shiftId: slot.shiftId });
+      }
+      return { id: cycleId };
+    }),
+
+  updateShiftCycle: attendanceManagerProcedure
+    .input(z.object({
+      id: z.number().int(),
+      name: z.string().min(1).max(100).optional(),
+      period: z.enum(['day', 'week', 'month']).optional(),
+      anchorDate: z.string().optional(),
+      slots: z.array(z.object({ slotIndex: z.number().int(), shiftId: z.number().int() })).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      const updateData: any = {};
+      if (input.name) updateData.name = input.name;
+      if (input.period) updateData.period = input.period;
+      if (input.anchorDate) updateData.anchorDate = input.anchorDate;
+      if (Object.keys(updateData).length) {
+        await db.update(attendanceShiftCycles).set(updateData).where(eq(attendanceShiftCycles.id, input.id));
+      }
+      if (input.slots) {
+        await db.delete(attendanceShiftCycleSlots).where(eq(attendanceShiftCycleSlots.cycleId, input.id));
+        for (const slot of input.slots) {
+          await db.insert(attendanceShiftCycleSlots).values({ cycleId: input.id, slotIndex: slot.slotIndex, shiftId: slot.shiftId });
+        }
+      }
+      return { success: true };
+    }),
+
+  deleteShiftCycle: attendanceManagerProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      await db.delete(attendanceShiftCycleSlots).where(eq(attendanceShiftCycleSlots.cycleId, input.id));
+      await db.delete(attendanceShiftCycleAssignments).where(eq(attendanceShiftCycleAssignments.cycleId, input.id));
+      await db.delete(attendanceShiftCycles).where(eq(attendanceShiftCycles.id, input.id));
+      return { success: true };
+    }),
+
+  listCycleAssignments: attendanceManagerProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      const rows = await db
+        .select({
+          id: attendanceShiftCycleAssignments.id,
+          empCd: attendanceShiftCycleAssignments.empCd,
+          cycleId: attendanceShiftCycleAssignments.cycleId,
+          effectiveFrom: attendanceShiftCycleAssignments.effectiveFrom,
+          effectiveTo: attendanceShiftCycleAssignments.effectiveTo,
+          empName: attendanceEmployees.fullName,
+          cycleName: attendanceShiftCycles.name,
+          period: attendanceShiftCycles.period,
+        })
+        .from(attendanceShiftCycleAssignments)
+        .leftJoin(attendanceEmployees, eq(attendanceShiftCycleAssignments.empCd, attendanceEmployees.empCd))
+        .leftJoin(attendanceShiftCycles, eq(attendanceShiftCycleAssignments.cycleId, attendanceShiftCycles.id));
+      return rows.map((r: any) => ({
+        ...r,
+        effectiveFrom: r.effectiveFrom instanceof Date
+          ? `${r.effectiveFrom.getFullYear()}-${String(r.effectiveFrom.getMonth()+1).padStart(2,'0')}-${String(r.effectiveFrom.getDate()).padStart(2,'0')}`
+          : String(r.effectiveFrom ?? '').slice(0, 10),
+        effectiveTo: r.effectiveTo
+          ? (r.effectiveTo instanceof Date
+            ? `${r.effectiveTo.getFullYear()}-${String(r.effectiveTo.getMonth()+1).padStart(2,'0')}-${String(r.effectiveTo.getDate()).padStart(2,'0')}`
+            : String(r.effectiveTo).slice(0, 10))
+          : null,
+      }));
+    }),
+
+  assignCycle: attendanceManagerProcedure
+    .input(z.object({
+      empCds: z.array(z.string()).min(1),
+      cycleId: z.number().int(),
+      effectiveFrom: z.string(),
+      effectiveTo: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      for (const empCd of input.empCds) {
+        await db.execute(sql`
+          UPDATE attendance_shift_cycle_assignments
+          SET effective_to = ${input.effectiveFrom}
+          WHERE emp_cd = ${empCd} AND effective_to IS NULL
+        `);
+        await db.insert(attendanceShiftCycleAssignments).values({
+          empCd,
+          cycleId: input.cycleId,
+          effectiveFrom: input.effectiveFrom as any,
+          effectiveTo: input.effectiveTo ? input.effectiveTo as any : null,
+        });
+      }
+      return { inserted: input.empCds.length };
+    }),
+
+  updateCycleAssignment: attendanceManagerProcedure
+    .input(z.object({
+      id: z.number().int(),
+      cycleId: z.number().int().optional(),
+      effectiveFrom: z.string().optional(),
+      effectiveTo: z.string().nullable().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      const upd: any = {};
+      if (input.cycleId !== undefined) upd.cycleId = input.cycleId;
+      if (input.effectiveFrom !== undefined) upd.effectiveFrom = input.effectiveFrom as any;
+      if (input.effectiveTo !== undefined) upd.effectiveTo = input.effectiveTo ? input.effectiveTo as any : null;
+      if (Object.keys(upd).length) {
+        await db.update(attendanceShiftCycleAssignments).set(upd).where(eq(attendanceShiftCycleAssignments.id, input.id));
+      }
+      return { success: true };
+    }),
+
+  removeCycleAssignment: attendanceManagerProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      await db.delete(attendanceShiftCycleAssignments).where(eq(attendanceShiftCycleAssignments.id, input.id));
       return { success: true };
     }),
 });

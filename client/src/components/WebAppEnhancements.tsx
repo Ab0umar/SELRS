@@ -290,7 +290,7 @@ function AppNotificationPanel() {
             </span>
           </div>
           <div className="font-semibold">{item.title}</div>
-          <p className="text-[13px] opacity-80">{item.message}</p>
+          <p className="text-[13px] text-foreground/70">{item.message}</p>
         </article>
       ))}
       <div className="flex justify-end">
