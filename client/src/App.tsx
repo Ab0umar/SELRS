@@ -116,6 +116,12 @@ const AttendanceEmployeesHub = lazy(() => import("./pages/attendance/EmployeesHu
 const AttendanceReportsHub = lazy(() => import("./pages/attendance/ReportsHub"));
 const AttendanceSettingsHub = lazy(() => import("./pages/attendance/SettingsHub"));
 const AttendanceDeviceSettings = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
+// Salary module
+import SalaryLayout from "./pages/salary/SalaryLayout";
+const SalaryBasics = lazy(() => import("./pages/salary/SalaryBasics"));
+const SalaryPenalties = lazy(() => import("./pages/salary/SalaryPenalties"));
+const CommissionPools = lazy(() => import("./pages/salary/CommissionPools"));
+const PayrollReport = lazy(() => import("./pages/salary/PayrollReport"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -289,6 +295,12 @@ const Router = memo(function Router() {
       <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettingsHub /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDeviceSettings /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDeviceSettings /></AttendanceLayout></ProtectedRoute>} />
+
+      {/* Salary Module Routes */}
+      <Route path={"/salary"} component={() => <ProtectedRoute><SalaryLayout><SalaryBasics /></SalaryLayout></ProtectedRoute>} />
+      <Route path={"/salary/penalties"} component={() => <ProtectedRoute><SalaryLayout><SalaryPenalties /></SalaryLayout></ProtectedRoute>} />
+      <Route path={"/salary/pools"} component={() => <ProtectedRoute><SalaryLayout><CommissionPools /></SalaryLayout></ProtectedRoute>} />
+      <Route path={"/salary/payroll"} component={() => <ProtectedRoute><SalaryLayout><PayrollReport /></SalaryLayout></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />

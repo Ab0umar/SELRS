@@ -1273,7 +1273,90 @@ export const attendanceDeviceSettings = mysqlTable("attendance_device_settings",
 export type AttendanceDeviceSettings = typeof attendanceDeviceSettings.$inferSelect;
 export type InsertAttendanceDeviceSettings = typeof attendanceDeviceSettings.$inferInsert;
 
+// ============================================================
+// SALARY MODULE
+// ============================================================
 
+export const salaryBasics = mysqlTable("salary_basics", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  basicAmount: decimal("basic_amount", { precision: 12, scale: 2 }).notNull(),
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  notes: varchar("notes", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxSalaryEmp: index("idx_salary_emp").on(table.empCd),
+}));
+
+export type SalaryBasic = typeof salaryBasics.$inferSelect;
+export type InsertSalaryBasic = typeof salaryBasics.$inferInsert;
+
+export const salaryPenalties = mysqlTable("salary_penalties", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  reason: varchar("reason", { length: 500 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxPenaltyEmpMonth: index("idx_penalty_emp_month").on(table.empCd, table.year, table.month),
+}));
+
+export type SalaryPenalty = typeof salaryPenalties.$inferSelect;
+export type InsertSalaryPenalty = typeof salaryPenalties.$inferInsert;
+
+export const salaryCommissionPools = mysqlTable("salary_commission_pools", {
+  id: int("id").autoincrement().primaryKey(),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+  examPool: decimal("exam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
+  pentacamPool: decimal("pentacam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
+  notes: varchar("notes", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  uqPoolYearMonth: uniqueIndex("uq_pool_year_month").on(table.year, table.month),
+}));
+
+export type SalaryCommissionPool = typeof salaryCommissionPools.$inferSelect;
+export type InsertSalaryCommissionPool = typeof salaryCommissionPools.$inferInsert;
+
+export const salaryPayroll = mysqlTable("salary_payroll", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+  basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).notNull(),
+  workingDays: int("working_days").default(0).notNull(),
+  absentDays: int("absent_days").default(0).notNull(),
+  lateMinutes: int("late_minutes").default(0).notNull(),
+  leaveDays: int("leave_days").default(0).notNull(),
+  absentDeduction: decimal("absent_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
+  lateDeduction: decimal("late_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
+  penaltyDeduction: decimal("penalty_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalDeductions: decimal("total_deductions", { precision: 12, scale: 2 }).default("0").notNull(),
+  deductionPct: decimal("deduction_pct", { precision: 6, scale: 4 }).default("0").notNull(),
+  leaveMultiplier: decimal("leave_multiplier", { precision: 4, scale: 2 }).default("1").notNull(),
+  netBasic: decimal("net_basic", { precision: 12, scale: 2 }).notNull(),
+  attendanceCommission: decimal("attendance_commission", { precision: 12, scale: 2 }).default("0").notNull(),
+  examCommission: decimal("exam_commission", { precision: 12, scale: 2 }).default("0").notNull(),
+  pentacamCommission: decimal("pentacam_commission", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalCommission: decimal("total_commission", { precision: 12, scale: 2 }).default("0").notNull(),
+  totalPay: decimal("total_pay", { precision: 12, scale: 2 }).notNull(),
+  payrollStatus: mysqlEnum("payroll_status", ["draft", "final"]).default("draft").notNull(),
+  computedAt: timestamp("computed_at").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  uqPayrollEmpMonth: uniqueIndex("uq_payroll_emp_month").on(table.empCd, table.year, table.month),
+  idxPayrollYearMonth: index("idx_payroll_year_month").on(table.year, table.month),
+}));
+
+export type SalaryPayroll = typeof salaryPayroll.$inferSelect;
+export type InsertSalaryPayroll = typeof salaryPayroll.$inferInsert;
 
 
 
