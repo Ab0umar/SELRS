@@ -84,9 +84,9 @@ export default function BatchCorrections() {
       </p>
 
       {successMessage && (
-        <Alert className="border-green-600 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
+        <Alert className="border-success/30 bg-success/10">
+          <CheckCircle className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">{successMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -186,7 +186,7 @@ export default function BatchCorrections() {
                       onClick={() => removeEntry(entry.id)}
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:bg-red-50"
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -219,11 +219,11 @@ export default function BatchCorrections() {
         </div>
       )}
 
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-primary/10 border-primary/20">
         <CardHeader>
           <CardTitle className="text-base">How to Use</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm space-y-2 text-blue-900">
+        <CardContent className="text-sm space-y-2 text-primary">
           <p>
             • <strong>Add missing punches:</strong> Employee forgot to clock in/out
           </p>
@@ -236,7 +236,7 @@ export default function BatchCorrections() {
           <p>
             • <strong>Add notes:</strong> Document the reason for any correction
           </p>
-          <p className="text-xs text-blue-700 mt-3">
+          <p className="text-xs text-primary/80 mt-3">
             All corrections are tracked in the audit log with user and timestamp information.
           </p>
         </CardContent>

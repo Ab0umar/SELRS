@@ -154,12 +154,12 @@ export default function DeviceSettings() {
             <CardTitle className="flex items-center gap-2">
               {status?.connected ? (
                 <>
-                  <Wifi className="w-5 h-5 text-green-600" />
+                  <Wifi className="w-5 h-5 text-success" />
                   الجهاز متصل
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-5 h-5 text-red-600" />
+                  <WifiOff className="w-5 h-5 text-destructive" />
                   الجهاز غير متصل
                 </>
               )}
@@ -245,9 +245,9 @@ export default function DeviceSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           {showSuccess && (
-            <Alert variant="default" className="border-green-600 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert variant="default" className="border-success/30 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
                 تم حفظ الإعدادات بنجاح
               </AlertDescription>
             </Alert>
@@ -332,9 +332,9 @@ export default function DeviceSettings() {
             {syncNow.isPending ? "جارٍ المزامنة..." : "مزامنة الآن"}
           </Button>
           {syncNow.data && (
-            <Alert className="border-green-600 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-success/30 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
                 تم {syncNow.data.status}، عدد الصفوف المضافة:{" "}
                 {syncNow.data.rowsInserted}
               </AlertDescription>
@@ -366,9 +366,9 @@ export default function DeviceSettings() {
             {materializeDaily.isPending ? "جارٍ الحساب..." : "توليد السجلات"}
           </Button>
           {materializeDaily.data && (
-            <Alert className="border-green-600 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-success/30 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
                 {materializeDaily.data.message}
               </AlertDescription>
             </Alert>
@@ -403,9 +403,9 @@ export default function DeviceSettings() {
               : "تهيئة الورديات الافتراضية"}
           </Button>
           {bootstrapShifts.data && (
-            <Alert className="border-green-600 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-success/30 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
                 {bootstrapShifts.data.message}
               </AlertDescription>
             </Alert>

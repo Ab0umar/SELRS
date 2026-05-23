@@ -79,12 +79,12 @@ export default function LivePunches() {
           <CardTitle className="flex items-center gap-2">
             {deviceStatus?.connected ? (
               <>
-                <Wifi className="w-5 h-5 text-green-600" />
+                <Wifi className="w-5 h-5 text-success" />
                 Device Connected
               </>
             ) : (
               <>
-                <WifiOff className="w-5 h-5 text-red-600" />
+                <WifiOff className="w-5 h-5 text-destructive" />
                 Device Offline
               </>
             )}
@@ -144,11 +144,11 @@ export default function LivePunches() {
                 >
                   <div className="flex-shrink-0">
                     {punch.direction === 'in' ? (
-                      <ArrowRightFromLine className="w-5 h-5 text-green-600" />
+                      <ArrowRightFromLine className="w-5 h-5 text-success" />
                     ) : punch.direction === 'out' ? (
-                      <ArrowLeftFromLine className="w-5 h-5 text-blue-600" />
+                      <ArrowLeftFromLine className="w-5 h-5 text-primary" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                      <AlertCircle className="w-5 h-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

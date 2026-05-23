@@ -464,7 +464,7 @@ export default function AccountingHome() {
                 )}
               </div>
               {syncResult && (
-                <p className={cn("text-xs font-medium", syncResult.ok ? "text-green-600" : "text-destructive")}>
+                <p className={cn("text-xs font-medium", syncResult.ok ? "text-success" : "text-destructive")}>
                   {syncResult.msg}
                 </p>
               )}

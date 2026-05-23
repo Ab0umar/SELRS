@@ -132,9 +132,9 @@ export default function DeviceConsole() {
               <p className="text-gray-600">Status</p>
               <p className="font-semibold">
                 {deviceStatusQuery.data?.connected ? (
-                  <span className="text-green-600">Connected</span>
+                  <span className="text-success">Connected</span>
                 ) : (
-                  <span className="text-red-600">Offline</span>
+                  <span className="text-destructive">Offline</span>
                 )}
               </p>
             </div>
@@ -291,9 +291,9 @@ export default function DeviceConsole() {
                 <div key={log.id}>
                   <span className="text-gray-500">{log.timestamp.toLocaleTimeString()}</span>
                   <span className="ml-2">
-                    {log.type === 'command' && <span className="text-blue-400">[CMD]</span>}
-                    {log.type === 'response' && <span className="text-green-400">[RES]</span>}
-                    {log.type === 'error' && <span className="text-red-400">[ERR]</span>}
+                    {log.type === 'command' && <span className="text-primary">[CMD]</span>}
+                    {log.type === 'response' && <span className="text-success">[RES]</span>}
+                    {log.type === 'error' && <span className="text-destructive">[ERR]</span>}
                   </span>
                   <span className="ml-2">{log.message}</span>
                 </div>

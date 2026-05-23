@@ -146,7 +146,7 @@ export default function Holidays() {
                   {holidays.map((h: any) => {
                     const isEditing = editingDate === h.date;
                     return (
-                      <tr key={h.date} className={`border-b ${isEditing ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <tr key={h.date} className={`border-b ${isEditing ? 'bg-primary/10' : 'hover:bg-gray-50'}`}>
                         <td className="py-2 px-4 font-mono">{h.date}</td>
                         {isEditing ? (
                           <>
@@ -165,7 +165,7 @@ export default function Holidays() {
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="sm" disabled={addMut.isPending}
                                   onClick={() => addMut.mutate({ date: h.date, label: editRow.label, paid: editRow.paid })}>
-                                  <Check size={15} className="text-green-600" />
+                                  <Check size={15} className="text-success" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => setEditingDate(null)}>
                                   <X size={15} className="text-gray-500" />
@@ -176,14 +176,14 @@ export default function Holidays() {
                         ) : (
                           <>
                             <td className="py-2 px-4 font-medium">{h.label}</td>
-                            <td className="py-2 px-4">{h.paid ? <span className="text-green-600">نعم</span> : <span className="text-gray-400">لا</span>}</td>
+                            <td className="py-2 px-4">{h.paid ? <span className="text-success">نعم</span> : <span className="text-gray-400">لا</span>}</td>
                             <td className="py-2 px-4">
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="sm" onClick={() => { setEditingDate(h.date); setEditRow({ label: h.label, paid: h.paid }); }}>
-                                  <Pencil size={15} className="text-blue-500" />
+                                  <Pencil size={15} className="text-primary" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: h.date })} disabled={deleteMut.isPending}>
-                                  <Trash2 size={15} className="text-red-500" />
+                                  <Trash2 size={15} className="text-destructive" />
                                 </Button>
                               </div>
                             </td>

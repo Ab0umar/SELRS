@@ -15,6 +15,7 @@ import {
   attendanceEmployees,
   attendanceLeaves,
   attendanceHolidays,
+  attendancePermissions,
 } from '../../../drizzle/schema';
 import { eq, and, lte, gte, isNull, or } from 'drizzle-orm';
 import {
@@ -58,6 +59,7 @@ export class DailyMaterializer {
     const leaves = await this.loadLeaves(db, fromDate, toDate);
     const holidays = await this.loadHolidays(db, fromDate, toDate);
     const holidaySet = new Set(holidays.map((h) => this.dateKey(h.date)));
+    const permissions = await this.loadPermissions(db, fromDate, toDate);
 
     // Collect all employees to process
     const empCodes = scope?.empCd ? [scope.empCd] : employees.map((e) => e.empCd);
@@ -85,8 +87,16 @@ export class DailyMaterializer {
         const isHoliday = holidaySet.has(this.dateKey(workDate));
 
         // Get shift for this day — direct assignment first, then cycle fallback
+        // If employee has an active cycle, don't fall back to defaultShift on rest days
+        const workDateStr = this.dateKey(workDate);
+        const hasActiveCycle = cycleAssignments.some((ca) => {
+          if (ca.empCd !== empCd) return false;
+          const fromStr = this.dateKey(ca.effectiveFrom);
+          const toStr = ca.effectiveTo ? this.dateKey(ca.effectiveTo) : null;
+          return fromStr <= workDateStr && (toStr === null || toStr >= workDateStr);
+        });
         const shift =
-          resolveShift(empCd, workDate, empAssignments, defaultShift, shiftsById) ??
+          resolveShift(empCd, workDate, empAssignments, hasActiveCycle ? null : defaultShift, shiftsById) ??
           resolveCycleShift(empCd, workDate, cycleAssignments, cyclesById, shiftsById);
 
         // Get punches for this day and empCd
@@ -117,8 +127,22 @@ export class DailyMaterializer {
 
         const result = computeDay(ctx);
 
+        // Apply approved permissions — reduce lateMinutes / earlyLeaveMin
+        const dayPerms = permissions.filter(
+          (p) => p.empCd === empCd && p.approved && this.dateKey(new Date(p.date)) === workDateStr
+        );
+        for (const perm of dayPerms) {
+          if (perm.type === 'in') {
+            result.lateMinutes = Math.max(0, (result.lateMinutes || 0) - perm.durationMinutes);
+          } else if (perm.type === 'out') {
+            result.earlyLeaveMin = Math.max(0, (result.earlyLeaveMin || 0) - perm.durationMinutes);
+          }
+        }
+        if (result.status === 'partial' && result.lateMinutes === 0 && result.earlyLeaveMin === 0) {
+          result.status = 'present';
+        }
+
         // UPSERT to attendance_daily
-        const workDateStr = this.dateKey(result.workDate); // 'YYYY-MM-DD' — avoids UTC timezone shift
         await db
           .insert(attendanceDaily)
           .values({
@@ -228,6 +252,18 @@ export class DailyMaterializer {
       });
     }
     return map;
+  }
+
+  private static async loadPermissions(db: any, from: Date, to: Date): Promise<any[]> {
+    return await db
+      .select()
+      .from(attendancePermissions)
+      .where(
+        and(
+          gte(attendancePermissions.date, from),
+          lte(attendancePermissions.date, to)
+        )
+      );
   }
 
   private static async loadLeaves(db: any, from: Date, to: Date): Promise<any[]> {
