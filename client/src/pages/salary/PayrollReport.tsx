@@ -73,12 +73,10 @@ export default function PayrollReport() {
       </div>
 
       {rows.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { label: "الرواتب الأساسية", value: fmt(totals.basic), tone: "text-foreground" },
             { label: "الخصومات", value: fmt(totals.deductions), tone: "text-destructive" },
-            { label: "صافي الأساسي", value: fmt(totals.netBasic), tone: "text-foreground" },
-            { label: "العمولات", value: fmt(totals.commission), tone: "text-success" },
             { label: "الإجمالي الكلي", value: fmt(totals.totalPay), tone: "text-primary font-bold" },
           ].map((m) => (
             <div key={m.label} className="rounded-xl border border-border bg-card px-4 py-3">
@@ -86,6 +84,20 @@ export default function PayrollReport() {
               <div className={`mt-1 text-lg font-bold ${m.tone}`}>{m.value}</div>
             </div>
           ))}
+        </div>
+      )}
+      {rows.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">دفعة يوم 1 — الراتب</div>
+            <div className="mt-1 text-2xl font-bold text-foreground">{fmt(totals.netBasic)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">صافي الراتب الأساسي بعد الخصومات</div>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">دفعة يوم 10 — المكافآت</div>
+            <div className="mt-1 text-2xl font-bold text-success">{fmt(totals.commission)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">حضور + فحص + بنتاكام</div>
+          </div>
         </div>
       )}
 
@@ -116,6 +128,8 @@ export default function PayrollReport() {
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">حضور</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">فحص</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 1</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 10</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">الإجمالي</th>
               </tr>
             </thead>
@@ -138,11 +152,13 @@ export default function PayrollReport() {
                   <td className="px-3 py-3 text-right text-success">{fmt(r.attendanceCommission)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.examCommission)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.pentacamCommission)}</td>
+                  <td className="px-3 py-3 text-right font-medium">{fmt(r.netBasic)}</td>
+                  <td className="px-3 py-3 text-right font-medium text-success">{fmt(r.totalCommission)}</td>
                   <td className="px-3 py-3 text-right font-bold text-primary text-base">{fmt(r.totalPay)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+                <tr><td colSpan={16} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
               )}
             </tbody>
           </table>

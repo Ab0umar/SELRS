@@ -1281,6 +1281,12 @@ export const salaryBasics = mysqlTable("salary_basics", {
   id: int("id").autoincrement().primaryKey(),
   empCd: varchar("emp_cd", { length: 32 }).notNull(),
   basicAmount: decimal("basic_amount", { precision: 12, scale: 2 }).notNull(),
+  socialAllowance: decimal("social_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
+  costOfLivingAllowance: decimal("cost_of_living_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
+  transportAllowance: decimal("transport_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
+  workNatureAllowance: decimal("work_nature_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
+  receptionAllowance: decimal("reception_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
+  yearlyRaise: decimal("yearly_raise", { precision: 12, scale: 2 }).notNull().default("0"),
   effectiveFrom: date("effective_from").notNull(),
   effectiveTo: date("effective_to"),
   notes: varchar("notes", { length: 255 }),
@@ -1313,8 +1319,13 @@ export const salaryCommissionPools = mysqlTable("salary_commission_pools", {
   id: int("id").autoincrement().primaryKey(),
   year: int("year").notNull(),
   month: int("month").notNull(),
+  examCount: int("exam_count").default(0).notNull(),
   examPool: decimal("exam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
   pentacamPool: decimal("pentacam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
+  cases450: int("cases_450").default(0).notNull(),
+  cases400: int("cases_400").default(0).notNull(),
+  cases350: int("cases_350").default(0).notNull(),
+  cases250: int("cases_250").default(0).notNull(),
   notes: varchar("notes", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
@@ -1357,6 +1368,20 @@ export const salaryPayroll = mysqlTable("salary_payroll", {
 
 export type SalaryPayroll = typeof salaryPayroll.$inferSelect;
 export type InsertSalaryPayroll = typeof salaryPayroll.$inferInsert;
+
+export const salaryRaiseHistory = mysqlTable("salary_raise_history", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  raiseAmount: decimal("raise_amount", { precision: 12, scale: 2 }).notNull(),
+  notes: varchar("notes", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uqRaiseEmpYear: uniqueIndex("uq_raise_emp_year").on(table.empCd, table.year),
+  idxRaiseEmp: index("idx_raise_emp").on(table.empCd),
+}));
+
+export type SalaryRaiseHistory = typeof salaryRaiseHistory.$inferSelect;
 
 
 

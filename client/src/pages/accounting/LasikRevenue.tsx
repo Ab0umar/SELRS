@@ -24,8 +24,10 @@ import {
   RefreshCw,
   Search,
   ClipboardList,
+  X,
+  ChevronDown as DropdownIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
 import styles from "./LasikRevenue.module.css";
@@ -45,6 +47,11 @@ type ServiceRevenueQuery = {
   refetch: () => Promise<unknown>;
 };
 
+type CatalogQuery = {
+  data?: { services: { code: string; name: string; price: number }[]; doctors: { code: string; name: string }[] };
+  isLoading: boolean;
+};
+
 type AccountingTrpc = typeof trpc & {
   accounting: {
     serviceRevenue: {
@@ -52,6 +59,9 @@ type AccountingTrpc = typeof trpc & {
         input: ServiceRevenueInput,
         options?: { refetchOnWindowFocus?: boolean },
       ) => ServiceRevenueQuery;
+    };
+    serviceEntryCatalog: {
+      useQuery: (input: undefined, options?: { refetchOnWindowFocus?: boolean }) => CatalogQuery;
     };
   };
 };
@@ -88,15 +98,17 @@ function readFilters(search: string): ServiceRevenueInput {
   const sectionCode = Number.isFinite(sectionParsed)
     ? sectionParsed
     : DEFAULT_SECTION_CODE;
-  const doctorCode = params.get("doctorCode")?.trim() || undefined;
-  const serviceCode = params.get("serviceCode")?.trim() || undefined;
+  const drRaw = params.get("doctorCodes");
+  const svcRaw = params.get("serviceCodes");
+  const doctorCodes = drRaw ? drRaw.split(",").map((c) => c.trim()).filter(Boolean) : undefined;
+  const serviceCodes = svcRaw ? svcRaw.split(",").map((c) => c.trim()).filter(Boolean) : undefined;
 
   return {
     fromDate: params.get("fromDate") || defaults.fromDate,
     toDate: params.get("toDate") || defaults.toDate,
     sectionCode,
-    doctorCode,
-    serviceCode,
+    doctorCodes: doctorCodes?.length ? doctorCodes : undefined,
+    serviceCodes: serviceCodes?.length ? serviceCodes : undefined,
   };
 }
 
@@ -109,12 +121,12 @@ function buildServiceRevenueUrl(input: ServiceRevenueInput) {
     params.set("sectionCode", String(input.sectionCode));
   }
 
-  if (input.doctorCode?.trim()) {
-    params.set("doctorCode", input.doctorCode.trim());
+  if (input.doctorCodes?.length) {
+    params.set("doctorCodes", input.doctorCodes.join(","));
   }
 
-  if (input.serviceCode?.trim()) {
-    params.set("serviceCode", input.serviceCode.trim());
+  if (input.serviceCodes?.length) {
+    params.set("serviceCodes", input.serviceCodes.join(","));
   }
 
   const qs = params.toString();
@@ -198,31 +210,25 @@ export default function LasikRevenue() {
   const filters = useMemo(() => readFilters(search), [search]);
   const [draft, setDraft] = useState(filters);
   const [dateError, setDateError] = useState("");
-  const [debouncedDoctor, setDebouncedDoctor] = useState(
-    filters.doctorCode ?? "",
-  );
-  const [debouncedService, setDebouncedService] = useState(
-    filters.serviceCode ?? "",
-  );
+  const [doctorOpen, setDoctorOpen] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
+  const doctorRef = useRef<HTMLDivElement>(null);
+  const serviceRef = useRef<HTMLDivElement>(null);
 
-  // Debounce effect
+  const catalogQuery = accountingTrpc.accounting.serviceEntryCatalog.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const allDoctors = catalogQuery.data?.doctors ?? [];
+  const allServices = catalogQuery.data?.services ?? [];
+
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedDoctor(draft.doctorCode ?? "");
-      setDebouncedService(draft.serviceCode ?? "");
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [draft.doctorCode, draft.serviceCode]);
-
-  const doctorLookup = accountingTrpc.accounting.doctorLookup.useQuery(
-    { doctorCode: debouncedDoctor },
-    { enabled: debouncedDoctor.length > 0 },
-  );
-
-  const serviceLookup = accountingTrpc.accounting.serviceLookup.useQuery(
-    { serviceCode: debouncedService, sectionCode: draft.sectionCode },
-    { enabled: debouncedService.length > 0 },
-  );
+    function handleClick(e: MouseEvent) {
+      if (doctorRef.current && !doctorRef.current.contains(e.target as Node)) setDoctorOpen(false);
+      if (serviceRef.current && !serviceRef.current.contains(e.target as Node)) setServiceOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   useEffect(() => {
     setDraft(filters);
@@ -287,8 +293,8 @@ export default function LasikRevenue() {
     const next: ServiceRevenueInput = {
       ...defaults,
       sectionCode: DEFAULT_SECTION_CODE,
-      doctorCode: undefined,
-      serviceCode: undefined,
+      doctorCodes: undefined,
+      serviceCodes: undefined,
     };
     setDraft(next);
     setLocation(buildServiceRevenueUrl(next));
@@ -402,58 +408,113 @@ export default function LasikRevenue() {
                 }
               />
             </label>
-            <label
-              htmlFor="lasik-doctor-code"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>كود الطبيب</span>
-              <Input
-                id="lasik-doctor-code"
-                value={draft.doctorCode ?? ""}
-                placeholder="اختياري"
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    doctorCode: event.target.value.trim() || undefined,
-                  }))
-                }
-              />
-              {draft.doctorCode && (
-                <span className="text-xs text-muted-foreground block mt-1">
-                  {doctorLookup.isLoading
-                    ? "جاري البحث..."
-                    : doctorLookup.data
-                      ? `الاسم: ${doctorLookup.data.doctorName}`
-                      : "غير موجود"}
-                </span>
-              )}
-            </label>
-            <label
-              htmlFor="lasik-service-code"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>كود الخدمة</span>
-              <Input
-                id="lasik-service-code"
-                value={draft.serviceCode ?? ""}
-                placeholder="اختياري"
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    serviceCode: event.target.value.trim() || undefined,
-                  }))
-                }
-              />
-              {draft.serviceCode && (
-                <span className="text-xs text-muted-foreground block mt-1">
-                  {serviceLookup.isLoading
-                    ? "جاري البحث..."
-                    : serviceLookup.data
-                      ? `الاسم: ${serviceLookup.data.serviceName}`
-                      : "غير موجود"}
-                </span>
-              )}
-            </label>
+            {/* Doctor multi-select */}
+            <div className="space-y-1.5 text-sm font-medium" ref={doctorRef}>
+              <span>الطبيب</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setDoctorOpen((o) => !o)}
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
+                >
+                  <span className="flex flex-wrap gap-1 min-w-0">
+                    {(draft.doctorCodes ?? []).length === 0
+                      ? <span className="text-muted-foreground">الكل</span>
+                      : (draft.doctorCodes ?? []).map((code) => {
+                          const dr = allDoctors.find((d) => d.code === code);
+                          return (
+                            <span key={code} className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs">
+                              {dr ? `${code} - ${dr.name}` : code}
+                              <button
+                                type="button"
+                                onMouseDown={(e) => { e.stopPropagation(); setDraft((p) => ({ ...p, doctorCodes: (p.doctorCodes ?? []).filter((c) => c !== code) || undefined })); }}
+                                className="text-muted-foreground hover:text-destructive"
+                              ><X className="h-3 w-3" /></button>
+                            </span>
+                          );
+                        })}
+                  </span>
+                  <DropdownIcon className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
+                </button>
+                {doctorOpen && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
+                    {catalogQuery.isLoading
+                      ? <div className="px-3 py-2 text-xs text-muted-foreground">جاري التحميل...</div>
+                      : allDoctors.map((dr) => {
+                          const selected = (draft.doctorCodes ?? []).includes(dr.code);
+                          return (
+                            <label key={dr.code} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => setDraft((p) => {
+                                  const cur = p.doctorCodes ?? [];
+                                  return { ...p, doctorCodes: selected ? cur.filter((c) => c !== dr.code) : [...cur, dr.code] };
+                                })}
+                                className="accent-primary"
+                              />
+                              {dr.code} — {dr.name}
+                            </label>
+                          );
+                        })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Service multi-select */}
+            <div className="space-y-1.5 text-sm font-medium" ref={serviceRef}>
+              <span>الخدمة</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setServiceOpen((o) => !o)}
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
+                >
+                  <span className="flex flex-wrap gap-1 min-w-0">
+                    {(draft.serviceCodes ?? []).length === 0
+                      ? <span className="text-muted-foreground">الكل</span>
+                      : (draft.serviceCodes ?? []).map((code) => {
+                          const svc = allServices.find((s) => s.code === code);
+                          return (
+                            <span key={code} className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs">
+                              {svc ? `${code} - ${svc.name}` : code}
+                              <button
+                                type="button"
+                                onMouseDown={(e) => { e.stopPropagation(); setDraft((p) => ({ ...p, serviceCodes: (p.serviceCodes ?? []).filter((c) => c !== code) || undefined })); }}
+                                className="text-muted-foreground hover:text-destructive"
+                              ><X className="h-3 w-3" /></button>
+                            </span>
+                          );
+                        })}
+                  </span>
+                  <DropdownIcon className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
+                </button>
+                {serviceOpen && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
+                    {catalogQuery.isLoading
+                      ? <div className="px-3 py-2 text-xs text-muted-foreground">جاري التحميل...</div>
+                      : allServices.map((svc) => {
+                          const selected = (draft.serviceCodes ?? []).includes(svc.code);
+                          return (
+                            <label key={svc.code} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => setDraft((p) => {
+                                  const cur = p.serviceCodes ?? [];
+                                  return { ...p, serviceCodes: selected ? cur.filter((c) => c !== svc.code) : [...cur, svc.code] };
+                                })}
+                                className="accent-primary"
+                              />
+                              {svc.code} — {svc.name}
+                            </label>
+                          );
+                        })}
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex items-end gap-2">
               <Button
                 type="button"
@@ -515,11 +576,11 @@ export default function LasikRevenue() {
                 {toArabicDigits(
                   String(filters.sectionCode ?? DEFAULT_SECTION_CODE),
                 )}
-                {filters.doctorCode
-                  ? ` | كود الطبيب: ${toArabicDigits(filters.doctorCode)}`
+                {filters.doctorCodes?.length
+                  ? ` | الأطباء: ${filters.doctorCodes.map(toArabicDigits).join("، ")}`
                   : ""}
-                {filters.serviceCode
-                  ? ` | كود الخدمة: ${toArabicDigits(filters.serviceCode)}`
+                {filters.serviceCodes?.length
+                  ? ` | الخدمات: ${filters.serviceCodes.map(toArabicDigits).join("، ")}`
                   : ""}
               </p>
             </div>

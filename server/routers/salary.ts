@@ -6,10 +6,21 @@ import {
   salaryPenalties,
   salaryCommissionPools,
   salaryPayroll,
+  salaryRaiseHistory,
   attendanceEmployees,
 } from '../../drizzle/schema';
 import { eq, and, gte, lte, isNull, or, desc } from 'drizzle-orm';
-import { PayrollComputeService } from '../services/salary/payrollCompute.service';
+import { PayrollComputeService, calcPentacamPool } from '../services/salary/payrollCompute.service';
+
+const allowanceInput = z.object({
+  basicAmount: z.number().min(0),
+  socialAllowance: z.number().min(0).optional().default(0),
+  costOfLivingAllowance: z.number().min(0).optional().default(0),
+  transportAllowance: z.number().min(0).optional().default(0),
+  workNatureAllowance: z.number().min(0).optional().default(0),
+  receptionAllowance: z.number().min(0).optional().default(0),
+  yearlyRaise: z.number().min(0).optional().default(0),
+});
 
 export const salaryRouter = router({
   // ── Basics ──────────────────────────────────────────────
@@ -21,6 +32,12 @@ export const salaryRouter = router({
         id: salaryBasics.id,
         empCd: salaryBasics.empCd,
         basicAmount: salaryBasics.basicAmount,
+        socialAllowance: salaryBasics.socialAllowance,
+        costOfLivingAllowance: salaryBasics.costOfLivingAllowance,
+        transportAllowance: salaryBasics.transportAllowance,
+        workNatureAllowance: salaryBasics.workNatureAllowance,
+        receptionAllowance: salaryBasics.receptionAllowance,
+        yearlyRaise: salaryBasics.yearlyRaise,
         effectiveFrom: salaryBasics.effectiveFrom,
         effectiveTo: salaryBasics.effectiveTo,
         notes: salaryBasics.notes,
@@ -35,9 +52,8 @@ export const salaryRouter = router({
 
   setBasic: managerProcedure
     .input(
-      z.object({
+      allowanceInput.extend({
         empCd: z.string().min(1),
-        basicAmount: z.number().positive(),
         effectiveFrom: z.string(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
@@ -49,6 +65,12 @@ export const salaryRouter = router({
       const result = await db.insert(salaryBasics).values({
         empCd: input.empCd,
         basicAmount: String(input.basicAmount) as any,
+        socialAllowance: String(input.socialAllowance ?? 0) as any,
+        costOfLivingAllowance: String(input.costOfLivingAllowance ?? 0) as any,
+        transportAllowance: String(input.transportAllowance ?? 0) as any,
+        workNatureAllowance: String(input.workNatureAllowance ?? 0) as any,
+        receptionAllowance: String(input.receptionAllowance ?? 0) as any,
+        yearlyRaise: String(input.yearlyRaise ?? 0) as any,
         effectiveFrom: input.effectiveFrom as any,
         effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
         notes: input.notes,
@@ -60,7 +82,13 @@ export const salaryRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        basicAmount: z.number().positive().optional(),
+        basicAmount: z.number().min(0).optional(),
+        socialAllowance: z.number().min(0).optional(),
+        costOfLivingAllowance: z.number().min(0).optional(),
+        transportAllowance: z.number().min(0).optional(),
+        workNatureAllowance: z.number().min(0).optional(),
+        receptionAllowance: z.number().min(0).optional(),
+        yearlyRaise: z.number().min(0).optional(),
         effectiveFrom: z.string().optional(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
@@ -71,6 +99,12 @@ export const salaryRouter = router({
       if (!db) throw new Error('DB unavailable');
       const upd: any = {};
       if (input.basicAmount !== undefined) upd.basicAmount = String(input.basicAmount);
+      if (input.socialAllowance !== undefined) upd.socialAllowance = String(input.socialAllowance);
+      if (input.costOfLivingAllowance !== undefined) upd.costOfLivingAllowance = String(input.costOfLivingAllowance);
+      if (input.transportAllowance !== undefined) upd.transportAllowance = String(input.transportAllowance);
+      if (input.workNatureAllowance !== undefined) upd.workNatureAllowance = String(input.workNatureAllowance);
+      if (input.receptionAllowance !== undefined) upd.receptionAllowance = String(input.receptionAllowance);
+      if (input.yearlyRaise !== undefined) upd.yearlyRaise = String(input.yearlyRaise);
       if (input.effectiveFrom !== undefined) upd.effectiveFrom = input.effectiveFrom;
       if (input.effectiveTo !== undefined) upd.effectiveTo = input.effectiveTo ?? null;
       if (input.notes !== undefined) upd.notes = input.notes;
@@ -168,27 +202,43 @@ export const salaryRouter = router({
       z.object({
         year: z.number().int(),
         month: z.number().int(),
-        examPool: z.number().min(0),
-        pentacamPool: z.number().min(0),
+        examCount: z.number().int().min(0).default(0),
+        cases450: z.number().int().min(0).default(0),
+        cases400: z.number().int().min(0).default(0),
+        cases350: z.number().int().min(0).default(0),
+        cases250: z.number().int().min(0).default(0),
         notes: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
+      // Employee exam pool = 50 × examCount × 40%
+      const examPool = String(Math.round(input.examCount * 50 * 0.40 * 100) / 100) as any;
+      const pentacamPool = String(calcPentacamPool(input.cases450, input.cases400, input.cases350, input.cases250)) as any;
       await db
         .insert(salaryCommissionPools)
         .values({
           year: input.year,
           month: input.month,
-          examPool: String(input.examPool) as any,
-          pentacamPool: String(input.pentacamPool) as any,
+          examCount: input.examCount,
+          examPool,
+          pentacamPool,
+          cases450: input.cases450,
+          cases400: input.cases400,
+          cases350: input.cases350,
+          cases250: input.cases250,
           notes: input.notes,
         })
         .onDuplicateKeyUpdate({
           set: {
-            examPool: String(input.examPool) as any,
-            pentacamPool: String(input.pentacamPool) as any,
+            examCount: input.examCount,
+            examPool,
+            pentacamPool,
+            cases450: input.cases450,
+            cases400: input.cases400,
+            cases350: input.cases350,
+            cases250: input.cases250,
             notes: input.notes,
           },
         });
@@ -257,6 +307,44 @@ export const salaryRouter = router({
         .where(
           and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month))
         );
+      return { success: true };
+    }),
+
+  // ── Raise History ────────────────────────────────────────
+  listRaiseHistory: managerProcedure
+    .input(z.object({ empCd: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      return await db
+        .select()
+        .from(salaryRaiseHistory)
+        .where(eq(salaryRaiseHistory.empCd, input.empCd))
+        .orderBy(desc(salaryRaiseHistory.year));
+    }),
+
+  setRaise: managerProcedure
+    .input(z.object({
+      empCd: z.string().min(1),
+      year: z.number().int(),
+      raiseAmount: z.number().min(0),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.insert(salaryRaiseHistory)
+        .values({ empCd: input.empCd, year: input.year, raiseAmount: String(input.raiseAmount) as any, notes: input.notes })
+        .onDuplicateKeyUpdate({ set: { raiseAmount: String(input.raiseAmount) as any, notes: input.notes } });
+      return { success: true };
+    }),
+
+  deleteRaise: managerProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.delete(salaryRaiseHistory).where(eq(salaryRaiseHistory.id, input.id));
       return { success: true };
     }),
 

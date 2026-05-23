@@ -14,6 +14,33 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+export const PENTACAM_TIERS = [
+  { price: 450, deduction: 123.75, empPct: 0.455 },
+  { price: 400, deduction: 110,    empPct: 0.455 },
+  { price: 350, deduction: 85,     empPct: 0.47  },
+  { price: 250, deduction: 60,     empPct: 0.50  },
+] as const;
+
+export function calcPentacamPool(cases450: number, cases400: number, cases350: number, cases250: number): number {
+  return round2(
+    cases450 * PENTACAM_TIERS[0].deduction * PENTACAM_TIERS[0].empPct +
+    cases400 * PENTACAM_TIERS[1].deduction * PENTACAM_TIERS[1].empPct +
+    cases350 * PENTACAM_TIERS[2].deduction * PENTACAM_TIERS[2].empPct +
+    cases250 * PENTACAM_TIERS[3].deduction * PENTACAM_TIERS[3].empPct
+  );
+}
+
+// Returns the attendance commission rate (as a fraction of basic) based on leave days taken.
+// ≤3d→25%, ≤5d→15%, ≤7d→10%, ≤10d→5%, >10d→0%
+function attendanceCommissionRate(leaveDays: number): number {
+  if (leaveDays <= 3) return 0.25;
+  if (leaveDays <= 5) return 0.15;
+  if (leaveDays <= 7) return 0.10;
+  if (leaveDays <= 10) return 0.05;
+  return 0;
+}
+
+// Leave multiplier for exam/pentacam commissions (separate rule the user specified)
 function leaveMultiplier(leaveDays: number): number {
   if (leaveDays <= 3) return 1.0;
   if (leaveDays <= 5) return 0.75;
@@ -82,7 +109,9 @@ export class PayrollComputeService {
 
     const pool = poolRows[0];
     const examPool = pool ? Number(pool.examPool) : 0;
-    const pentacamPool = pool ? Number(pool.pentacamPool) : 0;
+    const pentacamPool = pool
+      ? calcPentacamPool(pool.cases450 ?? 0, pool.cases400 ?? 0, pool.cases350 ?? 0, pool.cases250 ?? 0)
+      : 0;
 
     // Resolve each employee's current basic (most recent effectiveFrom)
     const empBasicMap = new Map<string, number>();
@@ -90,11 +119,21 @@ export class PayrollComputeService {
       const rows = basics
         .filter((b) => b.empCd === emp.empCd)
         .sort((a, b) => String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)));
-      if (rows.length > 0) empBasicMap.set(emp.empCd, Number(rows[0].basicAmount));
+      if (rows.length > 0) {
+        const r = rows[0];
+        const total = Number(r.basicAmount)
+          + Number((r as any).socialAllowance ?? 0)
+          + Number((r as any).costOfLivingAllowance ?? 0)
+          + Number((r as any).transportAllowance ?? 0)
+          + Number((r as any).workNatureAllowance ?? 0)
+          + Number((r as any).receptionAllowance ?? 0)
+          + Number((r as any).yearlyRaise ?? 0);
+        empBasicMap.set(emp.empCd, total);
+      }
     }
 
     const sumAllBasics = Array.from(empBasicMap.values()).reduce((s, b) => s + b, 0);
-    const activeCount = employees.filter((e) => empBasicMap.has(e.empCd)).length;
+    const activeCount = empBasicMap.size;
 
     const results: PayrollRow[] = [];
 
@@ -127,8 +166,9 @@ export class PayrollComputeService {
       const netBasic = round2(Math.max(0, basic - totalDeductions));
       const lm = leaveMultiplier(leaveDays);
       const commMult = lm * (1 - deductionPct);
+      const acRate = attendanceCommissionRate(leaveDays);
 
-      const attendanceCommission = round2(0.25 * basic * commMult);
+      const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
       const examCommission = round2(activeCount > 0 ? (examPool / activeCount) * commMult : 0);
       const pentacamCommission = round2(
         sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0

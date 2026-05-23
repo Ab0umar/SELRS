@@ -92,7 +92,7 @@ export default function DoctorAccount() {
     }));
     setDidSearch(true);
     setQueryInput({
-      doctorCode: detailDoctor,
+      doctorCodes: [detailDoctor],
       fromDate: dr.fromDate,
       toDate: dr.toDate,
       sectionCode: DEFAULT_SECTION_CODE,
@@ -101,12 +101,11 @@ export default function DoctorAccount() {
 
   const enabled =
     queryInput != null &&
-    typeof queryInput.doctorCode === "string" &&
-    queryInput.doctorCode.trim().length > 0;
+    (queryInput.doctorCodes?.length ?? 0) > 0;
 
   const revenueQuery = accountingTrpc.accounting.serviceRevenue.useQuery(
     queryInput ?? {
-      doctorCode: "",
+      doctorCodes: [],
       fromDate: defaults.fromDate,
       toDate: defaults.toDate,
       sectionCode: DEFAULT_SECTION_CODE,
@@ -127,11 +126,11 @@ export default function DoctorAccount() {
     const svc = draft.serviceCode.trim();
     setDidSearch(true);
     setQueryInput({
-      doctorCode: code,
+      doctorCodes: [code],
       fromDate: draft.fromDate,
       toDate: draft.toDate,
       sectionCode: draft.sectionCode ?? DEFAULT_SECTION_CODE,
-      ...(svc ? { serviceCode: svc } : {}),
+      ...(svc ? { serviceCodes: [svc] } : {}),
     });
   };
 
@@ -299,7 +298,7 @@ export default function DoctorAccount() {
                   <CardHeader>
                     <CardTitle className="text-base">
                       الإجمالي · كود الطبيب{" "}
-                      {toArabicDigits(queryInput?.doctorCode ?? "")}
+                      {toArabicDigits((queryInput?.doctorCodes ?? [])[0] ?? "")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
