@@ -29,9 +29,9 @@ import { serviceTypeLabels } from '@/lib/dashboard-data'
 
 function EmptyChart({ message = 'لا توجد بيانات بعد' }: { message?: string }) {
   return (
-    <div className="flex h-[200px] sm:h-[240px] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20 text-muted-foreground">
+    <div className="flex h-[200px] sm:h-[240px] w-full flex-col items-center justify-center gap-2 text-muted-foreground">
       <Inbox className="h-6 w-6 opacity-60" />
-      <p className="text-xs">{message}</p>
+      <p className="text-sm">{message}</p>
     </div>
   )
 }
@@ -85,7 +85,7 @@ export function PatientTrendChart() {
   if (patientsQuery.isLoading) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           وفقًا لأحدث 500 سجل — توزيع شهري تقريبي
         </p>
         <Skeleton className="h-[180px] sm:h-[220px] w-full" />
@@ -96,7 +96,7 @@ export function PatientTrendChart() {
   if (totalMonthsWithData === 0 || rows.length === 0) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           وفقًا لأحدث 500 سجل — توزيع شهري تقريبي
         </p>
         <EmptyChart message="لا تاريخ تسجيل في العيّنة الحالية" />
@@ -106,13 +106,13 @@ export function PatientTrendChart() {
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         وفقًا لأحدث 500 سجل — توزيع شهري تقريبي ({rows.length.toLocaleString('ar-EG')} صفوف)
       </p>
       <ChartContainer config={trendChartConfig} className="h-[180px] w-full sm:h-[220px]">
         <AreaChart accessibilityLayer data={chartData} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
           <CartesianGrid vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} interval={0} tick={{ fontSize: 10 }} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} interval={0} tick={{ fontSize: 12 }} />
           <YAxis hide />
           <ChartTooltip
             cursor={false}
@@ -180,7 +180,7 @@ export function AppointmentDistributionChart() {
   if (isLoading) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">حالة الطابور الحالي</p>
+        <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
         <Skeleton className="h-[180px] sm:h-[200px] w-full" />
       </div>
     )
@@ -189,7 +189,7 @@ export function AppointmentDistributionChart() {
   if (total === 0) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">حالة الطابور الحالي</p>
+        <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
         <EmptyChart message="لا يوجد مرضى في الطابور اليوم" />
       </div>
     )
@@ -197,7 +197,7 @@ export function AppointmentDistributionChart() {
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted-foreground">حالة الطابور الحالي</p>
+      <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
       <ChartContainer config={queueConfig} className="mx-auto h-[180px] sm:h-[200px] w-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
@@ -256,7 +256,7 @@ export function DepartmentWorkloadChart() {
   if (isLoading) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">مرضى اليوم حسب نوع الخدمة</p>
+        <p className="text-sm text-muted-foreground">مرضى اليوم حسب نوع الخدمة</p>
         <Skeleton className="h-[160px] w-full sm:h-[180px]" />
       </div>
     )
@@ -265,7 +265,7 @@ export function DepartmentWorkloadChart() {
   if (data.length === 0) {
     return (
       <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">مرضى اليوم حسب نوع الخدمة</p>
+        <p className="text-sm text-muted-foreground">مرضى اليوم حسب نوع الخدمة</p>
         <EmptyChart message="لا يوجد مرضى في الطابور اليوم" />
       </div>
     )
@@ -273,7 +273,7 @@ export function DepartmentWorkloadChart() {
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         مرضى اليوم حسب نوع الخدمة ({merged.length.toLocaleString('ar-EG')} في الطابور)
       </p>
       <ChartContainer config={workloadChartConfig} className="h-[160px] w-full sm:h-[180px]">
@@ -287,7 +287,7 @@ export function DepartmentWorkloadChart() {
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 12 }}
           />
           <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
           <Bar dataKey="count" fill="var(--color-count)" radius={4} name="count" />

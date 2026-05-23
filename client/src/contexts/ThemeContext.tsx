@@ -1,89 +1,121 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { NATIVE_THEME_KEY, hydrateDurableValue, saveDurableValue, writeLocalStorageValue } from "@/lib/nativeStorage";
 
-type Theme = "light" | "dark";
+function isNativeApp(): boolean {
+  try { return (window as any).Capacitor?.isNative === true; } catch { return false; }
+}
+
+export type ThemePref = "light" | "dark";
+type EffectiveTheme = "light" | "dark";
 
 interface ThemeContextType {
-  theme: Theme;
-  toggleTheme?: () => void;
+  pref: ThemePref;
+  setPref: (p: ThemePref) => void;
+  effectiveTheme: EffectiveTheme;
   switchable: boolean;
+  isAndroid: boolean;
+  theme: EffectiveTheme;
+  toggleTheme?: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
 const THEME_STORAGE_KEY = "theme";
 
-const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+function canUseStorage(): boolean {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
 
-const loadStoredTheme = (fallback: Theme): Theme => {
-  if (!canUseStorage()) return fallback;
+function loadStoredPref(): ThemePref {
+  if (!canUseStorage()) return "light";
   try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "dark" || stored === "light" ? (stored as Theme) : fallback;
-  } catch {
-    return fallback;
-  }
-};
+    const v = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (v === "dark" || v === "light") return v;
+  } catch {}
+  return "light";
+}
 
-const saveStoredTheme = (theme: Theme) => {
+function savePref(pref: ThemePref) {
   if (!canUseStorage()) return;
   try {
-    writeLocalStorageValue(THEME_STORAGE_KEY, theme);
-    void saveDurableValue(NATIVE_THEME_KEY, theme, THEME_STORAGE_KEY);
-  } catch {
-    // Ignore storage failures.
-  }
-};
+    writeLocalStorageValue(THEME_STORAGE_KEY, pref);
+    void saveDurableValue(NATIVE_THEME_KEY, pref, THEME_STORAGE_KEY);
+  } catch {}
+}
+
+function ensureThemeColorMeta(): HTMLMetaElement {
+  const existing = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (existing) return existing;
+  const meta = document.createElement("meta");
+  meta.name = "theme-color";
+  document.head.appendChild(meta);
+  return meta;
+}
+
+function applyDocumentTheme(effective: EffectiveTheme) {
+  const isDark = effective === "dark";
+  const root = document.documentElement;
+  root.classList.remove("win7", "legacy-win7");
+  root.classList.toggle("dark", isDark);
+  root.style.colorScheme = effective;
+  document.body?.classList.toggle("dark", isDark);
+  ensureThemeColorMeta().content = isDark ? "#0d1117" : "#FBFDFF";
+}
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  defaultTheme?: Theme;
+  defaultTheme?: EffectiveTheme;
   switchable?: boolean;
 }
 
 export function ThemeProvider({
   children,
   defaultTheme = "light",
-  switchable = false,
+  switchable: switchableProp,
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => (switchable ? loadStoredTheme(defaultTheme) : defaultTheme));
+  const switchable = switchableProp ?? isNativeApp();
 
-  useEffect(() => {
-    if (!switchable) return;
-    setTheme(loadStoredTheme(defaultTheme));
-  }, [defaultTheme, switchable]);
+  const [pref, setPrefState] = useState<ThemePref>(() =>
+    switchable ? loadStoredPref() : defaultTheme
+  );
 
   useEffect(() => {
     if (!switchable) return;
     void hydrateDurableValue(NATIVE_THEME_KEY, THEME_STORAGE_KEY).then((stored) => {
       if (stored === "dark" || stored === "light") {
-        setTheme(stored as Theme);
+        setPrefState(stored);
       }
     });
   }, [switchable]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    // Clean up any stale legacy theme classes from earlier builds.
-    root.classList.remove("win7", "legacy-win7");
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    applyDocumentTheme(switchable ? pref : defaultTheme);
+  }, [pref, switchable, defaultTheme]);
 
-    if (switchable) {
-      saveStoredTheme(theme);
-    }
-  }, [theme, switchable]);
+  const setPref = (next: ThemePref) => {
+    if (!switchable) return;
+    setPrefState(next);
+    savePref(next);
+  };
+
+  const effectiveTheme: EffectiveTheme = switchable ? pref : defaultTheme;
 
   const toggleTheme = switchable
-    ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
-      }
+    ? () => setPref(pref === "dark" ? "light" : "dark")
     : undefined;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider
+      value={{
+        pref,
+        setPref,
+        effectiveTheme,
+        switchable,
+        isAndroid: false,
+        theme: effectiveTheme,
+        toggleTheme,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
@@ -91,8 +123,6 @@ export function ThemeProvider({
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
+  if (!context) throw new Error("useTheme must be used within ThemeProvider");
   return context;
 }

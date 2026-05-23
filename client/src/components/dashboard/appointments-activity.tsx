@@ -288,12 +288,12 @@ export function AppointmentsSection({
               dir="ltr"
               aria-label="تاريخ مرضى اليوم — تعديل"
             />
-            <p className="max-w-full min-w-0 text-xs text-muted-foreground sm:max-w-[min(100%,28rem)] sm:text-sm">
+            <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
               {formatDateLongAr(selectedDate)}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground sm:text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>
             <span className="font-semibold text-foreground tabular-nums">{merged.length.toLocaleString("ar-EG")}</span>{" "}
             مريض
@@ -312,7 +312,7 @@ export function AppointmentsSection({
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-border/80 bg-muted/30 p-1 sm:inline-flex sm:w-auto">
+      <div className="flex gap-1 border-b border-border/60 pb-2 sm:inline-flex sm:w-auto">
         <Button
           type="button"
           variant={mainTab === "patients" ? "default" : "ghost"}
@@ -347,7 +347,7 @@ export function AppointmentsSection({
                   type="button"
                   onClick={() => setQueueFilter(value)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
+                    "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
                     active
                       ? "border-foreground bg-foreground text-background"
                       : "border-border bg-card text-foreground",
@@ -363,7 +363,7 @@ export function AppointmentsSection({
           {isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">جاري التحميل…</p>
           ) : filteredPatients.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
+            <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
               لا يوجد مرضى في هذه الفئة
             </div>
           ) : (
@@ -400,13 +400,13 @@ export function AppointmentsSection({
             </div>
           ) : todayOperationListsQuery.isError ? (
             <div
-              className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive text-destructive-foreground"
+              className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground"
               role="alert"
             >
               {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}
             </div>
           ) : todayOperationsFlat.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
+            <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
               لا توجد عمليات مسجّلة لهذا اليوم
             </div>
           ) : (
@@ -465,30 +465,30 @@ function QueuePatientCard({
       <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">{patient.fullName ?? "—"}</p>
+          <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{patient.fullName ?? "—"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {st === "treated" ? (
             <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
           ) : null}
-          <Badge className={cn("max-w-full truncate text-[10px] sm:text-xs", queueStatusStyles[st])}>
+          <Badge className={cn("max-w-full truncate text-[0.8125rem]", queueStatusStyles[st])}>
             {queueStatusLabelsAr[st] ?? st}
           </Badge>
         </div>
       </div>
-      <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-xs">
+      <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
         <span className="text-muted-foreground">الطبيب</span>
         <span className="text-right text-foreground break-words">{doctorText}</span>
         <span className="text-muted-foreground">نوع الخدمة</span>
         <span className="text-right">
-          <Badge variant="outline" className={cn("max-w-full text-[10px]", serviceTypeStyles[patient.serviceType ?? ""])}>
+          <Badge variant="outline" className={cn("max-w-full text-[0.8125rem]", serviceTypeStyles[patient.serviceType ?? ""])}>
             {serviceTypeText}
           </Badge>
         </span>
         <span className="text-muted-foreground">الوقت</span>
         <span className="text-right text-foreground tabular-nums">{timeText}</span>
       </div>
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-1.5">
           {canMarkTreated ? (
             <Button
@@ -498,7 +498,7 @@ function QueuePatientCard({
               disabled={markingThis}
               title="معالج"
               aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
-              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/15:border-secondary/60:bg-secondary/25"
+              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/90"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -558,21 +558,21 @@ function TodayOperationListItemCard({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-snug">{row.item.name?.trim() || "مريض"}</p>
           {row.item.code ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">رقم: {row.item.code}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">رقم: {row.item.code}</p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {row.isAutoFromMssql ? (
-            <Badge variant="outline" className="text-[10px] sm:text-xs">
+            <Badge variant="outline" className="text-[0.8125rem]">
               مزامنة
             </Badge>
           ) : null}
-          <Badge variant="outline" className="max-w-[9rem] truncate text-[10px] sm:text-xs" title={doctorDisplay}>
+          <Badge variant="outline" className="max-w-[9rem] truncate text-[0.8125rem]" title={doctorDisplay}>
             {doctorDisplay}
           </Badge>
         </div>
       </div>
-      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
         {row.item.doctor ? <p>الطبيب: {row.item.doctor}</p> : row.listDoctorName ? <p>الطبيب: {row.listDoctorName}</p> : null}
         {row.item.operation ? (
           <p className="font-medium text-foreground">العملية: {row.item.operation}</p>
@@ -582,9 +582,9 @@ function TodayOperationListItemCard({
         {row.item.eye ? <p>العين: {row.item.eye}</p> : null}
         {row.item.hospital ? <p>المستشفى: {row.item.hospital}</p> : null}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-sm">
         {row.item.payment ? (
-          <Badge className="bg-warning/10 text-[10px] text-warning sm:text-xs">{row.item.payment}</Badge>
+          <Badge className="bg-warning/10 text-[0.8125rem] text-warning">{row.item.payment}</Badge>
         ) : (
           <span />
         )}

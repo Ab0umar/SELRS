@@ -266,8 +266,9 @@ function AppNotificationPanel() {
 
   const toneClass = (kind?: string) => {
     if (kind === "success") return "border-secondary/40 bg-secondary/10 text-foreground";
-    if (kind === "warning") return "border-warning bg-warning/10/80 text-warning";
-    if (kind === "error") return "border-destructive/30 bg-destructive/10/80 text-destructive";
+    if (kind === "info") return "border-primary/20 bg-primary/5 text-foreground";
+    if (kind === "warning") return "border-warning/40 bg-warning/10 text-warning";
+    if (kind === "error") return "border-destructive/30 bg-destructive/10 text-destructive";
     return "border-border bg-muted text-muted-foreground";
   };
 
@@ -289,7 +290,7 @@ function AppNotificationPanel() {
             </span>
           </div>
           <div className="font-semibold">{item.title}</div>
-          <p className="text-[13px] text-current/80">{item.message}</p>
+          <p className="text-[13px] opacity-80">{item.message}</p>
         </article>
       ))}
       <div className="flex justify-end">

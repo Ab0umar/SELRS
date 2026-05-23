@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Zap,
   Cpu,
+  UserX,
 } from 'lucide-react'
 import { serviceTypeLabels } from '@/lib/dashboard-data'
 import { trpc } from '@/lib/trpc'
@@ -33,7 +34,7 @@ import { formatMoneyAr } from './accounting/accountingFormat'
 
 // ─── Lazy charts ────────────────────────────────────────────────────────────
 const ChartLoading = () => (
-  <div className="h-[200px] bg-muted/30 animate-pulse rounded-lg" />
+  <div className="h-[200px] animate-pulse rounded-lg bg-muted/40" />
 )
 const PatientTrendChart = lazy(() =>
   import('@/components/dashboard/charts').then((m) => ({ default: m.PatientTrendChart }))
@@ -80,7 +81,7 @@ function useDebounce<T>(value: T, ms: number): T {
 function SectionHeader({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <h3 className="text-base font-semibold leading-tight text-foreground">{title}</h3>
       {children}
     </div>
   )
@@ -111,7 +112,7 @@ function StatRow({
 function PanelLink({ href, label }: { href: string; label: string }) {
   return (
     <Link href={href}>
-      <a className="flex items-center gap-1 text-xs text-primary hover:underline">
+      <a className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
         {label}
         <ChevronLeft className="h-3 w-3" aria-hidden />
       </a>
@@ -166,7 +167,7 @@ function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
 
   if (items.length === 0) {
     return (
-      <p className="py-4 text-center text-xs text-muted-foreground">لا يوجد مرضى اليوم</p>
+      <p className="py-4 text-center text-sm text-muted-foreground">لا يوجد مرضى اليوم</p>
     )
   }
 
@@ -185,8 +186,8 @@ function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all duration-500', item.color)}
-              style={{ width: `${item.pct}%` }}
+              className={cn('h-full w-full origin-right rounded-full transition-transform duration-500 ease-out', item.color)}
+              style={{ transform: `scaleX(${item.pct / 100})` }}
             />
           </div>
         </div>
@@ -212,6 +213,63 @@ function MedicalTotals() {
       ].map((r) => (
         <StatRow key={r.label} label={r.label} value={r.value} icon={r.icon} />
       ))}
+    </div>
+  )
+}
+
+const LEAVE_TYPE_AR: Record<string, string> = {
+  annual: 'سنوية',
+  sick: 'مرضية',
+  unpaid: 'بدون راتب',
+  other: 'أخرى',
+}
+
+function OffUsersTodayCard() {
+  const q = (trpc as any).attendance.offTodayList.useQuery(undefined, {
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  })
+  const list: Array<{ empCd: string; fullName: string; department: string | null; type: string; approved: boolean }> = q.data ?? []
+
+  return (
+    <div className="rounded-lg border border-border/70 bg-background">
+      <SectionHeader title="إجازات اليوم">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning/15 px-1.5 text-[11px] font-semibold text-warning tabular-nums">
+          {q.isLoading ? '…' : list.length}
+        </span>
+      </SectionHeader>
+      <div className="px-4 py-3">
+        {q.isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-5 rounded" />)}
+          </div>
+        ) : list.length === 0 ? (
+          <p className="py-2 text-center text-sm text-muted-foreground">لا توجد إجازات اليوم</p>
+        ) : (
+          <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+            {list.map((emp) => (
+              <li key={emp.empCd} className="flex items-center gap-2 text-sm">
+                <UserX className="h-3.5 w-3.5 shrink-0 text-warning/70" aria-hidden />
+                <span className="flex-1 truncate font-medium">{emp.fullName}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {LEAVE_TYPE_AR[emp.type] ?? emp.type}
+                  {!emp.approved && ' (معلق)'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {!q.isLoading && list.length > 0 && (
+        <div className="border-t border-border/40 px-4 py-2">
+          <Link href="/attendance/employees">
+            <a className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              عرض تفاصيل الحضور
+              <ChevronLeft className="h-3 w-3" aria-hidden />
+            </a>
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
@@ -280,7 +338,7 @@ function TodayPanel({
             <div
               key={t.label}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 sm:px-4',
+                'flex items-center gap-3 rounded-lg px-3 py-3 sm:px-4',
                 isAccent
                   ? 'bg-primary/[0.06] ring-1 ring-primary/15'
                   : 'bg-background border border-border/50'
@@ -295,10 +353,10 @@ function TodayPanel({
                 <Icon className="h-4 w-4" aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className={cn('text-lg leading-none tabular-nums tracking-tight sm:text-xl', isAccent ? 'font-extrabold text-primary' : 'font-bold')}>
+                <p className={cn('text-2xl leading-none tabular-nums sm:text-3xl', isAccent ? 'font-extrabold text-primary' : 'font-bold text-foreground')}>
                   {t.value}
                 </p>
-                <p className={cn('mt-0.5 text-[11px]', isAccent ? 'text-primary/70 font-medium' : 'text-muted-foreground')}>
+                <p className={cn('mt-1 text-sm', isAccent ? 'font-medium text-primary' : 'text-muted-foreground')}>
                   {t.label}
                 </p>
               </div>
@@ -309,7 +367,7 @@ function TodayPanel({
 
       {/* Completion bar */}
       <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background px-4 py-2.5">
-        <span className="text-xs text-muted-foreground shrink-0">نسبة الإنجاز</span>
+        <span className="shrink-0 text-sm text-muted-foreground">نسبة الإنجاز</span>
         <div
           className="h-2 flex-1 rounded-full bg-muted overflow-hidden"
           role="progressbar"
@@ -320,10 +378,10 @@ function TodayPanel({
         >
           <div
             className={cn(
-              'h-full rounded-full transition-all duration-500',
+              'h-full w-full origin-right rounded-full transition-transform duration-500 ease-out',
               completionRate >= 80 ? 'bg-success/100' : completionRate >= 50 ? 'bg-primary' : 'bg-secondary'
             )}
-            style={{ width: `${completionRate}%` }}
+            style={{ transform: `scaleX(${completionRate / 100})` }}
           />
         </div>
         <span className="text-sm font-semibold tabular-nums w-10 text-left">{completionRate}%</span>
@@ -331,9 +389,9 @@ function TodayPanel({
 
       {/* Queue + side */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-lg border border-border/50 bg-background shadow-sm">
+        <div className="lg:col-span-2">
           <SectionHeader title="مرضى اليوم و العمليات" />
-          <div className="p-2 sm:p-3">
+          <div className="pt-3">
             <AppointmentsSection
               selectedDate={selectedDate}
               onSelectedDateChange={onSelectedDateChange}
@@ -342,13 +400,14 @@ function TodayPanel({
           </div>
         </div>
         <div className="space-y-5">
-          <div className="rounded-lg border border-border/50 bg-background">
+          <div className="rounded-lg border border-border/70 bg-background">
             <SectionHeader title="توزيع الخدمات" />
             <div className="p-4">
               <ServiceBreakdown selectedDate={selectedDate} />
             </div>
           </div>
-          <div className="rounded-lg border border-border/50 bg-background">
+          <OffUsersTodayCard />
+          <div className="rounded-lg border border-border/70 bg-background">
             <SectionHeader title="إحصائيات طبية" />
             <div className="px-4 py-3">
               <MedicalTotals />
@@ -359,7 +418,7 @@ function TodayPanel({
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-lg bg-muted/30 ring-1 ring-border/30">
+        <div className="rounded-lg border border-border/70 bg-background lg:col-span-2">
           <SectionHeader title="اتجاه المرضى" />
           <div className="p-3 sm:p-4">
             <Suspense fallback={<ChartLoading />}>
@@ -367,7 +426,7 @@ function TodayPanel({
             </Suspense>
           </div>
         </div>
-        <div className="rounded-lg bg-muted/30 ring-1 ring-border/30">
+        <div className="rounded-lg border border-border/70 bg-background">
           <SectionHeader title="أقسام المركز" />
           <div className="p-3 sm:p-4">
             <Suspense fallback={<ChartLoading />}>
@@ -442,7 +501,7 @@ function PatientHubPanel() {
                       <Link key={p.id} href={`/patients/${p.id}`}>
                         <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                           <span className="font-medium">{p.fullName}</span>
-                          <span className="text-xs text-muted-foreground tabular-nums">{p.patientCode ?? '—'}</span>
+                          <span className="text-sm text-muted-foreground tabular-nums">{p.patientCode ?? '—'}</span>
                         </a>
                       </Link>
                     ))}
@@ -453,13 +512,13 @@ function PatientHubPanel() {
 
             {!showSearch && recent.length > 0 && (
               <div className="mt-3">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">آخر المرضى</p>
+                <p className="mb-2 text-sm font-medium text-muted-foreground">آخر المرضى</p>
                 <div className="divide-y divide-border/40">
                   {recent.map((p) => (
                     <Link key={p.id} href={`/patients/${p.id}`}>
                       <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                         <span className="font-medium">{p.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">{p.code}</span>
+                        <span className="text-sm text-muted-foreground tabular-nums">{p.code}</span>
                       </a>
                     </Link>
                   ))}
@@ -629,7 +688,7 @@ function AttendancePanel() {
           )}
         </div>
         {!q.isLoading && d?.lastSync && (
-          <div className="border-t border-border/40 px-4 py-2.5 text-xs text-muted-foreground">
+          <div className="border-t border-border/40 px-4 py-2.5 text-sm text-muted-foreground">
             آخر مزامنة:{' '}
             <span className="font-medium">
               {d.lastSync.status === 'never'   ? 'لم تتم' :
@@ -645,17 +704,17 @@ function AttendancePanel() {
           </div>
         )}
         <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2 flex-wrap">
-          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 px-2.5"
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-sm"
             onClick={handleSync} disabled={syncMut.isPending}>
             <Zap className="h-3 w-3" />
             {syncMut.isPending ? 'جارٍ…' : 'مزامنة FK'}
           </Button>
-          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 px-2.5"
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-sm"
             onClick={handleMat} disabled={matMut.isPending}>
             <Cpu className="h-3 w-3" />
             {matMut.isPending ? 'جارٍ…' : 'إعادة الحساب'}
           </Button>
-          {syncMsg && <span className="text-xs text-muted-foreground">{syncMsg}</span>}
+          {syncMsg && <span className="text-sm text-muted-foreground">{syncMsg}</span>}
         </div>
       </div>
 
@@ -765,7 +824,7 @@ function StockroomPanel() {
 function TabBadge({ count, cls }: { count: number; cls: string }) {
   if (count === 0) return null
   return (
-    <span className={cn('ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none', cls)}>
+    <span className={cn('ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.8125rem] font-medium leading-none', cls)}>
       {count}
     </span>
   )
@@ -825,13 +884,13 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">لوحة تحكم المشرف</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+          <h1 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl">لوحة تحكم المشرف</h1>
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {dateStr} — {timeStr}
           </p>
         </div>
         {activeTab === 'today' && (
-          <Button variant="outline" size="sm" onClick={handleRefreshToday} className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" onClick={handleRefreshToday} className="gap-1.5 text-sm">
             <RefreshCw className="h-3 w-3" aria-hidden />
             تحديث
           </Button>

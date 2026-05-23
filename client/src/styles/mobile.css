@@ -48,6 +48,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-error: var(--error);
   --color-error-foreground: var(--error-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
 }
 
 :root {
@@ -98,50 +101,55 @@
   --sidebar-accent-foreground: #001F47;
   --sidebar-border: #E5E7EB;
   --sidebar-ring: #003D82;
+  --destructive-text: #B91C1C;
+  --success-text: #047857;
+  --warning-text: #92400E;
 }
 
 .dark {
-  /* SELRS is a light-theme clinical product. Keep dark-mode fallbacks tinted and readable if the class is present. */
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
   --accent: #FF9500;
-  --accent-foreground: #001F47;
-  --background: #F7FAFC;
-  --foreground: #001F47;
-  --card: #F2F6FB;
-  --card-foreground: #001F47;
-  --popover: #F7FAFC;
-  --popover-foreground: #001F47;
+  --accent-foreground: #0d1117;
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
   --secondary: #FF9500;
-  --secondary-foreground: #001F47;
-  --muted: #E8F0F8;
-  --muted-foreground: #334155;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --success-foreground: #001F47;
-  --info: #3B82F6;
-  --info-foreground: #FFFFFF;
-  --warning: #FBBF24;
-  --warning-foreground: #78350F;
-  --error: #EF4444;
-  --error-foreground: #FFFFFF;
-  --border: #CBD5E1;
-  --input: #FFFFFF;
-  --ring: #003D82;
-  --chart-1: #003D82;
-  --chart-2: #0052A3;
+  --secondary-foreground: #0d1117;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
+  --destructive: #F87171;
+  --destructive-foreground: #0d1117;
+  --success: #34D399;
+  --success-foreground: #0d1117;
+  --info: #60A5FA;
+  --info-foreground: #0d1117;
+  --warning: #FCD34D;
+  --warning-foreground: #0d1117;
+  --error: #F87171;
+  --error-foreground: #0d1117;
+  --border: #30363d;
+  --input: #21262d;
+  --ring: #FF9500;
+  --chart-1: #4D8ECC;
+  --chart-2: #6BA3D6;
   --chart-3: #FF9500;
   --chart-4: #FFB84D;
-  --chart-5: #D7E7F7;
-  --sidebar: #F7FAFC;
-  --sidebar-foreground: #001F47;
+  --chart-5: #FFD699;
+  --sidebar: #010409;
+  --sidebar-foreground: #e6edf3;
   --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #001F47;
-  --sidebar-border: #CBD5E1;
-  --sidebar-ring: #003D82;
+  --sidebar-accent-foreground: #0d1117;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #FF9500;
+  --destructive-text: #FCA5A5;
+  --success-text: #6EE7B7;
+  --warning-text: #FCD34D;
 }
 
 @layer base {
@@ -192,94 +200,89 @@
 
 @layer utilities {
   .dark [data-slot="card"] {
-    background-color: color-mix(in oklch, var(--card) 96%, transparent) !important;
-    color: var(--card-foreground) !important;
-    border-color: color-mix(in oklch, var(--border) 88%, transparent) !important;
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
   }
 
   .dark [data-slot="tabs-list"] {
-    background-color: color-mix(in oklch, var(--muted) 88%, transparent) !important;
-    color: color-mix(in oklch, var(--foreground) 72%, transparent) !important;
-    border-color: color-mix(in oklch, var(--border) 82%, transparent) !important;
+    background-color: #21262d !important;
+    color: rgba(230, 237, 243, 0.72) !important;
+    border-color: #2b3138 !important;
   }
 
   .dark [data-slot="tabs-trigger"] {
-    color: color-mix(in oklch, var(--foreground) 72%, transparent) !important;
+    color: rgba(230, 237, 243, 0.72) !important;
   }
 
   .dark [data-slot="tabs-trigger"][data-state="active"] {
-    background-color: color-mix(in oklch, var(--card) 94%, transparent) !important;
-    color: var(--foreground) !important;
-    border-color: color-mix(in oklch, var(--border) 82%, transparent) !important;
-    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.22) !important;
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 2px 8px rgba(1, 4, 9, 0.32) !important;
   }
 
   .dark [class~="bg-white"] {
-    background-color: color-mix(in oklch, var(--card) 94%, transparent) !important;
+    background-color: #161b22 !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: color-mix(in oklch, var(--card) 90%, transparent) !important;
+    background-color: #161b22 !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"],
   .dark [class*="bg-slate-200"] {
-    background-color: color-mix(in oklch, var(--muted) 82%, transparent) !important;
+    background-color: #1d2228 !important;
   }
 
   .dark [class*="bg-card"] {
-    background-color: color-mix(in oklch, var(--card) 96%, transparent) !important;
+    background-color: #161b22 !important;
   }
 
   .dark [class*="bg-muted"] {
-    background-color: color-mix(in oklch, var(--muted) 88%, var(--background) 12%) !important;
+    background-color: #21262d !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-slate-300"],
   .dark [class*="border-white/80"] {
-    border-color: color-mix(in oklch, var(--border) 88%, transparent) !important;
+    border-color: #30363d !important;
   }
 
   .dark [class*="text-slate-950"],
   .dark [class*="text-slate-900"] {
-    color: var(--foreground) !important;
+    color: #e6edf3 !important;
   }
 
   .dark [class*="text-slate-800"],
   .dark [class*="text-slate-700"],
   .dark [class*="text-slate-600"],
   .dark [class*="text-slate-500"] {
-    color: color-mix(in oklch, var(--foreground) 78%, var(--background) 22%) !important;
+    color: rgba(230, 237, 243, 0.78) !important;
   }
 
   .dark [class*="text-muted-foreground"] {
-    color: var(--muted-foreground) !important;
+    color: #8b949e !important;
   }
 
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
     background-image:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 34%),
-      linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--card) 96%, transparent),
-        color-mix(in oklch, var(--muted) 76%, transparent)
-      ) !important;
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 34%),
+      linear-gradient(135deg, #161b22, #1d2228) !important;
   }
 
   .dark [class*="shadow-sm"],
   .dark [class*="shadow-lg"] {
-    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28) !important;
+    box-shadow: 0 2px 8px rgba(1, 4, 9, 0.36) !important;
   }
 
-  /* App shell — match body canvas (no second gradient layer) */
   .dark .selrs-page-bg {
-    background-color: var(--background);
-    background-image: none;
-    background-attachment: scroll;
+    background-color: #0d1117 !important;
+    background-image: none !important;
+    background-attachment: scroll !important;
   }
 }
 

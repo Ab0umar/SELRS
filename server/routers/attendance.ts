@@ -38,6 +38,32 @@ export const attendanceRouter = router({
     return DashboardService.getSummary();
   }),
 
+  offTodayList: attendanceViewerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error('Database not available');
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const rows = await db
+      .select({
+        empCd: attendanceLeaves.empCd,
+        fullName: attendanceEmployees.fullName,
+        department: attendanceEmployees.department,
+        type: attendanceLeaves.type,
+        approved: attendanceLeaves.approved,
+      })
+      .from(attendanceLeaves)
+      .leftJoin(attendanceEmployees, eq(attendanceLeaves.empCd, attendanceEmployees.empCd))
+      .where(sql`${attendanceLeaves.dateFrom} <= ${todayStr} AND ${attendanceLeaves.dateTo} >= ${todayStr}`)
+      .orderBy(attendanceEmployees.fullName);
+    return rows.map((r) => ({
+      empCd: r.empCd,
+      fullName: String(r.fullName ?? r.empCd),
+      department: r.department ?? null,
+      type: r.type,
+      approved: r.approved,
+    }));
+  }),
+
   syncStatus: attendanceViewerProcedure
     .input(z.object({ limit: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ input }) => {
@@ -1962,12 +1988,16 @@ export const attendanceRouter = router({
       const storedTo   = fmtDate(row.date_to   ?? dateTo);
 
       const userName = String(ctx.user.name || ctx.user.username || '');
-      const typeAr = input.type === 'annual' ? 'سنوية' : 'مرضية';
       const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
       if (ns.attendance.enabled) {
+        const fmtDayMonth = (d: string) => {
+          const dt = new Date(`${d}T00:00:00`);
+          const weekday = dt.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long' });
+          return `${weekday} ${dt.getDate()}/${dt.getMonth() + 1}`;
+        };
         pushAppNotification({
-          title: 'طلب إجازة جديد',
-          message: `${userName} طلب إجازة ${typeAr} من ${dateFrom} إلى ${dateTo}`,
+          title: 'طلب اجازه',
+          message: `${userName} طلب اجازه من ${fmtDayMonth(dateFrom)} حتي ${fmtDayMonth(dateTo)}`,
           kind: 'info',
           targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
           targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
@@ -1986,6 +2016,7 @@ export const attendanceRouter = router({
       date: z.string(),
       type: z.enum(['in', 'out']),
       durationMinutes: z.number().int().min(1).max(480),
+      timeFrom: z.string().optional(),
       note: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -2006,12 +2037,30 @@ export const attendanceRouter = router({
       });
 
       const userName = String(ctx.user.name || ctx.user.username || '');
-      const typeAr = input.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
+      const typeAr = input.type === 'out' ? 'خروج' : 'دخول';
       const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
       if (ns.attendance.enabled) {
+        const mins = input.durationMinutes;
+        const durationAr = mins % 60 === 0
+          ? (mins / 60 === 1 ? 'ساعة' : mins / 60 === 2 ? 'ساعتين' : `${mins / 60} ساعات`)
+          : mins < 60
+            ? `${mins} دقيقة`
+            : `${Math.floor(mins / 60)} ساعة ${mins % 60} دقيقة`;
+        const dt = new Date(`${input.date}T00:00:00`);
+        const weekday = dt.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long' });
+        const dayMonth = `${dt.getDate()}/${dt.getMonth() + 1}`;
+        let timeRange = '';
+        if (input.timeFrom) {
+          const [fh, fm] = input.timeFrom.split(':').map(Number);
+          const toMins = (fh ?? 0) * 60 + (fm ?? 0) + mins;
+          const th = Math.floor(toMins / 60) % 24;
+          const tm = toMins % 60;
+          const pad = (n: number) => String(n).padStart(2, '0');
+          timeRange = ` من ${pad(fh ?? 0)}:${pad(fm ?? 0)} حتي ${pad(th)}:${pad(tm)}`;
+        }
         pushAppNotification({
-          title: 'طلب إذن جديد',
-          message: `${userName} طلب إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
+          title: 'طلب اذن',
+          message: `${userName} طلب اذن ${typeAr} لمدة ${durationAr} ${weekday} ${dayMonth}${timeRange}`,
           kind: 'info',
           targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
           targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,

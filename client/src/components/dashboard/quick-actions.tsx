@@ -37,16 +37,16 @@ type QuickActionItem =
   | { label: string; icon: LucideIcon; color: string; kind: "pick-patient"; page: PageKey };
 
 const quickActions: QuickActionItem[] = [
-  { label: "تسجيل مريض", icon: UserPlus, color: "bg-primary text-primary-foreground hover:bg-primary/20", kind: "quick-entry-dialog" },
-  { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary text-primary-foreground hover:bg-primary/20", kind: "schedule-dialog" },
-  { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary text-secondary-foreground hover:bg-secondary/20", kind: "measurements-panel" },
-  { label: "حجز العمليات", icon: Syringe, color: "bg-success text-success-foreground hover:bg-success/20", kind: "operations-booking-dialog" },
-  { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary text-secondary-foreground hover:bg-secondary/20", kind: "pick-patient", page: "refraction" },
-  { label: "بنتاكام", icon: CircleDot, color: "bg-secondary text-secondary-foreground hover:bg-secondary/20", kind: "pick-patient", page: "pentacam-sheet" },
-  { label: "الروشتات", icon: Pill, color: "bg-warning text-warning-foreground hover:bg-warning/20", kind: "pick-patient", page: "write-prescription" },
-  { label: "تحاليل و اشعه", icon: FlaskConical, color: "bg-secondary text-secondary-foreground hover:bg-secondary/20", kind: "pick-patient", page: "request-tests" },
-  { label: "تشخيص / تقرير", icon: FileText, color: "bg-primary text-primary-foreground hover:bg-primary/20", kind: "pick-patient", page: "medical-reports" },
-  { label: "الملف الطبي", icon: FileHeart, color: "bg-primary text-primary-foreground hover:bg-primary/20", kind: "pick-patient", page: "patient-details" },
+  { label: "تسجيل مريض", icon: UserPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "quick-entry-dialog" },
+  { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "schedule-dialog" },
+  { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "measurements-panel" },
+  { label: "حجز العمليات", icon: Syringe, color: "bg-success text-success-foreground hover:bg-success/90", kind: "operations-booking-dialog" },
+  { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "refraction" },
+  { label: "بنتاكام", icon: CircleDot, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "pentacam-sheet" },
+  { label: "الروشتات", icon: Pill, color: "bg-warning text-warning-foreground hover:bg-warning/90", kind: "pick-patient", page: "write-prescription" },
+  { label: "تحاليل و اشعه", icon: FlaskConical, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "request-tests" },
+  { label: "تشخيص / تقرير", icon: FileText, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "pick-patient", page: "medical-reports" },
+  { label: "الملف الطبي", icon: FileHeart, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "pick-patient", page: "patient-details" },
   { label: "تقرير المريض", icon: FileSpreadsheet, color: "bg-muted/60 text-muted-foreground hover:bg-muted/80", kind: "pick-patient", page: "patient-summary" },
 ];
 
@@ -170,7 +170,7 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
                   "flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-[background-color,transform] active:scale-[0.97]",
                   i === 0
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-primary text-primary-foreground hover:bg-primary/15"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -201,7 +201,7 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
                     }
                     if (action.kind === "pick-patient") { setPickPage(action.page); }
                   }}
-                  className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground bg-muted/60 active:scale-[0.97]"
+                  className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/60 px-2.5 py-1.5 text-sm font-medium text-muted-foreground active:scale-[0.97]"
                 >
                   <div className={cn("flex h-6 w-6 items-center justify-center rounded", action.color)}>
                     <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -230,7 +230,7 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
                   onClick={() => {
                     if (action.kind === "pick-patient") { setPickPage(action.page); }
                   }}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-[color,background-color,transform] hover:bg-muted text-muted-foreground active:scale-[0.97]"
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted active:scale-[0.97]"
                 >
                   <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
                   {action.label}

@@ -789,6 +789,7 @@ export async function applyPatientImportBatch(batchId: string) {
   let inserted = 0;
   let updated = 0;
   let failed = 0;
+  let firstInserted: { fullName: string; serviceType: string } | null = null;
 
   for (const row of rows) {
     try {
@@ -825,6 +826,7 @@ export async function applyPatientImportBatch(batchId: string) {
       } else {
         await db.insert(patients).values(payload);
         inserted += 1;
+        if (!firstInserted) firstInserted = { fullName, serviceType: String(row.serviceType ?? "consultant") };
       }
 
       const doctorCode = String(row.doctorCode ?? "").trim();
@@ -859,6 +861,7 @@ export async function applyPatientImportBatch(batchId: string) {
     inserted,
     updated,
     failed,
+    firstInserted: firstInserted as { fullName: string; serviceType: string } | null,
   };
 }
 

@@ -75,7 +75,7 @@ export default function StockroomDashboard() {
 
           return (
             <Link key={category.href} href={category.href}>
-              <Card className="group h-full transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98] cursor-pointer">
+              <Card className="group h-full transition-[border-color,box-shadow,transform] hover:border-primary/40 hover:shadow-md active:scale-[0.98] cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{category.title}</CardTitle>
                   <Icon className="h-4 w-4 text-muted-foreground" />
@@ -91,17 +91,17 @@ export default function StockroomDashboard() {
                         <div className="text-2xl font-bold">{total} صنف</div>
                         <div className="mt-2 space-y-1 text-xs">
                             {low > 0 && (
-                            <p className="text-warning">
+                            <p className="text-warning-text">
                                 {low} أصناف قليلة المخزون
                             </p>
                             )}
                             {out > 0 && (
-                            <p className="text-destructive">
+                            <p className="text-destructive-text">
                                 {out} أصناف نفذت من المخزون
                             </p>
                             )}
                             {low === 0 && out === 0 && total > 0 && (
-                                <p className="text-success">جميع الأصناف متوفرة</p>
+                                <p className="text-success-text">جميع الأصناف متوفرة</p>
                             )}
                             {total === 0 && (
                                 <p className="text-muted-foreground italic">لا توجد أصناف مسجلة بعد</p>

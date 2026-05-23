@@ -18,7 +18,8 @@ public partial class Form1 : Form
 {
     private const string DefaultHomeUrl = "http://192.168.1.100:4000";
     private static readonly (string id, string label, string url)[] UrlPresets = [
-        ("local", "Local (localhost:4000)", "http://192.168.1.100:4000"),
+        ("localhost", "Localhost (localhost:4000)", "http://localhost:4000"),
+        ("local", "Local (192.168.1.100:4000)", "http://192.168.1.100:4000"),
         ("lan", "LAN (192.168.0.100:4000)", "http://192.168.0.100:4000"),
         ("online", "Online (op.selrs.cc)", "https://op.selrs.cc"),
     ];
@@ -27,6 +28,8 @@ public partial class Form1 : Form
     private string _currentUrl;
     private string _lastUri = string.Empty;
     private readonly bool _hasSavedUrl;
+    private string? _pendingSaveUrl;
+    private bool _showingErrorPage;
     private const int WmNclbuttondown = 0xA1;
     private const int HtCaption = 0x2;
     private const int TopBarExpandedHeight = 40;
@@ -67,8 +70,6 @@ public partial class Form1 : Form
                 System.Diagnostics.Debug.WriteLine($"Failed to set icon: {ex}");
             }
         }
-        KeyPreview = true;
-        KeyDown += HandleKeyDown;
         Shown += HandleShown;
         var chromeMode = (Environment.GetEnvironmentVariable("SELRS_WINDOW_CHROME") ?? "").Trim().ToLowerInvariant();
         var forceModernChrome = chromeMode == "modern" || chromeMode == "borderless";
@@ -141,7 +142,14 @@ public partial class Form1 : Form
         if (btnClose != null)
         {
             btnClose.Click += (_, _) => Close();
+            btnClose.MouseEnter += (_, _) => btnClose.ForeColor = Color.White;
+            btnClose.MouseLeave += (_, _) => btnClose.ForeColor = Color.FromArgb(50, 65, 90);
         }
+        topBar.Paint += (_, pe) =>
+        {
+            using var pen = new Pen(Color.FromArgb(218, 228, 243));
+            pe.Graphics.DrawLine(pen, 0, topBar.Height - 1, topBar.Width - 1, topBar.Height - 1);
+        };
         Resize += (_, _) => UpdateMaximizeButtonText();
         _topBarTimer.Tick += (_, _) => HandleTopBarAutoHideTick();
         _topBarTimer.Start();
@@ -163,7 +171,7 @@ public partial class Form1 : Form
     private void HandleAnyMouseMove(object? sender, MouseEventArgs e)
     {
         var clientPoint = PointToClient(Cursor.Position);
-        if (clientPoint.Y <= 3 || (topBar.Visible && clientPoint.Y <= TopBarExpandedHeight + 6))
+        if (clientPoint.Y <= 10 || (topBar.Visible && clientPoint.Y <= TopBarExpandedHeight + 6))
         {
             _lastTopEdgeHoverUtc = DateTime.UtcNow;
             ShowTopBar();
@@ -174,7 +182,7 @@ public partial class Form1 : Form
     {
         var clientPoint = PointToClient(Cursor.Position);
         var overTopArea = clientPoint.Y <= TopBarExpandedHeight + 6;
-        if (clientPoint.Y <= 3)
+        if (clientPoint.Y <= 10)
         {
             _lastTopEdgeHoverUtc = DateTime.UtcNow;
             ShowTopBar();
@@ -186,6 +194,7 @@ public partial class Form1 : Form
             _lastTopEdgeHoverUtc = DateTime.UtcNow;
             return;
         }
+        if ((DateTime.UtcNow - _lastTopEdgeHoverUtc).TotalMilliseconds < 800) return;
         topBar.Height = 0;
         topBar.Visible = false;
     }
@@ -227,6 +236,7 @@ private void UpdateMaximizeButtonText()
             }
 
             webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
+            webView.CoreWebView2.WebMessageReceived += HandleWebMessage;
             webView.CoreWebView2.Navigate(_homeUrl);
         }
         catch (Exception ex)
@@ -249,10 +259,19 @@ private void UpdateMaximizeButtonText()
     {
         if (e.IsSuccess)
         {
-            Text = "SELRS Desktop";
+            if (!_showingErrorPage)
+            {
+                Text = "SELRS Desktop";
+                if (_pendingSaveUrl != null)
+                {
+                    SaveUrl(_pendingSaveUrl);
+                    _pendingSaveUrl = null;
+                }
+            }
             return;
         }
 
+        _showingErrorPage = true;
         var message = $"Navigation failed: {e.WebErrorStatus}";
         LogError($"{message}. URL: {webView.Source}", null);
         ShowStartupErrorPage(message, $"URL: {webView.Source}");
@@ -270,6 +289,7 @@ private void UpdateMaximizeButtonText()
         }
 
         _lastUri = e.Uri;
+        _showingErrorPage = false;
     }
 
     private static string NormalizeHomeUrl(string? value)
@@ -319,105 +339,132 @@ private void UpdateMaximizeButtonText()
 
     private bool ShowStartupUrlChooser()
     {
+        var bg = Color.FromArgb(248, 250, 252);
+        var textPrimary = Color.FromArgb(17, 28, 48);
+        var textSubdued = Color.FromArgb(107, 119, 140);
+        var borderColor = Color.FromArgb(218, 228, 243);
+        var accentBlue = Color.FromArgb(37, 99, 235);
+
         using var dialog = new Form
         {
-            Text = "Choose SELRS connection",
+            Text = "SELRS",
             StartPosition = FormStartPosition.CenterParent,
-            FormBorderStyle = FormBorderStyle.FixedDialog,
+            FormBorderStyle = FormBorderStyle.FixedSingle,
             MinimizeBox = false,
             MaximizeBox = false,
             ShowInTaskbar = false,
-            ClientSize = new Size(420, 260)
+            ClientSize = new Size(440, 268),
+            BackColor = bg,
         };
 
-        var title = new Label
+        var lblTitle = new Label
         {
-            Text = "Choose where SELRS should open",
-            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+            Text = "اختر اتصال SELRS",
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = textPrimary,
             AutoSize = false,
             Location = new Point(20, 18),
-            Size = new Size(380, 26)
+            Size = new Size(400, 26),
+            TextAlign = ContentAlignment.MiddleRight,
         };
 
-        var group = new Panel
+        var sep = new Panel
         {
-            Location = new Point(20, 56),
-            Size = new Size(380, 126)
+            BackColor = borderColor,
+            Location = new Point(20, 52),
+            Size = new Size(400, 1),
         };
 
-        var buttons = new RadioButton[UrlPresets.Length];
+        string[] arabicLabels = ["الخادم الرئيسي", "شبكة محلية", "إنترنت"];
+        var radios = new RadioButton[UrlPresets.Length];
+
         for (var i = 0; i < UrlPresets.Length; i++)
         {
             var preset = UrlPresets[i];
-            var button = new RadioButton
+            var y = 64 + i * 52;
+
+            var rb = new RadioButton
             {
-                Text = preset.label,
+                Text = arabicLabels[i],
                 Tag = preset.url,
+                Checked = NormalizeHomeUrl(preset.url) == _currentUrl,
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = textPrimary,
+                BackColor = bg,
                 AutoSize = false,
-                Location = new Point(0, i * 38),
-                Size = new Size(360, 28),
-                Checked = NormalizeHomeUrl(preset.url) == _currentUrl
+                Location = new Point(20, y),
+                Size = new Size(400, 22),
+                RightToLeft = RightToLeft.Yes,
             };
-            buttons[i] = button;
-            group.Controls.Add(button);
+
+            var urlLbl = new Label
+            {
+                Text = preset.url,
+                Font = new Font("Segoe UI", 8.5F),
+                ForeColor = textSubdued,
+                BackColor = bg,
+                AutoSize = false,
+                Location = new Point(44, y + 23),
+                Size = new Size(376, 16),
+                TextAlign = ContentAlignment.MiddleRight,
+            };
+
+            radios[i] = rb;
+            dialog.Controls.Add(rb);
+            dialog.Controls.Add(urlLbl);
         }
 
-        var hasCheckedButton = false;
-        foreach (var button in buttons)
-        {
-            if (!button.Checked) continue;
-            hasCheckedButton = true;
-            break;
-        }
+        if (!radios.Any(r => r.Checked))
+            radios[0].Checked = true;
 
-        if (!hasCheckedButton)
+        var btnCancel = new Button
         {
-            buttons[0].Checked = true;
-        }
-
-        var openButton = new Button
-        {
-            Text = "Open",
-            DialogResult = DialogResult.OK,
-            Location = new Point(220, 206),
-            Size = new Size(84, 32)
-        };
-        var cancelButton = new Button
-        {
-            Text = "Cancel",
+            Text = "إلغاء",
             DialogResult = DialogResult.Cancel,
-            Location = new Point(316, 206),
-            Size = new Size(84, 32)
+            Font = new Font("Segoe UI", 9.5F),
+            ForeColor = Color.FromArgb(75, 90, 110),
+            BackColor = bg,
+            FlatStyle = FlatStyle.Flat,
+            Size = new Size(88, 34),
+            Location = new Point(20, 222),
+            UseVisualStyleBackColor = false,
         };
+        btnCancel.FlatAppearance.BorderSize = 1;
+        btnCancel.FlatAppearance.BorderColor = borderColor;
+        btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 236, 246);
+        btnCancel.FlatAppearance.MouseDownBackColor = Color.FromArgb(210, 222, 240);
 
-        dialog.AcceptButton = openButton;
-        dialog.CancelButton = cancelButton;
-        dialog.Controls.Add(title);
-        dialog.Controls.Add(group);
-        dialog.Controls.Add(openButton);
-        dialog.Controls.Add(cancelButton);
+        var btnOpen = new Button
+        {
+            Text = "فتح",
+            DialogResult = DialogResult.OK,
+            Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = accentBlue,
+            FlatStyle = FlatStyle.Flat,
+            Size = new Size(88, 34),
+            Location = new Point(332, 222),
+            UseVisualStyleBackColor = false,
+        };
+        btnOpen.FlatAppearance.BorderSize = 0;
+        btnOpen.FlatAppearance.MouseOverBackColor = Color.FromArgb(29, 78, 216);
+        btnOpen.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 64, 175);
+
+        dialog.AcceptButton = btnOpen;
+        dialog.CancelButton = btnCancel;
+        dialog.Controls.AddRange([lblTitle, sep, btnCancel, btnOpen]);
 
         if (dialog.ShowDialog(this) != DialogResult.OK)
-        {
             return false;
-        }
 
-        string? selected = null;
-        foreach (var button in buttons)
-        {
-            if (!button.Checked) continue;
-            selected = button.Tag?.ToString();
-            break;
-        }
+        var selected = radios.FirstOrDefault(r => r.Checked)?.Tag?.ToString();
         if (string.IsNullOrWhiteSpace(selected))
-        {
             return false;
-        }
 
         var normalized = NormalizeHomeUrl(selected);
         _homeUrl = normalized;
         _currentUrl = normalized;
-        SaveUrl(normalized);
+        _pendingSaveUrl = normalized;
         return true;
     }
 
@@ -453,25 +500,14 @@ private void UpdateMaximizeButtonText()
             item.Click += (_, _) => SwitchUrl(url);
             menu.Items.Add(item);
         }
-        menu.Closed += (s, e) => menu.Dispose();
+        // Defer dispose to next message loop tick — disposing inside Closed causes ObjectDisposedException
+        // because the DropDown's SetVisibleCore is still on the call stack when Closed fires.
+        menu.Closed += (s, e) => BeginInvoke(() => menu.Dispose());
         menu.Show(webView, new System.Drawing.Point((int)args.Location.X, (int)args.Location.Y));
-    }
-
-    private void HandleKeyDown(object? sender, KeyEventArgs e)
-    {
-        // Handle escape key to close context menus or exit fullscreen
-        if (e.KeyCode == Keys.Escape)
-        {
-            e.Handled = true;
-        }
     }
 
     private async void HandleShown(object? sender, EventArgs e)
     {
-        // Set initial window size and position
-        Width = 1200;
-        Height = 800;
-        StartPosition = FormStartPosition.CenterScreen;
         if (!_hasSavedUrl &&
             string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SELRS_DESKTOP_URL")) &&
             !ShowStartupUrlChooser())
@@ -486,6 +522,22 @@ private void UpdateMaximizeButtonText()
     private void HandleContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e)
     {
         ShowUrlSwitchMenu(e);
+    }
+
+    private void HandleWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        switch (e.TryGetWebMessageAsString())
+        {
+            case "retry":
+                webView.CoreWebView2?.Navigate(_homeUrl);
+                break;
+            case "chooser":
+                if (ShowStartupUrlChooser())
+                    webView.CoreWebView2?.Navigate(_homeUrl);
+                else
+                    Close();
+                break;
+        }
     }
 
     private void ShowTopBar()
@@ -512,49 +564,97 @@ private void UpdateMaximizeButtonText()
         var safeUrl = WebUtility.HtmlEncode(_homeUrl);
         var html = $$"""
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      color: #172033;
-      background: #f5f7fb;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #f8fafc;
+      color: #111c30;
       display: grid;
       place-items: center;
       min-height: 100vh;
     }
-    main {
-      width: min(680px, calc(100vw - 48px));
+    .card {
+      width: min(560px, calc(100vw - 40px));
       background: #fff;
-      border: 1px solid #d8dee9;
-      border-radius: 8px;
-      padding: 28px;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+      border: 1px solid #dae4f3;
+      border-radius: 10px;
+      padding: 32px 36px;
+    }
+    .icon {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 16px;
+      color: #dc2626;
     }
     h1 {
-      font-size: 22px;
+      font-size: 19px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      line-height: 1.4;
+    }
+    .detail {
+      font-size: 13px;
+      color: #6b7892;
       margin: 0 0 12px;
+      line-height: 1.6;
     }
-    p {
-      margin: 8px 0;
-      line-height: 1.5;
-    }
-    code {
-      background: #eef2f7;
+    .url {
+      display: inline-block;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 13px;
+      background: #eef2f9;
       border-radius: 4px;
-      padding: 2px 5px;
+      padding: 3px 8px;
+      color: #374668;
+      margin-bottom: 16px;
+      direction: ltr;
     }
+    .instruction {
+      font-size: 13px;
+      color: #374668;
+      background: #f0f5fc;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 0 0 20px;
+      line-height: 1.6;
+    }
+    .actions { display: flex; gap: 10px; }
+    .btn {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary { background: #2563eb; color: #fff; font-weight: 600; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #f0f5fc; color: #374668; }
+    .btn-secondary:hover { background: #dae4f3; }
   </style>
 </head>
 <body>
-  <main>
+  <div class="card">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
     <h1>{{safeTitle}}</h1>
-    <p>{{safeDetails}}</p>
-    <p>Configured URL: <code>{{safeUrl}}</code></p>
-    <p>Check that the SELRS server is running and reachable from this machine.</p>
-  </main>
+    <p class="detail">{{safeDetails}}</p>
+    <code class="url">{{safeUrl}}</code>
+    <p class="instruction">تحقق من تشغيل خادم SELRS وإمكانية الوصول إليه من هذا الجهاز.</p>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="window.chrome.webview.postMessage('retry')">إعادة المحاولة</button>
+      <button class="btn btn-secondary" onclick="window.chrome.webview.postMessage('chooser')">تغيير الخادم</button>
+    </div>
+  </div>
 </body>
 </html>
 """;
@@ -577,8 +677,11 @@ private void UpdateMaximizeButtonText()
         {
             Dock = DockStyle.Fill,
             TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
-            Padding = new Padding(32),
-            Text = $"{title}{Environment.NewLine}{details}{Environment.NewLine}{_homeUrl}"
+            Padding = new Padding(40),
+            Font = new Font("Segoe UI", 11F),
+            ForeColor = Color.FromArgb(17, 28, 48),
+            BackColor = Color.FromArgb(248, 250, 252),
+            Text = $"{title}{Environment.NewLine}{Environment.NewLine}{details}{Environment.NewLine}{_homeUrl}"
         };
         Controls.Remove(webView);
         Controls.Add(label);

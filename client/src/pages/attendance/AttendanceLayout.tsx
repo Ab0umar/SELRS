@@ -116,7 +116,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
               </div>
 
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {title.title}
                 </h1>
                 <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -154,7 +154,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
                   key={metric.label}
                   className={`rounded-xl border p-3 ${metric.accent}`}
                 >
-                  <div className="text-xs font-medium text-muted-foreground">
+                  <div className="text-xs font-semibold text-foreground/70">
                     {metric.label}
                   </div>
                   <div className={`mt-1 text-xl font-bold ${metric.tone}`}>

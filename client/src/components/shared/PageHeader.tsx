@@ -35,7 +35,7 @@ export function PageHeader({
           <div className="flex-1 min-w-0 text-start">
             <h1 className="text-base sm:text-lg md:text-xl font-black tracking-tight">{title}</h1>
             {subtitleText ? (
-              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 text-start">{subtitleText}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 text-start">{subtitleText}</p>
             ) : null}
           </div>
         </div>

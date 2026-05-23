@@ -109,49 +109,52 @@
 }
 
 .dark {
-  /* SELRS is a light-theme clinical product. Keep dark-mode fallbacks tinted and readable if the class is present. */
-  --background: #F7FAFC;
-  --foreground: #001F47;
-  --card: #F2F6FB;
-  --card-foreground: #001F47;
-  --popover: #F7FAFC;
-  --popover-foreground: #001F47;
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
   --secondary: #FF9500;
-  --secondary-foreground: #001F47;
-  --muted: #E8F0F8;
-  --muted-foreground: #334155;
+  --secondary-foreground: #0d1117;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
   --accent: #FF9500;
-  --accent-foreground: #001F47;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --success-foreground: #001F47;
-  --info: #3B82F6;
-  --info-foreground: #FFFFFF;
-  --warning: #FBBF24;
-  --warning-foreground: #78350F;
-  --error: #EF4444;
-  --error-foreground: #FFFFFF;
-  --border: #CBD5E1;
-  --input: #FFFFFF;
-  --ring: #003D82;
+  --accent-foreground: #0d1117;
+  --destructive: #F87171;
+  --destructive-foreground: #0d1117;
+  --success: #34D399;
+  --success-foreground: #0d1117;
+  --info: #60A5FA;
+  --info-foreground: #0d1117;
+  --warning: #FCD34D;
+  --warning-foreground: #0d1117;
+  --error: #F87171;
+  --error-foreground: #0d1117;
+  --border: #30363d;
+  --input: #21262d;
+  --ring: #FF9500;
 
-  --chart-1: #003D82;
-  --chart-2: #0052A3;
+  --chart-1: #4D8ECC;
+  --chart-2: #6BA3D6;
   --chart-3: #FF9500;
   --chart-4: #FFB84D;
-  --chart-5: #D7E7F7;
+  --chart-5: #FFD699;
 
-  --sidebar: #F7FAFC;
-  --sidebar-foreground: #001F47;
+  --sidebar: #010409;
+  --sidebar-foreground: #e6edf3;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #001F47;
-  --sidebar-border: #CBD5E1;
-  --sidebar-ring: #003D82;
+  --sidebar-accent-foreground: #0d1117;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #FF9500;
+
+  --destructive-text: #FCA5A5;
+  --success-text: #6EE7B7;
+  --warning-text: #FCD34D;
 }
 
 @media print {

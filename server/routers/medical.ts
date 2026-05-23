@@ -45,6 +45,20 @@ const getSystemSettingFallbackValue = (key: string) => {
   return null;
 };
 
+const LASIK_CODES = new Set(["1501", "1502"]);
+const CONSULTANT_CODES = new Set(["1589"]);
+const SPECIALIST_CODES = new Set(["1586", "1604", "1605", "1606", "1608", "1609", "1613"]);
+const XRAY_CODES = new Set(["1590", "1600", "1601", "1614", "1615", "1616", "1572"]);
+
+function resolvePatientNotifTitle(serviceCodes: string[]): string {
+  const codes = new Set(serviceCodes.map((c) => String(c).trim()).filter(Boolean));
+  if (codes.has("1501") && codes.has("1502")) return "حجز فحص ليزك جديد";
+  if ([...codes].some((c) => CONSULTANT_CODES.has(c))) return "حجز كشف استشاري جديد";
+  if ([...codes].some((c) => SPECIALIST_CODES.has(c))) return "حجز كشف أخصائي جديد";
+  if ([...codes].some((c) => XRAY_CODES.has(c))) return "حجز اشعه جديد";
+  return "حجز جديد";
+}
+
 function resolveNotificationTargetRolesByUserRole(role: unknown): string[] | null {
   const normalizedRole = String(role ?? "").trim().toLowerCase();
   if (normalizedRole === "reception") return null;
@@ -1883,17 +1897,11 @@ export const medicalRouter = router({
         const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
         if (notificationSettings.patients.enabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole((ctx.user as any)?.role);
-          const visitKind = String(input.branch ?? "").toLowerCase() === "examinations" ? "اشعه" : "كشف";
-          const serviceTypeLabel = (() => {
-            const st = String(input.serviceType ?? "consultant").toLowerCase();
-            if (st === "specialist") return "أخصائي";
-            if (st === "external") return "خارجي";
-            if (st === "lasik") return "فحوصات";
-            if (st === "surgery") return "عمليات";
-            return "استشاري";
-          })();
+          const notifTitle = resolvePatientNotifTitle(
+            [input.serviceCode].filter(Boolean) as string[]
+          );
           await pushAppNotification({
-            title: `حجز ${visitKind} ${serviceTypeLabel} جديد`,
+            title: notifTitle,
             message: String(input.fullName ?? "").trim(),
             kind: "success",
             targetRoles,
@@ -1961,6 +1969,37 @@ export const medicalRouter = router({
         updated: result.updated,
         failed: result.failed,
       });
+      if (result.inserted > 0) {
+        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        if (notificationSettings.patients.enabled) {
+          const resolveSheetTitle = (serviceType: string): string => {
+            const st = String(serviceType ?? "").toLowerCase();
+            if (st === "lasik") return "حجز فحص ليزك جديد";
+            if (st === "consultant") return "حجز كشف استشاري جديد";
+            if (st === "specialist") return "حجز كشف أخصائي جديد";
+            return "حجز جديد";
+          };
+          const sheetTitle = result.firstInserted
+            ? resolveSheetTitle(result.firstInserted.serviceType)
+            : "حجز جديد";
+          const sheetMessage = result.firstInserted
+            ? result.inserted > 1
+              ? `${result.firstInserted.fullName} (و ${result.inserted - 1} آخرين)`
+              : result.firstInserted.fullName
+            : `${result.inserted} مريض جديد`;
+          await pushAppNotification({
+            title: sheetTitle,
+            message: sheetMessage,
+            kind: "success",
+            source: "sheet_patient_import",
+            entityType: "patient",
+            meta: { batchId: input.batchId, inserted: result.inserted, updated: result.updated },
+            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
+          }).catch((error) => {
+            console.warn("[sheet-import] Failed to append app notification:", error);
+          });
+        }
+      }
       return result;
     }),
 
@@ -3455,27 +3494,7 @@ export const medicalRouter = router({
         });
         
         await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION", "examination", 0, { message: `Created examination for patient ${input.patientId}` });
-        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
-        if (notificationSettings.patients.enabled) {
-          await pushAppNotification({
-            title: "تم تسجيل فحص تمريض",
-            message: `Patient #${input.patientId}`,
-            kind: "info",
-            targetRoles: ["doctor"],
-            source: "nurse_examination_create",
-            entityType: "patient",
-            entityId: input.patientId,
-            meta: {
-              visitId: input.visitId,
-              patientId: input.patientId,
-              createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-            },
-            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
-          }).catch((error) => {
-            console.warn("[examination-create] Failed to append app notification:", error);
-          });
-        }
-        
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to create examination: ${error}`);
@@ -3862,27 +3881,7 @@ export const medicalRouter = router({
         });
         
         await db.logAuditEvent(ctx.user.id, "CREATE_PENTACAM", "pentacamResult", 0, { message: `Recorded Pentacam results for patient ${input.patientId}` });
-        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
-        if (notificationSettings.patients.enabled) {
-          await pushAppNotification({
-            title: "تم تسجيل بنتاكام",
-            message: `Patient #${input.patientId}`,
-            kind: "info",
-            targetRoles: ["doctor"],
-            source: "technician_pentacam_create",
-            entityType: "patient",
-            entityId: input.patientId,
-            meta: {
-              visitId: input.visitId,
-              patientId: input.patientId,
-              createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-            },
-            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
-          }).catch((error) => {
-            console.warn("[pentacam-create] Failed to append app notification:", error);
-          });
-        }
-        
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to create pentacam result: ${error}`);
@@ -5634,57 +5633,8 @@ export const medicalRouter = router({
         }).catchall(z.any()),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      const normalizedRole = String(ctx.user.role ?? "").trim().toLowerCase();
-      const shouldNotifyRegistration =
-        input.page === "examination" &&
-        (normalizedRole === "reception" || normalizedRole === "nurse" || normalizedRole === "technician");
-      const previousState = shouldNotifyRegistration
-        ? await db.getPatientPageState(input.patientId, input.page).catch(() => null)
-        : null;
-
+    .mutation(async ({ input }) => {
       await db.upsertPatientPageState(input.patientId, input.page, input.data);
-
-      if (shouldNotifyRegistration) {
-        const role = normalizedRole as "reception" | "nurse" | "technician";
-        const previousSignature = readRoleSignatureFromStateData(previousState?.data, role);
-        const nextSignature = readRoleSignatureFromStateData(input.data, role);
-        if (nextSignature && nextSignature !== previousSignature) {
-          const patient = await db.getPatientById(input.patientId).catch(() => null);
-          const patientName = String((patient as any)?.fullName ?? "").trim() || `مريض رقم ${input.patientId}`;
-          const patientCode = String((patient as any)?.patientCode ?? "").trim();
-          const actorName =
-            String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || nextSignature;
-          const doctorName = await readFreshDoctorNameForPatient(input.patientId);
-          const roleLabel = role === "reception" ? "الاستقبال" : role === "nurse" ? "التمريض" : "الفني";
-          const targetRoles = resolveNotificationTargetRolesByUserRole(role);
-
-          await pushAppNotification({
-            title: `تم تسجيل ${roleLabel}`,
-            message:
-              `${patientName}${patientCode ? ` (${patientCode})` : ""}` +
-              ` - بواسطة ${actorName}` +
-              `${doctorName ? ` - الطبيب: ${doctorName}` : ""}`,
-            kind: "info",
-            targetRoles,
-            source: `examination_${role}_registration`,
-            entityType: "patient",
-            entityId: input.patientId,
-            meta: {
-              path: `/patients/${input.patientId}`,
-              patientCode: patientCode || null,
-              patientName,
-              actorName,
-              doctorName: doctorName || null,
-              page: input.page,
-              role,
-            },
-          }).catch((error) => {
-            console.warn("[savePatientPageState] Failed to send registration push:", error);
-          });
-        }
-      }
-
       return { success: true };
     }),
 

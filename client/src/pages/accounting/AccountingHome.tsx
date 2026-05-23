@@ -304,14 +304,14 @@ export default function AccountingHome() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {isToday ? "مؤشرات اليوم" : "مؤشرات اليوم المحدد"}
                 </div>
                 {!isToday && (
                   <button
                     type="button"
                     onClick={() => setViewDate(today)}
-                    className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                    className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     اليوم
                   </button>
@@ -348,7 +348,7 @@ export default function AccountingHome() {
                     href={m.href}
                     className="group hidden flex-col items-end gap-0.5 no-underline sm:flex"
                   >
-                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
+                    <span className="text-xs font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
                       {m.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums leading-none text-foreground">
@@ -381,7 +381,7 @@ export default function AccountingHome() {
                   href={m.href}
                   className="group flex flex-col gap-0.5 no-underline"
                 >
-                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
+                  <span className="text-xs font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
                     {m.label}
                   </span>
                   <span className="text-sm font-bold tabular-nums leading-none text-foreground">
@@ -418,7 +418,7 @@ export default function AccountingHome() {
                 >
                   <span
                     className={cn(
-                      "inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none",
+                      "inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none",
                       activeTab === "service"
                         ? "bg-background/20 text-card-foreground"
                         : "bg-primary text-primary-foreground",
@@ -521,7 +521,7 @@ export default function AccountingHome() {
                               setNotes(notes.trim() === c.name ? "" : c.name)
                             }
                             className={cn(
-                              "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                              "rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
                               notes.trim() === c.name
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border text-muted-foreground hover:border-border hover:bg-muted",
@@ -771,7 +771,7 @@ export default function AccountingHome() {
               <h2 className="text-sm font-bold text-foreground">
                 {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
               </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
               </p>
             </div>
@@ -834,10 +834,10 @@ export default function AccountingHome() {
                       <div className="flex items-start justify-between gap-3">
                         <Link href={href} className="min-w-0 flex-1 no-underline">
                           <div className="flex items-center gap-2">
-                            <div className="text-[11px] font-medium text-muted-foreground">
+                            <div className="text-xs font-medium text-muted-foreground">
                               {formatTime(r.transactionDate)}
                             </div>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                               إيصال
                             </span>
                           </div>
@@ -856,26 +856,26 @@ export default function AccountingHome() {
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">الكود</div>
+                          <div className="text-xs text-muted-foreground">الكود</div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {r.patientCode || "—"}
                           </div>
                         </div>
                         <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">ما يخص المريض</div>
+                          <div className="text-xs text-muted-foreground">ما يخص المريض</div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
                             {formatMoneyAr(r.total)}
                           </div>
                         </div>
                         <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
-                          <div className="text-[10px] text-success">المدفوع</div>
+                          <div className="text-xs text-success">المدفوع</div>
                           <div className="mt-1 flex items-end justify-between gap-3">
                             <div className="font-semibold tabular-nums text-success">
                               {formatMoneyAr(r.paidValue)}
                             </div>
                             <div
                               className={cn(
-                                "rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1",
+                                "rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1",
                                 balanceTone,
                               )}
                             >
@@ -970,7 +970,7 @@ export default function AccountingHome() {
               <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-muted text-[11px] font-semibold text-muted-foreground">
+                    <tr className="border-b border-border bg-muted text-xs font-semibold text-muted-foreground">
                       <th scope="col" className="w-20 px-3 py-2.5 text-right">
                         الوقت
                       </th>

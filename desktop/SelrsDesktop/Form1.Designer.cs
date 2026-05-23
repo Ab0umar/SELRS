@@ -40,7 +40,7 @@ partial class Form1
         // 
         // topBar
         // 
-        this.topBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(9)))), ((int)(((byte)(78)))), ((int)(((byte)(120)))));
+        this.topBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
         this.topBar.Controls.Add(this.titleLabel);
         this.topBar.Controls.Add(this.btnMinimize);
         this.topBar.Controls.Add(this.btnMaximize);
@@ -53,60 +53,60 @@ partial class Form1
         // 
         // btnMinimize
         // 
-        this.btnMinimize.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(9)))), ((int)(((byte)(78)))), ((int)(((byte)(120)))));
+        this.btnMinimize.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
         this.btnMinimize.Dock = System.Windows.Forms.DockStyle.Right;
         this.btnMinimize.FlatAppearance.BorderSize = 0;
-        this.btnMinimize.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(54)))), ((int)(((byte)(84)))));
-        this.btnMinimize.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(11)))), ((int)(((byte)(96)))), ((int)(((byte)(148)))));
+        this.btnMinimize.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(222)))), ((int)(((byte)(240)))));
+        this.btnMinimize.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(236)))), ((int)(((byte)(246)))));
         this.btnMinimize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnMinimize.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-        this.btnMinimize.ForeColor = System.Drawing.Color.WhiteSmoke;
+        this.btnMinimize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
         this.btnMinimize.Location = new System.Drawing.Point(1144, 0);
         this.btnMinimize.Name = "btnMinimize";
         this.btnMinimize.Size = new System.Drawing.Size(44, 40);
         this.btnMinimize.TabIndex = 0;
-        this.btnMinimize.Text = "-";
+        this.btnMinimize.Text = "–";
         this.btnMinimize.UseVisualStyleBackColor = false;
         // 
         // btnMaximize
         // 
-        this.btnMaximize.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(9)))), ((int)(((byte)(78)))), ((int)(((byte)(120)))));
+        this.btnMaximize.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
         this.btnMaximize.Dock = System.Windows.Forms.DockStyle.Right;
         this.btnMaximize.FlatAppearance.BorderSize = 0;
-        this.btnMaximize.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(54)))), ((int)(((byte)(84)))));
-        this.btnMaximize.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(11)))), ((int)(((byte)(96)))), ((int)(((byte)(148)))));
+        this.btnMaximize.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(222)))), ((int)(((byte)(240)))));
+        this.btnMaximize.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(236)))), ((int)(((byte)(246)))));
         this.btnMaximize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnMaximize.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-        this.btnMaximize.ForeColor = System.Drawing.Color.WhiteSmoke;
+        this.btnMaximize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
         this.btnMaximize.Location = new System.Drawing.Point(1188, 0);
         this.btnMaximize.Name = "btnMaximize";
         this.btnMaximize.Size = new System.Drawing.Size(44, 40);
         this.btnMaximize.TabIndex = 1;
-        this.btnMaximize.Text = "[]";
+        this.btnMaximize.Text = "□";
         this.btnMaximize.UseVisualStyleBackColor = false;
         // 
         // btnClose
         // 
-        this.btnClose.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(9)))), ((int)(((byte)(78)))), ((int)(((byte)(120)))));
+        this.btnClose.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
         this.btnClose.Dock = System.Windows.Forms.DockStyle.Right;
         this.btnClose.FlatAppearance.BorderSize = 0;
-        this.btnClose.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(150)))), ((int)(((byte)(36)))), ((int)(((byte)(36)))));
-        this.btnClose.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(214)))), ((int)(((byte)(58)))), ((int)(((byte)(58)))));
+        this.btnClose.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(185)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
+        this.btnClose.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(38)))), ((int)(((byte)(38)))));
         this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnClose.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-        this.btnClose.ForeColor = System.Drawing.Color.WhiteSmoke;
+        this.btnClose.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
         this.btnClose.Location = new System.Drawing.Point(1232, 0);
         this.btnClose.Name = "btnClose";
         this.btnClose.Size = new System.Drawing.Size(48, 40);
         this.btnClose.TabIndex = 2;
-        this.btnClose.Text = "X";
+        this.btnClose.Text = "×";
         this.btnClose.UseVisualStyleBackColor = false;
         // 
         // titleLabel
         // 
         this.titleLabel.AutoSize = true;
         this.titleLabel.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-        this.titleLabel.ForeColor = System.Drawing.Color.WhiteSmoke;
+        this.titleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(28)))), ((int)(((byte)(48)))));
         this.titleLabel.Location = new System.Drawing.Point(14, 11);
         this.titleLabel.Name = "titleLabel";
         this.titleLabel.Size = new System.Drawing.Size(42, 15);

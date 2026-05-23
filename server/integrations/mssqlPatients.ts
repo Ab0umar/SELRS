@@ -3518,7 +3518,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
     incrementalSince,
     lastMarker: incrementalSince,
   };
-  const insertedPatientsSample: Array<{ patientCode: string; fullName: string }> = [];
+  const insertedPatientsSample: Array<{ patientCode: string; fullName: string; serviceCodes: string[] }> = [];
   const changedPatientIds = new Set<number>();
 
   const pool = await createMssqlPool();
@@ -3902,6 +3902,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
               insertedPatientsSample.push({
                 patientCode,
                 fullName,
+                serviceCodes: incomingServiceCodes,
               });
             }
           }
@@ -4160,12 +4161,29 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           console.warn("[MSSQL Sync] Failed to send new-patient notification:", error);
         });
         if (notificationSettings.patients.enabled) {
+          const firstPatient = insertedPatientsSample[0];
+          const MSSQL_CONSULTANT_CODES = new Set(["1589"]);
+          const MSSQL_SPECIALIST_CODES = new Set(["1586", "1604", "1605", "1606", "1608", "1609", "1613"]);
+          const MSSQL_XRAY_CODES = new Set(["1590", "1600", "1601", "1614", "1615", "1616", "1572"]);
+          const resolveMssqlPatientTitle = (serviceCodes: string[]): string => {
+            const codes = new Set(serviceCodes.map((c) => String(c).trim()).filter(Boolean));
+            if (codes.has("1501") && codes.has("1502")) return "حجز فحص ليزك جديد";
+            if ([...codes].some((c) => MSSQL_CONSULTANT_CODES.has(c))) return "حجز كشف استشاري جديد";
+            if ([...codes].some((c) => MSSQL_SPECIALIST_CODES.has(c))) return "حجز كشف أخصائي جديد";
+            if ([...codes].some((c) => MSSQL_XRAY_CODES.has(c))) return "حجز اشعه جديد";
+            return "حجز جديد";
+          };
+          const mssqlPatientTitle = firstPatient
+            ? resolveMssqlPatientTitle(firstPatient.serviceCodes)
+            : "حجز جديد";
+          const mssqlPatientMessage = firstPatient
+            ? result.inserted > 1
+              ? `${firstPatient.fullName} (و ${result.inserted - 1} آخرين)`
+              : firstPatient.fullName
+            : `${result.inserted} مريض جديد`;
           await pushAppNotification({
-            title: `تمت إضافة ${result.inserted} مريض جديد من MSSQL`,
-            message:
-              result.inserted === 1 && insertedPatientsSample[0]
-                ? `${insertedPatientsSample[0].fullName} (${insertedPatientsSample[0].patientCode})`
-                : `MSSQL sync added ${result.inserted} new patients.`,
+            title: mssqlPatientTitle,
+            message: mssqlPatientMessage,
             kind: "success",
             source: "mssql_sync",
             entityType: "patient",

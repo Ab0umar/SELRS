@@ -1,9 +1,9 @@
 #define AppName "SELRS"
-#define AppVersion "1.0.134"
+#define AppVersion "1.0.143"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
 #define BuildDir "publish"
-#define OutputDir "installer"
+#define OutputDir "C:\Users\drels\OneDrive\SELRS.cc"
 #define OutputBaseFilenameSuffix "-Desktop"
 
 [Setup]
@@ -15,7 +15,7 @@ DefaultDirName={autopf}\SELRS
 DefaultGroupName=SELRS
 DisableProgramGroupPage=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=SELRS-Desktop-Setup-{#AppVersion}
+OutputBaseFilename=SELRS-Setup-{#AppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

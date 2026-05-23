@@ -6,14 +6,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { persistSessionUser } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Moon, Sun } from "lucide-react";
 import type { User } from "@shared/types";
+import { useTheme, type ThemePref } from "@/contexts/ThemeContext";
 
 export default function Profile() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
+  const { pref, setPref } = useTheme();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -155,6 +157,36 @@ export default function Profile() {
           </div>
         </CardContent>
       </Card>
+
+      {(
+        <Card className="border-border/80 bg-background/95 shadow-sm">
+          <CardHeader>
+            <CardTitle>المظهر</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              {(["light", "dark"] as ThemePref[]).map((option) => {
+                const labels: Record<ThemePref, string> = { light: "فاتح", dark: "داكن" };
+                const icons: Record<ThemePref, React.ReactNode> = {
+                  light: <Sun className="h-4 w-4" />,
+                  dark: <Moon className="h-4 w-4" />,
+                };
+                return (
+                  <Button
+                    key={option}
+                    variant={pref === option ? "default" : "outline"}
+                    className="flex-1 gap-2"
+                    onClick={() => setPref(option)}
+                  >
+                    {icons[option]}
+                    {labels[option]}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

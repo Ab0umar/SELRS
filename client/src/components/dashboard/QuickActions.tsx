@@ -17,19 +17,19 @@ const quickActions = [
   {
     arabic: 'تسجيل مريض',
     icon: UserPlus,
-    color: 'bg-primary text-primary-foreground hover:bg-primary/20',
+    color: 'bg-primary text-primary-foreground hover:bg-primary/90',
     path: '/patients',
   },
   {
     arabic: 'حجز موعد',
     icon: CalendarPlus,
-    color: 'bg-primary text-primary-foreground hover:bg-primary/20',
+    color: 'bg-primary text-primary-foreground hover:bg-primary/90',
     path: '/today-patients',
   },
   {
     arabic: 'قياس و فحص',
     icon: Eye,
-    color: 'bg-primary text-primary-foreground hover:bg-primary/15',
+    color: 'bg-primary text-primary-foreground hover:bg-primary/90',
     path: '/examination-form',
   },
   {
@@ -41,19 +41,19 @@ const quickActions = [
   {
     arabic: 'الملف الطبي',
     icon: FileHeart,
-    color: 'bg-secondary/[0.07]0/10 text-destructive hover:bg-secondary/[0.07]0/20',
+    color: 'bg-destructive/10 text-destructive hover:bg-destructive/15',
     path: '/patients',
   },
   {
     arabic: 'الملف المجمع',
     icon: FolderOpen,
-    color: 'bg-secondary/[0.07]0/10 text-secondary hover:bg-secondary/[0.07]0/20',
+    color: 'bg-secondary/10 text-secondary hover:bg-secondary/15',
     path: '/patients',
   },
   {
     arabic: 'الشيت',
     icon: ClipboardList,
-    color: 'bg-warning/100/10 text-warning hover:bg-warning/100/20',
+    color: 'bg-warning/15 text-warning hover:bg-warning/20',
     path: '/consultant-sheet',
   },
   {
@@ -89,7 +89,7 @@ export function QuickActions() {
             type="button"
             onClick={() => navigate(action.path)}
             className={cn(
-              'flex flex-col items-center justify-center sm:gap-2 rounded-xl py-2.5 sm:py-3 px-1 transition-all active:scale-95',
+              'flex flex-col items-center justify-center sm:gap-2 rounded-xl py-2.5 sm:py-3 px-1 transition-[background-color,border-color,transform] active:scale-95',
               'bg-muted/50 hover:bg-muted border border-transparent hover:border-border',
               'group cursor-pointer'
             )}
@@ -100,7 +100,7 @@ export function QuickActions() {
             )}>
               <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
             </div>
-            <span className="hidden sm:block text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center truncate w-full">
+            <span className="hidden w-full truncate text-center text-sm font-semibold leading-tight text-muted-foreground transition-colors group-hover:text-foreground sm:block">
               {action.arabic}
             </span>
           </button>

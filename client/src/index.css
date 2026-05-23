@@ -48,6 +48,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-error: var(--error);
   --color-error-foreground: var(--error-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
 }
 
 :root {
@@ -106,52 +109,60 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #E5E7EB;
   --sidebar-ring: #003D82;
+
+  /* Accessible text-on-light variants (WCAG AA on white/card surfaces) */
+  --destructive-text: #B91C1C;
+  --success-text: #047857;
+  --warning-text: #92400E;
 }
 
 .dark {
-  /* SELRS is a light-theme clinical product. Keep dark-mode fallbacks tinted and readable if the class is present. */
-  --background: #f7fafc;
-  --foreground: #001F47;
-  --card: #f2f6fb;
-  --card-foreground: #001F47;
-  --popover: #f7fafc;
-  --popover-foreground: #001F47;
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
   --primary: #003D82;
   --primary-foreground: #FFFFFF;
   --secondary: #FF9500;
-  --secondary-foreground: #001F47;
-  --muted: #E8F0F8;
-  --muted-foreground: #334155;
+  --secondary-foreground: #0d1117;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
   --accent: #FF9500;
-  --accent-foreground: #001F47;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --success-foreground: #001F47;
-  --info: #3B82F6;
-  --info-foreground: #FFFFFF;
-  --warning: #FBBF24;
-  --warning-foreground: #78350F;
-  --error: #EF4444;
-  --error-foreground: #FFFFFF;
-  --border: #cbd5e1;
-  --input: #FFFFFF;
+  --accent-foreground: #0d1117;
+  --destructive: #F87171;
+  --destructive-foreground: #0d1117;
+  --success: #34D399;
+  --success-foreground: #0d1117;
+  --info: #60A5FA;
+  --info-foreground: #0d1117;
+  --warning: #FCD34D;
+  --warning-foreground: #0d1117;
+  --error: #F87171;
+  --error-foreground: #0d1117;
+  --border: #30363d;
+  --input: #21262d;
   --ring: #FF9500;
 
-  --chart-1: #003D82;
-  --chart-2: #0052A3;
+  --chart-1: #4D8ECC;
+  --chart-2: #6BA3D6;
   --chart-3: #FF9500;
   --chart-4: #FFB84D;
   --chart-5: #FFD699;
 
-  --sidebar: #f7fafc;
-  --sidebar-foreground: #001F47;
+  --sidebar: #010409;
+  --sidebar-foreground: #e6edf3;
   --sidebar-primary: #003D82;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #001F47;
-  --sidebar-border: #cbd5e1;
+  --sidebar-accent-foreground: #0d1117;
+  --sidebar-border: #30363d;
   --sidebar-ring: #FF9500;
+
+  --destructive-text: #FCA5A5;
+  --success-text: #6EE7B7;
+  --warning-text: #FCD34D;
 }
 
 @layer base {
@@ -176,10 +187,12 @@
   html {
     font-size: 15px;
     line-height: 1.45;
+    font-family: "Segoe UI", Tahoma, Arial, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: inherit;
     direction: rtl;
     unicode-bidi: plaintext;
     text-align: start;
@@ -189,9 +202,8 @@
     background-attachment: fixed;
   }
   .dark body {
-    background-image:
-      radial-gradient(circle at top, rgba(0, 61, 130, 0.05), transparent 24%),
-      linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
+    background-image: none;
+    background-color: #0d1117;
   }
   body * {
     unicode-bidi: plaintext;
@@ -238,19 +250,25 @@
 }
 
 @media (max-width: 768px) {
-  .dark html {
-    background-color: var(--background) !important;
-  }
-
+  .dark html,
   .dark body {
-    background-color: var(--background) !important;
+    background-color: #0d1117 !important;
     background-image: none !important;
+    background-attachment: scroll !important;
   }
 
   .dark .selrs-page-bg {
-    background-color: #f7fafc !important;
-    background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%) !important;
+    background-color: #0d1117 !important;
+    background-image: none !important;
     background-attachment: scroll !important;
+  }
+}
+
+@media print {
+  .dark html,
+  .dark body {
+    background-color: #fff !important;
+    color: #000 !important;
   }
 }
 
@@ -307,22 +325,22 @@ img {
   }
 
   .dark [class~="bg-white"] {
-    background-color: color-mix(in oklch, var(--card) 94%, transparent) !important;
+    background-color: rgba(22, 27, 34, 0.96) !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: color-mix(in oklch, var(--card) 90%, transparent) !important;
+    background-color: rgba(22, 27, 34, 0.92) !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"] {
-    background-color: color-mix(in oklch, var(--muted) 82%, transparent) !important;
+    background-color: rgba(33, 38, 45, 0.85) !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-white/80"] {
-    border-color: color-mix(in oklch, var(--border) 88%, transparent) !important;
+    border-color: rgba(48, 54, 61, 0.90) !important;
   }
 
   .dark [class*="text-slate-950"],
@@ -334,23 +352,19 @@ img {
   .dark [class*="text-slate-700"],
   .dark [class*="text-slate-600"],
   .dark [class*="text-slate-500"] {
-    color: color-mix(in oklch, var(--foreground) 72%, transparent) !important;
+    color: rgba(230, 237, 243, 0.72) !important;
   }
 
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
     background-image:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 34%),
-      linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--card) 96%, transparent),
-        color-mix(in oklch, var(--muted) 76%, transparent)
-      ) !important;
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 34%),
+      linear-gradient(135deg, rgba(13, 17, 23, 0.97), rgba(22, 27, 34, 0.80)) !important;
   }
 
   .dark [class*="shadow-sm"],
   .dark [class*="shadow-lg"] {
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10) !important;
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.30) !important;
   }
 
 }
@@ -564,8 +578,8 @@ img {
   }
 
   .dark .selrs-page-bg {
-    background-color: #f7fafc;
-    background-image: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
+    background-color: #0d1117;
+    background-image: none;
   }
 
   /* Sidebar panel — matches selrs.cc dashboard shell */
@@ -574,7 +588,7 @@ img {
   }
 
   .dark .selrs-sidebar-bg {
-    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    background: #010409;
   }
 
   .selrs-login-bg {
@@ -598,9 +612,9 @@ img {
   }
 
   .dark .selrs-glass-card {
-    border: 1px solid rgba(0, 61, 130, 0.12);
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10);
+    border: 1px solid rgba(48, 54, 61, 0.80);
+    background: rgba(22, 27, 34, 0.95);
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.30);
     backdrop-filter: none;
   }
 

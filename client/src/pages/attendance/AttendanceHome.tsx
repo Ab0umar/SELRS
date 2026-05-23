@@ -195,7 +195,7 @@ export default function AttendanceHome() {
               <div key={label} className={`rounded-xl border p-4 ${accent}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground">
+                    <div className="text-xs font-semibold text-foreground/70">
                       {label}
                     </div>
                     <div className={`mt-1 text-2xl font-bold ${tone}`}>
@@ -213,9 +213,9 @@ export default function AttendanceHome() {
         {/* Quick actions */}
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold text-foreground">
+            <h2 className="text-base font-semibold text-foreground">
               الإجراءات السريعة
-            </h3>
+            </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               اختصارات مباشرة للعمليات اليومية.
             </p>
@@ -323,9 +323,9 @@ export default function AttendanceHome() {
         {/* Section navigation */}
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold text-foreground">
+            <h2 className="text-base font-semibold text-foreground">
               أقسام العمل
-            </h3>
+            </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               مسارات مباشرة إلى المناطق الأساسية.
             </p>

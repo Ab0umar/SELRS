@@ -268,7 +268,7 @@ export default function StockroomCategory() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="text-warning hover:text-warning hover:bg-warning/10 border-warning/20"
+                          className="text-warning-text hover:text-warning-text hover:bg-warning/10 border-warning/20"
                           onClick={() => handleOpenDispense(item)}
                           disabled={item.quantity === 0}
                         >
@@ -294,14 +294,14 @@ export default function StockroomCategory() {
               <div className="flex bg-muted/50 p-1 rounded-md w-full sm:w-[240px]">
                 <button 
                   type="button"
-                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-all", !isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
+                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-colors", !isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
                   onClick={() => setIsReceivingNewItem(false)}
                 >
                   صنف مسجل
                 </button>
                 <button 
                   type="button"
-                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-all", isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
+                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-colors", isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
                   onClick={() => setIsReceivingNewItem(true)}
                 >
                   صنف جديد
@@ -400,7 +400,7 @@ export default function StockroomCategory() {
 
         <TabsContent value="dispense" className="space-y-4">
           <div className="rounded-lg border border-border/60 bg-white p-6 sm:p-8 max-w-2xl mx-auto">
-            <h2 className="text-lg font-bold text-warning mb-6 flex items-center border-b border-border/50 pb-4">
+            <h2 className="text-lg font-bold text-warning-text mb-6 flex items-center border-b border-border/50 pb-4">
               <ArrowUpFromLine className="me-2 h-5 w-5" />
               إذن صرف مخزون
             </h2>

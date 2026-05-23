@@ -17,6 +17,10 @@ const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 const PUSH_DEVICE_ID_KEY = "selrs_push_device_id_v1";
 const PUSH_TOKEN_KEY = "selrs_push_token_v1";
 const PUSH_REGISTRATION_STATE_KEY = "selrs_push_registration_state_v1";
+const NATIVE_THEME_COLORS = {
+  dark: "#0d1117",
+  light: "#FBFDFF",
+} as const;
 
 type AppNotificationItem = {
   id: string;
@@ -208,6 +212,7 @@ function NativeThemeSync() {
     if (!Capacitor.isNativePlatform()) return;
     const isDark = theme === "dark";
     void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
+    void StatusBar.setBackgroundColor({ color: isDark ? NATIVE_THEME_COLORS.dark : NATIVE_THEME_COLORS.light }).catch(() => {});
   }, [theme]);
 
   return null;
