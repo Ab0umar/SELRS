@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { router } from '../_core/procedures';
-import { managerProcedure } from '../_core/procedures';
+import { router, attendanceManagerProcedure as managerProcedure } from '../_core/procedures';
 import { getDb } from '../db';
 import {
   salaryBasics,
