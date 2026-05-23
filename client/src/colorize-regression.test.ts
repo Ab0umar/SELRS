@@ -33,8 +33,8 @@ describe("color token regressions", () => {
   it("keeps the login submit label readable on the navy action background", () => {
     const source = readClientFile("src/pages/Home.tsx");
 
-    expect(source).not.toContain("bg-[#001F47] text-[15px] font-bold text-card-foreground");
-    expect(source).toContain("bg-[#001F47] text-[15px] font-bold text-primary-foreground");
+    expect(source).not.toContain("bg-primary text-[15px] font-bold text-card-foreground");
+    expect(source).toContain("bg-primary text-[15px] font-bold text-primary-foreground");
   });
 
   it("does not render a theme toggle when the product is light-theme only", () => {

@@ -26,6 +26,7 @@ import {
   ShiftCycle,
   CycleAssignment,
   Shift,
+  ymd,
 } from './rulesEngine';
 import { PunchesService } from './punches.service';
 
@@ -76,11 +77,14 @@ export class DailyMaterializer {
       for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
         const workDate = new Date(d);
         workDate.setHours(0, 0, 0, 0);
+        const workDateStr = this.dateKey(workDate);
 
-        // Get approved leave for this day
+        // Get approved leave for this day (use ymd() to avoid UTC-vs-local timezone mismatch)
         const leaveApproved = empLeaves.some((l) => {
-          const isApproved = l.approved;
-          return isApproved && l.dateFrom <= workDate && l.dateTo >= workDate;
+          if (!l.approved) return false;
+          const fromStr = ymd(new Date(l.dateFrom));
+          const toStr = ymd(new Date(l.dateTo));
+          return fromStr <= workDateStr && toStr >= workDateStr;
         });
 
         // Check if holiday
@@ -88,7 +92,6 @@ export class DailyMaterializer {
 
         // Get shift for this day — direct assignment first, then cycle fallback
         // If employee has an active cycle, don't fall back to defaultShift on rest days
-        const workDateStr = this.dateKey(workDate);
         const hasActiveCycle = cycleAssignments.some((ca) => {
           if (ca.empCd !== empCd) return false;
           const fromStr = this.dateKey(ca.effectiveFrom);

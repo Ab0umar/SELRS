@@ -26,16 +26,13 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
-  Moon,
   Network,
   Search,
   Settings,
-  Sun,
   Syringe,
   UserCog,
   Users,
 } from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
 import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -192,7 +189,6 @@ export function AppTopNav({
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const { pref: themePref, toggleTheme, isAndroid } = useTheme();
 
   const toggleSection = (key: string) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -422,21 +418,6 @@ export function AppTopNav({
                 })}
               </PopoverContent>
             </Popover>
-          )}
-
-          {/* Dark mode toggle */}
-          {toggleTheme && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={toggleTheme}
-              aria-label={themePref === "dark" ? "تبديل إلى وضع فاتح" : "تبديل إلى وضع داكن"}
-              title={themePref === "dark" ? "وضع داكن" : "وضع فاتح"}
-            >
-              {themePref === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </Button>
           )}
 
           {/* Search */}

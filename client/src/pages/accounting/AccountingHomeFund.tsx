@@ -309,7 +309,7 @@ export default function AccountingHomeFund() {
                       type="button"
                       onClick={handleSubmit}
                       disabled={busy || !txDate}
-                      className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-card-foreground hover:bg-primary/90 disabled:opacity-40"
+                      className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
                     >
                       {busy ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
