@@ -181,3 +181,4 @@ scripts/New/
 .socraticodecontextartifacts.json
 scripts/*.cmd
 .impeccable/
+scripts/GIT-sync.ps1
