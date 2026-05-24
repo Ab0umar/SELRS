@@ -834,6 +834,33 @@ export const attendanceRouter = router({
       }
     }),
 
+  exportDevicePunches: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const config = input.ip ? { ip: input.ip, port: input.port } : undefined;
+      const punches = await FKAttendLogPuller.pullLogs(config);
+      return {
+        success: true,
+        count: punches.length,
+        punches: punches.map((p) => ({
+          empNo: p.enrollNo,
+          timestamp: p.timestamp.toISOString(),
+          direction: p.inOutMode === 1 ? 'in' : 'out',
+          year: p.year,
+          month: p.month,
+          day: p.day,
+          hour: p.hour,
+          minute: p.minute,
+          second: p.second,
+        })),
+      };
+    }),
+
   syncFromFKDevice: attendanceManagerProcedure
     .input(
       z.object({
