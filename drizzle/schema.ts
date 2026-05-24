@@ -1400,3 +1400,27 @@ export const salaryConfig = mysqlTable("salary_config", {
   value: varchar("value", { length: 255 }).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
+
+export const shiftStaff = mysqlTable("shift_staff", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 32 }).notNull(),
+  ratePerShift: decimal("rate_per_shift", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export const shiftAttendance = mysqlTable("shift_attendance", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staff_id").notNull(),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+  workDate: date("work_date").notNull(),
+  shiftName: varchar("shift_name", { length: 128 }).notNull(),
+  present: boolean("present").notNull().default(true),
+  notes: varchar("notes", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  uqStaffDateShift: uniqueIndex("uq_staff_date_shift").on(t.staffId, t.workDate, t.shiftName),
+}));

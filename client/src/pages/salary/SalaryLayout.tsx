@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet, Settings2 } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet, Settings2, UserRound, CalendarDays } from "lucide-react";
 
 interface SalaryLayoutProps {
   children: ReactNode;
@@ -12,6 +12,8 @@ const sections = [
   { href: "/salary/pools", label: "العمولات الشهرية", icon: Wallet },
   { href: "/salary/payroll", label: "كشف الرواتب", icon: BarChart3 },
   { href: "/salary/settings", label: "الإعدادات", icon: Settings2 },
+  { href: "/salary/shift-staff", label: "Staff", icon: UserRound },
+  { href: "/salary/shift-schedule", label: "Schedule", icon: CalendarDays },
 ];
 
 function resolveTitle(pathname: string) {
@@ -23,6 +25,10 @@ function resolveTitle(pathname: string) {
     return { title: "كشف الرواتب", description: "احتساب وعرض كشف الرواتب الشهري بالتفصيل." };
   if (pathname.startsWith("/salary/settings"))
     return { title: "إعدادات الرواتب", description: "تخصيص نسب عمولة الحضور والإعدادات العامة." };
+  if (pathname.startsWith("/salary/shift-staff"))
+    return { title: "Doctors & Technicians", description: "Manage shift staff and their per-shift rates." };
+  if (pathname.startsWith("/salary/shift-schedule"))
+    return { title: "Shift Schedule", description: "Build the monthly schedule, mark attendance, and compute shift payroll." };
   return { title: "الرواتب الأساسية", description: "إدارة الرواتب الأساسية لجميع الموظفين." };
 }
 
