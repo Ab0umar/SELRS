@@ -481,6 +481,28 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  addShiftsBulk: managerProcedure
+    .input(z.object({
+      staffId: z.number(),
+      shiftName: z.string().min(1),
+      dates: z.array(z.string()).min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      let inserted = 0;
+      for (const workDate of input.dates) {
+        const d = new Date(workDate);
+        const year = d.getFullYear();
+        const month = d.getMonth() + 1;
+        await db.insert(shiftAttendance)
+          .values({ staffId: input.staffId, year, month, workDate: workDate as any, shiftName: input.shiftName, present: true })
+          .onDuplicateKeyUpdate({ set: { present: true } });
+        inserted++;
+      }
+      return { inserted };
+    }),
+
   toggleShiftPresent: managerProcedure
     .input(z.object({ id: z.number(), present: z.boolean() }))
     .mutation(async ({ input }) => {

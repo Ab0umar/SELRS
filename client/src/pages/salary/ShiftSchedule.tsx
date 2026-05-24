@@ -11,12 +11,37 @@ function fmt(n: number) {
   return n.toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
-interface AddForm { staffId: string; workDate: string; shiftName: string; }
-const EMPTY_ADD: AddForm = { staffId: "", workDate: "", shiftName: "" };
+function monthDates(year: number, month: number): string[] {
+  const total = daysInMonth(year, month);
+  return Array.from({ length: total }, (_, i) => `${year}-${pad(month)}-${pad(i + 1)}`);
+}
+
+function weekDates(anchorDate: string, year: number, month: number): string[] {
+  const d = new Date(anchorDate);
+  // Start from Monday of that week
+  const day = d.getDay(); // 0=Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((day + 6) % 7));
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(monday);
+    cur.setDate(monday.getDate() + i);
+    if (cur.getFullYear() === year && cur.getMonth() + 1 === month) {
+      dates.push(`${cur.getFullYear()}-${pad(cur.getMonth() + 1)}-${pad(cur.getDate())}`);
+    }
+  }
+  return dates;
+}
+
+type Period = "day" | "week" | "month";
+interface AddForm { staffId: string; shiftName: string; period: Period; anchorDate: string; }
+const EMPTY_ADD: AddForm = { staffId: "", shiftName: "", period: "day", anchorDate: "" };
 
 export default function ShiftSchedule() {
   const [year, setYear] = useState(now.getFullYear());
@@ -31,8 +56,12 @@ export default function ShiftSchedule() {
   const attendance: any[] = schedQ.data?.attendance ?? [];
   const payroll: any[] = payrollQ.data ?? [];
 
-  const addMut = (trpc as any).salary.addShiftEntry.useMutation({
-    onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); setShowAdd(false); setAddForm(EMPTY_ADD); toast.success("Shift added"); },
+  const bulkMut = (trpc as any).salary.addShiftsBulk.useMutation({
+    onSuccess: (res: any) => {
+      schedQ.refetch(); payrollQ.refetch();
+      setShowAdd(false); setAddForm(EMPTY_ADD);
+      toast.success(`${res.inserted} shift(s) added`);
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -47,21 +76,22 @@ export default function ShiftSchedule() {
   });
 
   function submitAdd() {
-    if (!addForm.staffId || !addForm.workDate || !addForm.shiftName.trim()) {
-      toast.error("Fill all fields"); return;
+    if (!addForm.staffId || !addForm.shiftName) { toast.error("Select staff and shift"); return; }
+    if (addForm.period !== "month" && !addForm.anchorDate) { toast.error("Select a date"); return; }
+
+    let dates: string[] = [];
+    if (addForm.period === "day") {
+      dates = [addForm.anchorDate];
+    } else if (addForm.period === "week") {
+      dates = weekDates(addForm.anchorDate, year, month);
+      if (dates.length === 0) { toast.error("Selected week has no days in this month"); return; }
+    } else {
+      dates = monthDates(year, month);
     }
-    const d = new Date(addForm.workDate);
-    addMut.mutate({
-      staffId: parseInt(addForm.staffId),
-      year,
-      month,
-      workDate: addForm.workDate,
-      shiftName: addForm.shiftName.trim(),
-      present: true,
-    });
+
+    bulkMut.mutate({ staffId: parseInt(addForm.staffId), shiftName: addForm.shiftName, dates });
   }
 
-  // Group attendance by staffId
   const byStaff = new Map<number, any[]>();
   for (const row of attendance) {
     if (!byStaff.has(row.staffId)) byStaff.set(row.staffId, []);
@@ -69,6 +99,8 @@ export default function ShiftSchedule() {
   }
 
   const totalPay = payroll.reduce((s: number, r: any) => s + r.totalPay, 0);
+  const monthMin = `${year}-${pad(month)}-01`;
+  const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 
   return (
     <div className="space-y-6">
@@ -86,37 +118,68 @@ export default function ShiftSchedule() {
           ))}
         </select>
         <Button size="sm" onClick={() => setShowAdd(v => !v)}>
-          <Plus size={15} className="mr-1" /> Add shift
+          <Plus size={15} className="mr-1" /> Add shifts
         </Button>
       </div>
 
       {/* Add form */}
       {showAdd && (
         <div className="rounded-md border p-4 bg-muted/10 space-y-3">
-          <h3 className="text-sm font-semibold">Add shift entry</h3>
+          <h3 className="text-sm font-semibold">Add shifts</h3>
           <div className="flex flex-wrap gap-3">
+            {/* Staff */}
             <select value={addForm.staffId} onChange={e => setAddForm(f => ({ ...f, staffId: e.target.value }))}
-              className="rounded border border-input bg-background px-3 py-1.5 text-sm min-w-40">
+              className="rounded border border-input bg-background px-3 py-1.5 text-sm min-w-44">
               <option value="">-- Select staff --</option>
               {staff.map(s => (
                 <option key={s.id} value={s.id}>{s.name} ({s.type === "doctor" ? "Dr" : "Tech"})</option>
               ))}
             </select>
-            <input type="date" value={addForm.workDate}
-              min={`${year}-${String(month).padStart(2,"0")}-01`}
-              max={`${year}-${String(month).padStart(2,"0")}-${String(daysInMonth(year,month)).padStart(2,"0")}`}
-              onChange={e => setAddForm(f => ({ ...f, workDate: e.target.value }))}
-              className="rounded border border-input bg-background px-3 py-1.5 text-sm"
-            />
+
+            {/* Shift type */}
             <select value={addForm.shiftName} onChange={e => setAddForm(f => ({ ...f, shiftName: e.target.value }))}
               className="rounded border border-input bg-background px-3 py-1.5 text-sm">
               <option value="">-- Shift --</option>
               <option value="Morning">Morning</option>
               <option value="Night">Night</option>
             </select>
+
+            {/* Period */}
+            <div className="flex rounded-md border border-input overflow-hidden text-sm">
+              {(["day","week","month"] as Period[]).map(p => (
+                <button key={p} onClick={() => setAddForm(f => ({ ...f, period: p }))}
+                  className={`px-3 py-1.5 capitalize transition-colors ${addForm.period === p ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Date picker — hidden for month */}
+            {addForm.period !== "month" && (
+              <input type="date" value={addForm.anchorDate}
+                min={monthMin} max={monthMax}
+                onChange={e => setAddForm(f => ({ ...f, anchorDate: e.target.value }))}
+                className="rounded border border-input bg-background px-3 py-1.5 text-sm"
+              />
+            )}
           </div>
+
+          {/* Preview label */}
+          {addForm.period === "week" && addForm.anchorDate && (
+            <p className="text-xs text-muted-foreground">
+              Will add: {weekDates(addForm.anchorDate, year, month).join(", ") || "no days in this month"}
+            </p>
+          )}
+          {addForm.period === "month" && (
+            <p className="text-xs text-muted-foreground">
+              Will add all {daysInMonth(year, month)} days of {MONTHS[month - 1]} {year}
+            </p>
+          )}
+
           <div className="flex gap-2">
-            <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>Add</Button>
+            <Button size="sm" onClick={submitAdd} disabled={bulkMut.isPending}>
+              {bulkMut.isPending ? "Adding…" : "Add"}
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => { setShowAdd(false); setAddForm(EMPTY_ADD); }}>Cancel</Button>
           </div>
         </div>
@@ -190,7 +253,6 @@ export default function ShiftSchedule() {
         </div>
       )}
 
-      {/* Total */}
       {payroll.length > 0 && (
         <div className="flex justify-end pt-2">
           <div className="rounded-md border px-6 py-3 bg-muted/20 text-sm">
