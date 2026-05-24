@@ -160,7 +160,7 @@ export default function EmployeesList() {
                               >
                                 القسم
                               </label>
-                              <input
+                              <select
                                 id={`attendance-employee-department-${emp.empCd}`}
                                 value={editRow.department}
                                 onChange={(e) =>
@@ -170,8 +170,11 @@ export default function EmployeesList() {
                                   })
                                 }
                                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                                placeholder="القسم"
-                              />
+                              >
+                                <option value="">— غير محدد —</option>
+                                <option value="مركز">مركز</option>
+                                <option value="عيادة">عيادة</option>
+                              </select>
                             </td>
                             <td className="py-2 px-2">
                               <label
