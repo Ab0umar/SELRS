@@ -220,7 +220,6 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
       const r2 = (n: number) => Math.round(n * 100) / 100;
-      // DEBUG: remove after fix
       const consultantPool = r2(input.examPoolConsultant ?? 0);
       const specialistPool = r2(input.examPoolSpecialist ?? 0);
       const examPool = String(
@@ -235,6 +234,7 @@ export const salaryRouter = router({
       const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
       const examCountConsultantVal = input.examCountConsultant ?? null;
       const examCountSpecialistVal = input.examCountSpecialist ?? null;
+      console.log('[DEBUG]', JSON.stringify({ examPool, pentacamPool, examCountConsultantVal, examCountSpecialistVal, examPoolConsultantVal, examPoolSpecialistVal, notes: input.notes }));
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -270,7 +270,8 @@ export const salaryRouter = router({
             notes: input.notes,
           },
         }).catch((err: any) => {
-          console.error('[setCommissionPool] MySQL error:', err?.code, err?.sqlMessage ?? err?.message);
+          const cause = err?.cause ?? err;
+          console.error('[setCommissionPool] MySQL error:', cause?.code, cause?.sqlMessage ?? cause?.message);
           throw err;
         });
       return { success: true };
