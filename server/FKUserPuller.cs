@@ -24,7 +24,7 @@ internal static class FK
 
     // Iterate through loaded users (returns 1 while records remain, 0 when done)
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
-    public static extern int FK_GetUserInfo(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
+    public static extern int FK_GetAllUserID(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
 
     // Get name for a specific enrollNo
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
@@ -74,7 +74,7 @@ internal sealed class Program
                 while (true)
                 {
                     int enrollNo = 0, backupNum = 0, privilege = 0, enable = 0;
-                    int rc = FK.FK_GetUserInfo(handle, ref enrollNo, ref backupNum, ref privilege, ref enable);
+                    int rc = FK.FK_GetAllUserID(handle, ref enrollNo, ref backupNum, ref privilege, ref enable);
                     if (rc <= 0) break;
 
                     var name = new StringBuilder(64);
