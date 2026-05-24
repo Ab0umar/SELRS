@@ -17,6 +17,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).optional().default("development"),
   FK_PULLER_PATH: z.string().optional().default("D:\\Programs\\fp\\FKOldLogPuller.exe"),
   FK_USER_PULLER_PATH: z.string().optional().default("D:\\Programs\\fp\\FKUserPuller.exe"),
+  FK_MDB_PATH: z.string().optional().default("D:\\Programs\\fp\\Taurus.mdb"),
   ATTENDANCE_ENABLED: z.enum(["true", "false"]).optional().default("true"),
   ATTENDANCE_SOURCE: z.enum(["access", "tcp"]).optional().default("access"),
   ATTENDANCE_ACCESS_PATH: z.string().optional().default(""),

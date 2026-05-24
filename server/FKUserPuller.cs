@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -19,25 +20,11 @@ internal static class FK
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
     public static extern int FK_GetLastError(int handle);
 
-    // Punch log functions (known to work)
-    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
-    public static extern int FK_LoadGeneralLogData(int handle, int readMark);
-
-    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
-    public static extern int FK_GetGeneralLogData_1(
-        int handle, ref int enrollNo, ref int verifyMode, ref int inOutMode,
-        ref int year, ref int month, ref int day, ref int hour, ref int minute, ref int second);
-
-    // User info functions
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
     public static extern int FK_ReadAllUserID(int handle);
 
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
     public static extern int FK_GetAllUserID(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
-
-    // Try ANSI byte[] buffer
-    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
-    public static extern int FK_GetUserName(int handle, int enrollNo, [Out] byte[] name);
 }
 
 internal sealed class Program
@@ -51,81 +38,112 @@ internal sealed class Program
         int    license  = int.Parse(GetArg(args, "--license",  "1261"),  CultureInfo.InvariantCulture);
         int    timeout  = int.Parse(GetArg(args, "--timeout",  "10000"), CultureInfo.InvariantCulture);
         int    protocol = int.Parse(GetArg(args, "--protocol", "0"),     CultureInfo.InvariantCulture);
-        string outPath  = GetArg(args, "--out", @"E:\users.csv");
+        string mdbPath  = GetArg(args, "--mdb",  @"D:\Programs\fp\Taurus.mdb");
+        string outPath  = GetArg(args, "--out",  @"E:\users.csv");
 
         var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
+        // Step 1: read names from Taurus.mdb
+        var names = new Dictionary<int, string>();
+        if (File.Exists(mdbPath))
+        {
+            try
+            {
+                // try ACE first, fall back to Jet
+                string[] providers = { "Microsoft.ACE.OLEDB.12.0", "Microsoft.Jet.OLEDB.4.0" };
+                OleDbConnection mdbConn = null;
+                foreach (var prov in providers)
+                {
+                    try
+                    {
+                        mdbConn = new OleDbConnection(string.Format("Provider={0};Data Source={1};", prov, mdbPath));
+                        mdbConn.Open();
+                        break;
+                    }
+                    catch { mdbConn = null; }
+                }
+                if (mdbConn != null)
+                {
+                    using (mdbConn)
+                    using (var cmd = mdbConn.CreateCommand())
+                    {
+                        cmd.CommandText = "SELECT EmpNo, EmpName FROM RS_Emp";
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                int no;
+                                if (int.TryParse(rdr["EmpNo"].ToString(), out no))
+                                {
+                                    string nm = (rdr["EmpName"] ?? "").ToString().Trim();
+                                    if (!string.IsNullOrEmpty(nm))
+                                        names[no] = nm;
+                                }
+                            }
+                        }
+                    }
+                    Console.WriteLine("MDB names loaded: {0}", names.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("MDB read failed: {0}", ex.Message);
+            }
+        }
+        else
+        {
+            Console.WriteLine("MDB not found at: {0}", mdbPath);
+        }
+
+        // Step 2: get enrollNos from device
+        var deviceIds = new HashSet<int>();
         Console.WriteLine("Connecting {0}:{1} machine={2} protocol={3}", ip, port, machineNo, protocol);
         int handle = FK.FK_ConnectNet(machineNo, ip, port, timeout, protocol, password, license);
         Console.WriteLine("Handle: {0}", handle);
-        if (handle <= 0)
+        if (handle > 0)
         {
-            Console.Error.WriteLine("Connect failed. lastError=" + FK.FK_GetLastError(handle));
-            return 2;
-        }
-
-        try
-        {
-            var allIds = new HashSet<int>();
-            var names = new Dictionary<int, string>();
-
-            // Step 1: user registry FIRST (before loading logs which may corrupt buffer)
-            int total = FK.FK_ReadAllUserID(handle);
-            Console.WriteLine("FK_ReadAllUserID => {0}", total);
-            if (total >= 0)
+            try
             {
+                int total = FK.FK_ReadAllUserID(handle);
+                Console.WriteLine("FK_ReadAllUserID => {0}", total);
                 while (true)
                 {
                     int en = 0, bk = 0, priv = 0, ena = 0;
-                    int rc = FK.FK_GetAllUserID(handle, ref en, ref bk, ref priv, ref ena);
-                    if (rc <= 0) break;
-                    if (en <= 0) continue;
-                    allIds.Add(en);
-
-                    var buf = new byte[128];
-                    int nr = FK.FK_GetUserName(handle, en, buf);
-                    // debug: print first 32 bytes as hex for first 3 users
-                    if (names.Count < 3)
-                    {
-                        var hex = BitConverter.ToString(buf, 0, 32).Replace("-", " ");
-                        Console.WriteLine("  enrollNo={0} FK_GetUserName rc={1} bytes={2}", en, nr, hex);
-                    }
-                    string n = "";
-                    try { n = Encoding.Unicode.GetString(buf).Split('\0')[0].Trim(); } catch { }
-                    if (string.IsNullOrEmpty(n))
-                        try { n = Encoding.GetEncoding(1256).GetString(buf).Split('\0')[0].Trim(); } catch { }
-                    if (string.IsNullOrEmpty(n))
-                        n = Encoding.Default.GetString(buf).Split('\0')[0].Trim();
-                    if (!string.IsNullOrEmpty(n))
-                        names[en] = n;
+                    if (FK.FK_GetAllUserID(handle, ref en, ref bk, ref priv, ref ena) <= 0) break;
+                    if (en > 0) deviceIds.Add(en);
                 }
+                Console.WriteLine("Device IDs: {0}", deviceIds.Count);
             }
-            Console.WriteLine("Users with names: {0}", names.Count);
-
-            Console.WriteLine("Total unique IDs: {0}", allIds.Count);
-
-            // Step 3: write CSV
-            int count = 0;
-            using (var writer = new StreamWriter(outPath, false, new UTF8Encoding(false)))
+            finally
             {
-                writer.WriteLine("EnrollNo,Name");
-                foreach (var id in allIds)
-                {
-                    string name = names.ContainsKey(id) ? names[id].Replace(",", " ") : "";
-                    writer.WriteLine("{0},{1}", id, name);
-                    count++;
-                }
+                try { FK.FK_EnableDevice(handle, 1); } catch { }
+                FK.FK_DisConnect(handle);
             }
-
-            Console.WriteLine("Done. Rows: {0}", count);
-            return 0;
         }
-        finally
+        else
         {
-            try { FK.FK_EnableDevice(handle, 1); } catch { }
-            FK.FK_DisConnect(handle);
+            Console.WriteLine("Device connect failed — using MDB only");
         }
+
+        // Step 3: union of both sources
+        var allIds = new HashSet<int>(deviceIds);
+        foreach (var id in names.Keys) allIds.Add(id);
+        Console.WriteLine("Total unique IDs: {0}", allIds.Count);
+
+        // Step 4: write CSV
+        using (var writer = new StreamWriter(outPath, false, new UTF8Encoding(false)))
+        {
+            writer.WriteLine("EnrollNo,Name");
+            foreach (var id in allIds)
+            {
+                string name = names.ContainsKey(id) ? names[id].Replace(",", " ") : "";
+                writer.WriteLine("{0},{1}", id, name);
+            }
+        }
+
+        Console.WriteLine("Done. Rows: {0}", allIds.Count);
+        return 0;
     }
 
     private static string GetArg(string[] args, string name, string defaultValue)

@@ -878,10 +878,11 @@ export const attendanceRouter = router({
       const port = input.port || settings.port || 5005;
 
       const pullerPath = process.env.FK_USER_PULLER_PATH ?? 'D:\\Programs\\fp\\FKUserPuller.exe';
+      const mdbPath = process.env.FK_MDB_PATH ?? 'D:\\Programs\\fp\\Taurus.mdb';
       const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
 
       try {
-        const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --out "${tempFile}"`;
+        const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --mdb "${mdbPath}" --out "${tempFile}"`;
         const output = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
         console.log('[FKUserPuller]', output);
 
