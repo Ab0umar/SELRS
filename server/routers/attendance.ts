@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
 import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
 import { FKDeviceSyncService, syncFromFKDevice } from '../services/attendance/fkDeviceSyncService';
@@ -873,15 +877,27 @@ export const attendanceRouter = router({
       const ip = input.ip || settings.ip || '192.168.0.10';
       const port = input.port || settings.port || 5005;
 
-      const device = new ZKTecoDevice({ ip, port, timeout: 10000 });
+      const pullerPath = process.env.FK_USER_PULLER_PATH ?? 'D:\\Programs\\fp\\FKUserPuller.exe';
+      const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
+
       try {
-        const connected = await device.connect();
-        if (!connected) throw new Error(`لا يمكن الاتصال بالجهاز على ${ip}:${port}`);
+        const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --out "${tempFile}"`;
+        const output = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
+        console.log('[FKUserPuller]', output);
 
-        const employees = await device.getEmployees();
-        device.disconnect();
+        if (!fs.existsSync(tempFile)) throw new Error('لم يُنتج الملف — فحص اتصال الجهاز');
 
-        if (!employees.length) return { success: true, inserted: 0, updated: 0, employees: [] };
+        const lines = fs.readFileSync(tempFile, 'utf-8').trim().split('\n').slice(1); // skip header
+        const employees: { empNo: string; name: string }[] = [];
+        for (const line of lines) {
+          const parts = line.trim().split(',');
+          if (parts.length < 2) continue;
+          const empNo = parts[0].trim();
+          const name = parts[1].trim() || empNo;
+          if (empNo) employees.push({ empNo, name });
+        }
+
+        if (!employees.length) return { success: true, inserted: 0, updated: 0, total: 0, employees: [] };
 
         const db = await getDb();
         if (!db) throw new Error('DB unavailable');
@@ -891,9 +907,8 @@ export const attendanceRouter = router({
         let updated = 0;
 
         for (const emp of employees) {
-          const empCd = String(emp.empNo).trim();
-          const fullName = String(emp.name || empCd).trim();
-          if (!empCd) continue;
+          const empCd = emp.empNo;
+          const fullName = emp.name;
 
           const existing = await db
             .select({ id: attendanceEmployees.empCd })
@@ -914,18 +929,13 @@ export const attendanceRouter = router({
 
         AuditLogService.log({ action: 'sync_employees_device', details: { inserted, updated, total: employees.length }, status: 'success' });
 
-        return {
-          success: true,
-          inserted,
-          updated,
-          total: employees.length,
-          employees: employees.map((e) => ({ empNo: e.empNo, name: e.name })),
-        };
+        return { success: true, inserted, updated, total: employees.length, employees };
       } catch (err) {
-        device.disconnect();
         const msg = err instanceof Error ? err.message : String(err);
         AuditLogService.log({ action: 'sync_employees_device', details: { error: msg }, status: 'error' });
         throw new Error(msg);
+      } finally {
+        try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch { }
       }
     }),
 
