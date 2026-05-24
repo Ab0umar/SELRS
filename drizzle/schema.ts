@@ -1323,6 +1323,8 @@ export const salaryCommissionPools = mysqlTable("salary_commission_pools", {
   section: varchar("section", { length: 32 }).default("مركز").notNull(),
   examCount: int("exam_count").default(0).notNull(),
   examPool: decimal("exam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
+  examCountConsultant: int("exam_count_consultant"),
+  examCountSpecialist: int("exam_count_specialist"),
   examPoolConsultant: decimal("exam_pool_consultant", { precision: 12, scale: 2 }),
   examPoolSpecialist: decimal("exam_pool_specialist", { precision: 12, scale: 2 }),
   pentacamPool: decimal("pentacam_pool", { precision: 14, scale: 2 }).default("0").notNull(),

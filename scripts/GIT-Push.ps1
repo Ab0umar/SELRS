@@ -20,24 +20,22 @@ param(
           git status
       }
 
-      Write-Step "Fetch"
-      git fetch
+      Write-Step "Add"
+      git add .
 
-      Write-Step "Pull"
-      git pull
+      Write-Step "Push"
+      git commit
 
       Write-Step "Check git status"
+      git push origin main
+
+      Write-Step "Status"
       git status
 
-      Write-Step "Deploy Web"
-      pnpm build
-
-      Write-Step "Restarting service $ServiceName"
-      nssm restart $ServiceName
   }
   finally {
       Pop-Location
   }
 
   Write-Step "Done"
-  Write-Host "git Sync & Build finished for service: $ServiceName" -ForegroundColor Green
+  Write-Host "git Push For $ServiceName" -ForegroundColor Green

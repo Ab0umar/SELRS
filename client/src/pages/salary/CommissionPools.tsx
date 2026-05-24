@@ -29,6 +29,8 @@ const inputCls = "w-full rounded-md border border-border bg-background px-3 py-2
 
 interface FormState {
   examCount: string;
+  consultantCount: string;
+  specialistCount: string;
   cases450: string;
   cases400: string;
   cases350: string;
@@ -36,8 +38,7 @@ interface FormState {
   notes: string;
 }
 
-const BLANK: FormState = { examCount: "0", cases450: "0", cases400: "0", cases350: "0", cases250: "0", notes: "" };
-const BLANK_RATE = "15";
+const BLANK: FormState = { examCount: "0", consultantCount: "0", specialistCount: "0", cases450: "0", cases400: "0", cases350: "0", cases250: "0", notes: "" };
 
 const SECTIONS = ["مركز", "عيادة"] as const;
 type Section = typeof SECTIONS[number];
@@ -55,20 +56,23 @@ export default function CommissionPools() {
 
   useEffect(() => {
     if (pool) {
-      const count = pool.examCount ?? 0;
+      const cCount = pool.examCountConsultant ?? 0;
+      const sCount = pool.examCountSpecialist ?? 0;
       setForm({
-        examCount: String(count),
+        examCount: String(pool.examCount ?? 0),
+        consultantCount: String(cCount),
+        specialistCount: String(sCount),
         cases450: String(pool.cases450 ?? 0),
         cases400: String(pool.cases400 ?? 0),
         cases350: String(pool.cases350 ?? 0),
         cases250: String(pool.cases250 ?? 0),
         notes: pool.notes ?? "",
       });
-      if (section === "عيادة" && count > 0) {
-        if (pool.examPoolConsultant != null)
-          setConsultantRate(String(Math.round((Number(pool.examPoolConsultant) / count) * 100) / 100));
-        if (pool.examPoolSpecialist != null)
-          setSpecialistRate(String(Math.round((Number(pool.examPoolSpecialist) / count) * 100) / 100));
+      if (section === "عيادة") {
+        if (pool.examPoolConsultant != null && cCount > 0)
+          setConsultantRate(String(Math.round((Number(pool.examPoolConsultant) / cCount) * 100) / 100));
+        if (pool.examPoolSpecialist != null && sCount > 0)
+          setSpecialistRate(String(Math.round((Number(pool.examPoolSpecialist) / sCount) * 100) / 100));
       }
     } else {
       setForm(BLANK);
@@ -90,10 +94,12 @@ export default function CommissionPools() {
     cases250: parseInt(form.cases250) || 0,
   };
   const examCount = parseInt(form.examCount) || 0;
+  const consultantCount = parseInt(form.consultantCount) || 0;
+  const specialistCount = parseInt(form.specialistCount) || 0;
   const consultantRateNum = parseFloat(consultantRate) || 0;
   const specialistRateNum = parseFloat(specialistRate) || 0;
-  const consultantPool = Math.round(examCount * consultantRateNum * 100) / 100;
-  const specialistPool = Math.round(examCount * specialistRateNum * 100) / 100;
+  const consultantPool = Math.round(consultantCount * consultantRateNum * 100) / 100;
+  const specialistPool = Math.round(specialistCount * specialistRateNum * 100) / 100;
   const examEmpPool = isMarkaz ? calcExamEmpPool(examCount) : consultantPool + specialistPool;
   const examTotal = examCount * EXAM_PRICE;
   const examDrPool = Math.round(examTotal * 0.60 * 100) / 100;
@@ -103,9 +109,15 @@ export default function CommissionPools() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     saveMut.mutate({
-      year, month, section, examCount,
+      year, month, section,
+      examCount: isMarkaz ? examCount : consultantCount + specialistCount,
       ...(isMarkaz ? casesNum : { cases450: 0, cases400: 0, cases350: 0, cases250: 0 }),
-      ...(!isMarkaz ? { examPoolConsultant: consultantPool, examPoolSpecialist: specialistPool } : {}),
+      ...(!isMarkaz ? {
+        examCountConsultant: consultantCount,
+        examCountSpecialist: specialistCount,
+        examPoolConsultant: consultantPool,
+        examPoolSpecialist: specialistPool,
+      } : {}),
       notes: form.notes,
     });
   };
@@ -149,27 +161,42 @@ export default function CommissionPools() {
             </p>
           </div>
           <div className="px-4 py-4 space-y-4">
-            <div className={`grid gap-4 ${isMarkaz ? "max-w-xs" : "sm:grid-cols-3 max-w-lg"}`}>
-              <div className="space-y-1">
+            {isMarkaz ? (
+              <div className="max-w-xs space-y-1">
                 <label className="block text-sm font-medium">عدد الكشوفات</label>
                 <input type="number" value={form.examCount} min={0} step="1"
                   onChange={set("examCount")} className={inputCls} />
               </div>
-              {!isMarkaz && (
-                <>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4 max-w-md">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">استشاري</p>
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium">سعر الكشف — استشاري (ج)</label>
+                    <label className="block text-sm font-medium">عدد الكشوفات</label>
+                    <input type="number" value={form.consultantCount} min={0} step="1"
+                      onChange={set("consultantCount")} className={inputCls} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">سعر الكشف (ج)</label>
                     <input type="number" value={consultantRate} min={0} step="0.5"
                       onChange={e => setConsultantRate(e.target.value)} className={inputCls} />
                   </div>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">أخصائي</p>
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium">سعر الكشف — أخصائي (ج)</label>
+                    <label className="block text-sm font-medium">عدد الكشوفات</label>
+                    <input type="number" value={form.specialistCount} min={0} step="1"
+                      onChange={set("specialistCount")} className={inputCls} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">سعر الكشف (ج)</label>
                     <input type="number" value={specialistRate} min={0} step="0.5"
                       onChange={e => setSpecialistRate(e.target.value)} className={inputCls} />
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
             <div className={`grid gap-3 text-sm ${isMarkaz ? "sm:grid-cols-3" : "sm:grid-cols-3"}`}>
               {isMarkaz ? (
                 <>

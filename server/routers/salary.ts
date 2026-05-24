@@ -205,6 +205,8 @@ export const salaryRouter = router({
         section: z.string().default('مركز'),
         examCount: z.number().int().min(0).default(0),
         examPoolOverride: z.number().min(0).optional(), // مركز fallback total
+        examCountConsultant: z.number().int().min(0).optional(),
+        examCountSpecialist: z.number().int().min(0).optional(),
         examPoolConsultant: z.number().min(0).optional(), // عيادة: استشاري pool
         examPoolSpecialist: z.number().min(0).optional(), // عيادة: أخصائي pool
         cases450: z.number().int().min(0).default(0),
@@ -230,6 +232,8 @@ export const salaryRouter = router({
       const pentacamPool = String(calcPentacamPool(input.cases450, input.cases400, input.cases350, input.cases250)) as any;
       const examPoolConsultantVal = input.examPoolConsultant !== undefined ? String(consultantPool) as any : null;
       const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
+      const examCountConsultantVal = input.examCountConsultant ?? null;
+      const examCountSpecialistVal = input.examCountSpecialist ?? null;
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -238,6 +242,8 @@ export const salaryRouter = router({
           section: input.section,
           examCount: input.examCount,
           examPool,
+          examCountConsultant: examCountConsultantVal,
+          examCountSpecialist: examCountSpecialistVal,
           examPoolConsultant: examPoolConsultantVal,
           examPoolSpecialist: examPoolSpecialistVal,
           pentacamPool,
@@ -251,6 +257,8 @@ export const salaryRouter = router({
           set: {
             examCount: input.examCount,
             examPool,
+            examCountConsultant: examCountConsultantVal,
+            examCountSpecialist: examCountSpecialistVal,
             examPoolConsultant: examPoolConsultantVal,
             examPoolSpecialist: examPoolSpecialistVal,
             pentacamPool,
