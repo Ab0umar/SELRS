@@ -2,7 +2,10 @@ import { CalendarPlus, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OperationsBookingFormContent } from "./OperationsBookingFormContent";
-import { defaultOperationsBookingDraft, type OperationsBookingDraft } from "./OperationsBookingQuickDialog";
+import {
+  defaultOperationsBookingDraft,
+  type OperationsBookingDraft,
+} from "./OperationsBookingQuickDialog";
 import { trpc } from "@/lib/trpc";
 
 type OperationsBookingInlinePanelProps = {
@@ -17,7 +20,9 @@ export function OperationsBookingInlinePanel({
   onSaved,
 }: OperationsBookingInlinePanelProps) {
   const utils = trpc.useUtils();
-  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultOperationsBookingDraft(initialDate, initialDoctorName));
+  const [draft, setDraft] = useState<OperationsBookingDraft>(() =>
+    defaultOperationsBookingDraft(initialDate, initialDoctorName),
+  );
   const [panelOpen, setPanelOpen] = useState(false);
 
   const createBooking = trpc.medical.createOperationBooking.useMutation({
@@ -32,7 +37,10 @@ export function OperationsBookingInlinePanel({
   }, [initialDate, initialDoctorName]);
 
   const canReset = useMemo(() => {
-    const defaults = defaultOperationsBookingDraft(initialDate, initialDoctorName);
+    const defaults = defaultOperationsBookingDraft(
+      initialDate,
+      initialDoctorName,
+    );
     return (
       draft.bookingDate !== defaults.bookingDate ||
       draft.bookingTime !== defaults.bookingTime ||
@@ -51,7 +59,10 @@ export function OperationsBookingInlinePanel({
     const nextDraft = {
       ...draft,
       casesCount: Math.max(1, Math.trunc(Number(draft.casesCount) || 1)),
-      doctorName: String(draft.doctorName ?? "").trim() || defaultOperationsBookingDraft(initialDate, initialDoctorName).doctorName,
+      doctorName:
+        String(draft.doctorName ?? "").trim() ||
+        defaultOperationsBookingDraft(initialDate, initialDoctorName)
+          .doctorName,
     };
     createBooking.mutate({
       bookingDate: nextDraft.bookingDate,
@@ -76,8 +87,12 @@ export function OperationsBookingInlinePanel({
             <CalendarPlus className="h-4 w-4" aria-hidden />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-foreground">حجز عملية جديدة</h2>
-            <p className="text-[11px] text-muted-foreground">المدخل المباشر للحجز اليومي</p>
+            <h2 className="text-sm font-semibold text-foreground">
+              حجز عملية جديدة
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              المدخل المباشر للحجز اليومي
+            </p>
           </div>
         </button>
         <div className="flex items-center gap-2">
@@ -85,8 +100,12 @@ export function OperationsBookingInlinePanel({
             type="button"
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-xs h-8"
-            onClick={() => setDraft(defaultOperationsBookingDraft(initialDate, initialDoctorName))}
+            className="min-h-11 gap-1.5 text-sm sm:min-h-8 sm:text-xs"
+            onClick={() =>
+              setDraft(
+                defaultOperationsBookingDraft(initialDate, initialDoctorName),
+              )
+            }
             disabled={!canReset || createBooking.isPending}
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -94,12 +113,18 @@ export function OperationsBookingInlinePanel({
           </Button>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 text-muted-foreground hover:bg-muted text-muted-foreground transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-8 sm:w-8"
             onClick={() => setPanelOpen((prev) => !prev)}
-            aria-label={panelOpen ? "إخفاء حجز عملية جديدة" : "إظهار حجز عملية جديدة"}
+            aria-label={
+              panelOpen ? "إخفاء حجز عملية جديدة" : "إظهار حجز عملية جديدة"
+            }
             aria-expanded={panelOpen}
           >
-            {panelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {panelOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
@@ -110,7 +135,11 @@ export function OperationsBookingInlinePanel({
             draft={draft}
             onChange={handleChange}
             onSubmit={handleSubmit}
-            onCancel={() => setDraft(defaultOperationsBookingDraft(initialDate, initialDoctorName))}
+            onCancel={() =>
+              setDraft(
+                defaultOperationsBookingDraft(initialDate, initialDoctorName),
+              )
+            }
             isSubmitting={createBooking.isPending}
             submitLabel="حفظ الحجز"
             cancelLabel="إعادة ضبط"

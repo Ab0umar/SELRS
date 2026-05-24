@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Check, X } from "lucide-react";
+import { Plus, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const now = new Date();
@@ -55,6 +55,11 @@ export default function ShiftSchedule() {
   const staff: any[] = schedQ.data?.staff ?? [];
   const attendance: any[] = schedQ.data?.attendance ?? [];
   const payroll: any[] = payrollQ.data ?? [];
+
+  const generateMut = (trpc as any).salary.generateFromCycles.useMutation({
+    onSuccess: (res: any) => { schedQ.refetch(); payrollQ.refetch(); toast.success(`${res.inserted} shifts generated from cycles`); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const bulkMut = (trpc as any).salary.addShiftsBulk.useMutation({
     onSuccess: (res: any) => {
@@ -117,6 +122,9 @@ export default function ShiftSchedule() {
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
+        <Button size="sm" variant="outline" onClick={() => generateMut.mutate({ year, month })} disabled={generateMut.isPending}>
+          <RefreshCw size={15} className="mr-1" /> Generate from cycles
+        </Button>
         <Button size="sm" onClick={() => setShowAdd(v => !v)}>
           <Plus size={15} className="mr-1" /> Add shifts
         </Button>

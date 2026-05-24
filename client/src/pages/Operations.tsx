@@ -20,7 +20,8 @@ type SettlementFilter = "open" | "settled" | "all";
 
 export default function Operations() {
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [settlementFilter, setSettlementFilter] = useState<SettlementFilter>("open");
+  const [settlementFilter, setSettlementFilter] =
+    useState<SettlementFilter>("open");
   const [settlementRailOpen, setSettlementRailOpen] = useState(false);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
@@ -28,16 +29,18 @@ export default function Operations() {
   const actions = useOperationsActions(operations);
   const utils = trpc.useUtils();
 
-  const deleteBookingMutation = trpc.medical.deleteOperationBooking.useMutation({
-    onSuccess: async () => {
-      await utils.medical.getOperationBookings.invalidate();
-      await utils.medical.getTodayOperationLists.invalidate();
-      toast.success("تم حذف الحجز بنجاح");
+  const deleteBookingMutation = trpc.medical.deleteOperationBooking.useMutation(
+    {
+      onSuccess: async () => {
+        await utils.medical.getOperationBookings.invalidate();
+        await utils.medical.getTodayOperationLists.invalidate();
+        toast.success("تم حذف الحجز بنجاح");
+      },
+      onError: (error) => {
+        toast.error(getTrpcErrorMessage(error, "تعذر حذف الحجز"));
+      },
     },
-    onError: (error) => {
-      toast.error(getTrpcErrorMessage(error, "تعذر حذف الحجز"));
-    },
-  });
+  );
 
   const decoratedRows = useMemo(() => {
     return operations.currentList.map((row) => {
@@ -50,8 +53,12 @@ export default function Operations() {
     });
   }, [operations.currentList, operations.computeAccounting]);
 
-  const openRows = decoratedRows.filter((entry) => !entry.isSettled).map((entry) => entry.row);
-  const settledRows = decoratedRows.filter((entry) => entry.isSettled).map((entry) => entry.row);
+  const openRows = decoratedRows
+    .filter((entry) => !entry.isSettled)
+    .map((entry) => entry.row);
+  const settledRows = decoratedRows
+    .filter((entry) => entry.isSettled)
+    .map((entry) => entry.row);
   const visibleRows = operations.currentList;
 
   if (!operations.isAuthenticated) return null;
@@ -98,18 +105,24 @@ export default function Operations() {
           </div>
           <div className="min-w-0">
             <div className="text-xs text-muted-foreground">العمليات</div>
-            <h1 className="text-base font-semibold text-foreground">العمليات</h1>
+            <h1 className="text-base font-semibold text-foreground">
+              العمليات
+            </h1>
             <div className="text-[11px] text-muted-foreground">
-              {formatDayDate(String(operations.listDate))} | {operations.currentList.length} حالة
+              {formatDayDate(String(operations.listDate))} |{" "}
+              {operations.currentList.length} حالة
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <OperationsTabs activeTab={operations.activeTab} onActiveTabChange={operations.setActiveTab} />
+          <OperationsTabs
+            activeTab={operations.activeTab}
+            onActiveTabChange={operations.setActiveTab}
+          />
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 text-xs h-8"
+            className="min-h-11 gap-1.5 text-sm sm:min-h-8 sm:text-xs"
             onClick={() => setHistoryOpen(true)}
           >
             <History className="h-3.5 w-3.5" />
@@ -122,7 +135,9 @@ export default function Operations() {
         <div
           className={[
             "grid gap-4 xl:items-start xl:[direction:ltr]",
-            settlementRailOpen ? "xl:grid-cols-[minmax(0,1fr)_380px]" : "xl:grid-cols-[minmax(0,1fr)_56px]",
+            settlementRailOpen
+              ? "xl:grid-cols-[minmax(0,1fr)_380px]"
+              : "xl:grid-cols-[minmax(0,1fr)_56px]",
           ].join(" ")}
         >
           <div className="space-y-4" dir="rtl">
@@ -139,78 +154,137 @@ export default function Operations() {
             {operations.activeTab === TAB_OTHERS && (
               <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
                 <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-                  <h2 className="text-sm font-semibold text-foreground">حجوزات العمليات</h2>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">{formatDayDate(String(operations.listDate))}</span>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    حجوزات العمليات
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {formatDayDate(String(operations.listDate))}
+                  </span>
                 </div>
                 <div className="px-4 py-3">
                   {operations.operationBookingsQuery.isLoading ? (
-                    <p className="text-[11px] text-muted-foreground animate-pulse">جاري تحميل الحجوزات...</p>
-                  ) : (operations.operationBookingsQuery.data ?? []).length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground">لا توجد حجوزات مسجلة لهذا التاريخ.</p>
+                    <p className="text-[11px] text-muted-foreground animate-pulse">
+                      جاري تحميل الحجوزات...
+                    </p>
+                  ) : (operations.operationBookingsQuery.data ?? []).length ===
+                    0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      لا توجد حجوزات مسجلة لهذا التاريخ.
+                    </p>
                   ) : (
                     <table className="w-full text-xs border-collapse" dir="rtl">
                       <thead>
                         <tr className="border-b border-border/50 text-muted-foreground">
-                          <th className="py-1.5 text-right font-medium">نوع العملية</th>
-                          <th className="py-1.5 text-center w-20 font-medium">الوقت</th>
-                          <th className="py-1.5 text-center w-16 font-medium">العدد</th>
+                          <th className="py-1.5 text-right font-medium">
+                            نوع العملية
+                          </th>
+                          <th className="py-1.5 text-center w-20 font-medium">
+                            الوقت
+                          </th>
+                          <th className="py-1.5 text-center w-16 font-medium">
+                            العدد
+                          </th>
                           <th className="py-1.5 text-center w-10 font-medium"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {(() => {
-                          const bookings = operations.operationBookingsQuery.data ?? [];
+                          const bookings =
+                            operations.operationBookingsQuery.data ?? [];
                           const grouped: Record<string, typeof bookings> = {};
                           for (const b of bookings) {
                             const d = b.doctorName || "طبيب غير محدد";
                             if (!grouped[d]) grouped[d] = [];
                             grouped[d].push(b);
                           }
-                          return Object.entries(grouped).map(([doctor, list]) => (
-                            <Fragment key={doctor}>
-                              <tr>
-                                <td colSpan={4} className="pt-2 pb-0.5 font-semibold text-primary text-[11px]">{doctor}</td>
-                              </tr>
-                              {list.map((booking) => (
-                                <tr key={booking.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
-                                  <td className="py-1 pr-3 text-muted-foreground">{operationTypeLabel(booking.operationType)}</td>
-                                  <td className="py-1 text-center tabular-nums" dir="ltr">{booking.bookingTime || "—"}</td>
-                                  <td className="py-1 text-center font-semibold tabular-nums">{booking.casesCount}</td>
-                                  <td className="py-1 text-center">
-                                    {delConfirm === booking.id ? (
-                                      <div className="flex items-center gap-1">
-                                        <button type="button" aria-label="تأكيد الحذف"
-                                          className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                                          onClick={() => { deleteBookingMutation.mutate({ id: booking.id }); setDelConfirm(null); }}>
-                                          تأكيد
-                                        </button>
-                                        <button type="button" aria-label="إلغاء الحذف"
-                                          className="rounded bg-muted text-muted-foreground hover:bg-border"
-                                          onClick={() => setDelConfirm(null)}>
-                                          ✕
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button type="button" aria-label="حذف الحجز"
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                                        disabled={deleteBookingMutation.isPending}
-                                        onClick={() => setDelConfirm(booking.id)}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
-                                    )}
+                          return Object.entries(grouped).map(
+                            ([doctor, list]) => (
+                              <Fragment key={doctor}>
+                                <tr>
+                                  <td
+                                    colSpan={4}
+                                    className="pt-2 pb-0.5 font-semibold text-primary text-[11px]"
+                                  >
+                                    {doctor}
                                   </td>
                                 </tr>
-                              ))}
-                            </Fragment>
-                          ));
+                                {list.map((booking) => (
+                                  <tr
+                                    key={booking.id}
+                                    className="border-b border-border/30 last:border-0 hover:bg-muted/20"
+                                  >
+                                    <td className="py-1 pr-3 text-muted-foreground">
+                                      {operationTypeLabel(
+                                        booking.operationType,
+                                      )}
+                                    </td>
+                                    <td
+                                      className="py-1 text-center tabular-nums"
+                                      dir="ltr"
+                                    >
+                                      {booking.bookingTime || "-"}
+                                    </td>
+                                    <td className="py-1 text-center font-semibold tabular-nums">
+                                      {booking.casesCount}
+                                    </td>
+                                    <td className="py-1 text-center">
+                                      {delConfirm === booking.id ? (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            aria-label="تأكيد الحذف"
+                                            className="min-h-11 rounded bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive/80 sm:min-h-8"
+                                            onClick={() => {
+                                              deleteBookingMutation.mutate({
+                                                id: booking.id,
+                                              });
+                                              setDelConfirm(null);
+                                            }}
+                                          >
+                                            تأكيد
+                                          </button>
+                                          <button
+                                            type="button"
+                                            aria-label="إلغاء الحذف"
+                                            className="min-h-11 rounded bg-muted px-2 text-xs text-muted-foreground hover:bg-muted/80 sm:min-h-8"
+                                            onClick={() => setDelConfirm(null)}
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          aria-label="حذف الحجز"
+                                          className="inline-flex h-11 w-11 items-center justify-center rounded bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground sm:h-9 sm:w-9"
+                                          disabled={
+                                            deleteBookingMutation.isPending
+                                          }
+                                          onClick={() =>
+                                            setDelConfirm(booking.id)
+                                          }
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </Fragment>
+                            ),
+                          );
                         })()}
                       </tbody>
                       <tfoot>
                         <tr className="border-t border-border/50">
-                          <td className="pt-1.5 font-semibold text-foreground">إجمالي الحالات</td>
+                          <td className="pt-1.5 font-semibold text-foreground">
+                            إجمالي الحالات
+                          </td>
                           <td />
                           <td className="pt-1.5 text-center font-bold tabular-nums text-foreground">
-                            {(operations.operationBookingsQuery.data ?? []).reduce((acc, b) => acc + (b.casesCount || 0), 0)}
+                            {(
+                              operations.operationBookingsQuery.data ?? []
+                            ).reduce((acc, b) => acc + (b.casesCount || 0), 0)}
                           </td>
                           <td />
                         </tr>
@@ -221,8 +295,8 @@ export default function Operations() {
               </section>
             )}
 
-            <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
-              <div className="border-b border-border/50 px-4 py-3">
+            <section className="print:border-0 print:bg-transparent">
+              <div className="border-b border-border/50 py-3">
                 <OperationDialog
                   activeTab={operations.activeTab}
                   compact={false}
@@ -237,7 +311,9 @@ export default function Operations() {
                   listDate={String(operations.listDate)}
                   listTime={operations.listTime}
                   onAddPatientRow={actions.handleAddPatientRow}
-                  onAutoSaveToggle={() => operations.setAutoSaveEnabled((prev) => !prev)}
+                  onAutoSaveToggle={() =>
+                    operations.setAutoSaveEnabled((prev) => !prev)
+                  }
                   onDoctorNameChange={operations.setDoctorName}
                   onListDateChange={operations.setListDate}
                   onListTimeChange={operations.setListTime}
@@ -258,9 +334,8 @@ export default function Operations() {
               </div>
             </section>
 
-
-            <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
-              <div className="px-4 py-3">
+            <section className="print:border-0 print:bg-transparent">
+              <div className="py-3">
                 <OperationsTable
                   canManageList={operations.canManageList}
                   currentList={visibleRows}
@@ -282,7 +357,9 @@ export default function Operations() {
               accountingTotals={operations.accountingTotals}
               accountsAdjustmentInputs={operations.accountsAdjustmentInputs}
               accountsAdjustmentsTotal={operations.accountsAdjustmentsTotal}
-              accountsNetAfterAdjustments={operations.accountsNetAfterAdjustments}
+              accountsNetAfterAdjustments={
+                operations.accountsNetAfterAdjustments
+              }
               canManageList={operations.canManageList}
               computeAccounting={operations.computeAccounting}
               currentList={operations.currentList}
@@ -291,8 +368,12 @@ export default function Operations() {
               exportOperationLabel={operations.exportOperationLabel}
               exportTimeLabel={operations.exportTimeLabel}
               filteredSavedSummaries={operations.filteredSavedSummaries}
-              onAccountsAdjustmentBlur={actions.handleAccountsAdjustmentInputBlur}
-              onAccountsAdjustmentChange={actions.handleAccountsAdjustmentInputChange}
+              onAccountsAdjustmentBlur={
+                actions.handleAccountsAdjustmentInputBlur
+              }
+              onAccountsAdjustmentChange={
+                actions.handleAccountsAdjustmentInputChange
+              }
               onDeleteSavedSummary={actions.handleDeleteSavedSummary}
               onEditSavedSummary={actions.handleEditSavedSummary}
               onUpdateRow={actions.handleUpdateRow}

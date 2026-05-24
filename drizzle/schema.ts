@@ -1424,3 +1424,11 @@ export const shiftAttendance = mysqlTable("shift_attendance", {
 }, (t) => ({
   uqStaffDateShift: uniqueIndex("uq_staff_date_shift").on(t.staffId, t.workDate, t.shiftName),
 }));
+
+export const shiftStaffCycle = mysqlTable("shift_staff_cycle", {
+  staffId: int("staff_id").notNull(),
+  dayOfWeek: int("day_of_week").notNull(), // 0=Sun 1=Mon ... 6=Sat
+  shiftName: varchar("shift_name", { length: 128 }).notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.staffId, t.dayOfWeek] }),
+}));

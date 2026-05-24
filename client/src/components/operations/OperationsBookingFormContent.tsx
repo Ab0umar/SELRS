@@ -42,8 +42,14 @@ export function OperationsBookingFormContent({
         {/* Right Column: Doctor & Date */}
         <div className="space-y-3">
           <div>
-            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الطبيب المعالج</Label>
+            <Label
+              htmlFor="operation-booking-doctor"
+              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+            >
+              الطبيب المعالج
+            </Label>
             <Input
+              id="operation-booking-doctor"
               value={draft.doctorName}
               onChange={(event) => onChange("doctorName", event.target.value)}
               placeholder="اسم الطبيب..."
@@ -51,8 +57,14 @@ export function OperationsBookingFormContent({
             />
           </div>
           <div>
-            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">تاريخ العملية</Label>
+            <Label
+              htmlFor="operation-booking-date"
+              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+            >
+              تاريخ العملية
+            </Label>
             <Input
+              id="operation-booking-date"
               type="date"
               value={draft.bookingDate}
               onChange={(event) => onChange("bookingDate", event.target.value)}
@@ -60,8 +72,14 @@ export function OperationsBookingFormContent({
             />
           </div>
           <div>
-            <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">اليوم (اختياري)</Label>
+            <Label
+              htmlFor="operation-booking-weekday"
+              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+            >
+              اليوم (اختياري)
+            </Label>
             <Input
+              id="operation-booking-weekday"
               value={draft.weekdayLabel ?? ""}
               onChange={(event) => onChange("weekdayLabel", event.target.value)}
               placeholder="السبت، الأحد..."
@@ -71,13 +89,21 @@ export function OperationsBookingFormContent({
         </div>
 
         {/* Left Column: Operation Details */}
-        <div className="bg-success/10/40 p-4 rounded-xl border border-success/20 space-y-3 h-full">
+        <div className="h-full space-y-3 bg-success/10 p-4">
           <div>
-            <Label className="font-bold text-[11px] text-foreground mb-1 block">نوع العملية</Label>
+            <Label
+              htmlFor="operation-booking-type"
+              className="font-bold text-[11px] text-foreground mb-1 block"
+            >
+              نوع العملية
+            </Label>
             <Input
+              id="operation-booking-type"
               list="operation-booking-types"
               value={draft.operationType}
-              onChange={(event) => onChange("operationType", event.target.value)}
+              onChange={(event) =>
+                onChange("operationType", event.target.value)
+              }
               placeholder="ابحث عن العملية..."
               className="h-9 text-sm font-semibold bg-background border-success/30"
             />
@@ -92,21 +118,37 @@ export function OperationsBookingFormContent({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="font-bold text-[11px] text-foreground mb-1 block">الوقت</Label>
+              <Label
+                htmlFor="operation-booking-time"
+                className="font-bold text-[11px] text-foreground mb-1 block"
+              >
+                الوقت
+              </Label>
               <Input
+                id="operation-booking-time"
                 type="time"
                 value={draft.bookingTime}
-                onChange={(event) => onChange("bookingTime", event.target.value)}
+                onChange={(event) =>
+                  onChange("bookingTime", event.target.value)
+                }
                 className="h-9 text-sm font-mono bg-background border-success/30"
               />
             </div>
             <div>
-              <Label className="font-bold text-[11px] text-foreground mb-1 block">عدد الحالات</Label>
+              <Label
+                htmlFor="operation-booking-count"
+                className="font-bold text-[11px] text-foreground mb-1 block"
+              >
+                عدد الحالات
+              </Label>
               <Input
+                id="operation-booking-count"
                 type="number"
                 min={1}
                 value={draft.casesCount}
-                onChange={(event) => onChange("casesCount", Number(event.target.value) || 1)}
+                onChange={(event) =>
+                  onChange("casesCount", Number(event.target.value) || 1)
+                }
                 className="h-9 text-sm text-center font-bold bg-background border-success/30"
               />
             </div>
@@ -121,10 +163,20 @@ export function OperationsBookingFormContent({
       </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t mt-4">
-        <Button type="button" variant="ghost" className="h-9 text-sm" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 text-sm"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           {cancelLabel}
         </Button>
-        <Button type="submit" className="h-9 text-sm px-8 font-bold bg-success hover:bg-success/80" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="h-9 text-sm px-8 font-bold bg-success hover:bg-success/80"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "جاري الحفظ..." : submitLabel}
         </Button>
       </div>

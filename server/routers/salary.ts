@@ -11,6 +11,7 @@ import {
   attendanceEmployees,
   shiftStaff,
   shiftAttendance,
+  shiftStaffCycle,
 } from '../../drizzle/schema';
 import { eq, and, gte, lte, isNull, or, desc } from 'drizzle-orm';
 import { PayrollComputeService, calcPentacamPool } from '../services/salary/payrollCompute.service';
@@ -536,5 +537,69 @@ export const salaryRouter = router({
         const rate = Number(s.ratePerShift);
         return { id: s.id, name: s.name, type: s.type, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100 };
       });
+    }),
+
+  // ── Shift Cycles ─────────────────────────────────────────
+  getStaffCycles: managerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error('DB unavailable');
+    return db.select().from(shiftStaffCycle);
+  }),
+
+  setStaffCycle: managerProcedure
+    .input(z.object({
+      staffId: z.number(),
+      // array of {dayOfWeek: 0-6, shiftName: "Morning"|"Night"}
+      cycle: z.array(z.object({ dayOfWeek: z.number().min(0).max(6), shiftName: z.string().min(1) })),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      // Replace all cycle entries for this staff member
+      await db.delete(shiftStaffCycle).where(eq(shiftStaffCycle.staffId, input.staffId));
+      if (input.cycle.length > 0) {
+        await db.insert(shiftStaffCycle).values(
+          input.cycle.map(c => ({ staffId: input.staffId, dayOfWeek: c.dayOfWeek, shiftName: c.shiftName }))
+        );
+      }
+      return { success: true };
+    }),
+
+  generateFromCycles: managerProcedure
+    .input(z.object({ year: z.number(), month: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+
+      const [cycles, staff] = await Promise.all([
+        db.select().from(shiftStaffCycle),
+        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
+      ]);
+
+      const daysInMonth = new Date(input.year, input.month, 0).getDate();
+      let inserted = 0;
+
+      for (const s of staff) {
+        const staffCycles = cycles.filter(c => c.staffId === s.id);
+        if (staffCycles.length === 0) continue;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const d = new Date(input.year, input.month - 1, day);
+          const dow = d.getDay(); // 0=Sun
+          const cycleEntry = staffCycles.find(c => c.dayOfWeek === dow);
+          if (!cycleEntry) continue;
+
+          const mm = String(input.month).padStart(2, '0');
+          const dd = String(day).padStart(2, '0');
+          const workDate = `${input.year}-${mm}-${dd}`;
+
+          await db.insert(shiftAttendance)
+            .values({ staffId: s.id, year: input.year, month: input.month, workDate: workDate as any, shiftName: cycleEntry.shiftName, present: true })
+            .onDuplicateKeyUpdate({ set: { shiftName: cycleEntry.shiftName } });
+          inserted++;
+        }
+      }
+
+      return { inserted };
     }),
 });

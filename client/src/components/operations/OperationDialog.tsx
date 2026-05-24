@@ -1,11 +1,33 @@
-import { ImageDown, Plus, Printer, RotateCcw, Save, Share2, X, ChevronDown } from "lucide-react";
+import {
+  ImageDown,
+  Plus,
+  Printer,
+  RotateCcw,
+  Save,
+  Share2,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { TAB_OTHERS, operationTypeLabel } from "@/lib/operationsPricing";
-import { arabicWeekdays, formatDayDateLong, getLocalDateIso, getWeekdayIndex, shiftDateToWeekday, toDateInputValue } from "@/hooks/operations/operationsShared";
+import {
+  arabicWeekdays,
+  formatDayDateLong,
+  getLocalDateIso,
+  getWeekdayIndex,
+  shiftDateToWeekday,
+  toDateInputValue,
+} from "@/hooks/operations/operationsShared";
 
 type OperationDialogProps = {
   activeTab: string;
@@ -83,7 +105,9 @@ export function OperationDialog({
     <>
       {/* Print-only header */}
       <div className="hidden items-center justify-center gap-6 text-[14px] print:flex">
-        <div>{formatDayDateLong(toDateInputValue(listDate) || getLocalDateIso())}</div>
+        <div>
+          {formatDayDateLong(toDateInputValue(listDate) || getLocalDateIso())}
+        </div>
         <div>الطبيب المعالج: {doctorName || "-"}</div>
         <div>الساعة: {listTime || "-"}</div>
       </div>
@@ -95,16 +119,20 @@ export function OperationDialog({
           <input
             type="date"
             value={toDateInputValue(listDate)}
-            onChange={(e) => onListDateChange(e.target.value || getLocalDateIso())}
+            onChange={(e) =>
+              onListDateChange(e.target.value || getLocalDateIso())
+            }
             disabled={!canManageList}
-            className="h-8 w-[150px] rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="تاريخ قائمة العمليات"
+            className="h-11 w-[150px] rounded-md border border-border/60 bg-background px-2 text-sm tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:text-xs"
           />
           <input
             type="time"
             value={listTime}
             onChange={(e) => onListTimeChange(e.target.value)}
             disabled={!canManageList}
-            className="h-8 w-[115px] rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="وقت قائمة العمليات"
+            className="h-11 w-[115px] rounded-md border border-border/60 bg-background px-2 text-sm tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:text-xs"
           />
         </div>
 
@@ -113,16 +141,25 @@ export function OperationDialog({
           <Input
             value={doctorName}
             onChange={(e) => onDoctorNameChange(e.target.value)}
-            className="h-8 w-32 text-center text-xs"
+            className="h-11 w-32 text-center text-sm sm:h-8 sm:text-xs"
             readOnly={!canManageList}
             placeholder="الطبيب"
+            aria-label="اسم الطبيب"
           />
         )}
 
         {/* Operation type combo */}
         <div className="w-[168px] shrink-0">
-          <Select value={operationType || "__all__"} onValueChange={(value) => onOperationTypeChange(value === "__all__" ? "" : value)}>
-            <SelectTrigger className="h-8 w-full text-xs">
+          <Select
+            value={operationType || "__all__"}
+            onValueChange={(value) =>
+              onOperationTypeChange(value === "__all__" ? "" : value)
+            }
+          >
+            <SelectTrigger
+              className="h-11 w-full text-sm sm:h-8 sm:text-xs"
+              aria-label="نوع العملية"
+            >
               <SelectValue placeholder="نوع العملية" />
             </SelectTrigger>
             <SelectContent align="start">
@@ -142,34 +179,77 @@ export function OperationDialog({
         {/* Action buttons */}
         <div className="flex items-center gap-1.5">
           {canManageList && (
-            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => { setSearchOpen(true); searchRef.current?.focus(); }}>
+            <Button
+              size="sm"
+              className="min-h-11 gap-1.5 text-sm sm:min-h-8 sm:text-xs"
+              onClick={() => {
+                setSearchOpen(true);
+                searchRef.current?.focus();
+              }}
+            >
               <Plus className="h-3.5 w-3.5" />
               إضافة مريض
             </Button>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={onSaveList} disabled={!canManageList}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 gap-1.5 text-sm sm:min-h-8 sm:text-xs"
+            onClick={onSaveList}
+            disabled={!canManageList}
+          >
             <Save className="h-3.5 w-3.5" />
             حفظ
           </Button>
           <Button
             variant={autoSaveEnabled ? "default" : "outline"}
             size="sm"
-            className={cn("gap-1 text-xs h-8", autoSaveEnabled && "bg-success text-success-foreground hover:bg-success/80")}
+            className={cn(
+              "min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs",
+              autoSaveEnabled &&
+                "bg-success text-success-foreground hover:bg-success/80",
+            )}
             onClick={onAutoSaveToggle}
             disabled={!canManageList}
+            aria-pressed={autoSaveEnabled}
           >
             {autoSaveEnabled ? "تلقائي" : "يدوي"}
           </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={onNewList} disabled={!canManageList}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs"
+            onClick={onNewList}
+            disabled={!canManageList}
+            aria-label="قائمة جديدة"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={onPrint}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs"
+            onClick={onPrint}
+            aria-label="طباعة قائمة العمليات"
+          >
             <Printer className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={onSaveJpg}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs"
+            onClick={onSaveJpg}
+            aria-label="حفظ قائمة العمليات كصورة"
+          >
             <ImageDown className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={onShareJpg}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs"
+            onClick={onShareJpg}
+            aria-label="مشاركة قائمة العمليات كصورة"
+          >
             <Share2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -184,13 +264,17 @@ export function OperationDialog({
               value={patientSearchTerm}
               onChange={(e) => onPatientSearchTermChange(e.target.value)}
               placeholder="ابحث بالكود أو الاسم أو الموبايل"
-              className="h-8 flex-1 text-right text-xs"
+              className="h-11 flex-1 text-right text-sm sm:h-8 sm:text-xs"
+              aria-label="بحث عن مريض لإضافته إلى قائمة العمليات"
               autoFocus
             />
             <button
               type="button"
-              onClick={() => { setSearchOpen(false); onPatientSearchTermChange(""); }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-muted-foreground bg-muted/60"
+              onClick={() => {
+                setSearchOpen(false);
+                onPatientSearchTermChange("");
+              }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors hover:text-foreground sm:h-8 sm:w-8"
               aria-label="إغلاق البحث"
             >
               <X className="h-3.5 w-3.5" />
@@ -201,38 +285,88 @@ export function OperationDialog({
               <table className="w-full min-w-[480px] border-collapse text-center text-xs">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">الكود</th>
-                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">اسم المريض</th>
-                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">الهاتف</th>
-                    <th className="w-24 border-b border-border/50 px-3 py-1.5 font-medium">إضافة</th>
+                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">
+                      الكود
+                    </th>
+                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">
+                      اسم المريض
+                    </th>
+                    <th className="border-b border-border/50 px-3 py-1.5 font-medium">
+                      الهاتف
+                    </th>
+                    <th className="w-24 border-b border-border/50 px-3 py-1.5 font-medium">
+                      إضافة
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {patientSearchQuery.isLoading && (
-                    <tr><td colSpan={4} className="px-3 py-3 text-muted-foreground">جاري البحث...</td></tr>
-                  )}
-                  {!patientSearchQuery.isLoading && ((patientSearchQuery.data as any[])?.length ?? 0) === 0 && (
-                    <tr><td colSpan={4} className="px-3 py-3 text-muted-foreground">لا توجد نتائج</td></tr>
-                  )}
-                  {!patientSearchQuery.isLoading && ((patientSearchQuery.data as any[]) ?? []).map((patient: any) => (
-                    <tr key={patient.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-3 py-1.5 border-b border-border/30" dir="ltr">{patient.patientCode || "-"}</td>
-                      <td className="px-3 py-1.5 border-b border-border/30">{patient.fullName || "-"}</td>
-                      <td className="px-3 py-1.5 border-b border-border/30" dir="ltr">{patient.phone || "-"}</td>
-                      <td className="px-3 py-1.5 border-b border-border/30">
-                        <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onAddPatientRow(patient); onPatientSearchTermChange(""); }}>
-                          <Plus className="h-3 w-3" />إضافة
-                        </Button>
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-3 py-3 text-muted-foreground"
+                      >
+                        جاري البحث...
                       </td>
                     </tr>
-                  ))}
+                  )}
+                  {!patientSearchQuery.isLoading &&
+                    ((patientSearchQuery.data as any[])?.length ?? 0) === 0 && (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-3 py-3 text-muted-foreground"
+                        >
+                          لا توجد نتائج
+                        </td>
+                      </tr>
+                    )}
+                  {!patientSearchQuery.isLoading &&
+                    ((patientSearchQuery.data as any[]) ?? []).map(
+                      (patient: any) => (
+                        <tr
+                          key={patient.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td
+                            className="px-3 py-1.5 border-b border-border/30"
+                            dir="ltr"
+                          >
+                            {patient.patientCode || "-"}
+                          </td>
+                          <td className="px-3 py-1.5 border-b border-border/30">
+                            {patient.fullName || "-"}
+                          </td>
+                          <td
+                            className="px-3 py-1.5 border-b border-border/30"
+                            dir="ltr"
+                          >
+                            {patient.phone || "-"}
+                          </td>
+                          <td className="px-3 py-1.5 border-b border-border/30">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="min-h-11 gap-1 text-sm sm:min-h-8 sm:text-xs"
+                              onClick={() => {
+                                onAddPatientRow(patient);
+                                onPatientSearchTermChange("");
+                              }}
+                            >
+                              <Plus className="h-3 w-3" />
+                              إضافة
+                            </Button>
+                          </td>
+                        </tr>
+                      ),
+                    )}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       )}
-
     </>
   );
 }
