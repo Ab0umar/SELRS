@@ -878,24 +878,23 @@ export const attendanceRouter = router({
       const port = input.port || settings.port || 5005;
 
       const pullerPath = process.env.FK_USER_PULLER_PATH ?? 'D:\\Programs\\fp\\FKUserPuller.exe';
-      const mdbPath = process.env.FK_MDB_PATH ?? 'D:\\Programs\\fp\\Taurus.mdb';
       const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
 
       try {
-        const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --mdb "${mdbPath}" --out "${tempFile}"`;
+        const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --out "${tempFile}"`;
         const output = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
         console.log('[FKUserPuller]', output);
 
         if (!fs.existsSync(tempFile)) throw new Error('لم يُنتج الملف — فحص اتصال الجهاز');
 
-        const lines = fs.readFileSync(tempFile, 'utf-8').trim().split('\n').slice(1); // skip header
+        const lines = fs.readFileSync(tempFile, 'utf-8').trim().split('\n').slice(1);
         const employees: { empNo: string; name: string }[] = [];
         for (const line of lines) {
           const parts = line.trim().split(',');
-          if (parts.length < 2) continue;
+          if (!parts[0]?.trim()) continue;
           const empNo = parts[0].trim();
-          const name = parts[1].trim() || empNo;
-          if (empNo) employees.push({ empNo, name });
+          const name = (parts[1] ?? '').trim(); // keep empty if device has no name
+          employees.push({ empNo, name });
         }
 
         if (!employees.length) return { success: true, inserted: 0, updated: 0, total: 0, employees: [] };
@@ -909,21 +908,32 @@ export const attendanceRouter = router({
 
         for (const emp of employees) {
           const empCd = emp.empNo;
-          const fullName = emp.name;
 
           const existing = await db
-            .select({ id: attendanceEmployees.empCd })
+            .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName })
             .from(attendanceEmployees)
             .where(eq(attendanceEmployees.empCd, empCd))
             .limit(1);
 
           if (existing.length) {
-            await db.update(attendanceEmployees)
-              .set({ fullName, updatedAt: now })
-              .where(eq(attendanceEmployees.empCd, empCd));
-            updated++;
+            // only update name if device actually provided one and current name is just the ID
+            const hasRealName = emp.name && emp.name !== empCd;
+            const currentIsPlaceholder = !existing[0].fullName || existing[0].fullName === empCd;
+            if (hasRealName && currentIsPlaceholder) {
+              await db.update(attendanceEmployees)
+                .set({ fullName: emp.name, updatedAt: now })
+                .where(eq(attendanceEmployees.empCd, empCd));
+              updated++;
+            }
+            // else: leave existing name intact
           } else {
-            await db.insert(attendanceEmployees).values({ empCd, fullName, active: true, createdAt: now, updatedAt: now });
+            await db.insert(attendanceEmployees).values({
+              empCd,
+              fullName: emp.name || empCd, // placeholder = enrollNo if no name
+              active: true,
+              createdAt: now,
+              updatedAt: now,
+            });
             inserted++;
           }
         }
