@@ -298,6 +298,7 @@ export const salaryRouter = router({
           computedAt: salaryPayroll.computedAt,
           fullName: attendanceEmployees.fullName,
           department: attendanceEmployees.department,
+          salaryType: attendanceEmployees.salaryType,
         })
         .from(salaryPayroll)
         .leftJoin(attendanceEmployees, eq(salaryPayroll.empCd, attendanceEmployees.empCd))
@@ -364,7 +365,7 @@ export const salaryRouter = router({
     const db = await getDb();
     if (!db) throw new Error('DB unavailable');
     return await db
-      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department })
+      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType })
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
   }),

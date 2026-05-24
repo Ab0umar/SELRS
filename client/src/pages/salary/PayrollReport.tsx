@@ -152,7 +152,7 @@ export default function PayrollReport() {
                 <tr key={r.empCd} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-3 py-3">
                     <div className="font-medium">{r.fullName ?? r.empCd}</div>
-                    <div className="text-xs text-muted-foreground">{r.department ?? ""}</div>
+                    <div className="text-xs text-muted-foreground">{r.salaryType ?? r.department ?? ""}</div>
                   </td>
                   <td className="px-3 py-3 text-right">{fmt(r.basicSalary)}</td>
                   <td className="px-3 py-3 text-right">{r.workingDays}</td>

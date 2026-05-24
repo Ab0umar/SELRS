@@ -1037,6 +1037,7 @@ export const attendanceEmployees = mysqlTable("attendance_employees", {
   empCd: varchar("emp_cd", { length: 32 }).primaryKey(),
   fullName: varchar("full_name", { length: 255 }).notNull(),
   department: varchar("department", { length: 128 }),
+  salaryType: varchar("salary_type", { length: 32 }),
   defaultShiftId: int("default_shift_id"),
   active: boolean("active").default(true).notNull(),
   sourceHash: varchar("source_hash", { length: 40 }),

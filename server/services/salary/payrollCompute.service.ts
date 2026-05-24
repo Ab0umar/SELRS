@@ -94,6 +94,8 @@ export class PayrollComputeService {
       ? await db.select().from(attendanceEmployees).where(eq(attendanceEmployees.empCd, filterEmpCd))
       : await db.select().from(attendanceEmployees).where(eq(attendanceEmployees.department, section));
 
+    const isMarkaz = section === 'مركز';
+
     const [poolRows, basics, monthlyReports, dailyRows, penalties] = await Promise.all([
       db.select().from(salaryCommissionPools)
         .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
@@ -179,7 +181,9 @@ export class PayrollComputeService {
       const acRate = attendanceCommissionRate(leaveDays);
 
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
-      const examCommission = round2(activeCount > 0 ? (examPool / activeCount) * commMult : 0);
+      // عيادة: fixed denominator of 3 (استشاري or أخصائي each get pool/3)
+      const examDivisor = isMarkaz ? activeCount : 3;
+      const examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * commMult : 0);
       const pentacamCommission = round2(
         sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0
       );

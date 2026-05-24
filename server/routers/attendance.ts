@@ -1686,6 +1686,7 @@ export const attendanceRouter = router({
       empCd: z.string(),
       fullName: z.string().min(1),
       department: z.string().optional(),
+      salaryType: z.string().optional(),
       active: z.boolean(),
     }))
     .mutation(async ({ input }) => {
@@ -1693,7 +1694,7 @@ export const attendanceRouter = router({
       if (!db) throw new Error('Database not available');
       await db
         .update(attendanceEmployees)
-        .set({ fullName: input.fullName, department: input.department ?? null, active: input.active })
+        .set({ fullName: input.fullName, department: input.department ?? null, salaryType: input.salaryType ?? null, active: input.active })
         .where(eq(attendanceEmployees.empCd, input.empCd));
       return { success: true };
     }),

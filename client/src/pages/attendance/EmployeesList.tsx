@@ -14,10 +14,12 @@ export default function EmployeesList() {
   const [editRow, setEditRow] = useState<{
     fullName: string;
     department: string;
+    salaryType: string;
     active: boolean;
   }>({
     fullName: "",
     department: "",
+    salaryType: "",
     active: true,
   });
 
@@ -45,6 +47,7 @@ export default function EmployeesList() {
     setEditRow({
       fullName: emp.fullName,
       department: emp.department ?? "",
+      salaryType: emp.salaryType ?? "",
       active: emp.active,
     });
   };
@@ -114,6 +117,9 @@ export default function EmployeesList() {
                       القسم
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      النوع
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
                       الحالة
                     </th>
                     <th className="px-4 py-3"></th>
@@ -176,6 +182,21 @@ export default function EmployeesList() {
                                 <option value="عيادة">عيادة</option>
                               </select>
                             </td>
+                            {editRow.department === "عيادة" && (
+                              <td className="py-2 px-2">
+                                <label htmlFor={`attendance-employee-stype-${emp.empCd}`} className="sr-only">النوع</label>
+                                <select
+                                  id={`attendance-employee-stype-${emp.empCd}`}
+                                  value={editRow.salaryType}
+                                  onChange={(e) => setEditRow({ ...editRow, salaryType: e.target.value })}
+                                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                >
+                                  <option value="">— النوع —</option>
+                                  <option value="استشاري">استشاري</option>
+                                  <option value="أخصائي">أخصائي</option>
+                                </select>
+                              </td>
+                            )}
                             <td className="py-2 px-2">
                               <label
                                 htmlFor={`attendance-employee-active-${emp.empCd}`}
@@ -207,9 +228,10 @@ export default function EmployeesList() {
                                   onClick={() =>
                                     updateMutation.mutate({
                                       empCd: emp.empCd,
-                                      ...editRow,
-                                      department:
-                                        editRow.department || undefined,
+                                      fullName: editRow.fullName,
+                                      department: editRow.department || undefined,
+                                      salaryType: editRow.salaryType || undefined,
+                                      active: editRow.active,
                                     })
                                   }
                                   aria-label={`حفظ تعديلات ${emp.fullName}`}
@@ -243,6 +265,9 @@ export default function EmployeesList() {
                             </td>
                             <td className="py-3 px-4 text-muted-foreground">
                               {emp.department || "—"}
+                            </td>
+                            <td className="py-3 px-4 text-muted-foreground">
+                              {emp.salaryType || "—"}
                             </td>
                             <td className="py-3 px-4">
                               <span
