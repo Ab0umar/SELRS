@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CheckCircle } from "lucide-react";
+import { RefreshCw, CheckCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 const now = new Date();
@@ -48,6 +48,75 @@ export default function PayrollReport() {
 
   const isFinalized = rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
+  function printPayroll() {
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (!win) return;
+    const monthLabel = MONTHS[month - 1];
+    const rowsHtml = rows.map((r: any, i: number) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td style="text-align:right">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.basicSalary)}</td>
+        <td>${fmt(r.totalDeductions)}</td>
+        <td>${fmt(r.netBasic)}</td>
+        <td>${fmt(r.totalCommission)}</td>
+        <td>${fmt(r.overtimePay ?? 0)}</td>
+        <td style="font-weight:bold">${fmt(r.totalPay)}</td>
+        <td></td>
+      </tr>`).join("");
+    const totalRow = `
+      <tr style="font-weight:bold;border-top:2px solid #000;background:#f5f5f5">
+        <td colspan="2">الإجمالي</td>
+        <td>${fmt(totals.basic)}</td>
+        <td>${fmt(totals.deductions)}</td>
+        <td>${fmt(totals.netBasic)}</td>
+        <td>${fmt(totals.commission)}</td>
+        <td></td>
+        <td>${fmt(totals.totalPay)}</td>
+        <td></td>
+      </tr>`;
+    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>كشف رواتب ${section} — ${monthLabel} ${year}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; color: #000; padding: 16px; }
+    h1 { font-size: 16px; text-align: center; margin-bottom: 4px; }
+    .sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #bbb; padding: 5px 7px; text-align: center; white-space: nowrap; }
+    th { background: #e8e8e8; font-weight: bold; }
+    td:nth-child(2) { text-align: right; min-width: 120px; }
+    td:last-child { min-width: 100px; }
+    tr:nth-child(even) { background: #fafafa; }
+    .sig-footer { margin-top: 40px; display: flex; justify-content: space-between; }
+    .sig-box { text-align: center; }
+    .sig-box .line { border-top: 1px solid #000; width: 160px; margin: 0 auto 4px; margin-top: 40px; }
+    @media print { body { padding: 8px; } button { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>كشف رواتب — ${section}</h1>
+  <div class="sub">${monthLabel} ${year}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>الموظف</th><th>الأساسي</th><th>الخصومات</th>
+        <th>صافي الأساسي</th><th>العمولات</th><th>إضافي</th><th>الإجمالي</th><th>التوقيع</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}${totalRow}</tbody>
+  </table>
+  <div class="sig-footer">
+    <div class="sig-box"><div class="line"></div><div>مدير الحسابات</div></div>
+    <div class="sig-box"><div class="line"></div><div>المدير العام</div></div>
+  </div>
+  <script>window.onload=()=>window.print();<\/script>
+</body></html>`);
+    win.document.close();
+  }
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -76,6 +145,11 @@ export default function PayrollReport() {
             <RefreshCw size={15} className={computeMut.isPending ? "animate-spin" : ""} />
             احتساب
           </Button>
+          {rows.length > 0 && (
+            <Button variant="outline" onClick={printPayroll} className="gap-2">
+              <Printer size={15} /> Print
+            </Button>
+          )}
           {rows.length > 0 && !isFinalized && (
             <Button variant="outline" onClick={() => { if (confirm("اعتماد كشف الرواتب كنهائي؟")) finalizeMut.mutate({ year, month }); }} disabled={finalizeMut.isPending} className="gap-2">
               <CheckCircle size={15} /> اعتماد
