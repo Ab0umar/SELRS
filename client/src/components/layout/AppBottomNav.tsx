@@ -1,4 +1,4 @@
-import { Activity, Archive, Banknote, Clock, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
+import { Activity, Archive, Banknote, Clock, DollarSign, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { normalizeNavPath, pathGrantedByRoots } from "@/lib/nav-permission-utils"
 
@@ -53,6 +53,12 @@ const adminTabs = [
     label: "الحسابات",
     icon: Banknote,
     paths: ["/accounting"],
+  },
+  {
+    key: "salary",
+    label: "المرتبات",
+    icon: DollarSign,
+    paths: ["/salary"],
   },
   {
     key: "attendance",

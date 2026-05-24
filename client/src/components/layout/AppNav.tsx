@@ -47,6 +47,7 @@ import {
   Timer,
   UserCog,
   Star,
+  DollarSign,
 } from "lucide-react";
 
 export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
@@ -75,6 +76,19 @@ export const attendanceNavGroup: NavGroupSection = {
     { icon: Users,           label: "الموظفون",      path: "/attendance/employees" },
     { icon: BarChart3,       label: "التقارير",      path: "/attendance/reports" },
     { icon: Settings,        label: "الإعدادات",     path: "/attendance/settings" },
+  ],
+};
+
+/** المرتبات */
+export const salaryNavGroup: NavGroupSection = {
+  label: "المرتبات",
+  groupPath: "/salary",
+  navKey: "salary",
+  items: [
+    { icon: DollarSign, label: "البيانات الأساسية", path: "/salary" },
+    { icon: DollarSign, label: "العمولات",          path: "/salary/pools" },
+    { icon: DollarSign, label: "الجزاءات",          path: "/salary/penalties" },
+    { icon: DollarSign, label: "كشف المرتبات",      path: "/salary/payroll" },
   ],
 };
 
@@ -161,6 +175,7 @@ export const accountingNavGroup: NavGroupSection = {
 export const adminNavGroups: NavGroup[] = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
   attendanceNavGroup,
+  salaryNavGroup,
   accountingNavGroup,
   { icon: Archive, label: "المخزن", path: "/stockroom", isMain: true },
   { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },

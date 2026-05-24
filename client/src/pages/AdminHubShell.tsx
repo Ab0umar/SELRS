@@ -14,6 +14,7 @@ import {
   FileSearch,
   Settings,
   Coins,
+  DollarSign,
   Plug,
   TestTube2,
   Eye,
@@ -56,6 +57,13 @@ type HubModuleCard = {
 };
 
 const ALL_MODULES: HubModuleCard[] = [
+  {
+    href: "/salary",
+    title: "المرتبات",
+    description: "كشف المرتبات والعمولات والجزاءات الشهرية.",
+    icon: DollarSign,
+    iconWrap: "bg-success/10 text-success",
+  },
   {
     href: "/admin-hub/permissions",
     title: "الصلاحيات",
