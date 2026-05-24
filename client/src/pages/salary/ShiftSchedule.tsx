@@ -108,10 +108,12 @@ export default function ShiftSchedule() {
               onChange={e => setAddForm(f => ({ ...f, workDate: e.target.value }))}
               className="rounded border border-input bg-background px-3 py-1.5 text-sm"
             />
-            <input placeholder="Shift name (e.g. Morning)" value={addForm.shiftName}
-              onChange={e => setAddForm(f => ({ ...f, shiftName: e.target.value }))}
-              className="flex-1 min-w-36 rounded border border-input bg-background px-3 py-1.5 text-sm"
-            />
+            <select value={addForm.shiftName} onChange={e => setAddForm(f => ({ ...f, shiftName: e.target.value }))}
+              className="rounded border border-input bg-background px-3 py-1.5 text-sm">
+              <option value="">-- Shift --</option>
+              <option value="Morning">Morning</option>
+              <option value="Night">Night</option>
+            </select>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>Add</Button>
