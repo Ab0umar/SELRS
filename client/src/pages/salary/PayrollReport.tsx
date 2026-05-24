@@ -50,21 +50,22 @@ export default function PayrollReport() {
 
   const SLIP_CSS = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 12px; color: #000; }
-    .slip { width: 100%; max-width: 420px; margin: 0 auto 24px; padding: 14px 18px; border: 1px solid #aaa; page-break-inside: avoid; }
-    .slip:last-child { margin-bottom: 0; }
-    .slip-header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; }
-    .slip-header h2 { font-size: 14px; }
-    .slip-header p { font-size: 11px; color: #444; margin-top: 2px; }
-    .emp-name { font-size: 15px; font-weight: bold; margin-bottom: 12px; text-align: right; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    tr td { padding: 4px 6px; font-size: 11px; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; color: #000; }
+    .page { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .slip { border: 1px solid #aaa; padding: 10px 14px; page-break-inside: avoid; }
+    .slip-header { text-align: center; margin-bottom: 8px; border-bottom: 1.5px solid #000; padding-bottom: 6px; }
+    .slip-header h2 { font-size: 12px; }
+    .slip-header p { font-size: 10px; color: #444; margin-top: 1px; }
+    .emp-name { font-size: 13px; font-weight: bold; margin-bottom: 8px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    tr td { padding: 3px 5px; font-size: 10px; }
     tr td:first-child { color: #555; }
     tr td:last-child { text-align: left; font-weight: bold; }
-    .total-row td { border-top: 1.5px solid #000; font-size: 13px; font-weight: bold; padding-top: 6px; }
-    .sig { margin-top: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .sig-block { text-align: center; font-size: 11px; }
-    .sig-line { border-top: 1px solid #000; width: 130px; margin-bottom: 4px; margin-top: 30px; }
+    .total-row td { border-top: 1.5px solid #000; font-size: 11px; font-weight: bold; padding-top: 4px; }
+    .sig { margin-top: 18px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .sig-block { text-align: center; font-size: 10px; }
+    .sig-line { border-top: 1px solid #000; width: 100px; margin-bottom: 3px; margin-top: 22px; }
     @media print { body { padding: 0; } }
   `;
 

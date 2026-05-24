@@ -1,13 +1,4 @@
-import {
-  PanelRightClose,
-  PanelRightOpen,
-  Calculator,
-  Layers3,
-  ShieldCheck,
-} from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PanelRightClose, PanelRightOpen, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type ListData,
@@ -51,35 +42,8 @@ type OperationsSettlementRailProps = {
   onUpdateRow: (id: number, field: keyof ListData | string, value: any) => void;
   operationType: string;
   showSawafAdjustments: boolean;
-  openCount: number;
-  settledCount: number;
   onOpenChange: (open: boolean) => void;
 };
-
-function SummaryTile({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "accent" | "danger";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-md border px-3 py-2",
-        tone === "accent" && "border-primary/20 bg-primary/5",
-        tone === "danger" && "border-destructive/30 bg-destructive/10",
-      )}
-    >
-      <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold tabular-nums" dir="ltr">
-        {value}
-      </div>
-    </div>
-  );
-}
 
 export function OperationsSettlementRail({
   open,
@@ -102,11 +66,8 @@ export function OperationsSettlementRail({
   onUpdateRow,
   operationType,
   showSawafAdjustments,
-  openCount,
-  settledCount,
   onOpenChange,
 }: OperationsSettlementRailProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const railOpen = open;
 
   return (
@@ -125,19 +86,10 @@ export function OperationsSettlementRail({
                 <Calculator className="h-4 w-4" aria-hidden />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold">تسوية اليوم</h2>
-                <p className="text-[11px] text-muted-foreground">
-                  الملخص المالي الحالي
-                </p>
+                <h2 className="text-sm font-semibold">جدول الحسابات</h2>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="rounded-md bg-muted/40 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                {openCount} مفتوحة
-              </div>
-              <div className="rounded-md bg-success/10 px-2 py-1 text-[11px] font-medium text-success">
-                {settledCount} مسددة
-              </div>
               <button
                 type="button"
                 className="flex h-11 w-11 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-8 sm:w-8"
@@ -150,119 +102,27 @@ export function OperationsSettlementRail({
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            <SummaryTile
-              label="إجمالي التحصيل"
-              value={accountingTotals.paid.toFixed(2)}
-              tone="accent"
-            />
-            <SummaryTile
-              label="حساب المركز"
-              value={accountingTotals.centerAmount.toFixed(2)}
-            />
-            <SummaryTile
-              label="المتبقي للدكتور"
-              value={accountingTotals.remainingAmount.toFixed(2)}
-              tone={
-                Math.abs(accountingTotals.remainingAmount) > 0.01
-                  ? "danger"
-                  : "default"
-              }
-            />
-            <SummaryTile
-              label="الصافي بعد التعديلات"
-              value={accountsNetAfterAdjustments.toFixed(2)}
-              tone={
-                Math.abs(accountsNetAfterAdjustments) > 0.01
-                  ? "danger"
-                  : "default"
-              }
-            />
-          </div>
-
-          <div className="rounded-md border border-border/50 bg-muted/20 p-3">
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold">
-              <Layers3 className="h-3.5 w-3.5 text-primary" aria-hidden />
-              التعديلات
-            </div>
-            <div className="space-y-2">
-              {(
-                [
-                  ["radiology", "الأشعة"],
-                  ["external", "خارجي"],
-                  ["cashbox", "الصندوق"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <div className="w-16 shrink-0 text-[11px] text-muted-foreground">
-                    {label}
-                  </div>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    value={accountsAdjustmentInputs[key]}
-                    onChange={(event) =>
-                      onAccountsAdjustmentChange(key, event.target.value)
-                    }
-                    onBlur={() => onAccountsAdjustmentBlur(key)}
-                    disabled={!canManageList}
-                    className="h-11 flex-1 text-center tabular-nums sm:h-8"
-                    aria-label={`تعديل ${label}`}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center justify-between rounded-md bg-background px-3 py-2 text-xs">
-              <span className="text-muted-foreground">إجمالي التعديلات</span>
-              <span className="font-semibold tabular-nums" dir="ltr">
-                {accountsAdjustmentsTotal.toFixed(2)}
-              </span>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full justify-between gap-2"
-            onClick={() => setDetailsOpen((prev) => !prev)}
-            aria-expanded={detailsOpen}
-          >
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              جدول الحسابات
-            </span>
-            {detailsOpen ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
-          </Button>
-
-          {detailsOpen && (
-            <div className="pt-1">
-              <OperationTotals
-                accountingTotals={accountingTotals}
-                accountsAdjustmentInputs={accountsAdjustmentInputs}
-                accountsAdjustmentsTotal={accountsAdjustmentsTotal}
-                accountsNetAfterAdjustments={accountsNetAfterAdjustments}
-                canManageList={canManageList}
-                computeAccounting={computeAccounting}
-                currentList={currentList}
-                exportDateLabel={exportDateLabel}
-                exportDoctorLabel={exportDoctorLabel}
-                exportOperationLabel={exportOperationLabel}
-                exportTimeLabel={exportTimeLabel}
-                filteredSavedSummaries={filteredSavedSummaries}
-                onAccountsAdjustmentBlur={onAccountsAdjustmentBlur}
-                onAccountsAdjustmentChange={onAccountsAdjustmentChange}
-                onDeleteSavedSummary={onDeleteSavedSummary}
-                onEditSavedSummary={onEditSavedSummary}
-                onUpdateRow={onUpdateRow}
-                operationType={operationType}
-                showSawafAdjustments={showSawafAdjustments}
-              />
-            </div>
-          )}
+          <OperationTotals
+            accountingTotals={accountingTotals}
+            accountsAdjustmentInputs={accountsAdjustmentInputs}
+            accountsAdjustmentsTotal={accountsAdjustmentsTotal}
+            accountsNetAfterAdjustments={accountsNetAfterAdjustments}
+            canManageList={canManageList}
+            computeAccounting={computeAccounting}
+            currentList={currentList}
+            exportDateLabel={exportDateLabel}
+            exportDoctorLabel={exportDoctorLabel}
+            exportOperationLabel={exportOperationLabel}
+            exportTimeLabel={exportTimeLabel}
+            filteredSavedSummaries={filteredSavedSummaries}
+            onAccountsAdjustmentBlur={onAccountsAdjustmentBlur}
+            onAccountsAdjustmentChange={onAccountsAdjustmentChange}
+            onDeleteSavedSummary={onDeleteSavedSummary}
+            onEditSavedSummary={onEditSavedSummary}
+            onUpdateRow={onUpdateRow}
+            operationType={operationType}
+            showSawafAdjustments={showSawafAdjustments}
+          />
         </div>
       ) : (
         <div className="flex h-full min-h-[220px] items-stretch justify-center xl:min-h-[calc(100vh-2rem)]">

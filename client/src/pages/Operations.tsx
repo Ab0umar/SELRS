@@ -1,5 +1,5 @@
 import { History, Syringe, Trash2 } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
@@ -38,23 +38,6 @@ export default function Operations() {
     },
   );
 
-  const decoratedRows = useMemo(() => {
-    return operations.currentList.map((row) => {
-      const values = operations.computeAccounting(row);
-      return {
-        row,
-        values,
-        isSettled: Math.abs(values.remainingAmount) < 0.01,
-      };
-    });
-  }, [operations.currentList, operations.computeAccounting]);
-
-  const openRows = decoratedRows
-    .filter((entry) => !entry.isSettled)
-    .map((entry) => entry.row);
-  const settledRows = decoratedRows
-    .filter((entry) => entry.isSettled)
-    .map((entry) => entry.row);
   const visibleRows = operations.currentList;
 
   if (!operations.isAuthenticated) return null;
@@ -375,8 +358,6 @@ export default function Operations() {
               onUpdateRow={actions.handleUpdateRow}
               operationType={operations.operationType}
               showSawafAdjustments={operations.showSawafAdjustments}
-              openCount={openRows.length}
-              settledCount={settledRows.length}
               onOpenChange={setSettlementRailOpen}
             />
           </div>
