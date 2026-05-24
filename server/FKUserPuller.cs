@@ -67,8 +67,36 @@ internal sealed class Program
 
         try
         {
-            // Step 1: collect all enrollNos from punch logs (reliable)
             var allIds = new HashSet<int>();
+            var names = new Dictionary<int, string>();
+
+            // Step 1: user registry FIRST (before loading logs which may corrupt buffer)
+            int total = FK.FK_ReadAllUserID(handle);
+            Console.WriteLine("FK_ReadAllUserID => {0}", total);
+            if (total >= 0)
+            {
+                while (true)
+                {
+                    int en = 0, bk = 0, priv = 0, ena = 0;
+                    int rc = FK.FK_GetAllUserID(handle, ref en, ref bk, ref priv, ref ena);
+                    if (rc <= 0) break;
+                    if (en <= 0) continue;
+                    allIds.Add(en);
+
+                    var buf = new byte[128];
+                    FK.FK_GetUserName(handle, en, buf);
+                    // try Windows-1256 (Arabic) then system default
+                    string n = "";
+                    try { n = Encoding.GetEncoding(1256).GetString(buf).Split('\0')[0].Trim(); } catch { }
+                    if (string.IsNullOrEmpty(n))
+                        n = Encoding.Default.GetString(buf).Split('\0')[0].Trim();
+                    if (!string.IsNullOrEmpty(n))
+                        names[en] = n;
+                }
+            }
+            Console.WriteLine("Users with names: {0}", names.Count);
+
+            // Step 2: punch logs to catch any registered IDs not in user registry
             int load = FK.FK_LoadGeneralLogData(handle, 0);
             Console.WriteLine("FK_LoadGeneralLogData => {0}", load);
             if (load >= 0)
@@ -81,37 +109,7 @@ internal sealed class Program
                     if (en > 0) allIds.Add(en);
                 }
             }
-            Console.WriteLine("Unique enrollNos from punch logs: {0}", allIds.Count);
-
-            // Step 2: collect names from user registry
-            var names = new Dictionary<int, string>();
-            int total = FK.FK_ReadAllUserID(handle);
-            Console.WriteLine("FK_ReadAllUserID => {0}", total);
-            if (total >= 0)
-            {
-                while (true)
-                {
-                    int en = 0, bk = 0, priv = 0, ena = 0;
-                    int rc = FK.FK_GetAllUserID(handle, ref en, ref bk, ref priv, ref ena);
-                    if (rc <= 0) break;
-                    allIds.Add(en); // also add registered-but-never-punched users
-
-                    // Try getting name — attempt multiple encodings
-                    var buf = new byte[128];
-                    int nr = FK.FK_GetUserName(handle, en, buf);
-                    if (nr >= 0)
-                    {
-                        // Try Windows-1256 (Arabic) first, fall back to Default
-                        string n = "";
-                        try { n = Encoding.GetEncoding(1256).GetString(buf).Split('\0')[0].Trim(); } catch { }
-                        if (string.IsNullOrEmpty(n))
-                            n = Encoding.Default.GetString(buf).Split('\0')[0].Trim();
-                        if (!string.IsNullOrEmpty(n))
-                            names[en] = n;
-                    }
-                }
-            }
-            Console.WriteLine("Users with names: {0}, total unique IDs: {1}", names.Count, allIds.Count);
+            Console.WriteLine("Total unique IDs: {0}", allIds.Count);
 
             // Step 3: write CSV
             int count = 0;
