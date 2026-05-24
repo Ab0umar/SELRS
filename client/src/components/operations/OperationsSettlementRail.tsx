@@ -161,7 +161,7 @@ export function OperationsSettlementRail({
               value={accountingTotals.centerAmount.toFixed(2)}
             />
             <SummaryTile
-              label="المتبقي"
+              label="المتبقي للدكتور"
               value={accountingTotals.remainingAmount.toFixed(2)}
               tone={
                 Math.abs(accountingTotals.remainingAmount) > 0.01
@@ -170,7 +170,7 @@ export function OperationsSettlementRail({
               }
             />
             <SummaryTile
-              label="بعد التعديلات"
+              label="الصافي بعد التعديلات"
               value={accountsNetAfterAdjustments.toFixed(2)}
               tone={
                 Math.abs(accountsNetAfterAdjustments) > 0.01
@@ -229,7 +229,7 @@ export function OperationsSettlementRail({
           >
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              تفاصيل الحساب
+              جدول الحسابات
             </span>
             {detailsOpen ? (
               <PanelRightClose className="h-4 w-4" />

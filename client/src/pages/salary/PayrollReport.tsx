@@ -153,9 +153,14 @@ export default function PayrollReport() {
             احتساب
           </Button>
           {rows.length > 0 && (
-            <Button variant="outline" onClick={printPayroll} className="gap-2">
-              <Printer size={15} /> Print
-            </Button>
+            <>
+              <Button variant="outline" onClick={printDay1} className="gap-2">
+                <Printer size={15} /> Day 1
+              </Button>
+              <Button variant="outline" onClick={printDay10} className="gap-2">
+                <Printer size={15} /> Day 10
+              </Button>
+            </>
           )}
           {rows.length > 0 && !isFinalized && (
             <Button variant="outline" onClick={() => { if (confirm("اعتماد كشف الرواتب كنهائي؟")) finalizeMut.mutate({ year, month }); }} disabled={finalizeMut.isPending} className="gap-2">

@@ -87,10 +87,10 @@ export function OperationTotals({
               <th className="border border-border p-2 font-bold">الخصم</th>
               <th className="border border-border p-2 font-bold">المدفوع</th>
               <th className="border border-border p-2 font-bold">
-                حساب المركز (من الدكتور)
+                حساب المركز
               </th>
               <th className="border border-border p-2 font-bold">
-                المتبقي (حساب الدكتور)
+                المتبقي للدكتور
               </th>
             </tr>
           </thead>
@@ -228,7 +228,7 @@ export function OperationTotals({
                 <tr className="bg-background">
                   <td className="border border-border p-2" colSpan={5}></td>
                   <td className="border border-border p-2 font-semibold">
-                    الاشعه
+                    الأشعة
                   </td>
                   <td className="border border-border p-2" colSpan={2}>
                     <Input
@@ -296,7 +296,7 @@ export function OperationTotals({
                 </tr>
                 <tr className="bg-muted font-semibold">
                   <td className="border border-border p-2" colSpan={5}>
-                    إجمالي (الاشعه + خارجي + الصندوق)
+                    إجمالي التعديلات
                   </td>
                   <td className="border border-border p-2">
                     {accountsAdjustmentsTotal.toFixed(2)}
