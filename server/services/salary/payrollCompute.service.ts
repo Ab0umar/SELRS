@@ -144,6 +144,16 @@ export class PayrollComputeService {
     const sumAllBasics = Array.from(empBasicMap.values()).reduce((s, b) => s + b, 0);
     const activeCount = empBasicMap.size;
 
+    // عيادة: count eligible employees per pool to avoid double-paying
+    const consultantEligible = !isMarkaz
+      ? employees.filter(e => empBasicMap.has(e.empCd) && (e.salaryType === 'استشاري' || e.salaryType === 'الاثنين')).length
+      : 0;
+    const specialistEligible = !isMarkaz
+      ? employees.filter(e => empBasicMap.has(e.empCd) && (e.salaryType === 'أخصائي' || e.salaryType === 'الاثنين')).length
+      : 0;
+    const perConsultant = examPoolConsultant !== null && consultantEligible > 0 ? examPoolConsultant / consultantEligible : 0;
+    const perSpecialist = examPoolSpecialist !== null && specialistEligible > 0 ? examPoolSpecialist / specialistEligible : 0;
+
     const results: PayrollRow[] = [];
 
     for (const emp of employees) {
@@ -185,12 +195,10 @@ export class PayrollComputeService {
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
       let examCommission: number;
       if (!isMarkaz && (examPoolConsultant !== null || examPoolSpecialist !== null)) {
-        // عيادة with per-role pools
-        const cPool = examPoolConsultant ?? 0;
-        const sPool = examPoolSpecialist ?? 0;
         const t = emp.salaryType;
-        const raw = t === 'الاثنين' ? cPool + sPool : t === 'استشاري' ? cPool : sPool;
-        examCommission = round2(raw * commMult);
+        const cShare = (t === 'استشاري' || t === 'الاثنين') ? perConsultant : 0;
+        const sShare = (t === 'أخصائي' || t === 'الاثنين') ? perSpecialist : 0;
+        examCommission = round2((cShare + sShare) * commMult);
       } else {
         const examDivisor = isMarkaz ? activeCount : 3;
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;

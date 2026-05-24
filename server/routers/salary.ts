@@ -234,7 +234,6 @@ export const salaryRouter = router({
       const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
       const examCountConsultantVal = input.examCountConsultant ?? null;
       const examCountSpecialistVal = input.examCountSpecialist ?? null;
-      console.log('[DEBUG]', JSON.stringify({ examPool, pentacamPool, examCountConsultantVal, examCountSpecialistVal, examPoolConsultantVal, examPoolSpecialistVal, notes: input.notes }));
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -269,10 +268,6 @@ export const salaryRouter = router({
             cases250: input.cases250,
             notes: input.notes,
           },
-        }).catch((err: any) => {
-          const cause = err?.cause ?? err;
-          console.error('[setCommissionPool] MySQL error:', cause?.code, cause?.sqlMessage ?? cause?.message);
-          throw err;
         });
       return { success: true };
     }),

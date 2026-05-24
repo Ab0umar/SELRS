@@ -219,11 +219,11 @@ export default function CommissionPools() {
                 <>
                   <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
                     <div className="text-xs text-muted-foreground mb-1">مجمع الاستشاري</div>
-                    <div className="font-bold text-primary">{examCount} × {consultantRateNum} = {consultantPool.toLocaleString("ar-EG")} ج</div>
+                    <div className="font-bold text-primary">{consultantCount} × {consultantRateNum} = {consultantPool.toLocaleString("ar-EG")} ج</div>
                   </div>
                   <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
                     <div className="text-xs text-muted-foreground mb-1">مجمع الأخصائي</div>
-                    <div className="font-bold text-primary">{examCount} × {specialistRateNum} = {specialistPool.toLocaleString("ar-EG")} ج</div>
+                    <div className="font-bold text-primary">{specialistCount} × {specialistRateNum} = {specialistPool.toLocaleString("ar-EG")} ج</div>
                   </div>
                   <div className="rounded-lg bg-muted/30 border border-border px-4 py-3">
                     <div className="text-xs text-muted-foreground mb-1">الإجمالي</div>
