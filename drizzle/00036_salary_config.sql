@@ -4,7 +4,7 @@ CREATE TABLE `salary_config` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`key`)
 );
-
+--> statement-breakpoint
 INSERT INTO `salary_config` (`key`, `value`) VALUES
   ('attendance_rate_3', '0.25'),
   ('attendance_rate_5', '0.15'),
