@@ -38,7 +38,13 @@ internal sealed class Program
         int    license  = int.Parse(GetArg(args, "--license",  "1261"),  CultureInfo.InvariantCulture);
         int    timeout  = int.Parse(GetArg(args, "--timeout",  "10000"), CultureInfo.InvariantCulture);
         int    protocol = int.Parse(GetArg(args, "--protocol", "0"),     CultureInfo.InvariantCulture);
-        string mdbPath  = GetArg(args, "--mdb",  @"D:\Programs\fp\Taurus.mdb");
+        // try common MDB locations if not specified
+        string mdbArg   = GetArg(args, "--mdb",  "");
+        string[] mdbCandidates = string.IsNullOrEmpty(mdbArg)
+            ? new[] { @"D:\Programs\fp\Taurus.mdb", @"C:\Programs\fp\Taurus.mdb", @"E:\Programs\fp\Taurus.mdb" }
+            : new[] { mdbArg };
+        string mdbPath = "";
+        foreach (var c in mdbCandidates) { if (File.Exists(c)) { mdbPath = c; break; } }
         string outPath  = GetArg(args, "--out",  @"E:\users.csv");
 
         var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
@@ -46,7 +52,7 @@ internal sealed class Program
 
         // Step 1: read names from Taurus.mdb
         var names = new Dictionary<int, string>();
-        if (File.Exists(mdbPath))
+        if (!string.IsNullOrEmpty(mdbPath) && File.Exists(mdbPath))
         {
             try
             {
@@ -93,7 +99,7 @@ internal sealed class Program
         }
         else
         {
-            Console.WriteLine("MDB not found at: {0}", mdbPath);
+            Console.WriteLine("MDB not found, using device only");
         }
 
         // Step 2: get enrollNos from device
