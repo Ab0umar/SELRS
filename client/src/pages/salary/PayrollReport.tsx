@@ -49,24 +49,33 @@ export default function PayrollReport() {
   const isFinalized = rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
   const SLIP_CSS = `
+    @page { size: A4; margin: 8mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; color: #000; }
-    .page { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; page-break-after: always; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 10px; color: #000; }
+    .page {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 5mm;
+      width: 100%;
+      height: 277mm;
+      page-break-after: always;
+    }
     .page:last-child { page-break-after: avoid; }
-    .slip { border: 1px solid #aaa; padding: 10px 14px; page-break-inside: avoid; }
-    .slip-header { text-align: center; margin-bottom: 8px; border-bottom: 1.5px solid #000; padding-bottom: 6px; }
-    .slip-header h2 { font-size: 12px; }
-    .slip-header p { font-size: 10px; color: #444; margin-top: 1px; }
-    .emp-name { font-size: 13px; font-weight: bold; margin-bottom: 8px; text-align: right; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-    tr td { padding: 3px 5px; font-size: 10px; }
+    .slip { border: 1px solid #999; padding: 6px 14px; display: flex; flex-direction: row; align-items: stretch; gap: 14px; overflow: hidden; }
+    .slip-left { min-width: 130px; display: flex; flex-direction: column; justify-content: center; border-left: 1px dashed #ccc; padding-left: 14px; }
+    .slip-title { font-size: 11px; font-weight: bold; }
+    .slip-sub { font-size: 9px; color: #555; margin-top: 2px; }
+    .emp-name { font-size: 12px; font-weight: bold; margin-top: 6px; }
+    .slip-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    table { width: 100%; border-collapse: collapse; }
+    tr td { padding: 2px 5px; font-size: 9.5px; }
     tr td:first-child { color: #555; }
     tr td:last-child { text-align: left; font-weight: bold; }
-    .total-row td { border-top: 1.5px solid #000; font-size: 11px; font-weight: bold; padding-top: 4px; }
-    .sig { margin-top: 18px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .sig-block { text-align: center; font-size: 10px; }
-    .sig-line { border-top: 1px solid #000; width: 100px; margin-bottom: 3px; margin-top: 22px; }
-    @media print { body { padding: 0; } }
+    .total-row td { border-top: 1.5px solid #000; font-size: 10.5px; font-weight: bold; padding-top: 4px; }
+    .sig { min-width: 160px; display: flex; flex-direction: column; justify-content: space-around; align-items: center; border-right: 1px dashed #ccc; padding-right: 14px; }
+    .sig-block { text-align: center; font-size: 9px; }
+    .sig-line { border-top: 1px solid #000; width: 110px; margin-bottom: 3px; margin-top: 16px; }
   `;
 
   function groupIntoPages(slips: string[], perPage = 4): string {
@@ -88,22 +97,24 @@ export default function PayrollReport() {
     const ml = MONTHS[month - 1];
     const slips = rows.map((r: any) => `
       <div class="slip">
-        <div class="slip-header">
-          <h2>دفعة يوم 1 — ${section}</h2>
-          <p>${ml} ${year}</p>
-        </div>
-        <div class="emp-name">${r.fullName ?? r.empCd}</div>
-        <table>
-          <tr><td>الراتب الأساسي</td><td>${fmt(r.basicSalary)} ج</td></tr>
-          <tr><td>خصم غياب</td><td>${fmt(r.absentDeduction)} ج</td></tr>
-          <tr><td>خصم تأخير</td><td>${fmt(r.lateDeduction)} ج</td></tr>
-          <tr><td>خصم انصراف مبكر</td><td>${fmt(r.earlyLeaveDeduction)} ج</td></tr>
-          <tr><td>جزاءات</td><td>${fmt(r.penaltyDeduction)} ج</td></tr>
-          <tr class="total-row"><td>صافي الراتب</td><td>${fmt(r.netBasic)} ج</td></tr>
-        </table>
         <div class="sig">
           <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
           <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
+        </div>
+        <div class="slip-body">
+          <table>
+            <tr><td>الراتب الأساسي</td><td>${fmt(r.basicSalary)} ج</td></tr>
+            <tr><td>خصم غياب</td><td>${fmt(r.absentDeduction)} ج</td></tr>
+            <tr><td>خصم تأخير</td><td>${fmt(r.lateDeduction)} ج</td></tr>
+            <tr><td>خصم انصراف مبكر</td><td>${fmt(r.earlyLeaveDeduction)} ج</td></tr>
+            <tr><td>جزاءات</td><td>${fmt(r.penaltyDeduction)} ج</td></tr>
+            <tr class="total-row"><td>صافي الراتب</td><td>${fmt(r.netBasic)} ج</td></tr>
+          </table>
+        </div>
+        <div class="slip-left">
+          <div class="slip-title">دفعة يوم 1 — ${section}</div>
+          <div class="slip-sub">${ml} ${year}</div>
+          <div class="emp-name">${r.fullName ?? r.empCd}</div>
         </div>
       </div>`);
     openPrint(groupIntoPages(slips), `دفعة يوم 1 — ${section} — ${ml} ${year}`);
@@ -113,21 +124,23 @@ export default function PayrollReport() {
     const ml = MONTHS[month - 1];
     const slips = rows.map((r: any) => `
       <div class="slip">
-        <div class="slip-header">
-          <h2>دفعة يوم 10 — ${section}</h2>
-          <p>${ml} ${year}</p>
-        </div>
-        <div class="emp-name">${r.fullName ?? r.empCd}</div>
-        <table>
-          <tr><td>عمولة حضور</td><td>${fmt(r.attendanceCommission)} ج</td></tr>
-          <tr><td>عمولة فحص</td><td>${fmt(r.examCommission)} ج</td></tr>
-          <tr><td>عمولة بنتاكام</td><td>${fmt(r.pentacamCommission)} ج</td></tr>
-          <tr><td>أوفرتايم</td><td>${fmt(r.overtimePay ?? 0)} ج</td></tr>
-          <tr class="total-row"><td>إجمالي المكافآت</td><td>${fmt(Number(r.totalCommission) + Number(r.overtimePay ?? 0))} ج</td></tr>
-        </table>
         <div class="sig">
           <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
           <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
+        </div>
+        <div class="slip-body">
+          <table>
+            <tr><td>عمولة حضور</td><td>${fmt(r.attendanceCommission)} ج</td></tr>
+            <tr><td>عمولة فحص</td><td>${fmt(r.examCommission)} ج</td></tr>
+            <tr><td>عمولة بنتاكام</td><td>${fmt(r.pentacamCommission)} ج</td></tr>
+            <tr><td>أوفرتايم</td><td>${fmt(r.overtimePay ?? 0)} ج</td></tr>
+            <tr class="total-row"><td>إجمالي المكافآت</td><td>${fmt(Number(r.totalCommission) + Number(r.overtimePay ?? 0))} ج</td></tr>
+          </table>
+        </div>
+        <div class="slip-left">
+          <div class="slip-title">دفعة يوم 10 — ${section}</div>
+          <div class="slip-sub">${ml} ${year}</div>
+          <div class="emp-name">${r.fullName ?? r.empCd}</div>
         </div>
       </div>`);
     openPrint(groupIntoPages(slips), `دفعة يوم 10 — ${section} — ${ml} ${year}`);
