@@ -25,6 +25,10 @@ internal static class FK
 
     [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
     public static extern int FK_GetAllUserID(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
+
+    // may return users without biometric data too
+    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
+    public static extern int FK_GetUserInfo(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
 }
 
 internal sealed class Program
@@ -113,13 +117,25 @@ internal sealed class Program
             {
                 int total = FK.FK_ReadAllUserID(handle);
                 Console.WriteLine("FK_ReadAllUserID => {0}", total);
+
+                // pass 1: FK_GetAllUserID — users with biometrics enrolled
                 while (true)
                 {
                     int en = 0, bk = 0, priv = 0, ena = 0;
                     if (FK.FK_GetAllUserID(handle, ref en, ref bk, ref priv, ref ena) <= 0) break;
                     if (en > 0) deviceIds.Add(en);
                 }
-                Console.WriteLine("Device IDs: {0}", deviceIds.Count);
+                Console.WriteLine("Pass1 (GetAllUserID): {0}", deviceIds.Count);
+
+                // pass 2: FK_GetUserInfo — may include non-enrolled registered users
+                FK.FK_ReadAllUserID(handle);
+                while (true)
+                {
+                    int en = 0, bk = 0, priv = 0, ena = 0;
+                    if (FK.FK_GetUserInfo(handle, ref en, ref bk, ref priv, ref ena) <= 0) break;
+                    if (en > 0) deviceIds.Add(en);
+                }
+                Console.WriteLine("Pass2 (GetUserInfo): {0}", deviceIds.Count);
             }
             finally
             {
