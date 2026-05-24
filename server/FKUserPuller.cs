@@ -44,7 +44,7 @@ internal sealed class Program
         int license = int.Parse(GetArg(args, "--license", "1261"), CultureInfo.InvariantCulture);
         int timeout = int.Parse(GetArg(args, "--timeout", "10000"), CultureInfo.InvariantCulture);
         int protocol = int.Parse(GetArg(args, "--protocol", "0"), CultureInfo.InvariantCulture);
-        string outPath = GetArg(args, "--out", @"D:\Programs\fp\users.csv");
+        string outPath = GetArg(args, "--out", @"E:\users.csv");
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
 
