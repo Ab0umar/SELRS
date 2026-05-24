@@ -82,13 +82,12 @@ function EmployeeRates() {
 
   const [rates, setRates] = useState<Record<string, string>>({});
 
-  const clinicEmps: any[] = (empsQ.data ?? []).filter((e: any) => e.department === "عيادة");
+  const allEmps: any[] = empsQ.data ?? [];
 
   useEffect(() => {
     if (!empsQ.data) return;
     const init: Record<string, string> = {};
     for (const emp of empsQ.data) {
-      if (emp.department !== "عيادة") continue;
       init[emp.empCd] = emp.attendanceCommissionRate != null
         ? String(Math.round(Number(emp.attendanceCommissionRate) * 100))
         : "";
@@ -114,16 +113,16 @@ function EmployeeRates() {
   }
 
   if (empsQ.isLoading) return <p className="text-sm text-muted-foreground">جاري التحميل…</p>;
-  if (clinicEmps.length === 0) return <p className="text-sm text-muted-foreground">لا يوجد موظفون في العيادة.</p>;
+  if (allEmps.length === 0) return <p className="text-sm text-muted-foreground">لا يوجد موظفون.</p>;
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">نسبة الحضور لكل موظف (عيادة)</h2>
+        <h2 className="text-base font-semibold">نسبة الحضور لكل موظف</h2>
         <p className="text-sm text-muted-foreground">اتركها فارغة لاستخدام النسبة العامة.</p>
       </div>
       <div className="divide-y divide-border rounded-md border">
-        {clinicEmps.map((emp: any) => (
+        {allEmps.map((emp: any) => (
           <div key={emp.empCd} className="flex items-center gap-3 px-4 py-2.5">
             <span className="flex-1 text-sm">{emp.fullName}</span>
             <span className="text-xs text-muted-foreground w-16 text-center">{emp.salaryType || "—"}</span>
