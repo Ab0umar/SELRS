@@ -4,6 +4,8 @@ import Holidays from "./Holidays";
 import Settings from "./Settings";
 import AdminDashboard from "./admin/AdminDashboard";
 import DeviceSettings from "./admin/DeviceSettings";
+import SyncStatus from "./admin/SyncStatus";
+import EmpSync from "./admin/EmpSync";
 
 const TABS = [
   { key: "shifts", label: "الورديات" },
@@ -11,6 +13,8 @@ const TABS = [
   { key: "settings", label: "الإعدادات" },
   { key: "admin", label: "الإدارة والمزامنة" },
   { key: "device", label: "الجهاز" },
+  { key: "sync", label: "تزامن البصمات" },
+  { key: "empsync", label: "موظفو الجهاز" },
 ];
 
 export default function SettingsHub() {
@@ -47,6 +51,8 @@ export default function SettingsHub() {
         {tab === "settings" && <Settings />}
         {tab === "admin" && <AdminDashboard />}
         {tab === "device" && <DeviceSettings />}
+        {tab === "sync" && <SyncStatus />}
+        {tab === "empsync" && <EmpSync />}
       </div>
     </div>
   );
