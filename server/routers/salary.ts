@@ -204,7 +204,9 @@ export const salaryRouter = router({
         month: z.number().int(),
         section: z.string().default('مركز'),
         examCount: z.number().int().min(0).default(0),
-        examPoolOverride: z.number().min(0).optional(), // for عيادة: pass total directly
+        examPoolOverride: z.number().min(0).optional(), // مركز fallback total
+        examPoolConsultant: z.number().min(0).optional(), // عيادة: استشاري pool
+        examPoolSpecialist: z.number().min(0).optional(), // عيادة: أخصائي pool
         cases450: z.number().int().min(0).default(0),
         cases400: z.number().int().min(0).default(0),
         cases350: z.number().int().min(0).default(0),
@@ -215,13 +217,19 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      // مركز: 50 × examCount × 40% | عيادة: caller provides total directly
+      const r2 = (n: number) => Math.round(n * 100) / 100;
+      const consultantPool = r2(input.examPoolConsultant ?? 0);
+      const specialistPool = r2(input.examPoolSpecialist ?? 0);
       const examPool = String(
-        input.examPoolOverride !== undefined
-          ? Math.round(input.examPoolOverride * 100) / 100
-          : Math.round(input.examCount * 50 * 0.40 * 100) / 100
+        input.examPoolConsultant !== undefined || input.examPoolSpecialist !== undefined
+          ? consultantPool + specialistPool
+          : input.examPoolOverride !== undefined
+            ? r2(input.examPoolOverride)
+            : r2(input.examCount * 50 * 0.40)
       ) as any;
       const pentacamPool = String(calcPentacamPool(input.cases450, input.cases400, input.cases350, input.cases250)) as any;
+      const examPoolConsultantVal = input.examPoolConsultant !== undefined ? String(consultantPool) as any : null;
+      const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -230,6 +238,8 @@ export const salaryRouter = router({
           section: input.section,
           examCount: input.examCount,
           examPool,
+          examPoolConsultant: examPoolConsultantVal,
+          examPoolSpecialist: examPoolSpecialistVal,
           pentacamPool,
           cases450: input.cases450,
           cases400: input.cases400,
@@ -241,6 +251,8 @@ export const salaryRouter = router({
           set: {
             examCount: input.examCount,
             examPool,
+            examPoolConsultant: examPoolConsultantVal,
+            examPoolSpecialist: examPoolSpecialistVal,
             pentacamPool,
             cases450: input.cases450,
             cases400: input.cases400,

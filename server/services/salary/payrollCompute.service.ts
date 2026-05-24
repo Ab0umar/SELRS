@@ -116,6 +116,8 @@ export class PayrollComputeService {
 
     const pool = poolRows[0];
     const examPool = pool ? Number(pool.examPool) : 0;
+    const examPoolConsultant = pool?.examPoolConsultant != null ? Number(pool.examPoolConsultant) : null;
+    const examPoolSpecialist = pool?.examPoolSpecialist != null ? Number(pool.examPoolSpecialist) : null;
     const pentacamPool = pool
       ? calcPentacamPool(pool.cases450 ?? 0, pool.cases400 ?? 0, pool.cases350 ?? 0, pool.cases250 ?? 0)
       : 0;
@@ -181,10 +183,19 @@ export class PayrollComputeService {
       const acRate = attendanceCommissionRate(leaveDays);
 
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
-      // عيادة: fixed denominator of 3; الاثنين = 2 shares, others = 1 share
-      const empShares = !isMarkaz ? (emp.salaryType === 'الاثنين' ? 2 : 1) : 1;
-      const examDivisor = isMarkaz ? activeCount : 3;
-      const examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares * commMult : 0);
+      let examCommission: number;
+      if (!isMarkaz && (examPoolConsultant !== null || examPoolSpecialist !== null)) {
+        // عيادة with per-role pools
+        const cPool = examPoolConsultant ?? 0;
+        const sPool = examPoolSpecialist ?? 0;
+        const t = emp.salaryType;
+        const raw = t === 'الاثنين' ? cPool + sPool : t === 'استشاري' ? cPool : sPool;
+        examCommission = round2(raw * commMult);
+      } else {
+        const examDivisor = isMarkaz ? activeCount : 3;
+        const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
+        examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares * commMult : 0);
+      }
       const pentacamCommission = round2(
         sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0
       );

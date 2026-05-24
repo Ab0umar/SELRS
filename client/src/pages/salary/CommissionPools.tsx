@@ -47,7 +47,8 @@ export default function CommissionPools() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [section, setSection] = useState<Section>("مركز");
   const [form, setForm] = useState<FormState>(BLANK);
-  const [examRate, setExamRate] = useState(BLANK_RATE); // عيادة per-exam rate
+  const [consultantRate, setConsultantRate] = useState("15");
+  const [specialistRate, setSpecialistRate] = useState("15");
 
   const poolQ = (trpc as any).salary.getCommissionPool.useQuery({ year, month, section });
   const pool = poolQ.data;
@@ -63,13 +64,16 @@ export default function CommissionPools() {
         cases250: String(pool.cases250 ?? 0),
         notes: pool.notes ?? "",
       });
-      // reverse-calculate per-exam rate for عيادة
-      if (section === "عيادة" && count > 0 && pool.examPool) {
-        setExamRate(String(Math.round((Number(pool.examPool) / count) * 100) / 100));
+      if (section === "عيادة" && count > 0) {
+        if (pool.examPoolConsultant != null)
+          setConsultantRate(String(Math.round((Number(pool.examPoolConsultant) / count) * 100) / 100));
+        if (pool.examPoolSpecialist != null)
+          setSpecialistRate(String(Math.round((Number(pool.examPoolSpecialist) / count) * 100) / 100));
       }
     } else {
       setForm(BLANK);
-      setExamRate(BLANK_RATE);
+      setConsultantRate("15");
+      setSpecialistRate("15");
     }
   }, [pool, section]);
 
@@ -86,9 +90,11 @@ export default function CommissionPools() {
     cases250: parseInt(form.cases250) || 0,
   };
   const examCount = parseInt(form.examCount) || 0;
-  const examRateNum = parseFloat(examRate) || 0;
-  // مركز: 50ج × count × 40% | عيادة: rate × count (يوزع على الموظفين)
-  const examEmpPool = isMarkaz ? calcExamEmpPool(examCount) : Math.round(examCount * examRateNum * 100) / 100;
+  const consultantRateNum = parseFloat(consultantRate) || 0;
+  const specialistRateNum = parseFloat(specialistRate) || 0;
+  const consultantPool = Math.round(examCount * consultantRateNum * 100) / 100;
+  const specialistPool = Math.round(examCount * specialistRateNum * 100) / 100;
+  const examEmpPool = isMarkaz ? calcExamEmpPool(examCount) : consultantPool + specialistPool;
   const examTotal = examCount * EXAM_PRICE;
   const examDrPool = Math.round(examTotal * 0.60 * 100) / 100;
   const pentacamPool = isMarkaz ? calcPentacamPool(casesNum) : 0;
@@ -99,7 +105,7 @@ export default function CommissionPools() {
     saveMut.mutate({
       year, month, section, examCount,
       ...(isMarkaz ? casesNum : { cases450: 0, cases400: 0, cases350: 0, cases250: 0 }),
-      ...(!isMarkaz ? { examPoolOverride: examEmpPool } : {}),
+      ...(!isMarkaz ? { examPoolConsultant: consultantPool, examPoolSpecialist: specialistPool } : {}),
       notes: form.notes,
     });
   };
@@ -139,26 +145,33 @@ export default function CommissionPools() {
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">نسبة الكشف</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isMarkaz ? "50 ج × عدد الكشوفات — 60% للأطباء، 40% للموظفين بالتساوي" : "سعر الكشف × عدد الكشوفات — يوزع بالتساوي على موظفي العيادة"}
+              {isMarkaz ? "50 ج × عدد الكشوفات — 60% للأطباء، 40% للموظفين بالتساوي" : "سعر الكشف × عدد الكشوفات — مجمع منفصل لكل نوع"}
             </p>
           </div>
           <div className="px-4 py-4 space-y-4">
-            <div className={`grid gap-4 ${isMarkaz ? "max-w-xs" : "sm:grid-cols-2 max-w-sm"}`}>
+            <div className={`grid gap-4 ${isMarkaz ? "max-w-xs" : "sm:grid-cols-3 max-w-lg"}`}>
               <div className="space-y-1">
                 <label className="block text-sm font-medium">عدد الكشوفات</label>
                 <input type="number" value={form.examCount} min={0} step="1"
                   onChange={set("examCount")} className={inputCls} />
               </div>
               {!isMarkaz && (
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">سعر الكشف (ج)</label>
-                  <input type="number" value={examRate} min={0} step="0.5"
-                    onChange={e => setExamRate(e.target.value)} className={inputCls} />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">سعر الكشف — استشاري (ج)</label>
+                    <input type="number" value={consultantRate} min={0} step="0.5"
+                      onChange={e => setConsultantRate(e.target.value)} className={inputCls} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">سعر الكشف — أخصائي (ج)</label>
+                    <input type="number" value={specialistRate} min={0} step="0.5"
+                      onChange={e => setSpecialistRate(e.target.value)} className={inputCls} />
+                  </div>
+                </>
               )}
             </div>
-            <div className={`grid gap-3 text-sm ${isMarkaz ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-              {isMarkaz && (
+            <div className={`grid gap-3 text-sm ${isMarkaz ? "sm:grid-cols-3" : "sm:grid-cols-3"}`}>
+              {isMarkaz ? (
                 <>
                   <div className="rounded-lg bg-muted/30 border border-border px-4 py-3">
                     <div className="text-xs text-muted-foreground mb-1">إجمالي الكشف</div>
@@ -170,12 +183,27 @@ export default function CommissionPools() {
                     <div className="text-xs text-muted-foreground mb-1">نصيب الأطباء (60%)</div>
                     <div className="font-bold text-orange-600">{examDrPool.toLocaleString("ar-EG")} ج</div>
                   </div>
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
+                    <div className="text-xs text-muted-foreground mb-1">مجمع الموظفين (40%)</div>
+                    <div className="font-bold text-primary">{examEmpPool.toLocaleString("ar-EG")} ج</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
+                    <div className="text-xs text-muted-foreground mb-1">مجمع الاستشاري</div>
+                    <div className="font-bold text-primary">{examCount} × {consultantRateNum} = {consultantPool.toLocaleString("ar-EG")} ج</div>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
+                    <div className="text-xs text-muted-foreground mb-1">مجمع الأخصائي</div>
+                    <div className="font-bold text-primary">{examCount} × {specialistRateNum} = {specialistPool.toLocaleString("ar-EG")} ج</div>
+                  </div>
+                  <div className="rounded-lg bg-muted/30 border border-border px-4 py-3">
+                    <div className="text-xs text-muted-foreground mb-1">الإجمالي</div>
+                    <div className="font-bold text-foreground">{examEmpPool.toLocaleString("ar-EG")} ج</div>
+                  </div>
                 </>
               )}
-              <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
-                <div className="text-xs text-muted-foreground mb-1">{isMarkaz ? "مجمع الموظفين (40%)" : "مجمع موظفي العيادة"}</div>
-                <div className="font-bold text-primary">{examEmpPool.toLocaleString("ar-EG")} ج</div>
-              </div>
             </div>
           </div>
         </section>
@@ -230,7 +258,7 @@ export default function CommissionPools() {
           <h4 className="text-sm font-semibold mb-2">ملخص العمولات لهذا الشهر</h4>
           <ul className="space-y-1 text-sm text-muted-foreground">
             <li>• <span className="font-medium text-foreground">حافز الحضور</span>: 25% من الراتب (≤3 أيام) | 15% (≤5) | 10% (≤7) | 5% (≤10) | 0%</li>
-            <li>• <span className="font-medium text-foreground">نسبة الكشف</span>: {examEmpPool.toLocaleString("ar-EG")} ج ÷ عدد الموظفين (بالتساوي){!isMarkaz && examRateNum > 0 && <span className="mr-1 text-xs">({examRateNum} ج/كشف)</span>}</li>
+            <li>• <span className="font-medium text-foreground">نسبة الكشف</span>: {isMarkaz ? `${examEmpPool.toLocaleString("ar-EG")} ج ÷ عدد الموظفين (بالتساوي)` : `استشاري ${consultantPool.toLocaleString("ar-EG")} ج | أخصائي ${specialistPool.toLocaleString("ar-EG")} ج`}</li>
             {isMarkaz && (
               <li>• <span className="font-medium text-foreground">نسبة الاشعة</span>: {pentacamPool.toLocaleString("ar-EG")} ج (بنسبة الراتب الأساسي)</li>
             )}
