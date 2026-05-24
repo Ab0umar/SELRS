@@ -220,6 +220,7 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
       const r2 = (n: number) => Math.round(n * 100) / 100;
+      // DEBUG: remove after fix
       const consultantPool = r2(input.examPoolConsultant ?? 0);
       const specialistPool = r2(input.examPoolSpecialist ?? 0);
       const examPool = String(
@@ -268,6 +269,9 @@ export const salaryRouter = router({
             cases250: input.cases250,
             notes: input.notes,
           },
+        }).catch((err: any) => {
+          console.error('[setCommissionPool] MySQL error:', err?.code, err?.sqlMessage ?? err?.message);
+          throw err;
         });
       return { success: true };
     }),
