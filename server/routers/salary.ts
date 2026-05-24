@@ -426,7 +426,7 @@ export const salaryRouter = router({
     const db = await getDb();
     if (!db) throw new Error('DB unavailable');
     return await db
-      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType })
+      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType, attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate })
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
   }),

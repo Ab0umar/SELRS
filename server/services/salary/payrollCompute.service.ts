@@ -205,7 +205,8 @@ export class PayrollComputeService {
       const netBasic = round2(Math.max(0, basic - totalDeductions));
       const lm = leaveMultiplier(leaveDays);
       const commMult = lm * (1 - deductionPct);
-      const acRate = attendanceCommissionRate(leaveDays, acRates);
+      const empRate = emp.attendanceCommissionRate != null ? Number(emp.attendanceCommissionRate) : null;
+      const acRate = empRate !== null ? empRate : attendanceCommissionRate(leaveDays, acRates);
 
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
       let examCommission: number;

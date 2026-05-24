@@ -1038,6 +1038,7 @@ export const attendanceEmployees = mysqlTable("attendance_employees", {
   fullName: varchar("full_name", { length: 255 }).notNull(),
   department: varchar("department", { length: 128 }),
   salaryType: varchar("salary_type", { length: 32 }),
+  attendanceCommissionRate: decimal("attendance_commission_rate", { precision: 5, scale: 4 }),
   defaultShiftId: int("default_shift_id"),
   active: boolean("active").default(true).notNull(),
   sourceHash: varchar("source_hash", { length: 40 }),

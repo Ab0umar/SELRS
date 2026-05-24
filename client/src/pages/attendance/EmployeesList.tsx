@@ -15,11 +15,13 @@ export default function EmployeesList() {
     fullName: string;
     department: string;
     salaryType: string;
+    attendanceCommissionRate: string;
     active: boolean;
   }>({
     fullName: "",
     department: "",
     salaryType: "",
+    attendanceCommissionRate: "",
     active: true,
   });
 
@@ -48,6 +50,7 @@ export default function EmployeesList() {
       fullName: emp.fullName,
       department: emp.department ?? "",
       salaryType: emp.salaryType ?? "",
+      attendanceCommissionRate: emp.attendanceCommissionRate != null ? String(Math.round(Number(emp.attendanceCommissionRate) * 100)) : "",
       active: emp.active,
     });
   };
@@ -183,20 +186,37 @@ export default function EmployeesList() {
                               </select>
                             </td>
                             {editRow.department === "عيادة" && (
-                              <td className="py-2 px-2">
-                                <label htmlFor={`attendance-employee-stype-${emp.empCd}`} className="sr-only">النوع</label>
-                                <select
-                                  id={`attendance-employee-stype-${emp.empCd}`}
-                                  value={editRow.salaryType}
-                                  onChange={(e) => setEditRow({ ...editRow, salaryType: e.target.value })}
-                                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                                >
-                                  <option value="">— النوع —</option>
-                                  <option value="استشاري">استشاري (⅓)</option>
-                                  <option value="أخصائي">أخصائي (⅓)</option>
-                                  <option value="الاثنين">الاثنين (⅔)</option>
-                                </select>
-                              </td>
+                              <>
+                                <td className="py-2 px-2">
+                                  <label htmlFor={`attendance-employee-stype-${emp.empCd}`} className="sr-only">النوع</label>
+                                  <select
+                                    id={`attendance-employee-stype-${emp.empCd}`}
+                                    value={editRow.salaryType}
+                                    onChange={(e) => setEditRow({ ...editRow, salaryType: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                  >
+                                    <option value="">— النوع —</option>
+                                    <option value="استشاري">استشاري (⅓)</option>
+                                    <option value="أخصائي">أخصائي (⅓)</option>
+                                    <option value="الاثنين">الاثنين (⅔)</option>
+                                  </select>
+                                </td>
+                                <td className="py-2 px-2">
+                                  <div className="relative">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      step={1}
+                                      placeholder="عام"
+                                      value={editRow.attendanceCommissionRate}
+                                      onChange={(e) => setEditRow({ ...editRow, attendanceCommissionRate: e.target.value })}
+                                      className="w-20 rounded-md border border-border bg-background px-2 py-2 text-sm pr-6 text-right"
+                                    />
+                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                                  </div>
+                                </td>
+                              </>
                             )}
                             <td className="py-2 px-2">
                               <label
@@ -232,6 +252,7 @@ export default function EmployeesList() {
                                       fullName: editRow.fullName,
                                       department: editRow.department || undefined,
                                       salaryType: editRow.salaryType || undefined,
+                                      attendanceCommissionRate: editRow.attendanceCommissionRate !== "" ? parseFloat(editRow.attendanceCommissionRate) / 100 : null,
                                       active: editRow.active,
                                     })
                                   }
@@ -270,6 +291,11 @@ export default function EmployeesList() {
                             <td className="py-3 px-4 text-muted-foreground">
                               {emp.salaryType || "—"}
                             </td>
+                            {emp.department === "عيادة" && (
+                              <td className="py-3 px-4 text-muted-foreground">
+                                {emp.attendanceCommissionRate != null ? `${Math.round(Number(emp.attendanceCommissionRate) * 100)}%` : "عام"}
+                              </td>
+                            )}
                             <td className="py-3 px-4">
                               <span
                                 className={`rounded px-2 py-1 text-xs font-semibold ${
