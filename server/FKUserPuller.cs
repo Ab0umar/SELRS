@@ -84,10 +84,17 @@ internal sealed class Program
                     allIds.Add(en);
 
                     var buf = new byte[128];
-                    FK.FK_GetUserName(handle, en, buf);
-                    // try Windows-1256 (Arabic) then system default
+                    int nr = FK.FK_GetUserName(handle, en, buf);
+                    // debug: print first 32 bytes as hex for first 3 users
+                    if (names.Count < 3)
+                    {
+                        var hex = BitConverter.ToString(buf, 0, 32).Replace("-", " ");
+                        Console.WriteLine("  enrollNo={0} FK_GetUserName rc={1} bytes={2}", en, nr, hex);
+                    }
                     string n = "";
-                    try { n = Encoding.GetEncoding(1256).GetString(buf).Split('\0')[0].Trim(); } catch { }
+                    try { n = Encoding.Unicode.GetString(buf).Split('\0')[0].Trim(); } catch { }
+                    if (string.IsNullOrEmpty(n))
+                        try { n = Encoding.GetEncoding(1256).GetString(buf).Split('\0')[0].Trim(); } catch { }
                     if (string.IsNullOrEmpty(n))
                         n = Encoding.Default.GetString(buf).Split('\0')[0].Trim();
                     if (!string.IsNullOrEmpty(n))
@@ -96,19 +103,6 @@ internal sealed class Program
             }
             Console.WriteLine("Users with names: {0}", names.Count);
 
-            // Step 2: punch logs to catch any registered IDs not in user registry
-            int load = FK.FK_LoadGeneralLogData(handle, 0);
-            Console.WriteLine("FK_LoadGeneralLogData => {0}", load);
-            if (load >= 0)
-            {
-                while (true)
-                {
-                    int en = 0, vm = 0, io = 0, y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0;
-                    int rc = FK.FK_GetGeneralLogData_1(handle, ref en, ref vm, ref io, ref y, ref mo, ref d, ref h, ref mi, ref s);
-                    if (rc <= 0) break;
-                    if (en > 0) allIds.Add(en);
-                }
-            }
             Console.WriteLine("Total unique IDs: {0}", allIds.Count);
 
             // Step 3: write CSV
