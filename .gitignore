@@ -183,3 +183,5 @@ scripts/New/
 scripts/*.cmd
 .impeccable/
 scripts/GIT-sync.ps1
+Salaries/
+Salaries/*.mdb
