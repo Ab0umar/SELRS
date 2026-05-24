@@ -63,9 +63,11 @@ export interface PayrollRow {
   workingDays: number;
   absentDays: number;
   lateMinutes: number;
+  earlyLeaveMinutes: number;
   leaveDays: number;
   absentDeduction: number;
   lateDeduction: number;
+  earlyLeaveDeduction: number;
   penaltyDeduction: number;
   totalDeductions: number;
   deductionPct: number;
@@ -150,6 +152,7 @@ export class PayrollComputeService {
 
       const absentDays = report?.absentDays ?? 0;
       const lateMinutes = report?.totalLateMins ?? 0;
+      const earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
       const leaveDays = report?.leaveDays ?? 0;
 
       const dailyRate = workingDays > 0 ? basic / workingDays : 0;
@@ -157,10 +160,11 @@ export class PayrollComputeService {
 
       const absentDeduction = round2(absentDays * dailyRate);
       const lateDeduction = round2(lateMinutes * minuteRate);
+      const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
       const penaltyDeduction = round2(
         penalties.filter((p) => p.empCd === emp.empCd).reduce((s, p) => s + Number(p.amount), 0)
       );
-      const totalDeductions = round2(absentDeduction + lateDeduction + penaltyDeduction);
+      const totalDeductions = round2(absentDeduction + lateDeduction + earlyLeaveDeduction + penaltyDeduction);
       const deductionPct = basic > 0 ? Math.min(1, totalDeductions / basic) : 0;
 
       const netBasic = round2(Math.max(0, basic - totalDeductions));
@@ -184,9 +188,11 @@ export class PayrollComputeService {
         workingDays,
         absentDays,
         lateMinutes,
+        earlyLeaveMinutes,
         leaveDays,
         absentDeduction,
         lateDeduction,
+        earlyLeaveDeduction,
         penaltyDeduction,
         totalDeductions,
         deductionPct,
@@ -221,9 +227,11 @@ export class PayrollComputeService {
           workingDays: r.workingDays,
           absentDays: r.absentDays,
           lateMinutes: r.lateMinutes,
+          earlyLeaveMinutes: r.earlyLeaveMinutes,
           leaveDays: r.leaveDays,
           absentDeduction: String(r.absentDeduction) as any,
           lateDeduction: String(r.lateDeduction) as any,
+          earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
           penaltyDeduction: String(r.penaltyDeduction) as any,
           totalDeductions: String(r.totalDeductions) as any,
           deductionPct: String(r.deductionPct) as any,
@@ -243,9 +251,11 @@ export class PayrollComputeService {
             workingDays: r.workingDays,
             absentDays: r.absentDays,
             lateMinutes: r.lateMinutes,
+            earlyLeaveMinutes: r.earlyLeaveMinutes,
             leaveDays: r.leaveDays,
             absentDeduction: String(r.absentDeduction) as any,
             lateDeduction: String(r.lateDeduction) as any,
+            earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
             penaltyDeduction: String(r.penaltyDeduction) as any,
             totalDeductions: String(r.totalDeductions) as any,
             deductionPct: String(r.deductionPct) as any,
