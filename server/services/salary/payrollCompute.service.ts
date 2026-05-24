@@ -7,8 +7,9 @@ import {
   salaryPenalties,
   salaryCommissionPools,
   salaryPayroll,
+  salaryConfig,
 } from '../../../drizzle/schema';
-import { eq, and, gte, lte, isNull, or } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, or, inArray } from 'drizzle-orm';
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -30,14 +31,26 @@ export function calcPentacamPool(cases450: number, cases400: number, cases350: n
   );
 }
 
-// Returns the attendance commission rate (as a fraction of basic) based on leave days taken.
-// ≤3d→25%, ≤5d→15%, ≤7d→10%, ≤10d→5%, >10d→0%
-function attendanceCommissionRate(leaveDays: number): number {
-  if (leaveDays <= 3) return 0.25;
-  if (leaveDays <= 5) return 0.15;
-  if (leaveDays <= 7) return 0.10;
-  if (leaveDays <= 10) return 0.05;
+interface AttendanceRates { r3: number; r5: number; r7: number; r10: number; }
+
+function attendanceCommissionRate(leaveDays: number, rates: AttendanceRates): number {
+  if (leaveDays <= 3) return rates.r3;
+  if (leaveDays <= 5) return rates.r5;
+  if (leaveDays <= 7) return rates.r7;
+  if (leaveDays <= 10) return rates.r10;
   return 0;
+}
+
+async function loadAttendanceRates(db: Awaited<ReturnType<typeof getDb>>): Promise<AttendanceRates> {
+  const keys = ['attendance_rate_3', 'attendance_rate_5', 'attendance_rate_7', 'attendance_rate_10'];
+  const rows = await db!.select().from(salaryConfig).where(inArray(salaryConfig.key, keys));
+  const map = Object.fromEntries(rows.map(r => [r.key, parseFloat(r.value)]));
+  return {
+    r3:  map['attendance_rate_3']  ?? 0.25,
+    r5:  map['attendance_rate_5']  ?? 0.15,
+    r7:  map['attendance_rate_7']  ?? 0.10,
+    r10: map['attendance_rate_10'] ?? 0.05,
+  };
 }
 
 // Leave multiplier for exam/pentacam commissions (separate rule the user specified)
@@ -95,6 +108,8 @@ export class PayrollComputeService {
       : await db.select().from(attendanceEmployees).where(eq(attendanceEmployees.department, section));
 
     const isMarkaz = section === 'مركز';
+
+    const acRates = await loadAttendanceRates(db);
 
     const [poolRows, basics, monthlyReports, dailyRows, penalties] = await Promise.all([
       db.select().from(salaryCommissionPools)
@@ -190,7 +205,7 @@ export class PayrollComputeService {
       const netBasic = round2(Math.max(0, basic - totalDeductions));
       const lm = leaveMultiplier(leaveDays);
       const commMult = lm * (1 - deductionPct);
-      const acRate = attendanceCommissionRate(leaveDays);
+      const acRate = attendanceCommissionRate(leaveDays, acRates);
 
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
       let examCommission: number;

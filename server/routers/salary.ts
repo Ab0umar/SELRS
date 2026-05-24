@@ -7,6 +7,7 @@ import {
   salaryCommissionPools,
   salaryPayroll,
   salaryRaiseHistory,
+  salaryConfig,
   attendanceEmployees,
 } from '../../drizzle/schema';
 import { eq, and, gte, lte, isNull, or, desc } from 'drizzle-orm';
@@ -378,6 +379,46 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
       await db.delete(salaryRaiseHistory).where(eq(salaryRaiseHistory.id, input.id));
+      return { success: true };
+    }),
+
+  // ── Salary Config ────────────────────────────────────────
+  getAttendanceRates: managerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error('DB unavailable');
+    const rows = await db.select().from(salaryConfig)
+      .where(eq(salaryConfig.key, 'attendance_rate_3')
+        || eq(salaryConfig.key, 'attendance_rate_5')
+        || eq(salaryConfig.key, 'attendance_rate_7')
+        || eq(salaryConfig.key, 'attendance_rate_10') as any);
+    const map = Object.fromEntries(rows.map(r => [r.key, Number(r.value)]));
+    return {
+      rate3:  map['attendance_rate_3']  ?? 0.25,
+      rate5:  map['attendance_rate_5']  ?? 0.15,
+      rate7:  map['attendance_rate_7']  ?? 0.10,
+      rate10: map['attendance_rate_10'] ?? 0.05,
+    };
+  }),
+
+  setAttendanceRates: managerProcedure
+    .input(z.object({
+      rate3:  z.number().min(0).max(1),
+      rate5:  z.number().min(0).max(1),
+      rate7:  z.number().min(0).max(1),
+      rate10: z.number().min(0).max(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const entries = [
+        { key: 'attendance_rate_3',  value: String(input.rate3)  },
+        { key: 'attendance_rate_5',  value: String(input.rate5)  },
+        { key: 'attendance_rate_7',  value: String(input.rate7)  },
+        { key: 'attendance_rate_10', value: String(input.rate10) },
+      ];
+      for (const e of entries) {
+        await db.insert(salaryConfig).values(e).onDuplicateKeyUpdate({ set: { value: e.value } });
+      }
       return { success: true };
     }),
 

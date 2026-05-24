@@ -1394,5 +1394,8 @@ export const salaryRaiseHistory = mysqlTable("salary_raise_history", {
 
 export type SalaryRaiseHistory = typeof salaryRaiseHistory.$inferSelect;
 
-
-
+export const salaryConfig = mysqlTable("salary_config", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  value: varchar("value", { length: 255 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});

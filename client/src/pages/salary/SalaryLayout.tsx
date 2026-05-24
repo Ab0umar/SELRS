@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet, Settings2 } from "lucide-react";
 
 interface SalaryLayoutProps {
   children: ReactNode;
@@ -11,6 +11,7 @@ const sections = [
   { href: "/salary/penalties", label: "الجزاءات", icon: AlertCircle },
   { href: "/salary/pools", label: "العمولات الشهرية", icon: Wallet },
   { href: "/salary/payroll", label: "كشف الرواتب", icon: BarChart3 },
+  { href: "/salary/settings", label: "الإعدادات", icon: Settings2 },
 ];
 
 function resolveTitle(pathname: string) {
@@ -20,6 +21,8 @@ function resolveTitle(pathname: string) {
     return { title: "العمولات الشهرية", description: "إدخال مبالغ عمولة الفحص والبنتاكام لكل شهر." };
   if (pathname.startsWith("/salary/payroll"))
     return { title: "كشف الرواتب", description: "احتساب وعرض كشف الرواتب الشهري بالتفصيل." };
+  if (pathname.startsWith("/salary/settings"))
+    return { title: "إعدادات الرواتب", description: "تخصيص نسب عمولة الحضور والإعدادات العامة." };
   return { title: "الرواتب الأساسية", description: "إدارة الرواتب الأساسية لجميع الموظفين." };
 }
 
