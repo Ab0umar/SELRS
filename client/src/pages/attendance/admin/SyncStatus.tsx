@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Download, CheckCircle2, XCircle, Clock, FileDown } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, XCircle, Clock, FileDown, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 const tRPC = trpc as any;
@@ -24,15 +24,32 @@ interface SyncResult {
   error?: string;
 }
 
+interface EmpSyncResult {
+  success: boolean;
+  inserted: number;
+  updated: number;
+  total: number;
+  employees?: { empNo: string; name: string }[];
+}
+
 export default function SyncStatus() {
   const [ip, setIp] = useState('');
   const [port, setPort] = useState('');
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
+  const [empResult, setEmpResult] = useState<EmpSyncResult | null>(null);
 
   const runsQ = tRPC.attendance.listSyncRuns?.useQuery?.(
     { limit: 10 },
     { refetchInterval: 15000, refetchOnWindowFocus: false }
   );
+
+  const empSyncMut = tRPC.attendance.syncEmployeesFromDevice.useMutation({
+    onSuccess: (result: EmpSyncResult) => {
+      setEmpResult(result);
+      toast.success(`تم تزامن الموظفين: ${result.inserted} جديد، ${result.updated} محدَّث`);
+    },
+    onError: (e: any) => toast.error('خطأ: ' + e.message),
+  });
 
   const exportMut = tRPC.attendance.exportDevicePunches.useMutation({
     onSuccess: (result: any) => {
@@ -80,6 +97,13 @@ export default function SyncStatus() {
     syncMut.mutate(input as any);
   };
 
+  const handleEmpSync = () => {
+    const input: Record<string, unknown> = {};
+    if (ip.trim()) input.ip = ip.trim();
+    if (port.trim()) input.port = parseInt(port) || 5005;
+    empSyncMut.mutate(input as any);
+  };
+
   const busy = syncMut.isPending;
 
   return (
@@ -90,6 +114,63 @@ export default function SyncStatus() {
         <p className="mt-1 text-sm text-muted-foreground">
           سحب البصمات من جهاز البصمة وحفظها في قاعدة البيانات المحلية
         </p>
+      </div>
+
+      {/* Shared IP/Port inputs */}
+      <div className="rounded-xl border border-border bg-background p-5 space-y-3">
+        <h3 className="font-semibold text-sm text-muted-foreground">إعدادات الاتصال (اختياري)</h3>
+        <div className="grid gap-3 sm:grid-cols-2 max-w-sm">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted-foreground">IP الجهاز</label>
+            <Input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.0.10" dir="ltr" className="text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted-foreground">المنفذ</label>
+            <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="5005" dir="ltr" className="text-sm" />
+          </div>
+        </div>
+      </div>
+
+      {/* Employee sync card */}
+      <div className="rounded-xl border border-border bg-background p-5 space-y-4">
+        <h3 className="font-semibold text-base">تزامن بيانات الموظفين</h3>
+        <p className="text-sm text-muted-foreground">سحب أسماء وأكواد الموظفين من ذاكرة الجهاز وحفظها محلياً</p>
+
+        <Button onClick={handleEmpSync} disabled={empSyncMut.isPending || busy} variant="outline" className="gap-2">
+          {empSyncMut.isPending
+            ? <RefreshCw className="h-4 w-4 animate-spin" />
+            : <Users className="h-4 w-4" />}
+          {empSyncMut.isPending ? 'جاري التزامن...' : 'تزامن الموظفين من الجهاز'}
+        </Button>
+
+        {empResult && (
+          <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 px-4 py-3 text-sm text-green-800 dark:text-green-200">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium">تم تزامن الموظفين</div>
+                <div className="mt-1 text-xs opacity-80 space-y-0.5">
+                  <div>إجمالي: {empResult.total} موظف</div>
+                  <div>مُضافون جدد: <span className="font-bold">{empResult.inserted}</span></div>
+                  <div>محدَّثون: {empResult.updated}</div>
+                </div>
+                {(empResult.employees?.length ?? 0) > 0 && (
+                  <div className="mt-2 max-h-32 overflow-y-auto space-y-0.5 text-xs">
+                    {empResult.employees!.slice(0, 20).map((e) => (
+                      <div key={e.empNo} className="flex gap-2">
+                        <span className="tabular-nums w-8 shrink-0">{e.empNo}</span>
+                        <span>{e.name}</span>
+                      </div>
+                    ))}
+                    {(empResult.employees?.length ?? 0) > 20 && (
+                      <div className="opacity-60">و {empResult.employees!.length - 20} آخرون...</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Manual sync card */}

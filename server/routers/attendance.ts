@@ -861,6 +861,74 @@ export const attendanceRouter = router({
       };
     }),
 
+  syncEmployeesFromDevice: attendanceManagerProcedure
+    .input(
+      z.object({
+        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const settings = DeviceSettingsService.getSettings();
+      const ip = input.ip || settings.ip || '192.168.0.10';
+      const port = input.port || settings.port || 5005;
+
+      const device = new ZKTecoDevice({ ip, port, timeout: 10000 });
+      try {
+        const connected = await device.connect();
+        if (!connected) throw new Error(`لا يمكن الاتصال بالجهاز على ${ip}:${port}`);
+
+        const employees = await device.getEmployees();
+        device.disconnect();
+
+        if (!employees.length) return { success: true, inserted: 0, updated: 0, employees: [] };
+
+        const db = await getDb();
+        if (!db) throw new Error('DB unavailable');
+
+        const now = new Date();
+        let inserted = 0;
+        let updated = 0;
+
+        for (const emp of employees) {
+          const empCd = String(emp.empNo).trim();
+          const fullName = String(emp.name || empCd).trim();
+          if (!empCd) continue;
+
+          const existing = await db
+            .select({ id: attendanceEmployees.empCd })
+            .from(attendanceEmployees)
+            .where(eq(attendanceEmployees.empCd, empCd))
+            .limit(1);
+
+          if (existing.length) {
+            await db.update(attendanceEmployees)
+              .set({ fullName, updatedAt: now })
+              .where(eq(attendanceEmployees.empCd, empCd));
+            updated++;
+          } else {
+            await db.insert(attendanceEmployees).values({ empCd, fullName, active: true, createdAt: now, updatedAt: now });
+            inserted++;
+          }
+        }
+
+        AuditLogService.log({ action: 'sync_employees_device', details: { inserted, updated, total: employees.length }, status: 'success' });
+
+        return {
+          success: true,
+          inserted,
+          updated,
+          total: employees.length,
+          employees: employees.map((e) => ({ empNo: e.empNo, name: e.name })),
+        };
+      } catch (err) {
+        device.disconnect();
+        const msg = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({ action: 'sync_employees_device', details: { error: msg }, status: 'error' });
+        throw new Error(msg);
+      }
+    }),
+
   syncFromFKDevice: attendanceManagerProcedure
     .input(
       z.object({
