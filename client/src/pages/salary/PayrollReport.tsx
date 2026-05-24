@@ -69,8 +69,16 @@ export default function PayrollReport() {
     @media print { body { padding: 0; } }
   `;
 
+  function groupIntoPages(slips: string[], perPage = 4): string {
+    const pages: string[] = [];
+    for (let i = 0; i < slips.length; i += perPage) {
+      pages.push(`<div class="page">${slips.slice(i, i + perPage).join("")}</div>`);
+    }
+    return pages.join("");
+  }
+
   function openPrint(html: string, title: string) {
-    const win = window.open("", "_blank", "width=700,height=800");
+    const win = window.open("", "_blank", "width=900,height=800");
     if (!win) return;
     win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${SLIP_CSS}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
     win.document.close();
@@ -97,8 +105,8 @@ export default function PayrollReport() {
           <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
           <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
         </div>
-      </div>`).join("");
-    openPrint(slips, `دفعة يوم 1 — ${section} — ${ml} ${year}`);
+      </div>`);
+    openPrint(groupIntoPages(slips), `دفعة يوم 1 — ${section} — ${ml} ${year}`);
   }
 
   function printDay10() {
@@ -121,8 +129,8 @@ export default function PayrollReport() {
           <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
           <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
         </div>
-      </div>`).join("");
-    openPrint(slips, `دفعة يوم 10 — ${section} — ${ml} ${year}`);
+      </div>`);
+    openPrint(groupIntoPages(slips), `دفعة يوم 10 — ${section} — ${ml} ${year}`);
   }
 
   return (
