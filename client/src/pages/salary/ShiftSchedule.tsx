@@ -24,24 +24,24 @@ export default function ShiftSchedule() {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
 
-  const schedQ = (trpc as any).shiftStaff.getSchedule.useQuery({ year, month });
-  const payrollQ = (trpc as any).shiftStaff.computePayroll.useQuery({ year, month });
+  const schedQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
+  const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({ year, month });
 
   const staff: any[] = schedQ.data?.staff ?? [];
   const attendance: any[] = schedQ.data?.attendance ?? [];
   const payroll: any[] = payrollQ.data ?? [];
 
-  const addMut = (trpc as any).shiftStaff.addShift.useMutation({
+  const addMut = (trpc as any).salary.addShiftEntry.useMutation({
     onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); setShowAdd(false); setAddForm(EMPTY_ADD); toast.success("Shift added"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const toggleMut = (trpc as any).shiftStaff.togglePresent.useMutation({
+  const toggleMut = (trpc as any).salary.toggleShiftPresent.useMutation({
     onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const deleteMut = (trpc as any).shiftStaff.deleteShift.useMutation({
+  const deleteMut = (trpc as any).salary.deleteShiftEntry.useMutation({
     onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); toast.success("Removed"); },
     onError: (e: any) => toast.error(e.message),
   });

@@ -15,15 +15,15 @@ export default function ShiftStaff() {
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<StaffForm>(EMPTY);
 
-  const staffQ = (trpc as any).shiftStaff.listStaff.useQuery();
+  const staffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const staff: any[] = staffQ.data ?? [];
 
-  const addMut = (trpc as any).shiftStaff.addStaff.useMutation({
+  const addMut = (trpc as any).salary.addShiftStaff.useMutation({
     onSuccess: () => { staffQ.refetch(); setAdding(false); setAddForm(EMPTY); toast.success("Staff added"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const updateMut = (trpc as any).shiftStaff.updateStaff.useMutation({
+  const updateMut = (trpc as any).salary.updateShiftStaff.useMutation({
     onSuccess: () => { staffQ.refetch(); setEditId(null); toast.success("Saved"); },
     onError: (e: any) => toast.error(e.message),
   });
