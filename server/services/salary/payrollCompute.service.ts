@@ -64,6 +64,7 @@ export interface PayrollRow {
   absentDays: number;
   lateMinutes: number;
   earlyLeaveMinutes: number;
+  overtimeMinutes: number;
   leaveDays: number;
   absentDeduction: number;
   lateDeduction: number;
@@ -77,6 +78,7 @@ export interface PayrollRow {
   examCommission: number;
   pentacamCommission: number;
   totalCommission: number;
+  overtimePay: number;
   totalPay: number;
 }
 
@@ -153,14 +155,17 @@ export class PayrollComputeService {
       const absentDays = report?.absentDays ?? 0;
       const lateMinutes = report?.totalLateMins ?? 0;
       const earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
+      const overtimeMinutes = report?.totalOTMins ?? 0;
       const leaveDays = report?.leaveDays ?? 0;
 
       const dailyRate = workingDays > 0 ? basic / workingDays : 0;
-      const minuteRate = dailyRate / 480; // 8h × 60min
+      const minuteRate = dailyRate / 360; // 6h × 60min
 
+      const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
       const absentDeduction = round2(absentDays * dailyRate);
       const lateDeduction = round2(lateMinutes * minuteRate);
       const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
+      const overtimePay = round2(overtimeMinutes * overtimeRate);
       const penaltyDeduction = round2(
         penalties.filter((p) => p.empCd === emp.empCd).reduce((s, p) => s + Number(p.amount), 0)
       );
@@ -178,7 +183,7 @@ export class PayrollComputeService {
         sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0
       );
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
-      const totalPay = round2(netBasic + totalCommission);
+      const totalPay = round2(netBasic + totalCommission + overtimePay);
 
       results.push({
         empCd: emp.empCd,
@@ -189,6 +194,7 @@ export class PayrollComputeService {
         absentDays,
         lateMinutes,
         earlyLeaveMinutes,
+        overtimeMinutes,
         leaveDays,
         absentDeduction,
         lateDeduction,
@@ -202,6 +208,7 @@ export class PayrollComputeService {
         examCommission,
         pentacamCommission,
         totalCommission,
+        overtimePay,
         totalPay,
       });
     }
@@ -228,6 +235,7 @@ export class PayrollComputeService {
           absentDays: r.absentDays,
           lateMinutes: r.lateMinutes,
           earlyLeaveMinutes: r.earlyLeaveMinutes,
+          overtimeMinutes: r.overtimeMinutes,
           leaveDays: r.leaveDays,
           absentDeduction: String(r.absentDeduction) as any,
           lateDeduction: String(r.lateDeduction) as any,
@@ -241,6 +249,7 @@ export class PayrollComputeService {
           examCommission: String(r.examCommission) as any,
           pentacamCommission: String(r.pentacamCommission) as any,
           totalCommission: String(r.totalCommission) as any,
+          overtimePay: String(r.overtimePay) as any,
           totalPay: String(r.totalPay) as any,
           payrollStatus: 'draft',
           computedAt: now,
@@ -252,6 +261,7 @@ export class PayrollComputeService {
             absentDays: r.absentDays,
             lateMinutes: r.lateMinutes,
             earlyLeaveMinutes: r.earlyLeaveMinutes,
+            overtimeMinutes: r.overtimeMinutes,
             leaveDays: r.leaveDays,
             absentDeduction: String(r.absentDeduction) as any,
             lateDeduction: String(r.lateDeduction) as any,
@@ -265,6 +275,7 @@ export class PayrollComputeService {
             examCommission: String(r.examCommission) as any,
             pentacamCommission: String(r.pentacamCommission) as any,
             totalCommission: String(r.totalCommission) as any,
+            overtimePay: String(r.overtimePay) as any,
             totalPay: String(r.totalPay) as any,
             computedAt: now,
           },

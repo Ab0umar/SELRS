@@ -12,6 +12,7 @@ export const PERMISSION_SECTIONS = [
   "الحسابات",
   "العمليات",
   "الحضور والانصراف",
+  "المرتبات",
   "مركز المريض",
   "العيادات",
   "المرضى",
@@ -70,6 +71,12 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/attendance/settings", label: "إعدادات الحضور", group: "الحضور والانصراف" },
   { id: "/attendance/admin/device", label: "إعدادات الجهاز", group: "الحضور والانصراف" },
   { id: "/attendance/admin/sync", label: "مزامنة الحضور", group: "الحضور والانصراف" },
+
+  // ── المرتبات ──
+  { id: "/salary", label: "المرتبات (الرئيسية)", group: "المرتبات" },
+  { id: "/salary/pools", label: "العمولات", group: "المرتبات" },
+  { id: "/salary/penalties", label: "الجزاءات", group: "المرتبات" },
+  { id: "/salary/payroll", label: "كشف المرتبات", group: "المرتبات" },
 
   // ── مركز المريض ──
   { id: "/patient-hub", label: "مركز المريض (Patient hub)", group: "مركز المريض" },

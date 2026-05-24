@@ -121,6 +121,7 @@ export default function PayrollReport() {
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">غياب</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">تأخير (د)</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">مبكر (د)</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (د)</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">جزاء</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">إجمالي الخصم</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">إجازة</th>
@@ -146,6 +147,7 @@ export default function PayrollReport() {
                   <td className="px-3 py-3 text-right text-destructive">{r.absentDays}</td>
                   <td className="px-3 py-3 text-right text-warning">{r.lateMinutes}</td>
                   <td className="px-3 py-3 text-right text-warning">{r.earlyLeaveMinutes ?? 0}</td>
+                  <td className="px-3 py-3 text-right text-success">{r.overtimeMinutes ?? 0}</td>
                   <td className="px-3 py-3 text-right text-destructive">{fmt(r.penaltyDeduction)}</td>
                   <td className="px-3 py-3 text-right font-medium text-destructive">{fmt(r.totalDeductions)} <span className="text-xs">({pct(r.deductionPct)})</span></td>
                   <td className="px-3 py-3 text-right">{r.leaveDays}</td>
@@ -160,7 +162,7 @@ export default function PayrollReport() {
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={17} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+                <tr><td colSpan={18} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
               )}
             </tbody>
           </table>

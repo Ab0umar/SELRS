@@ -55,12 +55,6 @@ const adminTabs = [
     paths: ["/accounting"],
   },
   {
-    key: "salary",
-    label: "المرتبات",
-    icon: DollarSign,
-    paths: ["/salary"],
-  },
-  {
     key: "attendance",
     label: "الحضور",
     icon: Activity,
