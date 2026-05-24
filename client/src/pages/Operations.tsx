@@ -14,7 +14,7 @@ import { formatDayDate } from "@/hooks/operations/operationsShared";
 import { useOperations } from "@/hooks/operations/useOperations";
 import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
 import { trpc } from "@/lib/trpc";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 
 type SettlementFilter = "open" | "settled" | "all";
 
@@ -22,7 +22,7 @@ export default function Operations() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settlementFilter, setSettlementFilter] =
     useState<SettlementFilter>("open");
-  const [settlementRailOpen, setSettlementRailOpen] = useState(false);
+  const [settlementRailOpen, setSettlementRailOpen] = useState(true);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   const operations = useOperations();
@@ -59,7 +59,27 @@ export default function Operations() {
   const settledRows = decoratedRows
     .filter((entry) => entry.isSettled)
     .map((entry) => entry.row);
-  const visibleRows = operations.currentList;
+  const visibleRows =
+    settlementFilter === "open"
+      ? openRows
+      : settlementFilter === "settled"
+        ? settledRows
+        : operations.currentList;
+  const emptyListMessage =
+    settlementFilter === "open"
+      ? "لا توجد حالات مفتوحة في القائمة الحالية."
+      : settlementFilter === "settled"
+        ? "لا توجد حالات مسددة في القائمة الحالية."
+        : "لا توجد حالات في القائمة الحالية.";
+  const settlementFilters: {
+    key: SettlementFilter;
+    label: string;
+    count: number;
+  }[] = [
+    { key: "open", label: "مفتوحة", count: openRows.length },
+    { key: "settled", label: "مسددة", count: settledRows.length },
+    { key: "all", label: "الكل", count: operations.currentList.length },
+  ];
 
   if (!operations.isAuthenticated) return null;
 
@@ -336,9 +356,48 @@ export default function Operations() {
 
             <section className="print:border-0 print:bg-transparent">
               <div className="py-3">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 print:hidden">
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      قائمة العمليات
+                    </h2>
+                    <p className="text-[11px] text-muted-foreground">
+                      اعرض الحالات المفتوحة أو المسددة مع بقاء التسوية ظاهرة.
+                    </p>
+                  </div>
+                  <div
+                    className="flex min-h-11 items-center gap-1 rounded-md bg-muted/40 p-1"
+                    aria-label="تصفية حالات قائمة العمليات"
+                    role="group"
+                  >
+                    {settlementFilters.map((filter) => {
+                      const isActive = settlementFilter === filter.key;
+                      return (
+                        <button
+                          key={filter.key}
+                          type="button"
+                          className={cn(
+                            "min-h-9 rounded px-3 text-xs font-medium transition-colors",
+                            isActive
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                          )}
+                          aria-pressed={isActive}
+                          onClick={() => setSettlementFilter(filter.key)}
+                        >
+                          {filter.label}
+                          <span className="ms-1 tabular-nums">
+                            {filter.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <OperationsTable
                   canManageList={operations.canManageList}
                   currentList={visibleRows}
+                  emptyMessage={emptyListMessage}
                   exportDateLabel={operations.exportDateLabel}
                   exportDoctorLabel={operations.exportDoctorLabel}
                   exportTimeLabel={operations.exportTimeLabel}

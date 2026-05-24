@@ -11,6 +11,7 @@ const tableSelectClass =
 type OperationsTableProps = {
   canManageList: boolean;
   currentList: ListData[];
+  emptyMessage?: string;
   exportDateLabel: string;
   exportDoctorLabel: string;
   exportTimeLabel: string;
@@ -23,6 +24,7 @@ type OperationsTableProps = {
 export function OperationsTable({
   canManageList,
   currentList,
+  emptyMessage = "لا توجد حالات في القائمة الحالية.",
   exportDateLabel,
   exportDoctorLabel,
   exportTimeLabel,
@@ -220,7 +222,7 @@ export function OperationsTable({
           ))}
           {currentList.length === 0 && (
             <div className="rounded-lg border border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground">
-              لا توجد حالات في القائمة الحالية.
+              {emptyMessage}
             </div>
           )}
         </div>
@@ -454,7 +456,7 @@ export function OperationsTable({
                     colSpan={hasCataract ? 12 : 11}
                     className="p-4 text-muted-foreground"
                   >
-                    لا توجد حالات في القائمة الحالية.
+                    {emptyMessage}
                   </td>
                 </tr>
               )}

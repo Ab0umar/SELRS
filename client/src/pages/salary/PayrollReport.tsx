@@ -48,73 +48,80 @@ export default function PayrollReport() {
 
   const isFinalized = rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
-  function printPayroll() {
-    const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) return;
-    const monthLabel = MONTHS[month - 1];
-    const rowsHtml = rows.map((r: any, i: number) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td style="text-align:right">${r.fullName ?? r.empCd}</td>
-        <td>${fmt(r.basicSalary)}</td>
-        <td>${fmt(r.totalDeductions)}</td>
-        <td>${fmt(r.netBasic)}</td>
-        <td>${fmt(r.totalCommission)}</td>
-        <td>${fmt(r.overtimePay ?? 0)}</td>
-        <td style="font-weight:bold">${fmt(r.totalPay)}</td>
-        <td></td>
-      </tr>`).join("");
-    const totalRow = `
-      <tr style="font-weight:bold;border-top:2px solid #000;background:#f5f5f5">
-        <td colspan="2">الإجمالي</td>
-        <td>${fmt(totals.basic)}</td>
-        <td>${fmt(totals.deductions)}</td>
-        <td>${fmt(totals.netBasic)}</td>
-        <td>${fmt(totals.commission)}</td>
-        <td></td>
-        <td>${fmt(totals.totalPay)}</td>
-        <td></td>
-      </tr>`;
-    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8"/>
-  <title>كشف رواتب ${section} — ${monthLabel} ${year}</title>
-  <style>
+  const SLIP_CSS = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; color: #000; padding: 16px; }
-    h1 { font-size: 16px; text-align: center; margin-bottom: 4px; }
-    .sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #bbb; padding: 5px 7px; text-align: center; white-space: nowrap; }
-    th { background: #e8e8e8; font-weight: bold; }
-    td:nth-child(2) { text-align: right; min-width: 120px; }
-    td:last-child { min-width: 100px; }
-    tr:nth-child(even) { background: #fafafa; }
-    .sig-footer { margin-top: 40px; display: flex; justify-content: space-between; }
-    .sig-box { text-align: center; }
-    .sig-box .line { border-top: 1px solid #000; width: 160px; margin: 0 auto 4px; margin-top: 40px; }
-    @media print { body { padding: 8px; } button { display: none; } }
-  </style>
-</head>
-<body>
-  <h1>كشف رواتب — ${section}</h1>
-  <div class="sub">${monthLabel} ${year}</div>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th><th>الموظف</th><th>الأساسي</th><th>الخصومات</th>
-        <th>صافي الأساسي</th><th>العمولات</th><th>إضافي</th><th>الإجمالي</th><th>التوقيع</th>
-      </tr>
-    </thead>
-    <tbody>${rowsHtml}${totalRow}</tbody>
-  </table>
-  <div class="sig-footer">
-    <div class="sig-box"><div class="line"></div><div>مدير الحسابات</div></div>
-    <div class="sig-box"><div class="line"></div><div>المدير العام</div></div>
-  </div>
-  <script>window.onload=()=>window.print();<\/script>
-</body></html>`);
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 12px; color: #000; }
+    .slip { width: 100%; max-width: 420px; margin: 0 auto; padding: 18px 20px; border: 1px solid #aaa; page-break-after: always; }
+    .slip:last-child { page-break-after: avoid; }
+    .slip-header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+    .slip-header h2 { font-size: 14px; }
+    .slip-header p { font-size: 11px; color: #444; margin-top: 2px; }
+    .emp-name { font-size: 15px; font-weight: bold; margin-bottom: 12px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    tr td { padding: 4px 6px; font-size: 11px; }
+    tr td:first-child { color: #555; }
+    tr td:last-child { text-align: left; font-weight: bold; }
+    .total-row td { border-top: 1.5px solid #000; font-size: 13px; font-weight: bold; padding-top: 6px; }
+    .sig { margin-top: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .sig-block { text-align: center; font-size: 11px; }
+    .sig-line { border-top: 1px solid #000; width: 130px; margin-bottom: 4px; margin-top: 30px; }
+    @media print { body { padding: 0; } }
+  `;
+
+  function openPrint(html: string, title: string) {
+    const win = window.open("", "_blank", "width=700,height=800");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${SLIP_CSS}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
     win.document.close();
+  }
+
+  function printDay1() {
+    const ml = MONTHS[month - 1];
+    const slips = rows.map((r: any) => `
+      <div class="slip">
+        <div class="slip-header">
+          <h2>دفعة يوم 1 — ${section}</h2>
+          <p>${ml} ${year}</p>
+        </div>
+        <div class="emp-name">${r.fullName ?? r.empCd}</div>
+        <table>
+          <tr><td>الراتب الأساسي</td><td>${fmt(r.basicSalary)} ج</td></tr>
+          <tr><td>خصم غياب</td><td>${fmt(r.absentDeduction)} ج</td></tr>
+          <tr><td>خصم تأخير</td><td>${fmt(r.lateDeduction)} ج</td></tr>
+          <tr><td>خصم انصراف مبكر</td><td>${fmt(r.earlyLeaveDeduction)} ج</td></tr>
+          <tr><td>جزاءات</td><td>${fmt(r.penaltyDeduction)} ج</td></tr>
+          <tr class="total-row"><td>صافي الراتب</td><td>${fmt(r.netBasic)} ج</td></tr>
+        </table>
+        <div class="sig">
+          <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
+          <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
+        </div>
+      </div>`).join("");
+    openPrint(slips, `دفعة يوم 1 — ${section} — ${ml} ${year}`);
+  }
+
+  function printDay10() {
+    const ml = MONTHS[month - 1];
+    const slips = rows.map((r: any) => `
+      <div class="slip">
+        <div class="slip-header">
+          <h2>دفعة يوم 10 — ${section}</h2>
+          <p>${ml} ${year}</p>
+        </div>
+        <div class="emp-name">${r.fullName ?? r.empCd}</div>
+        <table>
+          <tr><td>عمولة حضور</td><td>${fmt(r.attendanceCommission)} ج</td></tr>
+          <tr><td>عمولة فحص</td><td>${fmt(r.examCommission)} ج</td></tr>
+          <tr><td>عمولة بنتاكام</td><td>${fmt(r.pentacamCommission)} ج</td></tr>
+          <tr><td>أوفرتايم</td><td>${fmt(r.overtimePay ?? 0)} ج</td></tr>
+          <tr class="total-row"><td>إجمالي المكافآت</td><td>${fmt(Number(r.totalCommission) + Number(r.overtimePay ?? 0))} ج</td></tr>
+        </table>
+        <div class="sig">
+          <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
+          <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
+        </div>
+      </div>`).join("");
+    openPrint(slips, `دفعة يوم 10 — ${section} — ${ml} ${year}`);
   }
 
   return (
