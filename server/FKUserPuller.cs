@@ -27,8 +27,8 @@ internal static class FK
     public static extern int FK_GetAllUserID(int handle, ref int enrollNo, ref int backupNum, ref int privilege, ref int enable);
 
     // Get name for a specific enrollNo
-    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-    public static extern int FK_GetUserName(int handle, int enrollNo, StringBuilder name);
+    [DllImport("FKAttend.dll", CallingConvention = CallingConvention.StdCall)]
+    public static extern int FK_GetUserName(int handle, int enrollNo, [Out] byte[] name);
 }
 
 internal sealed class Program
@@ -77,12 +77,13 @@ internal sealed class Program
                     int rc = FK.FK_GetAllUserID(handle, ref enrollNo, ref backupNum, ref privilege, ref enable);
                     if (rc <= 0) break;
 
-                    var name = new StringBuilder(64);
-                    FK.FK_GetUserName(handle, enrollNo, name);
+                    var nameBuf = new byte[64];
+                    FK.FK_GetUserName(handle, enrollNo, nameBuf);
+                    var name = Encoding.Default.GetString(nameBuf).Split('\0')[0].Trim().Replace(",", " ");
 
                     writer.WriteLine("{0},{1},{2},{3}",
                         enrollNo,
-                        name.ToString().Trim().Replace(",", " "),
+                        name,
                         privilege,
                         enable);
                     count++;
