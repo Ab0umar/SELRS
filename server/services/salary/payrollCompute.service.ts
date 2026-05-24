@@ -181,9 +181,10 @@ export class PayrollComputeService {
       const acRate = attendanceCommissionRate(leaveDays);
 
       const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
-      // عيادة: fixed denominator of 3 (استشاري or أخصائي each get pool/3)
+      // عيادة: fixed denominator of 3; الاثنين = 2 shares, others = 1 share
+      const empShares = !isMarkaz ? (emp.salaryType === 'الاثنين' ? 2 : 1) : 1;
       const examDivisor = isMarkaz ? activeCount : 3;
-      const examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * commMult : 0);
+      const examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares * commMult : 0);
       const pentacamCommission = round2(
         sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0
       );

@@ -192,8 +192,9 @@ export default function EmployeesList() {
                                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                                 >
                                   <option value="">— النوع —</option>
-                                  <option value="استشاري">استشاري</option>
-                                  <option value="أخصائي">أخصائي</option>
+                                  <option value="استشاري">استشاري (⅓)</option>
+                                  <option value="أخصائي">أخصائي (⅓)</option>
+                                  <option value="الاثنين">الاثنين (⅔)</option>
                                 </select>
                               </td>
                             )}
