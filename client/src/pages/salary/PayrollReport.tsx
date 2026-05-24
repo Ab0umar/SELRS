@@ -51,8 +51,8 @@ export default function PayrollReport() {
   const SLIP_CSS = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 12px; color: #000; }
-    .slip { width: 100%; max-width: 420px; margin: 0 auto; padding: 18px 20px; border: 1px solid #aaa; page-break-after: always; }
-    .slip:last-child { page-break-after: avoid; }
+    .slip { width: 100%; max-width: 420px; margin: 0 auto 24px; padding: 14px 18px; border: 1px solid #aaa; page-break-inside: avoid; }
+    .slip:last-child { margin-bottom: 0; }
     .slip-header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; }
     .slip-header h2 { font-size: 14px; }
     .slip-header p { font-size: 11px; color: #444; margin-top: 2px; }
