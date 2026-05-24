@@ -183,7 +183,7 @@ export const salaryRouter = router({
 
   // ── Commission Pools ─────────────────────────────────────
   getCommissionPool: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
@@ -191,7 +191,7 @@ export const salaryRouter = router({
         .select()
         .from(salaryCommissionPools)
         .where(
-          and(eq(salaryCommissionPools.year, input.year), eq(salaryCommissionPools.month, input.month))
+          and(eq(salaryCommissionPools.year, input.year), eq(salaryCommissionPools.month, input.month), eq(salaryCommissionPools.section, input.section))
         )
         .limit(1);
       return rows[0] ?? null;
@@ -202,7 +202,9 @@ export const salaryRouter = router({
       z.object({
         year: z.number().int(),
         month: z.number().int(),
+        section: z.string().default('مركز'),
         examCount: z.number().int().min(0).default(0),
+        examPoolOverride: z.number().min(0).optional(), // for عيادة: pass total directly
         cases450: z.number().int().min(0).default(0),
         cases400: z.number().int().min(0).default(0),
         cases350: z.number().int().min(0).default(0),
@@ -213,14 +215,19 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      // Employee exam pool = 50 × examCount × 40%
-      const examPool = String(Math.round(input.examCount * 50 * 0.40 * 100) / 100) as any;
+      // مركز: 50 × examCount × 40% | عيادة: caller provides total directly
+      const examPool = String(
+        input.examPoolOverride !== undefined
+          ? Math.round(input.examPoolOverride * 100) / 100
+          : Math.round(input.examCount * 50 * 0.40 * 100) / 100
+      ) as any;
       const pentacamPool = String(calcPentacamPool(input.cases450, input.cases400, input.cases350, input.cases250)) as any;
       await db
         .insert(salaryCommissionPools)
         .values({
           year: input.year,
           month: input.month,
+          section: input.section,
           examCount: input.examCount,
           examPool,
           pentacamPool,
@@ -247,15 +254,15 @@ export const salaryRouter = router({
 
   // ── Payroll ──────────────────────────────────────────────
   computePayroll: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
     .mutation(async ({ input }) => {
-      const rows = await PayrollComputeService.compute(input.year, input.month);
+      const rows = await PayrollComputeService.compute(input.year, input.month, input.section);
       const saved = await PayrollComputeService.savePayroll(rows);
       return { saved, rows };
     }),
 
   getPayroll: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
@@ -265,6 +272,7 @@ export const salaryRouter = router({
           empCd: salaryPayroll.empCd,
           year: salaryPayroll.year,
           month: salaryPayroll.month,
+          section: salaryPayroll.section,
           basicSalary: salaryPayroll.basicSalary,
           workingDays: salaryPayroll.workingDays,
           absentDays: salaryPayroll.absentDays,
@@ -294,7 +302,7 @@ export const salaryRouter = router({
         .from(salaryPayroll)
         .leftJoin(attendanceEmployees, eq(salaryPayroll.empCd, attendanceEmployees.empCd))
         .where(
-          and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month))
+          and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month), eq(salaryPayroll.section, input.section))
         )
         .orderBy(attendanceEmployees.fullName);
       return rows;

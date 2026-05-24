@@ -59,6 +59,7 @@ export interface PayrollRow {
   empCd: string;
   year: number;
   month: number;
+  section: string;
   basicSalary: number;
   workingDays: number;
   absentDays: number;
@@ -83,7 +84,7 @@ export interface PayrollRow {
 }
 
 export class PayrollComputeService {
-  static async compute(year: number, month: number, filterEmpCd?: string): Promise<PayrollRow[]> {
+  static async compute(year: number, month: number, section = 'مركز', filterEmpCd?: string): Promise<PayrollRow[]> {
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
@@ -91,11 +92,11 @@ export class PayrollComputeService {
 
     const employees = filterEmpCd
       ? await db.select().from(attendanceEmployees).where(eq(attendanceEmployees.empCd, filterEmpCd))
-      : await db.select().from(attendanceEmployees);
+      : await db.select().from(attendanceEmployees).where(eq(attendanceEmployees.department, section));
 
     const [poolRows, basics, monthlyReports, dailyRows, penalties] = await Promise.all([
       db.select().from(salaryCommissionPools)
-        .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month)))
+        .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
         .limit(1),
       db.select().from(salaryBasics)
         .where(and(
@@ -189,6 +190,7 @@ export class PayrollComputeService {
         empCd: emp.empCd,
         year,
         month,
+        section,
         basicSalary: basic,
         workingDays,
         absentDays,
@@ -230,6 +232,7 @@ export class PayrollComputeService {
           empCd: r.empCd,
           year: r.year,
           month: r.month,
+          section: r.section,
           basicSalary: String(r.basicSalary) as any,
           workingDays: r.workingDays,
           absentDays: r.absentDays,

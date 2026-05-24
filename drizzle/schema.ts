@@ -1319,6 +1319,7 @@ export const salaryCommissionPools = mysqlTable("salary_commission_pools", {
   id: int("id").autoincrement().primaryKey(),
   year: int("year").notNull(),
   month: int("month").notNull(),
+  section: varchar("section", { length: 32 }).default("مركز").notNull(),
   examCount: int("exam_count").default(0).notNull(),
   examPool: decimal("exam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
   pentacamPool: decimal("pentacam_pool", { precision: 14, scale: 2 }).default("0").notNull(),
@@ -1330,7 +1331,7 @@ export const salaryCommissionPools = mysqlTable("salary_commission_pools", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
-  uqPoolYearMonth: uniqueIndex("uq_pool_year_month").on(table.year, table.month),
+  uqPoolYearMonthSection: uniqueIndex("uq_pool_year_month_section").on(table.year, table.month, table.section),
 }));
 
 export type SalaryCommissionPool = typeof salaryCommissionPools.$inferSelect;
@@ -1341,6 +1342,7 @@ export const salaryPayroll = mysqlTable("salary_payroll", {
   empCd: varchar("emp_cd", { length: 32 }).notNull(),
   year: int("year").notNull(),
   month: int("month").notNull(),
+  section: varchar("section", { length: 32 }).default("مركز").notNull(),
   basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).notNull(),
   workingDays: int("working_days").default(0).notNull(),
   absentDays: int("absent_days").default(0).notNull(),
@@ -1366,7 +1368,7 @@ export const salaryPayroll = mysqlTable("salary_payroll", {
   computedAt: timestamp("computed_at").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
-  uqPayrollEmpMonth: uniqueIndex("uq_payroll_emp_month").on(table.empCd, table.year, table.month),
+  uqPayrollEmpMonth: uniqueIndex("uq_payroll_emp_month_section").on(table.empCd, table.year, table.month, table.section),
   idxPayrollYearMonth: index("idx_payroll_year_month").on(table.year, table.month),
 }));
 

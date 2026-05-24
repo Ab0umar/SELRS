@@ -14,11 +14,15 @@ function pct(n: any): string {
   return (Number(n) * 100).toFixed(1) + "%";
 }
 
+const SECTIONS = ["مركز", "عيادة"] as const;
+type Section = typeof SECTIONS[number];
+
 export default function PayrollReport() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [section, setSection] = useState<Section>("مركز");
 
-  const payrollQ = (trpc as any).salary.getPayroll.useQuery({ year, month });
+  const payrollQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section });
   const rows: any[] = payrollQ.data ?? [];
 
   const computeMut = (trpc as any).salary.computePayroll.useMutation({
@@ -52,6 +56,14 @@ export default function PayrollReport() {
           <h2 className="text-2xl font-bold text-foreground">كشف الرواتب</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+            {SECTIONS.map(s => (
+              <button key={s} type="button" onClick={() => setSection(s)}
+                className={`px-4 py-2 transition-colors ${section === s ? "bg-primary text-primary-foreground font-semibold" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                {s}
+              </button>
+            ))}
+          </div>
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm">
             {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
@@ -60,7 +72,7 @@ export default function PayrollReport() {
             className="rounded-md border border-border bg-background px-3 py-2 text-sm">
             {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <Button onClick={() => computeMut.mutate({ year, month })} disabled={computeMut.isPending} className="gap-2">
+          <Button onClick={() => computeMut.mutate({ year, month, section })} disabled={computeMut.isPending} className="gap-2">
             <RefreshCw size={15} className={computeMut.isPending ? "animate-spin" : ""} />
             احتساب
           </Button>
