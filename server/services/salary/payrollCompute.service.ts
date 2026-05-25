@@ -163,7 +163,7 @@ export class PayrollComputeService {
 
     // Load shift staff for مركز — they share the same exam/pentacam pools
     const activeShiftStaff = isMarkaz
-      ? await db.select().from(shiftStaff).where(eq(shiftStaff.active, true))
+      ? (await db.select().from(shiftStaff)).filter(ss => ss.active)
       : [];
     const shiftAttRows = activeShiftStaff.length > 0
       ? await db.select().from(shiftAttendance)
