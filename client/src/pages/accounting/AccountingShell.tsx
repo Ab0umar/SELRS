@@ -5,7 +5,6 @@ import {
   Home,
   ReceiptText,
   TrendingUp,
-  Syringe,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -16,7 +15,6 @@ const ACCOUNTING_LINKS = [
   { label: "اليومي", href: "/accounting/daily-revenue", icon: Banknote },
   { label: "إيراد الخدمات", href: "/accounting/service-revenue", icon: TrendingUp },
   { label: "الإيصالات", href: "/accounting/receipts", icon: ReceiptText },
-  { label: "حسابات العمليات", href: "/operations", icon: Syringe },
 ] as const;
 
 export default function AccountingShell({ children }: { children: ReactNode }) {

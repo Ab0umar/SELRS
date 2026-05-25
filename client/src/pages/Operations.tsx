@@ -4,9 +4,9 @@ import { toast } from "sonner";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { OperationDialog } from "@/components/operations/OperationDialog";
 import { OperationsBookingInlinePanel } from "@/components/operations/OperationsBookingInlinePanel";
-import { OperationsSettlementRail } from "@/components/operations/OperationsSettlementRail";
 import { OperationsTabs } from "@/components/operations/OperationsTabs";
 import { OperationsTable } from "@/components/operations/OperationsTable";
+import { OperationTotals } from "@/components/operations/OperationTotals";
 import { OperationsHistoryDrawer } from "@/components/operations/OperationsHistoryDrawer";
 import { Button } from "@/components/ui/button";
 import { TAB_OTHERS, operationTypeLabel } from "@/lib/operationsPricing";
@@ -18,7 +18,6 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 
 export default function Operations() {
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [settlementRailOpen, setSettlementRailOpen] = useState(false);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   const operations = useOperations();
@@ -111,15 +110,7 @@ export default function Operations() {
       </div>
 
       <main className="space-y-4 print:p-0 print:space-y-0">
-        <div
-          className={[
-            "grid gap-4 xl:items-start xl:[direction:ltr]",
-            settlementRailOpen
-              ? "xl:grid-cols-[minmax(0,1fr)_380px]"
-              : "xl:grid-cols-[minmax(0,1fr)_56px]",
-          ].join(" ")}
-        >
-          <div className="space-y-4" dir="rtl">
+        <div className="space-y-4" dir="rtl">
             <OperationsBookingInlinePanel
               initialDate={String(operations.listDate)}
               initialDoctorName={operations.doctorName}
@@ -328,39 +319,30 @@ export default function Operations() {
                 />
               </div>
             </section>
-          </div>
 
-          <div className="xl:sticky xl:top-4" dir="rtl">
-            <OperationsSettlementRail
-              open={settlementRailOpen}
-              accountingTotals={operations.accountingTotals}
-              accountsAdjustmentInputs={operations.accountsAdjustmentInputs}
-              accountsAdjustmentsTotal={operations.accountsAdjustmentsTotal}
-              accountsNetAfterAdjustments={
-                operations.accountsNetAfterAdjustments
-              }
-              canManageList={operations.canManageList}
-              computeAccounting={operations.computeAccounting}
-              currentList={operations.currentList}
-              exportDateLabel={operations.exportDateLabel}
-              exportDoctorLabel={operations.exportDoctorLabel}
-              exportOperationLabel={operations.exportOperationLabel}
-              exportTimeLabel={operations.exportTimeLabel}
-              filteredSavedSummaries={operations.filteredSavedSummaries}
-              onAccountsAdjustmentBlur={
-                actions.handleAccountsAdjustmentInputBlur
-              }
-              onAccountsAdjustmentChange={
-                actions.handleAccountsAdjustmentInputChange
-              }
-              onDeleteSavedSummary={actions.handleDeleteSavedSummary}
-              onEditSavedSummary={actions.handleEditSavedSummary}
-              onUpdateRow={actions.handleUpdateRow}
-              operationType={operations.operationType}
-              showSawafAdjustments={operations.showSawafAdjustments}
-              onOpenChange={setSettlementRailOpen}
-            />
-          </div>
+            <section className="print:border-0 print:bg-transparent">
+              <OperationTotals
+                accountingTotals={operations.accountingTotals}
+                accountsAdjustmentInputs={operations.accountsAdjustmentInputs}
+                accountsAdjustmentsTotal={operations.accountsAdjustmentsTotal}
+                accountsNetAfterAdjustments={operations.accountsNetAfterAdjustments}
+                canManageList={operations.canManageList}
+                computeAccounting={operations.computeAccounting}
+                currentList={operations.currentList}
+                exportDateLabel={operations.exportDateLabel}
+                exportDoctorLabel={operations.exportDoctorLabel}
+                exportOperationLabel={operations.exportOperationLabel}
+                exportTimeLabel={operations.exportTimeLabel}
+                filteredSavedSummaries={operations.filteredSavedSummaries}
+                onAccountsAdjustmentBlur={actions.handleAccountsAdjustmentInputBlur}
+                onAccountsAdjustmentChange={actions.handleAccountsAdjustmentInputChange}
+                onDeleteSavedSummary={actions.handleDeleteSavedSummary}
+                onEditSavedSummary={actions.handleEditSavedSummary}
+                onUpdateRow={actions.handleUpdateRow}
+                operationType={operations.operationType}
+                showSawafAdjustments={operations.showSawafAdjustments}
+              />
+            </section>
         </div>
       </main>
     </div>
