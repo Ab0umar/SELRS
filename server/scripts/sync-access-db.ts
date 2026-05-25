@@ -9,16 +9,13 @@
 import { config } from "dotenv";
 import { execSync } from "child_process";
 import path from "path";
-import { fileURLToPath } from "url";
 import { sql } from "drizzle-orm";
 import { getDb } from "../db";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 config();
 
 const DEFAULT_DB_PATH = "C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS\\الخزنه.accdb";
-const DUMP_SCRIPT = path.resolve(__dirname, "access-dump.ps1");
+const DUMP_SCRIPT = path.resolve(process.cwd(), "server", "scripts", "access-dump.ps1");
 
 function getArg(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
