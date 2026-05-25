@@ -13,7 +13,7 @@ import {
   shiftAttendance,
   shiftStaffCycle,
 } from '../../drizzle/schema';
-import { eq, and, gte, lte, isNull, or, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, or, desc, inArray } from 'drizzle-orm';
 import { PayrollComputeService, calcPentacamPool } from '../services/salary/payrollCompute.service';
 
 const allowanceInput = z.object({
@@ -330,7 +330,25 @@ export const salaryRouter = router({
           and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month), eq(salaryPayroll.section, input.section))
         )
         .orderBy(attendanceEmployees.fullName);
-      return rows;
+
+      // Resolve names for shift staff rows (empCd = 'shift_<id>')
+      const shiftIds = rows
+        .filter(r => r.empCd.startsWith('shift_'))
+        .map(r => parseInt(r.empCd.slice(6), 10))
+        .filter(id => !isNaN(id));
+
+      const shiftNameMap = new Map<number, string>();
+      if (shiftIds.length > 0) {
+        const staffRows = await db.select({ id: shiftStaff.id, name: shiftStaff.name, type: shiftStaff.type })
+          .from(shiftStaff).where(inArray(shiftStaff.id, shiftIds));
+        for (const s of staffRows) shiftNameMap.set(s.id, `${s.name} (${s.type === 'doctor' ? 'د' : 'ف'})`);
+      }
+
+      return rows.map(r => {
+        if (!r.empCd.startsWith('shift_')) return r;
+        const id = parseInt(r.empCd.slice(6), 10);
+        return { ...r, fullName: shiftNameMap.get(id) ?? r.empCd, department: 'مناوبة' };
+      });
     }),
 
   finalizePayroll: managerProcedure

@@ -8,6 +8,8 @@ import {
   salaryCommissionPools,
   salaryPayroll,
   salaryConfig,
+  shiftStaff,
+  shiftAttendance,
 } from '../../../drizzle/schema';
 import { eq, and, gte, lte, isNull, or, inArray } from 'drizzle-orm';
 
@@ -159,6 +161,30 @@ export class PayrollComputeService {
     const sumAllBasics = Array.from(empBasicMap.values()).reduce((s, b) => s + b, 0);
     const activeCount = empBasicMap.size;
 
+    // Load shift staff for مركز — they share the same exam/pentacam pools
+    const activeShiftStaff = isMarkaz
+      ? await db.select().from(shiftStaff).where(eq(shiftStaff.active, true))
+      : [];
+    const shiftAttRows = activeShiftStaff.length > 0
+      ? await db.select().from(shiftAttendance)
+          .where(and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month)))
+      : [];
+
+    type ShiftStats = { scheduled: number; attended: number; commMult: number; shiftPay: number };
+    const shiftStatsMap = new Map<number, ShiftStats>();
+    for (const ss of activeShiftStaff) {
+      const rows = shiftAttRows.filter(a => a.staffId === ss.id);
+      const scheduled = rows.length;
+      const attended = rows.filter(a => a.present).length;
+      const commMult = scheduled > 0 ? attended / scheduled : 1;
+      shiftStatsMap.set(ss.id, { scheduled, attended, commMult, shiftPay: round2(Number(ss.ratePerShift) * attended) });
+    }
+
+    const sumShiftRates = activeShiftStaff.reduce((s, ss) => s + Number(ss.ratePerShift), 0);
+    // Extended denominators — regular employees + shift staff share the same pools
+    const totalSumForPentacam = sumAllBasics + sumShiftRates;
+    const totalCountForExam   = activeCount + activeShiftStaff.length;
+
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
       ? employees.filter(e => empBasicMap.has(e.empCd) && (e.salaryType === 'استشاري' || e.salaryType === 'الاثنين')).length
@@ -216,12 +242,12 @@ export class PayrollComputeService {
         const sShare = (t === 'أخصائي' || t === 'الاثنين') ? perSpecialist : 0;
         examCommission = round2((cShare + sShare) * commMult);
       } else {
-        const examDivisor = isMarkaz ? activeCount : 3;
+        const examDivisor = isMarkaz ? totalCountForExam : 3;
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
         examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares * commMult : 0);
       }
       const pentacamCommission = round2(
-        sumAllBasics > 0 ? (basic / sumAllBasics) * pentacamPool * commMult : 0
+        totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0
       );
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
       const totalPay = round2(netBasic + totalCommission + overtimePay);
@@ -251,6 +277,45 @@ export class PayrollComputeService {
         pentacamCommission,
         totalCommission,
         overtimePay,
+        totalPay,
+      });
+    }
+
+    // Add shift staff rows (مركز only)
+    for (const ss of activeShiftStaff) {
+      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
+      const { scheduled, attended, commMult, shiftPay } = stats;
+      const rate = Number(ss.ratePerShift);
+
+      const attendanceCommission = round2(0.25 * rate);
+      const examCommission       = round2(totalCountForExam > 0 ? (examPool / totalCountForExam) * commMult : 0);
+      const pentacamCommission   = round2(totalSumForPentacam > 0 ? (rate / totalSumForPentacam) * pentacamPool * commMult : 0);
+      const totalCommission      = round2(attendanceCommission + examCommission + pentacamCommission);
+      const totalPay             = round2(shiftPay + totalCommission);
+
+      results.push({
+        empCd: `shift_${ss.id}`,
+        year, month, section,
+        basicSalary:         shiftPay,
+        workingDays:         scheduled,
+        absentDays:          scheduled - attended,
+        lateMinutes:         0,
+        earlyLeaveMinutes:   0,
+        overtimeMinutes:     0,
+        leaveDays:           0,
+        absentDeduction:     0,
+        lateDeduction:       0,
+        earlyLeaveDeduction: 0,
+        penaltyDeduction:    0,
+        totalDeductions:     0,
+        deductionPct:        0,
+        leaveMultiplier:     1,
+        netBasic:            shiftPay,
+        attendanceCommission,
+        examCommission,
+        pentacamCommission,
+        totalCommission,
+        overtimePay:         0,
         totalPay,
       });
     }
