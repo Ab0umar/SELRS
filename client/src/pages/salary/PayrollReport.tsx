@@ -75,18 +75,16 @@ export default function PayrollReport() {
     .slip { padding: 8px 0 6px; page-break-inside: avoid; }
     hr.sep { border: none; border-top: 1px dashed #888; margin: 6px 0; }
     .slip-top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
-    .slip-title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-    .emp-name { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 3px; }
-    .dept-row { text-align: right; font-size: 9px; margin-bottom: 6px; }
-    .tables-wrap { display: flex; gap: 5px; align-items: stretch; }
-    .net-box { border: 2px solid #000; min-width: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
-    .net-label { font-size: 8px; margin-bottom: 4px; }
-    .net-val { font-size: 16px; font-weight: bold; }
-    .inner-tables { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { border: 1px solid #aaa; padding: 2px 3px; font-size: 7.5px; background: #eee; text-align: center; }
-    td { border: 1px solid #aaa; padding: 2px 4px; font-size: 8.5px; text-align: center; }
-    .words { text-align: right; font-size: 9px; margin: 5px 0 3px; }
+    .slip-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+    .emp-name { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 3px; }
+    .dept-row { text-align: right; font-size: 9px; margin-bottom: 5px; }
+    table.main { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    table.main th { border: 1px solid #999; padding: 2px 3px; font-size: 7.5px; background: #e8e8e8; text-align: center; white-space: nowrap; }
+    table.main td { border: 1px solid #aaa; padding: 2px 4px; font-size: 8.5px; text-align: center; }
+    .net-cell { border: 2px solid #000 !important; text-align: center; vertical-align: middle; min-width: 62px; padding: 3px 5px; }
+    .net-label { font-size: 7.5px; display: block; margin-bottom: 4px; }
+    .net-val { font-size: 15px; font-weight: bold; display: block; }
+    .words { text-align: right; font-size: 9px; margin: 4px 0 2px; }
     .sigs { display: flex; justify-content: space-between; margin-top: 8px; }
     .sig-block { text-align: center; font-size: 9px; }
     .sig-line { border-top: 1px solid #000; width: 110px; margin: 16px auto 3px; }
@@ -221,7 +219,7 @@ export default function PayrollReport() {
     openPrint(html, `كشف الرواتب — ${section} — ${ml} ${year}`, SHEET_CSS);
   }
 
-  function buildSlip(r: any, title: string, innerTables: string, netPay: number): string {
+  function buildSlip(r: any, title: string, tableHtml: string, netPay: number): string {
     const ml = MONTHS[month - 1];
     return `
       <div class="slip">
@@ -232,13 +230,7 @@ export default function PayrollReport() {
         <div class="slip-title">${title} — ${ml} ${year}</div>
         <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
         <div class="dept-row">القسم التابع له/ ${section}</div>
-        <div class="tables-wrap">
-          <div class="net-box">
-            <div class="net-label">صافي المستحق</div>
-            <div class="net-val">${fmt(netPay)}</div>
-          </div>
-          <div class="inner-tables">${innerTables}</div>
-        </div>
+        ${tableHtml}
         <div class="words">${toArabicWords(netPay)}</div>
         <div class="sigs">
           <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
@@ -250,22 +242,47 @@ export default function PayrollReport() {
   function printDay1Slips() {
     const ml = MONTHS[month - 1];
     const html = rows.map((r: any, i: number) => {
-      const net = Number(r.netBasic);
-      const tables = `
-        <table>
-          <thead><tr>
-            <th>اساسي الراتب</th><th>خصم غياب</th><th>خصم تأخير</th><th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الخصم</th>
-          </tr></thead>
-          <tbody><tr>
-            <td>${fmt(r.basicSalary)}</td>
-            <td>${fmt(r.absentDeduction)}</td>
-            <td>${fmt(r.lateDeduction ?? 0)}</td>
-            <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
-            <td>${fmt(r.penaltyDeduction)}</td>
-            <td>${fmt(r.totalDeductions)}</td>
-          </tr></tbody>
+      const net     = Number(r.netBasic);
+      const basic   = Number(r.basicSalary);
+      const absent  = Number(r.absentDeduction);
+      const penalty = Number(r.penaltyDeduction);
+      const other   = Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
+      const totalDed = Number(r.totalDeductions);
+      const table = `
+        <table class="main">
+          <tr>
+            <th>اساسي الراتب</th>
+            <th>اعانة اجتماعية</th>
+            <th>غلاء معيشة</th>
+            <th>بدلات</th>
+            <th>زيادة سنوات سابقة</th>
+            <th>زيادة يناير</th>
+            <th>إجمالي أساسي</th>
+            <th>ح عاملين</th>
+            <th>إجمالي الاستحقاقات</th>
+            <th rowspan="4" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+          </tr>
+          <tr>
+            <td>${fmt(basic)}</td><td>0.00</td><td>0.00</td><td>0.00</td>
+            <td>0.00</td><td>0.00</td><td>${fmt(basic)}</td><td>0.00</td><td>${fmt(basic)}</td>
+          </tr>
+          <tr>
+            <th>تامينت اجتماعية</th>
+            <th>سلف عاملين</th>
+            <th>أرصدة مدينة</th>
+            <th>غياب</th>
+            <th>جزاءات</th>
+            <th>أخرى</th>
+            <th>فرق تقييم</th>
+            <th colspan="2">أجمال الاستقطاعات</th>
+          </tr>
+          <tr>
+            <td>0.00</td><td>0.00</td><td>0.00</td>
+            <td>${fmt(absent)}</td><td>${fmt(penalty)}</td><td>${fmt(other)}</td><td>0.00</td>
+            <td colspan="2">${fmt(totalDed)}</td>
+          </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 1", tables, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 1", table, net);
     }).join("");
     openPrint(html, `دفعة يوم 1 — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
@@ -273,21 +290,30 @@ export default function PayrollReport() {
   function printDay10Slips() {
     const ml = MONTHS[month - 1];
     const html = rows.map((r: any, i: number) => {
-      const net = Number(r.totalCommission) + Number(r.overtimePay ?? 0);
-      const tables = `
-        <table>
-          <thead><tr>
-            <th>عمولة حضور</th><th>عمولة فحص</th><th>عمولة بنتاكام</th><th>إضافي</th><th>إجمالي المكافآت</th>
-          </tr></thead>
-          <tbody><tr>
-            <td>${fmt(r.attendanceCommission)}</td>
-            <td>${fmt(r.examCommission)}</td>
-            <td>${fmt(r.pentacamCommission)}</td>
-            <td>${fmt(r.overtimePay ?? 0)}</td>
+      const attend  = Number(r.attendanceCommission);
+      const exam    = Number(r.examCommission);
+      const penta   = Number(r.pentacamCommission);
+      const ot      = Number(r.overtimePay ?? 0);
+      const net     = attend + exam + penta + ot;
+      const table = `
+        <table class="main">
+          <tr>
+            <th>عمولة حضور</th>
+            <th>عمولة فحص</th>
+            <th>عمولة بنتاكام</th>
+            <th>أوفرتايم</th>
+            <th>إجمالي المكافآت</th>
+            <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+          </tr>
+          <tr>
+            <td>${fmt(attend)}</td>
+            <td>${fmt(exam)}</td>
+            <td>${fmt(penta)}</td>
+            <td>${fmt(ot)}</td>
             <td>${fmt(net)}</td>
-          </tr></tbody>
+          </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 10", tables, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 10", table, net);
     }).join("");
     openPrint(html, `دفعة يوم 10 — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
