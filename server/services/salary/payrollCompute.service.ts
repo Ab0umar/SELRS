@@ -248,7 +248,7 @@ export class PayrollComputeService {
       } else {
         const examDivisor = isMarkaz ? totalCountForExam : 3;
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
-        examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares * commMult : 0);
+        examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares : 0);
       }
       const pentacamCommission = round2(
         totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0
@@ -294,7 +294,7 @@ export class PayrollComputeService {
       const { scheduled, attended, commMult, shiftPay } = stats;
 
       const attendanceCommission = round2(0.25 * shiftPay);
-      const examCommission       = round2(totalCountForExam > 0 ? (examPool / totalCountForExam) * commMult : 0);
+      const examCommission       = round2(totalCountForExam > 0 ? examPool / totalCountForExam : 0);
       const pentacamCommission   = round2(totalSumForPentacam > 0 ? (shiftPay / totalSumForPentacam) * pentacamPool * commMult : 0);
       usedExam  = round2(usedExam  + examCommission);
       usedPenta = round2(usedPenta + pentacamCommission);
@@ -336,7 +336,7 @@ export class PayrollComputeService {
       const { scheduled, attended, commMult, shiftPay } = stats;
 
       const attendanceCommission = round2(0.25 * shiftPay);
-      const examCommission       = round2(doctors.length > 0 ? (remainingExam  / doctors.length) * commMult : 0);
+      const examCommission       = round2(doctors.length > 0 ? remainingExam / doctors.length : 0);
       const pentacamCommission   = round2(doctors.length > 0 ? (remainingPenta / doctors.length) * commMult : 0);
       const totalCommission      = round2(attendanceCommission + examCommission + pentacamCommission);
       const totalPay             = round2(shiftPay + totalCommission);
