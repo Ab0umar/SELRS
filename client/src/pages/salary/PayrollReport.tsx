@@ -48,102 +48,236 @@ export default function PayrollReport() {
 
   const isFinalized = rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
-  const SLIP_CSS = `
-    @page { size: A4; margin: 8mm; }
+  const SHEET_CSS = `
+    @page { size: A4 landscape; margin: 8mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 10px; color: #000; }
-    .page {
-      display: grid;
-      grid-template-columns: 1fr;
-      grid-template-rows: repeat(4, 1fr);
-      gap: 5mm;
-      width: 100%;
-      height: 277mm;
-      page-break-after: always;
-    }
-    .page:last-child { page-break-after: avoid; }
-    .slip { border: 1px solid #999; padding: 6px 14px; display: flex; flex-direction: row; align-items: stretch; gap: 14px; overflow: hidden; }
-    .slip-left { min-width: 130px; display: flex; flex-direction: column; justify-content: center; border-left: 1px dashed #ccc; padding-left: 14px; }
-    .slip-title { font-size: 11px; font-weight: bold; }
-    .slip-sub { font-size: 9px; color: #555; margin-top: 2px; }
-    .emp-name { font-size: 12px; font-weight: bold; margin-top: 6px; }
-    .slip-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 8px; color: #000; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; font-size: 10px; }
+    h1 { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 3px; }
+    .dept { text-align: right; font-size: 12px; font-weight: bold; color: #b00; margin-bottom: 6px; }
     table { width: 100%; border-collapse: collapse; }
-    tr td { padding: 2px 5px; font-size: 9.5px; }
-    tr td:first-child { color: #555; }
-    tr td:last-child { text-align: left; font-weight: bold; }
-    .total-row td { border-top: 1.5px solid #000; font-size: 10.5px; font-weight: bold; padding-top: 4px; }
-    .sig { min-width: 160px; display: flex; flex-direction: column; justify-content: space-around; align-items: center; border-right: 1px dashed #ccc; padding-right: 14px; }
-    .sig-block { text-align: center; font-size: 9px; }
-    .sig-line { border-top: 1px solid #000; width: 110px; margin-bottom: 3px; margin-top: 16px; }
+    th { background: #ddd; font-size: 7.5px; padding: 2px 3px; border: 1px solid #999; text-align: center; white-space: nowrap; }
+    td { font-size: 7.5px; padding: 2px 3px; border: 1px solid #bbb; text-align: center; white-space: nowrap; }
+    .emp-col { text-align: right !important; font-weight: bold; }
+    .total-row { background: #eee; font-weight: bold; }
+    .sig-col { width: 55px; }
+    .footer { margin-top: 16px; display: flex; justify-content: space-between; }
+    .footer-block { text-align: center; font-size: 9px; }
+    .footer-line { border-top: 1px solid #000; width: 130px; margin: 20px auto 3px; }
+    .footer-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8px; color: #555; }
+    .note { font-size: 8px; color: #555; }
   `;
 
-  function groupIntoPages(slips: string[], perPage = 4): string {
-    const pages: string[] = [];
-    for (let i = 0; i < slips.length; i += perPage) {
-      pages.push(`<div class="page">${slips.slice(i, i + perPage).join("")}</div>`);
-    }
-    return pages.join("");
-  }
+  const SLIPS_CSS = `
+    @page { size: A4; margin: 10mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; }
+    .slip { padding: 8px 0 6px; page-break-inside: avoid; }
+    hr.sep { border: none; border-top: 1px dashed #888; margin: 6px 0; }
+    .slip-top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
+    .slip-title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+    .emp-name { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 3px; }
+    .dept-row { text-align: right; font-size: 9px; margin-bottom: 6px; }
+    .tables-wrap { display: flex; gap: 5px; align-items: stretch; }
+    .net-box { border: 2px solid #000; min-width: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
+    .net-label { font-size: 8px; margin-bottom: 4px; }
+    .net-val { font-size: 16px; font-weight: bold; }
+    .inner-tables { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { border: 1px solid #aaa; padding: 2px 3px; font-size: 7.5px; background: #eee; text-align: center; }
+    td { border: 1px solid #aaa; padding: 2px 4px; font-size: 8.5px; text-align: center; }
+    .words { text-align: right; font-size: 9px; margin: 5px 0 3px; }
+    .sigs { display: flex; justify-content: space-between; margin-top: 8px; }
+    .sig-block { text-align: center; font-size: 9px; }
+    .sig-line { border-top: 1px solid #000; width: 110px; margin: 16px auto 3px; }
+  `;
 
-  function openPrint(html: string, title: string) {
-    const win = window.open("", "_blank", "width=900,height=800");
+  function openPrint(html: string, title: string, css: string) {
+    const win = window.open("", "_blank", "width=1000,height=800");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${SLIP_CSS}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
+    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${css}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
     win.document.close();
   }
 
-  function printDay1() {
-    const ml = MONTHS[month - 1];
-    const slips = rows.map((r: any) => `
-      <div class="slip">
-        <div class="sig">
-          <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
-          <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
-        </div>
-        <div class="slip-body">
-          <table>
-            <tr><td>الراتب الأساسي</td><td>${fmt(r.basicSalary)} ج</td></tr>
-            <tr><td>خصم غياب</td><td>${fmt(r.absentDeduction)} ج</td></tr>
-            <tr><td>خصم تأخير</td><td>${fmt(r.lateDeduction)} ج</td></tr>
-            <tr><td>خصم انصراف مبكر</td><td>${fmt(r.earlyLeaveDeduction)} ج</td></tr>
-            <tr><td>جزاءات</td><td>${fmt(r.penaltyDeduction)} ج</td></tr>
-            <tr class="total-row"><td>صافي الراتب</td><td>${fmt(r.netBasic)} ج</td></tr>
-          </table>
-        </div>
-        <div class="slip-left">
-          <div class="slip-title">دفعة يوم 1 — ${section}</div>
-          <div class="slip-sub">${ml} ${year}</div>
-          <div class="emp-name">${r.fullName ?? r.empCd}</div>
-        </div>
-      </div>`);
-    openPrint(groupIntoPages(slips), `دفعة يوم 1 — ${section} — ${ml} ${year}`);
+  function toArabicWords(amount: number): string {
+    const n = Math.round(amount);
+    if (n === 0) return "صفر جنيه";
+    const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة",
+      "أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
+    const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+    function b100(x: number): string {
+      if (x < 20) return ones[x];
+      const o = x % 10;
+      return (o ? ones[o] + " و" : "") + tens[Math.floor(x / 10)];
+    }
+    function b1000(x: number): string {
+      if (x < 100) return b100(x);
+      const h = Math.floor(x / 100);
+      const r = x % 100;
+      const hw = h === 1 ? "مائة" : h === 2 ? "مئتان" : ones[h] + "مائة";
+      return hw + (r ? " و" + b100(r) : "");
+    }
+    const th = Math.floor(n / 1000);
+    const rem = n % 1000;
+    let out = "";
+    if (th === 1) out = "ألف";
+    else if (th === 2) out = "ألفان";
+    else if (th >= 3 && th <= 10) out = ones[th] + " آلاف";
+    else if (th > 10) out = b100(th) + " ألف";
+    if (rem) out += (out ? " و" : "") + b1000(rem);
+    return out + " جنيه";
   }
 
-  function printDay10() {
+  function printSheet() {
     const ml = MONTHS[month - 1];
-    const slips = rows.map((r: any) => `
-      <div class="slip">
-        <div class="sig">
-          <div class="sig-block"><div class="sig-line"></div>المحاسب</div>
-          <div class="sig-block"><div class="sig-line"></div>${r.fullName ?? r.empCd}</div>
-        </div>
-        <div class="slip-body">
-          <table>
-            <tr><td>عمولة حضور</td><td>${fmt(r.attendanceCommission)} ج</td></tr>
-            <tr><td>عمولة فحص</td><td>${fmt(r.examCommission)} ج</td></tr>
-            <tr><td>عمولة بنتاكام</td><td>${fmt(r.pentacamCommission)} ج</td></tr>
-            <tr><td>أوفرتايم</td><td>${fmt(r.overtimePay ?? 0)} ج</td></tr>
-            <tr class="total-row"><td>إجمالي المكافآت</td><td>${fmt(Number(r.totalCommission) + Number(r.overtimePay ?? 0))} ج</td></tr>
-          </table>
-        </div>
-        <div class="slip-left">
-          <div class="slip-title">دفعة يوم 10 — ${section}</div>
-          <div class="slip-sub">${ml} ${year}</div>
-          <div class="emp-name">${r.fullName ?? r.empCd}</div>
-        </div>
-      </div>`);
-    openPrint(groupIntoPages(slips), `دفعة يوم 10 — ${section} — ${ml} ${year}`);
+    const today = new Date().toLocaleDateString("ar-EG");
+    const tBasic    = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
+    const tAbsent   = rows.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
+    const tLate     = rows.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
+    const tEarly    = rows.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
+    const tPenalty  = rows.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
+    const tDed      = rows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
+    const tNetBasic = rows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const tAttend   = rows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
+    const tExam     = rows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
+    const tPenta    = rows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tOT       = rows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
+    const tTotal    = rows.reduce((s: number, r: any) => s + Number(r.totalPay), 0);
+
+    const bodyRows = rows.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.basicSalary)}</td>
+        <td>${fmt(r.absentDeduction)}</td>
+        <td>${fmt(r.lateDeduction ?? 0)}</td>
+        <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
+        <td>${fmt(r.penaltyDeduction)}</td>
+        <td>${fmt(r.totalDeductions)}</td>
+        <td>${fmt(r.netBasic)}</td>
+        <td>${fmt(r.attendanceCommission)}</td>
+        <td>${fmt(r.examCommission)}</td>
+        <td>${fmt(r.pentacamCommission)}</td>
+        <td>${fmt(r.overtimePay ?? 0)}</td>
+        <td style="font-weight:bold">${fmt(r.totalPay)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+
+    const html = `
+      <div class="top">
+        <span>نظام مرتبات</span>
+        <span>عيون السروق للخدمات الطبية</span>
+      </div>
+      <h1>كشف المرتبات الشهرية عن شهر ${ml} ${year}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>الأساسي</th>
+            <th>خصم غياب</th>
+            <th>خصم تأخير</th>
+            <th>خصم مبكر</th>
+            <th>جزاءات</th>
+            <th>إجمالي الخصم</th>
+            <th>صافي الأساسي</th>
+            <th>عمولة حضور</th>
+            <th>عمولة فحص</th>
+            <th>عمولة بنتاكام</th>
+            <th>إضافي</th>
+            <th>صافي المستحق</th>
+            <th class="sig-col">التوقيع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td class="emp-col">الإجمالي</td>
+            <td>${fmt(tBasic)}</td>
+            <td>${fmt(tAbsent)}</td>
+            <td>${fmt(tLate)}</td>
+            <td>${fmt(tEarly)}</td>
+            <td>${fmt(tPenalty)}</td>
+            <td>${fmt(tDed)}</td>
+            <td>${fmt(tNetBasic)}</td>
+            <td>${fmt(tAttend)}</td>
+            <td>${fmt(tExam)}</td>
+            <td>${fmt(tPenta)}</td>
+            <td>${fmt(tOT)}</td>
+            <td style="font-weight:bold">${fmt(tTotal)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta">
+        <span>صفحة 1 من 1</span>
+        <span>تاريخ الطباعة: ${today}</span>
+      </div>`;
+
+    openPrint(html, `كشف الرواتب — ${section} — ${ml} ${year}`, SHEET_CSS);
+  }
+
+  function printSlips() {
+    const ml = MONTHS[month - 1];
+    const slipHtml = rows.map((r: any, i: number) => {
+      const netPay   = Number(r.totalPay);
+      const totalEnt = Number(r.basicSalary) + Number(r.totalCommission) + Number(r.overtimePay ?? 0);
+      return `
+        ${i > 0 ? '<hr class="sep"/>' : ""}
+        <div class="slip">
+          <div class="slip-top">
+            <span>مرتبات</span>
+            <span>عيون السروق للخدمات الطبية</span>
+          </div>
+          <div class="slip-title">مرتب شهر ${ml} ${year}</div>
+          <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
+          <div class="dept-row">القسم التابع له/ ${section}</div>
+          <div class="tables-wrap">
+            <div class="net-box">
+              <div class="net-label">صافي المستحق</div>
+              <div class="net-val">${fmt(netPay)}</div>
+            </div>
+            <div class="inner-tables">
+              <table>
+                <thead><tr>
+                  <th>اساسي الراتب</th><th>عمولة حضور</th><th>عمولة فحص</th><th>بنتاكام</th><th>إضافي</th><th>إجمالي الاستحقاقات</th>
+                </tr></thead>
+                <tbody><tr>
+                  <td>${fmt(r.basicSalary)}</td>
+                  <td>${fmt(r.attendanceCommission)}</td>
+                  <td>${fmt(r.examCommission)}</td>
+                  <td>${fmt(r.pentacamCommission)}</td>
+                  <td>${fmt(r.overtimePay ?? 0)}</td>
+                  <td>${fmt(totalEnt)}</td>
+                </tr></tbody>
+              </table>
+              <table>
+                <thead><tr>
+                  <th>خصم غياب</th><th>خصم تأخير</th><th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الاستقطاعات</th>
+                </tr></thead>
+                <tbody><tr>
+                  <td>${fmt(r.absentDeduction)}</td>
+                  <td>${fmt(r.lateDeduction ?? 0)}</td>
+                  <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
+                  <td>${fmt(r.penaltyDeduction)}</td>
+                  <td>${fmt(r.totalDeductions)}</td>
+                </tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="words">${toArabicWords(netPay)}</div>
+          <div class="sigs">
+            <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
+            <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    openPrint(slipHtml, `إيصالات الرواتب — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
 
   return (
@@ -176,11 +310,11 @@ export default function PayrollReport() {
           </Button>
           {rows.length > 0 && (
             <>
-              <Button variant="outline" onClick={printDay1} className="gap-2">
-                <Printer size={15} /> Day 1
+              <Button variant="outline" onClick={printSheet} className="gap-2">
+                <Printer size={15} /> كشف
               </Button>
-              <Button variant="outline" onClick={printDay10} className="gap-2">
-                <Printer size={15} /> Day 10
+              <Button variant="outline" onClick={printSlips} className="gap-2">
+                <Printer size={15} /> إيصالات
               </Button>
             </>
           )}
