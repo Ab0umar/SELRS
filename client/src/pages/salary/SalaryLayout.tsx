@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet, Settings2, UserRound, CalendarDays, FileText } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet, Settings2, UserRound, CalendarDays, FileText, ClipboardList } from "lucide-react";
 
 interface SalaryLayoutProps {
   children: ReactNode;
@@ -15,6 +15,7 @@ const sections = [
   { href: "/salary/shift-staff", label: "Staff", icon: UserRound },
   { href: "/salary/shift-schedule", label: "Schedule", icon: CalendarDays },
   { href: "/salary/shift-payroll", label: "Shift Payroll", icon: FileText },
+  { href: "/salary/absent-report", label: "الغياب والتصاريح", icon: ClipboardList },
 ];
 
 function resolveTitle(pathname: string) {
@@ -32,6 +33,8 @@ function resolveTitle(pathname: string) {
     return { title: "Shift Schedule", description: "Build the monthly schedule, mark attendance, and compute shift payroll." };
   if (pathname.startsWith("/salary/shift-payroll"))
     return { title: "Shift Payroll", description: "Monthly payroll report for doctors and technicians based on attended shifts." };
+  if (pathname.startsWith("/salary/absent-report"))
+    return { title: "الغياب والتصاريح", description: "تقرير أيام الإجازة والتصاريح الممنوحة للموظفين." };
   return { title: "الرواتب الأساسية", description: "إدارة الرواتب الأساسية لجميع الموظفين." };
 }
 

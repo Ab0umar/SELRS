@@ -127,6 +127,7 @@ const SalarySettings = lazy(() => import("./pages/salary/SalarySettings"));
 const ShiftStaff = lazy(() => import("./pages/salary/ShiftStaff"));
 const ShiftSchedule = lazy(() => import("./pages/salary/ShiftSchedule"));
 const ShiftPayroll = lazy(() => import("./pages/salary/ShiftPayroll"));
+const AbsentReport = lazy(() => import("./pages/salary/AbsentReport"));
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -310,6 +311,7 @@ const Router = memo(function Router() {
       <Route path={"/salary/shift-staff"} component={() => <ProtectedRoute><SalaryLayout><ShiftStaff /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/shift-schedule"} component={() => <ProtectedRoute><SalaryLayout><ShiftSchedule /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/shift-payroll"} component={() => <ProtectedRoute><SalaryLayout><ShiftPayroll /></SalaryLayout></ProtectedRoute>} />
+      <Route path={"/salary/absent-report"} component={() => <ProtectedRoute><SalaryLayout><AbsentReport /></SalaryLayout></ProtectedRoute>} />
 
       {/* Accounting Module Routes */}
       <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
