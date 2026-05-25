@@ -299,7 +299,7 @@ export default function PayrollReport() {
         <table class="main">
           <tr>
             <th>نسبة الحضور</th>
-            <th>عمولة فحص</th>
+            <th>نسبة الكشف</th>
             <th>نسبة البنتاكام</th>
             <th>أوفرتايم</th>
             <th>إجمالي المكافآت</th>
