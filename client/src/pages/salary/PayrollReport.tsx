@@ -6,6 +6,11 @@ import { toast } from "sonner";
 
 const now = new Date();
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+function isoMonth(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+const DEFAULT_FROM = `${isoMonth(now)}-01`;
+const DEFAULT_TO = (() => { const last = new Date(now.getFullYear(), now.getMonth() + 1, 0); return `${isoMonth(last)}-${String(last.getDate()).padStart(2, "0")}`; })();
 
 function fmt(n: any): string {
   return Number(n).toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -18,9 +23,13 @@ const SECTIONS = ["مركز", "عيادة"] as const;
 type Section = typeof SECTIONS[number];
 
 export default function PayrollReport() {
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [fromDate, setFromDate] = useState(DEFAULT_FROM);
+  const [toDate, setToDate] = useState(DEFAULT_TO);
   const [section, setSection] = useState<Section>("مركز");
+
+  const year = new Date(fromDate).getFullYear();
+  const month = new Date(fromDate).getMonth() + 1;
+  const periodLabel = `${new Date(fromDate).toLocaleDateString("ar-EG")} — ${new Date(toDate).toLocaleDateString("ar-EG")}`;
 
   const payrollQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section });
   const rows: any[] = payrollQ.data ?? [];
@@ -127,7 +136,6 @@ export default function PayrollReport() {
   }
 
   function printSheet() {
-    const ml = MONTHS[month - 1];
     const today = new Date().toLocaleDateString("ar-EG");
     const isClinic = section === "عيادة";
     const tBasic    = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
@@ -166,7 +174,7 @@ export default function PayrollReport() {
         <span>نظام مرتبات</span>
         <span>عيون السروق للخدمات الطبية</span>
       </div>
-      <h1>كشف المرتبات الشهرية عن شهر ${ml} ${year}</h1>
+      <h1>كشف المرتبات الشهرية عن الفترة ${periodLabel}</h1>
       <div class="dept">قسم ${section}</div>
       <table>
         <thead>
@@ -217,11 +225,10 @@ export default function PayrollReport() {
         <span>تاريخ الطباعة: ${today}</span>
       </div>`;
 
-    openPrint(html, `كشف الرواتب — ${section} — ${ml} ${year}`, SHEET_CSS);
+    openPrint(html, `كشف الرواتب — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
   function buildSlip(r: any, title: string, tableHtml: string, netPay: number): string {
-    const ml = MONTHS[month - 1];
     return `
       <div class="slip">
         <div class="slip-top">
@@ -241,7 +248,6 @@ export default function PayrollReport() {
   }
 
   function printDay1Slips() {
-    const ml = MONTHS[month - 1];
     const html = rows.map((r: any, i: number) => {
       const net     = Number(r.netBasic);
       const basic   = Number(r.basicSalary);
@@ -283,13 +289,12 @@ export default function PayrollReport() {
             <td colspan="2">${fmt(totalDed)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `مرتب ${ml} ${year}`, table, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `مرتب ${periodLabel}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 1 — ${section} — ${ml} ${year}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 1 — ${section} — ${periodLabel}`, SLIPS_CSS);
   }
 
   function printDay10Slips() {
-    const ml = MONTHS[month - 1];
     const isClinic = section === "عيادة";
     const html = rows.map((r: any, i: number) => {
       const attend  = Number(r.attendanceCommission);
@@ -315,9 +320,9 @@ export default function PayrollReport() {
             <td>${fmt(net)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `نسب ${ml} ${year}`, table, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `نسب ${periodLabel}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 10 — ${section} — ${ml} ${year}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 10 — ${section} — ${periodLabel}`, SLIPS_CSS);
   }
 
   return (
@@ -336,14 +341,11 @@ export default function PayrollReport() {
               </button>
             ))}
           </div>
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-            {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-          </select>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-            {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <span className="text-sm text-muted-foreground">—</span>
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
           <Button onClick={() => computeMut.mutate({ year, month, section })} disabled={computeMut.isPending} className="gap-2">
             <RefreshCw size={15} className={computeMut.isPending ? "animate-spin" : ""} />
             احتساب
@@ -400,7 +402,7 @@ export default function PayrollReport() {
 
       <section className="rounded-xl border border-border bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-base font-semibold">التفاصيل — {MONTHS[month-1]} {year}</h3>
+          <h3 className="text-base font-semibold">التفاصيل — {periodLabel}</h3>
           {isFinalized && (
             <span className="rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">نهائي</span>
           )}
