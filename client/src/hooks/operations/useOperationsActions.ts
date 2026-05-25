@@ -200,6 +200,50 @@ export function useOperationsActions(operations: OperationsState) {
       <style>tbody tr td{border:1px solid #444;padding:6px 6px;text-align:center;vertical-align:middle !important;white-space:nowrap;line-height:1.2;font-family:Tahoma,Arial,sans-serif;height:42px;display:table-cell;} tbody tr td:nth-child(3){direction:ltr;}</style>`;
   };
 
+  const handlePrintAccounts = () => {
+    const content = buildAccountsPrintContent(true);
+    const printWindow = window.open("", "_blank", "width=1280,height=900");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4 landscape; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; }
+</style>
+</head>
+<body>${content}</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+  };
+
+  const saveAccountsJpg = async () => {
+    try {
+      const content = buildAccountsPrintContent(false);
+      const captureRoot = document.createElement("div");
+      captureRoot.dir = "rtl";
+      captureRoot.style.cssText =
+        "position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:8mm;box-sizing:border-box;overflow:hidden;font-family:Tahoma,Arial,sans-serif;width:1180px;height:820px;";
+      captureRoot.innerHTML = content;
+      document.body.appendChild(captureRoot);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const blob = await captureElementAsJpg({ element: captureRoot, quality: 0.92 });
+        if (!blob) throw new Error("toBlob failed");
+        saveBlobInBrowser(blob, buildExportFileName());
+        toast.success("تم حفظ الصورة JPG");
+      } finally {
+        captureRoot.remove();
+      }
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "تعذر حفظ الصورة JPG"));
+    }
+  };
+
   const handlePrint = () => {
     const content = operations.viewMode === "accounts" ? buildAccountsPrintContent(true) : buildOperationsPrintContent();
     const printWindow = window.open("", "_blank", "width=1280,height=900");
@@ -662,6 +706,8 @@ export function useOperationsActions(operations: OperationsState) {
     handleLoadListById,
     handleNewList,
     handlePrint,
+    handlePrintAccounts,
+    saveAccountsJpg,
     handleSaveList,
     handleUpdateRow,
     saveJpg,

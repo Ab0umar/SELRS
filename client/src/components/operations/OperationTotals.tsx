@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Printer, ImageDown } from "lucide-react";
 import { operationTypeLabel } from "@/lib/operationsPricing";
 import {
   type ListData,
@@ -41,6 +42,8 @@ type OperationTotalsProps = {
   onUpdateRow: (id: number, field: keyof ListData | string, value: any) => void;
   operationType: string;
   showSawafAdjustments: boolean;
+  onPrint?: () => void;
+  onSaveJpg?: () => void;
 };
 
 export function OperationTotals({
@@ -63,6 +66,8 @@ export function OperationTotals({
   onUpdateRow,
   operationType,
   showSawafAdjustments,
+  onPrint,
+  onSaveJpg,
 }: OperationTotalsProps) {
   const rowLabel = (appointment: ListData, field: string) =>
     `${field}${appointment.name ? `، ${appointment.name}` : ""}`;
@@ -70,7 +75,21 @@ export function OperationTotals({
   return (
     <>
       <div className="mb-6 overflow-x-auto" dir="rtl">
-        <div className="mb-1 text-sm font-bold">حسابات العمليات</div>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="text-sm font-bold">حسابات العمليات</span>
+          <div className="flex gap-1 print:hidden">
+            {onPrint && (
+              <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onPrint}>
+                <Printer className="h-3.5 w-3.5" /> طباعة
+              </Button>
+            )}
+            {onSaveJpg && (
+              <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onSaveJpg}>
+                <ImageDown className="h-3.5 w-3.5" /> JPG
+              </Button>
+            )}
+          </div>
+        </div>
         <div className="mb-2 text-xs text-muted-foreground">
           التاريخ: {exportDateLabel} | الساعة: {exportTimeLabel} | الطبيب:{" "}
           {exportDoctorLabel} | نوع العملية: {exportOperationLabel}

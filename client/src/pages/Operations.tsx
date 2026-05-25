@@ -341,6 +341,8 @@ export default function Operations() {
                 onUpdateRow={actions.handleUpdateRow}
                 operationType={operations.operationType}
                 showSawafAdjustments={operations.showSawafAdjustments}
+                onPrint={actions.handlePrintAccounts}
+                onSaveJpg={actions.saveAccountsJpg}
               />
             </section>
         </div>
