@@ -9,6 +9,7 @@ import {
   salaryRaiseHistory,
   salaryConfig,
   attendanceEmployees,
+  attendanceDaily,
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
@@ -451,6 +452,32 @@ export const salaryRouter = router({
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
   }),
+
+  getAbsentDays: managerProcedure
+    .input(z.object({ from: z.string(), to: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const rows = await db
+        .select({
+          empCd: attendanceDaily.empCd,
+          empName: attendanceEmployees.fullName,
+          workDate: attendanceDaily.workDate,
+          status: attendanceDaily.status,
+        })
+        .from(attendanceDaily)
+        .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
+        .where(and(
+          gte(attendanceDaily.workDate, input.from as any),
+          lte(attendanceDaily.workDate, input.to as any),
+          eq(attendanceDaily.status, 'absent'),
+        ))
+        .orderBy(attendanceDaily.workDate, attendanceEmployees.fullName);
+      return rows.map((r) => ({
+        ...r,
+        workDate: String(r.workDate).split('T')[0],
+      }));
+    }),
 
   setCommissionFlags: managerProcedure
     .input(z.object({
