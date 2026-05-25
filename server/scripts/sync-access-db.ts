@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 config();
 
-const DEFAULT_DB_PATH = "C:\\Users\\drels\\OneDrive\\SELRS\\الخزنه.accdb";
+const DEFAULT_DB_PATH = "C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS\\الخزنه.accdb";
 const DUMP_SCRIPT = path.resolve(__dirname, "access-dump.ps1");
 
 function getArg(flag: string): string | null {
