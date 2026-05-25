@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { execSync } from "child_process";
 import path from "path";
-import { fileURLToPath } from "url";
 import { sql } from "drizzle-orm";
 import { getDb, upsertPatientServiceEntry } from "../db";
 import { addMultiServiceReceiptInMssql, createMssqlPool } from "../integrations/mssqlPatients";
@@ -1183,8 +1182,7 @@ export const accountingRouter = router({
 
   triggerAccSync: adminProcedure
     .mutation(async () => {
-      const __dirname = path.dirname(fileURLToPath(import.meta.url));
-      const syncScript = path.resolve(__dirname, "../scripts/sync-access-db.ts");
+      const syncScript = path.resolve(process.cwd(), "server", "scripts", "sync-access-db.ts");
       try {
         execSync(`npx tsx "${syncScript}"`, { encoding: "utf8", timeout: 120_000 });
         return { success: true };
