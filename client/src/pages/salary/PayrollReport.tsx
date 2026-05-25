@@ -427,7 +427,7 @@ export default function PayrollReport() {
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">صافي الأساسي</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">حضور</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">فحص</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>
+                {section !== "عيادة" && <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>}
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 1</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 10</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">الإجمالي</th>
@@ -454,14 +454,14 @@ export default function PayrollReport() {
                   <td className="px-3 py-3 text-right font-medium">{fmt(r.netBasic)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.attendanceCommission)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.examCommission)}</td>
-                  <td className="px-3 py-3 text-right text-success">{fmt(r.pentacamCommission)}</td>
+                  {section !== "عيادة" && <td className="px-3 py-3 text-right text-success">{fmt(r.pentacamCommission)}</td>}
                   <td className="px-3 py-3 text-right font-medium">{fmt(r.netBasic)}</td>
                   <td className="px-3 py-3 text-right font-medium text-success">{fmt(r.totalCommission)}</td>
                   <td className="px-3 py-3 text-right font-bold text-primary text-base">{fmt(r.totalPay)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={19} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+                <tr><td colSpan={section !== "عيادة" ? 19 : 18} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
               )}
             </tbody>
           </table>
