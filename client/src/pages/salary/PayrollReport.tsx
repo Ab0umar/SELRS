@@ -227,7 +227,7 @@ export default function PayrollReport() {
           <span>مرتبات</span>
           <span>عيون السروق للخدمات الطبية</span>
         </div>
-        <div class="slip-title">${title} — ${ml} ${year}</div>
+        <div class="slip-title">${title}</div>
         <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
         <div class="dept-row">القسم التابع له/ ${section}</div>
         ${tableHtml}
@@ -282,7 +282,7 @@ export default function PayrollReport() {
             <td colspan="2">${fmt(totalDed)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 1", table, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `مرتب ${ml} ${year}`, table, net);
     }).join("");
     openPrint(html, `دفعة يوم 1 — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
@@ -313,7 +313,7 @@ export default function PayrollReport() {
             <td>${fmt(net)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 10", table, net);
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `نسب ${ml} ${year}`, table, net);
     }).join("");
     openPrint(html, `دفعة يوم 10 — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
