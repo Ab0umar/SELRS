@@ -298,9 +298,9 @@ export default function PayrollReport() {
       const table = `
         <table class="main">
           <tr>
-            <th>عمولة حضور</th>
+            <th>نسبة الحضور</th>
             <th>عمولة فحص</th>
-            <th>عمولة بنتاكام</th>
+            <th>نسبة البنتاكام</th>
             <th>أوفرتايم</th>
             <th>إجمالي المكافآت</th>
             <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
