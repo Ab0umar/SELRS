@@ -180,10 +180,13 @@ export class PayrollComputeService {
       shiftStatsMap.set(ss.id, { scheduled, attended, commMult, shiftPay: round2(Number(ss.ratePerShift) * attended) });
     }
 
-    const sumShiftRates = activeShiftStaff.reduce((s, ss) => s + Number(ss.ratePerShift), 0);
-    // Extended denominators — regular employees + shift staff share the same pools
-    const totalSumForPentacam = sumAllBasics + sumShiftRates;
-    const totalCountForExam   = activeCount + activeShiftStaff.length;
+    // Separate doctors and techs — techs join employee pools, doctors get remainder
+    const doctors = activeShiftStaff.filter(ss => ss.type === 'doctor');
+    const techs   = activeShiftStaff.filter(ss => ss.type === 'tech');
+    const sumTechRates = techs.reduce((s, ss) => s + Number(ss.ratePerShift), 0);
+    // Denominators include only techs alongside regular employees
+    const totalSumForPentacam = sumAllBasics + sumTechRates;
+    const totalCountForExam   = activeCount + techs.length;
 
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
@@ -282,14 +285,59 @@ export class PayrollComputeService {
     }
 
     // Add shift staff rows (مركز only)
-    for (const ss of activeShiftStaff) {
+    // Techs: share pools proportionally with regular employees
+    let usedExam  = 0;
+    let usedPenta = 0;
+    for (const ss of techs) {
       const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
       const { scheduled, attended, commMult, shiftPay } = stats;
       const rate = Number(ss.ratePerShift);
 
-      const attendanceCommission = round2(0.25 * rate);
+      const attendanceCommission = round2(0.25 * shiftPay);
       const examCommission       = round2(totalCountForExam > 0 ? (examPool / totalCountForExam) * commMult : 0);
       const pentacamCommission   = round2(totalSumForPentacam > 0 ? (rate / totalSumForPentacam) * pentacamPool * commMult : 0);
+      usedExam  = round2(usedExam  + examCommission);
+      usedPenta = round2(usedPenta + pentacamCommission);
+      const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
+      const totalPay        = round2(shiftPay + totalCommission);
+
+      results.push({
+        empCd: `shift_${ss.id}`,
+        year, month, section,
+        basicSalary:         shiftPay,
+        workingDays:         scheduled,
+        absentDays:          scheduled - attended,
+        lateMinutes:         0,
+        earlyLeaveMinutes:   0,
+        overtimeMinutes:     0,
+        leaveDays:           0,
+        absentDeduction:     0,
+        lateDeduction:       0,
+        earlyLeaveDeduction: 0,
+        penaltyDeduction:    0,
+        totalDeductions:     0,
+        deductionPct:        0,
+        leaveMultiplier:     1,
+        netBasic:            shiftPay,
+        attendanceCommission,
+        examCommission,
+        pentacamCommission,
+        totalCommission,
+        overtimePay:         0,
+        totalPay,
+      });
+    }
+
+    // Doctors: get the remaining pool split equally among them
+    const remainingExam  = Math.max(0, round2(examPool  - usedExam));
+    const remainingPenta = Math.max(0, round2(pentacamPool - usedPenta));
+    for (const ss of doctors) {
+      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
+      const { scheduled, attended, commMult, shiftPay } = stats;
+
+      const attendanceCommission = round2(0.25 * shiftPay);
+      const examCommission       = round2(doctors.length > 0 ? (remainingExam  / doctors.length) * commMult : 0);
+      const pentacamCommission   = round2(doctors.length > 0 ? (remainingPenta / doctors.length) * commMult : 0);
       const totalCommission      = round2(attendanceCommission + examCommission + pentacamCommission);
       const totalPay             = round2(shiftPay + totalCommission);
 
