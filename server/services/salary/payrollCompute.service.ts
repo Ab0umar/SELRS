@@ -187,7 +187,9 @@ export class PayrollComputeService {
     const sumTechShiftPay = techs.reduce((s, ss) => s + (shiftStatsMap.get(ss.id)?.shiftPay ?? 0), 0);
     // Denominators include only techs alongside regular employees
     const totalSumForPentacam = sumAllBasics + sumTechShiftPay;
-    const totalCountForExam   = activeCount + techs.length;
+    // Only count techs who have at least one scheduled shift this month
+    const activeTechsThisMonth = techs.filter(ss => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0);
+    const totalCountForExam    = activeCount + activeTechsThisMonth.length;
 
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
@@ -294,7 +296,7 @@ export class PayrollComputeService {
       const { scheduled, attended, commMult, shiftPay } = stats;
 
       const attendanceCommission = round2(0.25 * shiftPay);
-      const examCommission       = round2(totalCountForExam > 0 ? examPool / totalCountForExam : 0);
+      const examCommission       = scheduled > 0 && totalCountForExam > 0 ? round2(examPool / totalCountForExam) : 0;
       const pentacamCommission   = round2(totalSumForPentacam > 0 ? (shiftPay / totalSumForPentacam) * pentacamPool * commMult : 0);
       usedExam  = round2(usedExam  + examCommission);
       usedPenta = round2(usedPenta + pentacamCommission);
