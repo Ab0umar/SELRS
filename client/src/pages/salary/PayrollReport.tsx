@@ -129,6 +129,7 @@ export default function PayrollReport() {
   function printSheet() {
     const ml = MONTHS[month - 1];
     const today = new Date().toLocaleDateString("ar-EG");
+    const isClinic = section === "عيادة";
     const tBasic    = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
     const tAbsent   = rows.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
     const tLate     = rows.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
@@ -154,7 +155,7 @@ export default function PayrollReport() {
         <td>${fmt(r.netBasic)}</td>
         <td>${fmt(r.attendanceCommission)}</td>
         <td>${fmt(r.examCommission)}</td>
-        <td>${fmt(r.pentacamCommission)}</td>
+        ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
         <td>${fmt(r.overtimePay ?? 0)}</td>
         <td style="font-weight:bold">${fmt(r.totalPay)}</td>
         <td class="sig-col"></td>
@@ -180,7 +181,7 @@ export default function PayrollReport() {
             <th>صافي الأساسي</th>
             <th>عمولة حضور</th>
             <th>عمولة فحص</th>
-            <th>عمولة بنتاكام</th>
+            ${!isClinic ? "<th>عمولة بنتاكام</th>" : ""}
             <th>إضافي</th>
             <th>صافي المستحق</th>
             <th class="sig-col">التوقيع</th>
@@ -199,7 +200,7 @@ export default function PayrollReport() {
             <td>${fmt(tNetBasic)}</td>
             <td>${fmt(tAttend)}</td>
             <td>${fmt(tExam)}</td>
-            <td>${fmt(tPenta)}</td>
+            ${!isClinic ? `<td>${fmt(tPenta)}</td>` : ""}
             <td>${fmt(tOT)}</td>
             <td style="font-weight:bold">${fmt(tTotal)}</td>
             <td></td>
@@ -289,18 +290,19 @@ export default function PayrollReport() {
 
   function printDay10Slips() {
     const ml = MONTHS[month - 1];
+    const isClinic = section === "عيادة";
     const html = rows.map((r: any, i: number) => {
       const attend  = Number(r.attendanceCommission);
       const exam    = Number(r.examCommission);
       const penta   = Number(r.pentacamCommission);
       const ot      = Number(r.overtimePay ?? 0);
-      const net     = attend + exam + penta + ot;
+      const net     = attend + exam + (isClinic ? 0 : penta) + ot;
       const table = `
         <table class="main">
           <tr>
             <th>نسبة الحضور</th>
             <th>نسبة الكشف</th>
-            <th>نسبة البنتاكام</th>
+            ${!isClinic ? "<th>نسبة البنتاكام</th>" : ""}
             <th>أوفرتايم</th>
             <th>إجمالي المكافآت</th>
             <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
@@ -308,7 +310,7 @@ export default function PayrollReport() {
           <tr>
             <td>${fmt(attend)}</td>
             <td>${fmt(exam)}</td>
-            <td>${fmt(penta)}</td>
+            ${!isClinic ? `<td>${fmt(penta)}</td>` : ""}
             <td>${fmt(ot)}</td>
             <td>${fmt(net)}</td>
           </tr>

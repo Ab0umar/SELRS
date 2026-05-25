@@ -252,9 +252,9 @@ export class PayrollComputeService {
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
         examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares : 0);
       }
-      const pentacamCommission = round2(
-        totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0
-      );
+      const pentacamCommission = isMarkaz
+        ? round2(totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0)
+        : 0;
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
       const totalPay = round2(netBasic + totalCommission + overtimePay);
 
