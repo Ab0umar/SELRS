@@ -221,63 +221,75 @@ export default function PayrollReport() {
     openPrint(html, `كشف الرواتب — ${section} — ${ml} ${year}`, SHEET_CSS);
   }
 
-  function printSlips() {
+  function buildSlip(r: any, title: string, innerTables: string, netPay: number): string {
     const ml = MONTHS[month - 1];
-    const slipHtml = rows.map((r: any, i: number) => {
-      const netPay   = Number(r.totalPay);
-      const totalEnt = Number(r.basicSalary) + Number(r.totalCommission) + Number(r.overtimePay ?? 0);
-      return `
-        ${i > 0 ? '<hr class="sep"/>' : ""}
-        <div class="slip">
-          <div class="slip-top">
-            <span>مرتبات</span>
-            <span>عيون السروق للخدمات الطبية</span>
+    return `
+      <div class="slip">
+        <div class="slip-top">
+          <span>مرتبات</span>
+          <span>عيون السروق للخدمات الطبية</span>
+        </div>
+        <div class="slip-title">${title} — ${ml} ${year}</div>
+        <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
+        <div class="dept-row">القسم التابع له/ ${section}</div>
+        <div class="tables-wrap">
+          <div class="net-box">
+            <div class="net-label">صافي المستحق</div>
+            <div class="net-val">${fmt(netPay)}</div>
           </div>
-          <div class="slip-title">مرتب شهر ${ml} ${year}</div>
-          <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
-          <div class="dept-row">القسم التابع له/ ${section}</div>
-          <div class="tables-wrap">
-            <div class="net-box">
-              <div class="net-label">صافي المستحق</div>
-              <div class="net-val">${fmt(netPay)}</div>
-            </div>
-            <div class="inner-tables">
-              <table>
-                <thead><tr>
-                  <th>اساسي الراتب</th><th>عمولة حضور</th><th>عمولة فحص</th><th>بنتاكام</th><th>إضافي</th><th>إجمالي الاستحقاقات</th>
-                </tr></thead>
-                <tbody><tr>
-                  <td>${fmt(r.basicSalary)}</td>
-                  <td>${fmt(r.attendanceCommission)}</td>
-                  <td>${fmt(r.examCommission)}</td>
-                  <td>${fmt(r.pentacamCommission)}</td>
-                  <td>${fmt(r.overtimePay ?? 0)}</td>
-                  <td>${fmt(totalEnt)}</td>
-                </tr></tbody>
-              </table>
-              <table>
-                <thead><tr>
-                  <th>خصم غياب</th><th>خصم تأخير</th><th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الاستقطاعات</th>
-                </tr></thead>
-                <tbody><tr>
-                  <td>${fmt(r.absentDeduction)}</td>
-                  <td>${fmt(r.lateDeduction ?? 0)}</td>
-                  <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
-                  <td>${fmt(r.penaltyDeduction)}</td>
-                  <td>${fmt(r.totalDeductions)}</td>
-                </tr></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="words">${toArabicWords(netPay)}</div>
-          <div class="sigs">
-            <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
-            <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
-          </div>
-        </div>`;
-    }).join("");
+          <div class="inner-tables">${innerTables}</div>
+        </div>
+        <div class="words">${toArabicWords(netPay)}</div>
+        <div class="sigs">
+          <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
+          <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
+        </div>
+      </div>`;
+  }
 
-    openPrint(slipHtml, `إيصالات الرواتب — ${section} — ${ml} ${year}`, SLIPS_CSS);
+  function printDay1Slips() {
+    const ml = MONTHS[month - 1];
+    const html = rows.map((r: any, i: number) => {
+      const net = Number(r.netBasic);
+      const tables = `
+        <table>
+          <thead><tr>
+            <th>اساسي الراتب</th><th>خصم غياب</th><th>خصم تأخير</th><th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الخصم</th>
+          </tr></thead>
+          <tbody><tr>
+            <td>${fmt(r.basicSalary)}</td>
+            <td>${fmt(r.absentDeduction)}</td>
+            <td>${fmt(r.lateDeduction ?? 0)}</td>
+            <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
+            <td>${fmt(r.penaltyDeduction)}</td>
+            <td>${fmt(r.totalDeductions)}</td>
+          </tr></tbody>
+        </table>`;
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 1", tables, net);
+    }).join("");
+    openPrint(html, `دفعة يوم 1 — ${section} — ${ml} ${year}`, SLIPS_CSS);
+  }
+
+  function printDay10Slips() {
+    const ml = MONTHS[month - 1];
+    const html = rows.map((r: any, i: number) => {
+      const net = Number(r.totalCommission) + Number(r.overtimePay ?? 0);
+      const tables = `
+        <table>
+          <thead><tr>
+            <th>عمولة حضور</th><th>عمولة فحص</th><th>عمولة بنتاكام</th><th>إضافي</th><th>إجمالي المكافآت</th>
+          </tr></thead>
+          <tbody><tr>
+            <td>${fmt(r.attendanceCommission)}</td>
+            <td>${fmt(r.examCommission)}</td>
+            <td>${fmt(r.pentacamCommission)}</td>
+            <td>${fmt(r.overtimePay ?? 0)}</td>
+            <td>${fmt(net)}</td>
+          </tr></tbody>
+        </table>`;
+      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, "دفعة يوم 10", tables, net);
+    }).join("");
+    openPrint(html, `دفعة يوم 10 — ${section} — ${ml} ${year}`, SLIPS_CSS);
   }
 
   return (
@@ -313,8 +325,11 @@ export default function PayrollReport() {
               <Button variant="outline" onClick={printSheet} className="gap-2">
                 <Printer size={15} /> كشف
               </Button>
-              <Button variant="outline" onClick={printSlips} className="gap-2">
-                <Printer size={15} /> إيصالات
+              <Button variant="outline" onClick={printDay1Slips} className="gap-2">
+                <Printer size={15} /> يوم 1
+              </Button>
+              <Button variant="outline" onClick={printDay10Slips} className="gap-2">
+                <Printer size={15} /> يوم 10
               </Button>
             </>
           )}
