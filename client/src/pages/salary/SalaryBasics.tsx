@@ -164,6 +164,10 @@ export default function SalaryBasics() {
   const [expandedEmp, setExpandedEmp] = useState<string | null>(null);
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
+  const commFlagsMut = (trpc as any).salary.setCommissionFlags.useMutation({
+    onSuccess: () => empsQ.refetch(),
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
@@ -309,43 +313,69 @@ export default function SalaryBasics() {
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">الإجمالي</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">من تاريخ</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">حتى تاريخ</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">العمولات</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {basics.map((b: any) => {
-                const isExpanded = expandedEmp === b.empCd;
-                return (
-                  <>
-                    <tr key={b.id} className={`border-b border-border/50 hover:bg-muted/20 ${isExpanded ? "bg-muted/10" : ""}`}>
-                      <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
-                      <td className="px-4 py-3">{Number(b.basicAmount).toLocaleString("ar-EG")}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{Number(b.costOfLivingAllowance ?? 0).toLocaleString("ar-EG")}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{Number(b.workNatureAllowance ?? 0).toLocaleString("ar-EG")}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{Number(b.yearlyRaise ?? 0).toLocaleString("ar-EG")}</td>
-                      <td className="px-4 py-3 font-bold text-foreground">{rowTotal(b).toLocaleString("ar-EG")} ج.م</td>
-                      <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveFrom)}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveTo) || "مفتوح"}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => toggleExpand(b.empCd)}
-                            title="سجل الزيادات">
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(b)}><Pencil size={14} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => { if (confirm("حذف هذا الراتب؟")) deleteMut.mutate({ id: b.id }); }}>
-                            <Trash2 size={14} className="text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                    {isExpanded && <RaiseHistoryPanel key={`raise-${b.empCd}`} empCd={b.empCd} empName={b.fullName ?? b.empCd} />}
-                  </>
-                );
-              })}
+              {(() => {
+                const empMap = new Map(employees.map((e: any) => [e.empCd, e]));
+                return basics.map((b: any) => {
+                  const isExpanded = expandedEmp === b.empCd;
+                  const emp: any = empMap.get(b.empCd) ?? {};
+                  const flags = {
+                    commAttendance: emp.commAttendance !== false,
+                    commExam:       emp.commExam       !== false,
+                    commPentacam:   emp.commPentacam   !== false,
+                  };
+                  const toggle = (field: "commAttendance" | "commExam" | "commPentacam", val: boolean) =>
+                    commFlagsMut.mutate({ empCd: b.empCd, ...flags, [field]: val });
+                  return (
+                    <>
+                      <tr key={b.id} className={`border-b border-border/50 hover:bg-muted/20 ${isExpanded ? "bg-muted/10" : ""}`}>
+                        <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
+                        <td className="px-4 py-3">{Number(b.basicAmount).toLocaleString("ar-EG")}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{Number(b.costOfLivingAllowance ?? 0).toLocaleString("ar-EG")}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{Number(b.workNatureAllowance ?? 0).toLocaleString("ar-EG")}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{Number(b.yearlyRaise ?? 0).toLocaleString("ar-EG")}</td>
+                        <td className="px-4 py-3 font-bold text-foreground">{rowTotal(b).toLocaleString("ar-EG")} ج.م</td>
+                        <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveFrom)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveTo) || "مفتوح"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1 text-xs">
+                            {(["commAttendance", "commExam", "commPentacam"] as const).map((field) => {
+                              const labels: Record<string, string> = { commAttendance: "25%", commExam: "فحص", commPentacam: "بنتاكام" };
+                              return (
+                                <label key={field} className="flex items-center gap-1 cursor-pointer select-none">
+                                  <input type="checkbox" checked={flags[field]} className="accent-primary"
+                                    onChange={e => toggle(field, e.target.checked)} />
+                                  <span className={flags[field] ? "text-foreground" : "text-muted-foreground line-through"}>{labels[field]}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => toggleExpand(b.empCd)}
+                              title="سجل الزيادات">
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(b)}><Pencil size={14} /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => { if (confirm("حذف هذا الراتب؟")) deleteMut.mutate({ id: b.id }); }}>
+                              <Trash2 size={14} className="text-destructive" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && <RaiseHistoryPanel key={`raise-${b.empCd}`} empCd={b.empCd} empName={b.fullName ?? b.empCd} />}
+                    </>
+                  );
+                });
+              })()}
               {basics.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">لا توجد رواتب محددة بعد</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">لا توجد رواتب محددة بعد</td></tr>
               )}
             </tbody>
           </table>

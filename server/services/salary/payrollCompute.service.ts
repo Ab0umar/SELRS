@@ -158,8 +158,25 @@ export class PayrollComputeService {
       }
     }
 
+    // Commission eligibility flags per employee
+    const commFlagsMap = new Map<string, { commAttendance: boolean; commExam: boolean; commPentacam: boolean }>();
+    for (const emp of employees) {
+      commFlagsMap.set(emp.empCd, {
+        commAttendance: emp.commAttendance !== false,
+        commExam:       emp.commExam       !== false,
+        commPentacam:   emp.commPentacam   !== false,
+      });
+    }
+
     const sumAllBasics = Array.from(empBasicMap.values()).reduce((s, b) => s + b, 0);
     const activeCount = empBasicMap.size;
+    // Pentacam denominator: only sum basics of employees eligible for pentacam
+    const sumBasicsForPenta = Array.from(empBasicMap.entries())
+      .filter(([cd]) => commFlagsMap.get(cd)?.commPentacam !== false)
+      .reduce((s, [, b]) => s + b, 0);
+    // Exam count: only count employees eligible for exam
+    const activeExamCount = Array.from(empBasicMap.keys())
+      .filter(cd => commFlagsMap.get(cd)?.commExam !== false).length;
 
     // Load shift staff for مركز — they share the same exam/pentacam pools
     const activeShiftStaff = isMarkaz
@@ -185,11 +202,11 @@ export class PayrollComputeService {
     const techs   = activeShiftStaff.filter(ss => ss.type === 'tech');
     // Use each tech's actual monthly shift pay (rate × attended) — same unit as employee basicSalary
     const sumTechShiftPay = techs.reduce((s, ss) => s + (shiftStatsMap.get(ss.id)?.shiftPay ?? 0), 0);
-    // Denominators include only techs alongside regular employees
-    const totalSumForPentacam = sumAllBasics + sumTechShiftPay;
+    // Denominators: use eligibility-filtered employee sums + techs
+    const totalSumForPentacam = sumBasicsForPenta + sumTechShiftPay;
     // Only count techs who have at least one scheduled shift this month
     const activeTechsThisMonth = techs.filter(ss => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0);
-    const totalCountForExam    = activeCount + activeTechsThisMonth.length;
+    const totalCountForExam    = activeExamCount + activeTechsThisMonth.length;
 
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
@@ -240,9 +257,15 @@ export class PayrollComputeService {
       const empRate = emp.attendanceCommissionRate != null ? Number(emp.attendanceCommissionRate) : null;
       const acRate = empRate !== null ? empRate : attendanceCommissionRate(leaveDays, acRates);
 
-      const attendanceCommission = round2(acRate * basic * (1 - deductionPct));
+      const flags = commFlagsMap.get(emp.empCd) ?? { commAttendance: true, commExam: true, commPentacam: true };
+
+      const attendanceCommission = flags.commAttendance
+        ? round2(acRate * basic * (1 - deductionPct))
+        : 0;
       let examCommission: number;
-      if (!isMarkaz && (examPoolConsultant !== null || examPoolSpecialist !== null)) {
+      if (!flags.commExam) {
+        examCommission = 0;
+      } else if (!isMarkaz && (examPoolConsultant !== null || examPoolSpecialist !== null)) {
         const t = emp.salaryType;
         const cShare = (t === 'استشاري' || t === 'الاثنين') ? perConsultant : 0;
         const sShare = (t === 'أخصائي' || t === 'الاثنين') ? perSpecialist : 0;
@@ -252,7 +275,7 @@ export class PayrollComputeService {
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
         examCommission = round2(examDivisor > 0 ? (examPool / examDivisor) * empShares : 0);
       }
-      const pentacamCommission = isMarkaz
+      const pentacamCommission = isMarkaz && flags.commPentacam
         ? round2(totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0)
         : 0;
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);

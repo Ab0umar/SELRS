@@ -447,10 +447,26 @@ export const salaryRouter = router({
     const db = await getDb();
     if (!db) throw new Error('DB unavailable');
     return await db
-      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType, attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate })
+      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType, attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate, commAttendance: attendanceEmployees.commAttendance, commExam: attendanceEmployees.commExam, commPentacam: attendanceEmployees.commPentacam })
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
   }),
+
+  setCommissionFlags: managerProcedure
+    .input(z.object({
+      empCd: z.string(),
+      commAttendance: z.boolean(),
+      commExam: z.boolean(),
+      commPentacam: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.update(attendanceEmployees)
+        .set({ commAttendance: input.commAttendance, commExam: input.commExam, commPentacam: input.commPentacam })
+        .where(eq(attendanceEmployees.empCd, input.empCd));
+      return { success: true };
+    }),
 
   // ── Shift Staff ──────────────────────────────────────────
   listShiftStaff: managerProcedure.query(async () => {
