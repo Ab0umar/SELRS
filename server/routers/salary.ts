@@ -473,10 +473,13 @@ export const salaryRouter = router({
           eq(attendanceDaily.status, 'absent'),
         ))
         .orderBy(attendanceDaily.workDate, attendanceEmployees.fullName);
-      return rows.map((r) => ({
-        ...r,
-        workDate: String(r.workDate).split('T')[0],
-      }));
+      return rows.map((r) => {
+        const d = r.workDate as any;
+        const workDate = (d instanceof Date)
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          : String(d).slice(0, 10);
+        return { ...r, workDate };
+      });
     }),
 
   setCommissionFlags: managerProcedure
