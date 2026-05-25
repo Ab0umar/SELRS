@@ -183,9 +183,10 @@ export class PayrollComputeService {
     // Separate doctors and techs — techs join employee pools, doctors get remainder
     const doctors = activeShiftStaff.filter(ss => ss.type === 'doctor');
     const techs   = activeShiftStaff.filter(ss => ss.type === 'tech');
-    const sumTechRates = techs.reduce((s, ss) => s + Number(ss.ratePerShift), 0);
+    // Use each tech's actual monthly shift pay (rate × attended) — same unit as employee basicSalary
+    const sumTechShiftPay = techs.reduce((s, ss) => s + (shiftStatsMap.get(ss.id)?.shiftPay ?? 0), 0);
     // Denominators include only techs alongside regular employees
-    const totalSumForPentacam = sumAllBasics + sumTechRates;
+    const totalSumForPentacam = sumAllBasics + sumTechShiftPay;
     const totalCountForExam   = activeCount + techs.length;
 
     // عيادة: count eligible employees per pool to avoid double-paying
@@ -291,11 +292,10 @@ export class PayrollComputeService {
     for (const ss of techs) {
       const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
       const { scheduled, attended, commMult, shiftPay } = stats;
-      const rate = Number(ss.ratePerShift);
 
       const attendanceCommission = round2(0.25 * shiftPay);
       const examCommission       = round2(totalCountForExam > 0 ? (examPool / totalCountForExam) * commMult : 0);
-      const pentacamCommission   = round2(totalSumForPentacam > 0 ? (rate / totalSumForPentacam) * pentacamPool * commMult : 0);
+      const pentacamCommission   = round2(totalSumForPentacam > 0 ? (shiftPay / totalSumForPentacam) * pentacamPool * commMult : 0);
       usedExam  = round2(usedExam  + examCommission);
       usedPenta = round2(usedPenta + pentacamCommission);
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
