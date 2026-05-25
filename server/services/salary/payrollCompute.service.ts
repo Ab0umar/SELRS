@@ -242,8 +242,13 @@ export class PayrollComputeService {
 
       const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
       const absentDeduction = round2(absentDays * dailyRate);
-      const lateDeduction = round2(lateMinutes * minuteRate);
-      const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
+      // Cap combined late + early leave at 200 minutes per month
+      const MAX_LATE_EARLY_MINS = 200;
+      const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
+      const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
+      const capRatio = rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
+      const lateDeduction = round2(lateMinutes * capRatio * minuteRate);
+      const earlyLeaveDeduction = round2(earlyLeaveMinutes * capRatio * minuteRate);
       const overtimePay = round2(overtimeMinutes * overtimeRate);
       const penaltyDeduction = round2(
         penalties.filter((p) => p.empCd === emp.empCd).reduce((s, p) => s + Number(p.amount), 0)
