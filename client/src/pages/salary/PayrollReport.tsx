@@ -228,6 +228,103 @@ export default function PayrollReport() {
     openPrint(html, `كشف الرواتب — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printBasicSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const tBasic   = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
+    const tAbsent  = rows.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
+    const tLate    = rows.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
+    const tEarly   = rows.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
+    const tPenalty = rows.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
+    const tDed     = rows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
+    const tNet     = rows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const bodyRows = rows.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.basicSalary)}</td>
+        <td>${fmt(r.absentDeduction)}</td>
+        <td>${fmt(r.lateDeduction ?? 0)}</td>
+        <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
+        <td>${fmt(r.penaltyDeduction)}</td>
+        <td>${fmt(r.totalDeductions)}</td>
+        <td style="font-weight:bold">${fmt(r.netBasic)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف الرواتب الأساسية عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr>
+          <th>الاسم</th><th>الأساسي</th><th>خصم غياب</th><th>خصم تأخير</th>
+          <th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الخصم</th><th>صافي الأساسي</th>
+          <th class="sig-col">التوقيع</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td class="emp-col">الإجمالي</td>
+            <td>${fmt(tBasic)}</td><td>${fmt(tAbsent)}</td><td>${fmt(tLate)}</td>
+            <td>${fmt(tEarly)}</td><td>${fmt(tPenalty)}</td><td>${fmt(tDed)}</td>
+            <td style="font-weight:bold">${fmt(tNet)}</td><td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف الأساسي — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
+  function printCommissionsSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const isClinic = section === "عيادة";
+    const tAttend = rows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
+    const tExam   = rows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
+    const tPenta  = rows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tOT     = rows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
+    const tComm   = rows.reduce((s: number, r: any) => s + Number(r.totalCommission), 0);
+    const bodyRows = rows.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.attendanceCommission)}</td>
+        <td>${fmt(r.examCommission)}</td>
+        ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
+        <td>${fmt(r.overtimePay ?? 0)}</td>
+        <td style="font-weight:bold">${fmt(r.totalCommission)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف العمولات عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr>
+          <th>الاسم</th><th>عمولة حضور</th><th>عمولة فحص</th>
+          ${!isClinic ? "<th>عمولة بنتاكام</th>" : ""}
+          <th>إضافي</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td class="emp-col">الإجمالي</td>
+            <td>${fmt(tAttend)}</td><td>${fmt(tExam)}</td>
+            ${!isClinic ? `<td>${fmt(tPenta)}</td>` : ""}
+            <td>${fmt(tOT)}</td><td style="font-weight:bold">${fmt(tComm)}</td><td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف العمولات — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
   function buildSlip(r: any, title: string, tableHtml: string, netPay: number): string {
     return `
       <div class="slip">
@@ -353,7 +450,7 @@ export default function PayrollReport() {
           {rows.length > 0 && (
             <>
               <Button variant="outline" onClick={printSheet} className="gap-2">
-                <Printer size={15} /> كشف
+                <Printer size={15} /> كامل
               </Button>
               <Button variant="outline" onClick={printDay1Slips} className="gap-2">
                 <Printer size={15} /> يوم 1
@@ -400,15 +497,19 @@ export default function PayrollReport() {
         </div>
       )}
 
+      {/* ── Basics section ── */}
       <section className="rounded-xl border border-border bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-base font-semibold">التفاصيل — {periodLabel}</h3>
-          {isFinalized && (
-            <span className="rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">نهائي</span>
-          )}
-          {rows.length > 0 && !isFinalized && (
-            <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">مسودة</span>
-          )}
+          <h3 className="text-base font-semibold">الرواتب الأساسية — {periodLabel}</h3>
+          <div className="flex items-center gap-2">
+            {isFinalized && <span className="rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">نهائي</span>}
+            {rows.length > 0 && !isFinalized && <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">مسودة</span>}
+            {rows.length > 0 && (
+              <Button variant="outline" size="sm" onClick={printBasicSheet} className="gap-1.5 h-8 text-xs">
+                <Printer size={13} /> طباعة
+              </Button>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -420,19 +521,11 @@ export default function PayrollReport() {
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">غياب</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">تأخير (د)</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">مبكر (د)</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (د)</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (ج)</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">جزاء</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">إجمالي الخصم</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">إجازة</th>
                 <th className="px-3 py-3 text-right font-medium text-muted-foreground">معامل</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">صافي الأساسي</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">حضور</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">فحص</th>
-                {section !== "عيادة" && <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>}
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 1</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">دفعة يوم 10</th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">الإجمالي</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">صافي الأساسي</th>
               </tr>
             </thead>
             <tbody>
@@ -447,25 +540,142 @@ export default function PayrollReport() {
                   <td className="px-3 py-3 text-right text-destructive">{r.absentDays}</td>
                   <td className="px-3 py-3 text-right text-warning">{r.lateMinutes}</td>
                   <td className="px-3 py-3 text-right text-warning">{r.earlyLeaveMinutes ?? 0}</td>
-                  <td className="px-3 py-3 text-right text-success">{r.overtimeMinutes ?? 0}</td>
-                  <td className="px-3 py-3 text-right text-success">{fmt(r.overtimePay ?? 0)}</td>
                   <td className="px-3 py-3 text-right text-destructive">{fmt(r.penaltyDeduction)}</td>
-                  <td className="px-3 py-3 text-right font-medium text-destructive">{fmt(r.totalDeductions)} <span className="text-xs">({pct(r.deductionPct)})</span></td>
+                  <td className="px-3 py-3 text-right font-medium text-destructive">{fmt(r.totalDeductions)}</td>
                   <td className="px-3 py-3 text-right">{r.leaveDays}</td>
                   <td className="px-3 py-3 text-right">{pct(r.leaveMultiplier)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-primary">{fmt(r.netBasic)}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={11} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+              )}
+            </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                  <td className="px-3 py-2" colSpan={7}>الإجمالي</td>
+                  <td className="px-3 py-2 text-right">{fmt(totals.deductions)}</td>
+                  <td colSpan={2} />
+                  <td className="px-3 py-2 text-right font-bold text-primary">{fmt(totals.netBasic)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </section>
+
+      {/* ── Commissions section ── */}
+      <section className="rounded-xl border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="text-base font-semibold">العمولات — {periodLabel}</h3>
+          {rows.length > 0 && (
+            <Button variant="outline" size="sm" onClick={printCommissionsSheet} className="gap-1.5 h-8 text-xs">
+              <Printer size={13} /> طباعة
+            </Button>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30 text-xs">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">الموظف</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">حضور</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">فحص</th>
+                {section !== "عيادة" && <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>}
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (د)</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (ج)</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">إجمالي العمولات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r: any) => (
+                <tr key={r.empCd} className="border-b border-border/50 hover:bg-muted/20">
+                  <td className="px-3 py-3">
+                    <div className="font-medium">{r.fullName ?? r.empCd}</div>
+                    <div className="text-xs text-muted-foreground">{r.salaryType ?? r.department ?? ""}</div>
+                  </td>
+                  <td className="px-3 py-3 text-right text-success">{fmt(r.attendanceCommission)}</td>
+                  <td className="px-3 py-3 text-right text-success">{fmt(r.examCommission)}</td>
+                  {section !== "عيادة" && <td className="px-3 py-3 text-right text-success">{fmt(r.pentacamCommission)}</td>}
+                  <td className="px-3 py-3 text-right text-success">{r.overtimeMinutes ?? 0}</td>
+                  <td className="px-3 py-3 text-right text-success">{fmt(r.overtimePay ?? 0)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-primary">{fmt(r.totalCommission)}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={section !== "عيادة" ? 7 : 6} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+              )}
+            </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                  <td className="px-3 py-2" colSpan={section !== "عيادة" ? 6 : 5}>الإجمالي</td>
+                  <td className="px-3 py-2 text-right font-bold text-primary">{fmt(totals.commission)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </section>
+      {/* ── Combined section ── */}
+      <section className="rounded-xl border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="text-base font-semibold">الكشف الكامل — {periodLabel}</h3>
+          {rows.length > 0 && (
+            <Button variant="outline" size="sm" onClick={printSheet} className="gap-1.5 h-8 text-xs">
+              <Printer size={13} /> طباعة
+            </Button>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30 text-xs">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">الموظف</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">الأساسي</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إجمالي الخصم</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">صافي الأساسي</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">حضور</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">فحص</th>
+                {section !== "عيادة" && <th className="px-3 py-3 text-right font-medium text-muted-foreground">بنتاكام</th>}
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">إضافي (ج)</th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r: any) => (
+                <tr key={r.empCd} className="border-b border-border/50 hover:bg-muted/20">
+                  <td className="px-3 py-3">
+                    <div className="font-medium">{r.fullName ?? r.empCd}</div>
+                    <div className="text-xs text-muted-foreground">{r.salaryType ?? r.department ?? ""}</div>
+                  </td>
+                  <td className="px-3 py-3 text-right">{fmt(r.basicSalary)}</td>
+                  <td className="px-3 py-3 text-right text-destructive">{fmt(r.totalDeductions)}</td>
                   <td className="px-3 py-3 text-right font-medium">{fmt(r.netBasic)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.attendanceCommission)}</td>
                   <td className="px-3 py-3 text-right text-success">{fmt(r.examCommission)}</td>
                   {section !== "عيادة" && <td className="px-3 py-3 text-right text-success">{fmt(r.pentacamCommission)}</td>}
-                  <td className="px-3 py-3 text-right font-medium">{fmt(r.netBasic)}</td>
-                  <td className="px-3 py-3 text-right font-medium text-success">{fmt(r.totalCommission)}</td>
+                  <td className="px-3 py-3 text-right text-success">{fmt(r.overtimePay ?? 0)}</td>
                   <td className="px-3 py-3 text-right font-bold text-primary text-base">{fmt(r.totalPay)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={section !== "عيادة" ? 19 : 18} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
+                <tr><td colSpan={section !== "عيادة" ? 9 : 8} className="px-4 py-10 text-center text-muted-foreground">اضغط «احتساب» لتوليد كشف الرواتب</td></tr>
               )}
             </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                  <td className="px-3 py-2">الإجمالي</td>
+                  <td className="px-3 py-2 text-right">{fmt(totals.basic)}</td>
+                  <td className="px-3 py-2 text-right">{fmt(totals.deductions)}</td>
+                  <td className="px-3 py-2 text-right">{fmt(totals.netBasic)}</td>
+                  <td colSpan={section !== "عيادة" ? 4 : 3} />
+                  <td className="px-3 py-2 text-right font-bold text-primary">{fmt(totals.totalPay)}</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </section>
