@@ -599,7 +599,13 @@ export const salaryRouter = router({
         const rows = attendance.filter(a => a.staffId === s.id);
         const attended = rows.filter(a => a.present).length;
         const rate = Number(s.ratePerShift);
-        return { id: s.id, name: s.name, type: s.type, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100 };
+        const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
+        for (const a of rows) {
+          if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
+          byShift[a.shiftName].scheduled++;
+          if (a.present) byShift[a.shiftName].attended++;
+        }
+        return { id: s.id, name: s.name, type: s.type, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100, byShift };
       });
     }),
 

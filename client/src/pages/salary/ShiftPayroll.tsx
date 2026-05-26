@@ -1,13 +1,43 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Printer } from "lucide-react";
 
 const now = new Date();
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 function fmt(n: number) {
   return Number(n).toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function toArabicWords(amount: number): string {
+  const n = Math.round(amount);
+  if (n === 0) return "صفر جنيه";
+  const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة",
+    "أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
+  const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+  function b100(x: number): string {
+    if (x < 20) return ones[x];
+    const o = x % 10;
+    return (o ? ones[o] + " و" : "") + tens[Math.floor(x / 10)];
+  }
+  function b1000(x: number): string {
+    if (x < 100) return b100(x);
+    const h = Math.floor(x / 100);
+    const r = x % 100;
+    const hw = h === 1 ? "مائة" : h === 2 ? "مئتان" : ones[h] + " مائة";
+    return hw + (r ? " و" + b100(r) : "");
+  }
+  const th = Math.floor(n / 1000);
+  const rem = n % 1000;
+  let out = "";
+  if (th === 1) out = "ألف";
+  else if (th === 2) out = "ألفان";
+  else if (th >= 3 && th <= 10) out = ones[th] + " آلاف";
+  else if (th > 10) out = b100(th) + " ألف";
+  if (rem) out += (out ? " و" : "") + b1000(rem);
+  return out + " جنيه";
 }
 
 export default function ShiftPayroll() {
@@ -24,6 +54,123 @@ export default function ShiftPayroll() {
   const totalAttended  = rows.reduce((s: number, r: any) => s + r.attended, 0);
   const totalAbsent    = rows.reduce((s: number, r: any) => s + r.absent, 0);
   const totalPay       = rows.reduce((s: number, r: any) => s + r.totalPay, 0);
+
+  function printSlips() {
+    // Collect all unique shift names across all rows
+    const allShiftNames = Array.from(new Set(
+      rows.flatMap((r: any) => Object.keys(r.byShift ?? {}))
+    ));
+
+    const SLIP_CSS = `
+      @page { size: A4; margin: 10mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: "Traditional Arabic", "Simplified Arabic", Arial, sans-serif; font-size: 9px; color: #000; direction: rtl; }
+      .slip { padding: 6px 0 4px; page-break-inside: avoid; }
+      .top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
+      .title { text-align: center; font-size: 16px; font-weight: bold; color: #00008B; margin-bottom: 6px; }
+      .meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+      .meta-right { font-size: 12px; font-weight: bold; }
+      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); }
+      .dept { font-size: 10px; margin-top: 2px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #999; padding: 2px 3px; text-align: center; font-size: 8px; }
+      .emp-cell { font-weight: bold; font-size: 9px; background: #f0f4ff; }
+      .net-cell { font-size: 16px; font-weight: bold; color: #00008B; background: #f0f4ff; vertical-align: middle; min-width: 60px; }
+      .net-label { font-size: 7px; display: block; margin-bottom: 4px; }
+      .total-cell { font-weight: bold; }
+      .words { text-align: right; font-size: 10px; margin: 4px 0 3px; }
+      .sigs { display: flex; justify-content: space-between; margin-top: 8px; }
+      .sig-block { text-align: center; font-size: 9px; }
+      .sig-line { border-bottom: 1px solid #000; width: 120px; margin: 14px auto 3px; }
+      hr.sep { border: none; border-top: 1px dashed #888; margin: 8px 0; }
+    `;
+
+    const titleAr = `مرتب شهر ${MONTHS_AR[month - 1]} ${year}`;
+    const today = new Date().toLocaleDateString("ar-EG");
+
+    const slips = rows.map((r: any, i: number) => {
+      const byShift = r.byShift ?? {};
+      const shiftCols = allShiftNames.map((sn: string) => {
+        const s = byShift[sn] ?? { attended: 0, rate: r.ratePerShift };
+        return `<td>${fmt(s.attended)}</td><td>${fmt(s.rate)}</td>`;
+      }).join("");
+
+      const shiftHeaders = allShiftNames.map((sn: string) =>
+        `<th colspan="2">شفتي ${sn}</th>`
+      ).join("");
+
+      const shiftSubHeaders = allShiftNames.map(() =>
+        `<th>عدد</th><th>قيمة</th>`
+      ).join("");
+
+      const shiftColspan = allShiftNames.length * 2;
+
+      return `
+        ${i > 0 ? '<hr class="sep"/>' : ""}
+        <div class="slip">
+          <div class="top">
+            <span></span>
+            <span>عيون السروق للخدمات الطبية</span>
+          </div>
+          <div class="title">${titleAr}</div>
+          <div class="meta">
+            <div class="meta-left">شفتات</div>
+            <div class="meta-right">
+              <div>الاسم/ ${r.name}</div>
+              <div class="dept">القسم التابع له/</div>
+            </div>
+          </div>
+          <table>
+            <tr>
+              <th rowspan="3" class="emp-cell">موظف</th>
+              ${shiftHeaders}
+              <th>إجمالي الاستحقاقات</th>
+              <th rowspan="3" class="net-cell"><span class="net-label">صافي المستحق</span>${fmt(r.totalPay)}</th>
+            </tr>
+            <tr>
+              ${shiftSubHeaders}
+              <th></th>
+            </tr>
+            <tr>
+              ${shiftCols}
+              <td class="total-cell">${fmt(r.totalPay)}</td>
+            </tr>
+            <tr>
+              <td class="emp-cell">موظف</td>
+              <td colspan="${shiftColspan - 2}">سلف عاملين</td>
+              <td>أرصدة مدينة</td>
+              <td>غياب</td>
+              <td>جزاءات</td>
+              <td>إجمالي الاستقطاعات</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td colspan="${shiftColspan - 2}">0.00</td>
+              <td>0.00</td>
+              <td>${r.absent}</td>
+              <td>0.00</td>
+              <td>0.00</td>
+            </tr>
+          </table>
+          <div class="words">${toArabicWords(r.totalPay)}</div>
+          <div class="sigs">
+            <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
+            <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const footer = `
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:#555;margin-top:10px;">
+        <span>تاريخ الطباعة: ${today}</span>
+        <span>صفحة 1 من 1</span>
+      </div>`;
+
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${titleAr}</title><style>${SLIP_CSS}</style></head><body>${slips}${footer}<script>window.onload=()=>window.print();<\/script></body></html>`);
+    win.document.close();
+  }
 
   function renderSection(data: any[], title: string) {
     if (data.length === 0) return null;
@@ -87,6 +234,11 @@ export default function ShiftPayroll() {
             <RefreshCw size={15} className={payrollQ.isFetching ? "animate-spin" : ""} />
             Refresh
           </Button>
+          {rows.length > 0 && (
+            <Button variant="outline" onClick={printSlips} className="gap-2">
+              <Printer size={15} /> طباعة
+            </Button>
+          )}
         </div>
       </div>
 
