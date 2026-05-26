@@ -23,6 +23,8 @@
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1",
     "db:restore": "powershell -ExecutionPolicy Bypass -File scripts/restore-db.ps1",
+    "s3:preview-dedup": "tsx scripts/preview-dedup-blackice.ts",
+    "s3:dedup-blackice": "tsx scripts/deduplicate-blackice.ts",
     "s3:migrate-blackice": "tsx scripts/migrate-blackice-to-s3.ts",
     "create-user": "tsx scripts/createUser.ts",
     "templates:export-ready-prescriptions": "tsx scripts/export-ready-prescriptions-to-excel.ts",
