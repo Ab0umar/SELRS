@@ -166,10 +166,17 @@ export default function ShiftPayroll() {
         <span>صفحة 1 من 1</span>
       </div>`;
 
-    const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${titleAr}</title><style>${SLIP_CSS}</style></head><body>${slips}${footer}<script>window.onload=()=>window.print();<\/script></body></html>`);
-    win.document.close();
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${titleAr}</title><style>${SLIP_CSS}</style></head><body>${slips}${footer}</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
+    }, 300);
   }
 
   function renderSection(data: any[], title: string) {

@@ -74,10 +74,17 @@ export default function AbsentReport() {
         </tfoot>
       </table>`;
 
-    const win = window.open("", "_blank", "width=700,height=600");
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>تقرير الغياب</title><style>${PRINT_CSS}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
-    win.document.close();
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>تقرير الغياب</title><style>${PRINT_CSS}</style></head><body>${html}</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
+    }, 300);
   }
 
   return (

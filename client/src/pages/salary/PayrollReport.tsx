@@ -100,10 +100,17 @@ export default function PayrollReport() {
   `;
 
   function openPrint(html: string, title: string, css: string) {
-    const win = window.open("", "_blank", "width=1000,height=800");
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${css}</style></head><body>${html}<script>window.onload=()=>window.print();<\/script></body></html>`);
-    win.document.close();
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
+    }, 300);
   }
 
   function toArabicWords(amount: number): string {
@@ -138,20 +145,21 @@ export default function PayrollReport() {
   function printSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const isClinic = section === "عيادة";
-    const tBasic    = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
-    const tAbsent   = rows.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
-    const tLate     = rows.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
-    const tEarly    = rows.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
-    const tPenalty  = rows.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
-    const tDed      = rows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
-    const tNetBasic = rows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
-    const tAttend   = rows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
-    const tExam     = rows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
-    const tPenta    = rows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
-    const tOT       = rows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
-    const tTotal    = rows.reduce((s: number, r: any) => s + Number(r.totalPay), 0);
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tBasic    = nonShift.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
+    const tAbsent   = nonShift.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
+    const tLate     = nonShift.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
+    const tEarly    = nonShift.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
+    const tPenalty  = nonShift.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
+    const tDed      = nonShift.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
+    const tNetBasic = nonShift.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const tAttend   = nonShift.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
+    const tExam     = nonShift.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
+    const tPenta    = nonShift.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tOT       = nonShift.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
+    const tTotal    = nonShift.reduce((s: number, r: any) => s + Number(r.totalPay), 0);
 
-    const bodyRows = rows.map((r: any) => `
+    const bodyRows = nonShift.map((r: any) => `
       <tr>
         <td class="emp-col">${r.fullName ?? r.empCd}</td>
         <td>${fmt(r.basicSalary)}</td>
@@ -230,14 +238,15 @@ export default function PayrollReport() {
 
   function printBasicSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const tBasic   = rows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
-    const tAbsent  = rows.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
-    const tLate    = rows.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
-    const tEarly   = rows.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
-    const tPenalty = rows.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
-    const tDed     = rows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
-    const tNet     = rows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
-    const bodyRows = rows.map((r: any) => `
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tBasic   = nonShift.reduce((s: number, r: any) => s + Number(r.basicSalary), 0);
+    const tAbsent  = nonShift.reduce((s: number, r: any) => s + Number(r.absentDeduction), 0);
+    const tLate    = nonShift.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
+    const tEarly   = nonShift.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
+    const tPenalty = nonShift.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
+    const tDed     = nonShift.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
+    const tNet     = nonShift.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const bodyRows = nonShift.map((r: any) => `
       <tr>
         <td class="emp-col">${r.fullName ?? r.empCd}</td>
         <td>${fmt(r.basicSalary)}</td>
@@ -281,12 +290,13 @@ export default function PayrollReport() {
   function printCommissionsSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const isClinic = section === "عيادة";
-    const tAttend = rows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
-    const tExam   = rows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
-    const tPenta  = rows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
-    const tOT     = rows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
-    const tComm   = rows.reduce((s: number, r: any) => s + Number(r.totalCommission), 0);
-    const bodyRows = rows.map((r: any) => `
+    const nonShift = rows.filter((s: any) => !String(s.empCd).startsWith("shift_"));
+    const tAttend = nonShift.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
+    const tExam   = nonShift.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
+    const tPenta  = nonShift.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tOT     = nonShift.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
+    const tComm   = nonShift.reduce((s: number, r: any) => s + Number(r.totalCommission), 0);
+    const bodyRows = nonShift.map((r: any) => `
       <tr>
         <td class="emp-col">${r.fullName ?? r.empCd}</td>
         <td>${fmt(r.attendanceCommission)}</td>
@@ -345,7 +355,7 @@ export default function PayrollReport() {
   }
 
   function printDay1Slips() {
-    const html = rows.map((r: any, i: number) => {
+    const html = rows.filter((r: any) => !String(r.empCd).startsWith("shift_")).map((r: any, i: number) => {
       const net     = Number(r.netBasic);
       const basic   = Number(r.basicSalary);
       const absent  = Number(r.absentDeduction);
@@ -393,7 +403,7 @@ export default function PayrollReport() {
 
   function printDay10Slips() {
     const isClinic = section === "عيادة";
-    const html = rows.map((r: any, i: number) => {
+    const html = rows.filter((r: any) => !String(r.empCd).startsWith("shift_")).map((r: any, i: number) => {
       const attend  = Number(r.attendanceCommission);
       const exam    = Number(r.examCommission);
       const penta   = Number(r.pentacamCommission);
