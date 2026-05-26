@@ -166,17 +166,16 @@ export default function ShiftPayroll() {
         <span>صفحة 1 من 1</span>
       </div>`;
 
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument!;
-    doc.open();
-    doc.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>${titleAr}</title><style>${SLIP_CSS}</style></head><body>${slips}${footer}</body></html>`);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
-    }, 300);
+    const mask = document.createElement("style");
+    mask.textContent = "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
+    const container = document.createElement("div");
+    container.id = "__pr__";
+    container.innerHTML = `<style>${SLIP_CSS}</style>${slips}${footer}`;
+    document.head.appendChild(mask);
+    document.body.appendChild(container);
+    const cleanup = () => { mask.remove(); container.remove(); window.removeEventListener("afterprint", cleanup); };
+    window.addEventListener("afterprint", cleanup);
+    window.print();
   }
 
   function renderSection(data: any[], title: string) {
