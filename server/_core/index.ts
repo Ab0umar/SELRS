@@ -841,6 +841,21 @@ async function startServer() {
             const documentId = path.parse(fileName).name.slice(0, 255);
             const mimeType = guessMimeType(fileName);
             const dbFileName = fileName.slice(0, 255);
+
+            // Check for duplicates before inserting
+            const [existing] = await withDb(async (conn) => {
+              return conn.query(
+                `SELECT id FROM blackice_uploads WHERE document_id = ? AND file_name = ? LIMIT 1`,
+                [documentId, dbFileName]
+              );
+            });
+
+            if ((existing as any[]).length > 0) {
+              console.log(`[blackice-import] Skipping ${fileName} (already imported as ID ${(existing as any[])[0].id})`);
+              await renameWithPrefix(fullPath, "DUPLICATE").catch(() => undefined);
+              continue;
+            }
+
             const uploadId = await withDb(async (conn) => {
               const [insertResult] = await conn.query(
                 `INSERT INTO blackice_uploads
