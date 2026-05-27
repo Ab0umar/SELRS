@@ -506,20 +506,20 @@ export const salaryRouter = router({
   }),
 
   addShiftStaff: managerProcedure
-    .input(z.object({ name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0) }))
+    .input(z.object({ name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), empCd: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      const result = await db.insert(shiftStaff).values({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any });
+      const result = await db.insert(shiftStaff).values({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, empCd: input.empCd ?? null });
       return { id: (result as any).insertId };
     }),
 
   updateShiftStaff: managerProcedure
-    .input(z.object({ id: z.number(), name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), active: z.boolean() }))
+    .input(z.object({ id: z.number(), name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), active: z.boolean(), empCd: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active }).where(eq(shiftStaff.id, input.id));
+      await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active, empCd: input.empCd ?? null }).where(eq(shiftStaff.id, input.id));
       return { success: true };
     }),
 
@@ -595,15 +595,54 @@ export const salaryRouter = router({
         db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
         db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
       ]);
+
+      // For staff linked to attendance employees, fetch fingerprint daily presence
+      const linkedEmpCds = staff.filter(s => s.empCd).map(s => s.empCd!);
+      const presentDatesMap = new Map<string, Set<string>>();
+      if (linkedEmpCds.length > 0) {
+        const mm = String(input.month).padStart(2, '0');
+        const lastDay = new Date(input.year, input.month, 0).getDate();
+        const dailyRows = await db
+          .select({ empCd: attendanceDaily.empCd, workDate: attendanceDaily.workDate, status: attendanceDaily.status })
+          .from(attendanceDaily)
+          .where(and(
+            inArray(attendanceDaily.empCd, linkedEmpCds),
+            gte(attendanceDaily.workDate, `${input.year}-${mm}-01` as any),
+            lte(attendanceDaily.workDate, `${input.year}-${mm}-${String(lastDay).padStart(2, '0')}` as any),
+          ));
+        for (const row of dailyRows) {
+          if (row.status !== 'present' && row.status !== 'partial') continue;
+          const d = row.workDate as any;
+          const ds = d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            : String(d).slice(0, 10);
+          if (!presentDatesMap.has(row.empCd)) presentDatesMap.set(row.empCd, new Set());
+          presentDatesMap.get(row.empCd)!.add(ds);
+        }
+      }
+
+      function resolvePresent(s: (typeof staff)[number], a: (typeof attendance)[number]): boolean {
+        if (!s.empCd) return a.present;
+        const presentDates = presentDatesMap.get(s.empCd);
+        if (!presentDates) return false;
+        const d = a.workDate as any;
+        const ds = d instanceof Date
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          : String(d).slice(0, 10);
+        return presentDates.has(ds);
+      }
+
       return staff.map(s => {
         const rows = attendance.filter(a => a.staffId === s.id);
-        const attended = rows.filter(a => a.present).length;
         const rate = Number(s.ratePerShift);
         const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
+        let attended = 0;
         for (const a of rows) {
+          const present = resolvePresent(s, a);
+          if (present) attended++;
           if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
-          if (a.present) byShift[a.shiftName].attended++;
+          if (present) byShift[a.shiftName].attended++;
         }
         return { id: s.id, name: s.name, type: s.type, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100, byShift };
       });

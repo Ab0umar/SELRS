@@ -1410,6 +1410,7 @@ export const shiftStaff = mysqlTable("shift_staff", {
   type: varchar("type", { length: 32 }).notNull(),
   ratePerShift: decimal("rate_per_shift", { precision: 10, scale: 2 }).notNull().default("0.00"),
   active: boolean("active").notNull().default(true),
+  empCd: varchar("emp_cd", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

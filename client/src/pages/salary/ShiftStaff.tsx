@@ -8,8 +8,8 @@ const TYPE_LABEL: Record<string, string> = { doctor: "Doctor", tech: "Technician
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const SHIFTS = ["Morning","Night"];
 
-interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; }
-const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true };
+interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; }
+const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "" };
 
 // dayOfWeek → shiftName | "" (off)
 type CycleMap = Record<number, string>;
@@ -72,8 +72,10 @@ export default function ShiftStaff() {
 
   const staffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const cyclesQ = (trpc as any).salary.getStaffCycles.useQuery();
+  const employeesQ = (trpc as any).salary.listEmployees.useQuery();
   const staff: any[] = staffQ.data ?? [];
   const cycles: any[] = cyclesQ.data ?? [];
+  const employees: any[] = employeesQ.data ?? [];
 
   const addMut = (trpc as any).salary.addShiftStaff.useMutation({
     onSuccess: () => { staffQ.refetch(); setAdding(false); setAddForm(EMPTY); toast.success("Staff added"); },
@@ -88,18 +90,18 @@ export default function ShiftStaff() {
   function submitAdd() {
     const rate = parseFloat(addForm.ratePerShift);
     if (!addForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
-    addMut.mutate({ name: addForm.name.trim(), type: addForm.type, ratePerShift: rate });
+    addMut.mutate({ name: addForm.name.trim(), type: addForm.type, ratePerShift: rate, empCd: addForm.empCd || undefined });
   }
 
   function startEdit(s: any) {
     setEditId(s.id); setCycleId(null);
-    setEditForm({ name: s.name, type: s.type, ratePerShift: String(s.ratePerShift), active: s.active });
+    setEditForm({ name: s.name, type: s.type, ratePerShift: String(s.ratePerShift), active: s.active, empCd: s.empCd ?? "" });
   }
 
   function submitEdit(id: number) {
     const rate = parseFloat(editForm.ratePerShift);
     if (!editForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
-    updateMut.mutate({ id, name: editForm.name.trim(), type: editForm.type, ratePerShift: rate, active: editForm.active });
+    updateMut.mutate({ id, name: editForm.name.trim(), type: editForm.type, ratePerShift: rate, active: editForm.active, empCd: editForm.empCd || undefined });
   }
 
   function hasCycle(id: number) {
@@ -134,6 +136,15 @@ export default function ShiftStaff() {
                 className="w-28 rounded border border-input bg-background px-2 py-1 text-sm text-right" />
             </td>
             <td className="px-4 py-2">
+              <select value={editForm.empCd} onChange={e => setEditForm(f => ({ ...f, empCd: e.target.value }))}
+                className="rounded border border-input bg-background px-2 py-1 text-sm w-40">
+                <option value="">— None —</option>
+                {employees.map((e: any) => (
+                  <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+                ))}
+              </select>
+            </td>
+            <td className="px-4 py-2">
               <select value={editForm.active ? "1" : "0"} onChange={e => setEditForm(f => ({ ...f, active: e.target.value === "1" }))}
                 className="rounded border border-input bg-background px-2 py-1 text-sm">
                 <option value="1">Active</option>
@@ -156,6 +167,11 @@ export default function ShiftStaff() {
             <td className="px-4 py-3 font-medium">{s.name}</td>
             <td className="px-4 py-3 text-muted-foreground text-sm">{TYPE_LABEL[s.type]}</td>
             <td className="px-4 py-3 text-right tabular-nums">{Number(s.ratePerShift).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP</td>
+            <td className="px-4 py-3 text-sm text-muted-foreground">
+              {s.empCd
+                ? (employees.find((e: any) => e.empCd === s.empCd)?.fullName ?? s.empCd)
+                : <span className="text-xs italic">Manual</span>}
+            </td>
             <td className="px-4 py-3">
               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
                 {s.active ? "Active" : "Inactive"}
@@ -197,6 +213,7 @@ export default function ShiftStaff() {
                 <th className="px-4 py-2 text-right font-medium">Name</th>
                 <th className="px-4 py-2 text-right font-medium">Type</th>
                 <th className="px-4 py-2 text-right font-medium">Rate / Shift</th>
+                <th className="px-4 py-2 text-right font-medium">Attendance Link</th>
                 <th className="px-4 py-2 text-right font-medium">Status</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -238,6 +255,13 @@ export default function ShiftStaff() {
                 className="w-40 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">EGP</span>
             </div>
+            <select value={addForm.empCd} onChange={e => setAddForm(f => ({ ...f, empCd: e.target.value }))}
+              className="rounded border border-input bg-background px-3 py-1.5 text-sm">
+              <option value="">Attendance link (optional)</option>
+              {employees.map((e: any) => (
+                <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+              ))}
+            </select>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>Save</Button>
