@@ -611,7 +611,7 @@ export const salaryRouter = router({
             lte(attendanceDaily.workDate, `${input.year}-${mm}-${String(lastDay).padStart(2, '0')}` as any),
           ));
         for (const row of dailyRows) {
-          if (row.status === 'absent' || row.status === 'leave') continue;
+          if (row.status !== 'present' && row.status !== 'partial' && row.status !== 'missing_checkout') continue;
           const d = row.workDate as any;
           const ds = d instanceof Date
             ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
