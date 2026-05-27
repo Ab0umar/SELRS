@@ -621,15 +621,17 @@ export const salaryRouter = router({
         }
       }
 
+      function fmtDate(d: any): string {
+        return d instanceof Date
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          : String(d).slice(0, 10);
+      }
+
       function resolvePresent(s: (typeof staff)[number], a: (typeof attendance)[number]): boolean {
         if (!s.empCd) return a.present;
         const presentDates = presentDatesMap.get(s.empCd);
         if (!presentDates) return false;
-        const d = a.workDate as any;
-        const ds = d instanceof Date
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          : String(d).slice(0, 10);
-        return presentDates.has(ds);
+        return presentDates.has(fmtDate(a.workDate));
       }
 
       return staff.map(s => {
@@ -637,6 +639,8 @@ export const salaryRouter = router({
         const rate = Number(s.ratePerShift);
         const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
         let attended = 0;
+
+        // Rules 1 & 2: scheduled shifts vs punches
         for (const a of rows) {
           const present = resolvePresent(s, a);
           if (present) attended++;
@@ -644,7 +648,33 @@ export const salaryRouter = router({
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
         }
-        return { id: s.id, name: s.name, type: s.type, empCd: s.empCd ?? null, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100, byShift };
+
+        // Rule 3: punch days with no scheduled shift → also pay
+        let extraAttended = 0;
+        if (s.empCd) {
+          const presentDates = presentDatesMap.get(s.empCd);
+          if (presentDates) {
+            const scheduledDates = new Set(rows.map(a => fmtDate(a.workDate)));
+            for (const d of presentDates) {
+              if (!scheduledDates.has(d)) extraAttended++;
+            }
+          }
+        }
+
+        const totalAttended = attended + extraAttended;
+        if (extraAttended > 0) {
+          byShift['إضافي'] = { scheduled: 0, attended: extraAttended, rate };
+        }
+
+        return {
+          id: s.id, name: s.name, type: s.type, empCd: s.empCd ?? null,
+          ratePerShift: rate,
+          scheduled: rows.length,
+          attended: totalAttended,
+          absent: rows.length - attended,
+          totalPay: Math.round(totalAttended * rate * 100) / 100,
+          byShift,
+        };
       });
     }),
 
