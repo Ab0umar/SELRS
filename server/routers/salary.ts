@@ -519,7 +519,10 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
+      console.log('[updateShiftStaff] input:', { id: input.id, empCd: input.empCd });
       await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active, empCd: input.empCd ?? null }).where(eq(shiftStaff.id, input.id));
+      const [updated] = await db.select({ id: shiftStaff.id, empCd: shiftStaff.empCd }).from(shiftStaff).where(eq(shiftStaff.id, input.id));
+      console.log('[updateShiftStaff] after save:', updated);
       return { success: true };
     }),
 
