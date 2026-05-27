@@ -341,11 +341,30 @@
     display: block;
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .page-layout th,
   .page-layout td {
     white-space: nowrap;
+    font-size: 0.8rem;
+    padding-inline: 0.4rem;
+    padding-block: 0.35rem;
+  }
+
+  /* Sticky first column for wide tables */
+  .page-layout table th:first-child,
+  .page-layout table td:first-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--card);
+    box-shadow: -2px 0 4px rgba(0,0,0,0.06);
+  }
+
+  .page-layout table thead th:first-child {
+    background: var(--muted);
+    z-index: 2;
   }
 
   .sheet-layout {

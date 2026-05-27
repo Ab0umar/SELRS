@@ -105,7 +105,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground" dir="rtl">
+    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
       <div className="border-b border-secondary/15 bg-gradient-to-b from-secondary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">

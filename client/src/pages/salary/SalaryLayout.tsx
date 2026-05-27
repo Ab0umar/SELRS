@@ -43,7 +43,7 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   const title = resolveTitle(location);
 
   return (
-    <div className="min-h-screen bg-background text-foreground" dir="rtl">
+    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
       <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
           <div className="space-y-3">

@@ -113,7 +113,7 @@ export class PayrollComputeService {
 
     const acRates = await loadAttendanceRates(db);
 
-    const [poolRows, basics, monthlyReports, dailyRows, penalties] = await Promise.all([
+    const [poolRows, basics, monthlyReports, dailyRows, penalties, shiftAttendanceRows] = await Promise.all([
       db.select().from(salaryCommissionPools)
         .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
         .limit(1),
@@ -124,11 +124,13 @@ export class PayrollComputeService {
         )),
       db.select().from(attendanceMonthlyReport)
         .where(and(eq(attendanceMonthlyReport.year, year), eq(attendanceMonthlyReport.month, month))),
-      db.select({ empCd: attendanceDaily.empCd, status: attendanceDaily.status })
+      db.select({ empCd: attendanceDaily.empCd, status: attendanceDaily.status, workDate: attendanceDaily.workDate })
         .from(attendanceDaily)
         .where(and(gte(attendanceDaily.workDate, firstDay as any), lte(attendanceDaily.workDate, lastDay as any))),
       db.select().from(salaryPenalties)
         .where(and(eq(salaryPenalties.year, year), eq(salaryPenalties.month, month))),
+      isMarkaz ? db.select().from(shiftAttendance)
+        .where(and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month))) : Promise.resolve([]),
     ]);
 
     const pool = poolRows[0];
@@ -182,26 +184,82 @@ export class PayrollComputeService {
     const activeShiftStaff = isMarkaz
       ? (await db.select().from(shiftStaff)).filter(ss => ss.active)
       : [];
-    const shiftAttRows = activeShiftStaff.length > 0
-      ? await db.select().from(shiftAttendance)
-          .where(and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month)))
-      : [];
+    const shiftAttRows = activeShiftStaff.length > 0 ? shiftAttendanceRows : [];
 
-    type ShiftStats = { scheduled: number; attended: number; commMult: number; shiftPay: number };
+    // Build map of punch dates for shift staff linked to employees
+    const linkedEmpCds = activeShiftStaff.filter(ss => ss.empCd).map(ss => ss.empCd!);
+    const punchDatesMap = new Map<string, Set<string>>();
+    if (linkedEmpCds.length > 0) {
+      for (const row of dailyRows) {
+        if (!linkedEmpCds.includes(row.empCd)) continue;
+        if (row.status !== 'present' && row.status !== 'partial' && row.status !== 'missing_checkout') continue;
+        if (!punchDatesMap.has(row.empCd)) punchDatesMap.set(row.empCd, new Set());
+        const d = row.workDate as any;
+        const ds = d instanceof Date
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          : String(d).slice(0, 10);
+        punchDatesMap.get(row.empCd)!.add(ds);
+      }
+    }
+
+    function fmtDate(d: any): string {
+      return d instanceof Date
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        : String(d).slice(0, 10);
+    }
+
+    type ShiftStats = { scheduled: number; attended: number; commMult: number; shiftPay: number; deductionPct: number; netPay: number };
     const shiftStatsMap = new Map<number, ShiftStats>();
     for (const ss of activeShiftStaff) {
       const rows = shiftAttRows.filter(a => a.staffId === ss.id);
       const scheduled = rows.length;
-      const attended = rows.filter(a => a.present).length;
-      const commMult = scheduled > 0 ? attended / scheduled : 1;
-      shiftStatsMap.set(ss.id, { scheduled, attended, commMult, shiftPay: round2(Number(ss.ratePerShift) * attended) });
+
+      // Count attended by checking punch data (for linked employees) or shift_attendance.present field
+      let attended = 0;
+      if (ss.empCd) {
+        const punchDates = punchDatesMap.get(ss.empCd);
+        attended = rows.filter(a => punchDates?.has(fmtDate(a.workDate))).length;
+      } else {
+        attended = rows.filter(a => a.present).length;
+      }
+      const rate = Number(ss.ratePerShift);
+
+      // For linked employees, apply punch deductions; otherwise, just attendance ratio
+      let deductionPct = 0;
+      if (ss.empCd) {
+        const report = monthlyReports.find((r) => r.empCd === ss.empCd);
+        if (report) {
+          const basic = empBasicMap.get(ss.empCd) ?? 0;
+          const lateMinutes = report.totalLateMins ?? 0;
+          const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
+          if (basic > 0 && scheduled > 0) {
+            const dailyRate = basic / scheduled;
+            const minuteRate = dailyRate / 360;
+            const MAX_LATE_EARLY_MINS = 200;
+            const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
+            const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
+            const capRatio = rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
+            const totalDeduction = round2(lateMinutes * capRatio * minuteRate + earlyLeaveMinutes * capRatio * minuteRate);
+            deductionPct = Math.min(1, totalDeduction / basic);
+          }
+        }
+      }
+
+      const basicSalary = round2(scheduled * rate);
+      const absent = scheduled - attended;
+      const absentDeduction = round2(absent * rate);
+      const punchDeduction = round2(basicSalary * deductionPct);
+      const netPay = round2(basicSalary - absentDeduction - punchDeduction);
+
+      const commMult = (scheduled > 0 ? attended / scheduled : 1) * (1 - deductionPct);
+      shiftStatsMap.set(ss.id, { scheduled, attended, commMult, shiftPay: round2(attended * rate), deductionPct, netPay });
     }
 
     // Separate doctors and techs — techs join employee pools, doctors get remainder
     const doctors = activeShiftStaff.filter(ss => ss.type === 'doctor');
     const techs   = activeShiftStaff.filter(ss => ss.type === 'tech');
-    // Use each tech's actual monthly shift pay (rate × attended) — same unit as employee basicSalary
-    const sumTechShiftPay = techs.reduce((s, ss) => s + (shiftStatsMap.get(ss.id)?.shiftPay ?? 0), 0);
+    // Use each tech's net pay (after deductions) for pool calculations
+    const sumTechShiftPay = techs.reduce((s, ss) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0), 0);
     // Denominators: use eligibility-filtered employee sums + techs
     const totalSumForPentacam = sumBasicsForPenta + sumTechShiftPay;
     // Only count techs who have at least one scheduled shift this month
@@ -320,35 +378,43 @@ export class PayrollComputeService {
     let usedExam  = 0;
     let usedPenta = 0;
     for (const ss of techs) {
-      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
-      const { scheduled, attended, commMult, shiftPay } = stats;
+      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0, deductionPct: 0, netPay: 0 };
+      const { scheduled, attended, commMult, shiftPay, deductionPct, netPay } = stats;
 
-      const attendanceCommission = round2(0.25 * shiftPay);
+      const rate = Number(ss.ratePerShift);
+      const basicSalary = round2(scheduled * rate);
+      const absent = scheduled - attended;
+      const absentDeduction = round2(absent * rate);
+      const punchDeduction = round2(basicSalary * deductionPct);
+      const totalDeductions = round2(absentDeduction + punchDeduction);
+      const netBasic = netPay;
+
+      const attendanceCommission = round2(0.25 * netBasic);
       const examCommission       = scheduled > 0 && totalCountForExam > 0 ? round2(examPool / totalCountForExam) : 0;
-      const pentacamCommission   = round2(totalSumForPentacam > 0 ? (shiftPay / totalSumForPentacam) * pentacamPool * commMult : 0);
+      const pentacamCommission   = round2(totalSumForPentacam > 0 ? (netBasic / totalSumForPentacam) * pentacamPool * commMult : 0);
       usedExam  = round2(usedExam  + examCommission);
       usedPenta = round2(usedPenta + pentacamCommission);
       const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
-      const totalPay        = round2(shiftPay + totalCommission);
+      const totalPay        = round2(netBasic + totalCommission);
 
       results.push({
         empCd: `shift_${ss.id}`,
         year, month, section,
-        basicSalary:         shiftPay,
+        basicSalary,
         workingDays:         scheduled,
-        absentDays:          scheduled - attended,
+        absentDays:          absent,
         lateMinutes:         0,
         earlyLeaveMinutes:   0,
         overtimeMinutes:     0,
         leaveDays:           0,
-        absentDeduction:     0,
-        lateDeduction:       0,
+        absentDeduction,
+        lateDeduction:       punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction:    0,
-        totalDeductions:     0,
-        deductionPct:        0,
+        totalDeductions,
+        deductionPct,
         leaveMultiplier:     1,
-        netBasic:            shiftPay,
+        netBasic,
         attendanceCommission,
         examCommission,
         pentacamCommission,
@@ -362,33 +428,41 @@ export class PayrollComputeService {
     const remainingExam  = Math.max(0, round2(examPool  - usedExam));
     const remainingPenta = Math.max(0, round2(pentacamPool - usedPenta));
     for (const ss of doctors) {
-      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0 };
-      const { scheduled, attended, commMult, shiftPay } = stats;
+      const stats = shiftStatsMap.get(ss.id) ?? { scheduled: 0, attended: 0, commMult: 1, shiftPay: 0, deductionPct: 0, netPay: 0 };
+      const { scheduled, attended, commMult, shiftPay, deductionPct, netPay } = stats;
 
-      const attendanceCommission = round2(0.25 * shiftPay);
+      const rate = Number(ss.ratePerShift);
+      const basicSalary = round2(scheduled * rate);
+      const absent = scheduled - attended;
+      const absentDeduction = round2(absent * rate);
+      const punchDeduction = round2(basicSalary * deductionPct);
+      const totalDeductions = round2(absentDeduction + punchDeduction);
+      const netBasic = netPay;
+
+      const attendanceCommission = round2(0.25 * netBasic);
       const examCommission       = round2(doctors.length > 0 ? remainingExam / doctors.length : 0);
       const pentacamCommission   = round2(doctors.length > 0 ? (remainingPenta / doctors.length) * commMult : 0);
       const totalCommission      = round2(attendanceCommission + examCommission + pentacamCommission);
-      const totalPay             = round2(shiftPay + totalCommission);
+      const totalPay             = round2(netBasic + totalCommission);
 
       results.push({
         empCd: `shift_${ss.id}`,
         year, month, section,
-        basicSalary:         shiftPay,
+        basicSalary,
         workingDays:         scheduled,
-        absentDays:          scheduled - attended,
+        absentDays:          absent,
         lateMinutes:         0,
         earlyLeaveMinutes:   0,
         overtimeMinutes:     0,
         leaveDays:           0,
-        absentDeduction:     0,
-        lateDeduction:       0,
+        absentDeduction,
+        lateDeduction:       punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction:    0,
-        totalDeductions:     0,
-        deductionPct:        0,
+        totalDeductions,
+        deductionPct,
         leaveMultiplier:     1,
-        netBasic:            shiftPay,
+        netBasic,
         attendanceCommission,
         examCommission,
         pentacamCommission,

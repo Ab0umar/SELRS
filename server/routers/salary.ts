@@ -10,6 +10,7 @@ import {
   salaryConfig,
   attendanceEmployees,
   attendanceDaily,
+  attendanceMonthlyReport,
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
@@ -591,14 +592,20 @@ export const salaryRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      const [staff, attendance] = await Promise.all([
+      const [staff, attendance, monthlyReports, basics] = await Promise.all([
         db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
         db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
+        db.select().from(attendanceMonthlyReport).where(and(eq(attendanceMonthlyReport.year, input.year), eq(attendanceMonthlyReport.month, input.month))),
+        db.select().from(salaryBasics).where(and(
+          lte(salaryBasics.effectiveFrom, `${input.year}-${String(input.month).padStart(2, '0')}-${String(new Date(input.year, input.month, 0).getDate()).padStart(2, '0')}` as any),
+          or(isNull(salaryBasics.effectiveTo), gte(salaryBasics.effectiveTo, `${input.year}-${String(input.month).padStart(2, '0')}-01` as any))
+        )),
       ]);
 
-      // For staff linked to attendance employees, fetch fingerprint daily presence
+      // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
       const linkedEmpCds = staff.filter(s => s.empCd).map(s => s.empCd!);
       const presentDatesMap = new Map<string, Set<string>>();
+      const deductionMap = new Map<string, number>();
       if (linkedEmpCds.length > 0) {
         const mm = String(input.month).padStart(2, '0');
         const lastDay = new Date(input.year, input.month, 0).getDate();
@@ -618,6 +625,34 @@ export const salaryRouter = router({
             : String(d).slice(0, 10);
           if (!presentDatesMap.has(row.empCd)) presentDatesMap.set(row.empCd, new Set());
           presentDatesMap.get(row.empCd)!.add(ds);
+        }
+
+        // Calculate deductions for linked employees
+        for (const empCd of linkedEmpCds) {
+          const report = monthlyReports.find(r => r.empCd === empCd);
+          const basicRow = basics
+            .filter(b => b.empCd === empCd)
+            .sort((a, b) => String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)))[0];
+          if (report && basicRow) {
+            const basic = Number(basicRow.basicAmount)
+              + Number((basicRow as any).socialAllowance ?? 0)
+              + Number((basicRow as any).costOfLivingAllowance ?? 0)
+              + Number((basicRow as any).transportAllowance ?? 0)
+              + Number((basicRow as any).workNatureAllowance ?? 0)
+              + Number((basicRow as any).receptionAllowance ?? 0)
+              + Number((basicRow as any).yearlyRaise ?? 0);
+            const lateMinutes = report.totalLateMins ?? 0;
+            const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
+            const workingDays = dailyRows.filter(d => d.empCd === empCd && d.status !== 'holiday').length || 1;
+            const dailyRate = basic / workingDays;
+            const minuteRate = dailyRate / 360;
+            const MAX_LATE_EARLY_MINS = 200;
+            const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
+            const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
+            const capRatio = rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
+            const totalDeduction = lateMinutes * capRatio * minuteRate + earlyLeaveMinutes * capRatio * minuteRate;
+            deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
+          }
         }
       }
 
@@ -666,13 +701,26 @@ export const salaryRouter = router({
           byShift['إضافي'] = { scheduled: 0, attended: extraAttended, rate };
         }
 
+        // Calculate pay: basic (all scheduled) - absent deduction - punch deduction
+        const scheduled = rows.length;
+        const absent = scheduled - attended;
+        const basicSalary = Math.round(scheduled * rate * 100) / 100;
+        const absentDeduction = Math.round(absent * rate * 100) / 100;
+        const punchDeductionPct = s.empCd ? (deductionMap.get(s.empCd) ?? 0) : 0;
+        const punchDeduction = Math.round(basicSalary * punchDeductionPct * 100) / 100;
+        const netPay = Math.round((basicSalary - absentDeduction - punchDeduction) * 100) / 100;
+        const totalPay = netPay;
+
         return {
           id: s.id, name: s.name, type: s.type, empCd: s.empCd ?? null,
           ratePerShift: rate,
-          scheduled: rows.length,
+          scheduled,
           attended: totalAttended,
-          absent: rows.length - attended,
-          totalPay: Math.round(totalAttended * rate * 100) / 100,
+          absent,
+          basicSalary,
+          absentDeduction,
+          punchDeduction,
+          totalPay,
           byShift,
         };
       });
