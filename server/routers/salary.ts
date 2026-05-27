@@ -597,6 +597,7 @@ export const salaryRouter = router({
       ]);
 
       // For staff linked to attendance employees, fetch fingerprint daily presence
+      console.log('[ShiftPayroll] staff empCds:', staff.map(s => ({ id: s.id, name: s.name, empCd: s.empCd })));
       const linkedEmpCds = staff.filter(s => s.empCd).map(s => s.empCd!);
       const presentDatesMap = new Map<string, Set<string>>();
       if (linkedEmpCds.length > 0) {
@@ -644,7 +645,7 @@ export const salaryRouter = router({
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
         }
-        return { id: s.id, name: s.name, type: s.type, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100, byShift };
+        return { id: s.id, name: s.name, type: s.type, empCd: s.empCd ?? null, ratePerShift: rate, scheduled: rows.length, attended, absent: rows.length - attended, totalPay: Math.round(attended * rate * 100) / 100, byShift };
       });
     }),
 

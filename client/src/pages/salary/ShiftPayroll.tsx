@@ -192,6 +192,7 @@ export default function ShiftPayroll() {
             <thead>
               <tr className="border-b border-border bg-muted/30 text-xs">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">empCd (debug)</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Rate / Shift</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Scheduled</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">Attended</th>
@@ -203,6 +204,7 @@ export default function ShiftPayroll() {
               {data.map((r: any) => (
                 <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-4 py-3 font-medium">{r.name}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{r.empCd ?? "null"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{fmt(r.ratePerShift)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.scheduled}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-green-600 font-medium">{r.attended}</td>
