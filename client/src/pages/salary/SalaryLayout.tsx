@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BadgeDollarSign, BarChart3, Users, AlertCircle, Wallet,
-  Settings2, UserRound, FileText, ClipboardList,
+  BadgeDollarSign, BarChart3, Users, Percent,
+  Settings2, UserRound, FileText, MinusCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -12,24 +12,22 @@ function fmt(n: number) {
   return Number(n).toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const salaryNav = [
-  { href: "/salary",               label: "الرواتب الأساسية", icon: Users },
-  { href: "/salary/penalties",     label: "الجزاءات",         icon: AlertCircle },
-  { href: "/salary/pools",         label: "العمولات الشهرية", icon: Wallet },
-  { href: "/salary/payroll",       label: "كشف الرواتب",      icon: BarChart3 },
-  { href: "/salary/absent-report", label: "الغياب والتصاريح", icon: ClipboardList },
-];
-
-const shiftNav = [
-  { href: "/salary/shift-staff",   label: "الشفتات",    icon: UserRound },
-  { href: "/salary/shift-payroll", label: "قيمة الشفت", icon: FileText },
+const navItems = [
+  { href: "/salary",               label: "الرواتب الأساسية", icon: Users,       extraActive: [] },
+  { href: "/salary/shift-staff",   label: "الشفتات",          icon: UserRound,   extraActive: [] },
+  { href: "/salary/pools",         label: "النسب",             icon: Percent,     extraActive: [] },
+  { href: "/salary/penalties",     label: "الخصومات",          icon: MinusCircle, extraActive: ["/salary/absent-report"] },
+  { href: "/salary/payroll",       label: "كشف الرواتب",      icon: BarChart3,   extraActive: [] },
+  { href: "/salary/shift-payroll", label: "كشف الشفتات",      icon: FileText,    extraActive: [] },
 ];
 
 function resolveTitle(pathname: string) {
   if (pathname.startsWith("/salary/penalties"))
-    return { title: "الجزاءات", description: "إضافة وإدارة الجزاءات الشهرية لكل موظف." };
+    return { title: "الخصومات", description: "إدارة الجزاءات والغياب والسلف والتأمينات لكل موظف." };
+  if (pathname.startsWith("/salary/absent-report"))
+    return { title: "الخصومات", description: "تقرير أيام الغياب والتصاريح الممنوحة للموظفين." };
   if (pathname.startsWith("/salary/pools"))
-    return { title: "العمولات الشهرية", description: "إدخال مبالغ عمولة الفحص والبنتاكام لكل شهر." };
+    return { title: "النسب", description: "إدخال نسب ومبالغ عمولة الفحص والبنتاكام لكل شهر." };
   if (pathname.startsWith("/salary/payroll"))
     return { title: "كشف الرواتب", description: "احتساب وعرض كشف الرواتب الشهري بالتفصيل." };
   if (pathname.startsWith("/salary/settings"))
@@ -37,9 +35,7 @@ function resolveTitle(pathname: string) {
   if (pathname.startsWith("/salary/shift-staff"))
     return { title: "الشفتات", description: "إدارة الأطباء والفنيين المعينين بنظام الشفتات وأسعارهم." };
   if (pathname.startsWith("/salary/shift-payroll"))
-    return { title: "قيمة الشفت", description: "تقرير الرواتب الشهري للأطباء والفنيين بحسب الشفتات المنجزة." };
-  if (pathname.startsWith("/salary/absent-report"))
-    return { title: "الغياب والتصاريح", description: "تقرير أيام الإجازة والتصاريح الممنوحة للموظفين." };
+    return { title: "كشف الشفتات", description: "تقرير الرواتب الشهري للأطباء والفنيين بحسب الشفتات المنجزة." };
   return { title: "الرواتب الأساسية", description: "إدارة الرواتب الأساسية لجميع الموظفين." };
 }
 
@@ -81,11 +77,12 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
     },
   ];
 
-  function navLink({ href, label, icon: Icon }: { href: string; label: string; icon: any }) {
+  function navLink({ href, label, icon: Icon, extraActive }: { href: string; label: string; icon: any; extraActive: string[] }) {
     const active =
       href === "/salary"
         ? location === href
-        : location === href || location.startsWith(`${href}/`);
+        : location === href || location.startsWith(`${href}/`) ||
+          extraActive.some(p => location === p || location.startsWith(`${p}/`));
     return (
       <Link
         key={href}
@@ -130,9 +127,7 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
                 </p>
               </div>
               <nav className="flex flex-wrap items-center gap-1.5">
-                {salaryNav.map(navLink)}
-                <span className="mx-1 h-5 w-px self-center bg-border" aria-hidden="true" />
-                {shiftNav.map(navLink)}
+                {navItems.map(navLink)}
               </nav>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[30rem]">

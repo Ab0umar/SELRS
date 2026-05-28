@@ -793,7 +793,7 @@ export const salaryRouter = router({
   monthSummary: managerProcedure
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
-      const db = getDb();
+      const db = await getDb();
       const [payAgg] = await db
         .select({
           totalPay: sql<string>`COALESCE(SUM(${salaryPayroll.totalPay}), 0)`,
