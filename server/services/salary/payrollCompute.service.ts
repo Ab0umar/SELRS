@@ -5,6 +5,7 @@ import {
   attendanceDaily,
   salaryBasics,
   salaryPenalties,
+  salaryAdvances,
   salaryCommissionPools,
   salaryPayroll,
   salaryConfig,
@@ -86,6 +87,8 @@ export interface PayrollRow {
   lateDeduction: number;
   earlyLeaveDeduction: number;
   penaltyDeduction: number;
+  advancesDeduction: number;
+  insuranceDeduction: number;
   totalDeductions: number;
   deductionPct: number;
   leaveMultiplier: number;
@@ -113,7 +116,7 @@ export class PayrollComputeService {
 
     const acRates = await loadAttendanceRates(db);
 
-    const [poolRows, basics, monthlyReports, dailyRows, penalties, shiftAttendanceRows] = await Promise.all([
+    const [poolRows, basics, monthlyReports, dailyRows, penalties, advances, shiftAttendanceRows] = await Promise.all([
       db.select().from(salaryCommissionPools)
         .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
         .limit(1),
@@ -129,6 +132,8 @@ export class PayrollComputeService {
         .where(and(gte(attendanceDaily.workDate, firstDay as any), lte(attendanceDaily.workDate, lastDay as any))),
       db.select().from(salaryPenalties)
         .where(and(eq(salaryPenalties.year, year), eq(salaryPenalties.month, month))),
+      db.select().from(salaryAdvances)
+        .where(and(eq(salaryAdvances.year, year), eq(salaryAdvances.month, month))),
       isMarkaz ? db.select().from(shiftAttendance)
         .where(and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month))) : Promise.resolve([]),
     ]);
@@ -311,7 +316,14 @@ export class PayrollComputeService {
       const penaltyDeduction = round2(
         penalties.filter((p) => p.empCd === emp.empCd).reduce((s, p) => s + Number(p.amount), 0)
       );
-      const totalDeductions = round2(absentDeduction + lateDeduction + earlyLeaveDeduction + penaltyDeduction);
+      const advancesDeduction = round2(
+        advances.filter((a) => a.empCd === emp.empCd).reduce((s, a) => s + Number(a.amount), 0)
+      );
+      const basicRow = basics
+        .filter((b) => b.empCd === emp.empCd)
+        .sort((a, b) => String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)))[0];
+      const insuranceDeduction = round2(Number((basicRow as any)?.insuranceDeduction ?? 0));
+      const totalDeductions = round2(absentDeduction + lateDeduction + earlyLeaveDeduction + penaltyDeduction + advancesDeduction + insuranceDeduction);
       const deductionPct = basic > 0 ? Math.min(1, totalDeductions / basic) : 0;
 
       const netBasic = round2(Math.max(0, basic - totalDeductions));
@@ -360,6 +372,8 @@ export class PayrollComputeService {
         lateDeduction,
         earlyLeaveDeduction,
         penaltyDeduction,
+        advancesDeduction,
+        insuranceDeduction,
         totalDeductions,
         deductionPct,
         leaveMultiplier: lm,
@@ -411,6 +425,8 @@ export class PayrollComputeService {
         lateDeduction:       punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction:    0,
+        advancesDeduction:   0,
+        insuranceDeduction:  0,
         totalDeductions,
         deductionPct,
         leaveMultiplier:     1,
@@ -459,6 +475,8 @@ export class PayrollComputeService {
         lateDeduction:       punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction:    0,
+        advancesDeduction:   0,
+        insuranceDeduction:  0,
         totalDeductions,
         deductionPct,
         leaveMultiplier:     1,
@@ -501,6 +519,8 @@ export class PayrollComputeService {
           lateDeduction: String(r.lateDeduction) as any,
           earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
           penaltyDeduction: String(r.penaltyDeduction) as any,
+          advancesDeduction: String(r.advancesDeduction) as any,
+          insuranceDeduction: String(r.insuranceDeduction) as any,
           totalDeductions: String(r.totalDeductions) as any,
           deductionPct: String(r.deductionPct) as any,
           leaveMultiplier: String(r.leaveMultiplier) as any,
@@ -527,6 +547,8 @@ export class PayrollComputeService {
             lateDeduction: String(r.lateDeduction) as any,
             earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
             penaltyDeduction: String(r.penaltyDeduction) as any,
+            advancesDeduction: String(r.advancesDeduction) as any,
+            insuranceDeduction: String(r.insuranceDeduction) as any,
             totalDeductions: String(r.totalDeductions) as any,
             deductionPct: String(r.deductionPct) as any,
             leaveMultiplier: String(r.leaveMultiplier) as any,

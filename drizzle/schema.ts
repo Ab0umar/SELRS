@@ -1292,6 +1292,7 @@ export const salaryBasics = mysqlTable("salary_basics", {
   workNatureAllowance: decimal("work_nature_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
   receptionAllowance: decimal("reception_allowance", { precision: 12, scale: 2 }).notNull().default("0"),
   yearlyRaise: decimal("yearly_raise", { precision: 12, scale: 2 }).notNull().default("0"),
+  insuranceDeduction: decimal("insurance_deduction", { precision: 12, scale: 2 }).notNull().default("0"),
   effectiveFrom: date("effective_from").notNull(),
   effectiveTo: date("effective_to"),
   notes: varchar("notes", { length: 255 }),
@@ -1363,6 +1364,8 @@ export const salaryPayroll = mysqlTable("salary_payroll", {
   lateDeduction: decimal("late_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
   earlyLeaveDeduction: decimal("early_leave_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
   penaltyDeduction: decimal("penalty_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
+  advancesDeduction: decimal("advances_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
+  insuranceDeduction: decimal("insurance_deduction", { precision: 12, scale: 2 }).default("0").notNull(),
   totalDeductions: decimal("total_deductions", { precision: 12, scale: 2 }).default("0").notNull(),
   deductionPct: decimal("deduction_pct", { precision: 6, scale: 4 }).default("0").notNull(),
   leaveMultiplier: decimal("leave_multiplier", { precision: 4, scale: 2 }).default("1").notNull(),
@@ -1383,6 +1386,22 @@ export const salaryPayroll = mysqlTable("salary_payroll", {
 
 export type SalaryPayroll = typeof salaryPayroll.$inferSelect;
 export type InsertSalaryPayroll = typeof salaryPayroll.$inferInsert;
+
+export const salaryAdvances = mysqlTable("salary_advances", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  reason: varchar("reason", { length: 500 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxAdvanceEmpMonth: index("idx_advance_emp_month").on(table.empCd, table.year, table.month),
+}));
+
+export type SalaryAdvance = typeof salaryAdvances.$inferSelect;
+export type InsertSalaryAdvance = typeof salaryAdvances.$inferInsert;
 
 export const salaryRaiseHistory = mysqlTable("salary_raise_history", {
   id: int("id").autoincrement().primaryKey(),

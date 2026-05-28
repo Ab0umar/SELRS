@@ -4,6 +4,7 @@ import { getDb } from '../db';
 import {
   salaryBasics,
   salaryPenalties,
+  salaryAdvances,
   salaryCommissionPools,
   salaryPayroll,
   salaryRaiseHistory,
@@ -26,6 +27,7 @@ const allowanceInput = z.object({
   workNatureAllowance: z.number().min(0).optional().default(0),
   receptionAllowance: z.number().min(0).optional().default(0),
   yearlyRaise: z.number().min(0).optional().default(0),
+  insuranceDeduction: z.number().min(0).optional().default(0),
 });
 
 export const salaryRouter = router({
@@ -77,6 +79,7 @@ export const salaryRouter = router({
         workNatureAllowance: String(input.workNatureAllowance ?? 0) as any,
         receptionAllowance: String(input.receptionAllowance ?? 0) as any,
         yearlyRaise: String(input.yearlyRaise ?? 0) as any,
+        insuranceDeduction: String(input.insuranceDeduction ?? 0) as any,
         effectiveFrom: input.effectiveFrom as any,
         effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
         notes: input.notes,
@@ -95,6 +98,7 @@ export const salaryRouter = router({
         workNatureAllowance: z.number().min(0).optional(),
         receptionAllowance: z.number().min(0).optional(),
         yearlyRaise: z.number().min(0).optional(),
+        insuranceDeduction: z.number().min(0).optional(),
         effectiveFrom: z.string().optional(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
@@ -111,6 +115,7 @@ export const salaryRouter = router({
       if (input.workNatureAllowance !== undefined) upd.workNatureAllowance = String(input.workNatureAllowance);
       if (input.receptionAllowance !== undefined) upd.receptionAllowance = String(input.receptionAllowance);
       if (input.yearlyRaise !== undefined) upd.yearlyRaise = String(input.yearlyRaise);
+      if (input.insuranceDeduction !== undefined) upd.insuranceDeduction = String(input.insuranceDeduction);
       if (input.effectiveFrom !== undefined) upd.effectiveFrom = input.effectiveFrom;
       if (input.effectiveTo !== undefined) upd.effectiveTo = input.effectiveTo ?? null;
       if (input.notes !== undefined) upd.notes = input.notes;
@@ -184,6 +189,46 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
       await db.delete(salaryPenalties).where(eq(salaryPenalties.id, input.id));
+      return { success: true };
+    }),
+
+  // ── Advances ─────────────────────────────────────────────
+  listAdvances: managerProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      return db.select().from(salaryAdvances)
+        .where(and(eq(salaryAdvances.year, input.year), eq(salaryAdvances.month, input.month)));
+    }),
+
+  addAdvance: managerProcedure
+    .input(z.object({
+      empCd: z.string().min(1),
+      year: z.number().int(),
+      month: z.number().int(),
+      amount: z.number().positive(),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const result = await db.insert(salaryAdvances).values({
+        empCd: input.empCd,
+        year: input.year,
+        month: input.month,
+        amount: String(input.amount) as any,
+        reason: input.reason,
+      });
+      return { id: (result as any).insertId };
+    }),
+
+  deleteAdvance: managerProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.delete(salaryAdvances).where(eq(salaryAdvances.id, input.id));
       return { success: true };
     }),
 
