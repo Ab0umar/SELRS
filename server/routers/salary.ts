@@ -15,7 +15,7 @@ import {
   shiftAttendance,
   shiftStaffCycle,
 } from '../../drizzle/schema';
-import { eq, and, gte, lte, isNull, or, desc, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, or, desc, inArray, sql } from 'drizzle-orm';
 import { PayrollComputeService, calcPentacamPool } from '../services/salary/payrollCompute.service';
 
 const allowanceInput = z.object({
@@ -788,5 +788,29 @@ export const salaryRouter = router({
       }
 
       return { inserted };
+    }),
+
+  monthSummary: managerProcedure
+    .input(z.object({ year: z.number(), month: z.number() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const [payAgg] = await db
+        .select({
+          totalPay: sql<string>`COALESCE(SUM(${salaryPayroll.totalPay}), 0)`,
+          totalCommission: sql<string>`COALESCE(SUM(${salaryPayroll.totalCommission}), 0)`,
+          staffCount: sql<number>`COUNT(*)`,
+        })
+        .from(salaryPayroll)
+        .where(and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month)));
+      const [penAgg] = await db
+        .select({ total: sql<string>`COALESCE(SUM(${salaryPenalties.amount}), 0)` })
+        .from(salaryPenalties)
+        .where(and(eq(salaryPenalties.year, input.year), eq(salaryPenalties.month, input.month)));
+      return {
+        totalPay: Number(payAgg?.totalPay ?? 0),
+        totalCommissions: Number(payAgg?.totalCommission ?? 0),
+        staffCount: Number(payAgg?.staffCount ?? 0),
+        totalPenalties: Number(penAgg?.total ?? 0),
+      };
     }),
 });

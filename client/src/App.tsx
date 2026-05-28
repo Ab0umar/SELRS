@@ -301,6 +301,7 @@ const Router = memo(function Router() {
       <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettingsHub /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDeviceSettings /></AttendanceLayout></ProtectedRoute>} />
       <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSyncStatus /></AttendanceLayout></ProtectedRoute>} />
+      <Route path={"/attendance/shift-schedule"} component={() => <ProtectedRoute><AttendanceLayout><ShiftSchedule /></AttendanceLayout></ProtectedRoute>} />
 
       {/* Salary Module Routes */}
       <Route path={"/salary"} component={() => <ProtectedRoute><SalaryLayout><SalaryBasics /></SalaryLayout></ProtectedRoute>} />
@@ -309,7 +310,6 @@ const Router = memo(function Router() {
       <Route path={"/salary/payroll"} component={() => <ProtectedRoute><SalaryLayout><PayrollReport /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/settings"} component={() => <ProtectedRoute><SalaryLayout><SalarySettings /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/shift-staff"} component={() => <ProtectedRoute><SalaryLayout><ShiftStaff /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/shift-schedule"} component={() => <ProtectedRoute><SalaryLayout><ShiftSchedule /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/shift-payroll"} component={() => <ProtectedRoute><SalaryLayout><ShiftPayroll /></SalaryLayout></ProtectedRoute>} />
       <Route path={"/salary/absent-report"} component={() => <ProtectedRoute><SalaryLayout><AbsentReport /></SalaryLayout></ProtectedRoute>} />
 

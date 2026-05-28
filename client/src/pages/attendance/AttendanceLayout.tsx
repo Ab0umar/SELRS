@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   Activity,
   BarChart3,
+  CalendarDays,
   LayoutDashboard,
   Smartphone,
   Users,
@@ -14,11 +15,12 @@ interface AttendanceLayoutProps {
 }
 
 const sections = [
-  { href: "/attendance", label: "اللوحة", icon: LayoutDashboard },
-  { href: "/attendance/live", label: "المباشر", icon: Activity },
-  { href: "/attendance/employees", label: "الموظفون", icon: Users },
-  { href: "/attendance/reports", label: "التقارير", icon: BarChart3 },
-  { href: "/attendance/settings", label: "الجهاز والإعدادات", icon: Smartphone },
+  { href: "/attendance",                label: "اللوحة",            icon: LayoutDashboard },
+  { href: "/attendance/live",           label: "المباشر",           icon: Activity },
+  { href: "/attendance/employees",      label: "الموظفون",          icon: Users },
+  { href: "/attendance/reports",        label: "التقارير",          icon: BarChart3 },
+  { href: "/attendance/shift-schedule", label: "الروستر الشهري",   icon: CalendarDays },
+  { href: "/attendance/settings",       label: "الجهاز والإعدادات", icon: Smartphone },
 ];
 
 function resolveTitle(pathname: string) {
@@ -41,6 +43,12 @@ function resolveTitle(pathname: string) {
       title: "التقارير",
       description:
         "مساحة عمل جاهزة للفلترة، المراجعة، والطباعة السريعة للتقارير اليومية والتفصيلية.",
+    };
+  }
+  if (pathname.startsWith("/attendance/shift-schedule")) {
+    return {
+      title: "الروستر الشهري",
+      description: "جدول الورديات الشهري للأطباء والفنيين وتسجيل الحضور.",
     };
   }
   if (pathname.startsWith("/attendance/settings")) {
