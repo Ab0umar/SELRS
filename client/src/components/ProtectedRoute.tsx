@@ -59,6 +59,7 @@ export default function ProtectedRoute({
     if (userRole === "admin") return true;
     if (cleanPath === "/profile") return true;
     if (cleanPath === "/attendance/my") return true;
+    if (cleanPath === "/attendance/shift-schedule") return true;
     if (userRole === "reception" && cleanPath === "/examination") return true;
     if ((cleanPath === "/admin/settings/pricing-rules" || cleanPath === "/admin-hub/settings/pricing-rules") && userRole === "accountant") return true;
     /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */

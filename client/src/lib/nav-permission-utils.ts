@@ -18,8 +18,12 @@ export function permissionsToAllowedRoots(permissions: string[]): string[] {
   return Array.from(new Set(normalized));
 }
 
+// Paths accessible to all authenticated users regardless of role permissions
+const ALWAYS_GRANTED = new Set(["/attendance/shift-schedule"]);
+
 /** Same generic path matching as ProtectedRoute (excluding role-specific exceptions). */
 export function pathGrantedByRoots(cleanPath: string, allowedRoots: string[]): boolean {
+  if (ALWAYS_GRANTED.has(cleanPath)) return true;
   if (!allowedRoots.length) return false;
   return allowedRoots.some((permission) => {
     if (!permission) return false;
