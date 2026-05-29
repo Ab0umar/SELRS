@@ -20,6 +20,7 @@ import {
   Archive,
   Banknote,
   CalendarCheck,
+  CalendarDays,
   ChevronDown,
   Clock,
   DollarSign,
@@ -96,6 +97,7 @@ export function AppTopNav({
       (leaf: NavLeaf): boolean => {
         if (isAdmin) return true;
         const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+        if (pathGrantedByRoots(cleanPath, [])) return true; // always-granted paths
         if (!permissionsQuery.isSuccess) return false;
         return pathGrantedByRoots(cleanPath, allowedRoots);
       },
@@ -475,6 +477,15 @@ export function AppTopNav({
                 <CalendarCheck className="h-4 w-4" />
                 حضوري
               </DropdownMenuItem>
+              {!isAdmin && ["doctor", "technician", "nurse"].includes(String(user?.role ?? "")) && (
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() => onNavigate("/attendance/shift-schedule")}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  الروستر الشهري
+                </DropdownMenuItem>
+              )}
               {isAdmin && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"

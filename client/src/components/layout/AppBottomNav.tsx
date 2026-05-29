@@ -1,4 +1,4 @@
-import { Activity, Archive, Banknote, Clock, DollarSign, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
+import { Activity, Archive, Banknote, CalendarDays, Clock, DollarSign, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { normalizeNavPath, pathGrantedByRoots } from "@/lib/nav-permission-utils"
 
@@ -26,6 +26,12 @@ const staffTabs = [
     label: "الحسابات",
     icon: Banknote,
     paths: ["/accounting"],
+  },
+  {
+    key: "roster",
+    label: "الروستر",
+    icon: CalendarDays,
+    paths: ["/attendance/shift-schedule"],
   },
   {
     key: "more",
@@ -78,7 +84,7 @@ type StaffTabKey = (typeof staffTabs)[number]["key"]
 type AdminTabKey = (typeof adminTabs)[number]["key"]
 
 function isTabActive(location: string, tab: (typeof staffTabs | typeof adminTabs)[number]): boolean {
-  if ("more" in tab && tab.key === "more") return false
+  if (tab.key === "more") return false
   const base = location.split("?")[0]
   return tab.paths.some((p) => base === p || base.startsWith(`${p}/`))
 }
@@ -127,10 +133,10 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdm
                 active ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
               )}
               onClick={() => {
-                if (tab.key === "more") {
+                if ((tab as any).key === "more") {
                   onOpenMore();
                 } else {
-                  onNavigate(tab.paths[0]);
+                  onNavigate((tab as any).paths[0]);
                 }
               }}
             >
