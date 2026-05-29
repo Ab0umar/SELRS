@@ -241,12 +241,13 @@ export default function ShiftSchedule() {
       ) : staff.length === 0 ? (
         <p className="text-sm text-muted-foreground">لا يوجد موظفون. أضف موظفين في تبويب الشفتات أولاً.</p>
       ) : (
+        <>
         {attendance.length === 0 && (
-        <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          لا توجد ورديات لهذا الشهر — اضغط <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> لبدء الجدولة.
-        </div>
-      )}
-      <div className="overflow-x-auto rounded-xl border border-border bg-background">
+          <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            لا توجد ورديات لهذا الشهر — اضغط <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> لبدء الجدولة.
+          </div>
+        )}
+        <div className="overflow-x-auto rounded-xl border border-border bg-background">
           <table className="text-sm border-collapse" style={{ minWidth: `${160 + displayStaff.length * 90}px` }}>
             <thead>
               <tr className="border-b border-border bg-muted/40">
@@ -313,6 +314,7 @@ export default function ShiftSchedule() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
