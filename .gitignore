@@ -37,6 +37,7 @@ android/app/*.jks
 android/app/*.keystore
 
 # Android build outputs
+android/*
 android/.gradle/
 android/build/
 android/app/build/
