@@ -110,44 +110,44 @@ export default function ShiftSchedule() {
   const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 
   function handlePrint() {
-    const dateCols = allDates.map(ds => {
-      const dow = new Date(ds + "T00:00:00").getDay();
-      return `<th><div style="font-size:7px">${DAYS_AR[dow]}</div><div>${fmtDate(ds)}</div></th>`;
-    }).join("");
+    const mid = Math.ceil(allDates.length / 2);
+    const halves = [allDates.slice(0, mid), allDates.slice(mid)];
 
-    const bodyRows = displayStaff.map((s: any) => {
-      const cells = allDates.map(ds => {
+    function buildTable(dates: string[]) {
+      const cols = dates.map(ds => {
         const dow = new Date(ds + "T00:00:00").getDay();
-        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
-        const text = entries.map((e: any) => {
-          const cls = e.shiftName === "Morning" ? "shift-m" : "shift-n";
-          const lbl = e.shiftName === "Morning" ? "ص" : "م";
-          return `<span class="${cls}">${e.present ? lbl : `(${lbl})`}</span>`;
-        }).join("");
-        return `<td>${text}</td>`;
+        return `<th><div style="font-weight:bold">${DAYS_AR[dow]}</div><div style="color:#555">${fmtDate(ds)}</div></th>`;
       }).join("");
-      return `<tr>
-        <td class="day-col">${s.type === "doctor" ? "د/" : "ف/"}${s.name}</td>
-        ${cells}
-      </tr>`;
-    }).join("");
-
-    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
-      <style>${PRINT_CSS}</style></head><body>
-      <h1>روستر شهر ${MONTHS_AR[month - 1]} ${year}</h1>
-      <table>
+      const rows = displayStaff.map((s: any) => {
+        const cells = dates.map(ds => {
+          const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+          const text = entries.map((e: any) => {
+            const cls = e.shiftName === "Morning" ? "shift-m" : "shift-n";
+            const lbl = e.shiftName === "Morning" ? "ص" : "م";
+            return `<span class="${cls}">${e.present ? lbl : `(${lbl})`}</span>`;
+          }).join("");
+          return `<td>${text}</td>`;
+        }).join("");
+        return `<tr><td class="day-col">${s.type === "doctor" ? "د/" : "ف/"}${s.name}</td>${cells}</tr>`;
+      }).join("");
+      return `<table>
         <thead><tr>
-          <th class="diag-cell" style="position:relative;min-width:80px;height:40px;">
+          <th style="position:relative;min-width:80px;height:40px;">
             <svg style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="none">
               <line x1="0" y1="0" x2="100%" y2="100%" stroke="#000" stroke-width="1"/>
             </svg>
             <span style="position:absolute;top:2px;left:4px;font-size:7px;">التاريخ</span>
             <span style="position:absolute;bottom:2px;right:4px;font-size:7px;">الاسم</span>
-          </th>
-          ${dateCols}
+          </th>${cols}
         </tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
+      <style>${PRINT_CSS} table{margin-bottom:14px}</style></head><body>
+      <h1>روستر شهر ${MONTHS_AR[month - 1]} ${year}</h1>
+      ${halves.map(h => buildTable(h)).join("")}
     </body></html>`;
 
     const iframe = document.createElement("iframe");
@@ -246,75 +246,73 @@ export default function ShiftSchedule() {
             لا توجد ورديات لهذا الشهر — اضغط <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> لبدء الجدولة.
           </div>
         )}
-        <div className="overflow-x-auto rounded-xl border border-border bg-background">
-          <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
-            <colgroup>
-              {/* staff name column */}
-              <col style={{ width: 110 }} />
-              {/* one column per day */}
-              {allDates.map(ds => <col key={ds} />)}
-            </colgroup>
-            <thead>
-              {/* Day-name row */}
-              <tr className="border-b border-border bg-muted/40">
-                <th className="relative border-l border-border p-0" style={{ height: 52 }}>
-                  <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" strokeWidth="1" className="text-border" />
-                  </svg>
-                  <span className="absolute top-1 right-2 text-[10px] font-semibold text-muted-foreground">التاريخ</span>
-                  <span className="absolute bottom-1 left-2 text-[10px] font-semibold text-muted-foreground">الاسم</span>
-                </th>
-                {allDates.map(ds => {
-                  const dow = new Date(ds + "T00:00:00").getDay();
-                                    return (
-                    <th key={ds} className="border-l border-border text-center p-0">
-                      <div className="text-[10px] font-medium text-muted-foreground leading-tight pt-1">{DAYS_AR[dow]}</div>
-                      <div className="text-[11px] font-bold tabular-nums pb-1">{fmtDate(ds)}</div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {displayStaff.map((s: any, idx: number) => (
-                <tr key={s.id} className={`border-b border-border/50 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
-                  <td className="border-l border-border px-2 py-1.5 font-semibold text-xs truncate">
-                    <span className="text-muted-foreground">{s.type === "doctor" ? "د/" : "ف/"}</span>{s.name}
-                  </td>
-                  {allDates.map(ds => {
+        {[allDates.slice(0, Math.ceil(allDates.length / 2)), allDates.slice(Math.ceil(allDates.length / 2))].map((half, hi) => (
+          <div key={hi} className="overflow-x-auto rounded-xl border border-border bg-background">
+            <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: 110 }} />
+                {half.map(ds => <col key={ds} />)}
+              </colgroup>
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="relative border-l border-border p-0" style={{ height: 56 }}>
+                    <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                      <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" strokeWidth="1" className="text-border" />
+                    </svg>
+                    <span className="absolute top-1 right-2 text-[10px] font-semibold text-muted-foreground">التاريخ</span>
+                    <span className="absolute bottom-1 left-2 text-[10px] font-semibold text-muted-foreground">الاسم</span>
+                  </th>
+                  {half.map(ds => {
                     const dow = new Date(ds + "T00:00:00").getDay();
-                                        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
                     return (
-                      <td key={ds} className="border-l border-border text-center p-0.5">
-                        {entries.length > 0 && (
-                          <div className="flex flex-col gap-0.5 items-center">
-                            {entries.map((e: any) => (
-                              <button
-                                key={e.id}
-                                onClick={() => toggleMut.mutate({ id: e.id, present: !e.present })}
-                                disabled={toggleMut.isPending}
-                                title={`${e.shiftName === "Morning" ? "صباح" : "مساء"} — انقر للتبديل`}
-                                className={`rounded px-1 py-0.5 text-[10px] font-bold w-full transition-colors ${
-                                  e.present
-                                    ? e.shiftName === "Morning"
-                                      ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-                                      : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
-                                    : "bg-muted text-muted-foreground line-through hover:bg-destructive/10"
-                                }`}
-                              >
-                                {e.shiftName === "Morning" ? "ص" : "م"}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </td>
+                      <th key={ds} className="border-l border-border text-center p-0" style={{ height: 56 }}>
+                        <div className="text-[11px] font-semibold text-foreground leading-tight pt-2">{DAYS_AR[dow]}</div>
+                        <div className="text-[11px] tabular-nums text-muted-foreground pb-2">{fmtDate(ds)}</div>
+                      </th>
                     );
                   })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {displayStaff.map((s: any, idx: number) => (
+                  <tr key={s.id} className={`border-b border-border/50 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} style={{ height: 40 }}>
+                    <td className="border-l border-border px-2 font-semibold text-xs truncate" style={{ height: 40 }}>
+                      <span className="text-muted-foreground">{s.type === "doctor" ? "د/" : "ف/"}</span>{s.name}
+                    </td>
+                    {half.map(ds => {
+                      const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                      return (
+                        <td key={ds} className="border-l border-border text-center p-1" style={{ height: 40 }}>
+                          {entries.length > 0 && (
+                            <div className="flex flex-col gap-0.5 items-center">
+                              {entries.map((e: any) => (
+                                <button
+                                  key={e.id}
+                                  onClick={() => toggleMut.mutate({ id: e.id, present: !e.present })}
+                                  disabled={toggleMut.isPending}
+                                  title={`${e.shiftName === "Morning" ? "صباح" : "مساء"} — انقر للتبديل`}
+                                  className={`rounded px-1.5 py-0.5 text-xs font-bold w-full transition-colors ${
+                                    e.present
+                                      ? e.shiftName === "Morning"
+                                        ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+                                        : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
+                                      : "bg-muted text-muted-foreground line-through hover:bg-destructive/10"
+                                  }`}
+                                >
+                                  {e.shiftName === "Morning" ? "ص" : "م"}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
         </>
       )}
     </div>
