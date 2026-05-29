@@ -31,16 +31,32 @@ export default function PayrollReport() {
   const month = new Date(fromDate).getMonth() + 1;
   const periodLabel = `${new Date(fromDate).toLocaleDateString("ar-EG")} — ${new Date(toDate).toLocaleDateString("ar-EG")}`;
 
-  const payrollQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section });
-  const rows: any[] = payrollQ.data ?? [];
+  const centerQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section: "مركز" });
+  const clinicQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section: "عيادة" });
+
+  // salaryBasics — for allowance breakdown in day-1 slips
+  const basicsQ = (trpc as any).salary.listBasics.useQuery();
+  const latestBasics: Record<string, any> = ((basicsQ.data ?? []) as any[]).reduce((acc: Record<string, any>, b: any) => {
+    if (!acc[b.empCd] || String(b.effectiveFrom) > String(acc[b.empCd].effectiveFrom)) acc[b.empCd] = b;
+    return acc;
+  }, {});
+  const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
+
+  // All non-shift employees from both sections — used for combined receipts print
+  const allPrintRows: any[] = [
+    ...(centerQ.data ?? []).map((r: any) => ({ ...r, _section: "مركز" })),
+    ...(clinicQ.data ?? []).map((r: any) => ({ ...r, _section: "عيادة" })),
+  ].filter((r: any) => !String(r.empCd).startsWith("shift_"));
+
+  const refetchBoth = () => { centerQ.refetch(); clinicQ.refetch(); };
 
   const computeMut = (trpc as any).salary.computePayroll.useMutation({
-    onSuccess: (res: any) => { payrollQ.refetch(); toast.success(`تم احتساب ${res.saved} موظف`); },
+    onSuccess: (res: any) => { refetchBoth(); toast.success(`تم احتساب ${res.saved} موظف`); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
   const finalizeMut = (trpc as any).salary.finalizePayroll.useMutation({
-    onSuccess: () => { payrollQ.refetch(); toast.success("تم اعتماد كشف الرواتب"); },
+    onSuccess: () => { refetchBoth(); toast.success("تم اعتماد كشف الرواتب"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -81,8 +97,8 @@ export default function PayrollReport() {
     @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; }
-    .slip { padding: 8px 0 6px; page-break-inside: avoid; }
-    hr.sep { border: none; border-top: 1px dashed #888; margin: 6px 0; }
+    .slip { padding: 8px 0 6px; break-inside: avoid; break-after: page; }
+    .slip:last-child { break-after: auto; }
     .slip-top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
     .slip-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
     .emp-name { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 3px; }
@@ -334,7 +350,7 @@ export default function PayrollReport() {
     openPrint(html, `كشف العمولات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
-  function buildSlip(r: any, title: string, tableHtml: string, netPay: number): string {
+  function buildSlip(r: any, title: string, tableHtml: string, netPay: number, empSection?: string): string {
     return `
       <div class="slip">
         <div class="slip-top">
@@ -343,7 +359,7 @@ export default function PayrollReport() {
         </div>
         <div class="slip-title">${title}</div>
         <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
-        <div class="dept-row">القسم التابع له/ ${section}</div>
+        <div class="dept-row">القسم التابع له/ ${empSection ?? r._section ?? section}</div>
         ${tableHtml}
         <div class="words">${toArabicWords(netPay)}</div>
         <div class="sigs">
@@ -354,15 +370,21 @@ export default function PayrollReport() {
   }
 
   function printDay1Slips() {
-    const html = rows.filter((r: any) => !String(r.empCd).startsWith("shift_")).map((r: any, i: number) => {
-      const net        = Number(r.netBasic);
-      const basic      = Number(r.basicSalary);
-      const absent     = Number(r.absentDeduction);
-      const penalty    = Number(r.penaltyDeduction);
-      const advances   = Number(r.advancesDeduction ?? 0);
-      const insurance  = Number(r.insuranceDeduction ?? 0);
-      const other      = Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
-      const totalDed   = Number(r.totalDeductions);
+    const html = allPrintRows.map((r: any, i: number) => {
+      const net       = Number(r.netBasic);
+      const b         = latestBasics[r.empCd] ?? {};
+      const basicAmt  = Number(b.basicAmount ?? r.basicSalary);
+      const social    = Number(b.socialAllowance ?? 0);
+      const cola      = Number(b.costOfLivingAllowance ?? 0);
+      const badlat    = Number(b.transportAllowance ?? 0) + Number(b.workNatureAllowance ?? 0) + Number(b.receptionAllowance ?? 0);
+      const raise     = Number(b.yearlyRaise ?? 0);
+      const grossBasic = basicAmt + social + cola + badlat + raise;
+      const absent    = Number(r.absentDeduction);
+      const penalty   = Number(r.penaltyDeduction);
+      const advances  = Number(r.advancesDeduction ?? 0);
+      const insurance = Number(r.insuranceDeduction ?? 0);
+      const other     = Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
+      const totalDed  = Number(r.totalDeductions);
       const table = `
         <table class="main">
           <tr>
@@ -378,8 +400,15 @@ export default function PayrollReport() {
             <th rowspan="4" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
           </tr>
           <tr>
-            <td>${fmt(basic)}</td><td>0.00</td><td>0.00</td><td>0.00</td>
-            <td>0.00</td><td>0.00</td><td>${fmt(basic)}</td><td>0.00</td><td>${fmt(basic)}</td>
+            <td>${fmt(basicAmt)}</td>
+            <td>${fmt(social)}</td>
+            <td>${fmt(cola)}</td>
+            <td>${fmt(badlat)}</td>
+            <td>${fmt(raise)}</td>
+            <td>0.00</td>
+            <td>${fmt(grossBasic)}</td>
+            <td>0.00</td>
+            <td>${fmt(grossBasic)}</td>
           </tr>
           <tr>
             <th>تامينت اجتماعية</th>
@@ -397,14 +426,14 @@ export default function PayrollReport() {
             <td colspan="2">${fmt(totalDed)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `مرتب ${periodLabel}`, table, net);
+      return buildSlip(r, `مرتب ${periodLabel}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 1 — ${section} — ${periodLabel}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 1 — ${periodLabel}`, SLIPS_CSS);
   }
 
   function printDay10Slips() {
-    const isClinic = section === "عيادة";
-    const html = rows.filter((r: any) => !String(r.empCd).startsWith("shift_")).map((r: any, i: number) => {
+    const html = allPrintRows.map((r: any, i: number) => {
+      const isClinic = (r._section ?? section) === "عيادة";
       const attend  = Number(r.attendanceCommission);
       const exam    = Number(r.examCommission);
       const penta   = Number(r.pentacamCommission);
@@ -428,9 +457,9 @@ export default function PayrollReport() {
             <td>${fmt(net)}</td>
           </tr>
         </table>`;
-      return (i > 0 ? '<hr class="sep"/>' : "") + buildSlip(r, `نسب ${periodLabel}`, table, net);
+      return buildSlip(r, `نسب ${periodLabel}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 10 — ${section} — ${periodLabel}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 10 — ${periodLabel}`, SLIPS_CSS);
   }
 
   return (
