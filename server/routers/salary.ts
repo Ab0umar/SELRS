@@ -844,17 +844,19 @@ export const salaryRouter = router({
         for (let day = 1; day <= daysInMonth; day++) {
           const d = new Date(input.year, input.month - 1, day);
           const dow = d.getDay(); // 0=Sun
-          const cycleEntry = staffCycles.find(c => c.dayOfWeek === dow);
-          if (!cycleEntry) continue;
+          const cycleEntries = staffCycles.filter(c => c.dayOfWeek === dow);
+          if (cycleEntries.length === 0) continue;
 
           const mm = String(input.month).padStart(2, '0');
           const dd = String(day).padStart(2, '0');
           const workDate = `${input.year}-${mm}-${dd}`;
 
-          await db.insert(shiftAttendance)
-            .values({ staffId: s.id, year: input.year, month: input.month, workDate: workDate as any, shiftName: cycleEntry.shiftName, present: true })
-            .onDuplicateKeyUpdate({ set: { shiftName: cycleEntry.shiftName } });
-          inserted++;
+          for (const cycleEntry of cycleEntries) {
+            await db.insert(shiftAttendance)
+              .values({ staffId: s.id, year: input.year, month: input.month, workDate: workDate as any, shiftName: cycleEntry.shiftName, present: true })
+              .onDuplicateKeyUpdate({ set: { present: true } });
+            inserted++;
+          }
         }
       }
 

@@ -11,19 +11,24 @@ const SHIFTS = ["Morning","Night"];
 interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; }
 const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "" };
 
-// dayOfWeek → shiftName | "" (off)
-type CycleMap = Record<number, string>;
+// dayOfWeek → set of active shiftNames
+type CycleMap = Record<number, string[]>;
+
+function buildCycleMap(staffCycles: any[]): CycleMap {
+  const m: CycleMap = {};
+  for (const c of staffCycles) {
+    if (!m[c.dayOfWeek]) m[c.dayOfWeek] = [];
+    if (!m[c.dayOfWeek].includes(c.shiftName)) m[c.dayOfWeek].push(c.shiftName);
+  }
+  return m;
+}
 
 function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: any[]; onSaved: () => void }) {
   const staffCycles = cycles.filter((c: any) => c.staffId === staffId);
-  const initial: CycleMap = {};
-  for (const c of staffCycles) initial[c.dayOfWeek] = c.shiftName;
-  const [local, setLocal] = useState<CycleMap>(initial);
+  const [local, setLocal] = useState<CycleMap>(() => buildCycleMap(staffCycles));
 
   useEffect(() => {
-    const m: CycleMap = {};
-    for (const c of staffCycles) m[c.dayOfWeek] = c.shiftName;
-    setLocal(m);
+    setLocal(buildCycleMap(cycles.filter((c: any) => c.staffId === staffId)));
   }, [cycles, staffId]);
 
   const saveMut = (trpc as any).salary.setStaffCycle.useMutation({
@@ -31,28 +36,41 @@ function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: an
     onError: (e: any) => toast.error(e.message),
   });
 
+  function toggle(dow: number, shift: string) {
+    setLocal(m => {
+      const current = m[dow] ?? [];
+      const next = current.includes(shift)
+        ? current.filter(s => s !== shift)
+        : [...current, shift];
+      return { ...m, [dow]: next };
+    });
+  }
+
   function save() {
-    const cycle = Object.entries(local)
-      .filter(([, s]) => s)
-      .map(([d, s]) => ({ dayOfWeek: parseInt(d), shiftName: s }));
+    const cycle = Object.entries(local).flatMap(([d, shifts]) =>
+      shifts.map(s => ({ dayOfWeek: parseInt(d), shiftName: s }))
+    );
     saveMut.mutate({ staffId, cycle });
   }
 
   return (
     <div className="px-4 pb-3 pt-1 space-y-2">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Weekly cycle</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {DAYS.map((day, dow) => (
-          <div key={dow} className="flex flex-col items-center gap-1">
-            <span className="text-xs text-muted-foreground">{day}</span>
-            <select
-              value={local[dow] ?? ""}
-              onChange={e => setLocal(m => ({ ...m, [dow]: e.target.value }))}
-              className="rounded border border-input bg-background px-1.5 py-1 text-xs w-20"
-            >
-              <option value="">Off</option>
-              {SHIFTS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div key={dow} className="flex flex-col items-center gap-1.5 min-w-[52px]">
+            <span className="text-xs font-medium text-muted-foreground">{day}</span>
+            {SHIFTS.map(shift => (
+              <label key={shift} className="flex items-center gap-1 text-xs cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={(local[dow] ?? []).includes(shift)}
+                  onChange={() => toggle(dow, shift)}
+                  className="rounded"
+                />
+                {shift}
+              </label>
+            ))}
           </div>
         ))}
       </div>
