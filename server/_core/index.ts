@@ -853,7 +853,6 @@ async function startServer() {
 
             if ((existing as any[]).length > 0) {
               console.log(`[blackice-import] Skipping ${fileName} (already imported as ID ${(existing as any[])[0].id})`);
-              await renameWithPrefix(fullPath, "DUPLICATE").catch(() => undefined);
               continue;
             }
 
@@ -863,8 +862,7 @@ async function startServer() {
               await uploadToS3(s3Key, fileData, mimeType);
               console.log(`[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`);
             } catch (error: any) {
-              console.warn(`[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}, storing in DB`);
-              s3Key = null;
+              console.warn(`[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`);
             }
 
             const uploadId = await withDb(async (conn) => {
@@ -872,7 +870,7 @@ async function startServer() {
                 `INSERT INTO blackice_uploads
                  (document_id, file_name, mime_type, file_data, s3_key, source_printer)
                  VALUES (?, ?, ?, ?, ?, ?)`,
-                [documentId, dbFileName, mimeType, s3Key ? null : fileData, s3Key, cfg.sourcePrinter]
+                [documentId, dbFileName, mimeType, fileData, s3Key, cfg.sourcePrinter]
               );
               return Number((insertResult as any)?.insertId ?? 0);
             });
