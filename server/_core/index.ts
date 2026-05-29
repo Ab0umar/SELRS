@@ -109,7 +109,7 @@ function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
   const sourceDir = String(process.env.BLACKICE_IMPORT_SOURCE_DIR || defaultSourceDir).trim();
   const pollIntervalMs = Math.max(2_000, Number(process.env.BLACKICE_IMPORT_POLL_MS || 10_000));
   const minFileAgeMs = Math.max(1_000, Number(process.env.BLACKICE_IMPORT_MIN_FILE_AGE_MS || 5_000));
-  const maxFilesPerCycle = Math.max(1, Math.min(200, Number(process.env.BLACKICE_IMPORT_MAX_FILES_PER_CYCLE || 20)));
+  const maxFilesPerCycle = Math.max(1, Number(process.env.BLACKICE_IMPORT_MAX_FILES_PER_CYCLE || 9999));
   const sourcePrinter = String(process.env.BLACKICE_IMPORT_SOURCE_PRINTER || "Pentacam").trim() || "Pentacam";
 
   const enabled = parseBooleanEnv(process.env.BLACKICE_IMPORT_ENABLED, true);
@@ -893,9 +893,9 @@ async function startServer() {
               }
             }
 
-            // Strict rule: only explicit header ID can be used as ID prefix.
-            // If ID is not extracted, keep filename-based name/eye rename without any ID prefix.
-            const renamedPath = await renameToPatientIdentity(fullPath, importCode, undefined, undefined);
+            // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
+            const effectiveCode = importCode || extractLeadingIdFromFileName(fileName);
+            const renamedPath = await renameToPatientIdentity(fullPath, effectiveCode, undefined, undefined);
             const movedPath =
               path.resolve(path.dirname(renamedPath)) === path.resolve(cfg.processedDir)
                 ? renamedPath
