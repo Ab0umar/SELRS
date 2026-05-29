@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, Printer } from "lucide-react";
+import { Plus, RefreshCw, Printer, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -110,6 +110,11 @@ export default function ShiftSchedule() {
   // Self-service toggle
   const toggleMyMut = (trpc as any).salary.toggleMyShiftEntry.useMutation({
     onSuccess: () => schedQ.refetch(),
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  // Delete a single shift entry (manager only)
+  const deleteEntryMut = (trpc as any).salary.deleteShiftEntry.useMutation({
+    onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); toast.success("تم حذف الوردية"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -330,25 +335,37 @@ export default function ShiftSchedule() {
                         <td key={ds} className="border-l border-border text-center p-1 group/cell" style={{ height: 40 }}>
                           <div className="flex flex-col gap-0.5 items-center">
                             {entries.map((e: any) => (
-                              <button
-                                key={e.id}
-                                onClick={() => canEdit
-                                  ? (isManager
-                                      ? toggleMut.mutate({ id: e.id, present: !e.present })
-                                      : toggleMyMut.mutate({ id: e.id, present: !e.present }))
-                                  : undefined
-                                }
-                                disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
-                                className={`rounded px-1.5 py-0.5 text-xs font-bold w-full transition-colors ${
-                                  e.present
-                                    ? e.shiftName === "Morning"
-                                      ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-                                      : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
-                                    : "bg-muted text-muted-foreground line-through"
-                                } ${!canEdit ? "cursor-default" : ""}`}
-                              >
-                                {e.shiftName === "Morning" ? "ص" : "م"}
-                              </button>
+                              <div key={e.id} className="relative group/entry flex items-center w-full">
+                                <button
+                                  onClick={() => canEdit
+                                    ? (isManager
+                                        ? toggleMut.mutate({ id: e.id, present: !e.present })
+                                        : toggleMyMut.mutate({ id: e.id, present: !e.present }))
+                                    : undefined
+                                  }
+                                  disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
+                                  title={canEdit ? (e.present ? "انقر لتغيير الحضور" : "انقر لتسجيل الحضور") : undefined}
+                                  className={`rounded px-1.5 py-0.5 text-xs font-bold flex-1 transition-colors ${
+                                    e.present
+                                      ? e.shiftName === "Morning"
+                                        ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+                                        : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
+                                      : "bg-muted text-muted-foreground line-through"
+                                  } ${!canEdit ? "cursor-default" : ""}`}
+                                >
+                                  {e.shiftName === "Morning" ? "ص" : "م"}
+                                </button>
+                                {isManager && (
+                                  <button
+                                    onClick={() => deleteEntryMut.mutate({ id: e.id })}
+                                    disabled={deleteEntryMut.isPending}
+                                    title="حذف الوردية"
+                                    className="hidden group-hover/entry:flex absolute -top-1 -left-1 z-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground w-3.5 h-3.5 hover:bg-destructive/80 transition-colors"
+                                  >
+                                    <X size={8} strokeWidth={2.5} />
+                                  </button>
+                                )}
+                              </div>
                             ))}
                             {/* Self-service add button for own row */}
                             {isMyRow && entries.length === 0 && (
