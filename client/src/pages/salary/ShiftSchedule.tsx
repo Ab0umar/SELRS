@@ -25,6 +25,19 @@ function fmtDate(ds: string) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+// Safe date-key — handles both string "YYYY-MM-DD" and Date objects returned by mysql2
+function toDateKey(v: unknown): string {
+  if (!v) return "";
+  if (v instanceof Date) return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`;
+  const s = String(v);
+  // already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // Date.toString() fallback
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return s.slice(0, 10);
+}
+
 type Period = "day" | "week" | "month";
 interface AddForm { staffId: string; shiftName: string; period: Period; anchorDate: string; }
 const EMPTY_ADD: AddForm = { staffId: "", shiftName: "", period: "day", anchorDate: "" };
@@ -87,7 +100,7 @@ export default function ShiftSchedule() {
   // attendance map: staffId_dateStr → [entries]
   const attendMap = new Map<string, any[]>();
   for (const row of attendance) {
-    const key = `${row.staffId}_${String(row.workDate).slice(0, 10)}`;
+    const key = `${row.staffId}_${toDateKey(row.workDate)}`;
     if (!attendMap.has(key)) attendMap.set(key, []);
     attendMap.get(key)!.push(row);
   }
@@ -104,7 +117,7 @@ export default function ShiftSchedule() {
       const dow = new Date(ds + "T00:00:00").getDay();
       const isFri = dow === 5;
       const cells = displayStaff.map((s: any) => {
-        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];  // ds is already YYYY-MM-DD
         const text = entries.map((e: any) => {
           const cls = e.shiftName === "Morning" ? "shift-m" : "shift-n";
           const lbl = e.shiftName === "Morning" ? "ص" : "م";
@@ -228,7 +241,12 @@ export default function ShiftSchedule() {
       ) : staff.length === 0 ? (
         <p className="text-sm text-muted-foreground">لا يوجد موظفون. أضف موظفين في تبويب الشفتات أولاً.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-background">
+        {attendance.length === 0 && (
+        <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+          لا توجد ورديات لهذا الشهر — اضغط <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> لبدء الجدولة.
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-xl border border-border bg-background">
           <table className="text-sm border-collapse" style={{ minWidth: `${160 + displayStaff.length * 90}px` }}>
             <thead>
               <tr className="border-b border-border bg-muted/40">
