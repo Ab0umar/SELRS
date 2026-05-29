@@ -426,9 +426,9 @@ export default function PayrollReport() {
             <td colspan="2">${fmt(totalDed)}</td>
           </tr>
         </table>`;
-      return buildSlip(r, `مرتب ${periodLabel}`, table, net);
+      return buildSlip(r, `مرتب ${MONTHS[month - 1]} ${year}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 1 — ${periodLabel}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 1 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   function printDay10Slips() {
@@ -457,9 +457,9 @@ export default function PayrollReport() {
             <td>${fmt(net)}</td>
           </tr>
         </table>`;
-      return buildSlip(r, `نسب ${periodLabel}`, table, net);
+      return buildSlip(r, `نسب ${MONTHS[month - 1]} ${year}`, table, net);
     }).join("");
-    openPrint(html, `دفعة يوم 10 — ${periodLabel}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 10 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   return (
