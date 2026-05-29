@@ -46,6 +46,7 @@ export const salaryRouter = router({
         workNatureAllowance: salaryBasics.workNatureAllowance,
         receptionAllowance: salaryBasics.receptionAllowance,
         yearlyRaise: salaryBasics.yearlyRaise,
+        insuranceDeduction: salaryBasics.insuranceDeduction,
         effectiveFrom: salaryBasics.effectiveFrom,
         effectiveTo: salaryBasics.effectiveTo,
         notes: salaryBasics.notes,
