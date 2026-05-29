@@ -355,12 +355,14 @@ export default function PayrollReport() {
 
   function printDay1Slips() {
     const html = rows.filter((r: any) => !String(r.empCd).startsWith("shift_")).map((r: any, i: number) => {
-      const net     = Number(r.netBasic);
-      const basic   = Number(r.basicSalary);
-      const absent  = Number(r.absentDeduction);
-      const penalty = Number(r.penaltyDeduction);
-      const other   = Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
-      const totalDed = Number(r.totalDeductions);
+      const net        = Number(r.netBasic);
+      const basic      = Number(r.basicSalary);
+      const absent     = Number(r.absentDeduction);
+      const penalty    = Number(r.penaltyDeduction);
+      const advances   = Number(r.advancesDeduction ?? 0);
+      const insurance  = Number(r.insuranceDeduction ?? 0);
+      const other      = Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
+      const totalDed   = Number(r.totalDeductions);
       const table = `
         <table class="main">
           <tr>
@@ -390,7 +392,7 @@ export default function PayrollReport() {
             <th colspan="2">أجمال الاستقطاعات</th>
           </tr>
           <tr>
-            <td>0.00</td><td>0.00</td><td>0.00</td>
+            <td>${fmt(insurance)}</td><td>${fmt(advances)}</td><td>0.00</td>
             <td>${fmt(absent)}</td><td>${fmt(penalty)}</td><td>${fmt(other)}</td><td>0.00</td>
             <td colspan="2">${fmt(totalDed)}</td>
           </tr>

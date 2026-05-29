@@ -355,6 +355,8 @@ export const salaryRouter = router({
           lateDeduction: salaryPayroll.lateDeduction,
           earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
           penaltyDeduction: salaryPayroll.penaltyDeduction,
+          advancesDeduction: salaryPayroll.advancesDeduction,
+          insuranceDeduction: salaryPayroll.insuranceDeduction,
           totalDeductions: salaryPayroll.totalDeductions,
           deductionPct: salaryPayroll.deductionPct,
           leaveMultiplier: salaryPayroll.leaveMultiplier,
