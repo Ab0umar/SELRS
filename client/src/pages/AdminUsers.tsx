@@ -75,9 +75,11 @@ type UserRole =
   | "technician"
   | "reception"
   | "manager"
-  | "accountant";
+  | "accountant"
+  | "worker"
+  | "supervisor";
 type UserBranch = "examinations" | "surgery" | "both";
-type TeamPermissionsMap = Record<UserRole, string[]>;
+type TeamPermissionsMap = Partial<Record<UserRole, string[]>>;
 
 interface User {
   id: number;
@@ -111,6 +113,8 @@ const ROLE_TABS: { value: string; label: string }[] = [
   { value: "nurse", label: "ممرض" },
   { value: "technician", label: "فني" },
   { value: "accountant", label: "محاسب" },
+  { value: "worker", label: "عامل" },
+  { value: "supervisor", label: "مشرف" },
   { value: "admin", label: "مسؤول" },
 ];
 
@@ -134,6 +138,8 @@ function roleLabelAr(role: UserRole): string {
     technician: "فني",
     reception: "استقبال",
     accountant: "محاسب",
+    worker: "عامل",
+    supervisor: "مشرف",
   };
   return m[role] ?? role;
 }
@@ -154,6 +160,10 @@ function roleBadgeClass(role: UserRole): string {
       "bg-primary/15 text-primary border-0",
     admin:
       "bg-border text-foreground border-0",
+    worker:
+      "bg-muted text-muted-foreground border-0",
+    supervisor:
+      "bg-warning/20 text-warning border-0",
   };
   return map[role] ?? "bg-muted text-muted-foreground border-0";
 }
@@ -325,6 +335,8 @@ export default function AdminUsers() {
       nurse: data?.nurse ?? [],
       technician: data?.technician ?? [],
       reception: data?.reception ?? [],
+      worker: (data as any)?.worker ?? [],
+      supervisor: (data as any)?.supervisor ?? [],
     };
   }, [teamPermissionsQuery.data]);
 
@@ -785,14 +797,7 @@ export default function AdminUsers() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
-          <div className="grid gap-4 xl:grid-cols-[minmax(220px,0.45fr)_minmax(0,1fr)]">
-            <div className="space-y-1 text-sm">
-              <div className="font-semibold">تصفية الحسابات</div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                ابدأ بالبحث، ثم ضيق النتائج بالحالة أو الدور عند الحاجة.
-              </p>
-            </div>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="w-full lg:max-w-sm">
                 <SearchBar
                   value={searchTerm}
@@ -826,7 +831,6 @@ export default function AdminUsers() {
                   className="max-w-[min(100%,640px)] sm:justify-end"
                 />
               </div>
-            </div>
           </div>
 
           {/* Mobile cards, hidden on sm+ */}
@@ -1191,6 +1195,8 @@ export default function AdminUsers() {
                   <SelectItem value="technician">فني</SelectItem>
                   <SelectItem value="reception">استقبال</SelectItem>
                   <SelectItem value="accountant">محاسب</SelectItem>
+                  <SelectItem value="worker">عامل</SelectItem>
+                  <SelectItem value="supervisor">مشرف</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1345,6 +1351,8 @@ export default function AdminUsers() {
                   <SelectItem value="technician">فني</SelectItem>
                   <SelectItem value="reception">استقبال</SelectItem>
                   <SelectItem value="accountant">محاسب</SelectItem>
+                  <SelectItem value="worker">عامل</SelectItem>
+                  <SelectItem value="supervisor">مشرف</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -7012,7 +7012,7 @@ export const medicalRouter = router({
       password: z.string().min(6),
       name: z.string().optional(),
       email: z.string().email().optional(),
-      role: z.enum(["admin", "doctor", "nurse", "technician", "reception", "manager", "accountant"]).optional(),
+      role: z.enum(["admin", "doctor", "nurse", "technician", "reception", "manager", "accountant", "worker", "supervisor"]).optional(),
       branch: z.enum(["examinations", "surgery", "both"]).optional(),
       shift: z.union([z.literal(1), z.literal(2)]).optional(),
       writeToMssql: z.boolean().optional(),

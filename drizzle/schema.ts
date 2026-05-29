@@ -9,7 +9,7 @@ export const users = mysqlTable("users", {
   password: varchar("password", { length: 255 }).notNull(), // bcrypt hash
   name: text("name"),
   email: varchar("email", { length: 320 }),
-  role: mysqlEnum("role", ["admin", "doctor", "nurse", "technician", "reception", "manager", "accountant"]).default("reception").notNull(),
+  role: mysqlEnum("role", ["admin", "doctor", "nurse", "technician", "reception", "manager", "accountant", "worker", "supervisor"]).default("reception").notNull(),
   branch: mysqlEnum("branch", ["examinations", "surgery", "both"]).default("examinations").notNull(),
   shift: int("shift").default(1).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
