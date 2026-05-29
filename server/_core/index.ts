@@ -19,6 +19,7 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
+import { uploadToS3, downloadFromS3 } from "./s3";
 const execFile = promisify(execFileCb);
 
 type BlackIceUploadRow = {
@@ -856,12 +857,22 @@ async function startServer() {
               continue;
             }
 
+            let s3Key: string | null = null;
+            try {
+              s3Key = `blackice-imports/${Date.now()}-${dbFileName}`;
+              await uploadToS3(s3Key, fileData, mimeType);
+              console.log(`[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`);
+            } catch (error: any) {
+              console.warn(`[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}, storing in DB`);
+              s3Key = null;
+            }
+
             const uploadId = await withDb(async (conn) => {
               const [insertResult] = await conn.query(
                 `INSERT INTO blackice_uploads
-                 (document_id, file_name, mime_type, file_data, source_printer)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [documentId, dbFileName, mimeType, fileData, cfg.sourcePrinter]
+                 (document_id, file_name, mime_type, file_data, s3_key, source_printer)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [documentId, dbFileName, mimeType, s3Key ? null : fileData, s3Key, cfg.sourcePrinter]
               );
               return Number((insertResult as any)?.insertId ?? 0);
             });
@@ -968,7 +979,7 @@ async function startServer() {
       try {
         await withDb(async (conn) => {
           const [rows] = await conn.query(
-            `SELECT id, document_id, file_name, file_data, ocr_text, plain_text
+            `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
              FROM blackice_uploads
              WHERE patient_id IS NULL
              ORDER BY id DESC
@@ -980,14 +991,29 @@ async function startServer() {
             document_id: string;
             file_name: string | null;
             file_data: Buffer | null;
+            s3_key: string | null;
             ocr_text: string | null;
             plain_text: string | null;
           }>;
 
           for (const row of uploads) {
             try {
-              if (!row.file_data || row.file_data.length === 0) continue;
-              let imageData = Buffer.isBuffer(row.file_data) ? row.file_data : Buffer.from(row.file_data as any);
+              let imageData: Buffer | null = null;
+              if (row.s3_key) {
+                try {
+                  imageData = await downloadFromS3(row.s3_key);
+                } catch (error: any) {
+                  console.warn(`[blackice-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`);
+                  if (row.file_data && row.file_data.length > 0) {
+                    imageData = row.file_data;
+                  }
+                }
+              } else if (row.file_data && row.file_data.length > 0) {
+                imageData = row.file_data;
+              }
+
+              if (!imageData || imageData.length === 0) continue;
+              imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
               if (looksCorruptedBinaryImage(imageData) && row.file_name) {
                 const diskFallback = await loadImageFromImportFolders(row.file_name);
                 if (diskFallback) imageData = diskFallback;
@@ -1167,7 +1193,7 @@ async function startServer() {
 
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
-          `SELECT id, document_id, file_name, mime_type, file_data, created_at
+          `SELECT id, document_id, file_name, mime_type, file_data, s3_key, created_at
            FROM blackice_uploads
            WHERE id = ?
            LIMIT 1`,
@@ -1180,6 +1206,7 @@ async function startServer() {
               file_name: string | null;
               mime_type: string | null;
               file_data: Buffer | null;
+              s3_key: string | null;
               created_at: Date | string;
             }
           | undefined;
@@ -1189,7 +1216,21 @@ async function startServer() {
         res.status(404).json({ ok: false, error: "Upload not found" });
         return;
       }
-      if (!row.file_data || row.file_data.length === 0) {
+
+      let fileBuffer: Buffer | null = null;
+      if (row.s3_key) {
+        try {
+          fileBuffer = await downloadFromS3(row.s3_key);
+        } catch (error: any) {
+          console.error(`[blackice-api] Failed to download from S3: ${row.s3_key}`, error);
+          res.status(500).json({ ok: false, error: "Failed to retrieve file from S3" });
+          return;
+        }
+      } else if (row.file_data && row.file_data.length > 0) {
+        fileBuffer = row.file_data;
+      }
+
+      if (!fileBuffer || fileBuffer.length === 0) {
         res.status(404).json({ ok: false, error: "Upload has no binary data" });
         return;
       }
@@ -1201,13 +1242,13 @@ async function startServer() {
       const download = String(req.query.download ?? "0") === "1";
 
       res.setHeader("Content-Type", mimeType);
-      res.setHeader("Content-Length", String(row.file_data.length));
+      res.setHeader("Content-Length", String(fileBuffer.length));
       res.setHeader("Cache-Control", "private, max-age=60");
       res.setHeader(
         "Content-Disposition",
         `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`
       );
-      res.status(200).send(row.file_data);
+      res.status(200).send(fileBuffer);
     } catch (error: any) {
       res.status(500).json({
         ok: false,
@@ -1234,7 +1275,7 @@ async function startServer() {
       let processed = 0;
       await withDb(async (conn) => {
         const [rows] = await conn.query(
-          `SELECT id, document_id, file_name, file_data, ocr_text, plain_text
+          `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
            FROM blackice_uploads
            WHERE patient_id IS NULL
            ORDER BY id DESC
@@ -1246,13 +1287,28 @@ async function startServer() {
           document_id: string;
           file_name: string | null;
           file_data: Buffer | null;
+          s3_key: string | null;
           ocr_text: string | null;
           plain_text: string | null;
         }>;
 
         for (const row of uploads) {
-          if (!row.file_data || row.file_data.length === 0) continue;
-          let imageData = Buffer.isBuffer(row.file_data) ? row.file_data : Buffer.from(row.file_data as any);
+          let imageData: Buffer | null = null;
+          if (row.s3_key) {
+            try {
+              imageData = await downloadFromS3(row.s3_key);
+            } catch (error: any) {
+              console.warn(`[blackice-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`);
+              if (row.file_data && row.file_data.length > 0) {
+                imageData = row.file_data;
+              }
+            }
+          } else if (row.file_data && row.file_data.length > 0) {
+            imageData = row.file_data;
+          }
+
+          if (!imageData || imageData.length === 0) continue;
+          imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
           if (looksCorruptedBinaryImage(imageData) && row.file_name) {
             const diskFallback = await loadImageFromImportFolders(row.file_name);
             if (diskFallback) imageData = diskFallback;
