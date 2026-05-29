@@ -97,8 +97,7 @@ export default function PayrollReport() {
     @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; }
-    .slip { padding: 8px 0 6px; break-inside: avoid; break-after: page; }
-    .slip:last-child { break-after: auto; }
+    .slip { padding: 6px 0 4px; break-inside: avoid; border-bottom: 1px dashed #aaa; margin-bottom: 4px; }
     .slip-top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
     .slip-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
     .emp-name { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 3px; }
