@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Check, X, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Check, X, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, string> = { doctor: "Doctor", tech: "Technician" };
@@ -105,6 +105,11 @@ export default function ShiftStaff() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const deleteMut = (trpc as any).salary.deleteShiftStaff.useMutation({
+    onSuccess: () => { staffQ.refetch(); cyclesQ.refetch(); toast.success("Deleted"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   function submitAdd() {
     const rate = parseFloat(addForm.ratePerShift);
     if (!addForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
@@ -203,6 +208,10 @@ export default function ShiftStaff() {
                 <Button variant="ghost" size="sm" className={`h-8 w-8 p-0 ${hasCycle(s.id) ? "text-primary" : "text-muted-foreground"}`}
                   onClick={() => setCycleId(showCycle ? null : s.id)} title="Set shift cycle">
                   <RefreshCw size={14} />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"
+                  onClick={() => { if (confirm(`Delete ${s.name}?`)) deleteMut.mutate({ id: s.id }); }}>
+                  <Trash2 size={14} className="text-destructive" />
                 </Button>
               </div>
             </td>

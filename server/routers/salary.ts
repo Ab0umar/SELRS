@@ -595,6 +595,16 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  deleteShiftStaff: managerProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.delete(shiftStaffCycle).where(eq(shiftStaffCycle.staffId, input.id));
+      await db.delete(shiftStaff).where(eq(shiftStaff.id, input.id));
+      return { success: true };
+    }),
+
   getShiftSchedule: managerProcedure
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
