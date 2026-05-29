@@ -31,18 +31,8 @@ Pentacam/incoming/
 Pentacam/processed/
 Pentacam/failed/
 
-# Local Android signing files
-android/key.properties
-android/app/*.jks
-android/app/*.keystore
-
 # Android build outputs
-android/*
-android/.gradle/
-android/build/
-android/app/build/
-android/app/release/
-android/release/
+android/
 
 # Nested legacy repos (keep local only)
 SELRS.cc/
