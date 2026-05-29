@@ -60,7 +60,7 @@ export default function PayrollReport() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  const totals = rows.reduce(
+  const totals = allPrintRows.reduce(
     (acc: any, r: any) => ({
       basic: acc.basic + Number(r.basicSalary),
       deductions: acc.deductions + Number(r.totalDeductions),
