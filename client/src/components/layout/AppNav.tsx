@@ -253,5 +253,5 @@ export const adminNavGroups: NavGroup[] = [
 export const staffNavGroups: NavGroup[] = [
   ...adminNavGroups.slice(0, -1),
   { icon: CalendarCheck, label: "حضوري", path: "/attendance/my", isMain: true },
-  { icon: CalendarDays, label: "الروستر", path: "/attendance/shift-schedule", roles: ["doctor", "technician", "nurse"] },
+  { icon: CalendarDays, label: "الروستر", path: "/attendance/shift-schedule", roles: ["doctor", "technician", "nurse"], isMain: true },
 ];

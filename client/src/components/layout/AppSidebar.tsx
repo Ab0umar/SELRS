@@ -87,6 +87,7 @@ export function AppSidebar({
     const leafPassesEffectivePaths = (leaf: NavLeaf): boolean => {
       if (isAdmin) return true;
       const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+      if (pathGrantedByRoots(cleanPath, [])) return true; // always-granted paths
       if (!permissionsQuery.isSuccess) return false;
       return pathGrantedByRoots(cleanPath, allowedRoots);
     };
