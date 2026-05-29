@@ -110,24 +110,24 @@ export default function ShiftSchedule() {
   const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 
   function handlePrint() {
-    const hdrCols = displayStaff.map((s: any) =>
-      `<th>${s.type === "doctor" ? "د/" : "ف/"}${s.name}</th>`).join("");
-
-    const bodyRows = allDates.map(ds => {
+    const dateCols = allDates.map(ds => {
       const dow = new Date(ds + "T00:00:00").getDay();
-      const isFri = dow === 5;
-      const cells = displayStaff.map((s: any) => {
-        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];  // ds is already YYYY-MM-DD
+      return `<th class="${dow === 5 ? "fri-row" : ""}"><div style="font-size:7px">${DAYS_AR[dow]}</div><div>${fmtDate(ds)}</div></th>`;
+    }).join("");
+
+    const bodyRows = displayStaff.map((s: any) => {
+      const cells = allDates.map(ds => {
+        const dow = new Date(ds + "T00:00:00").getDay();
+        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
         const text = entries.map((e: any) => {
           const cls = e.shiftName === "Morning" ? "shift-m" : "shift-n";
           const lbl = e.shiftName === "Morning" ? "ص" : "م";
           return `<span class="${cls}">${e.present ? lbl : `(${lbl})`}</span>`;
-        }).join(" ");
-        return `<td>${text}</td>`;
+        }).join("");
+        return `<td class="${dow === 5 ? "fri-row" : ""}">${text}</td>`;
       }).join("");
-      return `<tr class="${isFri ? "fri-row" : ""}">
-        <td class="day-col">${DAYS_AR[dow]}</td>
-        <td>${fmtDate(ds)}</td>
+      return `<tr>
+        <td class="day-col">${s.type === "doctor" ? "د/" : "ف/"}${s.name}</td>
         ${cells}
       </tr>`;
     }).join("");
@@ -137,15 +137,14 @@ export default function ShiftSchedule() {
       <h1>روستر شهر ${MONTHS_AR[month - 1]} ${year}</h1>
       <table>
         <thead><tr>
-          <th class="diag-cell" style="position:relative;min-width:70px;height:36px;">
+          <th class="diag-cell" style="position:relative;min-width:80px;height:40px;">
             <svg style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="none">
               <line x1="0" y1="0" x2="100%" y2="100%" stroke="#000" stroke-width="1"/>
             </svg>
-            <span style="position:absolute;top:2px;left:4px;font-size:7px;">الأطباء</span>
-            <span style="position:absolute;bottom:2px;right:4px;font-size:7px;">اليوم</span>
+            <span style="position:absolute;top:2px;left:4px;font-size:7px;">التاريخ</span>
+            <span style="position:absolute;bottom:2px;right:4px;font-size:7px;">الاسم</span>
           </th>
-          <th>التاريخ</th>
-          ${hdrCols}
+          ${dateCols}
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
@@ -248,69 +247,73 @@ export default function ShiftSchedule() {
           </div>
         )}
         <div className="overflow-x-auto rounded-xl border border-border bg-background">
-          <table className="text-sm border-collapse" style={{ minWidth: `${160 + displayStaff.length * 90}px` }}>
+          <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              {/* staff name column */}
+              <col style={{ width: 110 }} />
+              {/* one column per day */}
+              {allDates.map(ds => <col key={ds} />)}
+            </colgroup>
             <thead>
+              {/* Day-name row */}
               <tr className="border-b border-border bg-muted/40">
-                {/* Diagonal header */}
-                <th className="relative border-l border-border p-0" style={{ width: 80, height: 52 }}>
+                <th className="relative border-l border-border p-0" style={{ height: 52 }}>
                   <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
                     <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" strokeWidth="1" className="text-border" />
                   </svg>
-                  <span className="absolute top-1 right-2 text-[10px] font-semibold text-muted-foreground">الأطباء</span>
-                  <span className="absolute bottom-1 left-2 text-[10px] font-semibold text-muted-foreground">اليوم</span>
+                  <span className="absolute top-1 right-2 text-[10px] font-semibold text-muted-foreground">التاريخ</span>
+                  <span className="absolute bottom-1 left-2 text-[10px] font-semibold text-muted-foreground">الاسم</span>
                 </th>
-                <th className="px-3 py-2 text-center font-medium text-muted-foreground text-xs border-l border-border whitespace-nowrap">التاريخ</th>
-                {displayStaff.map((s: any) => (
-                  <th key={s.id} className="px-2 py-2 text-center font-semibold text-foreground border-l border-border whitespace-nowrap text-xs">
-                    <span className="text-muted-foreground">{s.type === "doctor" ? "د/" : "ف/"}</span>{s.name}
-                  </th>
-                ))}
+                {allDates.map(ds => {
+                  const dow = new Date(ds + "T00:00:00").getDay();
+                  const isFri = dow === 5;
+                  return (
+                    <th key={ds} className={`border-l border-border text-center p-0 ${isFri ? "opacity-40" : ""}`}>
+                      <div className="text-[10px] font-medium text-muted-foreground leading-tight pt-1">{DAYS_AR[dow]}</div>
+                      <div className="text-[11px] font-bold tabular-nums pb-1">{fmtDate(ds)}</div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {allDates.map((ds, idx) => {
-                const dow = new Date(ds + "T00:00:00").getDay();
-                const isFri = dow === 5;
-                const isSat = dow === 6;
-                return (
-                  <tr key={ds} className={`border-b border-border/50 ${isFri ? "bg-muted/30 opacity-60" : isSat ? "bg-amber-500/5" : idx % 2 === 0 ? "" : "bg-muted/10"}`}>
-                    <td className="px-3 py-1.5 text-center font-bold text-xs border-l border-border whitespace-nowrap">
-                      {DAYS_AR[dow]}
-                    </td>
-                    <td className="px-3 py-1.5 text-center text-xs tabular-nums text-muted-foreground border-l border-border">
-                      {fmtDate(ds)}
-                    </td>
-                    {displayStaff.map((s: any) => {
-                      const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
-                      return (
-                        <td key={s.id} className="border-l border-border text-center p-1">
-                          {entries.length === 0 ? null : (
-                            <div className="flex flex-wrap justify-center gap-0.5">
-                              {entries.map((e: any) => (
-                                <button
-                                  key={e.id}
-                                  onClick={() => toggleMut.mutate({ id: e.id, present: !e.present })}
-                                  disabled={toggleMut.isPending}
-                                  title={`${e.shiftName === "Morning" ? "صباح" : "مساء"} — انقر للتبديل`}
-                                  className={`rounded px-1.5 py-0.5 text-[11px] font-bold transition-colors ${
-                                    e.present
-                                      ? e.shiftName === "Morning"
-                                        ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-                                        : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
-                                      : "bg-muted text-muted-foreground line-through hover:bg-destructive/10"
-                                  }`}
-                                >
-                                  {e.shiftName === "Morning" ? "ص" : "م"}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+              {displayStaff.map((s: any, idx: number) => (
+                <tr key={s.id} className={`border-b border-border/50 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+                  <td className="border-l border-border px-2 py-1.5 font-semibold text-xs truncate">
+                    <span className="text-muted-foreground">{s.type === "doctor" ? "د/" : "ف/"}</span>{s.name}
+                  </td>
+                  {allDates.map(ds => {
+                    const dow = new Date(ds + "T00:00:00").getDay();
+                    const isFri = dow === 5;
+                    const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                    return (
+                      <td key={ds} className={`border-l border-border text-center p-0.5 ${isFri ? "bg-muted/20 opacity-40" : ""}`}>
+                        {entries.length > 0 && (
+                          <div className="flex flex-col gap-0.5 items-center">
+                            {entries.map((e: any) => (
+                              <button
+                                key={e.id}
+                                onClick={() => toggleMut.mutate({ id: e.id, present: !e.present })}
+                                disabled={toggleMut.isPending}
+                                title={`${e.shiftName === "Morning" ? "صباح" : "مساء"} — انقر للتبديل`}
+                                className={`rounded px-1 py-0.5 text-[10px] font-bold w-full transition-colors ${
+                                  e.present
+                                    ? e.shiftName === "Morning"
+                                      ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+                                      : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
+                                    : "bg-muted text-muted-foreground line-through hover:bg-destructive/10"
+                                }`}
+                              >
+                                {e.shiftName === "Morning" ? "ص" : "م"}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
