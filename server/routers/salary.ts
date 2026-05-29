@@ -9,6 +9,7 @@ import {
   salaryPayroll,
   salaryRaiseHistory,
   salaryConfig,
+  salaryHolidays,
   attendanceEmployees,
   attendanceDaily,
   attendanceMonthlyReport,
@@ -739,6 +740,36 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
       await db.delete(shiftAttendance).where(eq(shiftAttendance.id, input.id));
+      return { success: true };
+    }),
+
+  // ── Official Holidays ─────────────────────────────────────
+  // Readable by all authenticated users (needed for the roster view)
+  listHolidays: protectedProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      return db.select().from(salaryHolidays)
+        .where(and(eq(salaryHolidays.year, input.year), eq(salaryHolidays.month, input.month)));
+    }),
+
+  addHoliday: managerProcedure
+    .input(z.object({ date: z.string(), name: z.string().default(''), year: z.number().int(), month: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.insert(salaryHolidays).values({ date: input.date as any, name: input.name, year: input.year, month: input.month })
+        .onDuplicateKeyUpdate({ set: { name: input.name } });
+      return { success: true };
+    }),
+
+  deleteHoliday: managerProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.delete(salaryHolidays).where(eq(salaryHolidays.id, input.id));
       return { success: true };
     }),
 

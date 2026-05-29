@@ -1403,6 +1403,16 @@ export const salaryAdvances = mysqlTable("salary_advances", {
 export type SalaryAdvance = typeof salaryAdvances.$inferSelect;
 export type InsertSalaryAdvance = typeof salaryAdvances.$inferInsert;
 
+export const salaryHolidays = mysqlTable("salary_holidays", {
+  id: int("id").autoincrement().primaryKey(),
+  date: date("date").notNull(),
+  name: varchar("name", { length: 100 }).notNull().default(""),
+  year: int("year").notNull(),
+  month: int("month").notNull(),
+});
+
+export type SalaryHoliday = typeof salaryHolidays.$inferSelect;
+
 export const salaryRaiseHistory = mysqlTable("salary_raise_history", {
   id: int("id").autoincrement().primaryKey(),
   empCd: varchar("emp_cd", { length: 32 }).notNull(),

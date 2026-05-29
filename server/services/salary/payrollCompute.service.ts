@@ -9,6 +9,7 @@ import {
   salaryCommissionPools,
   salaryPayroll,
   salaryConfig,
+  salaryHolidays,
   shiftStaff,
   shiftAttendance,
 } from '../../../drizzle/schema';
@@ -116,7 +117,7 @@ export class PayrollComputeService {
 
     const acRates = await loadAttendanceRates(db);
 
-    const [poolRows, basics, monthlyReports, dailyRows, penalties, advances, shiftAttendanceRows] = await Promise.all([
+    const [poolRows, basics, monthlyReports, dailyRows, penalties, advances, shiftAttendanceRows, holidayRows] = await Promise.all([
       db.select().from(salaryCommissionPools)
         .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
         .limit(1),
@@ -136,7 +137,21 @@ export class PayrollComputeService {
         .where(and(eq(salaryAdvances.year, year), eq(salaryAdvances.month, month))),
       isMarkaz ? db.select().from(shiftAttendance)
         .where(and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month))) : Promise.resolve([]),
+      db.select().from(salaryHolidays)
+        .where(and(eq(salaryHolidays.year, year), eq(salaryHolidays.month, month))),
     ]);
+
+    // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
+    const holidayDates = new Set<string>(
+      holidayRows.map(h => {
+        const d = h.date as any;
+        return d instanceof Date
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          : String(d).slice(0, 10);
+      })
+    );
+    // Number of holiday working days (exclude Fridays = day 5)
+    const holidayWorkingDaysCount = [...holidayDates].filter(ds => new Date(ds + 'T00:00:00').getDay() !== 5).length;
 
     const pool = poolRows[0];
     const examPool = pool ? Number(pool.examPool) : 0;
@@ -216,7 +231,11 @@ export class PayrollComputeService {
     type ShiftStats = { scheduled: number; attended: number; commMult: number; shiftPay: number; deductionPct: number; netPay: number };
     const shiftStatsMap = new Map<number, ShiftStats>();
     for (const ss of activeShiftStaff) {
-      const rows = shiftAttRows.filter(a => a.staffId === ss.id);
+      // Exclude entries on official holidays — those days are off, not absent
+      const rows = shiftAttRows.filter(a => {
+        const ds = fmtDate(a.workDate);
+        return a.staffId === ss.id && !holidayDates.has(ds);
+      });
       const scheduled = rows.length;
 
       // Count attended by checking punch data (for linked employees) or shift_attendance.present field
@@ -294,7 +313,9 @@ export class PayrollComputeService {
         (d) => d.empCd === emp.empCd && d.status !== 'holiday'
       ).length;
 
-      const absentDays = report?.absentDays ?? 0;
+      // Official holidays count as paid non-working days — don't deduct absence for them
+      const rawAbsentDays = report?.absentDays ?? 0;
+      const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
       const lateMinutes = report?.totalLateMins ?? 0;
       const earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
       const overtimeMinutes = report?.totalOTMins ?? 0;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, Printer, X } from "lucide-react";
+import { Plus, RefreshCw, Printer, X, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -42,6 +42,8 @@ function toDateKey(v: unknown): string {
 type Period = "day" | "week" | "month";
 interface AddForm { staffId: string; shiftName: string; period: Period; anchorDate: string; }
 const EMPTY_ADD: AddForm = { staffId: "", shiftName: "", period: "day", anchorDate: "" };
+interface HolidayForm { date: string; name: string; }
+const EMPTY_HOLIDAY: HolidayForm = { date: "", name: "" };
 
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 8mm; }
@@ -66,6 +68,8 @@ export default function ShiftSchedule() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
+  const [showHolidayAdd, setShowHolidayAdd] = useState(false);
+  const [holidayForm, setHolidayForm] = useState<HolidayForm>(EMPTY_HOLIDAY);
 
   // Manager uses manager-only procedure; others use protectedProcedure version
   const schedQ = isManager
@@ -117,6 +121,18 @@ export default function ShiftSchedule() {
     onSuccess: () => { schedQ.refetch(); payrollQ.refetch(); toast.success("تم حذف الوردية"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+  // Official holidays
+  const holidaysQ = (trpc as any).salary.listHolidays.useQuery({ year, month });
+  const addHolidayMut = (trpc as any).salary.addHoliday.useMutation({
+    onSuccess: () => { holidaysQ.refetch(); setShowHolidayAdd(false); setHolidayForm(EMPTY_HOLIDAY); toast.success("تم إضافة العطلة"); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const deleteHolidayMut = (trpc as any).salary.deleteHoliday.useMutation({
+    onSuccess: () => { holidaysQ.refetch(); toast.success("تم حذف العطلة"); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const holidays: any[] = holidaysQ.data ?? [];
+  const holidayDates = new Set<string>(holidays.map((h: any) => String(h.date).slice(0, 10)));
 
   function submitAdd() {
     if (!addForm.staffId || !addForm.shiftName) { toast.error("اختر الموظف والوردية"); return; }
@@ -148,17 +164,22 @@ export default function ShiftSchedule() {
     function buildTable(dates: string[]) {
       const cols = dates.map(ds => {
         const dow = new Date(ds + "T00:00:00").getDay();
-        return `<th><div style="font-weight:bold">${DAYS_AR[dow]}</div><div style="color:#555">${fmtDate(ds)}</div></th>`;
+        const isHol = holidayDates.has(ds);
+        const holStyle = isHol ? ' style="background:#fffbeb;"' : '';
+        const holLabel = isHol ? '<div style="font-size:7px;color:#b45309;">عطلة</div>' : '';
+        return `<th${holStyle}><div style="font-weight:bold">${DAYS_AR[dow]}</div><div style="color:#555">${fmtDate(ds)}</div>${holLabel}</th>`;
       }).join("");
       const rows = displayStaff.map((s: any) => {
         const cells = dates.map(ds => {
+          const isHol = holidayDates.has(ds);
+          const cellStyle = isHol ? ' style="background:#fffbeb;"' : '';
           const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
           const text = entries.map((e: any) => {
             const cls = e.shiftName === "Morning" ? "shift-m" : "shift-n";
             const lbl = e.shiftName === "Morning" ? "ص" : "م";
             return `<span class="${cls}">${e.present ? lbl : `(${lbl})`}</span>`;
-          }).join("");
-          return `<td>${text}</td>`;
+          }).join("") || (isHol ? '<span style="color:#b45309;font-size:7px;">عطلة</span>' : '');
+          return `<td${cellStyle}>${text}</td>`;
         }).join("");
         return `<tr><td class="day-col">${s.type === "doctor" ? "د/" : "ف/"}${s.name}</td>${cells}</tr>`;
       }).join("");
@@ -221,6 +242,9 @@ export default function ShiftSchedule() {
               <Button size="sm" variant="outline" onClick={() => setShowAdd(v => !v)} className="gap-1.5">
                 <Plus size={14} /> إضافة ورديات
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowHolidayAdd(v => !v)} className="gap-1.5">
+                <Star size={14} /> العطلات الرسمية
+              </Button>
             </>
           )}
           <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5">
@@ -282,6 +306,40 @@ export default function ShiftSchedule() {
         </div>
       )}
 
+      {/* Holidays panel — manager only */}
+      {showHolidayAdd && isManager && (
+        <div className="rounded-xl border border-border bg-background p-4 space-y-3">
+          <h3 className="text-sm font-semibold">العطلات الرسمية — {MONTHS_AR[month - 1]} {year}</h3>
+          {holidays.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {holidays.map((h: any) => (
+                <span key={h.id} className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                  {String(h.date).slice(0, 10)} {h.name && `· ${h.name}`}
+                  <button type="button" onClick={() => deleteHolidayMut.mutate({ id: h.id })} className="hover:text-destructive" title="حذف">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {holidays.length === 0 && <p className="text-xs text-muted-foreground">لا توجد عطلات رسمية لهذا الشهر.</p>}
+          <div className="flex flex-wrap gap-3 border-t border-border pt-3">
+            <input type="date" value={holidayForm.date} min={`${year}-${pad(month)}-01`} max={`${year}-${pad(month)}-${pad(daysInMonth(year, month))}`}
+              onChange={e => setHolidayForm(f => ({ ...f, date: e.target.value }))}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+            <input type="text" placeholder="الاسم (اختياري)" value={holidayForm.name}
+              onChange={e => setHolidayForm(f => ({ ...f, name: e.target.value }))}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm min-w-44" />
+            <Button size="sm" onClick={() => {
+              if (!holidayForm.date) { toast.error("اختر تاريخاً"); return; }
+              addHolidayMut.mutate({ date: holidayForm.date, name: holidayForm.name, year, month });
+            }} disabled={addHolidayMut.isPending}>
+              {addHolidayMut.isPending ? "جاري…" : "إضافة"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Roster grid */}
       {schedQ.isLoading ? (
         <p className="text-sm text-muted-foreground">جاري التحميل…</p>
@@ -312,10 +370,13 @@ export default function ShiftSchedule() {
                   </th>
                   {half.map(ds => {
                     const dow = new Date(ds + "T00:00:00").getDay();
+                    const isHoliday = holidayDates.has(ds);
+                    const holiday = isHoliday ? holidays.find((h: any) => String(h.date).slice(0, 10) === ds) : null;
                     return (
-                      <th key={ds} className="border-l border-border text-center p-0" style={{ height: 56 }}>
-                        <div className="text-[11px] font-semibold text-foreground leading-tight pt-2">{DAYS_AR[dow]}</div>
-                        <div className="text-[11px] tabular-nums text-muted-foreground pb-2">{fmtDate(ds)}</div>
+                      <th key={ds} className={`border-l border-border text-center p-0 ${isHoliday ? "bg-amber-50 dark:bg-amber-950/20" : ""}`} style={{ height: 56 }} title={holiday?.name || undefined}>
+                        <div className={`text-[11px] font-semibold leading-tight pt-2 ${isHoliday ? "text-amber-700 dark:text-amber-400" : "text-foreground"}`}>{DAYS_AR[dow]}</div>
+                        <div className={`text-[11px] tabular-nums pb-1 ${isHoliday ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>{fmtDate(ds)}</div>
+                        {isHoliday && <div className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 pb-1 leading-none truncate px-1">عطلة</div>}
                       </th>
                     );
                   })}
@@ -331,8 +392,9 @@ export default function ShiftSchedule() {
                       const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
                       const isMyRow = !isManager && myStaffId === s.id;
                       const canEdit = isManager || isMyRow;
+                      const isHoliday = holidayDates.has(ds);
                       return (
-                        <td key={ds} className="border-l border-border text-center p-1 group/cell" style={{ height: 40 }}>
+                        <td key={ds} className={`border-l border-border text-center p-1 group/cell ${isHoliday ? "bg-amber-50/60 dark:bg-amber-950/10" : ""}`} style={{ height: 40 }}>
                           <div className="flex flex-col gap-0.5 items-center">
                             {entries.map((e: any) => (
                               <div key={e.id} className="relative group/entry flex items-center w-full">
@@ -367,8 +429,12 @@ export default function ShiftSchedule() {
                                 )}
                               </div>
                             ))}
-                            {/* Self-service add button for own row */}
-                            {isMyRow && entries.length === 0 && (
+                            {/* Holiday label when no entries */}
+                            {isHoliday && entries.length === 0 && (
+                              <span className="text-[9px] font-semibold text-amber-500 dark:text-amber-400">عطلة</span>
+                            )}
+                            {/* Self-service add button for own row — disabled on holidays */}
+                            {isMyRow && entries.length === 0 && !isHoliday && (
                               <div className="hidden group-hover/cell:flex gap-0.5">
                                 {["Morning","Night"].map(sn => (
                                   <button key={sn}
