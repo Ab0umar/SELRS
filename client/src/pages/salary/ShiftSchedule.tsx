@@ -105,14 +105,14 @@ export default function ShiftSchedule() {
     attendMap.get(key)!.push(row);
   }
 
-  const allDates = monthDates(year, month);
+  const allDates = monthDates(year, month).filter(ds => new Date(ds + "T00:00:00").getDay() !== 5);
   const monthMin = `${year}-${pad(month)}-01`;
   const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 
   function handlePrint() {
     const dateCols = allDates.map(ds => {
       const dow = new Date(ds + "T00:00:00").getDay();
-      return `<th class="${dow === 5 ? "fri-row" : ""}"><div style="font-size:7px">${DAYS_AR[dow]}</div><div>${fmtDate(ds)}</div></th>`;
+      return `<th><div style="font-size:7px">${DAYS_AR[dow]}</div><div>${fmtDate(ds)}</div></th>`;
     }).join("");
 
     const bodyRows = displayStaff.map((s: any) => {
@@ -124,7 +124,7 @@ export default function ShiftSchedule() {
           const lbl = e.shiftName === "Morning" ? "ص" : "م";
           return `<span class="${cls}">${e.present ? lbl : `(${lbl})`}</span>`;
         }).join("");
-        return `<td class="${dow === 5 ? "fri-row" : ""}">${text}</td>`;
+        return `<td>${text}</td>`;
       }).join("");
       return `<tr>
         <td class="day-col">${s.type === "doctor" ? "د/" : "ف/"}${s.name}</td>
@@ -266,9 +266,8 @@ export default function ShiftSchedule() {
                 </th>
                 {allDates.map(ds => {
                   const dow = new Date(ds + "T00:00:00").getDay();
-                  const isFri = dow === 5;
-                  return (
-                    <th key={ds} className={`border-l border-border text-center p-0 ${isFri ? "opacity-40" : ""}`}>
+                                    return (
+                    <th key={ds} className="border-l border-border text-center p-0">
                       <div className="text-[10px] font-medium text-muted-foreground leading-tight pt-1">{DAYS_AR[dow]}</div>
                       <div className="text-[11px] font-bold tabular-nums pb-1">{fmtDate(ds)}</div>
                     </th>
@@ -284,10 +283,9 @@ export default function ShiftSchedule() {
                   </td>
                   {allDates.map(ds => {
                     const dow = new Date(ds + "T00:00:00").getDay();
-                    const isFri = dow === 5;
-                    const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                                        const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
                     return (
-                      <td key={ds} className={`border-l border-border text-center p-0.5 ${isFri ? "bg-muted/20 opacity-40" : ""}`}>
+                      <td key={ds} className="border-l border-border text-center p-0.5">
                         {entries.length > 0 && (
                           <div className="flex flex-col gap-0.5 items-center">
                             {entries.map((e: any) => (
