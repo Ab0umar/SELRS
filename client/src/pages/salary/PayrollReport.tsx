@@ -115,17 +115,13 @@ export default function PayrollReport() {
     .sig-line { border-top: 1px solid #000; width: 110px; margin: 16px auto 3px; }
   `;
 
-  function openPrint(html: string, _title: string, css: string) {
-    const mask = document.createElement("style");
-    mask.textContent = "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
-    const container = document.createElement("div");
-    container.id = "__pr__";
-    container.innerHTML = `<style>${css}</style>${html}`;
-    document.head.appendChild(mask);
-    document.body.appendChild(container);
-    const cleanup = () => { mask.remove(); container.remove(); window.removeEventListener("afterprint", cleanup); };
-    window.addEventListener("afterprint", cleanup);
-    window.print();
+  function openPrint(html: string, title: string, css: string) {
+    const win = window.open("", "_blank", "width=1000,height=700");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
   }
 
   function toArabicWords(amount: number): string {
