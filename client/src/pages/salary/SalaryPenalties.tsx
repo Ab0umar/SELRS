@@ -1,13 +1,26 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 const now = new Date();
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 type Tab = "penalties" | "advances" | "insurance";
+
+const PRINT_CSS = `
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; direction: rtl; }
+  h1 { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { background: #ddd; padding: 3px 5px; border: 1px solid #999; font-size: 8px; text-align: center; }
+  td { padding: 3px 5px; border: 1px solid #ccc; font-size: 8px; text-align: center; }
+  .emp-col { text-align: right; font-weight: bold; }
+  .total-row { background: #eee; font-weight: bold; }
+  .zero { color: #aaa; }
+`;
 
 export default function SalaryPenalties() {
   const [year, setYear] = useState(now.getFullYear());
@@ -60,7 +73,7 @@ export default function SalaryPenalties() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  // ── Insurance (latest salaryBasics per employee) ───────────────────────────
+  // ── Insurance (latest salaryBasics per employee — not month-filtered) ───────
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const basics: any[] = basicsQ.data ?? [];
   const latestByEmp: any[] = Object.values(
@@ -75,6 +88,99 @@ export default function SalaryPenalties() {
     onSuccess: () => { basicsQ.refetch(); setEditingInsurance(null); toast.success("تم التحديث"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+
+  // ── Payroll deductions (for print layout) ─────────────────────────────────
+  const deductionsQ = (trpc as any).salary.listPayrollDeductions.useQuery({ year, month });
+  const payrollDeductions: any[] = deductionsQ.data ?? [];
+
+  // ── Print ──────────────────────────────────────────────────────────────────
+  function handlePrint() {
+    // Build per-employee map from payroll deductions
+    const byEmp: Record<string, any> = {};
+    for (const r of payrollDeductions) {
+      byEmp[r.empCd] = r;
+    }
+
+    // Collect all empCds that appear in any deduction source
+    const allEmpCds = Array.from(new Set([
+      ...payrollDeductions.map((r: any) => r.empCd),
+      ...latestByEmp.map((b: any) => b.empCd),
+    ]));
+
+    // Build insurance map from salaryBasics
+    const insuranceMap: Record<string, number> = {};
+    for (const b of latestByEmp) {
+      insuranceMap[b.empCd] = Number(b.insuranceDeduction ?? 0);
+    }
+
+    const fmt = (n: number) => n === 0
+      ? `<span class="zero">—</span>`
+      : n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
+
+    const rows = allEmpCds.map(empCd => {
+      const pr = byEmp[empCd];
+      const name = pr?.fullName ?? empName(empCd);
+      const dept = pr?.department ?? empDept(empCd);
+      const jazaat = Number(pr?.penaltyDeduction ?? 0);
+      const takhirat = Number(pr?.lateDeduction ?? 0) + Number(pr?.earlyLeaveDeduction ?? 0);
+      const tameenat = insuranceMap[empCd] ?? 0;
+      const ghiyab = Number(pr?.absentDeduction ?? 0);
+      const total = jazaat + takhirat + tameenat + ghiyab;
+      return { name, dept, jazaat, takhirat, tameenat, ghiyab, total };
+    }).sort((a, b) => a.name.localeCompare(b.name, "ar"));
+
+    const totJazaat = rows.reduce((s, r) => s + r.jazaat, 0);
+    const totTakhirat = rows.reduce((s, r) => s + r.takhirat, 0);
+    const totTameenat = rows.reduce((s, r) => s + r.tameenat, 0);
+    const totGhiyab = rows.reduce((s, r) => s + r.ghiyab, 0);
+    const totAll = rows.reduce((s, r) => s + r.total, 0);
+
+    const bodyRows = rows.map(r => `
+      <tr>
+        <td class="emp-col">${r.name}</td>
+        <td>${r.dept}</td>
+        <td>${fmt(r.jazaat)}</td>
+        <td>${fmt(r.takhirat)}</td>
+        <td>${fmt(r.tameenat)}</td>
+        <td>${fmt(r.ghiyab)}</td>
+        <td><strong>${fmt(r.total)}</strong></td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
+      <title>كشف الخصومات</title>
+      <style>${PRINT_CSS}</style></head><body>
+      <h1>كشف الخصومات — ${MONTHS[month - 1]} ${year}</h1>
+      <table>
+        <thead><tr>
+          <th style="width:22%">الموظف</th>
+          <th style="width:12%">القسم</th>
+          <th>جزاءات</th>
+          <th>تأخيرات</th>
+          <th>تأمينات</th>
+          <th>غياب</th>
+          <th>الإجمالي</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td colspan="2">الإجمالي</td>
+            <td>${totJazaat.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+            <td>${totTakhirat.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+            <td>${totTameenat.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+            <td>${totGhiyab.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+            <td>${totAll.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        </tbody>
+      </table>
+    </body></html>`;
+
+    const win = window.open("", "_blank", "width=900,height=600");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  }
 
   // ── Shared helpers ─────────────────────────────────────────────────────────
   const rows = tab === "penalties" ? penalties : advances;
@@ -110,27 +216,33 @@ export default function SalaryPenalties() {
           <h2 className="text-2xl font-bold text-foreground">خصومات الشهر</h2>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={month}
-            onChange={(e) => { setMonth(Number(e.target.value)); resetForm(); }}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => { setYear(Number(e.target.value)); resetForm(); }}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          {/* Month/year only shown when not on fixed insurance tab */}
           {tab !== "insurance" && (
-            <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-              <Plus size={16} />
-              {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
-            </Button>
+            <>
+              <select
+                value={month}
+                onChange={(e) => { setMonth(Number(e.target.value)); resetForm(); }}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+              </select>
+              <select
+                value={year}
+                onChange={(e) => { setYear(Number(e.target.value)); resetForm(); }}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+                <Plus size={16} />
+                {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
+              </Button>
+              <Button variant="outline" onClick={handlePrint} className="gap-2">
+                <Printer size={16} /> طباعة
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -262,7 +374,7 @@ export default function SalaryPenalties() {
         </section>
       )}
 
-      {/* Insurance tab */}
+      {/* Insurance tab — fixed per-employee, no month filter */}
       {tab === "insurance" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
@@ -283,52 +395,52 @@ export default function SalaryPenalties() {
                 {latestByEmp.map((b: any) => {
                   const editing = editingInsurance?.id === b.id ? editingInsurance : null;
                   return (
-                  <tr key={b.id} className="border-b border-border/50 hover:bg-muted/20">
-                    <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <input
-                          type="number" min={0} step="0.01"
-                          value={editing.value}
-                          onChange={(e) => setEditingInsurance({ id: b.id, value: e.target.value })}
-                          className="w-28 rounded-md border border-primary bg-background px-2 py-1 text-sm outline-none"
-                          autoFocus
-                        />
-                      ) : (
-                        <span className={Number(b.insuranceDeduction) > 0 ? "font-bold text-destructive" : "text-muted-foreground"}>
-                          {Number(b.insuranceDeduction ?? 0).toLocaleString("ar-EG")} ج.م
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <div className="flex gap-1">
+                    <tr key={b.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {editing ? (
+                          <input
+                            type="number" min={0} step="0.01"
+                            value={editing.value}
+                            onChange={(e) => setEditingInsurance({ id: b.id, value: e.target.value })}
+                            className="w-28 rounded-md border border-primary bg-background px-2 py-1 text-sm outline-none"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className={Number(b.insuranceDeduction) > 0 ? "font-bold text-destructive" : "text-muted-foreground"}>
+                            {Number(b.insuranceDeduction ?? 0).toLocaleString("ar-EG")} ج.م
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editing ? (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost" size="sm"
+                              disabled={updateBasicMut.isPending}
+                              onClick={() => {
+                                const v = parseFloat(editing.value);
+                                if (isNaN(v) || v < 0) { toast.error("أدخل مبلغ صحيح"); return; }
+                                updateBasicMut.mutate({ id: b.id, insuranceDeduction: v });
+                              }}
+                            >
+                              <Check size={14} className="text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditingInsurance(null)}>
+                              <X size={14} />
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
                             variant="ghost" size="sm"
-                            disabled={updateBasicMut.isPending}
-                            onClick={() => {
-                              const v = parseFloat(editing.value);
-                              if (isNaN(v) || v < 0) { toast.error("أدخل مبلغ صحيح"); return; }
-                              updateBasicMut.mutate({ id: b.id, insuranceDeduction: v });
-                            }}
+                            onClick={() => setEditingInsurance({ id: b.id, value: String(b.insuranceDeduction ?? 0) })}
                           >
-                            <Check size={14} className="text-green-600" />
+                            <Pencil size={14} />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditingInsurance(null)}>
-                            <X size={14} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="ghost" size="sm"
-                          onClick={() => setEditingInsurance({ id: b.id, value: String(b.insuranceDeduction ?? 0) })}
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
                 {latestByEmp.length === 0 && (

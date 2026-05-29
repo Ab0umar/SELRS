@@ -398,6 +398,29 @@ export const salaryRouter = router({
       });
     }),
 
+  listPayrollDeductions: managerProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      return db.select({
+        empCd: salaryPayroll.empCd,
+        absentDeduction: salaryPayroll.absentDeduction,
+        lateDeduction: salaryPayroll.lateDeduction,
+        earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
+        penaltyDeduction: salaryPayroll.penaltyDeduction,
+        advancesDeduction: salaryPayroll.advancesDeduction,
+        insuranceDeduction: salaryPayroll.insuranceDeduction,
+        totalDeductions: salaryPayroll.totalDeductions,
+        fullName: attendanceEmployees.fullName,
+        department: attendanceEmployees.department,
+      })
+      .from(salaryPayroll)
+      .leftJoin(attendanceEmployees, eq(salaryPayroll.empCd, attendanceEmployees.empCd))
+      .where(and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month)))
+      .orderBy(attendanceEmployees.fullName);
+    }),
+
   finalizePayroll: managerProcedure
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
