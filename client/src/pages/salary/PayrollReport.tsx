@@ -115,17 +115,18 @@ export default function PayrollReport() {
     .sig-line { border-top: 1px solid #000; width: 110px; margin: 16px auto 3px; }
   `;
 
-  function openPrint(html: string, _title: string, css: string) {
-    const mask = document.createElement("style");
-    mask.textContent = "@media print{body>*:not(#__pr__){display:none!important}#__pr__{display:block;direction:rtl}}";
-    const container = document.createElement("div");
-    container.id = "__pr__";
-    container.innerHTML = `<style>${css}</style>${html}`;
-    document.head.appendChild(mask);
-    document.body.appendChild(container);
-    const cleanup = () => { mask.remove(); container.remove(); window.removeEventListener("afterprint", cleanup); };
+  function openPrint(html: string, title: string, css: string) {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`);
+    doc.close();
+    const cleanup = () => { iframe.remove(); window.removeEventListener("afterprint", cleanup); };
     window.addEventListener("afterprint", cleanup);
-    window.print();
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
   }
 
   function toArabicWords(amount: number): string {
