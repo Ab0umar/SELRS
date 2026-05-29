@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, attendanceManagerProcedure as managerProcedure } from '../_core/procedures';
+import { router, attendanceManagerProcedure as managerProcedure, protectedProcedure } from '../_core/procedures';
 import { getDb } from '../db';
 import {
   salaryBasics,
@@ -587,11 +587,11 @@ export const salaryRouter = router({
     }),
 
   updateShiftStaff: managerProcedure
-    .input(z.object({ id: z.number(), name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), active: z.boolean(), empCd: z.string().optional() }))
+    .input(z.object({ id: z.number(), name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), active: z.boolean(), empCd: z.string().optional(), userId: z.number().int().nullable().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error('DB unavailable');
-      await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active, empCd: input.empCd ?? null }).where(eq(shiftStaff.id, input.id));
+      await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active, empCd: input.empCd ?? null, userId: input.userId ?? null } as any).where(eq(shiftStaff.id, input.id));
       return { success: true };
     }),
 
@@ -615,6 +615,80 @@ export const salaryRouter = router({
         db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
       ]);
       return { staff, attendance };
+    }),
+
+  // ── Self-service shift procedures (any logged-in user) ──────────────────
+  getShiftScheduleForStaff: protectedProcedure
+    .input(z.object({ year: z.number(), month: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const [staff, attendance] = await Promise.all([
+        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)).orderBy(shiftStaff.type, shiftStaff.name),
+        db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
+      ]);
+      return { staff, attendance };
+    }),
+
+  getMyShiftStaffId: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const userId = (ctx.user as any).id;
+      const rows = await db.select({ id: shiftStaff.id }).from(shiftStaff)
+        .where(eq(shiftStaff.userId as any, userId)).limit(1);
+      return rows[0]?.id ?? null;
+    }),
+
+  addMyShiftEntry: protectedProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int(), workDate: z.string(), shiftName: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const userId = (ctx.user as any).id;
+      const rows = await db.select({ id: shiftStaff.id }).from(shiftStaff)
+        .where(eq(shiftStaff.userId as any, userId)).limit(1);
+      if (!rows[0]) throw new Error('No shift staff record linked to your account');
+      const staffId = rows[0].id;
+      await db.insert(shiftAttendance)
+        .values({ staffId, year: input.year, month: input.month, workDate: input.workDate as any, shiftName: input.shiftName, present: true })
+        .onDuplicateKeyUpdate({ set: { present: true } });
+      return { success: true };
+    }),
+
+  toggleMyShiftEntry: protectedProcedure
+    .input(z.object({ id: z.number().int(), present: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const userId = (ctx.user as any).id;
+      // verify ownership
+      const [entry] = await db.select({ staffId: shiftAttendance.staffId }).from(shiftAttendance)
+        .where(eq(shiftAttendance.id, input.id)).limit(1);
+      if (!entry) throw new Error('Entry not found');
+      const [staff] = await db.select({ userId: shiftStaff.userId }).from(shiftStaff)
+        .where(eq(shiftStaff.id, entry.staffId)).limit(1);
+      if ((staff as any)?.userId !== userId) throw new Error('Not authorized to modify this entry');
+      await db.update(shiftAttendance).set({ present: input.present }).where(eq(shiftAttendance.id, input.id));
+      return { success: true };
+    }),
+
+  listUsersForShiftLink: managerProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const { users } = await import('../../drizzle/schema');
+      return db.select({ id: users.id, username: users.username, name: users.name, role: users.role })
+        .from(users).where(eq(users.isActive, true)).orderBy(users.name);
+    }),
+
+  linkUserToShiftStaff: managerProcedure
+    .input(z.object({ staffId: z.number().int(), userId: z.number().int().nullable() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.update(shiftStaff).set({ userId: input.userId } as any).where(eq(shiftStaff.id, input.staffId));
+      return { success: true };
     }),
 
   addShiftEntry: managerProcedure

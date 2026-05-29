@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const now = new Date();
 const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -58,13 +59,28 @@ const PRINT_CSS = `
 `;
 
 export default function ShiftSchedule() {
+  const { user } = useAuth();
+  const isManager = ["admin", "manager"].includes(user?.role ?? "");
+
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
 
-  const schedQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
-  const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({ year, month });
+  // Manager uses manager-only procedure; others use protectedProcedure version
+  const schedQ = isManager
+    ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month })
+    : (trpc as any).salary.getShiftScheduleForStaff.useQuery({ year, month });
+  const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery(
+    { year, month },
+    { enabled: isManager }
+  );
+  // Self-service: get the logged-in user's shift staff ID
+  const myStaffIdQ = (trpc as any).salary.getMyShiftStaffId.useQuery(
+    undefined,
+    { enabled: !isManager }
+  );
+  const myStaffId: number | null = isManager ? null : (myStaffIdQ.data ?? null);
 
   const staff: any[] = schedQ.data?.staff ?? [];
   const attendance: any[] = schedQ.data?.attendance ?? [];
@@ -81,9 +97,20 @@ export default function ShiftSchedule() {
     onSuccess: (res: any) => { schedQ.refetch(); payrollQ.refetch(); setShowAdd(false); setAddForm(EMPTY_ADD); toast.success(`تم إضافة ${res.inserted} وردية`); },
     onError: (e: any) => toast.error(e.message),
   });
+  // Manager toggle
   const toggleMut = (trpc as any).salary.toggleShiftPresent.useMutation({
     onSuccess: () => schedQ.refetch(),
     onError: (e: any) => toast.error(e.message),
+  });
+  // Self-service: doctor/tech adds own shift for a single day
+  const addMyShiftMut = (trpc as any).salary.addMyShiftEntry.useMutation({
+    onSuccess: () => { schedQ.refetch(); toast.success("تم تسجيل الوردية"); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  // Self-service toggle
+  const toggleMyMut = (trpc as any).salary.toggleMyShiftEntry.useMutation({
+    onSuccess: () => schedQ.refetch(),
+    onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
   function submitAdd() {
@@ -181,20 +208,36 @@ export default function ShiftSchedule() {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
-          <Button size="sm" variant="outline" onClick={() => generateMut.mutate({ year, month })} disabled={generateMut.isPending} className="gap-1.5">
-            <RefreshCw size={14} className={generateMut.isPending ? "animate-spin" : ""} /> توليد من الدورات
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setShowAdd(v => !v)} className="gap-1.5">
-            <Plus size={14} /> إضافة ورديات
-          </Button>
+          {isManager && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => generateMut.mutate({ year, month })} disabled={generateMut.isPending} className="gap-1.5">
+                <RefreshCw size={14} className={generateMut.isPending ? "animate-spin" : ""} /> توليد من الدورات
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowAdd(v => !v)} className="gap-1.5">
+                <Plus size={14} /> إضافة ورديات
+              </Button>
+            </>
+          )}
           <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5">
             <Printer size={14} /> طباعة
           </Button>
         </div>
       </div>
 
-      {/* Add form */}
-      {showAdd && (
+      {/* Non-manager hint */}
+      {!isManager && myStaffId === null && !myStaffIdQ.isLoading && (
+        <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+          حسابك غير مرتبط بسجل وردية — تواصل مع المدير لربط حسابك.
+        </div>
+      )}
+      {!isManager && myStaffId !== null && (
+        <div className="rounded-xl border border-border bg-primary/5 px-4 py-3 text-sm">
+          مررّ على خانتك لإضافة وردية. ورديات الأعضاء الآخرين للعرض فقط.
+        </div>
+      )}
+
+      {/* Add form — manager only */}
+      {showAdd && isManager && (
         <div className="rounded-xl border border-border bg-background p-4 space-y-3">
           <h3 className="text-sm font-semibold">إضافة ورديات</h3>
           <div className="flex flex-wrap gap-3">
@@ -281,29 +324,48 @@ export default function ShiftSchedule() {
                     </td>
                     {half.map(ds => {
                       const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                      const isMyRow = !isManager && myStaffId === s.id;
+                      const canEdit = isManager || isMyRow;
                       return (
-                        <td key={ds} className="border-l border-border text-center p-1" style={{ height: 40 }}>
-                          {entries.length > 0 && (
-                            <div className="flex flex-col gap-0.5 items-center">
-                              {entries.map((e: any) => (
-                                <button
-                                  key={e.id}
-                                  onClick={() => toggleMut.mutate({ id: e.id, present: !e.present })}
-                                  disabled={toggleMut.isPending}
-                                  title={`${e.shiftName === "Morning" ? "صباح" : "مساء"} — انقر للتبديل`}
-                                  className={`rounded px-1.5 py-0.5 text-xs font-bold w-full transition-colors ${
-                                    e.present
-                                      ? e.shiftName === "Morning"
-                                        ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-                                        : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
-                                      : "bg-muted text-muted-foreground line-through hover:bg-destructive/10"
-                                  }`}
-                                >
-                                  {e.shiftName === "Morning" ? "ص" : "م"}
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                        <td key={ds} className="border-l border-border text-center p-1 group/cell" style={{ height: 40 }}>
+                          <div className="flex flex-col gap-0.5 items-center">
+                            {entries.map((e: any) => (
+                              <button
+                                key={e.id}
+                                onClick={() => canEdit
+                                  ? (isManager
+                                      ? toggleMut.mutate({ id: e.id, present: !e.present })
+                                      : toggleMyMut.mutate({ id: e.id, present: !e.present }))
+                                  : undefined
+                                }
+                                disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
+                                className={`rounded px-1.5 py-0.5 text-xs font-bold w-full transition-colors ${
+                                  e.present
+                                    ? e.shiftName === "Morning"
+                                      ? "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+                                      : "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25"
+                                    : "bg-muted text-muted-foreground line-through"
+                                } ${!canEdit ? "cursor-default" : ""}`}
+                              >
+                                {e.shiftName === "Morning" ? "ص" : "م"}
+                              </button>
+                            ))}
+                            {/* Self-service add button for own row */}
+                            {isMyRow && entries.length === 0 && (
+                              <div className="hidden group-hover/cell:flex gap-0.5">
+                                {["Morning","Night"].map(sn => (
+                                  <button key={sn}
+                                    onClick={() => addMyShiftMut.mutate({ year, month, workDate: ds, shiftName: sn })}
+                                    disabled={addMyShiftMut.isPending}
+                                    className="rounded px-1 py-0.5 text-[10px] font-bold bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary"
+                                    title={sn === "Morning" ? "إضافة صباح" : "إضافة مساء"}
+                                  >
+                                    {sn === "Morning" ? "+ص" : "+م"}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       );
                     })}

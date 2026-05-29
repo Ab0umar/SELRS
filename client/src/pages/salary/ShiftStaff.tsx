@@ -8,8 +8,8 @@ const TYPE_LABEL: Record<string, string> = { doctor: "Doctor", tech: "Technician
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const SHIFTS = ["Morning","Night"];
 
-interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; }
-const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "" };
+interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; userId: number | null; }
+const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "", userId: null };
 
 // dayOfWeek → set of active shiftNames
 type CycleMap = Record<number, string[]>;
@@ -91,6 +91,8 @@ export default function ShiftStaff() {
   const staffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const cyclesQ = (trpc as any).salary.getStaffCycles.useQuery();
   const employeesQ = (trpc as any).salary.listEmployees.useQuery();
+  const usersQ = (trpc as any).salary.listUsersForShiftLink.useQuery();
+  const usersList: any[] = usersQ.data ?? [];
   const staff: any[] = staffQ.data ?? [];
   const cycles: any[] = cyclesQ.data ?? [];
   const employees: any[] = employeesQ.data ?? [];
@@ -118,13 +120,13 @@ export default function ShiftStaff() {
 
   function startEdit(s: any) {
     setEditId(s.id); setCycleId(null);
-    setEditForm({ name: s.name, type: s.type, ratePerShift: String(s.ratePerShift), active: s.active, empCd: s.empCd ?? "" });
+    setEditForm({ name: s.name, type: s.type, ratePerShift: String(s.ratePerShift), active: s.active, empCd: s.empCd ?? "", userId: s.userId ?? null });
   }
 
   function submitEdit(id: number) {
     const rate = parseFloat(editForm.ratePerShift);
     if (!editForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
-    updateMut.mutate({ id, name: editForm.name.trim(), type: editForm.type, ratePerShift: rate, active: editForm.active, empCd: editForm.empCd || undefined });
+    updateMut.mutate({ id, name: editForm.name.trim(), type: editForm.type, ratePerShift: rate, active: editForm.active, empCd: editForm.empCd || undefined, userId: editForm.userId });
   }
 
   function hasCycle(id: number) {
@@ -168,6 +170,15 @@ export default function ShiftStaff() {
               </select>
             </td>
             <td className="px-4 py-2">
+              <select value={editForm.userId ?? ""} onChange={e => setEditForm(f => ({ ...f, userId: e.target.value ? parseInt(e.target.value) : null }))}
+                className="rounded border border-input bg-background px-2 py-1 text-sm w-40">
+                <option value="">— No account —</option>
+                {usersList.map((u: any) => (
+                  <option key={u.id} value={u.id}>{u.name ?? u.username} ({u.role})</option>
+                ))}
+              </select>
+            </td>
+            <td className="px-4 py-2">
               <select value={editForm.active ? "1" : "0"} onChange={e => setEditForm(f => ({ ...f, active: e.target.value === "1" }))}
                 className="rounded border border-input bg-background px-2 py-1 text-sm">
                 <option value="1">Active</option>
@@ -194,6 +205,11 @@ export default function ShiftStaff() {
               {s.empCd
                 ? (employees.find((e: any) => e.empCd === s.empCd)?.fullName ?? s.empCd)
                 : <span className="text-xs italic">Manual</span>}
+            </td>
+            <td className="px-4 py-3 text-sm text-muted-foreground">
+              {s.userId
+                ? (usersList.find((u: any) => u.id === s.userId)?.name ?? `#${s.userId}`)
+                : <span className="text-xs italic text-muted-foreground/50">—</span>}
             </td>
             <td className="px-4 py-3">
               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
@@ -241,6 +257,7 @@ export default function ShiftStaff() {
                 <th className="px-4 py-2 text-right font-medium">Type</th>
                 <th className="px-4 py-2 text-right font-medium">Rate / Shift</th>
                 <th className="px-4 py-2 text-right font-medium">Attendance Link</th>
+                <th className="px-4 py-2 text-right font-medium">User Account</th>
                 <th className="px-4 py-2 text-right font-medium">Status</th>
                 <th className="px-4 py-2" />
               </tr>
