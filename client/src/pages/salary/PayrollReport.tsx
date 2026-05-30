@@ -46,9 +46,9 @@ export default function PayrollReport() {
   
   // Fetch shift staff data and roster schedule
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
-  const shiftScheduleQ = (trpc as any).attendance.getShiftSchedule.useQuery({ year, month });
+  const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
-  const shiftSchedule: any[] = shiftScheduleQ.data ?? [];
+  const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
   
   // Build shift count map by staffId and shiftName (صباحي/ليلي) from roster
   const shiftCountByStaffShift: Record<string, number> = {};
