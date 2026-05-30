@@ -365,7 +365,7 @@ export class PayrollComputeService {
         const t = emp.salaryType;
         const cShare = (t === 'استشاري' || t === 'الاثنين') ? perConsultant : 0;
         const sShare = (t === 'أخصائي' || t === 'الاثنين') ? perSpecialist : 0;
-        examCommission = round2((cShare + sShare) * commMult);
+        examCommission = round2(cShare + sShare);
       } else {
         const examDivisor = isMarkaz ? totalCountForExam : 3;
         const empShares = !isMarkaz && emp.salaryType === 'الاثنين' ? 2 : 1;
