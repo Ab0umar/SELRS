@@ -66,8 +66,8 @@ export default function PayrollReport() {
   // Build enhanced shift rows with day/night breakdown from roster
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
     // Get shift counts from roster (shift-schedule)
-    const dayCount = shiftCountByStaffShift[`${staff.id}_صباحي`] ?? 0;
-    const nightCount = shiftCountByStaffShift[`${staff.id}_ليلي`] ?? 0;
+    const dayCount = shiftCountByStaffShift[`${staff.id}_Morning`] ?? 0;
+    const nightCount = shiftCountByStaffShift[`${staff.id}_Night`] ?? 0;
     const dayRate = staff.ratePerShift ?? 0;
     const nightRate = staff.ratePerShift ?? 0;
     
