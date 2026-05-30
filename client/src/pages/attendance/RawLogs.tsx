@@ -32,7 +32,7 @@ export default function RawLogs() {
 
   const handleSearch = () => {
     if (!filters.fromDate && !filters.empNo) {
-      alert("Please enter at least an employee code or date range");
+      alert("أدخل كود موظف أو نطاق تاريخ للبحث");
       return;
     }
     rawPunchesQuery.refetch();
@@ -42,18 +42,18 @@ export default function RawLogs() {
     if (!rawPunchesQuery.data?.punches) return;
 
     const csv = [
-      ["Employee", "DateTime", "Direction", "Device"],
+      ["الموظف", "التاريخ والوقت", "الاتجاه", "الجهاز"],
       ...rawPunchesQuery.data.punches.map((p: any) => [
         p.empCd,
         new Date(p.punchAt).toLocaleString(),
-        p.direction === "in" ? "IN" : "OUT",
+        p.direction === "in" ? "دخول" : "خروج",
         p.deviceId || "-",
       ]),
     ]
       .map((row) => row.map((cell: any) => `"${cell}"`).join(","))
       .join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -64,13 +64,15 @@ export default function RawLogs() {
     document.body.removeChild(a);
   };
 
+  const punches = rawPunchesQuery.data?.punches ?? [];
+
   return (
     <div className="mx-auto max-w-7xl p-6" dir="rtl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">Raw Punch Logs</h1>
+          <h1 className="text-3xl font-bold text-foreground">السجلات الخام</h1>
           <p className="text-sm text-muted-foreground">
-            سجل خام، لكن الآن لونه يوضح اتجاه الحركة والبحث بسرعة.
+            فحص مباشر لبصمات الجهاز عندما تحتاج إلى تدقيق سريع أو تصدير خام.
           </p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
@@ -81,12 +83,12 @@ export default function RawLogs() {
 
       <Card className="mb-6 border-border bg-muted/20">
         <CardHeader>
-          <CardTitle className="text-lg text-foreground">Filter</CardTitle>
+          <CardTitle className="text-lg text-foreground">البحث</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <Input
-              placeholder="Employee Code"
+              placeholder="كود الموظف"
               value={filters.empNo}
               onChange={(e) =>
                 setFilters({ ...filters, empNo: e.target.value })
@@ -116,7 +118,7 @@ export default function RawLogs() {
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Search className="h-4 w-4" />
-                Search
+                بحث
               </Button>
             </div>
           </div>
@@ -126,22 +128,21 @@ export default function RawLogs() {
       <Card className="border-border bg-background">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="text-foreground">
-            Results
+            النتائج
             {rawPunchesQuery.data &&
-              ` (${rawPunchesQuery.data.punches.length} of ${rawPunchesQuery.data.total})`}
+              ` (${punches.length} من ${rawPunchesQuery.data.total})`}
           </CardTitle>
-          {rawPunchesQuery.data?.punches &&
-            rawPunchesQuery.data.punches.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-            )}
+          {punches.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
+            >
+              <Download className="h-4 w-4" />
+              تصدير CSV
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {rawPunchesQuery.isLoading ? (
@@ -150,8 +151,7 @@ export default function RawLogs() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : rawPunchesQuery.data?.punches &&
-            rawPunchesQuery.data.punches.length > 0 ? (
+          ) : punches.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
@@ -171,43 +171,41 @@ export default function RawLogs() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rawPunchesQuery.data.punches.map(
-                    (punch: any, idx: number) => (
-                      <tr
-                        key={idx}
-                        className="border-b transition-colors hover:bg-muted/30"
-                      >
-                        <td className="px-4 py-2 font-mono text-muted-foreground">
-                          {punch.empCd}
-                        </td>
-                        <td className="px-4 py-2 text-foreground">
-                          {new Date(punch.punchAt).toLocaleString("ar-EG")}
-                        </td>
-                        <td className="px-4 py-2">
-                          <span
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                              punch.direction === "in"
-                                ? directionTone.in
-                                : directionTone.out
-                            }`}
-                          >
-                            {punch.direction === "in" ? "دخول" : "خروج"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-xs text-muted-foreground">
-                          {punch.deviceId || "-"}
-                        </td>
-                      </tr>
-                    ),
-                  )}
+                  {punches.map((punch: any, idx: number) => (
+                    <tr
+                      key={idx}
+                      className="border-b transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-2 font-mono text-muted-foreground">
+                        {punch.empCd}
+                      </td>
+                      <td className="px-4 py-2 text-foreground">
+                        {new Date(punch.punchAt).toLocaleString("ar-EG")}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                            punch.direction === "in"
+                              ? directionTone.in
+                              : directionTone.out
+                          }`}
+                        >
+                          {punch.direction === "in" ? "دخول" : "خروج"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">
+                        {punch.deviceId || "-"}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
               {rawPunchesQuery.isError
-                ? "Error loading punches"
-                : "No results. Use filters to search."}
+                ? "تعذر تحميل السجلات."
+                : "لا توجد نتائج. استخدم الفلاتر للبحث."}
             </div>
           )}
         </CardContent>

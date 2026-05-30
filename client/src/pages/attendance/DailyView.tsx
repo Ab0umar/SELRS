@@ -129,7 +129,7 @@ export default function DailyView() {
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-foreground">الحضور اليومي</h1>
           <p className="text-sm text-muted-foreground">
-            الألوان تفرق بين الدخول والخروج والتأخير والحالة العامة بسرعة.
+            عرض يومي سريع يفرق بين الدخول والخروج والتأخير والحالة العامة.
           </p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
@@ -152,7 +152,7 @@ export default function DailyView() {
               className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={loading}
             >
-              {loading ? "جاري التحميل..." : "تحميل"}
+              {loading ? "جارٍ التحميل..." : "تحميل الفترة"}
             </Button>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-muted-foreground">
@@ -218,8 +218,8 @@ export default function DailyView() {
               ))}
             </div>
           ) : records.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" dir="rtl">
+            <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/60">
                     <th className="px-4 py-3 text-right font-semibold text-foreground">
@@ -348,7 +348,7 @@ export default function DailyView() {
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
-              لا توجد سجلات حضور
+              لا توجد سجلات ضمن الفترة المحددة
             </div>
           )}
         </CardContent>

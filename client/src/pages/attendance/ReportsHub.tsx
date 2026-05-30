@@ -6,49 +6,55 @@ import LeaveBalanceReport from "./LeaveBalanceReport";
 import RawLogs from "./RawLogs";
 
 const TABS = [
-  { key: "daily", label: "يومي", tone: "primary" },
-  { key: "monthly", label: "شهري وتفصيلي", tone: "info" },
-  { key: "perms", label: "تقرير الأذونات", tone: "secondary" },
-  { key: "balance", label: "رصيد الإجازات", tone: "success" },
-  { key: "logs", label: "السجلات الخام", tone: "warning" },
+  { key: "daily", label: "اليومي", description: "مراجعة يوم أو فترة قصيرة" },
+  { key: "monthly", label: "التفصيلي", description: "تقرير شهري وتحليل كامل" },
+  { key: "perms", label: "الأذونات", description: "تقرير أذونات الموظفين" },
+  { key: "balance", label: "رصيد الإجازات", description: "الأرصدة والاستهلاك" },
+  { key: "logs", label: "السجلات الخام", description: "بيانات الجهاز كما وصلت" },
 ];
 
 export default function ReportsHub() {
   const [tab, setTab] = useState("daily");
-
-  const toneClasses: Record<string, string> = {
-    primary: "border-primary/20 bg-primary/10 text-primary",
-    info: "border-info/20 bg-info/10 text-info",
-    secondary: "border-secondary/20 bg-secondary/10 text-secondary",
-    success: "border-success/20 bg-success/10 text-success",
-    warning: "border-warning/30 bg-warning/10 text-warning",
-  };
+  const currentTab = TABS.find((item) => item.key === tab) ?? TABS[0];
 
   return (
-    <div dir="rtl">
-      <div className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border bg-background/95 px-4 pt-3 backdrop-blur-sm">
+    <div className="space-y-4" dir="rtl">
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">مسار التقارير</p>
+        <h2 className="text-xl font-bold text-foreground">{currentTab.label}</h2>
+        <p className="text-sm text-muted-foreground">{currentTab.description}</p>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label="تقارير الحضور"
+        className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-background/95 px-1 pt-1"
+      >
         {TABS.map((t) => (
           <button
             key={t.key}
+            id={`attendance-reports-tab-${t.key}`}
+            role="tab"
             onClick={() => setTab(t.key)}
-            className={`-mb-px inline-flex min-h-11 items-center gap-2 rounded-t-xl border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
+            aria-selected={tab === t.key}
+            aria-controls={`attendance-reports-panel-${t.key}`}
+            tabIndex={tab === t.key ? 0 : -1}
+            className={`-mb-px inline-flex min-h-11 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
-                ? `${toneClasses[t.tone]}`
+                ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
             }`}
           >
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                tab === t.key ? "bg-current" : "bg-muted-foreground/40"
-              }`}
-              aria-hidden
-            />
             {t.label}
           </button>
         ))}
       </div>
 
-      <div>
+      <div
+        id={`attendance-reports-panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`attendance-reports-tab-${tab}`}
+      >
         {tab === "daily" && <DailyView />}
         {tab === "monthly" && <Reports />}
         {tab === "perms" && <PermissionReport />}

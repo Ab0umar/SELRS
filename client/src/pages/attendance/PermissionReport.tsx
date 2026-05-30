@@ -251,8 +251,8 @@ export default function PermissionReport() {
               لا توجد أذونات لهذا الشهر
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" dir="rtl">
+            <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="bg-muted/60">
                     <th className="border-b px-4 py-2 text-right font-semibold text-foreground" rowSpan={2}>الكود</th>

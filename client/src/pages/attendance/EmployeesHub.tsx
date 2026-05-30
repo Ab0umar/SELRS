@@ -7,10 +7,10 @@ import ShiftAssignments from "./ShiftAssignments";
 import UserMappings from "./UserMappings";
 
 const BASE_TABS = [
-  { key: "employees", label: "الموظفون" },
-  { key: "leaves", label: "الإجازات" },
-  { key: "permissions", label: "الأذونات" },
-  { key: "shifts", label: "تعيين الورديات" },
+  { key: "employees", label: "قائمة الموظفين", description: "بيانات الموظفين وحالة الربط" },
+  { key: "leaves", label: "طلبات الإجازة", description: "رصيد وطلبات الإجازات" },
+  { key: "permissions", label: "طلبات الأذون", description: "أذونات الحضور والانصراف" },
+  { key: "shifts", label: "توزيع الورديات", description: "ربط الموظفين بالورديات" },
 ];
 
 export default function EmployeesHub() {
@@ -18,15 +18,37 @@ export default function EmployeesHub() {
   const { user } = useAuth();
   const isAdmin = String((user as any)?.role ?? "").toLowerCase() === "admin";
   const TABS = isAdmin
-    ? [...BASE_TABS, { key: "mappings", label: "ربط المستخدمين" }]
+    ? [
+        ...BASE_TABS,
+        {
+          key: "mappings",
+          label: "ربط المستخدمين",
+          description: "ربط حسابات النظام بموظفي الحضور",
+        },
+      ]
     : BASE_TABS;
+  const currentTab = TABS.find((item) => item.key === tab) ?? TABS[0];
 
   return (
-    <div dir="rtl">
+    <div className="space-y-4" dir="rtl">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            مسار الموظفين والطلبات
+          </p>
+          <h2 className="text-xl font-bold text-foreground">
+            {currentTab.label}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {currentTab.description}
+          </p>
+        </div>
+      </div>
+
       <div
         role="tablist"
         aria-label="أقسام الموظفين"
-        className="sticky top-0 z-10 flex gap-0 overflow-x-auto border-b bg-background px-4 pt-3"
+        className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-background/95 px-1 pt-1"
       >
         {TABS.map((t) => (
           <button
@@ -37,7 +59,7 @@ export default function EmployeesHub() {
             aria-selected={tab === t.key}
             aria-controls={`attendance-employees-panel-${t.key}`}
             tabIndex={tab === t.key ? 0 : -1}
-            className={`-mb-px whitespace-nowrap border-b-2 px-5 py-3 text-sm font-medium transition-colors ${
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
               tab === t.key
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"

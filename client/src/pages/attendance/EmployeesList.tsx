@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 export default function EmployeesList() {
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"center" | "clinic">("center");
   const [editingCd, setEditingCd] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<{
     fullName: string;
@@ -55,18 +56,324 @@ export default function EmployeesList() {
     });
   };
 
-  const filteredEmployees =
-    employeesQuery.data?.employees?.filter(
-      (emp: any) =>
-        emp.empCd.toLowerCase().includes(search.toLowerCase()) ||
-        emp.fullName.toLowerCase().includes(search.toLowerCase()),
-    ) ?? [];
+  const allEmployees = employeesQuery.data?.employees ?? [];
+  
+  // Filter by location
+  const centerEmployees = allEmployees.filter(
+    (emp: any) => emp.department === "مركز" || emp.department === "center"
+  );
+  
+  const clinicEmployees = allEmployees.filter(
+    (emp: any) => emp.department === "عيادة" || emp.department === "clinic"
+  );
+
+  const displayEmployees = activeTab === "center" ? centerEmployees : clinicEmployees;
+
+  const filteredEmployees = displayEmployees.filter(
+    (emp: any) =>
+      emp.empCd.toLowerCase().includes(search.toLowerCase()) ||
+      emp.fullName.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const EmployeeTable = ({ employees, isLoading, isError }: any) => {
+    if (isLoading) {
+      return (
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      );
+    }
+
+    if (isError) {
+      return (
+        <div className="py-8 text-center text-destructive">
+          خطأ في تحميل الموظفين.
+        </div>
+      );
+    }
+
+    if (employees.length === 0) {
+      return (
+        <div className="py-8 text-center text-muted-foreground">
+          لا توجد موظفين في هذا القسم
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto" dir="rtl">
+        <table className="w-full text-sm" dir="rtl">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="px-4 py-3 text-center font-semibold text-foreground w-16">
+                الكود
+              </th>
+              <th className="px-4 py-3 text-right font-semibold text-foreground min-w-max">
+                الاسم
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-foreground w-16">
+                القسم
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-foreground w-16">
+                النوع
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-foreground w-16">
+                الحالة
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-foreground w-20">
+                الإجراءات
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((emp: any) => {
+              const isEditing = editingCd === emp.empCd;
+              const isClinic = emp.department === "عيادة";
+              
+              return (
+                <tr
+                  key={emp.empCd}
+                  className={`border-b ${
+                    isEditing ? "bg-primary/5" : "hover:bg-muted/40"
+                  }`}
+                >
+                  {/* Code Column (First in RTL) */}
+                  <td className="px-4 py-3 text-center font-mono text-xs font-semibold">
+                    {emp.empCd}
+                  </td>
+
+                  {/* Name Column */}
+                  <td className="px-4 py-3 text-right min-w-max">
+                    {isEditing ? (
+                      <>
+                        <label htmlFor={`attendance-employee-name-${emp.empCd}`} className="sr-only">
+                          الاسم
+                        </label>
+                        <input
+                          id={`attendance-employee-name-${emp.empCd}`}
+                          value={editRow.fullName}
+                          onChange={(e) =>
+                            setEditRow({
+                              ...editRow,
+                              fullName: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        />
+                      </>
+                    ) : (
+                      <Link href={`/attendance/employees/${emp.empCd}`}>
+                        <a className="text-primary hover:underline font-medium">
+                          {emp.fullName}
+                        </a>
+                      </Link>
+                    )}
+                  </td>
+
+                  {/* Department Column */}
+                  <td className="px-4 py-3 text-center">
+                    {isEditing ? (
+                      <>
+                        <label htmlFor={`attendance-employee-department-${emp.empCd}`} className="sr-only">
+                          القسم
+                        </label>
+                        <select
+                          id={`attendance-employee-department-${emp.empCd}`}
+                          value={editRow.department}
+                          onChange={(e) =>
+                            setEditRow({
+                              ...editRow,
+                              department: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        >
+                          <option value="">— غير محدد —</option>
+                          <option value="مركز">مركز</option>
+                          <option value="عيادة">عيادة</option>
+                        </select>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">
+                        {emp.department || "—"}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Type Column (Clinic Only) */}
+                  <td className="px-4 py-3 text-center">
+                    {isEditing && isClinic ? (
+                      <>
+                        <label htmlFor={`attendance-employee-stype-${emp.empCd}`} className="sr-only">
+                          النوع
+                        </label>
+                        <select
+                          id={`attendance-employee-stype-${emp.empCd}`}
+                          value={editRow.salaryType}
+                          onChange={(e) => setEditRow({ ...editRow, salaryType: e.target.value })}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        >
+                          <option value="">— النوع —</option>
+                          <option value="استشاري">استشاري</option>
+                          <option value="أخصائي">أخصائي</option>
+                          <option value="الاثنين">الاثنين</option>
+                        </select>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">
+                        {isClinic ? (editRow.salaryType || emp.salaryType || "—") : "—"}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Status Column */}
+                  <td className="px-4 py-3 text-center">
+                    {isEditing ? (
+                      <>
+                        <label htmlFor={`attendance-employee-active-${emp.empCd}`} className="sr-only">
+                          الحالة
+                        </label>
+                        <select
+                          id={`attendance-employee-active-${emp.empCd}`}
+                          value={editRow.active ? "1" : "0"}
+                          onChange={(e) =>
+                            setEditRow({
+                              ...editRow,
+                              active: e.target.value === "1",
+                            })
+                          }
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        >
+                          <option value="1">نشط</option>
+                          <option value="0">غير نشط</option>
+                        </select>
+                      </>
+                    ) : (
+                      <span
+                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                          emp.active
+                            ? "bg-success/10 text-success"
+                            : "bg-destructive/10 text-destructive"
+                        }`}
+                      >
+                        {emp.active ? "نشط" : "غير نشط"}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Actions Column (Last in RTL) */}
+                  <td className="px-4 py-3 text-center">
+                    {isEditing ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={updateMutation.isPending}
+                          onClick={() =>
+                            updateMutation.mutate({
+                              empCd: emp.empCd,
+                              fullName: editRow.fullName,
+                              department: editRow.department || undefined,
+                              salaryType: editRow.salaryType || undefined,
+                              attendanceCommissionRate: editRow.attendanceCommissionRate !== "" ? parseFloat(editRow.attendanceCommissionRate) / 100 : null,
+                              active: editRow.active,
+                            })
+                          }
+                          aria-label={`حفظ تعديلات ${emp.fullName}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Check size={15} className="text-success" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingCd(null)}
+                          aria-label={`إلغاء تعديل ${emp.fullName}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <X size={15} className="text-muted-foreground" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEdit(emp)}
+                          aria-label={`تعديل ${emp.fullName}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Pencil size={15} className="text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            if (confirm(`هل تريد حذف ${emp.fullName}؟`)) {
+                              deleteMutation.mutate({ empCd: emp.empCd });
+                            }
+                          }}
+                          aria-label={`حذف ${emp.fullName}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 size={15} className="text-red-600" />
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto" dir="rtl">
-      <h1 className="text-2xl font-bold mb-6">الموظفون</h1>
+    <div className="space-y-4" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">الموظفون</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {activeTab === "center" ? "موظفو المركز" : "موظفو العيادة"}
+          </p>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          عدد الموظفين: <span className="font-semibold text-foreground">{displayEmployees.length}</span>
+        </div>
+      </div>
 
-      <Card className="mb-4">
+      {/* Tabs */}
+      <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background/95 px-1 pt-1">
+        <button
+          onClick={() => setActiveTab("center")}
+          className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "center"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+          }`}
+        >
+          المركز ({centerEmployees.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("clinic")}
+          className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "clinic"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+          }`}
+        >
+          العيادة ({clinicEmployees.length})
+        </button>
+      </div>
+
+      {/* Search */}
+      <Card>
         <CardContent className="pt-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label htmlFor="attendance-employee-search" className="sr-only">
@@ -90,267 +397,19 @@ export default function EmployeesList() {
         </CardContent>
       </Card>
 
+      {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>الموظفون ({employeesQuery.data?.total ?? 0})</CardTitle>
+          <CardTitle>
+            {activeTab === "center" ? "موظفو المركز" : "موظفو العيادة"} ({displayEmployees.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {employeesQuery.isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : employeesQuery.isError ? (
-            <div className="py-8 text-center text-destructive">
-              خطأ في تحميل الموظفين.
-            </div>
-          ) : filteredEmployees.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-[48rem] w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
-                      الكود
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
-                      الاسم
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
-                      القسم
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
-                      النوع
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
-                      الحالة
-                    </th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map((emp: any) => {
-                    const isEditing = editingCd === emp.empCd;
-                    return (
-                      <tr
-                        key={emp.empCd}
-                        className={`border-b ${
-                          isEditing ? "bg-primary/5" : "hover:bg-muted/40"
-                        }`}
-                      >
-                        <td className="py-2 px-4 font-mono text-xs font-semibold">
-                          {emp.empCd}
-                        </td>
-                        {isEditing ? (
-                          <>
-                            <td className="py-2 px-2">
-                              <label
-                                htmlFor={`attendance-employee-name-${emp.empCd}`}
-                                className="sr-only"
-                              >
-                                الاسم
-                              </label>
-                              <input
-                                id={`attendance-employee-name-${emp.empCd}`}
-                                value={editRow.fullName}
-                                onChange={(e) =>
-                                  setEditRow({
-                                    ...editRow,
-                                    fullName: e.target.value,
-                                  })
-                                }
-                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <label
-                                htmlFor={`attendance-employee-department-${emp.empCd}`}
-                                className="sr-only"
-                              >
-                                القسم
-                              </label>
-                              <select
-                                id={`attendance-employee-department-${emp.empCd}`}
-                                value={editRow.department}
-                                onChange={(e) =>
-                                  setEditRow({
-                                    ...editRow,
-                                    department: e.target.value,
-                                  })
-                                }
-                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              >
-                                <option value="">— غير محدد —</option>
-                                <option value="مركز">مركز</option>
-                                <option value="عيادة">عيادة</option>
-                              </select>
-                            </td>
-                            {editRow.department === "عيادة" && (
-                              <>
-                                <td className="py-2 px-2">
-                                  <label htmlFor={`attendance-employee-stype-${emp.empCd}`} className="sr-only">النوع</label>
-                                  <select
-                                    id={`attendance-employee-stype-${emp.empCd}`}
-                                    value={editRow.salaryType}
-                                    onChange={(e) => setEditRow({ ...editRow, salaryType: e.target.value })}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                                  >
-                                    <option value="">— النوع —</option>
-                                    <option value="استشاري">استشاري (⅓)</option>
-                                    <option value="أخصائي">أخصائي (⅓)</option>
-                                    <option value="الاثنين">الاثنين (⅔)</option>
-                                  </select>
-                                </td>
-                                <td className="py-2 px-2">
-                                  <div className="relative">
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={100}
-                                      step={1}
-                                      placeholder="عام"
-                                      value={editRow.attendanceCommissionRate}
-                                      onChange={(e) => setEditRow({ ...editRow, attendanceCommissionRate: e.target.value })}
-                                      className="w-20 rounded-md border border-border bg-background px-2 py-2 text-sm pr-6 text-right"
-                                    />
-                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                                  </div>
-                                </td>
-                              </>
-                            )}
-                            <td className="py-2 px-2">
-                              <label
-                                htmlFor={`attendance-employee-active-${emp.empCd}`}
-                                className="sr-only"
-                              >
-                                الحالة
-                              </label>
-                              <select
-                                id={`attendance-employee-active-${emp.empCd}`}
-                                value={editRow.active ? "1" : "0"}
-                                onChange={(e) =>
-                                  setEditRow({
-                                    ...editRow,
-                                    active: e.target.value === "1",
-                                  })
-                                }
-                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              >
-                                <option value="1">نشط</option>
-                                <option value="0">غير نشط</option>
-                              </select>
-                            </td>
-                            <td className="py-2 px-2">
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  disabled={updateMutation.isPending}
-                                  onClick={() =>
-                                    updateMutation.mutate({
-                                      empCd: emp.empCd,
-                                      fullName: editRow.fullName,
-                                      department: editRow.department || undefined,
-                                      salaryType: editRow.salaryType || undefined,
-                                      attendanceCommissionRate: editRow.attendanceCommissionRate !== "" ? parseFloat(editRow.attendanceCommissionRate) / 100 : null,
-                                      active: editRow.active,
-                                    })
-                                  }
-                                  aria-label={`حفظ تعديلات ${emp.fullName}`}
-                                  className="h-10 w-10 p-0"
-                                >
-                                  <Check size={15} className="text-success" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingCd(null)}
-                                  aria-label={`إلغاء تعديل ${emp.fullName}`}
-                                  className="h-10 w-10 p-0"
-                                >
-                                  <X
-                                    size={15}
-                                    className="text-muted-foreground"
-                                  />
-                                </Button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="py-3 px-4">
-                              <Link href={`/attendance/employees/${emp.empCd}`}>
-                                <a className="text-primary hover:underline">
-                                  {emp.fullName}
-                                </a>
-                              </Link>
-                            </td>
-                            <td className="py-3 px-4 text-muted-foreground">
-                              {emp.department || "—"}
-                            </td>
-                            <td className="py-3 px-4 text-muted-foreground">
-                              {emp.salaryType || "—"}
-                            </td>
-                            {emp.department === "عيادة" && (
-                              <td className="py-3 px-4 text-muted-foreground">
-                                {emp.attendanceCommissionRate != null ? `${Math.round(Number(emp.attendanceCommissionRate) * 100)}%` : "عام"}
-                              </td>
-                            )}
-                            <td className="py-3 px-4">
-                              <span
-                                className={`rounded px-2 py-1 text-xs font-semibold ${
-                                  emp.active
-                                    ? "bg-success/10 text-success"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {emp.active ? "نشط" : "غير نشط"}
-                              </span>
-                            </td>
-                            <td className="py-2 px-4">
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => startEdit(emp)}
-                                  aria-label={`تعديل ${emp.fullName}`}
-                                  className="h-10 w-10 p-0"
-                                >
-                                  <Pencil size={15} className="text-primary" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (confirm(`حذف ${emp.fullName}؟`)) {
-                                      deleteMutation.mutate({
-                                        empCd: emp.empCd,
-                                      });
-                                    }
-                                  }}
-                                  aria-label={`حذف ${emp.fullName}`}
-                                  className="h-10 w-10 p-0"
-                                >
-                                  <Trash2
-                                    size={15}
-                                    className="text-destructive"
-                                  />
-                                </Button>
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              {search ? "لا يوجد موظفون بهذا البحث." : "لا يوجد موظفون."}
-            </div>
-          )}
+          <EmployeeTable
+            employees={filteredEmployees}
+            isLoading={employeesQuery.isLoading}
+            isError={employeesQuery.isError}
+          />
         </CardContent>
       </Card>
     </div>

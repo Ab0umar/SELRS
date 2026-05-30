@@ -90,8 +90,11 @@ export default function AbsentReport() {
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">التقارير</p>
+          <p className="text-xs font-medium text-muted-foreground">مسار المتغيرات الشهرية</p>
           <h2 className="text-2xl font-bold text-foreground">تقرير الغياب</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            مراجعة الغياب المؤثر على خصومات الشهر.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}

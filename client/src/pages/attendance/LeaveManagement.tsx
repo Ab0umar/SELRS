@@ -310,8 +310,8 @@ export default function LeaveManagement() {
               لا توجد إجازات
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[52rem] w-full text-sm" dir="rtl">
+            <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="min-w-[52rem] w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-right py-3 px-4">الموظف</th>

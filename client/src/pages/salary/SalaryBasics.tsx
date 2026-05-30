@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Plus, Pencil, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 
 const today = new Date().toISOString().split("T")[0];
@@ -51,6 +51,13 @@ function rowTotal(b: any) {
   return Number(b.basicAmount) + Number(b.socialAllowance ?? 0) + Number(b.costOfLivingAllowance ?? 0)
     + Number(b.transportAllowance ?? 0) + Number(b.workNatureAllowance ?? 0)
     + Number(b.receptionAllowance ?? 0) + Number(b.yearlyRaise ?? 0);
+}
+
+function fmt(n: number) {
+  return Number(n).toLocaleString("en-EG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 const inputCls = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
@@ -123,7 +130,7 @@ function RaiseHistoryPanel({ empCd, empName }: { empCd: string; empName: string 
 
           {/* History table */}
           {history.length > 0 ? (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground">
                   <th className="py-1.5 text-right font-medium">السنة</th>
@@ -156,6 +163,173 @@ function RaiseHistoryPanel({ empCd, empName }: { empCd: string; empName: string 
   );
 }
 
+// ── Salary Table Component ─────────────────────────────────
+interface SalaryTableProps {
+  title: string;
+  data: any[];
+  employees: any[];
+  onEdit: (item: any) => void;
+  onDelete: (id: number) => void;
+  isPending: boolean;
+  expandedEmp: string | null;
+  onToggleExpand: (empCd: string) => void;
+}
+
+function SalaryTable({
+  title,
+  data,
+  employees,
+  onEdit,
+  onDelete,
+  isPending,
+  expandedEmp,
+  onToggleExpand,
+}: SalaryTableProps) {
+  const getEmployeeName = (empCd: string) => {
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
+  };
+
+  const totalAmount = data.reduce((sum, item) => sum + rowTotal(item), 0);
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-6 py-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground">الإجمالي</div>
+            <div className="text-2xl font-bold text-primary">{fmt(totalAmount)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      {data.length === 0 ? (
+        <div className="px-6 py-8 text-center text-muted-foreground">
+          لا توجد بيانات رواتب مسجلة
+        </div>
+      ) : (
+        <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm">
+            {/* Table Header */}
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-right font-semibold text-foreground w-32">
+                  الموظف
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  الراتب الأساسي
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  اعانة اجتماعية
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  علاء معيشة
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  بدل انتقال
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  طبيعة عمل
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  بدل استقبال
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  الزيادة السنوية
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">
+                  الإجمالي
+                </th>
+                <th className="px-4 py-3 text-center font-semibold text-foreground w-20">
+                  الإجراءات
+                </th>
+              </tr>
+            </thead>
+
+            {/* Table Body */}
+            <tbody>
+              {data.map((item, idx) => (
+                <tr
+                  key={item.id}
+                  className={`border-b border-border/50 transition-colors hover:bg-muted/30 ${
+                    idx % 2 === 0 ? "bg-background" : "bg-muted/10"
+                  }`}
+                >
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {getEmployeeName(item.empCd)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.basicAmount))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.socialAllowance ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.costOfLivingAllowance ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.transportAllowance ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.workNatureAllowance ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.receptionAllowance ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(Number(item.yearlyRaise ?? 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
+                    {fmt(rowTotal(item))}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(item)}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`)) {
+                            onDelete(item.id);
+                          }
+                        }}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="border-t border-border bg-muted/20 px-6 py-3 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          عدد الموظفين: <span className="font-semibold text-foreground">{data.length}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────
 export default function SalaryBasics() {
   const [showForm, setShowForm] = useState(false);
@@ -164,10 +338,6 @@ export default function SalaryBasics() {
   const [expandedEmp, setExpandedEmp] = useState<string | null>(null);
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
-  const commFlagsMut = (trpc as any).salary.setCommissionFlags.useMutation({
-    onSuccess: () => empsQ.refetch(),
-    onError: (e: any) => toast.error("خطأ: " + e.message),
-  });
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
@@ -228,18 +398,37 @@ export default function SalaryBasics() {
   const toggleExpand = (empCd: string) =>
     setExpandedEmp(prev => prev === empCd ? null : empCd);
 
+  // Separate data by department (Center vs Clinic)
+  const centerData = basics.filter((b) => {
+    const dept = b.department?.toLowerCase().trim();
+    return dept === "مركز" || dept === "center";
+  });
+
+  const clinicData = basics.filter((b) => {
+    const dept = b.department?.toLowerCase().trim();
+    return dept === "عيادة" || dept === "clinic";
+  });
+
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">الرواتب</p>
-          <h2 className="text-2xl font-bold text-foreground">الرواتب الأساسية</h2>
+          <p className="text-xs font-medium text-muted-foreground">مسار التحضير</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            بيانات الرواتب الأساسية
+          </h1>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            الرواتب والبدلات والزيادات التي يعتمد عليها كشف الشهر
+          </p>
         </div>
         <Button onClick={() => { setEditingId(null); setForm(BLANK); setShowForm(!showForm); }} className="gap-2">
-          <Plus size={16} /> إضافة راتب
+          <Plus className="h-4 w-4" />
+          إضافة راتب
         </Button>
       </div>
 
+      {/* Add/Edit Form */}
       {showForm && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
@@ -296,91 +485,51 @@ export default function SalaryBasics() {
         </section>
       )}
 
-      <section className="rounded-xl border border-border bg-background">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="text-base font-semibold">قائمة الرواتب</h3>
+      {/* Center Table */}
+      <SalaryTable
+        title="المركز"
+        data={centerData}
+        employees={employees}
+        onEdit={handleEdit}
+        onDelete={(id) => deleteMut.mutate({ id })}
+        isPending={deleteMut.isPending}
+        expandedEmp={expandedEmp}
+        onToggleExpand={toggleExpand}
+      />
+
+      {/* Clinic Table */}
+      <SalaryTable
+        title="العيادة"
+        data={clinicData}
+        employees={employees}
+        onEdit={handleEdit}
+        onDelete={(id) => deleteMut.mutate({ id })}
+        isPending={deleteMut.isPending}
+        expandedEmp={expandedEmp}
+        onToggleExpand={toggleExpand}
+      />
+
+      {/* Summary Statistics */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
+          <div className="mt-2 text-2xl font-bold text-foreground">
+            {basics.length}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">القسم</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">أساسي</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">معيشة</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">طبيعة عمل</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">زيادة</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">الإجمالي</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">من تاريخ</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">حتى تاريخ</th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground">العمولات</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const empMap = new Map(employees.map((e: any) => [e.empCd, e]));
-                return basics.map((b: any) => {
-                  const isExpanded = expandedEmp === b.empCd;
-                  const emp: any = empMap.get(b.empCd) ?? {};
-                  const flags = {
-                    commAttendance: emp.commAttendance !== false,
-                    commExam:       emp.commExam       !== false,
-                    commPentacam:   emp.commPentacam   !== false,
-                  };
-                  const toggle = (field: "commAttendance" | "commExam" | "commPentacam", val: boolean) =>
-                    commFlagsMut.mutate({ empCd: b.empCd, ...flags, [field]: val });
-                  return (
-                    <>
-                      <tr key={b.id} className={`border-b border-border/50 hover:bg-muted/20 ${isExpanded ? "bg-muted/10" : ""}`}>
-                        <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
-                        <td className="px-4 py-3">{Number(b.basicAmount).toLocaleString("ar-EG")}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{Number(b.costOfLivingAllowance ?? 0).toLocaleString("ar-EG")}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{Number(b.workNatureAllowance ?? 0).toLocaleString("ar-EG")}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{Number(b.yearlyRaise ?? 0).toLocaleString("ar-EG")}</td>
-                        <td className="px-4 py-3 font-bold text-foreground">{rowTotal(b).toLocaleString("ar-EG")} ج.م</td>
-                        <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveFrom)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{fmtDate(b.effectiveTo) || "مفتوح"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-col gap-1 text-xs">
-                            {(["commAttendance", "commExam", "commPentacam"] as const).map((field) => {
-                              const labels: Record<string, string> = { commAttendance: "25%", commExam: "فحص", commPentacam: "بنتاكام" };
-                              return (
-                                <label key={field} className="flex items-center gap-1 cursor-pointer select-none">
-                                  <input type="checkbox" checked={flags[field]} className="accent-primary"
-                                    onChange={e => toggle(field, e.target.checked)} />
-                                  <span className={flags[field] ? "text-foreground" : "text-muted-foreground line-through"}>{labels[field]}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => toggleExpand(b.empCd)}
-                              title="سجل الزيادات">
-                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(b)}><Pencil size={14} /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => { if (confirm("حذف هذا الراتب؟")) deleteMut.mutate({ id: b.id }); }}>
-                              <Trash2 size={14} className="text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && <RaiseHistoryPanel key={`raise-${b.empCd}`} empCd={b.empCd} empName={b.fullName ?? b.empCd} />}
-                    </>
-                  );
-                });
-              })()}
-              {basics.length === 0 && (
-                <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">لا توجد رواتب محددة بعد</td></tr>
-              )}
-            </tbody>
-          </table>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">موظفو المركز</div>
+          <div className="mt-2 text-2xl font-bold text-primary">
+            {centerData.length}
+          </div>
         </div>
-      </section>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">موظفو العيادة</div>
+          <div className="mt-2 text-2xl font-bold text-secondary">
+            {clinicData.length}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -212,8 +212,11 @@ export default function SalaryPenalties() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">الخصومات</p>
-          <h2 className="text-2xl font-bold text-foreground">خصومات الشهر</h2>
+          <p className="text-xs font-medium text-muted-foreground">مسار المتغيرات الشهرية</p>
+          <h2 className="text-2xl font-bold text-foreground">الخصومات والسلف</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            جزاءات وسلف وتأمينات الشهر قبل توليد كشف الرواتب.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Month/year only shown when not on fixed insurance tab */}
@@ -325,8 +328,8 @@ export default function SalaryPenalties() {
               </span>
             )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
@@ -381,8 +384,8 @@ export default function SalaryPenalties() {
             <h3 className="text-base font-semibold">خصم التأمينات</h3>
             <p className="text-xs text-muted-foreground mt-0.5">مبلغ ثابت يُخصم شهرياً من راتب كل موظف</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>

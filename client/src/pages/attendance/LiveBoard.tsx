@@ -31,13 +31,11 @@ export default function LiveBoard() {
     : "border-destructive/30 bg-destructive/10 text-destructive";
   const connectionDot = wsConnected ? "bg-success" : "bg-destructive";
 
-  // Load recent punch history, no date restriction — most recent 50
   const punchesQuery = tRPC.attendance.rawPunches.useQuery(
     { limit: 50 },
     { refetchInterval: 30000 },
   );
 
-  // Initialize WebSocket connection
   useEffect(() => {
     if (!isMonitoring) return;
 
@@ -46,7 +44,6 @@ export default function LiveBoard() {
 
       ws.onopen = () => {
         setWsConnected(true);
-        // Subscribe to attendance punches
         ws.send(JSON.stringify({ type: "subscribe-attendance" }));
       };
 
@@ -100,11 +97,10 @@ export default function LiveBoard() {
         direction: p.direction,
         deviceId: p.deviceId || "unknown",
       }));
-      setPunches((prev) => [...formatted, ...prev].slice(0, 100)); // Merge with WS punches
+      setPunches((prev) => [...formatted, ...prev].slice(0, 100));
     }
   }, [punchesQuery.data]);
 
-  // Device status
   const { data: deviceStatus } = tRPC.attendance.deviceStatus.useQuery(
     undefined,
     { refetchInterval: 5000 },
@@ -122,14 +118,14 @@ export default function LiveBoard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Attendance live
+          <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+            المتابعة المباشرة
           </p>
           <h1 className="text-3xl font-bold text-foreground">
-            Live Punch Feed
+            سجل البصمات المباشر
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -137,20 +133,20 @@ export default function LiveBoard() {
             className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${connectionTone}`}
           >
             <div className={`h-2.5 w-2.5 rounded-full ${connectionDot}`} />
-            {wsConnected ? "WebSocket Connected" : "WebSocket Disconnected"}
+            {wsConnected ? "اتصال مباشر" : "اتصال مباشر متوقف"}
           </div>
           <Button
             variant={isMonitoring ? "default" : "outline"}
             onClick={toggleMonitoring}
           >
-            {isMonitoring ? "Monitoring Active" : "Monitoring Paused"}
+            {isMonitoring ? "إيقاف المتابعة" : "تشغيل المتابعة"}
           </Button>
           <Button
             variant="outline"
             onClick={clearPunches}
             disabled={punches.length === 0}
           >
-            Clear Feed
+            مسح السجل
           </Button>
         </div>
       </div>
@@ -169,14 +165,12 @@ export default function LiveBoard() {
             </div>
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-foreground">
-                {deviceStatus?.connected
-                  ? "Device Connected"
-                  : "Device Offline"}
+                {deviceStatus?.connected ? "الجهاز متصل" : "الجهاز غير متصل"}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {deviceStatus?.connected
-                  ? "The attendance device is live."
-                  : "The device is not currently reporting."}
+                  ? "جهاز الحضور يرسل البصمات الآن."
+                  : "الجهاز لا يرسل بيانات في الوقت الحالي."}
               </p>
             </div>
           </div>
@@ -184,21 +178,21 @@ export default function LiveBoard() {
             <span className="font-medium text-foreground">
               {deviceStatus?.punchCount ?? 0}
             </span>
-            punches received
+            بصمات مستلمة
           </div>
         </div>
         <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-            <p className="text-xs font-medium text-muted-foreground">Status</p>
+            <p className="text-xs font-medium text-muted-foreground">الحالة</p>
             <p
               className={`mt-1 text-sm font-semibold ${deviceStatus?.connected ? "text-success" : "text-warning"}`}
             >
-              {deviceStatus?.connected ? "Connected" : "Disconnected"}
+              {deviceStatus?.connected ? "متصل" : "غير متصل"}
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
             <p className="text-xs font-medium text-muted-foreground">
-              Punches Received
+              البصمات المستلمة
             </p>
             <p className="mt-1 text-sm font-semibold text-foreground">
               {deviceStatus?.punchCount ?? 0}
@@ -206,16 +200,18 @@ export default function LiveBoard() {
           </div>
           <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
             <p className="text-xs font-medium text-muted-foreground">
-              Last Punch
+              آخر بصمة
             </p>
             <p className="mt-1 font-mono text-xs text-foreground">
               {deviceStatus?.lastPunch
                 ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
-                : "Never"}
+                : "لا يوجد"}
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-            <p className="text-xs font-medium text-muted-foreground">Uptime</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              مدة التشغيل
+            </p>
             <p className="mt-1 font-mono text-xs text-foreground">
               {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
               {(deviceStatus?.uptime ?? 0) % 60}s
@@ -238,16 +234,16 @@ export default function LiveBoard() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/25 px-4 py-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              Recent Punches ({punches.length})
+              آخر البصمات ({punches.length})
             </h2>
             <p className="text-sm text-muted-foreground">
               {punchesQuery.isLoading
-                ? "Refreshing data..."
-                : "Most recent punches from the database."}
+                ? "جارٍ تحديث البيانات..."
+                : "آخر 50 بصمة من قاعدة البيانات."}
             </p>
           </div>
           <div className="text-xs text-muted-foreground">
-            Stores up to 100 recent punches
+            يحتفظ حتى 100 بصمة حديثة
           </div>
         </div>
         <div className="px-4 py-4">
@@ -281,7 +277,11 @@ export default function LiveBoard() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-medium capitalize text-muted-foreground">
-                      {punch.direction}
+                      {punch.direction === "in"
+                        ? "دخول"
+                        : punch.direction === "out"
+                          ? "خروج"
+                          : "غير معروف"}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {punch.deviceId}
@@ -295,7 +295,7 @@ export default function LiveBoard() {
       </section>
 
       <div className="text-xs text-muted-foreground">
-        <p>يُحدَّث كل 30 ثانية. يعرض آخر 50 سجل.</p>
+        <p>يتجدد كل 30 ثانية، ويعرض آخر 50 سجل.</p>
       </div>
     </div>
   );

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Check, X, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const TYPE_LABEL: Record<string, string> = { doctor: "Doctor", tech: "Technician" };
-const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const SHIFTS = ["Morning","Night"];
+const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
+const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const SHIFTS = ["صباحي","ليلي"];
 
 interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; userId: number | null; }
 const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "", userId: null };
@@ -55,7 +55,7 @@ function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: an
 
   return (
     <div className="px-4 pb-3 pt-1 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Weekly cycle</p>
+      <p className="text-xs font-medium text-muted-foreground">دورة أسبوعية</p>
       <div className="flex flex-wrap gap-3">
         {DAYS.map((day, dow) => (
           <div key={dow} className="flex flex-col items-center gap-1.5 min-w-[52px]">
@@ -75,7 +75,7 @@ function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: an
         ))}
       </div>
       <Button size="sm" onClick={save} disabled={saveMut.isPending}>
-        {saveMut.isPending ? "Saving…" : "Save cycle"}
+        {saveMut.isPending ? "جارٍ الحفظ…" : "حفظ الدورة"}
       </Button>
     </div>
   );
@@ -248,17 +248,17 @@ export default function ShiftStaff() {
     if (rows.length === 0) return null;
     return (
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
         <div className="rounded-md border overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" dir="rtl">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-4 py-2 text-right font-medium">Name</th>
-                <th className="px-4 py-2 text-right font-medium">Type</th>
-                <th className="px-4 py-2 text-right font-medium">Rate / Shift</th>
-                <th className="px-4 py-2 text-right font-medium">Attendance Link</th>
-                <th className="px-4 py-2 text-right font-medium">User Account</th>
-                <th className="px-4 py-2 text-right font-medium">Status</th>
+                <th className="px-4 py-2 text-right font-medium">الاسم</th>
+                <th className="px-4 py-2 text-right font-medium">النوع</th>
+                <th className="px-4 py-2 text-right font-medium">قيمة الشفت</th>
+                <th className="px-4 py-2 text-right font-medium">ربط الحضور</th>
+                <th className="px-4 py-2 text-right font-medium">حساب المستخدم</th>
+                <th className="px-4 py-2 text-right font-medium">الحالة</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -272,55 +272,55 @@ export default function ShiftStaff() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Doctors & Technicians</h2>
+        <h2 className="text-lg font-semibold">الأطباء والفنيون</h2>
         {!adding && (
           <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus size={15} className="mr-1" /> Add
+            <Plus size={15} className="mr-1" /> إضافة
           </Button>
         )}
       </div>
 
       {adding && (
         <div className="rounded-md border p-4 space-y-3 bg-muted/10">
-          <h3 className="text-sm font-semibold">New staff member</h3>
+          <h3 className="text-sm font-semibold">عضو شفت جديد</h3>
           <div className="flex flex-wrap gap-3">
-            <input placeholder="Full name" value={addForm.name}
+            <input placeholder="الاسم الكامل" value={addForm.name}
               onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
               className="flex-1 min-w-40 rounded border border-input bg-background px-3 py-1.5 text-sm" />
             <select value={addForm.type} onChange={e => setAddForm(f => ({ ...f, type: e.target.value as any }))}
               className="rounded border border-input bg-background px-3 py-1.5 text-sm">
-              <option value="doctor">Doctor</option>
-              <option value="tech">Technician</option>
+              <option value="doctor">طبيب</option>
+              <option value="tech">فني</option>
             </select>
             <div className="relative">
-              <input type="number" min={0} step={0.01} placeholder="Rate per shift"
+              <input type="number" min={0} step={0.01} placeholder="قيمة الشفت"
                 value={addForm.ratePerShift}
                 onChange={e => setAddForm(f => ({ ...f, ratePerShift: e.target.value }))}
                 className="w-40 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">EGP</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">ج.م</span>
             </div>
             <select value={addForm.empCd} onChange={e => setAddForm(f => ({ ...f, empCd: e.target.value }))}
               className="rounded border border-input bg-background px-3 py-1.5 text-sm">
-              <option value="">Attendance link (optional)</option>
+              <option value="">ربط الحضور (اختياري)</option>
               {employees.map((e: any) => (
                 <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
               ))}
             </select>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>Save</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setAddForm(EMPTY); }}>Cancel</Button>
+            <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>حفظ</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setAddForm(EMPTY); }}>إلغاء</Button>
           </div>
         </div>
       )}
 
       {staffQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
       ) : (
         <div className="space-y-6">
-          {renderTable(doctors, "Doctors")}
-          {renderTable(techs, "Technicians")}
-          {staff.length === 0 && <p className="text-sm text-muted-foreground">No staff added yet.</p>}
+          {renderTable(doctors, "الأطباء")}
+          {renderTable(techs, "الفنيون")}
+          {staff.length === 0 && <p className="text-sm text-muted-foreground">لا يوجد طاقم بعد.</p>}
         </div>
       )}
     </div>

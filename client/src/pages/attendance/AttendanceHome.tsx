@@ -27,34 +27,51 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const attendanceQuickLinks = [
   {
-    icon: Activity,
-    label: "اللوحة المباشرة",
-    description: "مراقبة الحضور الآن مع حالة الدخول والخروج",
-    href: "/attendance/live",
+    icon: CalendarCheck,
+    label: "متابعة اليوم",
+    description: "الحالة اليومية، الحضور الآن، والمزامنة السريعة",
+    href: "/attendance",
+    links: [
+      { label: "الحضور الآن", href: "/attendance/live" },
+      { label: "طباعة اليوم", href: "/attendance/reports" },
+    ],
   },
   {
     icon: Users,
-    label: "الموظفون",
-    description: "سجل الموظفين والإجازات والأذونات",
+    label: "الموظفون والطلبات",
+    description: "الموظفون، الإجازات، الأذونات، وتوزيع الورديات",
     href: "/attendance/employees",
+    links: [
+      { label: "قائمة الموظفين", href: "/attendance/employees" },
+      { label: "الروستر الشهري", href: "/attendance/shift-schedule" },
+    ],
   },
   {
     icon: BarChart3,
     label: "التقارير",
-    description: "التقارير اليومية والتفصيلية والطباعة",
+    description: "تقارير يومية، تفصيلية، أذونات، وأرصدة إجازات",
     href: "/attendance/reports",
+    links: [
+      { label: "التقرير اليومي", href: "/attendance/reports" },
+      { label: "السجلات الخام", href: "/attendance/reports" },
+    ],
   },
   {
     icon: Smartphone,
-    label: "الجهاز والإعدادات",
-    description: "الورديات والعطل والجهاز والمزامنة",
+    label: "الإعدادات والمزامنة",
+    description: "الجهاز، تزامن البصمات، العطلات، وقواعد الحضور",
     href: "/attendance/settings",
+    links: [
+      { label: "إعداد الجهاز", href: "/attendance/admin/device" },
+      { label: "حالة المزامنة", href: "/attendance/admin/sync" },
+    ],
   },
   {
     icon: ShieldCheck,
     label: "ملفي الشخصي",
     description: "رصيد إجازاتي وإحصائياتي وطلب إذن أو إجازة",
     href: "/attendance/my",
+    links: [{ label: "فتح الملف", href: "/attendance/my" }],
   },
 ];
 
@@ -165,12 +182,21 @@ export default function AttendanceHome() {
         ? "جارٍ الاتصال"
         : "غير متصل";
 
-  const visibleQuickLinks = useMemo(() => {
+  const visibleWorkLanes = useMemo(() => {
     if (isAdmin) return attendanceQuickLinks;
     if (!permissionsQuery.isSuccess) return [];
-    return attendanceQuickLinks.filter((link) =>
-      pathGrantedByRoots(normalizeNavPath(link.href), allowedRoots),
-    );
+    return attendanceQuickLinks
+      .map((lane) => ({
+        ...lane,
+        links: lane.links.filter((link) =>
+          pathGrantedByRoots(normalizeNavPath(link.href), allowedRoots),
+        ),
+      }))
+      .filter(
+        (lane) =>
+          pathGrantedByRoots(normalizeNavPath(lane.href), allowedRoots) ||
+          lane.links.length > 0,
+      );
   }, [allowedRoots, isAdmin, permissionsQuery.isSuccess]);
 
   const canUseOperationalShortcuts =
@@ -214,10 +240,10 @@ export default function AttendanceHome() {
         <div className="space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              الإجراءات السريعة
+              متابعة اليوم
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              اختصارات مباشرة للعمليات اليومية.
+              أهم إجراءات الحضور اليومي بدون الدخول في صفحات الإعداد.
             </p>
           </div>
 
@@ -255,7 +281,7 @@ export default function AttendanceHome() {
                 <Link href="/attendance/reports">
                   <span className="inline-flex items-center gap-2">
                     <Printer className="h-4 w-4" />
-                    طباعة التقارير
+                    فتح التقارير
                   </span>
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
@@ -266,7 +292,7 @@ export default function AttendanceHome() {
                 <Link href="/attendance/live">
                   <span className="inline-flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    المراقبة المباشرة
+                    الحضور الآن
                   </span>
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
@@ -324,33 +350,49 @@ export default function AttendanceHome() {
         <div className="space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              أقسام العمل
+              مسارات العمل
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              مسارات مباشرة إلى المناطق الأساسية.
+              اختر المسار حسب نوع المهمة، وليس حسب اسم الصفحة.
             </p>
           </div>
 
           <div className="divide-y divide-border rounded-xl border border-border bg-card">
-            {visibleQuickLinks.map(({ icon: Icon, label, description, href }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/40"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-foreground">
-                    {label}
+            {visibleWorkLanes.map(({ icon: Icon, label, description, href, links }) => (
+              <div key={href} className="px-4 py-3.5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {description}
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={href}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary"
+                    >
+                      {label}
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                    </Link>
+                    <div className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                      {description}
+                    </div>
+                    {links.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {links.map((link) => (
+                          <Button
+                            key={`${href}-${link.href}-${link.label}`}
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Link href={link.href}>{link.label}</Link>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Link>
+              </div>
             ))}
           </div>
         </div>

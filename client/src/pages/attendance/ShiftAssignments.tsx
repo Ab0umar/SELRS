@@ -691,8 +691,8 @@ export default function ShiftAssignments() {
               لا توجد تعيينات
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[58rem] w-full text-sm" dir="rtl">
+            <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="min-w-[58rem] w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-3 text-right">الكود</th>
@@ -1105,8 +1105,8 @@ export default function ShiftAssignments() {
               {cycleAssignments.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">لا توجد تعيينات</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-[52rem] w-full text-sm" dir="rtl">
+                <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="min-w-[52rem] w-full text-sm" dir="rtl">
                     <thead>
                       <tr className="border-b bg-muted/50">
                         <th className="px-4 py-3 text-right">الموظف</th>

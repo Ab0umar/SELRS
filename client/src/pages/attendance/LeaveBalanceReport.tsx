@@ -372,8 +372,8 @@ export default function LeaveBalanceReport() {
               </span>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" dir="rtl">
+            <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/60">
                     <th className="px-4 py-3 text-right font-semibold text-foreground">

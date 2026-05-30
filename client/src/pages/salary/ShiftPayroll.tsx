@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Printer } from "lucide-react";
 
 const now = new Date();
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 function fmt(n: number) {
@@ -185,18 +185,18 @@ export default function ShiftPayroll() {
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-          <span className="text-sm font-semibold text-primary">{fmt(sectionPay)} EGP</span>
+          <span className="text-sm font-semibold text-primary">{fmt(sectionPay)} ج.م</span>
         </div>
         <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" dir="rtl">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-xs">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Rate / Shift</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Scheduled</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">Attended</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-destructive">Absent</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground font-bold">Total Pay</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">الاسم</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">قيمة الشفت</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">مجدول</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">حضور</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-destructive">غياب</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground font-bold">المستحق</th>
               </tr>
             </thead>
             <tbody>
@@ -222,8 +222,11 @@ export default function ShiftPayroll() {
       {/* Header controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Payroll</p>
-          <h2 className="text-2xl font-bold">Shift Payroll</h2>
+          <p className="text-xs font-medium text-muted-foreground">مسار الشفتات</p>
+          <h2 className="text-2xl font-bold">كشف الشفتات</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            مستحقات الأطباء والفنيين حسب الشفتات المسجلة.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={month} onChange={e => setMonth(Number(e.target.value))}
@@ -238,7 +241,7 @@ export default function ShiftPayroll() {
           </select>
           <Button variant="outline" onClick={() => payrollQ.refetch()} disabled={payrollQ.isFetching} className="gap-2">
             <RefreshCw size={15} className={payrollQ.isFetching ? "animate-spin" : ""} />
-            Refresh
+            تحديث
           </Button>
           {rows.length > 0 && (
             <Button variant="outline" onClick={printSlips} className="gap-2">
@@ -252,10 +255,10 @@ export default function ShiftPayroll() {
       {rows.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Scheduled shifts", value: String(totalScheduled), tone: "text-foreground" },
-            { label: "Attended",         value: String(totalAttended),  tone: "text-green-600 font-bold" },
-            { label: "Absent",           value: String(totalAbsent),    tone: "text-destructive" },
-            { label: "Total payroll",    value: fmt(totalPay) + " EGP", tone: "text-primary font-bold" },
+            { label: "الشفتات المجدولة", value: String(totalScheduled), tone: "text-foreground" },
+            { label: "تم الحضور",         value: String(totalAttended),  tone: "text-green-600 font-bold" },
+            { label: "غياب",              value: String(totalAbsent),    tone: "text-destructive" },
+            { label: "إجمالي المستحق",    value: fmt(totalPay) + " ج.م", tone: "text-primary font-bold" },
           ].map(card => (
             <div key={card.label} className="rounded-xl border border-border bg-card px-4 py-3">
               <div className="text-xs text-muted-foreground">{card.label}</div>
@@ -267,20 +270,20 @@ export default function ShiftPayroll() {
 
       {/* Tables */}
       {payrollQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-background px-4 py-16 text-center text-muted-foreground text-sm">
-          No shift staff or no attendance recorded for {MONTHS[month - 1]} {year}.
+          لا يوجد طاقم شفتات أو حضور مسجل لشهر {MONTHS[month - 1]} {year}.
         </div>
       ) : (
         <div className="space-y-6">
-          {renderSection(doctors, "Doctors")}
-          {renderSection(techs, "Technicians")}
+          {renderSection(doctors, "الأطباء")}
+          {renderSection(techs, "الفنيون")}
 
           {/* Grand total */}
           <div className="flex justify-end">
             <div className="rounded-xl border border-border bg-muted/20 px-6 py-3 text-sm">
-              Grand total: <span className="font-bold text-primary ml-2">{fmt(totalPay)} EGP</span>
+              الإجمالي: <span className="font-bold text-primary ml-2">{fmt(totalPay)} ج.م</span>
             </div>
           </div>
         </div>

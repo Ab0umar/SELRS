@@ -154,6 +154,13 @@ function EmployeeRates() {
 export default function SalarySettings() {
   return (
     <div className="space-y-10 max-w-lg">
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">مسار الإعدادات</p>
+        <h2 className="text-2xl font-bold text-foreground">إعدادات الرواتب</h2>
+        <p className="text-sm text-muted-foreground">
+          قواعد الحضور ونسب الموظفين التي تدخل في الحساب الشهري.
+        </p>
+      </div>
       <GlobalRates />
       <hr className="border-border" />
       <EmployeeRates />

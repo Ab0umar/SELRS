@@ -36,7 +36,10 @@ export default function Reports() {
     from: dates.from,
     to: dates.to,
   });
-  const permQuery = trpc.attendance.permissionReport.useQuery({ from: dates.from, to: dates.to });
+  const permQuery = trpc.attendance.permissionReport.useQuery({
+    from: dates.from,
+    to: dates.to,
+  });
   const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({
     year: balanceYear,
   });
@@ -204,8 +207,8 @@ export default function Reports() {
       );
     const cols = Object.keys(rows[0]);
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-[42rem] w-full text-sm" dir="rtl">
+      <div className="overflow-x-auto" dir="rtl">
+        <table dir="rtl" className="min-w-[42rem] w-full text-sm" dir="rtl">
           <thead>
             <tr className="border-b bg-muted/50">
               {cols.map((c) => (
@@ -235,8 +238,8 @@ export default function Reports() {
   };
 
   const tabs: { key: ReportTab; label: string }[] = [
-    { key: "monthly", label: "شهري موسع" },
-    { key: "summary", label: "ملخص" },
+    { key: "monthly", label: "التقرير الشهري" },
+    { key: "summary", label: "الملخص" },
     { key: "late", label: "التأخير" },
     { key: "absent", label: "الغياب" },
     { key: "ot", label: "الإضافي" },
@@ -367,7 +370,7 @@ export default function Reports() {
               variant="outline"
               className="w-full border-primary/20 text-primary hover:bg-primary/10 sm:w-auto"
             >
-              تحديث
+              تحديث البيانات
             </Button>
 
             {activeTab === "leaves" && (
@@ -394,7 +397,7 @@ export default function Reports() {
                   variant="outline"
                   className="w-full border-success/20 text-success hover:bg-success/10 sm:w-auto"
                 >
-                  تحديث
+                  تحديث الرصيد
                 </Button>
               </div>
             )}
