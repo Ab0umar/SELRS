@@ -1408,8 +1408,24 @@ async function startServer() {
   function resolvePentacamObjectCandidates(rawName: string) {
     const normalized = String(rawName ?? "").trim().replace(/^\/+/, "");
     const base = path.posix.basename(normalized);
+    const stem = path.posix.parse(base).name || base;
+    const hasExt = Boolean(path.posix.extname(base));
     const values = new Set<string>();
-    for (const candidate of [normalized, base, `pentacam-exports/${base}`, `Pentacam/${base}`, `pentacam/${base}`]) {
+    const variants = hasExt
+      ? [base]
+      : [
+          base,
+          `${base}.jpg`,
+          `${base}.jpeg`,
+          `${base}.png`,
+          `${base}.webp`,
+          stem,
+          `${stem}.jpg`,
+          `${stem}.jpeg`,
+          `${stem}.png`,
+          `${stem}.webp`,
+        ];
+    for (const candidate of [normalized, ...variants.flatMap((value) => [value, `pentacam-exports/${value}`, `Pentacam/${value}`, `pentacam/${value}`])]) {
       const value = String(candidate ?? "").trim().replace(/^\/+/, "");
       if (value) values.add(value);
     }
