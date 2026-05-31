@@ -3692,6 +3692,27 @@ export async function deletePentacamResultsByIds(ids: number[]) {
   return normalized.length;
 }
 
+export async function getBlackiceUploadsByPatient(patientId: number, limit = 100) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 500);
+  const result = await db.execute(
+    sql`SELECT id, file_name, mime_type, s3_key, created_at
+        FROM blackice_uploads
+        WHERE patient_id = ${patientId}
+        ORDER BY created_at DESC
+        LIMIT ${safeLimit}`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []) as Array<{
+    id: number;
+    file_name: string | null;
+    mime_type: string | null;
+    s3_key: string | null;
+    created_at: Date | string | null;
+  }>;
+}
+
 // ============ DOCTOR REPORT OPERATIONS ============
 
 export async function createDoctorReport(reportData: any) {

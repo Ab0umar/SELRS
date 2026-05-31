@@ -4076,31 +4076,25 @@ export const medicalRouter = router({
           }));
       } catch { /* listing failed, continue */ }
 
-      // Source 2: pentacamResults rows where OCR assigned the patient.
-      // Parse filename from notes JSON without requiring the kind field.
+      // Source 2: blackice_uploads rows linked to this patient (OCR-imported pentacam JPGs).
       const seenNames = new Set<string>(s3Items.map((r) => r.fileName.toLowerCase()));
-      const dbRows = await db.getPentacamResultsByPatient(input.patientId, safeLimit);
-      const dbItems: Array<{ fileName: string; storageUrl: string; ts: string | null; visitId: number }> = [];
-      for (const row of dbRows as any[]) {
-        let fileName = "";
-        try {
-          const notes = String(row.notes ?? "").trim();
-          if (notes.startsWith("{")) {
-            const parsed = JSON.parse(notes);
-            fileName = String(parsed?.originalFileName ?? parsed?.sourceFileName ?? "").trim();
-          }
-        } catch { /* skip unparseable notes */ }
-        if (!fileName || !(/\.(jpg|jpeg|png|webp)$/i.test(fileName))) continue;
-        const baseName = path.posix.basename(fileName).toLowerCase();
-        if (seenNames.has(baseName)) continue;
-        seenNames.add(baseName);
-        dbItems.push({
-          fileName: path.posix.basename(fileName),
-          storageUrl: buildPentacamObjectUrl(fileName),
-          ts: row.createdAt ? String(row.createdAt) : null,
-          visitId: Number(row.visitId ?? 0),
+      const blackiceRows = await db.getBlackiceUploadsByPatient(input.patientId, safeLimit);
+      const blackiceItems = blackiceRows
+        .filter((row) => {
+          const name = String(row.file_name ?? "").trim();
+          return /\.(jpg|jpeg|png|webp)$/i.test(name) && !seenNames.has(path.posix.basename(name).toLowerCase());
+        })
+        .map((row) => {
+          const fileName = path.posix.basename(String(row.file_name ?? "").trim());
+          seenNames.add(fileName.toLowerCase());
+          return {
+            id: row.id,
+            fileName,
+            storageUrl: `/api/blackice/uploads/${row.id}`,
+            mimeType: String(row.mime_type ?? "").trim() || inferPentacamMimeType(fileName),
+            ts: row.created_at ? String(row.created_at) : null,
+          };
         });
-      }
 
       const combined = [
         ...s3Items.map((item, i) => ({
@@ -4115,15 +4109,15 @@ export const medicalRouter = router({
           capturedAt: item.ts,
           importedAt: item.ts,
         })),
-        ...dbItems.map((item, i) => ({
-          id: s3Items.length + i + 1,
+        ...blackiceItems.map((item) => ({
+          id: item.id,
           patientId: input.patientId,
-          visitId: item.visitId,
+          visitId: 0,
           eyeSide: "",
           importStatus: "imported",
           sourceFileName: item.fileName,
           storageUrl: item.storageUrl,
-          mimeType: inferPentacamMimeType(item.fileName),
+          mimeType: item.mimeType,
           capturedAt: item.ts,
           importedAt: item.ts,
         })),
