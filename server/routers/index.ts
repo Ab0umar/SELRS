@@ -6,20 +6,18 @@ import { patientRouter } from "./patient";
 import { stockroomRouter } from "./stockroom";
 import { salaryRouter } from "./salary";
 
-console.log("[DEBUG] about to import patientPortal");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-let patientPortalRouter: any;
+console.log("[DEBUG] index.ts body running");
+
+let patientPortalRouter: any = null;
 try {
-  patientPortalRouter = require("./patientPortal").patientPortalRouter;
-  console.log("[DEBUG] patientPortal loaded, procedures:", Object.keys(patientPortalRouter._def.procedures));
+  const m = await import("./patientPortal.js");
+  patientPortalRouter = m.patientPortalRouter;
+  console.log("[DEBUG] patientPortal OK:", Object.keys(patientPortalRouter._def.procedures));
 } catch (e: any) {
-  console.error("[DEBUG] patientPortal FAILED TO LOAD:", e?.message ?? String(e));
-  console.error(e?.stack ?? "");
+  console.error("[DEBUG] patientPortal FAILED:", e?.message ?? String(e));
+  if (e?.stack) console.error(e.stack);
 }
 
-/**
- * AppRouter - Main TRPC router combining all sub-routers
- */
 export const appRouter = router({
   accounting: accountingRouter,
   attendance: attendanceRouter,
