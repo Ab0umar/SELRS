@@ -262,6 +262,10 @@ export const salaryRouter = router({
         examCountSpecialist: z.number().int().min(0).optional(),
         examPoolConsultant: z.number().min(0).optional(), // عيادة: استشاري pool
         examPoolSpecialist: z.number().min(0).optional(), // عيادة: أخصائي pool
+        costOfLivingAllowanceAmount: z.number().min(0).optional(),
+        costOfLivingAllowanceCount: z.number().int().min(0).optional(),
+        transportAllowanceAmount: z.number().min(0).optional(),
+        transportAllowanceCount: z.number().int().min(0).optional(),
         cases450: z.number().int().min(0).default(0),
         cases400: z.number().int().min(0).default(0),
         cases350: z.number().int().min(0).default(0),
@@ -287,6 +291,12 @@ export const salaryRouter = router({
       const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
       const examCountConsultantVal = input.examCountConsultant ?? null;
       const examCountSpecialistVal = input.examCountSpecialist ?? null;
+      const costOfLivingAllowanceAmount = r2(input.costOfLivingAllowanceAmount ?? 0);
+      const costOfLivingAllowanceCount = input.costOfLivingAllowanceCount ?? 0;
+      const costOfLivingAllowanceTotal = r2(costOfLivingAllowanceAmount * costOfLivingAllowanceCount);
+      const transportAllowanceAmount = r2(input.transportAllowanceAmount ?? 0);
+      const transportAllowanceCount = input.transportAllowanceCount ?? 0;
+      const transportAllowanceTotal = r2(transportAllowanceAmount * transportAllowanceCount);
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -300,6 +310,12 @@ export const salaryRouter = router({
           examPoolConsultant: examPoolConsultantVal,
           examPoolSpecialist: examPoolSpecialistVal,
           pentacamPool,
+          costOfLivingAllowanceAmount: String(costOfLivingAllowanceAmount) as any,
+          costOfLivingAllowanceCount,
+          costOfLivingAllowanceTotal: String(costOfLivingAllowanceTotal) as any,
+          transportAllowanceAmount: String(transportAllowanceAmount) as any,
+          transportAllowanceCount,
+          transportAllowanceTotal: String(transportAllowanceTotal) as any,
           cases450: input.cases450,
           cases400: input.cases400,
           cases350: input.cases350,
@@ -315,6 +331,12 @@ export const salaryRouter = router({
             examPoolConsultant: examPoolConsultantVal,
             examPoolSpecialist: examPoolSpecialistVal,
             pentacamPool,
+            costOfLivingAllowanceAmount: String(costOfLivingAllowanceAmount) as any,
+            costOfLivingAllowanceCount,
+            costOfLivingAllowanceTotal: String(costOfLivingAllowanceTotal) as any,
+            transportAllowanceAmount: String(transportAllowanceAmount) as any,
+            transportAllowanceCount,
+            transportAllowanceTotal: String(transportAllowanceTotal) as any,
             cases450: input.cases450,
             cases400: input.cases400,
             cases350: input.cases350,
@@ -366,6 +388,8 @@ export const salaryRouter = router({
           attendanceCommission: salaryPayroll.attendanceCommission,
           examCommission: salaryPayroll.examCommission,
           pentacamCommission: salaryPayroll.pentacamCommission,
+          costOfLivingAllowance: salaryPayroll.costOfLivingAllowance,
+          transportAllowance: salaryPayroll.transportAllowance,
           totalCommission: salaryPayroll.totalCommission,
           overtimePay: salaryPayroll.overtimePay,
           totalPay: salaryPayroll.totalPay,

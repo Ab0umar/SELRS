@@ -1,6 +1,6 @@
 {
   "name": "SELRS",
-  "version": "1.0.155",
+  "version": "1.0.160",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -34,7 +34,8 @@
     "smoke": "tsx scripts/smoke.ts",
     "hooks:install": "git config core.hooksPath .githooks",
     "android:build-release": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release.ps1",
-    "web:deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy-web.ps1"
+    "web:deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy-web.ps1",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1047.0",
@@ -153,6 +154,7 @@
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.27.7",
+    "patch-package": "^8.0.1",
     "pnpm": "^10.33.4",
     "postcss": "^8.5.14",
     "prettier": "^3.8.3",

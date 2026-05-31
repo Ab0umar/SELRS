@@ -203,14 +203,28 @@ export default function AttendanceLayout({
               return (
                 <div key={section.id} className="space-y-1">
                   {/* Section header */}
-                  <div className="px-3 py-2">
+                  <div
+                    className={`rounded-xl border px-3 py-2.5 transition-colors ${
+                      active
+                        ? "border-secondary/20 bg-secondary/10"
+                        : "border-border bg-background"
+                    }`}
+                  >
                     <div className="flex items-center gap-2">
-                      <section.icon className="h-4 w-4 text-muted-foreground" />
+                      <section.icon
+                        className={`h-4 w-4 ${
+                          active ? "text-secondary" : "text-muted-foreground"
+                        }`}
+                      />
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                        <h3
+                          className={`text-xs font-semibold uppercase tracking-wide ${
+                            active ? "text-secondary" : "text-foreground"
+                          }`}
+                        >
                           {section.label}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {section.description}
                         </p>
                       </div>
@@ -218,7 +232,7 @@ export default function AttendanceLayout({
                   </div>
 
                   {/* Section items */}
-                  <div className="space-y-1">
+                  <div className="mt-1 space-y-1 pl-1">
                     {section.items.map((item) => {
                       const itemActive = isItemActive(location, item.activeFor);
                       return (
@@ -227,11 +241,13 @@ export default function AttendanceLayout({
                           href={item.href}
                           className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 focus-visible:ring-offset-2 ${
                             itemActive
-                              ? "bg-secondary/10 text-secondary font-medium shadow-sm"
-                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                              ? "bg-background text-secondary font-medium ring-1 ring-inset ring-secondary/15 shadow-sm"
+                              : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           }`}
                         >
-                          <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronRight className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${
+                            itemActive ? "opacity-100 text-secondary" : "opacity-0 group-hover:opacity-100"
+                          }`} />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium">{item.label}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">
@@ -245,7 +261,7 @@ export default function AttendanceLayout({
 
                   {/* Divider between sections */}
                   {section.id !== "settings" && (
-                    <div className="my-2 border-t border-border" />
+                    <div className="my-3 border-t border-border/80" />
                   )}
                 </div>
               );

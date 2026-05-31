@@ -33,6 +33,10 @@ type FormState = {
   specialistCount: string;
   consultantRate: string;
   specialistRate: string;
+  costOfLivingAllowanceAmount: string;
+  costOfLivingAllowanceCount: string;
+  transportAllowanceAmount: string;
+  transportAllowanceCount: string;
   cases450: string;
   cases400: string;
   cases350: string;
@@ -51,6 +55,10 @@ const BLANK: FormState = {
   specialistCount: "0",
   consultantRate: "0",
   specialistRate: "0",
+  costOfLivingAllowanceAmount: "0",
+  costOfLivingAllowanceCount: "0",
+  transportAllowanceAmount: "0",
+  transportAllowanceCount: "0",
   cases450: "0",
   cases400: "0",
   cases350: "0",
@@ -94,6 +102,10 @@ export default function CommissionPools() {
         specialistCount: String(sCount),
         consultantRate: "0",
         specialistRate: "0",
+        costOfLivingAllowanceAmount: String(pool.costOfLivingAllowanceAmount ?? 0),
+        costOfLivingAllowanceCount: String(pool.costOfLivingAllowanceCount ?? 0),
+        transportAllowanceAmount: String(pool.transportAllowanceAmount ?? 0),
+        transportAllowanceCount: String(pool.transportAllowanceCount ?? 0),
         cases450: "0",
         cases400: "0",
         cases350: "0",
@@ -133,11 +145,17 @@ export default function CommissionPools() {
   const specialistCount = parseInt(form.specialistCount) || 0;
   const consultantRateNum = parseFloat(consultantRate) || 0;
   const specialistRateNum = parseFloat(specialistRate) || 0;
+  const costOfLivingAllowanceAmount = parseFloat(form.costOfLivingAllowanceAmount) || 0;
+  const costOfLivingAllowanceCount = parseInt(form.costOfLivingAllowanceCount) || 0;
+  const transportAllowanceAmount = parseFloat(form.transportAllowanceAmount) || 0;
+  const transportAllowanceCount = parseInt(form.transportAllowanceCount) || 0;
   // For clinic: consultant and specialist pools split equally among their respective counts
   const consultantPool = Math.round(consultantCount * consultantRateNum * 100) / 100;
   const specialistPool = Math.round(specialistCount * specialistRateNum * 100) / 100;
   const consultantPerEmp = consultantCount > 0 ? Math.round((consultantPool / consultantCount) * 100) / 100 : 0;
   const specialistPerEmp = specialistCount > 0 ? Math.round((specialistPool / specialistCount) * 100) / 100 : 0;
+  const costOfLivingAllowanceTotal = Math.round(costOfLivingAllowanceAmount * costOfLivingAllowanceCount * 100) / 100;
+  const transportAllowanceTotal = Math.round(transportAllowanceAmount * transportAllowanceCount * 100) / 100;
   
   // For center: exam commission split by percentage
   const examTotal = examCount * EXAM_PRICE;
@@ -202,6 +220,10 @@ export default function CommissionPools() {
         examPoolConsultant: consultantPool,
         examPoolSpecialist: specialistPool,
       } : {}),
+      costOfLivingAllowanceAmount,
+      costOfLivingAllowanceCount,
+      transportAllowanceAmount,
+      transportAllowanceCount,
       notes: form.notes,
     });
   };
@@ -391,6 +413,51 @@ export default function CommissionPools() {
                 </div>
               </div>
             )}
+
+            {/* Day-10 Allowances */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-base">بدلات يوم 10</h3>
+              <div className="overflow-x-auto" dir="rtl">
+                <table className="w-full text-sm border border-border rounded-lg" dir="rtl">
+                  <thead>
+                    <tr className="bg-emerald-50/50 border-b">
+                      <th className="px-4 py-3 text-right font-semibold">البيان</th>
+                      <th className="px-4 py-3 text-center font-semibold">المبلغ</th>
+                      <th className="px-4 py-3 text-center font-semibold">العدد</th>
+                      <th className="px-4 py-3 text-center font-semibold">الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium">غلاء معيشه</td>
+                      <td className="px-4 py-3 text-center">
+                        <input type="number" value={form.costOfLivingAllowanceAmount} min={0} step="0.01" onChange={set("costOfLivingAllowanceAmount")} className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <input type="number" value={form.costOfLivingAllowanceCount} min={0} step="1" onChange={set("costOfLivingAllowanceCount")} className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
+                      </td>
+                      <td className="px-4 py-3 text-center font-semibold text-primary">{costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج</td>
+                    </tr>
+                    <tr className="border-b hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium">بدل مواصلات</td>
+                      <td className="px-4 py-3 text-center">
+                        <input type="number" value={form.transportAllowanceAmount} min={0} step="0.01" onChange={set("transportAllowanceAmount")} className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <input type="number" value={form.transportAllowanceCount} min={0} step="1" onChange={set("transportAllowanceCount")} className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
+                      </td>
+                      <td className="px-4 py-3 text-center font-semibold text-primary">{transportAllowanceTotal.toLocaleString("ar-EG")} ج</td>
+                    </tr>
+                    <tr className="bg-emerald-50/30 font-bold">
+                      <td className="px-4 py-3">إجمالي بدلات يوم 10</td>
+                      <td className="px-4 py-3 text-center">-</td>
+                      <td className="px-4 py-3 text-center">-</td>
+                      <td className="px-4 py-3 text-center text-primary">{(costOfLivingAllowanceTotal + transportAllowanceTotal).toLocaleString("ar-EG")} ج</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
             {/* Notes */}
             <div className="space-y-2">

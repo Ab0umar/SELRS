@@ -97,6 +97,8 @@ export interface PayrollRow {
   attendanceCommission: number;
   examCommission: number;
   pentacamCommission: number;
+  costOfLivingAllowance: number;
+  transportAllowance: number;
   totalCommission: number;
   overtimePay: number;
   totalPay: number;
@@ -119,8 +121,7 @@ export class PayrollComputeService {
 
     const [poolRows, basics, monthlyReports, dailyRows, penalties, advances, shiftAttendanceRows, holidayRows] = await Promise.all([
       db.select().from(salaryCommissionPools)
-        .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month), eq(salaryCommissionPools.section, section)))
-        .limit(1),
+        .where(and(eq(salaryCommissionPools.year, year), eq(salaryCommissionPools.month, month))),
       db.select().from(salaryBasics)
         .where(and(
           lte(salaryBasics.effectiveFrom, lastDay as any),
@@ -153,10 +154,13 @@ export class PayrollComputeService {
     // Number of holiday working days (exclude Fridays = day 5)
     const holidayWorkingDaysCount = [...holidayDates].filter(ds => new Date(ds + 'T00:00:00').getDay() !== 5).length;
 
-    const pool = poolRows[0];
+    const pool = poolRows.find(p => p.section === section) ?? poolRows[0];
+    const allowancePool = poolRows.find(p => Number((p as any).costOfLivingAllowanceAmount ?? 0) > 0 || Number((p as any).transportAllowanceAmount ?? 0) > 0) ?? pool;
     const examPool = pool ? Number(pool.examPool) : 0;
     const examPoolConsultant = pool?.examPoolConsultant != null ? Number(pool.examPoolConsultant) : null;
     const examPoolSpecialist = pool?.examPoolSpecialist != null ? Number(pool.examPoolSpecialist) : null;
+    const costOfLivingAllowance = allowancePool ? Number((allowancePool as any).costOfLivingAllowanceAmount ?? 0) : 0;
+    const transportAllowance = allowancePool ? Number((allowancePool as any).transportAllowanceAmount ?? 0) : 0;
     const pentacamPool = pool
       ? calcPentacamPool(pool.cases450 ?? 0, pool.cases400 ?? 0, pool.cases350 ?? 0, pool.cases250 ?? 0)
       : 0;
@@ -374,7 +378,10 @@ export class PayrollComputeService {
       const pentacamCommission = isMarkaz && flags.commPentacam
         ? round2(totalSumForPentacam > 0 ? (basic / totalSumForPentacam) * pentacamPool * commMult : 0)
         : 0;
-      const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission);
+      const costOfLivingAllowancePay = round2(costOfLivingAllowance);
+      const transportAllowancePay = round2(transportAllowance);
+      const day10Allowances = round2(costOfLivingAllowancePay + transportAllowancePay);
+      const totalCommission = round2(attendanceCommission + examCommission + pentacamCommission + day10Allowances);
       const totalPay = round2(netBasic + totalCommission + overtimePay);
 
       results.push({
@@ -402,6 +409,8 @@ export class PayrollComputeService {
         attendanceCommission,
         examCommission,
         pentacamCommission,
+        costOfLivingAllowance: costOfLivingAllowancePay,
+        transportAllowance: transportAllowancePay,
         totalCommission,
         overtimePay,
         totalPay,
@@ -455,6 +464,8 @@ export class PayrollComputeService {
         attendanceCommission,
         examCommission,
         pentacamCommission,
+        costOfLivingAllowance: 0,
+        transportAllowance: 0,
         totalCommission,
         overtimePay:         0,
         totalPay,
@@ -505,6 +516,8 @@ export class PayrollComputeService {
         attendanceCommission,
         examCommission,
         pentacamCommission,
+        costOfLivingAllowance: 0,
+        transportAllowance: 0,
         totalCommission,
         overtimePay:         0,
         totalPay,
@@ -549,6 +562,8 @@ export class PayrollComputeService {
           attendanceCommission: String(r.attendanceCommission) as any,
           examCommission: String(r.examCommission) as any,
           pentacamCommission: String(r.pentacamCommission) as any,
+          costOfLivingAllowance: String(r.costOfLivingAllowance) as any,
+          transportAllowance: String(r.transportAllowance) as any,
           totalCommission: String(r.totalCommission) as any,
           overtimePay: String(r.overtimePay) as any,
           totalPay: String(r.totalPay) as any,
@@ -577,6 +592,8 @@ export class PayrollComputeService {
             attendanceCommission: String(r.attendanceCommission) as any,
             examCommission: String(r.examCommission) as any,
             pentacamCommission: String(r.pentacamCommission) as any,
+            costOfLivingAllowance: String(r.costOfLivingAllowance) as any,
+            transportAllowance: String(r.transportAllowance) as any,
             totalCommission: String(r.totalCommission) as any,
             overtimePay: String(r.overtimePay) as any,
             totalPay: String(r.totalPay) as any,

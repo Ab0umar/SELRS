@@ -36,6 +36,8 @@ export default function PayrollReport() {
 
   const centerQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section: "مركز" });
   const clinicQ = (trpc as any).salary.getPayroll.useQuery({ year, month, section: "عيادة" });
+  const sectionPoolQ = (trpc as any).salary.getCommissionPool.useQuery({ year, month, section });
+  const otherSectionPoolQ = (trpc as any).salary.getCommissionPool.useQuery({ year, month, section: section === "مركز" ? "عيادة" : "مركز" });
 
   // salaryBasics — for allowance breakdown in day-1 slips
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
@@ -58,6 +60,21 @@ export default function PayrollReport() {
   });
   
   const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
+  const sectionPool = sectionPoolQ.data;
+  const otherSectionPool = otherSectionPoolQ.data;
+  const allowanceSource = sectionPool && (Number(sectionPool.costOfLivingAllowanceAmount ?? 0) > 0 || Number(sectionPool.transportAllowanceAmount ?? 0) > 0)
+    ? sectionPool
+    : otherSectionPool;
+  const colaFallback = Number(allowanceSource?.costOfLivingAllowanceAmount ?? 0);
+  const travelFallback = Number(allowanceSource?.transportAllowanceAmount ?? 0);
+  const getAllowanceValues = (r: any) => ({
+    cola: Number(r.costOfLivingAllowance) || colaFallback,
+    travel: Number(r.transportAllowance) || travelFallback,
+  });
+  const getCommissionTotal = (r: any) => {
+    const a = getAllowanceValues(r);
+    return Number(r.attendanceCommission) + Number(r.examCommission) + Number(r.pentacamCommission) + a.cola + a.travel;
+  };
 
   // Separate regular and shift employees
   const regularRows = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
@@ -117,10 +134,11 @@ export default function PayrollReport() {
       basic: acc.basic + Number(r.basicSalary),
       deductions: acc.deductions + Number(r.totalDeductions),
       netBasic: acc.netBasic + Number(r.netBasic),
-      commission: acc.commission + Number(r.totalCommission),
+      commission: acc.commission + getCommissionTotal(r),
+      overtime: acc.overtime + Number(r.overtimePay ?? 0),
       totalPay: acc.totalPay + Number(r.totalPay),
     }),
-    { basic: 0, deductions: 0, netBasic: 0, commission: 0, totalPay: 0 }
+    { basic: 0, deductions: 0, netBasic: 0, commission: 0, overtime: 0, totalPay: 0 }
   );
 
   const isFinalized = rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
@@ -361,16 +379,20 @@ export default function PayrollReport() {
     const tAttend = nonShift.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
     const tExam   = nonShift.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
     const tPenta  = nonShift.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tCola   = nonShift.reduce((s: number, r: any) => s + getAllowanceValues(r).cola, 0);
+    const tTravel = nonShift.reduce((s: number, r: any) => s + getAllowanceValues(r).travel, 0);
     const tOT     = nonShift.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
-    const tComm   = nonShift.reduce((s: number, r: any) => s + Number(r.totalCommission), 0);
+    const tDay10  = nonShift.reduce((s: number, r: any) => s + getCommissionTotal(r) + Number(r.overtimePay ?? 0), 0);
     const bodyRows = nonShift.map((r: any) => `
       <tr>
         <td class="emp-col">${r.fullName ?? r.empCd}</td>
         <td>${fmt(r.attendanceCommission)}</td>
         <td>${fmt(r.examCommission)}</td>
         ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
+        <td>${fmt(getAllowanceValues(r).cola)}</td>
+        <td>${fmt(getAllowanceValues(r).travel)}</td>
         <td>${fmt(r.overtimePay ?? 0)}</td>
-        <td style="font-weight:bold">${fmt(r.totalCommission)}</td>
+        <td style="font-weight:bold">${fmt(getCommissionTotal(r) + Number(r.overtimePay ?? 0))}</td>
         <td class="sig-col"></td>
       </tr>`).join("");
     const html = `
@@ -381,7 +403,7 @@ export default function PayrollReport() {
         <thead><tr>
           <th>الاسم</th><th>عمولة حضور</th><th>عمولة فحص</th>
           ${!isClinic ? "<th>عمولة بنتاكام</th>" : ""}
-          <th>إضافي</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th>
+          <th>غلاء معيشه</th><th>بدل مواصلات</th><th>إضافي</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th>
         </tr></thead>
         <tbody>
           ${bodyRows}
@@ -389,7 +411,7 @@ export default function PayrollReport() {
             <td class="emp-col">الإجمالي</td>
             <td>${fmt(tAttend)}</td><td>${fmt(tExam)}</td>
             ${!isClinic ? `<td>${fmt(tPenta)}</td>` : ""}
-            <td>${fmt(tOT)}</td><td style="font-weight:bold">${fmt(tComm)}</td><td></td>
+            <td>${fmt(tCola)}</td><td>${fmt(tTravel)}</td><td>${fmt(tOT)}</td><td style="font-weight:bold">${fmt(tDay10)}</td><td></td>
           </tr>
         </tbody>
       </table>
@@ -489,14 +511,18 @@ export default function PayrollReport() {
       const attend  = Number(r.attendanceCommission);
       const exam    = Number(r.examCommission);
       const penta   = Number(r.pentacamCommission);
+      const cola    = Number(r.costOfLivingAllowance ?? 0);
+      const travel  = Number(r.transportAllowance ?? 0);
       const ot      = Number(r.overtimePay ?? 0);
-      const net     = attend + exam + (isClinic ? 0 : penta) + ot;
+      const net     = attend + exam + (isClinic ? 0 : penta) + cola + travel + ot;
       const table = `
         <table class="main">
           <tr>
             <th>نسبة الحضور</th>
             <th>نسبة الكشف</th>
             ${!isClinic ? "<th>نسبة البنتاكام</th>" : ""}
+            <th>غلاء معيشه</th>
+            <th>بدل مواصلات</th>
             <th>أوفرتايم</th>
             <th>إجمالي المكافآت</th>
             <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
@@ -505,6 +531,8 @@ export default function PayrollReport() {
             <td>${fmt(attend)}</td>
             <td>${fmt(exam)}</td>
             ${!isClinic ? `<td>${fmt(penta)}</td>` : ""}
+            <td>${fmt(cola)}</td>
+            <td>${fmt(travel)}</td>
             <td>${fmt(ot)}</td>
             <td>${fmt(net)}</td>
           </tr>
@@ -583,8 +611,8 @@ export default function PayrollReport() {
           </div>
           <div className="rounded-xl border border-border bg-card px-4 py-3">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">دفعة يوم 10 — المكافآت</div>
-            <div className="mt-1 text-2xl font-bold text-success">{fmt(totals.commission)}</div>
-            <div className="mt-1 text-xs text-muted-foreground">حضور + فحص + بنتاكام</div>
+            <div className="mt-1 text-2xl font-bold text-success">{fmt(totals.commission + totals.overtime)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">حضور + فحص + بنتاكام + غلاء معيشه + بدل مواصلات</div>
           </div>
         </div>
       )}
@@ -766,13 +794,17 @@ export default function PayrollReport() {
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">حضور</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">فحص</th>
                 {section !== "عيادة" && <th className="px-3 py-3 text-center font-medium text-muted-foreground">بنتاكام</th>}
+                <th className="px-3 py-3 text-center font-medium text-muted-foreground">غلاء معيشه</th>
+                <th className="px-3 py-3 text-center font-medium text-muted-foreground">بدل مواصلات</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">إضافي (د)</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">إضافي (ج)</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">إجمالي العمولات</th>
               </tr>
             </thead>
             <tbody>
-              {regularRows.map((r: any) => (
+              {regularRows.map((r: any) => {
+                const a = getAllowanceValues(r);
+                return (
                 <tr key={r.empCd} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-3 py-3 text-center">
                     <div className="font-medium">{r.fullName ?? r.empCd}</div>
@@ -781,20 +813,32 @@ export default function PayrollReport() {
                   <td className="px-3 py-3 text-center text-success">{fmt(r.attendanceCommission)}</td>
                   <td className="px-3 py-3 text-center text-success">{fmt(r.examCommission)}</td>
                   {section !== "عيادة" && <td className="px-3 py-3 text-center text-success">{fmt(r.pentacamCommission)}</td>}
+                  <td className="px-3 py-3 text-center text-success">{fmt(a.cola)}</td>
+                  <td className="px-3 py-3 text-center text-success">{fmt(a.travel)}</td>
                   <td className="px-3 py-3 text-center text-success">{r.overtimeMinutes ?? 0}</td>
                   <td className="px-3 py-3 text-center text-success">{fmt(r.overtimePay ?? 0)}</td>
-                  <td className="px-3 py-3 text-center font-bold text-primary">{fmt(r.totalCommission)}</td>
+                  <td className="px-3 py-3 text-center font-bold text-primary">{fmt(getCommissionTotal(r))}</td>
                 </tr>
-              ))}
+                );
+              })}
               {regularRows.length === 0 && (
-                <tr><td colSpan={section !== "عيادة" ? 7 : 6} className="px-4 py-10 text-center text-muted-foreground">لا توجد عمولات</td></tr>
+                <tr><td colSpan={section !== "عيادة" ? 9 : 8} className="px-4 py-10 text-center text-muted-foreground">لا توجد عمولات</td></tr>
               )}
             </tbody>
             {regularRows.length > 0 && (
               <tfoot>
                 <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
-                  <td className="px-3 py-2" colSpan={section !== "عيادة" ? 6 : 5}>الإجمالي</td>
-                  <td className="px-3 py-2 text-center font-bold text-primary">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.totalCommission), 0))}</td>
+                  <td className="px-3 py-2 text-center">الإجمالي</td>
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0))}</td>
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.examCommission), 0))}</td>
+                  {section !== "عيادة" && (
+                    <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0))}</td>
+                  )}
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + getAllowanceValues(r).cola, 0))}</td>
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + getAllowanceValues(r).travel, 0))}</td>
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.overtimeMinutes ?? 0), 0))}</td>
+                  <td className="px-3 py-2 text-center">{fmt(regularRows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0))}</td>
+                  <td className="px-3 py-2 text-center font-bold text-primary">{fmt(regularRows.reduce((s: number, r: any) => s + getCommissionTotal(r) + Number(r.overtimePay ?? 0), 0))}</td>
                 </tr>
               </tfoot>
             )}
