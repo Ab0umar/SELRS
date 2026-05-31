@@ -76,7 +76,7 @@ import {
   InsertStockItem,
   InsertStockTransaction,
 } from "../drizzle/schema";
-import { PENTACAM_ALLOWED_SRV_CODES, isPentacamEligiblePatient } from "../shared/pentacam";
+import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
 const exec = promisify(execCb);
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -3503,7 +3503,6 @@ export async function getPentacamResultsByPatient(patientId: number, limit = 100
   const patientRow = await db.select().from(patients).where(eq(patients.id, patientId)).limit(1);
   if (patientRow.length === 0) return [];
   const patient = decodePatientRow(patientRow[0] as any);
-  if (!isPentacamEligiblePatient(patient)) return [];
 
   return await db
     .select({
