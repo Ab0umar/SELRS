@@ -3737,7 +3737,9 @@ export async function linkBlackiceUploadToPatient(baseName: string, patientId: n
         WHERE file_name = ${baseName} AND patient_id IS NULL
         LIMIT 1`
   );
-  return Number((result as any)?.[0]?.affectedRows ?? 0);
+  // Drizzle MySQL returns either [ResultSetHeader, ...] or the header directly.
+  const header = Array.isArray(result) ? result[0] : result;
+  return Number((header as any)?.affectedRows ?? 0);
 }
 
 export async function getUnlinkedBlackiceUploads(limit = 10000) {
