@@ -21,3 +21,5 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
+console.log("[DEBUG] appRouter procedures:", Object.keys(appRouter._def.procedures));
