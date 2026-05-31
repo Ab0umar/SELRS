@@ -9,7 +9,7 @@ CREATE TABLE patient_portal_otps (
   PRIMARY KEY (id),
   KEY idx_portal_otp_phone (phone)
 );
-
+--> statement-breakpoint
 CREATE TABLE patient_portal_sessions (
   id int NOT NULL AUTO_INCREMENT,
   patientId int NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE patient_portal_sessions (
   UNIQUE KEY idx_portal_session_token (token),
   KEY idx_portal_session_patient (patientId)
 );
-
+--> statement-breakpoint
 CREATE TABLE booking_schedule_config (
   id int NOT NULL AUTO_INCREMENT,
   bookingType enum('consultant','specialist','lasik','external') NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE booking_schedule_config (
   PRIMARY KEY (id),
   UNIQUE KEY idx_booking_schedule_type (bookingType)
 );
-
+--> statement-breakpoint
 CREATE TABLE patient_portal_bookings (
   id int NOT NULL AUTO_INCREMENT,
   patientId int NOT NULL,
