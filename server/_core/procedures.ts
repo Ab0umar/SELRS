@@ -296,6 +296,22 @@ export const attendanceManagerProcedure = t.procedure.use(
   }),
 );
 
+// Patient portal procedure - authenticated patient session
+export const patientPortalProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.patientSession) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Patient not authenticated" });
+    }
+    return next({
+      ctx: {
+        ...ctx,
+        patientSession: ctx.patientSession,
+      },
+    });
+  }),
+);
+
 // Attendance admin procedure - admin only
 export const attendanceAdminProcedure = t.procedure.use(
   t.middleware(async (opts) => {

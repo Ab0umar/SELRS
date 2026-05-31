@@ -129,6 +129,13 @@ const ShiftSchedule = lazy(() => import("./pages/salary/ShiftSchedule"));
 const ShiftPayroll = lazy(() => import("./pages/salary/ShiftPayroll"));
 const AbsentReport = lazy(() => import("./pages/salary/AbsentReport"));
 const CurrentSalaryData = lazy(() => import("./pages/salary/CurrentSalaryData"));
+// Patient portal
+const PatientLogin = lazy(() => import("./pages/patient-portal/PatientLogin"));
+const PatientFile = lazy(() => import("./pages/patient-portal/PatientFile"));
+const PatientScans = lazy(() => import("./pages/patient-portal/PatientScans"));
+const PatientBook = lazy(() => import("./pages/patient-portal/PatientBook"));
+const PatientBookings = lazy(() => import("./pages/patient-portal/PatientBookings"));
+import PatientPortalRoute from "./components/PatientPortalRoute";
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
 const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
@@ -285,6 +292,14 @@ const Router = memo(function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      {/* Patient Portal — no staff auth required */}
+      <Route path={"/my/login"} component={PatientLogin} />
+      <Route path={"/my/file"} component={() => <PatientPortalRoute><PatientFile /></PatientPortalRoute>} />
+      <Route path={"/my/scans"} component={() => <PatientPortalRoute><PatientScans /></PatientPortalRoute>} />
+      <Route path={"/my/book"} component={() => <PatientPortalRoute><PatientBook /></PatientPortalRoute>} />
+      <Route path={"/my/bookings"} component={() => <PatientPortalRoute><PatientBookings /></PatientPortalRoute>} />
+      <Route path={"/my"} component={() => <PatientPortalRoute><PatientFile /></PatientPortalRoute>} />
+
       <Route path={"/login"} component={Home} />
       <Route path={"/force-password-change"} component={() => <ProtectedRoute><ForcePasswordChange /></ProtectedRoute>} />
       <Route path={"/profile"} component={() => <ProtectedRoute><Profile /></ProtectedRoute>} />
