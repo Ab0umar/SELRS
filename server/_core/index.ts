@@ -19,7 +19,7 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
-import { uploadToS3, downloadFromS3 } from "./s3";
+import { uploadToS3, downloadFromS3, listObjectsInS3 } from "./s3";
 const execFile = promisify(execFileCb);
 
 type BlackIceUploadRow = {
@@ -1404,27 +1404,68 @@ async function startServer() {
   // Local auth routes
   registerAuthRoutes(app);
 
-  // Local Pentacam exports: list files and serve image assets.
+  function resolvePentacamObjectCandidates(rawName: string) {
+    const normalized = String(rawName ?? "").trim().replace(/^\/+/, "");
+    const base = path.posix.basename(normalized);
+    const values = new Set<string>();
+    for (const candidate of [normalized, base, `pentacam-exports/${base}`, `Pentacam/${base}`, `pentacam/${base}`]) {
+      const value = String(candidate ?? "").trim().replace(/^\/+/, "");
+      if (value) values.add(value);
+    }
+    return Array.from(values);
+  }
+
+  async function readPentacamObjectBuffer(name: string): Promise<Buffer | null> {
+    const candidates = resolvePentacamObjectCandidates(name);
+    for (const key of candidates) {
+      try {
+        return await downloadFromS3(key);
+      } catch {
+        // Try the next likely key shape.
+      }
+    }
+    return null;
+  }
+
+  // Pentacam exports: list files and serve image assets.
   app.get("/api/pentacam/exports", async (req, res) => {
     try {
       const limitRaw = Number(req.query.limit ?? 10000);
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(100000, limitRaw)) : 10000;
-      const dirEntries = await readdir(pentacamExportsDir, { withFileTypes: true }).catch(() => []);
       const files: Array<{ name: string; size: number; mtime: string; url: string }> = [];
 
-      for (const entry of dirEntries) {
-        if (!entry.isFile()) continue;
-        const name = String(entry.name ?? "").trim();
-        if (!/\.(jpg|jpeg|png|webp)$/i.test(name)) continue;
-        const fullPath = path.join(pentacamExportsDir, name);
-        const info = await stat(fullPath).catch(() => null);
-        if (!info?.isFile()) continue;
-        files.push({
-          name,
-          size: Number(info.size ?? 0),
-          mtime: new Date(info.mtime).toISOString(),
-          url: `/pentacam-exports/${encodeURIComponent(name)}`,
-        });
+      try {
+        const s3Rows = [
+          ...(await listObjectsInS3("pentacam-exports/")),
+          ...(await listObjectsInS3("Pentacam/")),
+        ];
+        for (const row of s3Rows) {
+          const key = String(row.key ?? "").trim();
+          if (!/\.(jpg|jpeg|png|webp)$/i.test(key)) continue;
+          const name = path.posix.basename(key);
+          files.push({
+            name,
+            size: Number(row.size ?? 0),
+            mtime: (row.lastModified ?? new Date()).toISOString(),
+            url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
+          });
+        }
+      } catch {
+        const dirEntries = await readdir(pentacamExportsDir, { withFileTypes: true }).catch(() => []);
+        for (const entry of dirEntries) {
+          if (!entry.isFile()) continue;
+          const name = String(entry.name ?? "").trim();
+          if (!/\.(jpg|jpeg|png|webp)$/i.test(name)) continue;
+          const fullPath = path.join(pentacamExportsDir, name);
+          const info = await stat(fullPath).catch(() => null);
+          if (!info?.isFile()) continue;
+          files.push({
+            name,
+            size: Number(info.size ?? 0),
+            mtime: new Date(info.mtime).toISOString(),
+            url: `/pentacam-exports/${encodeURIComponent(name)}`,
+          });
+        }
       }
 
       files.sort((a, b) => Date.parse(b.mtime) - Date.parse(a.mtime));
@@ -1437,6 +1478,32 @@ async function startServer() {
         files: [],
         error: String(error?.message ?? "Failed to list Pentacam exports"),
       });
+    }
+  });
+  app.get("/api/pentacam/exports/file/:name", async (req, res) => {
+    try {
+      const rawName = String(req.params.name ?? "").trim();
+      if (!rawName) {
+        res.status(400).json({ ok: false, error: "Invalid file name" });
+        return;
+      }
+      const fileBuffer = await readPentacamObjectBuffer(rawName);
+      if (!fileBuffer || fileBuffer.length === 0) {
+        res.status(404).json({ ok: false, error: "Pentacam image not found" });
+        return;
+      }
+      const name = path.posix.basename(rawName);
+      const mimeType =
+        name.toLowerCase().endsWith(".png") ? "image/png" :
+        name.toLowerCase().endsWith(".webp") ? "image/webp" :
+        "image/jpeg";
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Content-Length", String(fileBuffer.length));
+      res.setHeader("Cache-Control", "private, max-age=60");
+      res.setHeader("Content-Disposition", `inline; filename="${name.replace(/"/g, "")}"`);
+      res.status(200).send(fileBuffer);
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: String(error?.message ?? "Failed to read Pentacam image") });
     }
   });
   app.use("/pentacam-exports", express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }));

@@ -13,6 +13,7 @@ import { services, doctorsLookup, patients, examinations, examinationChecklistIt
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
+import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
@@ -1035,6 +1036,54 @@ function sanitizeLabel(rawValue: string): string {
     .replace(/[\\/:*?"<>|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizePentacamKey(key: string): string {
+  return String(key ?? "").trim().replace(/^\/+/, "");
+}
+
+function resolvePentacamSourceKey(fileName: string): string {
+  const base = path.posix.basename(String(fileName ?? "").trim());
+  const candidates = [
+    `pentacam-exports/${base}`,
+    `Pentacam/${base}`,
+    `pentacam/${base}`,
+    base,
+  ];
+  return candidates.map(normalizePentacamKey)[0];
+}
+
+function buildPentacamPatientPrefix(patientId: number): string {
+  return `pentacam/patients/${Number(patientId)}/`;
+}
+
+function buildPentacamPatientKey(patientId: number, fileName: string): string {
+  return `${buildPentacamPatientPrefix(patientId)}${path.posix.basename(String(fileName ?? "").trim())}`;
+}
+
+function buildPentacamObjectUrl(key: string): string {
+  return `/api/pentacam/exports/file/${encodeURIComponent(normalizePentacamKey(key))}`;
+}
+
+async function listPentacamPatientObjects(patientId: number) {
+  const rows = await listObjectsInS3(buildPentacamPatientPrefix(patientId));
+  return rows
+    .filter((row) => /\.(jpg|jpeg|png|webp)$/i.test(row.key))
+    .map((row, index) => {
+      const fileName = path.posix.basename(row.key);
+      return {
+        id: index + 1,
+        patientId,
+        visitId: 0,
+        eyeSide: inferPentacamEyeSideFromName(fileName),
+        importStatus: "imported",
+        sourceFileName: fileName,
+        storageUrl: buildPentacamObjectUrl(row.key),
+        mimeType: inferPentacamMimeType(fileName),
+        capturedAt: inferPentacamCapturedAtFromName(fileName),
+        importedAt: row.lastModified ? row.lastModified.toISOString() : null,
+      };
+    });
 }
 
 function parsePentacamLocalMeta(notes: unknown): null | {
@@ -4004,25 +4053,9 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const rows = await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 100);
-      return rows.map((row: any) => {
-        const meta = parsePentacamLocalMeta(row.notes);
-        const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`);
-        const storageUrl = String(meta?.storageUrl ?? "").trim() || (sourceRaw ? `/pentacam-exports/${encodeURIComponent(sourceRaw)}` : "");
-        const mimeType = String(meta?.mimeType ?? "").trim() || inferPentacamMimeType(sourceRaw);
-        return {
-          id: row.id,
-          patientId: row.patientId,
-          visitId: row.visitId,
-          eyeSide: meta?.eyeSide ?? "",
-          importStatus: meta?.importStatus ?? "imported",
-          sourceFileName: sourceRaw,
-          storageUrl,
-          mimeType,
-          capturedAt: meta?.capturedAt ?? row.createdAt ?? null,
-          importedAt: meta?.importedAt ?? row.createdAt ?? null,
-        };
-      });
+      const rows = await listPentacamPatientObjects(input.patientId);
+      const limit = Number(input.limit ?? 100);
+      return rows.slice(0, Number.isFinite(limit) ? Math.max(1, limit) : 100);
     }),
 
   getPentacamMeasurementsByPatient: protectedProcedure
@@ -4124,7 +4157,7 @@ export const medicalRouter = router({
           kind: "local-pentacam-export-v1",
           originalFileName: fileName,
           sourceFileName,
-          storageUrl: `/pentacam-exports/${encodeURIComponent(fileName)}`,
+          storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(fileName)}`,
           mimeType: inferPentacamMimeType(fileName),
           eyeSide: inferPentacamEyeSideFromName(fileName),
           importStatus: "imported",
@@ -4273,7 +4306,7 @@ export const medicalRouter = router({
           kind: "local-pentacam-export-v1",
           originalFileName: fileName,
           sourceFileName,
-          storageUrl: `/pentacam-exports/${encodeURIComponent(fileName)}`,
+          storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(fileName)}`,
           mimeType: inferPentacamMimeType(fileName),
           eyeSide: inferPentacamEyeSideFromName(fileName),
           importStatus: "imported",

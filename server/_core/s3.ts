@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand } from "@aws-sdk/client-s3";
 
 function getEnvVar(key: string, defaultValue?: string): string {
   const value = process.env[key];
@@ -55,12 +55,40 @@ export async function downloadFromS3(key: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+export async function listObjectsInS3(prefix = ""): Promise<Array<{ key: string; size: number; lastModified: Date | null }>> {
+  const bucket = getEnvVar("AWS_S3_BUCKET");
+  const client = getS3Client();
+  const command = new ListObjectsV2Command({
+    Bucket: bucket,
+    Prefix: prefix || undefined,
+  });
+  const response = await client.send(command);
+  return (response.Contents ?? [])
+    .map((item) => ({
+      key: String(item.Key ?? "").trim(),
+      size: Number(item.Size ?? 0),
+      lastModified: item.LastModified ?? null,
+    }))
+    .filter((item) => Boolean(item.key));
+}
+
 export async function deleteFromS3(key: string): Promise<void> {
   const bucket = getEnvVar("AWS_S3_BUCKET");
   const client = getS3Client();
   const command = new DeleteObjectCommand({
     Bucket: bucket,
     Key: key,
+  });
+  await client.send(command);
+}
+
+export async function copyObjectInS3(sourceKey: string, destinationKey: string): Promise<void> {
+  const bucket = getEnvVar("AWS_S3_BUCKET");
+  const client = getS3Client();
+  const command = new CopyObjectCommand({
+    Bucket: bucket,
+    CopySource: `${bucket}/${encodeURIComponent(sourceKey).replace(/%2F/g, "/")}`,
+    Key: destinationKey,
   });
   await client.send(command);
 }
