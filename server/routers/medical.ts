@@ -4061,28 +4061,75 @@ export const medicalRouter = router({
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
       const safeLimit = Math.min(Number.isFinite(Number(input.limit)) ? Math.max(1, Number(input.limit)) : 100, 500);
-      const prefix = buildPentacamPatientPrefix(input.patientId);
-      const s3Objects = await listObjectsInS3(prefix);
-      const imageObjects = s3Objects
-        .filter((obj) => /\.(jpg|jpeg|png|webp)$/i.test(obj.key))
-        .sort((a, b) => (b.lastModified?.valueOf() ?? 0) - (a.lastModified?.valueOf() ?? 0))
-        .slice(0, safeLimit);
-      return imageObjects.map((obj, index) => {
-        const fileName = path.posix.basename(obj.key);
-        const ts = obj.lastModified?.toISOString() ?? null;
-        return {
-          id: index + 1,
+
+      // Source 1: files moved to patient-specific prefix in S3 (via admin import flow).
+      let s3Items: Array<{ fileName: string; storageUrl: string; ts: string | null }> = [];
+      try {
+        const prefix = buildPentacamPatientPrefix(input.patientId);
+        const s3Objects = await listObjectsInS3(prefix);
+        s3Items = s3Objects
+          .filter((obj) => /\.(jpg|jpeg|png|webp)$/i.test(obj.key))
+          .map((obj) => ({
+            fileName: path.posix.basename(obj.key),
+            storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(obj.key)}`,
+            ts: obj.lastModified?.toISOString() ?? null,
+          }));
+      } catch { /* listing failed, continue */ }
+
+      // Source 2: pentacamResults rows where OCR assigned the patient.
+      // Parse filename from notes JSON without requiring the kind field.
+      const seenNames = new Set<string>(s3Items.map((r) => r.fileName.toLowerCase()));
+      const dbRows = await db.getPentacamResultsByPatient(input.patientId, safeLimit);
+      const dbItems: Array<{ fileName: string; storageUrl: string; ts: string | null; visitId: number }> = [];
+      for (const row of dbRows as any[]) {
+        let fileName = "";
+        try {
+          const notes = String(row.notes ?? "").trim();
+          if (notes.startsWith("{")) {
+            const parsed = JSON.parse(notes);
+            fileName = String(parsed?.originalFileName ?? parsed?.sourceFileName ?? "").trim();
+          }
+        } catch { /* skip unparseable notes */ }
+        if (!fileName || !(/\.(jpg|jpeg|png|webp)$/i.test(fileName))) continue;
+        const baseName = path.posix.basename(fileName).toLowerCase();
+        if (seenNames.has(baseName)) continue;
+        seenNames.add(baseName);
+        dbItems.push({
+          fileName: path.posix.basename(fileName),
+          storageUrl: buildPentacamObjectUrl(fileName),
+          ts: row.createdAt ? String(row.createdAt) : null,
+          visitId: Number(row.visitId ?? 0),
+        });
+      }
+
+      const combined = [
+        ...s3Items.map((item, i) => ({
+          id: i + 1,
           patientId: input.patientId,
           visitId: 0,
           eyeSide: "",
           importStatus: "imported",
-          sourceFileName: fileName,
-          storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(obj.key)}`,
-          mimeType: inferPentacamMimeType(fileName),
-          capturedAt: ts,
-          importedAt: ts,
-        };
-      });
+          sourceFileName: item.fileName,
+          storageUrl: item.storageUrl,
+          mimeType: inferPentacamMimeType(item.fileName),
+          capturedAt: item.ts,
+          importedAt: item.ts,
+        })),
+        ...dbItems.map((item, i) => ({
+          id: s3Items.length + i + 1,
+          patientId: input.patientId,
+          visitId: item.visitId,
+          eyeSide: "",
+          importStatus: "imported",
+          sourceFileName: item.fileName,
+          storageUrl: item.storageUrl,
+          mimeType: inferPentacamMimeType(item.fileName),
+          capturedAt: item.ts,
+          importedAt: item.ts,
+        })),
+      ];
+
+      return combined.slice(0, safeLimit);
     }),
 
   getPentacamMeasurementsByPatient: protectedProcedure
