@@ -19,7 +19,7 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
-import { uploadToS3, downloadFromS3 } from "./s3";
+import { uploadToS3, downloadFromS3, listObjectsInS3 } from "./s3";
 import * as db from "../db";
 const execFile = promisify(execFileCb);
 
