@@ -13,7 +13,7 @@ import { services, doctorsLookup, patients, examinations, examinationChecklistIt
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
-import { copyObjectInS3, deleteFromS3 } from "../_core/s3";
+import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
@@ -4058,38 +4058,31 @@ export const medicalRouter = router({
 
   getPentacamFilesByPatient: protectedProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
-  .query(async ({ input, ctx }) => {
+    .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const rows = await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 100);
-      const mapped = await Promise.all(
-        rows.map(async (row: any, index: number) => {
-          const meta = parsePentacamLocalMeta(row.notes);
-          const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`).trim();
-          const directStorageUrl = String(meta?.storageUrl ?? "").trim();
-          const resolvedStorageUrl =
-            directStorageUrl.startsWith("/api/pentacam/exports/file/")
-              ? directStorageUrl
-              : sourceRaw
-                ? buildPentacamObjectUrl(sourceRaw)
-                : "";
-          return {
-            id: row.id ?? index + 1,
-            patientId: row.patientId ?? input.patientId,
-            visitId: row.visitId ?? 0,
-            eyeSide: meta?.eyeSide ?? "",
-            importStatus: meta?.importStatus ?? "imported",
-            sourceFileName: sourceRaw,
-            storageUrl: resolvedStorageUrl,
-            mimeType: String(meta?.mimeType ?? "").trim() || inferPentacamMimeType(sourceRaw),
-            capturedAt: meta?.capturedAt ?? row.createdAt ?? null,
-            importedAt: meta?.importedAt ?? row.createdAt ?? null,
-          };
-        }),
-      );
-      const rowsWithFiles = mapped.filter((row) => Boolean(row.storageUrl));
-      const rowsSorted = rowsWithFiles.sort((a, b) => Date.parse(String(b.importedAt ?? "")) - Date.parse(String(a.importedAt ?? "")));
-      const limit = Number(input.limit ?? 100);
-      return rowsSorted.slice(0, Number.isFinite(limit) ? Math.max(1, limit) : 100);
+      const safeLimit = Math.min(Number.isFinite(Number(input.limit)) ? Math.max(1, Number(input.limit)) : 100, 500);
+      const prefix = buildPentacamPatientPrefix(input.patientId);
+      const s3Objects = await listObjectsInS3(prefix);
+      const imageObjects = s3Objects
+        .filter((obj) => /\.(jpg|jpeg|png|webp)$/i.test(obj.key))
+        .sort((a, b) => (b.lastModified?.valueOf() ?? 0) - (a.lastModified?.valueOf() ?? 0))
+        .slice(0, safeLimit);
+      return imageObjects.map((obj, index) => {
+        const fileName = path.posix.basename(obj.key);
+        const ts = obj.lastModified?.toISOString() ?? null;
+        return {
+          id: index + 1,
+          patientId: input.patientId,
+          visitId: 0,
+          eyeSide: "",
+          importStatus: "imported",
+          sourceFileName: fileName,
+          storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(obj.key)}`,
+          mimeType: inferPentacamMimeType(fileName),
+          capturedAt: ts,
+          importedAt: ts,
+        };
+      });
     }),
 
   getPentacamMeasurementsByPatient: protectedProcedure

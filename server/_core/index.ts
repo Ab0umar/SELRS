@@ -1489,7 +1489,8 @@ async function startServer() {
   });
   app.get("/api/pentacam/exports/file/:name", async (req, res) => {
     try {
-      const rawName = String(req.params.name ?? "").trim();
+      let rawName = String(req.params.name ?? "").trim();
+      try { rawName = decodeURIComponent(rawName); } catch { /* keep as-is */ }
       if (!rawName) {
         res.status(400).json({ ok: false, error: "Invalid file name" });
         return;
@@ -1499,7 +1500,7 @@ async function startServer() {
         res.status(404).json({ ok: false, error: "Pentacam image not found" });
         return;
       }
-      const name = path.posix.basename(rawName);
+      const name = path.posix.basename(rawName.replace(/\\/g, "/"));
       const mimeType =
         name.toLowerCase().endsWith(".png") ? "image/png" :
         name.toLowerCase().endsWith(".webp") ? "image/webp" :
