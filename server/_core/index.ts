@@ -1012,22 +1012,20 @@ async function startServer() {
                 imageData = row.file_data;
               }
 
-              if (!imageData || imageData.length === 0) continue;
-              imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
-              if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-                const diskFallback = await loadImageFromImportFolders(row.file_name);
-                if (diskFallback) imageData = diskFallback;
-              }
               let ocrText = String(row.ocr_text ?? "").trim();
-              if (!ocrText) {
+              if (imageData && imageData.length > 0 && !ocrText) {
+                imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
+                if (looksCorruptedBinaryImage(imageData) && row.file_name) {
+                  const diskFallback = await loadImageFromImportFolders(row.file_name);
+                  if (diskFallback) imageData = diskFallback;
+                }
                 try {
                   ocrText = await runOcrFromBuffer(imageData, row.file_name || `${row.id}.jpg`, cfg);
                   if (ocrText) {
                     await conn.query("UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?", [ocrText, row.id]);
                   }
                 } catch (error: any) {
-                  console.error(`[blackice-ocr] OCR failed for upload ${row.id}: ${String(error?.message ?? error)}`);
-                  continue;
+                  console.warn(`[blackice-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`);
                 }
               }
 
@@ -1308,18 +1306,21 @@ async function startServer() {
             imageData = row.file_data;
           }
 
-          if (!imageData || imageData.length === 0) continue;
-          imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
-          if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-            const diskFallback = await loadImageFromImportFolders(row.file_name);
-            if (diskFallback) imageData = diskFallback;
-          }
           processed += 1;
           let ocrText = String(row.ocr_text ?? "").trim();
-          if (!ocrText) {
-            ocrText = await runOcrFromBuffer(imageData, row.file_name || `${row.id}.jpg`, cfg);
-            if (ocrText) {
-              await conn.query("UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?", [ocrText, row.id]);
+          if (imageData && imageData.length > 0 && !ocrText) {
+            imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
+            if (looksCorruptedBinaryImage(imageData) && row.file_name) {
+              const diskFallback = await loadImageFromImportFolders(row.file_name);
+              if (diskFallback) imageData = diskFallback;
+            }
+            try {
+              ocrText = await runOcrFromBuffer(imageData, row.file_name || `${row.id}.jpg`, cfg);
+              if (ocrText) {
+                await conn.query("UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?", [ocrText, row.id]);
+              }
+            } catch (error: any) {
+              console.warn(`[blackice-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`);
             }
           }
           const labeledOcrCandidates = extractLabeledIdCandidatesFromText(ocrText);
