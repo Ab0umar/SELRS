@@ -6,8 +6,7 @@ import PatientPicker from "@/components/PatientPicker";
 import LocalPentacamExportsPanel from "@/components/LocalPentacamExportsPanel";
 import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { isPentacamEligiblePatient } from "@/shared/pentacam";
-import { ArrowRight, BookOpenText, ChevronLeft, FileSpreadsheet, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpenText, FileSpreadsheet, Search, ShieldCheck } from "lucide-react";
 
 type PatientSummary = {
   id: number;
@@ -58,7 +57,7 @@ function EmptyPanel() {
         <div className="space-y-1">
           <p className="text-lg font-semibold text-foreground">ابحث برمز المريض</p>
           <p className="text-sm leading-6 text-muted-foreground">
-            اكتب كود المريض لعرض صوره المرتبطة وبدء الربط بسرعة.
+            اكتب كود المريض لعرض صور JPG المرتبطة وبدء المراجعة بسرعة.
           </p>
         </div>
       </div>
@@ -84,9 +83,9 @@ export default function PentacamSheet() {
   }, [isAuthenticated, setLocation]);
 
   const handleSelectPatient = (patient: PatientSummary) => {
-    if (!isPentacamEligiblePatient(patient)) return;
     if (locationType !== "all" && patient.locationType && patient.locationType !== locationType) return;
     setSelectedPatient(patient);
+    setLocation(`/sheets/pentacam/${patient.id}`);
   };
 
   useEffect(() => {
@@ -113,18 +112,11 @@ export default function PentacamSheet() {
   if (!isAuthenticated) return null;
 
   return (
-    <div
-      dir="rtl"
-      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background to-muted/50 text-foreground"
-    >
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[-6rem] top-[-5rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08)_0%,transparent_72%)] blur-3xl" />
-        <div className="absolute right-[-5rem] bottom-[-6rem] h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(255,107,53,0.09)_0%,transparent_72%)] blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.02)_1px,transparent_1px)] bg-[size:88px_88px] opacity-60 [mask-image:linear-gradient(180deg,rgba(0,0,0,0.6),transparent_88%)]" />
-      </div>
+    <div dir="rtl" className="relative min-h-screen bg-background text-foreground">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20" />
 
       <main className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <header className="mb-5 flex items-start justify-between gap-4">
+        <header className="mb-5 flex items-start justify-between gap-4 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
           <div className="space-y-3">
             <button
               onClick={() => goBack()}
@@ -136,23 +128,23 @@ export default function PentacamSheet() {
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary text-primary-foreground">
                 <FileSpreadsheet className="h-3.5 w-3.5" />
-                Pentacam Sheet
+                عرض JPG
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">البنتاكام</h1>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                ابحث برمز المريض، افحص الصور المرتبطة، ثم اربط الملفات الصحيحة بسجل المريض.
+                افتح المريض الصحيح، وراجع صور JPG المرتبطة بسرعة، ثم اربط أو استبعد الملف الخاطئ عند الحاجة.
               </p>
             </div>
           </div>
 
           <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
             <ShieldCheck className="h-3.5 w-3.5" />
-            بحث بالكود وربط مباشر
+            الصور أولاً، الربط لاحقاً
           </div>
         </header>
 
-        <div className="grid flex-1 gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-          <aside className="space-y-5">
+        <div className="grid flex-1 gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
+          <aside className="space-y-4">
             <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
               <div className="mb-4 flex items-center gap-2">
                 <Search className="h-4 w-4 text-primary" />
@@ -171,11 +163,12 @@ export default function PentacamSheet() {
                 onSelect={handleSelectPatient}
                 placeholder="ابحث برمز المريض"
                 wrapperClassName="max-w-none ml-0"
-                sheetType="pentacam"
                 locationType={locationType === "all" ? undefined : locationType}
                 allowPatient={(patient) =>
-                  isPentacamEligiblePatient(patient) &&
-                  (locationType === "all" || patient.locationType === locationType || !patient.locationType)
+                  locationType === "all" ||
+                  patient.locationType === locationType ||
+                  !patient.locationType ||
+                  (initialPatientId != null && patient.id === initialPatientId)
                 }
               />
               <p className="mt-3 text-[11px] leading-5 text-muted-foreground">

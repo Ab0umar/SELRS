@@ -54,12 +54,12 @@ export default function PatientPicker({
     { enabled: Boolean(initialPatientId) }
   );
 
-  const normalizedQuery = query.replace(/\s+/g, "");
+  const normalizedQuery = query.replace(/\s+/g, " ").trim();
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
     { searchTerm: normalizedQuery, sheetType, locationType },
     {
-      enabled: normalizedQuery.trim().length >= 1,
+      enabled: normalizedQuery.length >= 1,
       refetchOnWindowFocus: false,
     }
   );
@@ -123,7 +123,7 @@ export default function PatientPicker({
           readOnly={readOnly}
         />
       </div>
-      {!readOnly && open && normalizedQuery.trim().length >= 1 && (
+      {!readOnly && open && normalizedQuery.length >= 1 && (
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
           {searchQuery.isLoading && (
             <div className="px-3 py-2 text-sm text-muted-foreground">جاري البحث...</div>
