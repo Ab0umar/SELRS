@@ -859,8 +859,9 @@ async function startServer() {
 
             let s3Key: string | null = null;
             try {
-              s3Key = `blackice-imports/${Date.now()}-${dbFileName}`;
-              await uploadToS3(s3Key, fileData, mimeType);
+              const candidateKey = `blackice-imports/${Date.now()}-${dbFileName}`;
+              await uploadToS3(candidateKey, fileData, mimeType);
+              s3Key = candidateKey;
               console.log(`[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`);
             } catch (error: any) {
               console.warn(`[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`);
@@ -1221,9 +1222,10 @@ async function startServer() {
         try {
           fileBuffer = await downloadFromS3(row.s3_key);
         } catch (error: any) {
-          console.error(`[blackice-api] Failed to download from S3: ${row.s3_key}`, error);
-          res.status(500).json({ ok: false, error: "Failed to retrieve file from S3" });
-          return;
+          console.warn(`[blackice-api] S3 download failed for key ${row.s3_key}, falling back to DB blob`, error);
+          if (row.file_data && row.file_data.length > 0) {
+            fileBuffer = row.file_data;
+          }
         }
       } else if (row.file_data && row.file_data.length > 0) {
         fileBuffer = row.file_data;
