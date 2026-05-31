@@ -4082,11 +4082,7 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const sourceRows = [
-        ...(await listObjectsInS3("pentacam-exports/")),
-        ...(await listObjectsInS3("Pentacam/")),
-        ...(await listObjectsInS3("pentacam/")),
-      ];
+      const sourceRows = await listObjectsInS3("");
       const seen = new Set<string>();
       const rows = sourceRows
         .filter((row) => /\.(jpg|jpeg|png|webp)$/i.test(row.key))
