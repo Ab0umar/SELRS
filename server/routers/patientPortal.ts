@@ -3,34 +3,22 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure, adminProcedure, patientPortalProcedure } from "../_core/procedures";
 import { getDb } from "../db";
 import {
-  patientPortalOtps,
   patientPortalSessions,
   patientPortalBookings,
   bookingScheduleConfig,
   patients,
 } from "../../drizzle/schema";
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
 
-const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const MAX_OTP_ATTEMPTS = 5;
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 function normalizePhone(raw: string): string {
   let p = raw.replace(/\s+/g, "").replace(/[^\d+]/g, "");
   if (p.startsWith("+20")) p = "0" + p.slice(3);
   else if (p.startsWith("20") && p.length === 12) p = "0" + p.slice(2);
   return p;
-}
-
-async function sendOtpWhatsApp(phone: string, code: string): Promise<void> {
-  // TODO: integrate WhatsApp Business API / Baileys
-  console.log(`[PatientPortal] OTP → ${phone} : ${code}`);
 }
 
 const BOOKING_TYPE_LABELS: Record<string, string> = {
