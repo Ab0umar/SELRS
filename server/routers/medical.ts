@@ -4195,12 +4195,19 @@ export const medicalRouter = router({
           skipped += 1;
           continue;
         }
+        // Try linking via blackice_uploads first (no S3 copy needed).
+        const baseName = path.posix.basename(fileName);
+        const linked = await db.linkBlackiceUploadToPatient(baseName, input.patientId);
+        if (linked > 0) {
+          imported += 1;
+          continue;
+        }
+        // Fall back to S3 copy for legacy pentacam-exports prefix files.
         try {
           await movePentacamObjectToPatient({ patientId: input.patientId, fileName });
           imported += 1;
         } catch {
           missing += 1;
-          continue;
         }
       }
 
@@ -4275,12 +4282,18 @@ export const medicalRouter = router({
           continue;
         }
 
-        try {
-          await movePentacamObjectToPatient({ patientId, fileName });
+        const baseName = path.posix.basename(fileName);
+        const linked = await db.linkBlackiceUploadToPatient(baseName, patientId);
+        if (linked > 0) {
           imported += 1;
-        } catch {
-          missing += 1;
-          continue;
+        } else {
+          try {
+            await movePentacamObjectToPatient({ patientId, fileName });
+            imported += 1;
+          } catch {
+            missing += 1;
+            continue;
+          }
         }
         importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
       }

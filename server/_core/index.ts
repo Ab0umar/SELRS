@@ -1365,6 +1365,52 @@ async function startServer() {
     }
   });
 
+  // Bulk link blackice_uploads to patients by filename/document_id code extraction (no OCR).
+  app.post("/api/blackice/uploads/link-by-filename", async (_req, res) => {
+    try {
+      let linked = 0;
+      let processed = 0;
+      const BATCH = 2000;
+      let offset = 0;
+      while (true) {
+        const rows = await withDb(async (conn) => {
+          const [result] = await conn.query(
+            `SELECT id, document_id, file_name
+             FROM blackice_uploads
+             WHERE patient_id IS NULL
+             ORDER BY id ASC
+             LIMIT ? OFFSET ?`,
+            [BATCH, offset]
+          );
+          return result as Array<{ id: number; document_id: string; file_name: string | null }>;
+        });
+        if (!rows || rows.length === 0) break;
+        offset += rows.length;
+        await withDb(async (conn) => {
+          for (const row of rows) {
+            processed += 1;
+            const candidates = Array.from(new Set([
+              ...extractIdCandidatesFromText(row.document_id),
+              ...extractIdCandidatesFromText(row.file_name ?? ""),
+            ]));
+            if (candidates.length === 0) continue;
+            const patientId = await resolvePatientByIds(conn, candidates);
+            if (!patientId) continue;
+            await conn.query(
+              "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+              [patientId, row.id]
+            );
+            linked += 1;
+          }
+        });
+        if (rows.length < BATCH) break;
+      }
+      res.status(200).json({ ok: true, processed, linked });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: String(error?.message ?? error) });
+    }
+  });
+
   app.get("/healthz", async (_req, res) => {
     const build = await getBuildInfo().catch(() => ({ version: "unknown", buildTime: "unknown", commit: "unknown" }));
     const payload: {
@@ -1461,18 +1507,15 @@ async function startServer() {
       const limitRaw = Number(req.query.limit ?? 10000);
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(100000, limitRaw)) : 10000;
       const files: Array<{ name: string; size: number; mtime: string; url: string }> = [];
-
-      const recentRows = await db.getRecentPentacamLocalResults(limit);
       const seen = new Set<string>();
+
+      // Source 1: pentacamResults notes (legacy, may be empty)
+      const recentRows = await db.getRecentPentacamLocalResults(limit);
       for (const row of recentRows) {
         const notes = String((row as any)?.notes ?? "");
         if (!notes) continue;
         let parsed: any = null;
-        try {
-          parsed = JSON.parse(notes);
-        } catch {
-          continue;
-        }
+        try { parsed = JSON.parse(notes); } catch { continue; }
         const name = String(parsed?.originalFileName ?? parsed?.sourceFileName ?? "").trim();
         if (!name) continue;
         const normalized = name.toLowerCase();
@@ -1483,6 +1526,22 @@ async function startServer() {
           size: 0,
           mtime: String((row as any)?.createdAt ?? new Date().toISOString()),
           url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
+        });
+      }
+
+      // Source 2: unlinked blackice_uploads with source_printer = 'Pentacam'
+      const blackiceRows = await db.getUnlinkedBlackiceUploads(limit);
+      for (const row of blackiceRows) {
+        const name = path.basename(String(row.file_name ?? "").trim());
+        if (!name) continue;
+        const normalized = name.toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
+        files.push({
+          name,
+          size: 0,
+          mtime: String(row.created_at ?? new Date().toISOString()),
+          url: `/api/blackice/uploads/${row.id}`,
         });
       }
 

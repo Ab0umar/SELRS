@@ -3713,6 +3713,38 @@ export async function getBlackiceUploadsByPatient(patientId: number, limit = 100
   }>;
 }
 
+export async function linkBlackiceUploadToPatient(baseName: string, patientId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.execute(
+    sql`UPDATE blackice_uploads SET patient_id = ${patientId}
+        WHERE file_name = ${baseName} AND patient_id IS NULL
+        LIMIT 1`
+  );
+  return Number((result as any)?.[0]?.affectedRows ?? 0);
+}
+
+export async function getUnlinkedBlackiceUploads(limit = 10000) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 100000);
+  const result = await db.execute(
+    sql`SELECT id, file_name, created_at
+        FROM blackice_uploads
+        WHERE patient_id IS NULL
+          AND source_printer = 'Pentacam'
+          AND file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
+        ORDER BY created_at DESC
+        LIMIT ${safeLimit}`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []) as Array<{
+    id: number;
+    file_name: string | null;
+    created_at: Date | string | null;
+  }>;
+}
+
 // ============ DOCTOR REPORT OPERATIONS ============
 
 export async function createDoctorReport(reportData: any) {
