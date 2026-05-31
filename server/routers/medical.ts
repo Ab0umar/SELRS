@@ -13,7 +13,7 @@ import { services, doctorsLookup, patients, examinations, examinationChecklistIt
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
-import { copyObjectInS3, deleteFromS3, objectExistsInS3 } from "../_core/s3";
+import { copyObjectInS3, deleteFromS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
@@ -1091,26 +1091,6 @@ async function movePentacamObjectToPatient(params: { patientId: number; fileName
     destinationKey,
     fileName: sourceName,
   };
-}
-
-async function resolvePentacamObjectKey(fileName: string, patientId?: number): Promise<string | null> {
-  const base = path.posix.basename(String(fileName ?? "").trim());
-  if (!base) return null;
-  const candidates = [
-    patientId ? buildPentacamPatientKey(patientId, base) : "",
-    `pentacam/patients/${Number(patientId ?? 0)}/${base}`,
-    `pentacam-exports/${base}`,
-    `Pentacam/${base}`,
-    `pentacam/${base}`,
-    base,
-  ]
-    .map(normalizePentacamKey)
-    .filter(Boolean);
-
-  for (const key of candidates) {
-    if (await objectExistsInS3(key)) return key;
-  }
-  return null;
 }
 
 function parsePentacamLocalMeta(notes: unknown): null | {
@@ -4078,18 +4058,20 @@ export const medicalRouter = router({
 
   getPentacamFilesByPatient: protectedProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
-    .query(async ({ input, ctx }) => {
+  .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
       const rows = await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 100);
       const mapped = await Promise.all(
         rows.map(async (row: any, index: number) => {
           const meta = parsePentacamLocalMeta(row.notes);
-          const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`);
-          const resolvedKey =
-            (await resolvePentacamObjectKey(sourceRaw, input.patientId)) ||
-            (String(meta?.storageUrl ?? "").trim().startsWith("/api/pentacam/exports/file/")
-              ? String(meta?.storageUrl ?? "").trim().replace(/^\/api\/pentacam\/exports\/file\//, "")
-              : "");
+          const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`).trim();
+          const directStorageUrl = String(meta?.storageUrl ?? "").trim();
+          const resolvedStorageUrl =
+            directStorageUrl.startsWith("/api/pentacam/exports/file/")
+              ? directStorageUrl
+              : sourceRaw
+                ? buildPentacamObjectUrl(sourceRaw)
+                : "";
           return {
             id: row.id ?? index + 1,
             patientId: row.patientId ?? input.patientId,
@@ -4097,7 +4079,7 @@ export const medicalRouter = router({
             eyeSide: meta?.eyeSide ?? "",
             importStatus: meta?.importStatus ?? "imported",
             sourceFileName: sourceRaw,
-            storageUrl: resolvedKey ? buildPentacamObjectUrl(resolvedKey) : "",
+            storageUrl: resolvedStorageUrl,
             mimeType: String(meta?.mimeType ?? "").trim() || inferPentacamMimeType(sourceRaw),
             capturedAt: meta?.capturedAt ?? row.createdAt ?? null,
             importedAt: meta?.importedAt ?? row.createdAt ?? null,

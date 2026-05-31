@@ -19,7 +19,8 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
-import { uploadToS3, downloadFromS3, listObjectsInS3 } from "./s3";
+import { uploadToS3, downloadFromS3 } from "./s3";
+import * as db from "../db";
 const execFile = promisify(execFileCb);
 
 type BlackIceUploadRow = {
@@ -1434,38 +1435,28 @@ async function startServer() {
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(100000, limitRaw)) : 10000;
       const files: Array<{ name: string; size: number; mtime: string; url: string }> = [];
 
-      try {
-        const s3Rows = [
-          ...(await listObjectsInS3("pentacam-exports/")),
-          ...(await listObjectsInS3("Pentacam/")),
-        ];
-        for (const row of s3Rows) {
-          const key = String(row.key ?? "").trim();
-          if (!/\.(jpg|jpeg|png|webp)$/i.test(key)) continue;
-          const name = path.posix.basename(key);
-          files.push({
-            name,
-            size: Number(row.size ?? 0),
-            mtime: (row.lastModified ?? new Date()).toISOString(),
-            url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
-          });
+      const recentRows = await db.getRecentPentacamLocalResults(limit);
+      const seen = new Set<string>();
+      for (const row of recentRows) {
+        const notes = String((row as any)?.notes ?? "");
+        if (!notes) continue;
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(notes);
+        } catch {
+          continue;
         }
-      } catch {
-        const dirEntries = await readdir(pentacamExportsDir, { withFileTypes: true }).catch(() => []);
-        for (const entry of dirEntries) {
-          if (!entry.isFile()) continue;
-          const name = String(entry.name ?? "").trim();
-          if (!/\.(jpg|jpeg|png|webp)$/i.test(name)) continue;
-          const fullPath = path.join(pentacamExportsDir, name);
-          const info = await stat(fullPath).catch(() => null);
-          if (!info?.isFile()) continue;
-          files.push({
-            name,
-            size: Number(info.size ?? 0),
-            mtime: new Date(info.mtime).toISOString(),
-            url: `/pentacam-exports/${encodeURIComponent(name)}`,
-          });
-        }
+        const name = String(parsed?.originalFileName ?? parsed?.sourceFileName ?? "").trim();
+        if (!name) continue;
+        const normalized = name.toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
+        files.push({
+          name,
+          size: 0,
+          mtime: String((row as any)?.createdAt ?? new Date().toISOString()),
+          url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
+        });
       }
 
       files.sort((a, b) => Date.parse(b.mtime) - Date.parse(a.mtime));
