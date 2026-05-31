@@ -32,16 +32,6 @@ function normalizeUrl(raw: unknown) {
   return getApiUrl(`/${value}`);
 }
 
-function looksLikeImageAsset(fileName: string, mimeType: string, url: string) {
-  const value = `${fileName} ${url}`.toLowerCase();
-  return (
-    mimeType.startsWith("image/") ||
-    /\.(jpe?g|png|webp|gif|bmp|avif|tiff?)(?:$|\?)/i.test(value) ||
-    value.includes(".jpg") ||
-    value.includes(".jpeg")
-  );
-}
-
 export default function PentacamFilesPanel({ patientId, compact = false, active = true }: PentacamFilesPanelProps) {
   const targetPatientId = Number(patientId ?? 0);
   const utils = trpc.useUtils();
@@ -72,7 +62,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
           importedAt: row?.importedAt,
           capturedAt: row?.capturedAt,
         }))
-        .filter((row: any) => looksLikeImageAsset(row.fileName, row.mimeType, row.url)),
+        .filter((row: any) => Boolean(row.url)),
     [files],
   );
   const activeImage = imageFiles[previewIndex] ?? null;
@@ -230,7 +220,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                           <Badge variant={row.status === "imported" ? "default" : "secondary"}>{row.status || "unknown"}</Badge>
                         </div>
 
-                        {row.url && looksLikeImageAsset(row.fileName, row.mimeType, row.url) ? (
+                        {row.url ? (
                           <button type="button" className="group block w-full text-left" onClick={() => setPreviewIndex(index)}>
                             <PentacamThumbnail
                               src={row.url}
