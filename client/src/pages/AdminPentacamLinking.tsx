@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import PatientPicker from "@/components/PatientPicker";
-import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import LocalPentacamExportsPanel from "@/components/LocalPentacamExportsPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { ArrowRight, BookOpenText, FileSpreadsheet, FolderCog, Search, ShieldCheck, Link } from "lucide-react";
@@ -78,24 +77,6 @@ export default function AdminPentacamLinking() {
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(null);
   const [locationType, setLocationType] = useState<"all" | "center" | "external">("all");
   const selectedPatientId = selectedPatient?.id ?? null;
-  const [linkBusy, setLinkBusy] = useState(false);
-
-  async function runLinkByFilename() {
-    setLinkBusy(true);
-    try {
-      const res = await fetch(getApiUrl("/api/blackice/uploads/link-by-filename"), { method: "POST", credentials: "include" });
-      const json = await res.json() as { ok: boolean; processed?: number; linked?: number; error?: string };
-      if (json.ok) {
-        toast.success(`Linked ${json.linked} of ${json.processed} uploads by filename.`);
-      } else {
-        toast.error(json.error ?? "Failed to link uploads.");
-      }
-    } catch (err: any) {
-      toast.error(String(err?.message ?? "Network error"));
-    } finally {
-      setLinkBusy(false);
-    }
-  }
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -245,10 +226,7 @@ export default function AdminPentacamLinking() {
 
           <section className="min-h-0">
             {selectedPatientId ? (
-              <div className="space-y-5">
-                <PentacamFilesPanel patientId={selectedPatientId} active />
-                <LocalPentacamExportsPanel patientId={selectedPatientId} active />
-              </div>
+              <LocalPentacamExportsPanel patientId={selectedPatientId} active />
             ) : (
               <EmptyPanel />
             )}

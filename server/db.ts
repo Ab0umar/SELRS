@@ -3732,7 +3732,6 @@ export async function getUnlinkedBlackiceUploads(limit = 10000) {
     sql`SELECT id, file_name, created_at
         FROM blackice_uploads
         WHERE patient_id IS NULL
-          AND source_printer = 'Pentacam'
           AND file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`
