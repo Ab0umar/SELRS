@@ -4,6 +4,7 @@ import { useLocation, useRoute } from "wouter";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import PatientPicker from "@/components/PatientPicker";
 import PentacamFilesPanel from "@/components/PentacamFilesPanel";
+import LocalPentacamExportsPanel from "@/components/LocalPentacamExportsPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { ArrowRight, BookOpenText, FileSpreadsheet, FolderCog, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -224,7 +225,10 @@ export default function AdminPentacamLinking() {
 
           <section className="min-h-0">
             {selectedPatientId ? (
-              <PentacamFilesPanel patientId={selectedPatientId} active />
+              <div className="space-y-5">
+                <PentacamFilesPanel patientId={selectedPatientId} active />
+                <LocalPentacamExportsPanel patientId={selectedPatientId} active />
+              </div>
             ) : (
               <EmptyPanel />
             )}
