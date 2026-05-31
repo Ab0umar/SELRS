@@ -1445,6 +1445,14 @@ async function startServer() {
   }
 
   // Pentacam exports: list files and serve image assets.
+  app.get("/api/pentacam/s3-debug", async (_req, res) => {
+    try {
+      const objects = await listObjectsInS3("");
+      res.status(200).json({ count: objects.length, keys: objects.slice(0, 200).map((o) => o.key) });
+    } catch (err: any) {
+      res.status(500).json({ error: String(err?.message ?? err) });
+    }
+  });
   app.get("/api/pentacam/exports", async (req, res) => {
     try {
       const limitRaw = Number(req.query.limit ?? 10000);
