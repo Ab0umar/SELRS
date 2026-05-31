@@ -13,7 +13,7 @@ import { services, doctorsLookup, patients, examinations, examinationChecklistIt
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
-import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
+import { copyObjectInS3, deleteFromS3, objectExistsInS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
@@ -1064,28 +1064,6 @@ function buildPentacamObjectUrl(key: string): string {
   return `/api/pentacam/exports/file/${encodeURIComponent(normalizePentacamKey(key))}`;
 }
 
-async function listPentacamPatientObjects(patientId: number) {
-  const rows = await listObjectsInS3(buildPentacamPatientPrefix(patientId));
-  return rows
-    .filter((row) => /\.(jpg|jpeg|png|webp)$/i.test(row.key))
-    .map((row, index) => {
-      const fileName = path.posix.basename(row.key);
-      return {
-        id: index + 1,
-        patientId,
-        visitId: 0,
-        eyeSide: inferPentacamEyeSideFromName(fileName),
-        importStatus: "imported",
-        sourceFileName: fileName,
-        storageUrl: buildPentacamObjectUrl(row.key),
-        mimeType: inferPentacamMimeType(fileName),
-        capturedAt: inferPentacamCapturedAtFromName(fileName),
-        importedAt: row.lastModified ? row.lastModified.toISOString() : null,
-      };
-    })
-    .sort((a, b) => Date.parse(String(b.importedAt ?? "")) - Date.parse(String(a.importedAt ?? "")));
-}
-
 async function movePentacamObjectToPatient(params: { patientId: number; fileName: string }) {
   const sourceName = path.posix.basename(String(params.fileName ?? "").trim());
   const destinationKey = buildPentacamPatientKey(params.patientId, sourceName);
@@ -1113,6 +1091,26 @@ async function movePentacamObjectToPatient(params: { patientId: number; fileName
     destinationKey,
     fileName: sourceName,
   };
+}
+
+async function resolvePentacamObjectKey(fileName: string, patientId?: number): Promise<string | null> {
+  const base = path.posix.basename(String(fileName ?? "").trim());
+  if (!base) return null;
+  const candidates = [
+    patientId ? buildPentacamPatientKey(patientId, base) : "",
+    `pentacam/patients/${Number(patientId ?? 0)}/${base}`,
+    `pentacam-exports/${base}`,
+    `Pentacam/${base}`,
+    `pentacam/${base}`,
+    base,
+  ]
+    .map(normalizePentacamKey)
+    .filter(Boolean);
+
+  for (const key of candidates) {
+    if (await objectExistsInS3(key)) return key;
+  }
+  return null;
 }
 
 function parsePentacamLocalMeta(notes: unknown): null | {
@@ -4082,34 +4080,34 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const sourceRows = await listObjectsInS3("");
-      const seen = new Set<string>();
-      const rows = sourceRows
-        .filter((row) => /\.(jpg|jpeg|png|webp)$/i.test(row.key))
-        .filter((row) => {
-          const key = normalizePentacamKey(row.key);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .map((row, index) => {
-          const fileName = path.posix.basename(row.key);
+      const rows = await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 100);
+      const mapped = await Promise.all(
+        rows.map(async (row: any, index: number) => {
+          const meta = parsePentacamLocalMeta(row.notes);
+          const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`);
+          const resolvedKey =
+            (await resolvePentacamObjectKey(sourceRaw, input.patientId)) ||
+            (String(meta?.storageUrl ?? "").trim().startsWith("/api/pentacam/exports/file/")
+              ? String(meta?.storageUrl ?? "").trim().replace(/^\/api\/pentacam\/exports\/file\//, "")
+              : "");
           return {
-            id: index + 1,
-            patientId: input.patientId,
-            visitId: 0,
-            eyeSide: inferPentacamEyeSideFromName(fileName),
-            importStatus: "imported",
-            sourceFileName: fileName,
-            storageUrl: buildPentacamObjectUrl(row.key),
-            mimeType: inferPentacamMimeType(fileName),
-            capturedAt: row.lastModified ? row.lastModified.toISOString() : inferPentacamCapturedAtFromName(fileName),
-            importedAt: row.lastModified ? row.lastModified.toISOString() : inferPentacamCapturedAtFromName(fileName),
+            id: row.id ?? index + 1,
+            patientId: row.patientId ?? input.patientId,
+            visitId: row.visitId ?? 0,
+            eyeSide: meta?.eyeSide ?? "",
+            importStatus: meta?.importStatus ?? "imported",
+            sourceFileName: sourceRaw,
+            storageUrl: resolvedKey ? buildPentacamObjectUrl(resolvedKey) : "",
+            mimeType: String(meta?.mimeType ?? "").trim() || inferPentacamMimeType(sourceRaw),
+            capturedAt: meta?.capturedAt ?? row.createdAt ?? null,
+            importedAt: meta?.importedAt ?? row.createdAt ?? null,
           };
-        })
-        .sort((a, b) => Date.parse(String(b.importedAt ?? "")) - Date.parse(String(a.importedAt ?? "")));
+        }),
+      );
+      const rowsWithFiles = mapped.filter((row) => Boolean(row.storageUrl));
+      const rowsSorted = rowsWithFiles.sort((a, b) => Date.parse(String(b.importedAt ?? "")) - Date.parse(String(a.importedAt ?? "")));
       const limit = Number(input.limit ?? 100);
-      return rows.slice(0, Number.isFinite(limit) ? Math.max(1, limit) : 100);
+      return rowsSorted.slice(0, Number.isFinite(limit) ? Math.max(1, limit) : 100);
     }),
 
   getPentacamMeasurementsByPatient: protectedProcedure

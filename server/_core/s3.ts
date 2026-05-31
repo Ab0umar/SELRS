@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 function getEnvVar(key: string, defaultValue?: string): string {
   const value = process.env[key];
@@ -91,4 +91,20 @@ export async function copyObjectInS3(sourceKey: string, destinationKey: string):
     Key: destinationKey,
   });
   await client.send(command);
+}
+
+export async function objectExistsInS3(key: string): Promise<boolean> {
+  const bucket = getEnvVar("AWS_S3_BUCKET");
+  const client = getS3Client();
+  try {
+    await client.send(
+      new HeadObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
