@@ -1411,6 +1411,30 @@ async function startServer() {
     }
   });
 
+  app.post("/api/blackice/uploads/fix-duplicates", async (_req, res) => {
+    try {
+      const [r1] = await withDb(async (conn) => conn.query(
+        `UPDATE blackice_uploads b
+         INNER JOIN patients p ON p.patientCode = REGEXP_SUBSTR(b.file_name, '^[0-9]+')
+         SET b.patient_id = p.id
+         WHERE b.patient_id IS NULL`
+      ));
+      const [r2] = await withDb(async (conn) => conn.query(
+        `UPDATE blackice_uploads u1
+         INNER JOIN blackice_uploads u2 ON u1.file_name = u2.file_name
+         SET u1.patient_id = u2.patient_id
+         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`
+      ));
+      res.status(200).json({
+        ok: true,
+        linkedByCode: Number((r1 as any)?.affectedRows ?? 0),
+        linkedByDuplicate: Number((r2 as any)?.affectedRows ?? 0),
+      });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: String(error?.message ?? error) });
+    }
+  });
+
   app.get("/healthz", async (_req, res) => {
     const build = await getBuildInfo().catch(() => ({ version: "unknown", buildTime: "unknown", commit: "unknown" }));
     const payload: {
