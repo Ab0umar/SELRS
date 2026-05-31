@@ -1466,3 +1466,68 @@ export const shiftStaffCycle = mysqlTable("shift_staff_cycle", {
 }, (t) => ({
   pk: primaryKey({ columns: [t.staffId, t.dayOfWeek, t.shiftName] }),
 }));
+
+// ============ PATIENT PORTAL ============
+
+export const patientPortalOtps = mysqlTable("patient_portal_otps", {
+  id: int("id").autoincrement().primaryKey(),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  verified: boolean("verified").default(false).notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  phoneIdx: index("idx_portal_otp_phone").on(table.phone),
+}));
+
+export type PatientPortalOtp = typeof patientPortalOtps.$inferSelect;
+export type InsertPatientPortalOtp = typeof patientPortalOtps.$inferInsert;
+
+export const patientPortalSessions = mysqlTable("patient_portal_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  patientId: int("patientId").notNull(),
+  token: varchar("token", { length: 512 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: uniqueIndex("idx_portal_session_token").on(table.token),
+  patientIdx: index("idx_portal_session_patient").on(table.patientId),
+}));
+
+export type PatientPortalSession = typeof patientPortalSessions.$inferSelect;
+export type InsertPatientPortalSession = typeof patientPortalSessions.$inferInsert;
+
+// weekdayMask bits: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat → value = sum of (1 << bit)
+export const bookingScheduleConfig = mysqlTable("booking_schedule_config", {
+  id: int("id").autoincrement().primaryKey(),
+  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external"]).notNull(),
+  weekdayMask: int("weekdayMask").default(127).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  typeIdx: uniqueIndex("idx_booking_schedule_type").on(table.bookingType),
+}));
+
+export type BookingScheduleConfig = typeof bookingScheduleConfig.$inferSelect;
+export type InsertBookingScheduleConfig = typeof bookingScheduleConfig.$inferInsert;
+
+export const patientPortalBookings = mysqlTable("patient_portal_bookings", {
+  id: int("id").autoincrement().primaryKey(),
+  patientId: int("patientId").notNull(),
+  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external"]).notNull(),
+  requestedDate: date("requestedDate").notNull(),
+  notes: text("notes"),
+  status: mysqlEnum("status", ["pending", "confirmed", "cancelled", "completed"]).default("pending").notNull(),
+  staffNotes: text("staffNotes"),
+  confirmedDate: date("confirmedDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  patientIdx: index("idx_portal_booking_patient").on(table.patientId),
+  dateIdx: index("idx_portal_booking_date").on(table.requestedDate),
+  statusIdx: index("idx_portal_booking_status").on(table.status),
+}));
+
+export type PatientPortalBooking = typeof patientPortalBookings.$inferSelect;
+export type InsertPatientPortalBooking = typeof patientPortalBookings.$inferInsert;

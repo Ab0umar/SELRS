@@ -386,9 +386,16 @@ const trpcClient = trpc.createClient({
           typeof window !== "undefined"
             ? window.localStorage.getItem("token") ?? window.sessionStorage.getItem("token")
             : null;
+        const patientToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("patient_portal_token")
+            : null;
         const headers = new Headers(init?.headers ?? undefined);
         if (token && !headers.has("authorization")) {
           headers.set("authorization", `Bearer ${token}`);
+        }
+        if (patientToken && !headers.has("x-patient-token")) {
+          headers.set("x-patient-token", patientToken);
         }
         const controller = new AbortController();
         const timeoutId = window.setTimeout(() => controller.abort("timeout"), NATIVE_HTTP_TIMEOUT_MS);
