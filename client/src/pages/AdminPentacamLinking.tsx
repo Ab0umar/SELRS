@@ -5,10 +5,8 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import PatientPicker from "@/components/PatientPicker";
 import LocalPentacamExportsPanel from "@/components/LocalPentacamExportsPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { ArrowRight, BookOpenText, FileSpreadsheet, FolderCog, Search, ShieldCheck, Link } from "lucide-react";
+import { ArrowRight, BookOpenText, FileSpreadsheet, FolderCog, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { getApiUrl } from "@/const";
 
 type PatientSummary = {
   id: number;

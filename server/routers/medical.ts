@@ -736,34 +736,27 @@ async function buildPentacamPatientCandidates(): Promise<{
 }> {
   const byCode = new Map<string, any>();
   const candidates: PentacamPatientCandidate[] = [];
-  let cursor: { codeNum: number; patientCode: string; id: number } | undefined = undefined;
-  for (let page = 0; page < 100; page += 1) {
-    const batch = await db.getAllPatients({ limit: 500, cursor });
-    const rows = Array.isArray((batch as any)?.rows) ? (batch as any).rows : [];
-    for (const row of rows) {
-      const patientCode = String((row as any)?.patientCode ?? "").trim();
-      if (patientCode) {
-        byCode.set(patientCode, row);
-        byCode.set(patientCode.toUpperCase(), row);
-      }
-      const fullName = String((row as any)?.fullName ?? "").trim();
-      const keys = buildPentacamNameKeys(fullName);
-      const tokenSet = new Set<string>();
-      const tokenSignatureSet = new Set<string>();
-      for (const key of keys) {
-        for (const token of tokenizePentacamMatchText(key)) tokenSet.add(token);
-        for (const signature of buildPentacamTokenSignatureSet(key)) tokenSignatureSet.add(signature);
-      }
-      candidates.push({
-        patient: row,
-        normalizedNameKeys: keys,
-        tokenSet,
-        tokenSignatureSet,
-      });
+  const rows = await db.getAllPatientsForMatching();
+  for (const row of rows) {
+    const patientCode = String(row.patientCode ?? "").trim();
+    if (patientCode) {
+      byCode.set(patientCode, row);
+      byCode.set(patientCode.toUpperCase(), row);
     }
-    if (!(batch as any)?.hasMore) break;
-    cursor = (batch as any)?.nextCursor ?? undefined;
-    if (!cursor) break;
+    const fullName = String(row.fullName ?? "").trim();
+    const keys = buildPentacamNameKeys(fullName);
+    const tokenSet = new Set<string>();
+    const tokenSignatureSet = new Set<string>();
+    for (const key of keys) {
+      for (const token of tokenizePentacamMatchText(key)) tokenSet.add(token);
+      for (const signature of buildPentacamTokenSignatureSet(key)) tokenSignatureSet.add(signature);
+    }
+    candidates.push({
+      patient: row,
+      normalizedNameKeys: keys,
+      tokenSet,
+      tokenSignatureSet,
+    });
   }
   return { byCode, candidates };
 }

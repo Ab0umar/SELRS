@@ -1818,6 +1818,22 @@ function buildPatientFilterClauses(filters?: {
   return whereClauses;
 }
 
+export async function getAllPatientsForMatching(): Promise<Array<{ id: number; patientCode: string; fullName: string; lastVisit: string | null; createdAt: string | null }>> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.execute(
+    sql`SELECT id, patientCode, fullName, lastVisit, createdAt FROM patients ORDER BY CAST(patientCode AS UNSIGNED) ASC`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []).map((r: any) => ({
+    id: Number(r.id ?? 0),
+    patientCode: String(r.patientCode ?? "").trim(),
+    fullName: String(r.fullName ?? "").trim(),
+    lastVisit: r.lastVisit ? String(r.lastVisit) : null,
+    createdAt: r.createdAt ? String(r.createdAt) : null,
+  }));
+}
+
 export async function getAllPatients(options?: {
   branch?: string;
   searchTerm?: string;
