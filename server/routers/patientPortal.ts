@@ -62,8 +62,11 @@ function getAvailableDatesForMask(mask: number, from: Date, count: number): stri
 export const patientPortalRouter = router({
   // ── Public ────────────────────────────────────────────────────────────────
 
-  sendOtp: publicProcedure
-    .input(z.object({ phone: z.string().min(8).max(20) }))
+  login: publicProcedure
+    .input(z.object({
+      phone: z.string().min(8).max(20),
+      dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "تاريخ الميلاد غير صحيح"),
+    }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
@@ -71,70 +74,25 @@ export const patientPortalRouter = router({
       const phone = normalizePhone(input.phone);
 
       const [patient] = await db
-        .select({ id: patients.id, fullName: patients.fullName })
+        .select({ id: patients.id, fullName: patients.fullName, patientCode: patients.patientCode, dateOfBirth: patients.dateOfBirth })
         .from(patients)
         .where(eq(patients.phone, phone))
         .limit(1);
 
-      if (!patient) {
-        // Don't reveal whether the number exists
-        return { sent: true };
+      if (!patient || !patient.dateOfBirth) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "البيانات غير مسجلة — تواصل مع الاستقبال",
+        });
       }
 
-      const code = generateOtp();
-      const expiresAt = new Date(Date.now() + OTP_TTL_MS);
-
-      await db.insert(patientPortalOtps).values({ phone, code, expiresAt, verified: false, attempts: 0 });
-      await sendOtpWhatsApp(phone, code);
-
-      return { sent: true };
-    }),
-
-  verifyOtp: publicProcedure
-    .input(z.object({ phone: z.string(), code: z.string().length(6) }))
-    .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-
-      const phone = normalizePhone(input.phone);
-      const now = new Date();
-
-      const [otp] = await db
-        .select()
-        .from(patientPortalOtps)
-        .where(
-          and(
-            eq(patientPortalOtps.phone, phone),
-            eq(patientPortalOtps.verified, false),
-            gte(patientPortalOtps.expiresAt, now),
-          ),
-        )
-        .orderBy(desc(patientPortalOtps.createdAt))
-        .limit(1);
-
-      if (!otp) throw new TRPCError({ code: "UNAUTHORIZED", message: "كود خاطئ أو منتهي الصلاحية" });
-
-      if (otp.attempts >= MAX_OTP_ATTEMPTS) {
-        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "تجاوزت عدد المحاولات المسموح بها" });
+      const storedDob = String(patient.dateOfBirth).slice(0, 10);
+      if (storedDob !== input.dateOfBirth) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "البيانات غير صحيحة — تواصل مع الاستقبال",
+        });
       }
-
-      if (otp.code !== input.code) {
-        await db
-          .update(patientPortalOtps)
-          .set({ attempts: otp.attempts + 1 })
-          .where(eq(patientPortalOtps.id, otp.id));
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "كود خاطئ" });
-      }
-
-      await db.update(patientPortalOtps).set({ verified: true }).where(eq(patientPortalOtps.id, otp.id));
-
-      const [patient] = await db
-        .select({ id: patients.id, fullName: patients.fullName, patientCode: patients.patientCode })
-        .from(patients)
-        .where(eq(patients.phone, phone))
-        .limit(1);
-
-      if (!patient) throw new TRPCError({ code: "NOT_FOUND", message: "لم يتم العثور على المريض" });
 
       const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const token = jwt.sign(
