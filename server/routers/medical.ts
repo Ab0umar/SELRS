@@ -4082,12 +4082,10 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const matcher = await buildPentacamPatientCandidates();
-      const patientPrefix = buildPentacamPatientPrefix(input.patientId);
       const sourceRows = [
         ...(await listObjectsInS3("pentacam-exports/")),
         ...(await listObjectsInS3("Pentacam/")),
-        ...(await listObjectsInS3(patientPrefix)),
+        ...(await listObjectsInS3("pentacam/")),
       ];
       const seen = new Set<string>();
       const rows = sourceRows
@@ -4096,10 +4094,7 @@ export const medicalRouter = router({
           const key = normalizePentacamKey(row.key);
           if (seen.has(key)) return false;
           seen.add(key);
-          if (key.startsWith(patientPrefix)) return true;
-          const fileName = path.posix.basename(key);
-          const matched = resolvePatientForPentacamFileName(fileName, matcher);
-          return Number((matched?.patient as any)?.id ?? 0) === input.patientId;
+          return true;
         })
         .map((row, index) => {
           const fileName = path.posix.basename(row.key);
