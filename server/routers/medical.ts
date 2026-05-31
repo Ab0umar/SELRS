@@ -4139,6 +4139,13 @@ export const medicalRouter = router({
       return await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 10);
     }),
 
+  debugPentacamS3: adminProcedure
+    .input(z.object({ prefix: z.string().optional() }))
+    .query(async ({ input }) => {
+      const objects = await listObjectsInS3(String(input.prefix ?? ""));
+      return objects.slice(0, 200).map((obj) => ({ key: obj.key, size: obj.size }));
+    }),
+
   removePentacamLink: protectedProcedure
     .input(
       z.object({
