@@ -12,6 +12,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
 
+console.log("[DEBUG] patientPortal module loaded");
+
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function normalizePhone(raw: string): string {
@@ -332,3 +334,5 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 });
+
+console.log("[DEBUG] patientPortal procedures:", Object.keys(patientPortalRouter._def.procedures));
