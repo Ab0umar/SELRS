@@ -3734,8 +3734,7 @@ export async function linkBlackiceUploadToPatient(baseName: string, patientId: n
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
     sql`UPDATE blackice_uploads SET patient_id = ${patientId}
-        WHERE file_name = ${baseName} AND patient_id IS NULL
-        LIMIT 1`
+        WHERE file_name = ${baseName} AND patient_id IS NULL`
   );
   // Drizzle MySQL returns either [ResultSetHeader, ...] or the header directly.
   const header = Array.isArray(result) ? result[0] : result;
