@@ -3,10 +3,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import PatientPicker from "@/components/PatientPicker";
-import LocalPentacamExportsPanel from "@/components/LocalPentacamExportsPanel";
 import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { ArrowRight, BookOpenText, FileSpreadsheet, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpenText, FileSpreadsheet, Search, ShieldCheck, FolderCog } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type PatientSummary = {
   id: number;
@@ -57,7 +57,7 @@ function EmptyPanel() {
         <div className="space-y-1">
           <p className="text-lg font-semibold text-foreground">ابحث برمز المريض</p>
           <p className="text-sm leading-6 text-muted-foreground">
-            اكتب كود المريض لعرض صور JPG المرتبطة وبدء المراجعة بسرعة.
+            اكتب كود المريض لعرض صور JPG المرتبطة ومراجعتها بسرعة.
           </p>
         </div>
       </div>
@@ -66,7 +66,7 @@ function EmptyPanel() {
 }
 
 export default function PentacamSheet() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/:type/:id");
@@ -132,14 +132,14 @@ export default function PentacamSheet() {
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">البنتاكام</h1>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                افتح المريض الصحيح، وراجع صور JPG المرتبطة بسرعة، ثم اربط أو استبعد الملف الخاطئ عند الحاجة.
+                افتح المريض الصحيح، وراجع صور JPG المرتبطة بسرعة.
               </p>
             </div>
           </div>
 
           <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
             <ShieldCheck className="h-3.5 w-3.5" />
-            الصور أولاً، الربط لاحقاً
+            عرض JPG فقط
           </div>
         </header>
 
@@ -201,13 +201,24 @@ export default function PentacamSheet() {
                 </div>
               )}
             </section>
-
-            <section>
-              <LocalPentacamExportsPanel
-                patientId={selectedPatientId}
-                active={true}
-              />
-            </section>
+            {user?.role === "admin" && selectedPatientId ? (
+              <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <FolderCog className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">الربط الإداري</h2>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLocation(`/admin/pentacam/${selectedPatientId}`)}
+                  >
+                    فتح صفحة الربط
+                  </Button>
+                </div>
+              </section>
+            ) : null}
           </aside>
 
           <section className="min-h-0">

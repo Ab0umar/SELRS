@@ -50,6 +50,7 @@ const SpecialistSheet = lazy(() => import("./pages/SpecialistSheet"));
 const LasikExamSheet = lazy(() => import("./pages/LasikExamSheet"));
 const LasikFollowupPage = lazy(() => import("./pages/LasikFollowupPage"));
 const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
+const AdminPentacamLinking = lazy(() => import("./pages/AdminPentacamLinking"));
 const PentacamResultsDashboard = lazy(() => import("./pages/PentacamResultsDashboard"));
 const RefractionsDashboard = lazy(() => import("./pages/RefractionsDashboard"));
 const AutorefsDashboard = lazy(() => import("./pages/AutorefsDashboard"));
@@ -172,6 +173,7 @@ const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/followups", label: "المتابعات" },
   { pathPrefix: "/visits", label: "الزيارات" },
   { pathPrefix: "/sheets/pentacam/dashboard", label: "نتائج البنتكام" },
+  { pathPrefix: "/admin/pentacam", label: "ربط البنتكام" },
   { pathPrefix: "/sheets/refractions/dashboard", label: "لوحة الانكسارات" },
   { pathPrefix: "/sheets/autorefs/dashboard", label: "لوحة Autoref" },
   { pathPrefix: "/sheets/prescriptions/dashboard", label: "لوحة الروشتات" },
@@ -467,6 +469,8 @@ const Router = memo(function Router() {
       />
       <Route path={"/sheets/pentacam/:id"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
       <Route path={"/sheets/pentacam"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
+      <Route path={"/admin/pentacam/:id"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamLinking /></ProtectedRoute>} />
+      <Route path={"/admin/pentacam"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamLinking /></ProtectedRoute>} />
       <Route path={"/sheets/operation/:id"} component={() => <ProtectedRoute><ExternalOperationSheet /></ProtectedRoute>} />
       <Route path={"/refraction/:id"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />
       <Route path={"/refraction"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />

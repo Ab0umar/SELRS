@@ -4008,6 +4008,8 @@ export const medicalRouter = router({
       return rows.map((row: any) => {
         const meta = parsePentacamLocalMeta(row.notes);
         const sourceRaw = String(meta?.originalFileName ?? meta?.sourceFileName ?? `Pentacam ${row.id}`);
+        const storageUrl = String(meta?.storageUrl ?? "").trim() || (sourceRaw ? `/pentacam-exports/${encodeURIComponent(sourceRaw)}` : "");
+        const mimeType = String(meta?.mimeType ?? "").trim() || inferPentacamMimeType(sourceRaw);
         return {
           id: row.id,
           patientId: row.patientId,
@@ -4015,8 +4017,8 @@ export const medicalRouter = router({
           eyeSide: meta?.eyeSide ?? "",
           importStatus: meta?.importStatus ?? "imported",
           sourceFileName: sourceRaw,
-          storageUrl: meta?.storageUrl ?? "",
-          mimeType: meta?.mimeType ?? "",
+          storageUrl,
+          mimeType,
           capturedAt: meta?.capturedAt ?? row.createdAt ?? null,
           importedAt: meta?.importedAt ?? row.createdAt ?? null,
         };
