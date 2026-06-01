@@ -102,8 +102,7 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
             No Pentacam images available for preview yet.
           </div>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="space-y-4">
+          <div className="space-y-4">
               <div className="overflow-hidden rounded-[1.5rem] border border-border bg-foreground/95 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
                 <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                   <div className="min-w-0">
@@ -197,64 +196,6 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
                   );
                 })}
               </div>
-            </div>
-
-            <aside className="space-y-4 self-start xl:sticky xl:top-4">
-              <div className="rounded-[1.5rem] border border-border bg-background p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Active image</div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">
-                      {activeImage?.fileName ?? "No image selected"}
-                    </div>
-                  </div>
-                  <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                    {activeImage ? `${previewIndex + 1}/${imageFiles.length}` : "0/0"}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                  <div className="rounded-2xl border border-border bg-muted px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Side</div>
-                    <div className="mt-1 font-medium text-foreground">{activeImage?.side || "—"}</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-muted px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Status</div>
-                    <div className="mt-1 font-medium text-foreground">{activeImage?.status || "—"}</div>
-                  </div>
-                  <div className="col-span-2 rounded-2xl border border-border bg-muted px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Captured</div>
-                    <div className="mt-1 font-medium text-foreground">{formatDate(activeImage?.capturedAt || activeImage?.importedAt)}</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {activeImage?.url ? (
-                    <>
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <a href={activeImage.url} download={activeImage.fileName}>
-                          <Download className="h-4 w-4" />
-                          Download
-                        </a>
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <a href={activeImage.url} target="_blank" rel="noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                          Open in browser
-                        </a>
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="rounded-[1.5rem] border border-border bg-muted/40 p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-foreground">Preview mode</h3>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  This surface is read-only. Use the admin linking page to import, reassign, or unlink files.
-                </p>
-              </div>
-            </aside>
           </div>
         )}
       </CardContent>
