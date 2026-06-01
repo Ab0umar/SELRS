@@ -17,6 +17,7 @@ import {
   ne,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -3730,16 +3731,43 @@ export async function getBlackiceUploadsByPatient(patientId: number, limit = 100
 }
 
 export async function linkBlackiceUploadToPatient(baseName: string, patientId: number): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  // Use $client.promise() — $client is the callback-style mysql2 connection/pool.
-  // Calling $client.execute() directly without a callback returns undefined (not a Promise),
-  // which is why we need the promise-wrapped version.
-  const [result] = await (db as any).$client.promise().execute(
-    "UPDATE blackice_uploads SET patient_id = ? WHERE file_name = ? AND patient_id IS NULL",
-    [patientId, baseName]
-  );
-  return Number((result as any)?.affectedRows ?? 0);
+  return linkBlackiceUploadsBatch([{ fileName: baseName, patientId }]);
+}
+
+/**
+ * Batch-link multiple blackice files to their patients in a single SQL round-trip.
+ * Uses mysql2/promise directly — avoids the Drizzle $client ambiguity that caused
+ * either "not iterable" crashes or indefinite hangs on sequential per-file calls.
+ */
+export async function linkBlackiceUploadsBatch(
+  pairs: Array<{ fileName: string; patientId: number }>
+): Promise<number> {
+  if (!pairs.length) return 0;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL not set");
+  const conn = await mysql.createConnection(url);
+  try {
+    // Build one UPDATE … CASE WHEN … END per patientId group
+    // to avoid N individual round-trips.
+    const byPatient = new Map<number, string[]>();
+    for (const { fileName, patientId } of pairs) {
+      const files = byPatient.get(patientId) ?? [];
+      files.push(fileName);
+      byPatient.set(patientId, files);
+    }
+    let total = 0;
+    for (const [patientId, fileNames] of byPatient) {
+      const placeholders = fileNames.map(() => "?").join(",");
+      const [result] = await conn.execute(
+        `UPDATE blackice_uploads SET patient_id = ? WHERE file_name IN (${placeholders}) AND patient_id IS NULL`,
+        [patientId, ...fileNames]
+      );
+      total += Number((result as any)?.affectedRows ?? 0);
+    }
+    return total;
+  } finally {
+    await conn.end().catch(() => {});
+  }
 }
 
 export async function getUnlinkedBlackiceUploads(limit = 10000) {

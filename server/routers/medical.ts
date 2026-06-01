@@ -4250,13 +4250,13 @@ export const medicalRouter = router({
 
       const matcher = await buildPentacamPatientCandidates();
 
-      let imported = 0;
       let skipped = 0;
-      let missing = 0;
       let unmatched = 0;
-      const importedByPatient: Record<string, number> = {};
       const unresolvedFiles: string[] = [];
+      const linkPairs: Array<{ fileName: string; patientId: number }> = [];
+      const importedByPatient: Record<string, number> = {};
 
+      // Phase 1: match files to patients (CPU only, no DB calls)
       for (const fileName of requested) {
         if (!/\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
           skipped += 1;
@@ -4274,20 +4274,15 @@ export const medicalRouter = router({
           if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
           continue;
         }
-
-        const baseName = path.posix.basename(fileName);
-        const linked = await db.linkBlackiceUploadToPatient(baseName, patientId);
-        if (linked > 0) {
-          imported += 1;
-          importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
-        } else {
-          // File already linked to a patient (or not in blackice_uploads) — no S3 fallback.
-          // All exports-panel files come from blackice_uploads stored under blackice-imports/
-          // in S3; the pentacam-exports/ copy candidates would always miss, causing an
-          // hours-long hang with hundreds of failing S3 calls.
-          skipped += 1;
-        }
+        linkPairs.push({ fileName: path.posix.basename(fileName), patientId });
+        importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
       }
+
+      // Phase 2: one batch DB call — avoids 863 sequential round-trips that hung indefinitely
+      const imported = linkPairs.length > 0
+        ? await db.linkBlackiceUploadsBatch(linkPairs)
+        : 0;
+      const missing = 0;
 
       await db.logAuditEvent(ctx.user.id, "AUTO_IMPORT_LOCAL_PENTACAM_EXPORTS", "pentacamResult", 0, {
         requested: requested.length,
