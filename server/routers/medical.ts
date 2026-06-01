@@ -4250,6 +4250,13 @@ export const medicalRouter = router({
 
       const matcher = await buildPentacamPatientCandidates();
 
+      // Prefetch all blackice filenames once — O(1) Set lookup avoids per-file S3 fallback
+      // for files that live in blackice_uploads (stored under blackice-imports/ in S3, not
+      // pentacam-exports/, so the S3 copy candidates would all fail causing ~4 slow network
+      // calls per file → 524 timeout).
+      const blackiceNamesRaw = await db.getAllBlackiceUploadFileNames();
+      const blackiceFileSet = new Set(blackiceNamesRaw.map(n => n.toLowerCase()));
+
       let imported = 0;
       let skipped = 0;
       let missing = 0;
@@ -4279,6 +4286,9 @@ export const medicalRouter = router({
         const linked = await db.linkBlackiceUploadToPatient(baseName, patientId);
         if (linked > 0) {
           imported += 1;
+        } else if (blackiceFileSet.has(baseName.toLowerCase())) {
+          // File is in blackice_uploads but already linked to a patient — skip S3 fallback
+          skipped += 1;
         } else {
           try {
             await movePentacamObjectToPatient({ patientId, fileName });

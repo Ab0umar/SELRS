@@ -3761,6 +3761,18 @@ export async function getUnlinkedBlackiceUploads(limit = 10000) {
   }>;
 }
 
+export async function getAllBlackiceUploadFileNames(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.execute(
+    sql`SELECT file_name FROM blackice_uploads WHERE file_name IS NOT NULL`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : [])
+    .map((r: any) => String(r?.file_name ?? "").trim())
+    .filter(Boolean);
+}
+
 export async function getAllBlackiceUploads(limit = 100000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
