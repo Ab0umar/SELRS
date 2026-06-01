@@ -47,23 +47,6 @@ function SummaryField({
   );
 }
 
-function EmptyPanel() {
-  return (
-    <div className="flex h-full min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background px-6 py-10 text-center">
-      <div className="max-w-sm space-y-3">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-          <Search className="h-6 w-6" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-lg font-semibold text-foreground">اختر مريضًا للربط</p>
-          <p className="text-sm leading-6 text-muted-foreground">
-            هذه الصفحة مخصصة للإدارة فقط: استيراد صور Pentacam وربطها أو إعادة تعيينها عند الحاجة.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function AdminPentacamLinking() {
   const { isAuthenticated } = useAuth();
@@ -223,11 +206,7 @@ export default function AdminPentacamLinking() {
           </aside>
 
           <section className="min-h-0">
-            {selectedPatientId ? (
-              <LocalPentacamExportsPanel patientId={selectedPatientId} active />
-            ) : (
-              <EmptyPanel />
-            )}
+            <LocalPentacamExportsPanel patientId={selectedPatientId} active />
           </section>
         </div>
       </main>

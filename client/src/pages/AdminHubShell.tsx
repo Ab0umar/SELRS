@@ -156,6 +156,13 @@ const ALL_MODULES: HubModuleCard[] = [
     iconWrap: "bg-muted text-muted-foreground",
   },
   {
+    href: "/admin/pentacam",
+    title: "ربط صور البنتاكام",
+    description: "استيراد صور JPG وربطها بالمرضى أو إعادة التعيين.",
+    icon: Scan,
+    iconWrap: "bg-primary/10 text-primary",
+  },
+  {
     href: "/admin-hub/pentacam-failed",
     title: "بنتاكام الفاشل",
     description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
