@@ -227,8 +227,12 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       unmatched += Number(result.unmatched ?? 0);
       skipped += Number(result.skipped ?? 0);
       missing += Number(result.missing ?? 0);
-      if (Array.isArray((result as any).unresolvedFiles)) {
-        unresolvedFiles.push(...(result as any).unresolvedFiles.map((value: unknown) => String(value ?? "").trim()).filter(Boolean));
+      const rawUnresolved = (result as any).unresolvedFiles;
+      if (Array.isArray(rawUnresolved)) {
+        for (const value of rawUnresolved) {
+          const s = String(value ?? "").trim();
+          if (s) unresolvedFiles.push(s);
+        }
       }
     }
     return { imported, unmatched, skipped, missing, unresolvedFiles: Array.from(new Set(unresolvedFiles)) };

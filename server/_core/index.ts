@@ -1553,8 +1553,8 @@ async function startServer() {
         });
       }
 
-      // Source 2: unlinked blackice_uploads with source_printer = 'Pentacam'
-      const blackiceRows = await db.getUnlinkedBlackiceUploads(limit);
+      // Source 2: all blackice_uploads (linked + unlinked)
+      const blackiceRows = await db.getAllBlackiceUploads(limit);
       for (const row of blackiceRows) {
         const name = path.basename(String(row.file_name ?? "").trim());
         if (!name) continue;

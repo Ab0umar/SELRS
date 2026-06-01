@@ -3759,6 +3759,26 @@ export async function getUnlinkedBlackiceUploads(limit = 10000) {
   }>;
 }
 
+export async function getAllBlackiceUploads(limit = 100000) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 100000);
+  const result = await db.execute(
+    sql`SELECT id, file_name, created_at, patient_id
+        FROM blackice_uploads
+        WHERE file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
+        ORDER BY created_at DESC
+        LIMIT ${safeLimit}`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []) as Array<{
+    id: number;
+    file_name: string | null;
+    created_at: Date | string | null;
+    patient_id: number | null;
+  }>;
+}
+
 // ============ DOCTOR REPORT OPERATIONS ============
 
 export async function createDoctorReport(reportData: any) {
