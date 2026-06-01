@@ -38,7 +38,7 @@ const TABLES = {
 function dumpAccess(dbPath: string): Record<string, any[]> {
   // Pass table names as parameters — avoids Arabic encoding issues in the .ps1 file itself
   const args = [
-    "-NoProfile", "-NonInteractive", "-File", `"${DUMP_SCRIPT}"`,
+    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", `"${DUMP_SCRIPT}"`,
     "-DbPath", `"${dbPath}"`,
     "-T1", `"${TABLES.ledger}"`,
     "-T2", `"${TABLES.advances}"`,
