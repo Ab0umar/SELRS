@@ -3732,11 +3732,13 @@ export async function getBlackiceUploadsByPatient(patientId: number, limit = 100
 export async function linkBlackiceUploadToPatient(baseName: string, patientId: number): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await (db as any).$client.execute(
-    "UPDATE blackice_uploads SET patient_id = ? WHERE file_name = ? AND patient_id IS NULL",
-    [patientId, baseName]
+  // Use Drizzle's execute (not $client.execute) — $client is the raw callback-style mysql2 pool
+  // and calling execute() on it without a callback returns undefined, crashing the server.
+  const result = await db.execute(
+    sql`UPDATE blackice_uploads SET patient_id = ${patientId} WHERE file_name = ${baseName} AND patient_id IS NULL`
   );
-  return Number((result as any)?.affectedRows ?? 0);
+  const ok = Array.isArray(result) ? result[0] : result;
+  return Number((ok as any)?.affectedRows ?? 0);
 }
 
 export async function getUnlinkedBlackiceUploads(limit = 10000) {
