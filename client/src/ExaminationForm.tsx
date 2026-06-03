@@ -45,7 +45,7 @@ function ComboBoxField({ id, value, options, onChange, className = "" }: ComboBo
       onChange={(event) => onChange(event.target.value)}
       className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs ${className}`}
     >
-      <option value=""></option>
+      <option value="">----</option>
       {!hasCurrent && normalized ? <option value={normalized}>{normalized}</option> : null}
       {options.map((option) => (
         <option key={`${id}-${option}`} value={option}>
