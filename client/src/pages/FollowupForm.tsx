@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,9 @@ const lensSubheadClass = "min-w-0 flex-1 text-center sm:w-16 sm:flex-none";
 export default function FollowupForm() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [patientId, setPatientId] = useState<number>(0);
+  const [, routeParams] = useRoute("/followup/:id");
+  const routePatientId = routeParams?.id ? Number(routeParams.id) : 0;
+  const [patientId, setPatientId] = useState<number>(routePatientId);
   const [activeTab, setActiveTab] = useState("auto-air");
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
