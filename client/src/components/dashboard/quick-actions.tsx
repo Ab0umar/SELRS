@@ -66,11 +66,8 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
     all.filter((a) => a.kind === kind);
   const byPage = (page: PageKey) => all.find((a) => a.kind === "pick-patient" && a.page === page);
 
-  const allMedicalShortcuts = [
-    ...byKind("quick-entry-dialog"),
-    ...byKind("schedule-dialog"),
+  const medicalShortcuts = [
     ...byKind("measurements-panel"),
-    ...byKind("operations-booking-dialog"),
     byPage("refraction"),
     byPage("pentacam-sheet"),
     byPage("write-prescription"),
@@ -80,8 +77,16 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
     byPage("patient-summary"),
   ].filter(Boolean) as QuickActionItem[];
 
+  const receptionShortcuts = [
+    ...byKind("quick-entry-dialog"),
+    ...byKind("schedule-dialog"),
+    ...byKind("operations-booking-dialog"),
+    ...medicalShortcuts,
+  ];
+
   if (userRole === "admin" || userRole === "manager") return all;
-  return allMedicalShortcuts;
+  if (userRole === "reception") return receptionShortcuts;
+  return medicalShortcuts;
 }
 
 export type QuickActionsProps = {
