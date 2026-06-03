@@ -103,12 +103,12 @@ export default function ExaminationForm() {
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [examData, setExamData] = useState({
     autorefraction: {
-      od: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
-      os: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
+      od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+      os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
     },
     glasses: {
-      od: { s: "", c: "", axis: "", pd: "" },
-      os: { s: "", c: "", axis: "", pd: "" },
+      od: { s: "----", c: "----", axis: "", pd: "" },
+      os: { s: "----", c: "----", axis: "", pd: "" },
     },
     pentacam: {
       od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
@@ -229,12 +229,12 @@ export default function ExaminationForm() {
     });
     setExamData({
       autorefraction: {
-        od: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
-        os: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
+        od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+        os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
       },
       glasses: {
-        od: { s: "", c: "", axis: "", pd: "" },
-        os: { s: "", c: "", axis: "", pd: "" },
+        od: { s: "----", c: "----", axis: "", pd: "" },
+        os: { s: "----", c: "----", axis: "", pd: "" },
       },
       pentacam: {
         od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
