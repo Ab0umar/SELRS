@@ -171,11 +171,11 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </div>
       )}
 
-      {/* Clinical tools: Measurements, refraction, pentacam, tests */}
-      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
+      {/* Clinical tools: Measurements, refraction, pentacam, tests, followups */}
+      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {visibleActions
-            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
+            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
             .map((action) => {
               const Icon = action.icon;
               return (
