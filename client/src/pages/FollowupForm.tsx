@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 const eyeGridClass =
   "grid grid-cols-[72px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_1fr_1fr] sm:gap-3";
@@ -41,6 +42,15 @@ export default function FollowupForm() {
   const routePatientId = routeParams?.id ? Number(routeParams.id) : 0;
   const [patientId, setPatientId] = useState<number>(routePatientId);
   const [activeTab, setActiveTab] = useState("auto-air");
+
+  const saveFollowupMutation = trpc.medical.saveFollowupSheet.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ بيانات المتابعة بنجاح");
+    },
+    onError: (error) => {
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ البيانات"));
+    },
+  });
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -153,17 +163,37 @@ export default function FollowupForm() {
 
     setLoading(true);
     try {
-      // TODO: Save followup data to API
-      const followupData = {
+      const followupItems = [
+        {
+          tableIndex: 0,
+          vaOD: examData.autorefraction.od.ucva,
+          vaOS: examData.autorefraction.os.ucva,
+          refracOD: {
+            s: examData.autorefraction.od.s,
+            c: examData.autorefraction.od.c,
+            axis: examData.autorefraction.od.axis,
+          },
+          refracOS: {
+            s: examData.autorefraction.os.s,
+            c: examData.autorefraction.os.c,
+            axis: examData.autorefraction.os.axis,
+          },
+          iopOD: examData.autorefraction.od.iop,
+          iopOS: examData.autorefraction.os.iop,
+          treatment: notes,
+          notes: notes,
+        },
+      ];
+
+      const sheetType = (patient?.serviceType as "consultant" | "specialist" | "lasik" | "external") || "consultant";
+
+      await saveFollowupMutation.mutateAsync({
         patientId,
-        examData,
-        refractionTableData,
-        notes,
-      };
-      console.log("Saving followup:", followupData);
-      toast.success("تم حفظ بيانات المتابعة بنجاح");
+        sheetType,
+        followupItems,
+      });
     } catch (error) {
-      toast.error("فشل حفظ البيانات");
+      console.error("Save error:", error);
     } finally {
       setLoading(false);
     }
