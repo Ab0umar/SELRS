@@ -273,6 +273,7 @@ export default function PatientDetails() {
                   surgeries={pd.surgeries}
                   followups={pd.followups}
                   isAdmin={pd.isAdmin && !inPatientHub}
+                  patientId={patientId}
                   editingVisitId={pd.editingVisitId}
                   editVisitDate={pd.editVisitDate}
                   setEditingVisitId={pd.setEditingVisitId}

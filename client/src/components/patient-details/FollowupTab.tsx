@@ -1,7 +1,8 @@
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Check, Trash2, X, Edit } from "lucide-react";
+import { Check, Trash2, X, Edit, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, formatDisplayValue } from "@/hooks/patient-details/usePatientDetails";
 
@@ -11,6 +12,7 @@ interface FollowupTabProps {
   surgeries: any[];
   followups: any[];
   isAdmin: boolean;
+  patientId?: number;
   editingVisitId: number | null;
   editVisitDate: string;
   setEditingVisitId: (id: number | null) => void;
@@ -22,16 +24,24 @@ interface FollowupTabProps {
 }
 
 export function FollowupTab({
-  examinations, visitsData, surgeries, followups, isAdmin,
+  examinations, visitsData, surgeries, followups, isAdmin, patientId,
   editingVisitId, editVisitDate, setEditingVisitId, setEditVisitDate,
   updateVisitDateMutation, deleteExamMutation, deleteVisitMutation, onAfterDelete,
 }: FollowupTabProps) {
+  const [, setLocation] = useLocation();
+
   return (
     <div className="space-y-6">
       {/* All Visits/Examinations */}
       <Card className="border-border/80 bg-background/92 shadow-sm">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border flex items-center justify-between">
           <CardTitle>جميع الزيارات</CardTitle>
+          {patientId && (
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => setLocation(`/followup/0`)}>
+              <Plus className="h-4 w-4" />
+              <span className="text-xs">متابعة جديدة</span>
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           {examinations.length === 0 && <p className="text-sm text-muted-foreground">لا توجد زيارات محفوظة</p>}
