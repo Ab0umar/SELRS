@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import PageHeader from "@/components/PageHeader";
@@ -120,6 +121,7 @@ export default function FollowupForm() {
     os: { s: "", c: "", a: "", pd: "" },
   });
 
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -152,6 +154,13 @@ export default function FollowupForm() {
     setLoading(true);
     try {
       // TODO: Save followup data to API
+      const followupData = {
+        patientId,
+        examData,
+        refractionTableData,
+        notes,
+      };
+      console.log("Saving followup:", followupData);
       toast.success("تم حفظ بيانات المتابعة بنجاح");
     } catch (error) {
       toast.error("فشل حفظ البيانات");
@@ -218,11 +227,12 @@ export default function FollowupForm() {
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="auto-air">
                     الأوتوريف والإير باف
                   </TabsTrigger>
                   <TabsTrigger value="pentacam">البنتاكام</TabsTrigger>
+                  <TabsTrigger value="notes">ملاحظات</TabsTrigger>
                 </TabsList>
 
                 {/* Auto-Air Tab */}
@@ -1248,6 +1258,23 @@ export default function FollowupForm() {
                           className={wideInputClass}
                         />
                       </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Notes Tab */}
+                <TabsContent value="notes" className="mt-6">
+                  <div className="mx-auto max-w-2xl space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="notes" className="text-sm font-semibold">ملاحظات المتابعة</Label>
+                      <Textarea
+                        id="notes"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="أدخل ملاحظاتك حول المتابعة..."
+                        className="min-h-[300px] text-sm"
+                        dir="rtl"
+                      />
                     </div>
                   </div>
                 </TabsContent>
