@@ -229,10 +229,10 @@ export default function FollowupForm() {
               >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="auto-air">
-                    الأوتوريف والإير باف
+                    Autoref/IOP
                   </TabsTrigger>
-                  <TabsTrigger value="pentacam">البنتاكام</TabsTrigger>
-                  <TabsTrigger value="notes">ملاحظات</TabsTrigger>
+                  <TabsTrigger value="pentacam">PENTACAM</TabsTrigger>
+                  <TabsTrigger value="notes">NOTES</TabsTrigger>
                 </TabsList>
 
                 {/* Auto-Air Tab */}
