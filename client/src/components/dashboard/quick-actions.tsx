@@ -14,6 +14,7 @@ import {
   Glasses,
   CircleDot,
   Syringe,
+  Repeat,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -41,6 +42,7 @@ const quickActions: QuickActionItem[] = [
   { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "schedule-dialog" },
   { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "measurements-panel" },
   { label: "حجز العمليات", icon: Syringe, color: "bg-success text-success-foreground hover:bg-success/90", kind: "operations-booking-dialog" },
+  { label: "متابعة", icon: Repeat, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "followups" },
   { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "refraction" },
   { label: "بنتاكام", icon: CircleDot, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "pentacam-sheet" },
   { label: "الروشتات", icon: Pill, color: "bg-warning text-warning-foreground hover:bg-warning/90", kind: "pick-patient", page: "write-prescription" },
@@ -68,6 +70,7 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
 
   const medicalShortcuts = [
     ...byKind("measurements-panel"),
+    byPage("followups"),
     byPage("refraction"),
     byPage("pentacam-sheet"),
     byPage("write-prescription"),
