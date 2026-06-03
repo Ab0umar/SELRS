@@ -43,7 +43,7 @@ export default function RefractionValueSelect({
         <SelectValue placeholder={placeholder ?? "Select value"} />
       </SelectTrigger>
       <SelectContent className={className}>
-        <SelectItem value={EMPTY_SELECT_VALUE}>-</SelectItem>
+        <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
         {options.map((option) => (
           <SelectItem key={option} value={option}>
             {option}
