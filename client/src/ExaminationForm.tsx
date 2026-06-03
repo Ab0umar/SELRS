@@ -1377,7 +1377,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).s = e.target.value;
                                 return newData;
                               });
@@ -1392,7 +1392,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).c = e.target.value;
                                 return newData;
                               });
@@ -1407,7 +1407,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).axis = e.target.value;
                                 return newData;
                               });
@@ -1422,7 +1422,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).pd = e.target.value;
                                 return newData;
                               });
