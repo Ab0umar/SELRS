@@ -50,7 +50,7 @@ async function generateWithOpenAI(prompt: string, postId: number): Promise<strin
     prompt,
     n: 1,
     size: "1024x1024",
-    quality: "standard",
+    quality: "medium",
   });
 
   const item = response.data?.[0];
