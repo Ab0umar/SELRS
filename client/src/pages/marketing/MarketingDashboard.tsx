@@ -15,12 +15,14 @@ import {
   Lightbulb,
   Loader2,
   MessageSquare,
+  Play,
   RefreshCw,
   Send,
   Sparkles,
   ToggleLeft,
   ToggleRight,
   XCircle,
+  Zap,
 } from "lucide-react";
 
 const DAY_LABELS: Record<string, string> = {
@@ -56,6 +58,9 @@ export default function MarketingDashboard() {
 
   const summaryQuery = trpc.marketing.dashboardSummary.useQuery();
   const settingsQuery = trpc.marketing.getSettings.useQuery();
+  const schedulerQuery = trpc.marketing.getSchedulerStatus.useQuery(undefined, {
+    refetchInterval: 30_000,
+  });
 
   const generateMutation = trpc.marketing.generatePost.useMutation({
     onSuccess: (data) => {
@@ -83,6 +88,23 @@ export default function MarketingDashboard() {
     onSuccess: () => {
       toast.success("تم تحديث الإعدادات");
       void utils.marketing.getSettings.invalidate();
+      void utils.marketing.getSchedulerStatus.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const runNowMutation = trpc.marketing.runSchedulerNow.useMutation({
+    onSuccess: (data) => {
+      if (data.skipped) {
+        toast.info(`تم التخطي: ${data.skipped}`);
+      } else if (data.ok) {
+        toast.success(data.published ? "تم النشر على Facebook" : "تم حفظ المنشور كمسودة");
+        void utils.marketing.dashboardSummary.invalidate();
+        void utils.marketing.listPosts.invalidate();
+      } else {
+        toast.error(`فشل المجدول: ${data.error ?? "خطأ غير معروف"}`);
+      }
+      void utils.marketing.getSchedulerStatus.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -116,6 +138,14 @@ export default function MarketingDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Scheduler Status */}
+      <SchedulerCard
+        data={schedulerQuery.data}
+        isLoading={schedulerQuery.isLoading}
+        isRunning={runNowMutation.isPending}
+        onRunNow={(day) => runNowMutation.mutate({ day })}
+      />
 
       {/* Actions */}
       <div className="rounded-xl border border-border bg-card p-4">
@@ -165,11 +195,6 @@ export default function MarketingDashboard() {
                 النشر التلقائي: موقوف
               </>
             )}
-          </Button>
-
-          {/* Facebook placeholder */}
-          <Button size="sm" variant="outline" disabled>
-            ربط Facebook (قريباً)
           </Button>
 
           <Button size="sm" variant="ghost" onClick={() => void utils.marketing.dashboardSummary.invalidate()}>
@@ -324,6 +349,142 @@ export default function MarketingDashboard() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Scheduler Card ───────────────────────────────────────────────────────────
+
+const DAY_AR: Record<string, string> = {
+  saturday: "السبت",
+  tuesday: "الثلاثاء",
+  thursday: "الخميس",
+};
+
+const SCHED_STATUS_COLOR: Record<string, string> = {
+  idle: "bg-muted text-muted-foreground",
+  running: "bg-info/15 text-info",
+  error: "bg-destructive/15 text-destructive",
+};
+
+interface SchedulerData {
+  autoPublish: boolean;
+  fbConnected: boolean;
+  saturdayEnabled: boolean;
+  tuesdayEnabled: boolean;
+  thursdayEnabled: boolean;
+  publishHour: number;
+  lastSchedulerRun: Date | string | null;
+  schedulerStatus: string | null;
+  nextRun: { day: string; date: string } | null;
+}
+
+function SchedulerCard({
+  data,
+  isLoading,
+  isRunning,
+  onRunNow,
+}: {
+  data: SchedulerData | null | undefined;
+  isLoading: boolean;
+  isRunning: boolean;
+  onRunNow: (day?: "saturday" | "tuesday" | "thursday") => void;
+}) {
+  if (isLoading) return null;
+
+  const status = data?.schedulerStatus ?? "idle";
+  const active = data?.autoPublish && data?.fbConnected;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">المجدول التلقائي</h2>
+          <Badge className={`text-xs ${SCHED_STATUS_COLOR[status] ?? SCHED_STATUS_COLOR.idle}`}>
+            {status === "running" ? (
+              <><Loader2 className="mr-1 h-3 w-3 animate-spin" />يعمل</>
+            ) : status === "error" ? "خطأ" : "جاهز"}
+          </Badge>
+          {active ? (
+            <Badge className="bg-success/15 text-success text-xs">
+              <CheckCircle2 className="mr-1 h-3 w-3" />مفعّل
+            </Badge>
+          ) : (
+            <Badge className="bg-muted text-muted-foreground text-xs">موقوف</Badge>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onRunNow(undefined)}
+          disabled={isRunning}
+        >
+          {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          <span className="mr-1.5 text-xs">تشغيل الآن</span>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
+        <div className="rounded-lg border border-border bg-background px-3 py-2">
+          <p className="font-semibold text-muted-foreground mb-0.5">المنشور القادم</p>
+          {data?.nextRun ? (
+            <p className="text-foreground font-medium">
+              {DAY_AR[data.nextRun.day] ?? data.nextRun.day}
+              {" — "}
+              {new Date(data.nextRun.date).toLocaleString("ar-EG", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          ) : (
+            <p className="text-muted-foreground">لا يوجد</p>
+          )}
+        </div>
+        <div className="rounded-lg border border-border bg-background px-3 py-2">
+          <p className="font-semibold text-muted-foreground mb-0.5">آخر تشغيل</p>
+          <p className="text-foreground">
+            {data?.lastSchedulerRun
+              ? new Date(data.lastSchedulerRun).toLocaleString("ar-EG", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "لم يعمل بعد"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-background px-3 py-2">
+          <p className="font-semibold text-muted-foreground mb-0.5">وقت النشر</p>
+          <p className="text-foreground">{data?.publishHour ?? 9}:00</p>
+        </div>
+        <div className="rounded-lg border border-border bg-background px-3 py-2">
+          <p className="font-semibold text-muted-foreground mb-0.5">الأيام المفعّلة</p>
+          <p className="text-foreground">
+            {[
+              data?.saturdayEnabled && "س",
+              data?.tuesdayEnabled && "ث",
+              data?.thursdayEnabled && "خ",
+            ]
+              .filter(Boolean)
+              .join(" · ") || "لا شيء"}
+          </p>
+        </div>
+      </div>
+
+      {!data?.autoPublish && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          النشر التلقائي معطّل — فعّله من الإعدادات
+        </p>
+      )}
+      {data?.autoPublish && !data?.fbConnected && (
+        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+          Facebook غير مربوط — سيتم حفظ المنشورات كمسودات فقط
+        </p>
+      )}
     </div>
   );
 }

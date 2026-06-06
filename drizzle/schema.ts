@@ -1642,6 +1642,8 @@ export const marketingSettings = mysqlTable("marketing_settings", {
   fbConnected: boolean("fb_connected").default(false).notNull(),
   fbOauthState: varchar("fb_oauth_state", { length: 128 }),
   fbPendingPages: text("fb_pending_pages"),
+  lastSchedulerRun: timestamp("last_scheduler_run"),
+  schedulerStatus: varchar("scheduler_status", { length: 20 }).default("idle"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

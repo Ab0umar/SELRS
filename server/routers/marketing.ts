@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, count as drizzleCount } from "drizzle-orm";
+import { desc, eq, count as drizzleCount, and, gte } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
@@ -161,12 +161,51 @@ export const marketingRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+
+      const [post] = await db
+        .select()
+        .from(marketingPosts)
+        .where(eq(marketingPosts.id, input.id))
+        .limit(1);
+      if (!post) throw new Error("Post not found");
+
+      // Try to publish to Facebook if connected
+      const [settings] = await db.select().from(marketingSettings).limit(1);
+      let fbResult: string | null = null;
+
+      if (settings?.fbConnected && settings.fbPageId && settings.fbAccessToken) {
+        try {
+          const { publishPostToFacebook } = await import("../services/marketing/facebookPublisher.service");
+          const message = [
+            post.content ?? post.title,
+            post.cta ? `\n\n${post.cta}` : "",
+            post.hashtags ? `\n\n${post.hashtags}` : "",
+          ].join("").trim();
+          const appOrigin = ENV.fbAppOrigin || "https://selrs.cc";
+          const { fbPostId } = await publishPostToFacebook(
+            settings.fbPageId,
+            settings.fbAccessToken,
+            message,
+            post.imageUrl ?? null,
+            appOrigin
+          );
+          fbResult = fbPostId;
+          await addLog(input.id, "publish_post", "success", `Published to Facebook: ${fbPostId}`);
+        } catch (err) {
+          await addLog(input.id, "publish_post", "error", `Facebook publish failed: ${String(err)}`);
+          throw new Error(`فشل النشر على Facebook: ${String(err)}`);
+        }
+      }
+
       await db
         .update(marketingPosts)
         .set({ status: "published", publishedAt: new Date() })
         .where(eq(marketingPosts.id, input.id));
-      await addLog(input.id, "publish_post", "info", `Post published manually: ${input.id}`);
-      return { ok: true };
+
+      if (!fbResult) {
+        await addLog(input.id, "publish_post", "info", `Post marked published locally (FB not connected)`);
+      }
+      return { ok: true, fbPostId: fbResult };
     }),
 
   generatePost: adminProcedure
@@ -652,4 +691,77 @@ export const marketingRouter = router({
       throw new Error(`فشل الاتصال: ${result.error}`);
     }
   }),
+
+  // ─── Scheduler ───────────────────────────────────────────────────────────────
+
+  getSchedulerStatus: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const [settings] = await db
+      .select({
+        autoPublish: marketingSettings.autoPublish,
+        saturdayEnabled: marketingSettings.saturdayEnabled,
+        tuesdayEnabled: marketingSettings.tuesdayEnabled,
+        thursdayEnabled: marketingSettings.thursdayEnabled,
+        publishHour: marketingSettings.publishHour,
+        fbConnected: marketingSettings.fbConnected,
+        lastSchedulerRun: marketingSettings.lastSchedulerRun,
+        schedulerStatus: marketingSettings.schedulerStatus,
+      })
+      .from(marketingSettings)
+      .limit(1);
+
+    const { getNextScheduledTime } = await import("../services/marketing/scheduler.service");
+    const nextRun = settings
+      ? getNextScheduledTime({
+          saturdayEnabled: settings.saturdayEnabled,
+          tuesdayEnabled: settings.tuesdayEnabled,
+          thursdayEnabled: settings.thursdayEnabled,
+          publishHour: settings.publishHour,
+        })
+      : null;
+
+    return {
+      autoPublish: settings?.autoPublish ?? false,
+      fbConnected: settings?.fbConnected ?? false,
+      saturdayEnabled: settings?.saturdayEnabled ?? true,
+      tuesdayEnabled: settings?.tuesdayEnabled ?? true,
+      thursdayEnabled: settings?.thursdayEnabled ?? true,
+      publishHour: settings?.publishHour ?? 9,
+      lastSchedulerRun: settings?.lastSchedulerRun ?? null,
+      schedulerStatus: settings?.schedulerStatus ?? "idle",
+      nextRun: nextRun ? { day: nextRun.day, date: nextRun.date.toISOString() } : null,
+    };
+  }),
+
+  runSchedulerNow: adminProcedure
+    .input(
+      z.object({
+        day: z.enum(["saturday", "tuesday", "thursday"]).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { runScheduledPost } = await import("../services/marketing/scheduler.service");
+
+      // Determine which day to run
+      let day = input.day as "saturday" | "tuesday" | "thursday" | undefined;
+      if (!day) {
+        const jsDay = new Date().getDay();
+        const JS_MAP: Record<number, "saturday" | "tuesday" | "thursday"> = {
+          6: "saturday",
+          2: "tuesday",
+          4: "thursday",
+        };
+        day = JS_MAP[jsDay];
+        if (!day) {
+          // Today is not a scheduled day — default to saturday for manual testing
+          day = "saturday";
+        }
+      }
+
+      await addLog(null, "scheduler_manual_trigger", "info", `Manual run triggered by user ${ctx.user.id} for day: ${day}`);
+      const result = await runScheduledPost(day);
+      return result;
+    }),
 });

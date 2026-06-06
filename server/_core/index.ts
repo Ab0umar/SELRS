@@ -16,6 +16,7 @@ import { serveStatic, setupVite } from "./vite";
 import { registerWsServer } from "./ws";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
 import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
+import { initMarketingScheduler } from "../services/marketing/scheduler.service";
 import { startPunchReception } from "../services/attendance/punchReception.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
@@ -1718,6 +1719,7 @@ async function startServer() {
   startMssqlSyncScheduler();
   // startAttendanceSyncScheduler(); // Disabled: Use manual sync via attendance.syncNow procedure
   startPunchReception();
+  initMarketingScheduler();
   await startBlackIceFolderImporter();
   await startBlackIceOcrLinker();
 }
