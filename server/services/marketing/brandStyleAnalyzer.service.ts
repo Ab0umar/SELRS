@@ -61,6 +61,23 @@ Return ONLY a valid JSON object with these exact keys:
   "overallAesthetic": "one paragraph describing the complete visual identity and what makes this brand recognizable"
 }`;
 
+// ─── Retry helper ────────────────────────────────────────────────────────────
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, baseDelayMs = 3000): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries - 1) {
+        await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // ─── Single image analysis ────────────────────────────────────────────────────
 
 export async function analyzeDesignImage(
@@ -92,15 +109,17 @@ export async function analyzeDesignImage(
       },
     });
 
-    const result = await model.generateContent([
-      ANALYSIS_PROMPT,
-      {
-        inlineData: {
-          mimeType: mimeType as "image/jpeg" | "image/png" | "image/webp",
-          data: imageData,
+    const result = await withRetry(() =>
+      model.generateContent([
+        ANALYSIS_PROMPT,
+        {
+          inlineData: {
+            mimeType: mimeType as "image/jpeg" | "image/png" | "image/webp",
+            data: imageData,
+          },
         },
-      },
-    ]);
+      ])
+    );
 
     const text = result.response.text();
     const cleaned = text

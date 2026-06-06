@@ -460,8 +460,8 @@ export const marketingRouter = router({
       }
     }
 
-    // Analyze pending images in batches of 5 to avoid rate limits
-    const BATCH = 5;
+    // Analyze pending images in batches of 2 to avoid network overload from large images
+    const BATCH = 2;
     const newAttrs: (StyleAttributes | null)[] = [];
     for (let i = 0; i < pending.length; i += BATCH) {
       const batch = pending.slice(i, i + BATCH);
