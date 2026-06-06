@@ -1,7 +1,7 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 const PREFERRED_URL_KEY = "selrs_preferred_url";
-const DEFAULT_NATIVE_API_ORIGIN = "https://op.selrs.cc";
+const DEFAULT_NATIVE_API_ORIGIN = "https://selrs.cc";
 const LOCAL_API_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 // Local development - no OAuth needed

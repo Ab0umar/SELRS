@@ -70,7 +70,7 @@ type OcrTsvRow = {
 const IMPORTABLE_IMAGE_EXT = /\.(jpg|jpeg|png|webp|bmp|tif|tiff)$/i;
 let blackIceDbCycleBusy = false;
 const DEFAULT_ALLOWED_CORS_ORIGINS = [
-  "https://op.selrs.cc",
+  "https://selrs.cc",
   "http://localhost",
   "https://localhost",
   "capacitor://localhost",
