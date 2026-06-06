@@ -460,19 +460,25 @@ export const marketingRouter = router({
       }
     }
 
-    // Analyze all pending images in parallel instead of sequentially
-    const newAttrs = await Promise.all(
-      pending.map(async (design) => {
-        const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
-        if (attrs) {
-          await db
-            .update(marketingReferenceDesigns)
-            .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
-            .where(eq(marketingReferenceDesigns.id, design.id));
-        }
-        return attrs;
-      })
-    );
+    // Analyze pending images in batches of 5 to avoid rate limits
+    const BATCH = 5;
+    const newAttrs: (StyleAttributes | null)[] = [];
+    for (let i = 0; i < pending.length; i += BATCH) {
+      const batch = pending.slice(i, i + BATCH);
+      const batchResults = await Promise.all(
+        batch.map(async (design) => {
+          const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
+          if (attrs) {
+            await db
+              .update(marketingReferenceDesigns)
+              .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
+              .where(eq(marketingReferenceDesigns.id, design.id));
+          }
+          return attrs;
+        })
+      );
+      newAttrs.push(...batchResults);
+    }
 
     const analyses: StyleAttributes[] = [
       ...cached,
