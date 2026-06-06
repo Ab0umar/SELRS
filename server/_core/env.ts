@@ -31,6 +31,10 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional().default(""),
   OPENAI_API_KEY: z.string().optional().default(""),
   MARKETING_IMAGE_DIR: z.string().optional().default(""),
+  FB_APP_ID: z.string().optional().default(""),
+  FB_APP_SECRET: z.string().optional().default(""),
+  FB_REDIRECT_URI: z.string().optional().default(""),
+  FB_APP_ORIGIN: z.string().optional().default(""),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -73,4 +77,8 @@ export const ENV = {
   geminiApiKey: parsed.GEMINI_API_KEY,
   openaiApiKey: parsed.OPENAI_API_KEY,
   marketingImageDir: parsed.MARKETING_IMAGE_DIR,
+  fbAppId: parsed.FB_APP_ID,
+  fbAppSecret: parsed.FB_APP_SECRET,
+  fbRedirectUri: parsed.FB_REDIRECT_URI,
+  fbAppOrigin: parsed.FB_APP_ORIGIN,
 };

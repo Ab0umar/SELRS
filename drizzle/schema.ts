@@ -1583,6 +1583,8 @@ export const marketingSettings = mysqlTable("marketing_settings", {
   fbAccessToken: text("fb_access_token"),
   fbPageName: varchar("fb_page_name", { length: 255 }),
   fbConnected: boolean("fb_connected").default(false).notNull(),
+  fbOauthState: varchar("fb_oauth_state", { length: 128 }),
+  fbPendingPages: text("fb_pending_pages"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

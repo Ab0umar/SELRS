@@ -3,6 +3,7 @@ import { desc, eq, count as drizzleCount } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
+import { randomBytes } from "node:crypto";
 import { router, adminProcedure } from "../_core/procedures";
 import { getDb } from "../db";
 import {
@@ -482,5 +483,145 @@ export const marketingRouter = router({
 
     await addLog(null, "rebuild_brand_profile", "success", `Profile built from ${analyses.length} designs`);
     return profile;
+  }),
+
+  // ─── Facebook Connect ─────────────────────────────────────────────────────
+
+  getFacebookStatus: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [row] = await db
+      .select({
+        fbConnected: marketingSettings.fbConnected,
+        fbPageId: marketingSettings.fbPageId,
+        fbPageName: marketingSettings.fbPageName,
+      })
+      .from(marketingSettings)
+      .limit(1);
+    const { isFbConfigured } = await import("../services/marketing/facebookOAuth.service");
+    return {
+      connected: row?.fbConnected ?? false,
+      pageId: row?.fbPageId ?? null,
+      pageName: row?.fbPageName ?? null,
+      appConfigured: isFbConfigured(),
+    };
+  }),
+
+  getOAuthUrl: adminProcedure.mutation(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const { isFbConfigured, buildOAuthUrl } = await import("../services/marketing/facebookOAuth.service");
+    if (!isFbConfigured()) {
+      throw new Error("FB_APP_ID و FB_APP_SECRET غير مهيأين — أضفهما في إعدادات الخادم");
+    }
+
+    const state = randomBytes(24).toString("hex");
+    const [existing] = await db.select({ id: marketingSettings.id }).from(marketingSettings).limit(1);
+    if (!existing) {
+      await db.insert(marketingSettings).values({ fbOauthState: state });
+    } else {
+      await db.update(marketingSettings).set({ fbOauthState: state }).where(eq(marketingSettings.id, existing.id));
+    }
+
+    const ENV = (await import("../_core/env")).ENV;
+    const redirectUri = ENV.fbRedirectUri || `${ENV.fbAppOrigin || ""}/api/marketing/facebook/callback`;
+    const url = buildOAuthUrl(state, redirectUri);
+    await addLog(null, "fb_oauth_start", "info", `OAuth initiated by user ${ctx.user.id}`);
+    return { url };
+  }),
+
+  getPendingPages: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [row] = await db
+      .select({ fbPendingPages: marketingSettings.fbPendingPages })
+      .from(marketingSettings)
+      .limit(1);
+    if (!row?.fbPendingPages) return [];
+    try {
+      const raw = JSON.parse(Buffer.from(row.fbPendingPages, "base64").toString()) as Array<{ id: string; name: string; category?: string; token: string }>;
+      return raw.map(({ id, name, category }) => ({ id, name, category }));
+    } catch {
+      return [];
+    }
+  }),
+
+  selectFacebookPage: adminProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [row] = await db
+        .select({ id: marketingSettings.id, fbPendingPages: marketingSettings.fbPendingPages })
+        .from(marketingSettings)
+        .limit(1);
+      if (!row?.fbPendingPages) throw new Error("لا توجد صفحات معلقة — ابدأ عملية الربط من جديد");
+
+      let pages: Array<{ id: string; name: string; category?: string; token: string }>;
+      try {
+        pages = JSON.parse(Buffer.from(row.fbPendingPages, "base64").toString());
+      } catch {
+        throw new Error("بيانات الصفحات المعلقة تالفة");
+      }
+
+      const selected = pages.find((p) => p.id === input.pageId);
+      if (!selected) throw new Error("الصفحة المحددة غير موجودة في القائمة");
+
+      await db.update(marketingSettings).set({
+        fbPageId: selected.id,
+        fbPageName: selected.name,
+        fbAccessToken: selected.token,
+        fbConnected: true,
+        fbPendingPages: null,
+        fbOauthState: null,
+      }).where(eq(marketingSettings.id, row.id));
+
+      await addLog(null, "fb_page_selected", "success", `Connected page: ${selected.name} (${selected.id})`);
+      return { ok: true, pageName: selected.name };
+    }),
+
+  disconnectFacebook: adminProcedure.mutation(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [row] = await db.select({ id: marketingSettings.id }).from(marketingSettings).limit(1);
+    if (!row) return { ok: true };
+    await db.update(marketingSettings).set({
+      fbPageId: null,
+      fbPageName: null,
+      fbAccessToken: null,
+      fbConnected: false,
+      fbPendingPages: null,
+      fbOauthState: null,
+    }).where(eq(marketingSettings.id, row.id));
+    await addLog(null, "fb_disconnect", "info", `Disconnected by user ${ctx.user.id}`);
+    return { ok: true };
+  }),
+
+  testFacebookConnection: adminProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [row] = await db
+      .select({
+        fbPageId: marketingSettings.fbPageId,
+        fbAccessToken: marketingSettings.fbAccessToken,
+        fbPageName: marketingSettings.fbPageName,
+      })
+      .from(marketingSettings)
+      .limit(1);
+
+    if (!row?.fbPageId || !row.fbAccessToken) {
+      throw new Error("لم يتم ربط صفحة Facebook بعد");
+    }
+
+    const { testPageToken } = await import("../services/marketing/facebookOAuth.service");
+    const result = await testPageToken(row.fbPageId, row.fbAccessToken);
+
+    if (result.ok) {
+      await addLog(null, "fb_test_connection", "success", `Connection OK — page: ${result.pageName ?? row.fbPageName}`);
+      return { ok: true, pageName: result.pageName ?? row.fbPageName };
+    } else {
+      await addLog(null, "fb_test_connection", "error", `Connection failed: ${result.error}`);
+      throw new Error(`فشل الاتصال: ${result.error}`);
+    }
   }),
 });
