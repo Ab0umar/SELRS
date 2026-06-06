@@ -1,4 +1,4 @@
-import { int, varchar, text, timestamp, date, boolean, json, decimal, mysqlTable, mysqlEnum, primaryKey, index } from "drizzle-orm/mysql-core";
+import { int, varchar, text, mediumtext, timestamp, date, boolean, json, decimal, mysqlTable, mysqlEnum, primaryKey, index } from "drizzle-orm/mysql-core";
 import { uniqueIndex } from "drizzle-orm/mysql-core"
 /**
  * Core user table with local authentication (username/password)
@@ -1695,6 +1695,6 @@ export const marketingBrandProfile = mysqlTable("marketing_brand_profile", {
   logoPlacementStyle: text("logo_placement_style"),
   overallAesthetic: text("overall_aesthetic"),
   designCount: int("design_count").default(0).notNull(),
-  rawProfile: text("raw_profile"),
+  rawProfile: mediumtext("raw_profile"),
   builtAt: timestamp("built_at"),
 });
