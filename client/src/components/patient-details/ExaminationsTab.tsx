@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { classifyTest } from "@/hooks/patient-details/usePatientDetails";
+
+const FOLLOWUP_ORDINALS = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة"];
 
 interface ExaminationsTabProps {
   autorefractionRows: Array<{ eye: string; ucva: string; bcva: string; s: string; c: string; axis: string; iop: string }>;
@@ -12,9 +15,19 @@ interface ExaminationsTabProps {
   parsedExamSources: any[];
   openExamSections: { autoref: boolean; glasses: boolean; fundus: boolean; requestTests: boolean };
   toggleExamSection: (key: "autoref" | "glasses" | "fundus" | "requestTests") => void;
+  followupSheets?: any[];
 }
 
-export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fundusRows, requestedImagingAndLabs, parsedExamSources, openExamSections, toggleExamSection }: ExaminationsTabProps) {
+export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fundusRows, requestedImagingAndLabs, parsedExamSources, openExamSections, toggleExamSection, followupSheets }: ExaminationsTabProps) {
+  const [openFollowups, setOpenFollowups] = useState<Record<number, boolean>>({});
+
+  const followupItems = (followupSheets ?? []).flatMap((sheet: any) =>
+    (sheet.items ?? []).filter((item: any) => item.followupDate)
+  ).sort((a: any, b: any) => new Date(a.followupDate).getTime() - new Date(b.followupDate).getTime());
+
+  const toggleFollowup = (idx: number) =>
+    setOpenFollowups((prev) => ({ ...prev, [idx]: !prev[idx] }));
+
   return (
     <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
       <CardHeader className="border-b border-border pb-3">
@@ -183,6 +196,58 @@ export function ExaminationsTab({ autorefractionRows, afterRows, glassesRows, fu
             </div>
           )}
         </div>
+        {/* Followup Sections */}
+        {followupItems.map((item: any, idx: number) => {
+          let refOD: any = null; let refOS: any = null;
+          try { refOD = typeof item.refracOD === "string" ? JSON.parse(item.refracOD) : item.refracOD; } catch {}
+          try { refOS = typeof item.refracOS === "string" ? JSON.parse(item.refracOS) : item.refracOS; } catch {}
+          const label = `المتابعة ${FOLLOWUP_ORDINALS[idx] ?? String(idx + 1)}`;
+          const dateLabel = item.followupDate ? new Date(item.followupDate).toLocaleDateString("ar-EG") : "";
+          const rows = [
+            { eye: "OD", va: item.vaOD, s: refOD?.s, c: refOD?.c, axis: refOD?.axis, iop: item.iopOD },
+            { eye: "OS", va: item.vaOS, s: refOS?.s, c: refOS?.c, axis: refOS?.axis, iop: item.iopOS },
+          ];
+          return (
+            <div key={`followup-${idx}`} className="rounded-xl border border-border bg-background">
+              <Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted" onClick={() => toggleFollowup(idx)}>
+                <span>{label}{dateLabel ? ` — ${dateLabel}` : ""}</span>
+                {openFollowups[idx] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+              {openFollowups[idx] && (
+                <div className="space-y-3 border-t border-border p-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[560px] border-collapse text-center">
+                      <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        <tr>
+                          <th className="border px-3 py-3">Eye</th>
+                          <th className="border px-3 py-3">VA</th>
+                          <th className="border px-3 py-3">S</th>
+                          <th className="border px-3 py-3">C</th>
+                          <th className="border px-3 py-3">Axis</th>
+                          <th className="border px-3 py-3">IOP</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row) => (
+                          <tr key={`fu-${idx}-${row.eye}`} className="bg-background text-sm font-medium text-foreground">
+                            <td className="border px-3 py-3 font-bold">{row.eye}</td>
+                            <td className="border px-3 py-3">{row.va || "-"}</td>
+                            <td className="border px-3 py-3">{row.s || "-"}</td>
+                            <td className="border px-3 py-3">{row.c || "-"}</td>
+                            <td className="border px-3 py-3">{row.axis || "-"}</td>
+                            <td className="border px-3 py-3">{row.iop || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {item.notes && <p className="text-sm text-muted-foreground">ملاحظات: {item.notes}</p>}
+                  {item.treatment && <p className="text-sm text-muted-foreground">العلاج: {item.treatment}</p>}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

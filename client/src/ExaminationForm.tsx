@@ -853,10 +853,12 @@ export default function ExaminationForm() {
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4 flex-wrap w-full">
                     {[
-                      { type: "external", label: "خارجي" },
-                      { type: "lasik", label: "فحوصات الليزك" },
-                      { type: "specialist", label: "اخصائي" },
                       { type: "consultant", label: "استشاري", isFirst: true },
+                      { type: "specialist", label: "اخصائي" },
+                      { type: "lasik", label: "فحوصات الليزك" },
+                      { type: "external", label: "خارجي" },
+                      { type: "surgery_center", label: "عمليات مركز" },
+                      { type: "surgery_external", label: "عمليات خارجي" },
                     ].map((sheet) => (
                       <label key={sheet.type} className="flex items-center gap-2 cursor-pointer">
                         <Checkbox

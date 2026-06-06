@@ -38,6 +38,7 @@ export function usePatientsList(isAuthenticated: boolean) {
   const [dateTo, setDateTo] = useState("");
   const [activeTab, setActiveTab] = useState("consultant");
   const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
+  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
 
   const userStateQuery = trpc.medical.getUserPageState.useQuery(
     { page: "patients" },
@@ -154,6 +155,7 @@ export function usePatientsList(isAuthenticated: boolean) {
       dateFrom: toIsoDate(dateFrom) || undefined,
       dateTo: toIsoDate(dateTo) || undefined,
       serviceType: backendServiceType,
+      locationType: locationTypeFilter === "all" ? undefined : locationTypeFilter,
       limit: useClientFilterWindow ? 500 : Math.min(500, Math.max(pageSize * 4, pageSize)),
       cursor: useClientFilterWindow ? undefined : cursor ?? undefined,
     },
@@ -169,7 +171,7 @@ export function usePatientsList(isAuthenticated: boolean) {
   useEffect(() => {
     setCursor(null);
     setCursorHistory([]);
-  }, [debouncedSearchTerm, activeTab, dateFrom, dateTo, pageSize]);
+  }, [debouncedSearchTerm, activeTab, dateFrom, dateTo, pageSize, locationTypeFilter]);
 
   const availableDoctors = ((doctorDirectoryQuery.data ?? []) as Array<{ id: string; name: string; code: string; isActive?: boolean }>)
     .filter((doctor) => doctor.isActive !== false)
@@ -553,6 +555,8 @@ export function usePatientsList(isAuthenticated: boolean) {
 setDateTo,
     activeTab,
     setActiveTab,
+    locationTypeFilter,
+    setLocationTypeFilter,
     userStateQuery,
     saveUserStateMutation,
     doctorDirectoryQuery,

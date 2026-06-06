@@ -8,13 +8,13 @@ import { salaryRouter } from "./salary";
 import { patientPortalRouter } from "./patientPortal";
 
 export const appRouter = router({
+  patientPortal: patientPortalRouter,
   accounting: accountingRouter,
   attendance: attendanceRouter,
   medical: medicalRouter,
   patient: patientRouter,
   stockroom: stockroomRouter,
   salary: salaryRouter,
-  patientPortal: patientPortalRouter,
 });
 
 export type AppRouter = typeof appRouter;

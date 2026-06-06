@@ -3,6 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -193,6 +194,7 @@ export default function RefractionPage() {
       },
     });
   const [form, setForm] = useState<RefractionForm>(EMPTY_FORM);
+  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
 
   const sourceAutos = useMemo(() => {
     const consultant = parseSheetAuto(consultantQuery.data);
@@ -450,12 +452,23 @@ export default function RefractionPage() {
       <div
         className={`mb-4 refraction-no-print ${printMode.printView ? "hidden" : ""}`}
       >
+        <div className="mb-2">
+          <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
+            <SelectTrigger className="h-9 rounded-lg text-sm"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="center">مركز</SelectItem>
+              <SelectItem value="external">خارجي</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <PatientPicker
           onSelect={(p) => {
             const id = Number((p as any)?.id ?? 0);
             if (!id) return;
             setLocation(`/refraction/${id}`);
           }}
+          locationType={locationTypeFilter === "all" ? undefined : locationTypeFilter}
         />
       </div>
       <style>{`

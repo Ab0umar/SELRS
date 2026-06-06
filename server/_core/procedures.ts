@@ -312,6 +312,22 @@ export const patientPortalProcedure = t.procedure.use(
   }),
 );
 
+// External Doctor portal procedure - authenticated external doctor session
+export const doctorPortalProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.doctorSession) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "External doctor not authenticated" });
+    }
+    return next({
+      ctx: {
+        ...ctx,
+        doctorSession: ctx.doctorSession,
+      },
+    });
+  }),
+);
+
 // Attendance admin procedure - admin only
 export const attendanceAdminProcedure = t.procedure.use(
   t.middleware(async (opts) => {

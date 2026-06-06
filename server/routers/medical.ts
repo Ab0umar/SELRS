@@ -608,7 +608,9 @@ function normalizePentacamMatchText(raw: unknown): string {
 }
 
 function extractPatientCodeCandidatesFromFileName(fileName: string): string[] {
-  const stem = path.parse(String(fileName ?? "")).name;
+  let stem = path.parse(String(fileName ?? "")).name;
+  // Strip FAILED_ prefix produced by failed-import workflow before code extraction
+  if (/^FAILED_/i.test(stem)) stem = stem.slice("FAILED_".length);
   const out = new Set<string>();
   const parts = stem.split(/[^0-9A-Za-z]+/).filter(Boolean);
   const first = String(parts[0] ?? "").trim();
@@ -1382,61 +1384,58 @@ type LocalPentacamMismatchEntry = {
 };
 
 async function scanMismatchedLocalPentacamLinks(limit: number): Promise<LocalPentacamMismatchEntry[]> {
-  const matcher = await buildPentacamPatientCandidates();
-  const byPatientId = new Map<number, any>();
-  for (const candidate of matcher.candidates) {
-    const id = Number((candidate.patient as any)?.id ?? 0);
-    if (!Number.isFinite(id) || id <= 0) continue;
-    if (!byPatientId.has(id)) byPatientId.set(id, candidate.patient);
+  // Scan blackice_uploads (where autolinking writes) not pentacamResults (old workflow)
+  const rows = await db.getLinkedBlackiceUploadsWithPatient(limit);
+  const out: LocalPentacamMismatchEntry[] = [];
+
+  // Build code→patient map only from the rows we have (avoid loading all patients)
+  const codeToPatient = new Map<string, { id: number; patientCode: string; fullName: string }>();
+  for (const row of rows as any[]) {
+    const code = String(row.patientCode ?? "").trim();
+    const id = Number(row.patient_id ?? 0);
+    if (code && id > 0 && !codeToPatient.has(code)) {
+      codeToPatient.set(code, { id, patientCode: code, fullName: String(row.fullName ?? "").trim() });
+    }
   }
 
-  const rows = await db.getRecentPentacamLocalResults(limit);
-  const out: LocalPentacamMismatchEntry[] = [];
   for (const row of rows as any[]) {
-    const meta = parsePentacamLocalMeta((row as any)?.notes);
-    const fileName = String(meta?.originalFileName ?? meta?.sourceFileName ?? "").trim();
+    const fileName = String(row.file_name ?? "").trim();
     if (!fileName) continue;
     const codeCandidates = Array.from(
       new Set(
-        extractPatientCodeCandidatesFromFileName(fileName).filter((value) => /^\d{3,12}$/.test(String(value)))
+        extractPatientCodeCandidatesFromFileName(fileName).filter((v) => /^\d{3,12}$/.test(String(v)))
       )
     );
     if (codeCandidates.length === 0) continue;
 
-    const currentPatientId = Number((row as any)?.patientId ?? 0);
-    const currentPatient = byPatientId.get(currentPatientId);
-    const currentPatientCode = String((currentPatient as any)?.patientCode ?? "").trim();
-    const currentPatientName = String((currentPatient as any)?.fullName ?? "").trim();
+    const currentPatientId = Number(row.patient_id ?? 0);
+    const currentPatientCode = String(row.patientCode ?? "").trim();
+    const currentPatientName = String(row.fullName ?? "").trim();
+
+    // File is correctly linked — skip
     if (currentPatientCode && codeCandidates.includes(currentPatientCode)) continue;
 
-    const suggestedCodes = Array.from(
-      new Set(codeCandidates.filter((code) => matcher.byCode.get(code) || matcher.byCode.get(code.toUpperCase())))
-    );
+    // Find which candidate codes resolve to known patients
+    const suggestedCodes = codeCandidates.filter((code) => codeToPatient.has(code));
+
     if (suggestedCodes.length === 1) {
-      const suggested =
-        matcher.byCode.get(suggestedCodes[0]) ??
-        matcher.byCode.get(suggestedCodes[0].toUpperCase());
-      const suggestedPatientId = Number((suggested as any)?.id ?? 0);
-      if (!Number.isFinite(suggestedPatientId) || suggestedPatientId <= 0) continue;
-      if (suggestedPatientId === currentPatientId) continue;
+      const suggested = codeToPatient.get(suggestedCodes[0])!;
+      if (suggested.id === currentPatientId) continue;
       out.push({
-        resultId: Number((row as any)?.id ?? 0),
+        resultId: Number(row.id ?? 0),
         fileName,
         currentPatientId,
         currentPatientCode,
         currentPatientName,
         codeCandidates,
         kind: "obvious",
-        suggestedPatientId,
-        suggestedPatientCode: String((suggested as any)?.patientCode ?? "").trim(),
-        suggestedPatientName: String((suggested as any)?.fullName ?? "").trim(),
+        suggestedPatientId: suggested.id,
+        suggestedPatientCode: suggested.patientCode,
+        suggestedPatientName: suggested.fullName,
       });
-      continue;
-    }
-
-    if (suggestedCodes.length > 1) {
+    } else if (suggestedCodes.length > 1) {
       out.push({
-        resultId: Number((row as any)?.id ?? 0),
+        resultId: Number(row.id ?? 0),
         fileName,
         currentPatientId,
         currentPatientCode,
@@ -1714,28 +1713,40 @@ function registrationPricingPayload(input: {
 
 async function canPushToMssql(user: { id: number; role: string }): Promise<boolean> {
   const role = String(user.role ?? "").trim().toLowerCase();
-  if (role === "admin") return true;
+  console.log(`[mssql-push] canPushToMssql check started for user ${user.id}, role=${role}`);
+  if (role === "admin") {
+    console.log(`[mssql-push] User is admin, granting MSSQL push permission`);
+    return true;
+  }
   const required = "/ops/mssql-add";
 
   try {
     // Check user-specific permissions first
     const state = await db.getUserPermissionState(user.id);
+    console.log(`[mssql-push] User permission state:`, { hasOverride: state.hasOverride, pageIds: state.pageIds });
     if (state.hasOverride) {
-      return state.pageIds.includes(required);
+      const hasPermission = state.pageIds.includes(required);
+      console.log(`[mssql-push] User has override, has ${required}? ${hasPermission}`);
+      return hasPermission;
     }
 
     // Fall back to role defaults
     const roleDefaults = await db.getRoleDefaultPermissions(role);
+    console.log(`[mssql-push] Role defaults for ${role}:`, roleDefaults);
     if (Array.isArray(roleDefaults) && roleDefaults.includes(required)) {
+      console.log(`[mssql-push] Role has ${required}, granting permission`);
       return true;
     }
 
     // Final check: get effective permissions
     const effective = await db.getEffectiveUserPermissions(user.id, role);
+    console.log(`[mssql-push] Effective permissions for user ${user.id}:`, effective);
     if (Array.isArray(effective) && effective.includes(required)) {
+      console.log(`[mssql-push] Effective permissions include ${required}, granting permission`);
       return true;
     }
 
+    console.log(`[mssql-push] No permission for ${required} found, denying MSSQL push`);
     return false;
   } catch (error) {
     console.warn("[mssql-push] Permission check failed:", error);
@@ -1774,6 +1785,7 @@ export const medicalRouter = router({
     }))
     .mutation(async (opts) => {
       const { input, ctx } = opts;
+      console.log(`[createPatient] ===== START =====`);
       console.log(`[createPatient] Input received: doctorId=${input.doctorId}, doctorCode=${input.doctorCode}, serviceType=${input.serviceType}`);
 
       // Check permission for creating/editing patient data
@@ -1823,36 +1835,36 @@ export const medicalRouter = router({
             discountValue: patientInput.discountValue,
           });
           pushResult = await pushNewPatientToMssql({
-              patientCode: existingCode,
-              fullName: String((existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "").trim(),
-              phone: String((existingByIdentity as any)?.phone ?? patientInput.phone ?? "").trim() || null,
-              address: String((existingByIdentity as any)?.address ?? patientInput.address ?? "").trim() || null,
-              age: Number.isFinite(Number((existingByIdentity as any)?.age))
-                ? Number((existingByIdentity as any)?.age)
-                : Number.isFinite(Number(patientInput.age))
-                  ? Number(patientInput.age)
-                  : null,
-              gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
-              dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? patientInput.dateOfBirth ?? null,
-              branch: String((existingByIdentity as any)?.branch ?? patientInput.branch ?? "examinations").trim() || "examinations",
-              serviceType: patientInput.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
-              locationType:
-                (patientInput.serviceType === "external" ? "external" : patientInput.locationType) ??
-                (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
-              doctorCode: doctorCode || null,
-              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-              serviceCode: patientInput.serviceCode || null,
-              servicePrice: pricingPayload.servicePrice,
-              discountValue: pricingPayload.discountValue,
-              paValue: pricingPayload.paValue,
-            }).catch((error) => {
-              mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
-              console.warn("[mssql-push] createPatient(existing) failed", {
                 patientCode: existingCode,
-                message: mssqlPushError,
+                fullName: String((existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "").trim(),
+                phone: String((existingByIdentity as any)?.phone ?? patientInput.phone ?? "").trim() || null,
+                address: String((existingByIdentity as any)?.address ?? patientInput.address ?? "").trim() || null,
+                age: Number.isFinite(Number((existingByIdentity as any)?.age))
+                  ? Number((existingByIdentity as any)?.age)
+                  : Number.isFinite(Number(patientInput.age))
+                    ? Number(patientInput.age)
+                    : null,
+                gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
+                dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? patientInput.dateOfBirth ?? null,
+                branch: String((existingByIdentity as any)?.branch ?? patientInput.branch ?? "examinations").trim() || "examinations",
+                serviceType: patientInput.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
+                locationType:
+                  (patientInput.serviceType === "external" ? "external" : patientInput.locationType) ??
+                  (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
+                doctorCode: doctorCode || null,
+                enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+                serviceCode: patientInput.serviceCode || null,
+                servicePrice: pricingPayload.servicePrice,
+                discountValue: pricingPayload.discountValue,
+                paValue: pricingPayload.paValue,
+              }).catch((error) => {
+                mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
+                console.warn("[mssql-push] createPatient(existing) failed", {
+                  patientCode: existingCode,
+                  message: mssqlPushError,
+                });
+                return null;
               });
-              return null;
-            });
           if (!pushResult?.inserted && pushResult?.note) {
             mssqlPushError = pushResult.note;
           }
@@ -1901,6 +1913,7 @@ export const medicalRouter = router({
         const created = await db.getPatientByCode(code);
         console.log(`[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`);
         let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
+        let mssqlPushError: string | null = null;
         if (created?.patientCode && created?.fullName) {
           // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
@@ -1915,30 +1928,32 @@ export const medicalRouter = router({
             servicePrice: patientInput.servicePrice,
             discountValue: patientInput.discountValue,
           });
-          pushResult = await pushNewPatientToMssql({
-            patientCode: String(created.patientCode),
-            fullName: String(created.fullName),
-            phone: created.phone,
-            address: created.address,
-            age: created.age,
-            gender: (created as any).gender ?? null,
-            dateOfBirth: (created as any).dateOfBirth ?? null,
-            branch: (created as any).branch ?? "examinations",
-            serviceType: (created as any).serviceType ?? null,
-            locationType: (created as any).locationType ?? "center",
-            doctorCode: doctorCode || null,
-            enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-            serviceCode: patientInput.serviceCode || null,
-            servicePrice: pricingPayload.servicePrice,
-            discountValue: pricingPayload.discountValue,
-            paValue: pricingPayload.paValue,
-          }).catch((error) => {
-            console.warn("[mssql-push] createPatient failed", {
+          console.log("[createPatient] Attempting MSSQL push for new patient", { patientCode: String(created.patientCode) });
+            pushResult = await pushNewPatientToMssql({
               patientCode: String(created.patientCode),
-              message: String((error as any)?.message ?? error ?? "unknown"),
+              fullName: String(created.fullName),
+              phone: created.phone,
+              address: created.address,
+              age: created.age,
+              gender: (created as any).gender ?? null,
+              dateOfBirth: (created as any).dateOfBirth ?? null,
+              branch: (created as any).branch ?? "examinations",
+              serviceType: (created as any).serviceType ?? null,
+              locationType: (created as any).locationType ?? "center",
+              doctorCode: doctorCode || null,
+              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+              serviceCode: patientInput.serviceCode || null,
+              servicePrice: pricingPayload.servicePrice,
+              discountValue: pricingPayload.discountValue,
+              paValue: pricingPayload.paValue,
+            }).catch((error) => {
+              mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
+              console.warn("[mssql-push] createPatient failed", {
+                patientCode: String(created.patientCode),
+                message: mssqlPushError,
+              });
+              return null;
             });
-            return null;
-          });
         }
         await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
           message: `Created patient: ${input.fullName}`,
@@ -1968,7 +1983,14 @@ export const medicalRouter = router({
           });
         }
 
-        return { success: true, patientId: created?.id ?? 0, patientCode: code, receiptNo: pushResult?.trNo ?? null };
+        const mssqlLinked = Boolean(pushResult?.inserted);
+        if (!mssqlLinked && (mssqlPushError || pushResult?.note)) {
+          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
+            message: `Created patient: ${input.fullName}`,
+            mssqlWarning: mssqlPushError || pushResult?.note || "MSSQL sync failed",
+          });
+        }
+        return { success: true, patientId: created?.id ?? 0, patientCode: code, receiptNo: pushResult?.trNo ?? null, mssqlLinked, mssqlNote: !mssqlLinked ? (mssqlPushError || pushResult?.note) : undefined };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create patient: ${error}`);
@@ -2532,6 +2554,32 @@ export const medicalRouter = router({
 
           let firstTrNo: number | null = null;
 
+          // If no services provided, still push existing patient to MSSQL
+          if (processServices.length === 0) {
+            const pushResult = await pushNewPatientToMssql({
+              patientCode: existingCode,
+              fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? "").trim(),
+              phone: String((existingByIdentity as any)?.phone ?? input.phone ?? "").trim() || null,
+              address: String((existingByIdentity as any)?.address ?? input.address ?? "").trim() || null,
+              age: Number.isFinite(Number((existingByIdentity as any)?.age))
+                ? Number((existingByIdentity as any)?.age)
+                : Number.isFinite(Number(input.age))
+                  ? Number(input.age)
+                  : null,
+              gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
+              dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? input.dateOfBirth ?? null,
+              branch: String((existingByIdentity as any)?.branch ?? "examinations").trim() || "examinations",
+              serviceType: input.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
+              locationType:
+                (input.serviceType === "external" ? "external" : input.locationType) ??
+                (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
+              doctorCode: doctorCode || null,
+              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+              serviceCode: null,
+            });
+            firstTrNo = pushResult?.trNo ?? null;
+          }
+
           // Push all services
           for (let i = 0; i < processServices.length; i++) {
             const srv = processServices[i];
@@ -2614,6 +2662,26 @@ export const medicalRouter = router({
         }
 
         let firstTrNo: number | null = null;
+
+        // If no services provided, still push patient to MSSQL
+        if (processServices.length === 0) {
+          const pushResult = await pushNewPatientToMssql({
+            patientCode: code,
+            fullName: input.fullName,
+            phone: input.phone || null,
+            address: input.address || null,
+            age: input.age ?? null,
+            dateOfBirth: input.dateOfBirth || null,
+            branch: "examinations",
+            serviceType: input.serviceType || "consultant",
+            locationType: input.locationType,
+            doctorCode: doctorCode || null,
+            enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+            serviceCode: null,
+          });
+          firstTrNo = pushResult?.trNo ?? null;
+        }
+
         for (let i = 0; i < processServices.length; i++) {
           const srv = processServices[i];
           const pricingPayload = registrationPricingPayload({
@@ -4248,45 +4316,76 @@ export const medicalRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid file name: ${invalidPath}` });
       }
 
-      const matcher = await buildPentacamPatientCandidates();
-
       let skipped = 0;
       let unmatched = 0;
       const unresolvedFiles: string[] = [];
       const linkPairs: Array<{ fileName: string; patientId: number }> = [];
       const importedByPatient: Record<string, number> = {};
+      const needsNameMatch: string[] = [];
 
-      // Phase 1: match files to patients (CPU only, no DB calls)
+      // Phase 1a: fast code extraction — avoids loading all patients for id_name.jpg format
+      // Map is fileName → code (NOT code → fileName, which would drop all but one file per patient)
+      const extractedCodes = new Map<string, string>(); // baseName → code
       for (const fileName of requested) {
         if (!/\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
           skipped += 1;
           continue;
         }
-        const matched = resolvePatientForPentacamFileName(fileName, matcher);
-        if (!matched?.patient) {
-          unmatched += 1;
-          if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
-          continue;
+        const codes = extractPatientCodeCandidatesFromFileName(fileName);
+        if (codes.length > 0) {
+          extractedCodes.set(path.posix.basename(fileName), codes[0]);
+        } else {
+          needsNameMatch.push(fileName);
         }
-        const patientId = Number((matched.patient as any)?.id ?? 0);
-        if (!Number.isFinite(patientId) || patientId <= 0) {
-          unmatched += 1;
-          if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
-          continue;
+      }
+      // Phase 1b: batch SELECT for all code-matched files in one query
+      if (extractedCodes.size > 0) {
+        const uniqueCodes = Array.from(new Set(extractedCodes.values()));
+        const codeMap = await db.getPatientIdsByCodes(uniqueCodes);
+        for (const [baseName, code] of extractedCodes) {
+          const patientId = codeMap.get(code);
+          if (!patientId) {
+            unmatched += 1;
+            if (unresolvedFiles.length < 5000) unresolvedFiles.push(baseName);
+            continue;
+          }
+          linkPairs.push({ fileName: baseName, patientId });
+          importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
         }
-        linkPairs.push({ fileName: path.posix.basename(fileName), patientId });
-        importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
       }
 
-      // Phase 2: one batch DB call — avoids 863 sequential round-trips that hung indefinitely
+      // Phase 1c: name matching fallback (only for files without a leading code)
+      if (needsNameMatch.length > 0) {
+        const matcher = await buildPentacamPatientCandidates();
+        for (const fileName of needsNameMatch) {
+          const matched = resolvePatientForPentacamFileName(fileName, matcher);
+          if (!matched?.patient) {
+            unmatched += 1;
+            if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
+            continue;
+          }
+          const patientId = Number((matched.patient as any)?.id ?? 0);
+          if (!Number.isFinite(patientId) || patientId <= 0) {
+            unmatched += 1;
+            if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
+            continue;
+          }
+          linkPairs.push({ fileName: path.posix.basename(fileName), patientId });
+          importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
+        }
+      }
+
+      // Phase 2: one batch DB update
       const imported = linkPairs.length > 0
         ? await db.linkBlackiceUploadsBatch(linkPairs)
         : 0;
+      const alreadyLinked = Math.max(0, linkPairs.length - imported);
       const missing = 0;
 
       await db.logAuditEvent(ctx.user.id, "AUTO_IMPORT_LOCAL_PENTACAM_EXPORTS", "pentacamResult", 0, {
         requested: requested.length,
         imported,
+        alreadyLinked,
         skipped,
         missing,
         unmatched,
@@ -4296,6 +4395,7 @@ export const medicalRouter = router({
         success: true,
         requested: requested.length,
         imported,
+        alreadyLinked,
         skipped,
         missing,
         unmatched,
@@ -4336,7 +4436,7 @@ export const medicalRouter = router({
       for (const fileName of requested) {
         if (!/\.(jpg|jpeg|png|webp)$/i.test(fileName)) continue;
         const top = suggestPatientsForPentacamFileName(fileName, matcher, limitPerFile);
-        if (top.length === 0) continue;
+        // Always include the file even with no candidates — manual search input must show for every unmatched file
         suggestions.push({
           fileName,
           candidates: top.map((entry) => ({
@@ -4522,7 +4622,7 @@ export const medicalRouter = router({
           .filter((row) => (obviousOnly ? row.kind === "obvious" : true))
           .map((row) => row.resultId);
       }
-      const deleted = await db.deletePentacamResultsByIds(ids);
+      const deleted = await db.unlinkBlackiceUploadsByIds(ids);
       await db.logAuditEvent(ctx.user.id, "UNLINK_MISMATCHED_LOCAL_PENTACAM", "pentacamResult", 0, {
         requested: ids.length,
         deleted,
@@ -4546,7 +4646,7 @@ export const medicalRouter = router({
       if (!patient) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
       }
-      await db.reassignPentacamResultPatient(input.resultId, input.patientId);
+      await db.reassignBlackiceUploadPatient(input.resultId, input.patientId);
       await db.logAuditEvent(ctx.user.id, "REASSIGN_LOCAL_PENTACAM_LINK", "pentacamResult", input.resultId, {
         patientId: input.patientId,
       });

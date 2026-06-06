@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
@@ -58,6 +59,7 @@ export default function RequestTests({
   const [requestDate, setRequestDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
 
   useEffect(() => {
     if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
@@ -427,7 +429,19 @@ export default function RequestTests({
                 <CardTitle>Patient Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <PatientPicker initialPatientId={patientId ?? undefined} onSelect={handleSelectPatient} />
+                <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
+                  <SelectTrigger className="h-9 rounded-lg text-sm"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">الكل</SelectItem>
+                    <SelectItem value="center">مركز</SelectItem>
+                    <SelectItem value="external">خارجي</SelectItem>
+                  </SelectContent>
+                </Select>
+                <PatientPicker
+                  initialPatientId={patientId ?? undefined}
+                  onSelect={handleSelectPatient}
+                  locationType={locationTypeFilter === "all" ? undefined : locationTypeFilter}
+                />
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Name</label>

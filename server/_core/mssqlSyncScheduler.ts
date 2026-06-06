@@ -99,8 +99,11 @@ export function startMssqlSyncScheduler() {
       console.log(
         `[mssql-sync] ok mode=${result.incremental ? "incremental" : "full"} fetched=${result.fetched} inserted=${result.inserted} updated=${result.updated} skipped=${result.skipped} interval=${cfg.intervalMs}`
       );
-      if (result.errors.length > 0) {
-        console.warn(`[mssql-sync] row errors: ${result.errors.slice(0, 5).join(" | ")}`);
+      const realErrors = result.errors.filter(
+        (e) => !/SRV_CD column not found|PAPAT_SRV source not available/i.test(e)
+      );
+      if (realErrors.length > 0) {
+        console.warn(`[mssql-sync] row errors: ${realErrors.slice(0, 5).join(" | ")}`);
       }
     } catch (error: any) {
       await writeRuntimeStatus({

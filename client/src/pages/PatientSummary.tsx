@@ -76,15 +76,13 @@ function SectionHeading({ id, label }: { id: string; label: string }) {
 function DataTable({
   headers,
   rows,
-  dir = "ltr",
 }: {
   headers: string[];
   rows: (string | number)[][];
-  dir?: "ltr" | "rtl";
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border/60">
-      <table className="w-full border-collapse text-center text-sm" dir={dir}>
+    <div className="overflow-x-auto rounded-lg border border-border/60" style={{ direction: "ltr" }}>
+      <table className="w-full border-collapse text-center text-sm" style={{ direction: "ltr" }}>
         <thead>
           <tr className="bg-muted/50">
             {headers.map((h) => (
@@ -182,6 +180,11 @@ export default function PatientSummary() {
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
+  const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), staleTime: 0, refetchOnWindowFocus: true },
+  );
+
   const requestTestsStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "request-tests" },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
@@ -204,6 +207,7 @@ export default function PatientSummary() {
     reportsQuery.refetch();
     prescriptionsQuery.refetch();
     pentacamQuery.refetch();
+    followupSheetsQuery.refetch();
     testRequestsQuery?.refetch?.();
   }, [patientId]);
 
@@ -389,6 +393,30 @@ export default function PatientSummary() {
     return [...new Set(allTreatment)];
   }, [parsedExamSources]);
 
+  const followupRows = useMemo(() => {
+    const rows: (string | number)[][] = [];
+    const items = ((followupSheetsQuery.data ?? []) as any[])
+      .flatMap((sheet: any) =>
+        (sheet.items ?? []).filter((item: any) => item.followupDate).map((item: any) => {
+          let refOD: any = null;
+          let refOS: any = null;
+          try { refOD = typeof item.refracOD === "string" ? JSON.parse(item.refracOD) : item.refracOD; } catch {}
+          try { refOS = typeof item.refracOS === "string" ? JSON.parse(item.refracOS) : item.refracOS; } catch {}
+          return { ...item, refOD, refOS };
+        }),
+      )
+      .sort((a: any, b: any) => new Date(a.followupDate).getTime() - new Date(b.followupDate).getTime());
+
+    const v = (val: any) => (!val || val === "----") ? "—" : String(val);
+    items.forEach((item: any, i: number) => {
+      const num = i + 1;
+      const date = formatDate(item.followupDate);
+      rows.push([num, date, "OD", v(item.vaOD), v(item.refOD?.s), v(item.refOD?.c), v(item.refOD?.axis ?? item.refOD?.a), v(item.iopOD), item.notes || ""]);
+      rows.push(["", "",     "OS", v(item.vaOS), v(item.refOS?.s), v(item.refOS?.c), v(item.refOS?.axis ?? item.refOS?.a), v(item.iopOS), item.treatment || ""]);
+    });
+    return rows;
+  }, [followupSheetsQuery.data]);
+
   const prescriptions = prescriptionsQuery.data ?? [];
   const medicationNames = useMemo(() => {
     const names: string[] = [];
@@ -412,6 +440,7 @@ export default function PatientSummary() {
   });
   const hasHistory = !!(reports?.[0]?.clinicalOpinion || patient?.medicalHistory);
   const hasPrescriptions = medicationNames.length > 0 || treatmentFromExams.length > 0;
+  const hasFollowups = followupRows.length > 0;
 
   const tocSections = useMemo<TocSection[]>(
     () =>
@@ -424,9 +453,10 @@ export default function PatientSummary() {
         { id: "tests", label: "الأشعات والتحاليل", show: clinicalTests.length > 0 },
         { id: "prescriptions", label: "الروشتة والعلاج", show: hasPrescriptions },
         { id: "diagnosis", label: "التشخيص", show: !!latestReport },
+        { id: "followups", label: "المتابعات", show: hasFollowups },
         { id: "visits", label: "الزيارات", show: true },
       ].filter((s) => s.show),
-    [hasHistory, examinationData.length, glassesRows.length, pentacamRows.length, clinicalTests.length, hasPrescriptions, latestReport],
+    [hasHistory, examinationData.length, glassesRows.length, pentacamRows.length, clinicalTests.length, hasPrescriptions, latestReport, hasFollowups],
   );
 
   // Scrollspy via IntersectionObserver anchored to content container
@@ -532,7 +562,7 @@ export default function PatientSummary() {
 
         {/* Scrollable content */}
         <main ref={contentRef} className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-2xl space-y-10 px-4 py-6 pb-16 print:max-w-none print:space-y-8 print:px-6 print:py-4">
+          <div className="space-y-10 px-4 py-6 pb-16 print:space-y-8 print:px-6 print:py-4">
 
             {/* البيانات الأساسية */}
             <section id="sum-basic" className="scroll-mt-4">
@@ -677,6 +707,17 @@ export default function PatientSummary() {
                       : JSON.stringify(latestReportContent, null, 2)}
                   </p>
                 </div>
+              </section>
+            )}
+
+            {/* المتابعات */}
+            {hasFollowups && (
+              <section id="sum-followups" className="scroll-mt-4">
+                <SectionHeading id="followups" label="المتابعات" />
+                <DataTable
+                  headers={["#", "التاريخ", "العين", "VA", "S", "C", "Axis", "IOP", "ملاحظات / علاج"]}
+                  rows={followupRows}
+                />
               </section>
             )}
 

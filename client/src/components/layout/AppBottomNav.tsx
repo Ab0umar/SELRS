@@ -78,6 +78,12 @@ const adminTabs = [
     icon: Settings,
     paths: ["/admin-hub"],
   },
+  {
+    key: "more",
+    label: "المزيد",
+    icon: LayoutGrid,
+    paths: [],
+  },
 ] as const
 
 type StaffTabKey = (typeof staffTabs)[number]["key"]

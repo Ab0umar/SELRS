@@ -3581,6 +3581,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
         const patientCode = pick(source, ["patientCode", "PAT_CD", "code", "patient_id"]);
         const fullName = pick(source, ["fullName", "NAM", "NAM1", "NAM2", "NAM3", "name", "patientName"]);
         if (!patientCode || !fullName) {
+          console.log(`[mssql-sync] Skipping: missing patientCode="${patientCode}" or fullName="${fullName}"`);
           result.skipped += 1;
           continue;
         }
@@ -3768,6 +3769,7 @@ export async function syncPatientsFromMssql(options: SyncOptions = {}): Promise<
           }
 
           if (!updateExisting) {
+            // skipping log: too verbose when updateExisting=false and many patients already exist
             if (!dryRun && linkServicesForExisting && targetPatientId > 0 && incomingServiceCodes.length > 0) {
               const existingState = await db.getPatientPageState(targetPatientId, "examination");
               const existingData =

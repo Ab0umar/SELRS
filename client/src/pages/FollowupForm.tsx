@@ -21,19 +21,11 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 
-const eyeGridClass =
-  "grid grid-cols-[72px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_1fr_1fr] sm:gap-3";
-const compactSelectClass =
-  "h-10 min-w-0 flex-1 text-xs text-center border-input sm:h-7 sm:w-16 sm:flex-none sm:text-[11px]";
-const mediumSelectClass =
-  "h-10 w-full text-xs text-center border-input sm:h-7 sm:w-24 sm:text-[11px]";
-const compactInputClass =
-  "h-10 min-w-0 flex-1 text-xs text-center border-input sm:h-7 sm:w-16 sm:flex-none sm:text-[11px]";
-const wideInputClass =
-  "h-10 w-full text-xs text-center border-input sm:h-7 sm:w-40 sm:text-[11px]";
-const fullInputClass =
-  "h-10 text-xs text-center border-input sm:h-7 sm:text-[11px]";
-const lensSubheadClass = "min-w-0 flex-1 text-center sm:w-16 sm:flex-none";
+const rowClass = "grid grid-cols-[80px_1fr_1fr] items-center gap-2";
+const sectionDivider = "grid grid-cols-[80px_1fr_1fr] items-center gap-2 pt-3 mt-1 border-t border-border";
+const fieldClass = "h-10 w-full text-sm text-center";
+const labelClass = "text-sm font-semibold";
+const subLabelClass = "text-xs text-muted-foreground pl-2";
 
 export default function FollowupForm() {
   const { isAuthenticated } = useAuth();
@@ -62,26 +54,28 @@ export default function FollowupForm() {
   const [examData, setExamData] = useState({
     autorefraction: {
       od: {
-        s: "",
-        c: "",
+        s: "----",
+        c: "----",
         axis: "",
         ucva: "",
         bcva: "",
-        afterS: "",
-        afterC: "",
+        afterS: "----",
+        afterC: "----",
         afterA: "",
         airPuff1: "",
+        iop: "",
       },
       os: {
-        s: "",
-        c: "",
+        s: "----",
+        c: "----",
         axis: "",
         ucva: "",
         bcva: "",
-        afterS: "",
-        afterC: "",
+        afterS: "----",
+        afterC: "----",
         afterA: "",
         airPuff1: "",
+        iop: "",
       },
     },
     fundus: {
@@ -127,10 +121,11 @@ export default function FollowupForm() {
   });
 
   const [refractionTableData, setRefractionTableData] = useState({
-    od: { s: "", c: "", a: "", pd: "" },
-    os: { s: "", c: "", a: "", pd: "" },
+    od: { s: "----", c: "----", a: "", pd: "" },
+    os: { s: "----", c: "----", a: "", pd: "" },
   });
 
+  const [followupDate, setFollowupDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -166,6 +161,7 @@ export default function FollowupForm() {
       const followupItems = [
         {
           tableIndex: 0,
+          followupDate,
           vaOD: examData.autorefraction.od.ucva,
           vaOS: examData.autorefraction.os.ucva,
           refracOD: {
@@ -227,6 +223,16 @@ export default function FollowupForm() {
                           {patient?.doctorName || "-"}
                         </span>
                       </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Label className="text-xs text-muted-foreground">تاريخ المتابعة:</Label>
+                        <Input
+                          type="date"
+                          value={followupDate}
+                          onChange={(e) => setFollowupDate(e.target.value)}
+                          className="h-7 w-36 text-xs"
+                          dir="ltr"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -267,1027 +273,171 @@ export default function FollowupForm() {
 
                 {/* Auto-Air Tab */}
                 <TabsContent value="auto-air" className="mt-6">
-                  <div
-                    className="mx-auto max-w-4xl space-y-4 overflow-x-visible"
-                    dir="ltr"
-                  >
-                    <div className="w-full space-y-2">
-                      {/* Header */}
-                      <div className={`${eyeGridClass} text-sm font-bold`}>
-                        <div></div>
-                        <div className="text-left pl-1">Right (OD)</div>
-                        <div className="text-left pl-1">Left (OS)</div>
-                      </div>
+                  <div className="w-full space-y-2" dir="ltr">
+                    {/* Column headers */}
+                    <div className={rowClass}>
+                      <div />
+                      <div className="text-xs font-bold text-center text-muted-foreground">OD (Right)</div>
+                      <div className="text-xs font-bold text-center text-muted-foreground">OS (Left)</div>
+                    </div>
 
-                      {/* UCVA */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">UCVA</div>
-                        <RefractionValueSelect
-                          value={examData.autorefraction.od.ucva}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                od: { ...prev.autorefraction.od, ucva: value },
-                              },
-                            }))
-                          }
-                          options={UCVA_BCVA_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                        <RefractionValueSelect
-                          value={examData.autorefraction.os.ucva}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                os: { ...prev.autorefraction.os, ucva: value },
-                              },
-                            }))
-                          }
-                          options={UCVA_BCVA_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                      </div>
+                    {/* UCVA */}
+                    <div className={rowClass}>
+                      <div className={labelClass}>UCVA</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.ucva} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, ucva: v } } }))} options={UCVA_BCVA_OPTIONS} />
+                      <RefractionValueSelect value={examData.autorefraction.os.ucva} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, ucva: v } } }))} options={UCVA_BCVA_OPTIONS} />
+                    </div>
+                    {/* BCVA */}
+                    <div className={rowClass}>
+                      <div className={labelClass}>BCVA</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.bcva} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, bcva: v } } }))} options={UCVA_BCVA_OPTIONS} />
+                      <RefractionValueSelect value={examData.autorefraction.os.bcva} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, bcva: v } } }))} options={UCVA_BCVA_OPTIONS} />
+                    </div>
 
-                      {/* BCVA */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">BCVA</div>
-                        <RefractionValueSelect
-                          value={examData.autorefraction.od.bcva}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                od: { ...prev.autorefraction.od, bcva: value },
-                              },
-                            }))
-                          }
-                          options={UCVA_BCVA_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                        <RefractionValueSelect
-                          value={examData.autorefraction.os.bcva}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                os: { ...prev.autorefraction.os, bcva: value },
-                              },
-                            }))
-                          }
-                          options={UCVA_BCVA_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                      </div>
+                    {/* Autoref */}
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>Autoref S</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.s} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, s: v } } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={examData.autorefraction.os.s} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, s: v } } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>C</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.c} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, c: v } } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={examData.autorefraction.os.c} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, c: v } } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Axis</div>
+                      <Input value={examData.autorefraction.od.axis} onChange={(e) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, axis: e.target.value } } }))} className={fieldClass} placeholder="0-180" />
+                      <Input value={examData.autorefraction.os.axis} onChange={(e) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, axis: e.target.value } } }))} className={fieldClass} placeholder="0-180" />
+                    </div>
 
-                      {/* Autoref Header */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">Autoref</div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                        </div>
-                      </div>
+                    {/* After */}
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>After S</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.afterS} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, afterS: v } } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={examData.autorefraction.os.afterS} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, afterS: v } } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>C</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.afterC} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, afterC: v } } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={examData.autorefraction.os.afterC} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, afterC: v } } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Axis</div>
+                      <Input value={examData.autorefraction.od.afterA} onChange={(e) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, afterA: e.target.value } } }))} className={fieldClass} placeholder="0-180" />
+                      <Input value={examData.autorefraction.os.afterA} onChange={(e) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, afterA: e.target.value } } }))} className={fieldClass} placeholder="0-180" />
+                    </div>
 
-                      {/* Autoref Values */}
-                      <div className={eyeGridClass}>
-                        <div></div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={examData.autorefraction.od.s}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: { ...prev.autorefraction.od, s: value },
-                                },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={examData.autorefraction.od.c}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: { ...prev.autorefraction.od, c: value },
-                                },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={examData.autorefraction.od.axis}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: {
-                                    ...prev.autorefraction.od,
-                                    axis: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={examData.autorefraction.os.s}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: { ...prev.autorefraction.os, s: value },
-                                },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={examData.autorefraction.os.c}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: { ...prev.autorefraction.os, c: value },
-                                },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={examData.autorefraction.os.axis}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: {
-                                    ...prev.autorefraction.os,
-                                    axis: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                      </div>
+                    {/* Air Puff */}
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>Air Puff</div>
+                      <RefractionValueSelect value={examData.autorefraction.od.airPuff1} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, od: { ...p.autorefraction.od, airPuff1: v } } }))} options={AIR_PUFF_OPTIONS} />
+                      <RefractionValueSelect value={examData.autorefraction.os.airPuff1} onChange={(v) => setExamData((p) => ({ ...p, autorefraction: { ...p.autorefraction, os: { ...p.autorefraction.os, airPuff1: v } } }))} options={AIR_PUFF_OPTIONS} />
+                    </div>
 
-                      {/* After Header */}
-                      <div className={`${eyeGridClass} pt-2`}>
-                        <div className="text-sm font-semibold">After</div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                        </div>
-                      </div>
+                    {/* Fundus */}
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>Disc</div>
+                      <Input placeholder="Disc Status" value={examData.fundus.od.discStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, od: { ...p.fundus.od, discStatus: e.target.value } } }))} className={fieldClass} />
+                      <Input placeholder="Disc Status" value={examData.fundus.os.discStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, os: { ...p.fundus.os, discStatus: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>C/D</div>
+                      <Input placeholder="C/D" value={examData.fundus.od.cupDiscRatio} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, od: { ...p.fundus.od, cupDiscRatio: e.target.value } } }))} className={fieldClass} />
+                      <Input placeholder="C/D" value={examData.fundus.os.cupDiscRatio} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, os: { ...p.fundus.os, cupDiscRatio: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Macula</div>
+                      <Input placeholder="Macula" value={examData.fundus.od.macuaStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, od: { ...p.fundus.od, macuaStatus: e.target.value } } }))} className={fieldClass} />
+                      <Input placeholder="Macula" value={examData.fundus.os.macuaStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, os: { ...p.fundus.os, macuaStatus: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Vessels</div>
+                      <Input placeholder="Vessels" value={examData.fundus.od.vesselStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, od: { ...p.fundus.od, vesselStatus: e.target.value } } }))} className={fieldClass} />
+                      <Input placeholder="Vessels" value={examData.fundus.os.vesselStatus} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, os: { ...p.fundus.os, vesselStatus: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Other</div>
+                      <Input placeholder="Other" value={examData.fundus.od.otherFindings} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, od: { ...p.fundus.od, otherFindings: e.target.value } } }))} className={fieldClass} />
+                      <Input placeholder="Other" value={examData.fundus.os.otherFindings} onChange={(e) => setExamData((p) => ({ ...p, fundus: { ...p.fundus, os: { ...p.fundus.os, otherFindings: e.target.value } } }))} className={fieldClass} />
+                    </div>
 
-                      {/* After Values */}
-                      <div className={eyeGridClass}>
-                        <div></div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={examData.autorefraction.od.afterS}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: {
-                                    ...prev.autorefraction.od,
-                                    afterS: value,
-                                  },
-                                },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={examData.autorefraction.od.afterC}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: {
-                                    ...prev.autorefraction.od,
-                                    afterC: value,
-                                  },
-                                },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={examData.autorefraction.od.afterA}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  od: {
-                                    ...prev.autorefraction.od,
-                                    afterA: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={examData.autorefraction.os.afterS}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: {
-                                    ...prev.autorefraction.os,
-                                    afterS: value,
-                                  },
-                                },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={examData.autorefraction.os.afterC}
-                            onChange={(value) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: {
-                                    ...prev.autorefraction.os,
-                                    afterC: value,
-                                  },
-                                },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={examData.autorefraction.os.afterA}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                autorefraction: {
-                                  ...prev.autorefraction,
-                                  os: {
-                                    ...prev.autorefraction.os,
-                                    afterA: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Air Puff */}
-                      <div className={`${eyeGridClass} pt-2`}>
-                        <div className="text-sm font-semibold">Air Puff</div>
-                        <RefractionValueSelect
-                          value={examData.autorefraction.od.airPuff1}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                od: {
-                                  ...prev.autorefraction.od,
-                                  airPuff1: value,
-                                },
-                              },
-                            }))
-                          }
-                          options={AIR_PUFF_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                        <RefractionValueSelect
-                          value={examData.autorefraction.os.airPuff1}
-                          onChange={(value) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              autorefraction: {
-                                ...prev.autorefraction,
-                                os: {
-                                  ...prev.autorefraction.os,
-                                  airPuff1: value,
-                                },
-                              },
-                            }))
-                          }
-                          options={AIR_PUFF_OPTIONS}
-                          triggerClassName={mediumSelectClass}
-                        />
-                      </div>
-
-                      {/* Fundus - Optic Disc Status */}
-                      <div
-                        className={`${eyeGridClass} pt-4 border-t border-border`}
-                      >
-                        <div className="text-sm font-semibold">Fundus</div>
-                        <Input
-                          placeholder="Disc Status"
-                          value={examData.fundus.od.discStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                od: {
-                                  ...prev.fundus.od,
-                                  discStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                        <Input
-                          placeholder="Disc Status"
-                          value={examData.fundus.os.discStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                os: {
-                                  ...prev.fundus.os,
-                                  discStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                      </div>
-
-                      {/* Cup-to-Disc Ratio */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold text-[11px]">
-                          C/D Ratio
-                        </div>
-                        <Input
-                          placeholder="C/D"
-                          value={examData.fundus.od.cupDiscRatio}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                od: {
-                                  ...prev.fundus.od,
-                                  cupDiscRatio: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                        <Input
-                          placeholder="C/D"
-                          value={examData.fundus.os.cupDiscRatio}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                os: {
-                                  ...prev.fundus.os,
-                                  cupDiscRatio: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                      </div>
-
-                      {/* Macula Status */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold text-[11px]">
-                          Macula
-                        </div>
-                        <Input
-                          placeholder="Macula Status"
-                          value={examData.fundus.od.macuaStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                od: {
-                                  ...prev.fundus.od,
-                                  macuaStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                        <Input
-                          placeholder="Macula Status"
-                          value={examData.fundus.os.macuaStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                os: {
-                                  ...prev.fundus.os,
-                                  macuaStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                      </div>
-
-                      {/* Vessel Status */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold text-[11px]">
-                          Vessels
-                        </div>
-                        <Input
-                          placeholder="Vessel Status"
-                          value={examData.fundus.od.vesselStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                od: {
-                                  ...prev.fundus.od,
-                                  vesselStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                        <Input
-                          placeholder="Vessel Status"
-                          value={examData.fundus.os.vesselStatus}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                os: {
-                                  ...prev.fundus.os,
-                                  vesselStatus: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                      </div>
-
-                      {/* Other Findings */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold text-[11px]">
-                          Other
-                        </div>
-                        <Input
-                          placeholder="Other Findings"
-                          value={examData.fundus.od.otherFindings}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                od: {
-                                  ...prev.fundus.od,
-                                  otherFindings: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                        <Input
-                          placeholder="Other Findings"
-                          value={examData.fundus.os.otherFindings}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              fundus: {
-                                ...prev.fundus,
-                                os: {
-                                  ...prev.fundus.os,
-                                  otherFindings: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={fullInputClass}
-                        />
-                      </div>
-
-                      {/* Refraction Table Header */}
-                      <div className={`${eyeGridClass} pt-4`}>
-                        <div className="text-sm font-semibold">Refraction</div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                          <span className={lensSubheadClass}>P.D</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold">
-                          <span className={lensSubheadClass}>S</span>
-                          <span className={lensSubheadClass}>C</span>
-                          <span className={lensSubheadClass}>A</span>
-                          <span className={lensSubheadClass}>P.D</span>
-                        </div>
-                      </div>
-
-                      {/* Refraction Table Values */}
-                      <div className={eyeGridClass}>
-                        <div></div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={refractionTableData.od.s}
-                            onChange={(value) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                od: { ...prev.od, s: value },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={refractionTableData.od.c}
-                            onChange={(value) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                od: { ...prev.od, c: value },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={refractionTableData.od.a}
-                            onChange={(e) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                od: { ...prev.od, a: e.target.value },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={refractionTableData.od.pd}
-                            onChange={(e) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                od: { ...prev.od, pd: e.target.value },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RefractionValueSelect
-                            value={refractionTableData.os.s}
-                            onChange={(value) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                os: { ...prev.os, s: value },
-                              }))
-                            }
-                            options={SPHERE_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <RefractionValueSelect
-                            value={refractionTableData.os.c}
-                            onChange={(value) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                os: { ...prev.os, c: value },
-                              }))
-                            }
-                            options={CYLINDER_OPTIONS}
-                            triggerClassName={compactSelectClass}
-                          />
-                          <Input
-                            value={refractionTableData.os.a}
-                            onChange={(e) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                os: { ...prev.os, a: e.target.value },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={refractionTableData.os.pd}
-                            onChange={(e) =>
-                              setRefractionTableData((prev) => ({
-                                ...prev,
-                                os: { ...prev.os, pd: e.target.value },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                      </div>
+                    {/* Refraction */}
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>Refrac S</div>
+                      <RefractionValueSelect value={refractionTableData.od.s} onChange={(v) => setRefractionTableData((p) => ({ ...p, od: { ...p.od, s: v } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={refractionTableData.os.s} onChange={(v) => setRefractionTableData((p) => ({ ...p, os: { ...p.os, s: v } }))} options={SPHERE_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>C</div>
+                      <RefractionValueSelect value={refractionTableData.od.c} onChange={(v) => setRefractionTableData((p) => ({ ...p, od: { ...p.od, c: v } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                      <RefractionValueSelect value={refractionTableData.os.c} onChange={(v) => setRefractionTableData((p) => ({ ...p, os: { ...p.os, c: v } }))} options={CYLINDER_OPTIONS} allowEmpty={false} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Axis</div>
+                      <Input value={refractionTableData.od.a} onChange={(e) => setRefractionTableData((p) => ({ ...p, od: { ...p.od, a: e.target.value } }))} className={fieldClass} placeholder="0-180" />
+                      <Input value={refractionTableData.os.a} onChange={(e) => setRefractionTableData((p) => ({ ...p, os: { ...p.os, a: e.target.value } }))} className={fieldClass} placeholder="0-180" />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>P.D</div>
+                      <Input value={refractionTableData.od.pd} onChange={(e) => setRefractionTableData((p) => ({ ...p, od: { ...p.od, pd: e.target.value } }))} className={fieldClass} placeholder="PD" />
+                      <Input value={refractionTableData.os.pd} onChange={(e) => setRefractionTableData((p) => ({ ...p, os: { ...p.os, pd: e.target.value } }))} className={fieldClass} placeholder="PD" />
                     </div>
                   </div>
                 </TabsContent>
 
                 {/* Pentacam Tab */}
                 <TabsContent value="pentacam" className="mt-6">
-                  <div
-                    className="mx-auto max-w-4xl space-y-2 overflow-x-visible"
-                    dir="ltr"
-                  >
-                    <div className="w-full space-y-2">
-                      {/* Header */}
-                      <div className={`${eyeGridClass} text-sm font-bold mb-1`}>
-                        <div></div>
-                        <div className="text-left pl-1">Right (OD)</div>
-                        <div className="text-left pl-1">Left (OS)</div>
-                      </div>
-
-                      {/* K1/K2 */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">K1/K2</div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={examData.pentacam.od.k1}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  od: {
-                                    ...prev.pentacam.od,
-                                    k1: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={examData.pentacam.od.k2}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  od: {
-                                    ...prev.pentacam.od,
-                                    k2: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={examData.pentacam.os.k1}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  os: {
-                                    ...prev.pentacam.os,
-                                    k1: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={examData.pentacam.os.k2}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  os: {
-                                    ...prev.pentacam.os,
-                                    k2: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                      </div>
-
-                      {/* AX1/AX2 */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">AX1/AX2</div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={examData.pentacam.od.ax1}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  od: {
-                                    ...prev.pentacam.od,
-                                    ax1: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={examData.pentacam.od.ax2}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  od: {
-                                    ...prev.pentacam.od,
-                                    ax2: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={examData.pentacam.os.ax1}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  os: {
-                                    ...prev.pentacam.os,
-                                    ax1: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                          <Input
-                            value={examData.pentacam.os.ax2}
-                            onChange={(e) =>
-                              setExamData((prev) => ({
-                                ...prev,
-                                pentacam: {
-                                  ...prev.pentacam,
-                                  os: {
-                                    ...prev.pentacam.os,
-                                    ax2: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                            className={compactInputClass}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Thinnest Point */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">
-                          Thinnest Point
-                        </div>
-                        <Input
-                          value={examData.pentacam.od.thinnest}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                od: {
-                                  ...prev.pentacam.od,
-                                  thinnest: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                        <Input
-                          value={examData.pentacam.os.thinnest}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                os: {
-                                  ...prev.pentacam.os,
-                                  thinnest: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                      </div>
-
-                      {/* Corneal Apex */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">
-                          Corneal Apex
-                        </div>
-                        <Input
-                          value={examData.pentacam.od.apex}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                od: {
-                                  ...prev.pentacam.od,
-                                  apex: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                        <Input
-                          value={examData.pentacam.os.apex}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                os: {
-                                  ...prev.pentacam.os,
-                                  apex: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                      </div>
-
-                      {/* Residual Stroma */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">
-                          Residual Stroma
-                        </div>
-                        <Input
-                          value={examData.pentacam.od.residual}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                od: {
-                                  ...prev.pentacam.od,
-                                  residual: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                        <Input
-                          value={examData.pentacam.os.residual}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                os: {
-                                  ...prev.pentacam.os,
-                                  residual: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                      </div>
-
-                      {/* Planned TTT */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">Planned TTT</div>
-                        <Input
-                          value={examData.pentacam.od.ttt}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                od: {
-                                  ...prev.pentacam.od,
-                                  ttt: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                        <Input
-                          value={examData.pentacam.os.ttt}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                os: {
-                                  ...prev.pentacam.os,
-                                  ttt: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                      </div>
-
-                      {/* Ablation */}
-                      <div className={eyeGridClass}>
-                        <div className="text-sm font-semibold">Ablation</div>
-                        <Input
-                          value={examData.pentacam.od.ablation}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                od: {
-                                  ...prev.pentacam.od,
-                                  ablation: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                        <Input
-                          value={examData.pentacam.os.ablation}
-                          onChange={(e) =>
-                            setExamData((prev) => ({
-                              ...prev,
-                              pentacam: {
-                                ...prev.pentacam,
-                                os: {
-                                  ...prev.pentacam.os,
-                                  ablation: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className={wideInputClass}
-                        />
-                      </div>
+                  <div className="w-full space-y-2" dir="ltr">
+                    <div className={rowClass}>
+                      <div />
+                      <div className="text-xs font-bold text-center text-muted-foreground">OD (Right)</div>
+                      <div className="text-xs font-bold text-center text-muted-foreground">OS (Left)</div>
+                    </div>
+                    <div className={rowClass}>
+                      <div className={labelClass}>K1</div>
+                      <Input value={examData.pentacam.od.k1} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, k1: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.k1} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, k1: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>K2</div>
+                      <Input value={examData.pentacam.od.k2} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, k2: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.k2} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, k2: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Ax1</div>
+                      <Input value={examData.pentacam.od.ax1} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, ax1: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.ax1} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, ax1: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Ax2</div>
+                      <Input value={examData.pentacam.od.ax2} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, ax2: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.ax2} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, ax2: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={sectionDivider}>
+                      <div className={labelClass}>Thinnest</div>
+                      <Input value={examData.pentacam.od.thinnest} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, thinnest: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.thinnest} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, thinnest: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Apex</div>
+                      <Input value={examData.pentacam.od.apex} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, apex: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.apex} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, apex: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Residual</div>
+                      <Input value={examData.pentacam.od.residual} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, residual: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.residual} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, residual: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>TTT</div>
+                      <Input value={examData.pentacam.od.ttt} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, ttt: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.ttt} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, ttt: e.target.value } } }))} className={fieldClass} />
+                    </div>
+                    <div className={rowClass}>
+                      <div className={subLabelClass}>Ablation</div>
+                      <Input value={examData.pentacam.od.ablation} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, od: { ...p.pentacam.od, ablation: e.target.value } } }))} className={fieldClass} />
+                      <Input value={examData.pentacam.os.ablation} onChange={(e) => setExamData((p) => ({ ...p, pentacam: { ...p.pentacam, os: { ...p.pentacam.os, ablation: e.target.value } } }))} className={fieldClass} />
                     </div>
                   </div>
                 </TabsContent>

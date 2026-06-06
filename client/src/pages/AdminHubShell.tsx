@@ -24,6 +24,9 @@ import {
   Scan,
   PenSquare,
   UserCheck,
+  CalendarDays,
+  Globe,
+  Link2,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminMigrations from "./AdminMigrations";
@@ -44,6 +47,9 @@ import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
 import AdminPatients from "./AdminPatients";
+import AdminPortalBookings from "./AdminPortalBookings";
+import ExternalDoctors from "./ExternalDoctors";
+import ExternalDoctorReferrals from "./ExternalDoctorReferrals";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
@@ -177,6 +183,41 @@ const ALL_MODULES: HubModuleCard[] = [
     iconWrap: "bg-primary text-primary-foreground",
   },
   {
+    href: "/admin-hub/portal-bookings",
+    title: "حجوزات البوابة",
+    description: "إدارة حجوزات بوابة المرضى وجدول الأوقات المتاحة.",
+    icon: CalendarDays,
+    iconWrap: "bg-cyan-50 text-cyan-700",
+  },
+  {
+    href: "/admin-hub/external-doctors",
+    title: "الأطباء الخارجيون",
+    description: "إدارة حسابات الأطباء الخارجيين وصلاحيات الوصول للصور.",
+    icon: Globe,
+    iconWrap: "bg-primary/10 text-primary",
+  },
+  {
+    href: "/admin-hub/external-doctors/referrals",
+    title: "إحالات الأطباء الخارجيين",
+    description: "ربط المرضى بالأطباء الخارجيين لمنحهم وصولاً لصورهم.",
+    icon: Link2,
+    iconWrap: "bg-primary/[0.07] text-primary",
+  },
+  {
+    href: "/doctor-portal/login",
+    title: "بوابة الطبيب الخارجي",
+    description: "صفحة دخول الأطباء الخارجيين لعرض صور مرضاهم.",
+    icon: Globe,
+    iconWrap: "bg-cyan-50 text-cyan-700",
+  },
+  {
+    href: "/my/login",
+    title: "بوابة المريض",
+    description: "صفحة دخول المرضى لمتابعة ملفاتهم وحجوزاتهم.",
+    icon: UserCheck,
+    iconWrap: "bg-cyan-50 text-cyan-700",
+  },
+  {
     href: "/admin-hub/sheets",
     title: "الشيتات",
     description: "إدارة الشيتات الطبية المتاحة في النظام.",
@@ -245,6 +286,9 @@ export default function AdminHubShell() {
     if (location === "/admin-hub/data-source-audit" || location === "/admin/data-source-audit") return <AdminDataSourceAudit />;
     if (location === "/admin-hub/notifications" || location === "/admin/notifications") return <AdminNotificationSettings />;
     if (location === "/admin-hub/patients" || location === "/admin/patients") return <AdminPatients />;
+    if (location === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
+    if (location === "/admin-hub/external-doctors") return <ExternalDoctors />;
+    if (location === "/admin-hub/external-doctors/referrals") return <ExternalDoctorReferrals />;
 
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">

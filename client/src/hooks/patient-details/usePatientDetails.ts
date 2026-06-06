@@ -87,6 +87,7 @@ export function usePatientDetails({ patientId, user, isAuthenticated, setLocatio
   const prescriptionsQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery({ patientId: patientId ?? 0 }, { enabled: Boolean(patientId) });
   const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery({ patientId: patientId ?? 0 }, { enabled: Boolean(patientId) });
   const followupsQuery = trpc.medical.getPostOpFollowupsByPatient.useQuery({ patientId: patientId ?? 0 }, { enabled: Boolean(patientId) });
+  const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery({ patientId: patientId ?? 0 }, { enabled: Boolean(patientId), staleTime: 0 });
   const pentacamQuery = trpc.medical.getPentacamMeasurementsByPatient.useQuery({ patientId: patientId ?? 0, limit: 10 }, { enabled: Boolean(patientId), refetchOnWindowFocus: false });
   const patientServiceEntriesQuery = trpc.medical.getPatientServiceEntries.useQuery({ patientId: patientId ?? 0 }, { enabled: Boolean(patientId), refetchOnWindowFocus: false });
   const requestTestsStateQuery = trpc.medical.getPatientPageState.useQuery({ patientId: patientId ?? 0, page: "request-tests" }, { enabled: Boolean(patientId), refetchOnWindowFocus: false });
@@ -146,6 +147,7 @@ export function usePatientDetails({ patientId, user, isAuthenticated, setLocatio
     visitsQuery.refetch();
     testRequestsQuery?.refetch?.();
     prescriptionsQuery.refetch();
+    followupSheetsQuery.refetch();
   }, [patientId]);
 
   useEffect(() => {
@@ -423,13 +425,13 @@ export function usePatientDetails({ patientId, user, isAuthenticated, setLocatio
     await Promise.all([
       patientQuery.refetch(), examinationsQuery.refetch(), reportsQuery.refetch(),
       prescriptionsQuery.refetch(), surgeriesQuery.refetch(), followupsQuery.refetch(),
-      patientStateQuery.refetch(), examStateQuery.refetch(),
+      followupSheetsQuery.refetch(), patientStateQuery.refetch(), examStateQuery.refetch(),
     ]);
   };
 
   return {
     patientQuery, examinationsQuery, visitsQuery, reportsQuery, prescriptionsQuery, surgeriesQuery,
-    followupsQuery, pentacamQuery, testRequestsQuery, medicationsQuery, deleteExamMutation,
+    followupsQuery, followupSheetsQuery, pentacamQuery, testRequestsQuery, medicationsQuery, deleteExamMutation,
     updateVisitDateMutation, deletePatientMutation, deleteVisitMutation,
     patient, examinations, reports, prescriptions, surgeries, followups,
     patientName: patient?.fullName ?? "", patientCode: patient?.patientCode ?? "",

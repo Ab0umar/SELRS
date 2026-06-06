@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Capacitor } from "@capacitor/core";
-import { Activity, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
+import { Activity, Globe, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,6 +295,32 @@ export default function Home() {
                     : `مخزن محليًا (${offlineCacheSummary.count})`}
                 </span>
               </div>
+            </div>
+
+            <div className="border-t border-border px-6 py-4 space-y-2">
+              <p className="text-[11px] font-medium text-center text-muted-foreground/60 uppercase tracking-widest mb-3">بوابات أخرى</p>
+              <Link href="/my/login">
+                <div className="flex items-center gap-3 rounded-[1rem] border border-border bg-muted/50 px-4 py-3 transition-colors hover:bg-muted active:bg-muted cursor-pointer">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <UserRound className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">بوابة المريض</p>
+                    <p className="text-xs text-muted-foreground">متابعة الملف والحجوزات</p>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/doctor-portal/login">
+                <div className="flex items-center gap-3 rounded-[1rem] border border-border bg-muted/50 px-4 py-3 transition-colors hover:bg-muted active:bg-muted cursor-pointer">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Globe className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">بوابة الطبيب الخارجي</p>
+                    <p className="text-xs text-muted-foreground">عرض صور المرضى</p>
+                  </div>
+                </div>
+              </Link>
             </div>
           </div>
         </section>

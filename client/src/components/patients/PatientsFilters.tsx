@@ -18,6 +18,8 @@ interface PatientsFiltersProps {
   setDateFrom: (val: string) => void;
   dateTo: string;
   setDateTo: (val: string) => void;
+  locationTypeFilter: "all" | "center" | "external";
+  setLocationTypeFilter: (val: "all" | "center" | "external") => void;
   isAdmin: boolean;
   importDateFormat: string;
   setImportDateFormat: (val: any) => void;
@@ -39,6 +41,8 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
   setDateFrom,
   dateTo,
   setDateTo,
+  locationTypeFilter,
+  setLocationTypeFilter,
   isAdmin,
   importDateFormat,
   setImportDateFormat,
@@ -181,6 +185,16 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
               placeholder="DD/MM/YYYY"
               dir="ltr"
             />
+            <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
+              <SelectTrigger className="w-full rounded-xl border-border bg-background sm:w-auto">
+                <SelectValue placeholder="مكان الخدمة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">الكل</SelectItem>
+                <SelectItem value="center">مركز</SelectItem>
+                <SelectItem value="external">خارجي</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {isAdmin && (
             <>

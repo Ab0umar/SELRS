@@ -1127,7 +1127,7 @@ export default function MedicalFilePanel({
 
       saveMedicalVisitMutation.mutate({
         patientId: patientId,
-        visitDate: new Date().toISOString().split("T")[0],
+        visitDate: visitDate,
         isFollowup: isFollowup,
         autoref: formData.measurements?.autoref,
         iop: formData.measurements?.iop,
