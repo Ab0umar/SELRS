@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,11 +30,26 @@ function fileToBase64(file: File): Promise<string> {
 export default function BrandLibrary() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const rebuildStartedAt = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
   const designsQuery = trpc.marketing.listReferenceDesigns.useQuery();
-  const profileQuery = trpc.marketing.getBrandProfile.useQuery();
+  const profileQuery = trpc.marketing.getBrandProfile.useQuery(undefined, {
+    refetchInterval: rebuilding ? 5000 : false,
+  });
+
+  // Detect when the background rebuild completes
+  useEffect(() => {
+    if (!rebuilding) return;
+    const builtAt = profileQuery.data?.builtAt;
+    if (builtAt && new Date(builtAt).getTime() > rebuildStartedAt.current) {
+      setRebuilding(false);
+      toast.success("تم إعادة بناء ملف العلامة التجارية");
+      void utils.marketing.listReferenceDesigns.invalidate();
+    }
+  }, [profileQuery.data?.builtAt, rebuilding, utils]);
 
   const uploadMutation = trpc.marketing.uploadReferenceDesign.useMutation({
     onSuccess: () => {
@@ -53,8 +68,9 @@ export default function BrandLibrary() {
 
   const rebuildMutation = trpc.marketing.rebuildBrandProfile.useMutation({
     onSuccess: () => {
-      toast.success("تم إعادة بناء ملف العلامة التجارية");
-      void utils.marketing.getBrandProfile.invalidate();
+      rebuildStartedAt.current = Date.now();
+      setRebuilding(true);
+      toast.info("جارٍ بناء ملف العلامة التجارية في الخلفية — قد يستغرق بضع دقائق");
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -168,14 +184,14 @@ export default function BrandLibrary() {
             size="sm"
             variant="default"
             onClick={() => rebuildMutation.mutate()}
-            disabled={rebuildMutation.isPending || designs.length === 0}
+            disabled={rebuildMutation.isPending || rebuilding || designs.length === 0}
           >
-            {rebuildMutation.isPending ? (
+            {rebuildMutation.isPending || rebuilding ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-1.5 h-4 w-4" />
             )}
-            {profile ? "إعادة بناء الملف" : "بناء الملف"}
+            {rebuilding ? "جارٍ البناء…" : profile ? "إعادة بناء الملف" : "بناء الملف"}
           </Button>
         </div>
 

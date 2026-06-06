@@ -449,58 +449,68 @@ export const marketingRouter = router({
       throw new Error("لا توجد تصاميم مرجعية — ارفع بعض التصاميم أولاً");
     }
 
-    // Separate already-analyzed from pending
-    const cached: StyleAttributes[] = [];
-    const pending: typeof designs = [];
-    for (const design of designs) {
-      if (design.styleAttributes) {
-        try { cached.push(JSON.parse(design.styleAttributes) as StyleAttributes); } catch {}
-      } else if (design.filePath) {
-        pending.push(design);
-      }
-    }
-
-    // Analyze pending images in batches of 2 to avoid network overload from large images
-    const BATCH = 2;
-    const newAttrs: (StyleAttributes | null)[] = [];
-    for (let i = 0; i < pending.length; i += BATCH) {
-      const batch = pending.slice(i, i + BATCH);
-      const batchResults = await Promise.all(
-        batch.map(async (design) => {
-          const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
-          if (attrs) {
-            await db
-              .update(marketingReferenceDesigns)
-              .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
-              .where(eq(marketingReferenceDesigns.id, design.id));
+    // Run the heavy Gemini work in background — return immediately to avoid 524
+    void (async () => {
+      try {
+        const cached: StyleAttributes[] = [];
+        const pending: typeof designs = [];
+        for (const design of designs) {
+          if (design.styleAttributes) {
+            try { cached.push(JSON.parse(design.styleAttributes) as StyleAttributes); } catch {}
+          } else if (design.filePath) {
+            pending.push(design);
           }
-          return attrs;
-        })
-      );
-      newAttrs.push(...batchResults);
-    }
+        }
 
-    const analyses: StyleAttributes[] = [
-      ...cached,
-      ...(newAttrs.filter(Boolean) as StyleAttributes[]),
-    ];
+        const BATCH = 2;
+        const newAttrs: (StyleAttributes | null)[] = [];
+        for (let i = 0; i < pending.length; i += BATCH) {
+          const batch = pending.slice(i, i + BATCH);
+          const batchResults = await Promise.all(
+            batch.map(async (design) => {
+              const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
+              if (attrs) {
+                await db
+                  .update(marketingReferenceDesigns)
+                  .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
+                  .where(eq(marketingReferenceDesigns.id, design.id));
+              }
+              return attrs;
+            })
+          );
+          newAttrs.push(...batchResults);
+        }
 
-    if (analyses.length === 0) {
-      throw new Error("لم يتم تحليل أي تصميم — تأكد من إعداد GEMINI_API_KEY");
-    }
+        const analyses: StyleAttributes[] = [
+          ...cached,
+          ...(newAttrs.filter(Boolean) as StyleAttributes[]),
+        ];
 
-    const profile = await buildBrandProfile(analyses, designs.length);
-    if (!profile) throw new Error("فشل بناء ملف العلامة التجارية");
+        if (analyses.length === 0) {
+          await addLog(null, "rebuild_brand_profile", "error", "No designs analyzed — check GEMINI_API_KEY");
+          return;
+        }
 
-    const [existing] = await db.select().from(marketingBrandProfile).limit(1);
-    if (existing) {
-      await db.update(marketingBrandProfile).set({ ...profile, builtAt: new Date() }).where(eq(marketingBrandProfile.id, existing.id));
-    } else {
-      await db.insert(marketingBrandProfile).values({ ...profile, builtAt: new Date() });
-    }
+        const profile = await buildBrandProfile(analyses, designs.length);
+        if (!profile) {
+          await addLog(null, "rebuild_brand_profile", "error", "buildBrandProfile returned null");
+          return;
+        }
 
-    await addLog(null, "rebuild_brand_profile", "success", `Profile built from ${analyses.length} designs`);
-    return profile;
+        const [existing] = await db.select().from(marketingBrandProfile).limit(1);
+        if (existing) {
+          await db.update(marketingBrandProfile).set({ ...profile, builtAt: new Date() }).where(eq(marketingBrandProfile.id, existing.id));
+        } else {
+          await db.insert(marketingBrandProfile).values({ ...profile, builtAt: new Date() });
+        }
+
+        await addLog(null, "rebuild_brand_profile", "success", `Profile built from ${analyses.length} designs`);
+      } catch (err) {
+        await addLog(null, "rebuild_brand_profile", "error", String(err));
+      }
+    })();
+
+    return { started: true };
   }),
 
   // ─── Facebook Connect ─────────────────────────────────────────────────────
