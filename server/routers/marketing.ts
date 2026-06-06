@@ -449,23 +449,35 @@ export const marketingRouter = router({
       throw new Error("لا توجد تصاميم مرجعية — ارفع بعض التصاميم أولاً");
     }
 
-    const analyses: StyleAttributes[] = [];
+    // Separate already-analyzed from pending
+    const cached: StyleAttributes[] = [];
+    const pending: typeof designs = [];
     for (const design of designs) {
       if (design.styleAttributes) {
-        try {
-          analyses.push(JSON.parse(design.styleAttributes) as StyleAttributes);
-        } catch {}
+        try { cached.push(JSON.parse(design.styleAttributes) as StyleAttributes); } catch {}
       } else if (design.filePath) {
-        const attrs = await analyzeDesignImage(design.filePath, design.mimeType);
+        pending.push(design);
+      }
+    }
+
+    // Analyze all pending images in parallel instead of sequentially
+    const newAttrs = await Promise.all(
+      pending.map(async (design) => {
+        const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
         if (attrs) {
-          analyses.push(attrs);
           await db
             .update(marketingReferenceDesigns)
             .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
             .where(eq(marketingReferenceDesigns.id, design.id));
         }
-      }
-    }
+        return attrs;
+      })
+    );
+
+    const analyses: StyleAttributes[] = [
+      ...cached,
+      ...(newAttrs.filter(Boolean) as StyleAttributes[]),
+    ];
 
     if (analyses.length === 0) {
       throw new Error("لم يتم تحليل أي تصميم — تأكد من إعداد GEMINI_API_KEY");
