@@ -63,6 +63,8 @@ export function patientNavPathForPageKey(page: PageKey, patientId: number): stri
       return `/sheets/external/${patientId}`;
     case "refraction":
       return `/refraction/${patientId}`;
+    case "followups":
+      return `/followup/${patientId}`;
     default:
       return null;
   }

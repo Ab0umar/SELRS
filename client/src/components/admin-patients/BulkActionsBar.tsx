@@ -65,11 +65,13 @@ export function BulkActionsBar({
           <SelectItem value="none">— بدون —</SelectItem>
           <SelectItem value="consultant">استشاري</SelectItem>
           <SelectItem value="specialist">متخصص</SelectItem>
+          <SelectItem value="lasik">ليزك</SelectItem>
+          <SelectItem value="external">خارجي</SelectItem>
+          <SelectItem value="surgery_center">عمليات مركز</SelectItem>
+          <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
           <SelectItem value="pentacam_c">Pentacam C</SelectItem>
           <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
           <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
-          <SelectItem value="lasik">ليزك</SelectItem>
-          <SelectItem value="external">خارجي</SelectItem>
         </SelectContent>
       </Select>
       <Button variant="outline" className="rounded-lg" onClick={onSetFilteredSheetType} disabled={isBusy}>

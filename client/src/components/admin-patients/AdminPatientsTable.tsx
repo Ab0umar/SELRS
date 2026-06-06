@@ -44,6 +44,7 @@ type AdminPatientsTableProps = {
   savePatientPageStatePending: boolean;
   selectedPatients: Set<number>;
   serviceCodeToLabel: Map<string, string>;
+  serviceCodeToType: Map<string, string>;
   setPageSize: (value: number) => void;
   updatePatientPending: boolean;
   visiblePatients: PatientRow[];
@@ -91,7 +92,7 @@ const SERVICE_TYPE_SELECT_CONTENT = (
     <SelectItem value="specialist">أخصائي</SelectItem>
     <SelectItem value="lasik">ليزك</SelectItem>
     <SelectItem value="external">خارجي</SelectItem>
-    <SelectItem value="surgery">عمليات مركزي</SelectItem>
+    <SelectItem value="surgery_center">عمليات مركز</SelectItem>
     <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
     <SelectItem value="pentacam_c">Pentacam C</SelectItem>
     <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
@@ -111,6 +112,7 @@ type AdminPatientItemProps = {
   savePatientPageStatePending: boolean;
   updatePatientPending: boolean;
   serviceCodeToLabel: Map<string, string>;
+  serviceCodeToType: Map<string, string>;
   onDeleteFromMssql: (patient: PatientRow) => void;
   onDeletePatient: (patient: PatientRow) => void;
   onSavePatientRow: (patient: PatientRow) => void;
@@ -135,9 +137,11 @@ const arePatientItemPropsEqual = (prev: AdminPatientItemProps, next: AdminPatien
   prev.draft.serviceType === next.draft.serviceType;
 
 const AdminPatientCard = memo(function AdminPatientCard({
-  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
+  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, serviceCodeToType, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
 }: AdminPatientItemProps) {
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
+  const rowServiceCode = String((patient as any).__serviceCodeSingle ?? patient.serviceCode ?? "").trim().toLowerCase();
+  const resolvedServiceType = serviceCodeToType.get(rowServiceCode) || "—";
   return (
     <div className={cn("rounded-lg border border-border/80 bg-card p-2", isUnsavedRow ? "border-warning/70 bg-warning/10/70" : undefined)}>
       <div className="flex items-start gap-2">
@@ -162,7 +166,9 @@ const AdminPatientCard = memo(function AdminPatientCard({
             placeholder="اسم الطبيب"
           />
         </div>
-        <div className="text-muted-foreground">نوع الخدمة</div>
+        <div className="text-muted-foreground">نوع الخدمة من الكود</div>
+        <div className="text-foreground text-xs font-medium">{resolvedServiceType}</div>
+        <div className="text-muted-foreground">نوع الخدمة (تحرير)</div>
         <div className="text-foreground">
           <Select value={draft.serviceType} onValueChange={(value) => onSetDraftField(patient, "serviceType", value)}>
             <SelectTrigger className="h-7 rounded-lg text-xs text-foreground"><SelectValue placeholder="نوع الشيت" /></SelectTrigger>
@@ -192,9 +198,11 @@ const AdminPatientCard = memo(function AdminPatientCard({
 }, arePatientItemPropsEqual);
 
 const AdminPatientRow = memo(function AdminPatientRow({
-  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
+  patient, draft, status, selected, expanded, manualLockEnabled, deletePatientPending, deletePatientFromMssqlPending, savePatientPageStatePending, updatePatientPending, serviceCodeToLabel, serviceCodeToType, onDeleteFromMssql, onDeletePatient, onSavePatientRow, onSetDraftField, onToggleExpanded, onToggleManualLock, onToggleSelectedPatient,
 }: AdminPatientItemProps) {
   const isUnsavedRow = status?.state === "unsaved" || status?.state === "error";
+  const rowServiceCode = String((patient as any).__serviceCodeSingle ?? patient.serviceCode ?? "").trim().toLowerCase();
+  const resolvedServiceType = serviceCodeToType.get(rowServiceCode) || "—";
   return (
     <Fragment>
       <TableRow className={cn("border-border/70", isUnsavedRow ? "bg-warning/10/70" : undefined)}>
@@ -210,6 +218,7 @@ const AdminPatientRow = memo(function AdminPatientRow({
           </div>
         </TableCell>
         <TableCell className="min-w-[210px]"><Input value={draft.treatingDoctor} onChange={(event) => onSetDraftField(patient, "treatingDoctor", event.target.value)} className="rounded-lg text-right" placeholder="اسم الطبيب" /></TableCell>
+        <TableCell className="py-3 text-center text-xs font-medium">{resolvedServiceType}</TableCell>
         <TableCell><Select value={draft.serviceType} onValueChange={(value) => onSetDraftField(patient, "serviceType", value)}><SelectTrigger className="min-w-[150px] rounded-lg"><SelectValue placeholder="نوع الشيت" /></SelectTrigger><SelectContent>{SERVICE_TYPE_SELECT_CONTENT}</SelectContent></Select></TableCell>
         <TableCell><Button type="button" size="sm" variant="outline" className={manualLockEnabled ? "rounded-lg border-secondary/50 bg-secondary font-bold text-secondary-foreground shadow-sm hover:bg-secondary/80" : "rounded-lg border-warning/50 bg-warning/20 font-bold text-warning hover:bg-warning/30"} onClick={() => onToggleManualLock(patient)} disabled={savePatientPageStatePending}>{manualLockEnabled ? <>ON <Lock className="ms-2 h-3.5 w-3.5" aria-hidden /></> : <>OFF <LockOpen className="ms-2 h-3.5 w-3.5" aria-hidden /></>}</Button></TableCell>
         <TableCell><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center gap-2"><Button variant="outline" className="gap-2 rounded-lg border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={updatePatientPending} onClick={() => onSavePatientRow(patient)}>{status?.state === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}حفظ</Button><Button variant="destructive" size="sm" className="rounded-lg px-4" onClick={() => onDeletePatient(patient)} disabled={deletePatientPending}><Trash2 className="me-2 h-4 w-4" aria-hidden />حذف</Button></div></div></TableCell>
@@ -244,6 +253,7 @@ function AdminPatientsTableComponent({
   savePatientPageStatePending,
   selectedPatients,
   serviceCodeToLabel,
+  serviceCodeToType,
   setPageSize,
   updatePatientPending,
   visiblePatients,
@@ -335,6 +345,7 @@ function AdminPatientsTableComponent({
                 savePatientPageStatePending={savePatientPageStatePending}
                 updatePatientPending={updatePatientPending}
                 serviceCodeToLabel={serviceCodeToLabel}
+                serviceCodeToType={serviceCodeToType}
                 onDeleteFromMssql={onDeleteFromMssql}
                 onDeletePatient={onDeletePatient}
                 onSavePatientRow={onSavePatientRow}
@@ -389,6 +400,7 @@ function AdminPatientsTableComponent({
               <TableHead className="py-4 font-semibold">الكود</TableHead>
               <TableHead className="min-w-[200px] py-4 font-semibold">الاسم</TableHead>
               <TableHead className="min-w-[200px] py-4 font-semibold">الطبيب</TableHead>
+              <TableHead className="min-w-[140px] py-4 font-semibold">النوع من الكود</TableHead>
               <TableHead className="min-w-[170px] py-4 font-semibold">نوع الخدمة</TableHead>
               <TableHead className="py-4 font-semibold">القفل</TableHead>
               <TableHead className="min-w-[160px] py-4 font-semibold">الإجراءات</TableHead>
@@ -442,6 +454,7 @@ function AdminPatientsTableComponent({
                       savePatientPageStatePending={savePatientPageStatePending}
                       updatePatientPending={updatePatientPending}
                       serviceCodeToLabel={serviceCodeToLabel}
+                      serviceCodeToType={serviceCodeToType}
                       onDeleteFromMssql={onDeleteFromMssql}
                       onDeletePatient={onDeletePatient}
                       onSavePatientRow={onSavePatientRow}

@@ -143,6 +143,7 @@ export default function PatientsHubList() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [serviceTypeFilter, setServiceTypeFilter] = useState<"all" | SheetTypeChoice>("all");
+  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
   const [cursor, setCursor] = useState<unknown>(null);
   const [cursorHistory, setCursorHistory] = useState<unknown[]>([]);
   const [pageSize, setPageSize] = useState(50);
@@ -168,6 +169,7 @@ export default function PatientsHubList() {
       dateFrom: toIsoDate(dateFrom) || undefined,
       dateTo: toIsoDate(dateTo) || undefined,
       serviceType: serviceTypeFilter === "all" ? undefined : toLegacyServiceType(serviceTypeFilter) as ServiceType,
+      locationType: locationTypeFilter === "all" ? undefined : locationTypeFilter,
       cursor: (cursor as any) ?? undefined,
       limit: pageSize,
     },
@@ -227,12 +229,39 @@ export default function PatientsHubList() {
             <SelectTrigger className="h-9 w-36 rounded-lg text-xs"><SelectValue placeholder="نوع الخدمة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">الكل</SelectItem>
-              <SelectItem value="consultant">استشاري</SelectItem>
-              <SelectItem value="specialist">أخصائي</SelectItem>
-              <SelectItem value="lasik">ليزك</SelectItem>
+              {locationTypeFilter === "center" && (
+                <>
+                  <SelectItem value="consultant">استشاري</SelectItem>
+                  <SelectItem value="specialist">أخصائي</SelectItem>
+                  <SelectItem value="lasik">ليزك</SelectItem>
+                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                </>
+              )}
+              {locationTypeFilter === "external" && (
+                <>
+                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
+                </>
+              )}
+              {locationTypeFilter === "all" && (
+                <>
+                  <SelectItem value="consultant">استشاري</SelectItem>
+                  <SelectItem value="specialist">أخصائي</SelectItem>
+                  <SelectItem value="lasik">ليزك</SelectItem>
+                  <SelectItem value="external">خارجي</SelectItem>
+                  <SelectItem value="surgery">عمليات مركز</SelectItem>
+                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+          <Select value={locationTypeFilter} onValueChange={(v) => { setLocationTypeFilter(v as any); setServiceTypeFilter("all"); setCursor(null); setCursorHistory([]); }}>
+            <SelectTrigger className="h-9 w-36 rounded-lg text-xs"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="center">مركز</SelectItem>
               <SelectItem value="external">خارجي</SelectItem>
-              <SelectItem value="surgery">عمليات مركز</SelectItem>
-              <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex items-center gap-1.5">

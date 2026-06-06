@@ -1475,6 +1475,51 @@ export const shiftStaffCycle = mysqlTable("shift_staff_cycle", {
   pk: primaryKey({ columns: [t.staffId, t.dayOfWeek, t.shiftName] }),
 }));
 
+// ============ EXTERNAL DOCTORS MODULE ============
+
+export const externalDoctors = mysqlTable("external_doctors", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  fullName: varchar("full_name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 20 }),
+  doctorCode: varchar("doctor_code", { length: 64 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ExternalDoctor = typeof externalDoctors.$inferSelect;
+export type InsertExternalDoctor = typeof externalDoctors.$inferInsert;
+
+export const externalDoctorReferrals = mysqlTable("external_doctor_referrals", {
+  id: int("id").autoincrement().primaryKey(),
+  externalDoctorId: int("external_doctor_id").notNull(),
+  patientCode: varchar("patient_code", { length: 50 }).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: int("created_by"),
+}, (table) => ({
+  doctorPatientIdx: index("idx_ext_dr_ref_doctor_patient").on(table.externalDoctorId, table.patientCode),
+  patientCodeIdx: index("idx_ext_dr_ref_patient").on(table.patientCode),
+}));
+
+export type ExternalDoctorReferral = typeof externalDoctorReferrals.$inferSelect;
+export type InsertExternalDoctorReferral = typeof externalDoctorReferrals.$inferInsert;
+
+export const externalDoctorAccessLogs = mysqlTable("external_doctor_access_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  externalDoctorId: int("external_doctor_id").notNull(),
+  patientCode: varchar("patient_code", { length: 50 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  doctorLogIdx: index("idx_ext_dr_log_doctor").on(table.externalDoctorId, table.createdAt),
+}));
+
+export type ExternalDoctorAccessLog = typeof externalDoctorAccessLogs.$inferSelect;
+
 // ============ PATIENT PORTAL ============
 
 export const patientPortalOtps = mysqlTable("patient_portal_otps", {
@@ -1497,6 +1542,7 @@ export const patientPortalSessions = mysqlTable("patient_portal_sessions", {
   patientId: int("patientId").notNull(),
   token: varchar("token", { length: 512 }).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
+  pushSubscription: text("pushSubscription"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   tokenIdx: uniqueIndex("idx_portal_session_token").on(table.token),
@@ -1509,7 +1555,7 @@ export type InsertPatientPortalSession = typeof patientPortalSessions.$inferInse
 // weekdayMask bits: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat → value = sum of (1 << bit)
 export const bookingScheduleConfig = mysqlTable("booking_schedule_config", {
   id: int("id").autoincrement().primaryKey(),
-  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external"]).notNull(),
+  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external", "followup"]).notNull(),
   weekdayMask: int("weekdayMask").default(127).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1520,10 +1566,21 @@ export const bookingScheduleConfig = mysqlTable("booking_schedule_config", {
 export type BookingScheduleConfig = typeof bookingScheduleConfig.$inferSelect;
 export type InsertBookingScheduleConfig = typeof bookingScheduleConfig.$inferInsert;
 
+export const bookingClosures = mysqlTable("booking_closures", {
+  id: int("id").autoincrement().primaryKey(),
+  label: varchar("label", { length: 255 }).notNull(),
+  startDate: date("startDate").notNull(),
+  endDate: date("endDate").notNull(),
+  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external", "followup"]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const patientPortalBookings = mysqlTable("patient_portal_bookings", {
   id: int("id").autoincrement().primaryKey(),
-  patientId: int("patientId").notNull(),
-  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external"]).notNull(),
+  patientId: int("patientId"),
+  guestName: varchar("guestName", { length: 100 }),
+  guestPhone: varchar("guestPhone", { length: 20 }),
+  bookingType: mysqlEnum("bookingType", ["consultant", "specialist", "lasik", "external", "followup"]).notNull(),
   requestedDate: date("requestedDate").notNull(),
   notes: text("notes"),
   status: mysqlEnum("status", ["pending", "confirmed", "cancelled", "completed"]).default("pending").notNull(),

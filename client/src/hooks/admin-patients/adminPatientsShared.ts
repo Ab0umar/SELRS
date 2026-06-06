@@ -7,6 +7,7 @@ export type SheetTypeChoice =
   | "pentacam_c"
   | "pentacam_ex"
   | "pentacam_ex_c"
+  | "surgery_center"
   | "surgery_external";
 
 export type PatientStatus = "new" | "followup" | "archived";
@@ -78,6 +79,8 @@ export type PatientStats = {
   center: number;
   external: number;
   lasik: number;
+  surgery_c: number;
+  surgery_ex: number;
 };
 
 export type ImportPreviewRow = {
@@ -165,6 +168,7 @@ export const isSheetTypeChoice = (value: string): value is SheetTypeChoice =>
   value === "lasik" ||
   value === "external" ||
   value === "surgery" ||
+  value === "surgery_center" ||
   value === "pentacam_center" ||
   value === "pentacam_external" ||
   value === "pentacam_c" ||
@@ -180,8 +184,8 @@ export const normalizeSheetTypeChoice = (value: unknown): SheetTypeChoice | "" =
   if (raw === "pentacam_c") return "pentacam_c";
   if (raw === "pentacam_ex") return "pentacam_ex";
   if (raw === "pentacam_ex_c") return "pentacam_ex_c";
-  if (raw === "surgery_center" || raw === "operation" || raw === "operation_center") return "surgery";
-  if (raw === "operation_external") return "surgery_external";
+  if (raw === "surgery_center" || raw === "operation" || raw === "operation_center") return "surgery_center";
+  if (raw === "surgery" || raw === "surgery_external" || raw === "operation_external") return "surgery_external";
   return isSheetTypeChoice(raw) ? raw : "";
 };
 
@@ -195,7 +199,8 @@ export function toLegacyServiceType(value: SheetTypeChoice): ServiceType {
   ) {
     return "external";
   }
-  return value;
+  if (value === "surgery_center") return "surgery";
+  return (value as ServiceType);
 }
 
 export const getPatientRowKey = (patient: PatientRow) => String((patient as { __rowKey?: string }).__rowKey ?? patient.id);

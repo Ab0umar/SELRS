@@ -216,6 +216,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     const unique = Array.from(new Set(fileNames.map((name) => String(name ?? "").trim()).filter(Boolean)));
     const batchSize = 1000;
     let imported = 0;
+    let alreadyLinked = 0;
     let unmatched = 0;
     let skipped = 0;
     let missing = 0;
@@ -224,6 +225,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       const chunk = unique.slice(i, i + batchSize);
       const result = await autoImportMutation.mutateAsync({ fileNames: chunk });
       imported += Number(result.imported ?? 0);
+      alreadyLinked += Number((result as any).alreadyLinked ?? 0);
       unmatched += Number(result.unmatched ?? 0);
       skipped += Number(result.skipped ?? 0);
       missing += Number(result.missing ?? 0);
@@ -235,7 +237,7 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         }
       }
     }
-    return { imported, unmatched, skipped, missing, unresolvedFiles: Array.from(new Set(unresolvedFiles)) };
+    return { imported, alreadyLinked, unmatched, skipped, missing, unresolvedFiles: Array.from(new Set(unresolvedFiles)) };
   }
 
   async function loadUnmatchedSuggestions(fileNames: string[]) {
@@ -379,6 +381,32 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     }
   }
 
+  async function autoImportAll() {
+    const names = items.map((item) => item.name);
+    if (names.length === 0) {
+      toast.error("No files to auto-link.");
+      return;
+    }
+    try {
+      const result = await autoImportByBatches(names);
+      const parts = [`Newly linked: ${result.imported}`];
+      if (result.alreadyLinked > 0) parts.push(`already linked: ${result.alreadyLinked}`);
+      if (result.unmatched > 0) parts.push(`unmatched: ${result.unmatched}`);
+      if (result.skipped > 0) parts.push(`skipped: ${result.skipped}`);
+      toast.success(parts.join(" · "));
+      if (result.unmatched > 0) {
+        await loadUnmatchedSuggestions(result.unresolvedFiles);
+      } else {
+        setUnmatchedSuggestions([]);
+      }
+      if (targetPatientId > 0) {
+        await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+      }
+    } catch (error: unknown) {
+      toast.error(getTrpcErrorMessage(error, "Failed to auto-link Pentacam exports."));
+    }
+  }
+
   async function autoImportFiltered() {
     const names = filteredItems.map((item) => item.name);
     if (names.length === 0) {
@@ -387,9 +415,11 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     }
     try {
       const result = await autoImportByBatches(names);
-      toast.success(
-        `Auto-linked ${result.imported}, unmatched ${result.unmatched}, skipped ${result.skipped}, missing ${result.missing}.`
-      );
+      const parts = [`Newly linked: ${result.imported}`];
+      if (result.alreadyLinked > 0) parts.push(`already linked: ${result.alreadyLinked}`);
+      if (result.unmatched > 0) parts.push(`unmatched: ${result.unmatched}`);
+      if (result.skipped > 0) parts.push(`skipped: ${result.skipped}`);
+      toast.success(parts.join(" · "));
       if (result.unmatched > 0) {
         await loadUnmatchedSuggestions(result.unresolvedFiles);
       } else {
@@ -504,12 +534,23 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               type="button"
               variant="outline"
               size="sm"
+              onClick={autoImportAll}
+              disabled={items.length === 0 || autoImportMutation.isPending}
+              className="gap-2 border-border bg-background"
+            >
+              <ScanSearch className="h-4 w-4" />
+              {autoImportMutation.isPending ? "Auto-linking..." : `Auto-wire ALL (${items.length})`}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={autoImportFiltered}
               disabled={!canAutoImport}
               className="gap-2 border-border bg-background"
             >
               <ScanSearch className="h-4 w-4" />
-              {autoImportMutation.isPending ? "Auto-linking..." : "Auto-wire filtered"}
+              {autoImportMutation.isPending ? "Auto-linking..." : `Auto-wire filtered (${filteredItems.length})`}
             </Button>
             <Button
               type="button"

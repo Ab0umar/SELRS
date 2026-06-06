@@ -7,6 +7,12 @@ import { ENV } from "./env";
 export type PatientSession = {
   patientId: number;
   phone: string;
+  token: string;
+};
+
+export type DoctorSession = {
+  doctorId: number;
+  username: string;
 };
 
 export type TrpcContext = {
@@ -14,6 +20,7 @@ export type TrpcContext = {
   res: CreateExpressContextOptions["res"];
   user: User | null;
   patientSession: PatientSession | null;
+  doctorSession: DoctorSession | null;
 };
 
 export async function createContext(
@@ -34,11 +41,25 @@ export async function createContext(
       const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const payload = jwt.verify(raw, secret) as any;
       if (payload?.type === "patient" && typeof payload?.patientId === "number") {
-        patientSession = { patientId: payload.patientId, phone: String(payload.phone ?? "") };
+        patientSession = { patientId: payload.patientId, phone: String(payload.phone ?? ""), token: raw };
       }
     }
   } catch {
     patientSession = null;
+  }
+
+  let doctorSession: DoctorSession | null = null;
+  try {
+    const raw = opts.req.headers["x-doctor-token"] as string | undefined;
+    if (raw) {
+      const secret = ENV.JWT_SECRET || "dev-only-change-me";
+      const payload = jwt.verify(raw, secret) as any;
+      if (payload?.type === "externalDoctor" && typeof payload?.doctorId === "number") {
+        doctorSession = { doctorId: payload.doctorId, username: String(payload.username ?? "") };
+      }
+    }
+  } catch {
+    doctorSession = null;
   }
 
   return {
@@ -46,5 +67,6 @@ export async function createContext(
     res: opts.res,
     user,
     patientSession,
+    doctorSession,
   };
 }

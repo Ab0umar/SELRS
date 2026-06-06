@@ -1,7 +1,7 @@
 export const EMPTY_SELECT_VALUE = "__empty__";
 
 function formatSigned(value: number, digits = 2) {
-  if (Math.abs(value) < 0.0001) return (0).toFixed(digits);
+  if (Math.abs(value) < 0.0001) return "----";
   if (value > 0) return `+${value.toFixed(digits)}`;
   return value.toFixed(digits);
 }

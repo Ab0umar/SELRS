@@ -45,8 +45,7 @@ function ComboBoxField({ id, value, options, onChange, className = "" }: ComboBo
       onChange={(event) => onChange(event.target.value)}
       className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs ${className}`}
     >
-      <option value=""></option>
-      {!hasCurrent && normalized ? <option value={normalized}>{normalized}</option> : null}
+      {normalized && !hasCurrent ? <option value={normalized}>{normalized}</option> : null}
       {options.map((option) => (
         <option key={`${id}-${option}`} value={option}>
           {option}
@@ -104,12 +103,12 @@ export default function ExaminationForm() {
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [examData, setExamData] = useState({
     autorefraction: {
-      od: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
-      os: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
+      od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+      os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
     },
     glasses: {
-      od: { s: "", c: "", axis: "", pd: "" },
-      os: { s: "", c: "", axis: "", pd: "" },
+      od: { s: "----", c: "----", axis: "", pd: "" },
+      os: { s: "----", c: "----", axis: "", pd: "" },
     },
     pentacam: {
       od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
@@ -230,12 +229,12 @@ export default function ExaminationForm() {
     });
     setExamData({
       autorefraction: {
-        od: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
-        os: { s: "", c: "", axis: "", ucva: "", bcva: "", iop: "" },
+        od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+        os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
       },
       glasses: {
-        od: { s: "", c: "", axis: "", pd: "" },
-        os: { s: "", c: "", axis: "", pd: "" },
+        od: { s: "----", c: "----", axis: "", pd: "" },
+        os: { s: "----", c: "----", axis: "", pd: "" },
       },
       pentacam: {
         od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
@@ -854,10 +853,12 @@ export default function ExaminationForm() {
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4 flex-wrap w-full">
                     {[
-                      { type: "external", label: "خارجي" },
-                      { type: "lasik", label: "فحوصات الليزك" },
-                      { type: "specialist", label: "اخصائي" },
                       { type: "consultant", label: "استشاري", isFirst: true },
+                      { type: "specialist", label: "اخصائي" },
+                      { type: "lasik", label: "فحوصات الليزك" },
+                      { type: "external", label: "خارجي" },
+                      { type: "surgery_center", label: "عمليات مركز" },
+                      { type: "surgery_external", label: "عمليات خارجي" },
                     ].map((sheet) => (
                       <label key={sheet.type} className="flex items-center gap-2 cursor-pointer">
                         <Checkbox
@@ -1378,7 +1379,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).s = e.target.value;
                                 return newData;
                               });
@@ -1393,7 +1394,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).c = e.target.value;
                                 return newData;
                               });
@@ -1408,7 +1409,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).axis = e.target.value;
                                 return newData;
                               });
@@ -1423,7 +1424,7 @@ export default function ExaminationForm() {
                             onChange={(e) => {
                               setExamData((prev) => {
                                 const newData = { ...prev };
-                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "", c: "", axis: "", pd: "" };
+                                if (!newData.glasses[eye as "od" | "os"]) newData.glasses[eye as "od" | "os"] = { s: "----", c: "----", axis: "", pd: "" };
                                 (newData.glasses[eye as "od" | "os"] as any).pd = e.target.value;
                                 return newData;
                               });

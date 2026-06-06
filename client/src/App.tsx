@@ -138,9 +138,20 @@ const ShiftSchedule = lazy(() => import("./pages/salary/ShiftSchedule"));
 const ShiftPayroll = lazy(() => import("./pages/salary/ShiftPayroll"));
 const AbsentReport = lazy(() => import("./pages/salary/AbsentReport"));
 const CurrentSalaryData = lazy(() => import("./pages/salary/CurrentSalaryData"));
+// External Doctors module
+const ExternalDoctors = lazy(() => import("./pages/ExternalDoctors"));
+const ExternalDoctorReferrals = lazy(() => import("./pages/ExternalDoctorReferrals"));
+// Doctor portal
+const DoctorLogin = lazy(() => import("./pages/doctor-portal/DoctorLogin"));
+const DoctorDashboard = lazy(() => import("./pages/doctor-portal/DoctorDashboard"));
+const DoctorPatientImages = lazy(() => import("./pages/doctor-portal/DoctorPatientImages"));
+import DoctorPortalRoute from "./components/DoctorPortalRoute";
 // Patient portal
 const PatientLogin = lazy(() => import("./pages/patient-portal/PatientLogin"));
+const PatientGuestBook = lazy(() => import("./pages/patient-portal/PatientGuestBook"));
 const PatientFile = lazy(() => import("./pages/patient-portal/PatientFile"));
+const PatientRefraction = lazy(() => import("./pages/patient-portal/PatientRefraction"));
+const PatientPrescription = lazy(() => import("./pages/patient-portal/PatientPrescription"));
 const PatientScans = lazy(() => import("./pages/patient-portal/PatientScans"));
 const PatientBook = lazy(() => import("./pages/patient-portal/PatientBook"));
 const PatientBookings = lazy(() => import("./pages/patient-portal/PatientBookings"));
@@ -302,9 +313,18 @@ const Router = memo(function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      {/* Doctor Portal — external doctor access */}
+      <Route path={"/doctor-portal/login"} component={DoctorLogin} />
+      <Route path={"/doctor-portal/patient/:patientCode"} component={() => <DoctorPortalRoute><DoctorPatientImages /></DoctorPortalRoute>} />
+      <Route path={"/doctor-portal/dashboard"} component={() => <DoctorPortalRoute><DoctorDashboard /></DoctorPortalRoute>} />
+      <Route path={"/doctor-portal"} component={() => <DoctorPortalRoute><DoctorDashboard /></DoctorPortalRoute>} />
+
       {/* Patient Portal — no staff auth required */}
       <Route path={"/my/login"} component={PatientLogin} />
+      <Route path={"/my/book-guest"} component={PatientGuestBook} />
       <Route path={"/my/file"} component={() => <PatientPortalRoute><PatientFile /></PatientPortalRoute>} />
+      <Route path={"/my/refraction"} component={() => <PatientPortalRoute><PatientRefraction /></PatientPortalRoute>} />
+      <Route path={"/my/prescription"} component={() => <PatientPortalRoute><PatientPrescription /></PatientPortalRoute>} />
       <Route path={"/my/scans"} component={() => <PatientPortalRoute><PatientScans /></PatientPortalRoute>} />
       <Route path={"/my/book"} component={() => <PatientPortalRoute><PatientBook /></PatientPortalRoute>} />
       <Route path={"/my/bookings"} component={() => <PatientPortalRoute><PatientBookings /></PatientPortalRoute>} />
@@ -504,6 +524,10 @@ const Router = memo(function Router() {
       <Route path={"/request-tests/:id"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
       <Route path={"/request-tests"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
       <Route path={"/sheet-copies"} component={() => <ProtectedRoute><AdminSheetCopies /></ProtectedRoute>} />
+
+      {/* External Doctors admin */}
+      <Route path={"/external-doctors/referrals"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ExternalDoctorReferrals /></ProtectedRoute>} />
+      <Route path={"/external-doctors"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ExternalDoctors /></ProtectedRoute>} />
 
       {/* Admin routes */}
       {/* Admin Hub - handles all /admin-hub routes internally */}

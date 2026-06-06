@@ -180,7 +180,7 @@ export function AppointmentDistributionChart() {
   if (isLoading) {
     return (
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
+        <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
         <Skeleton className="h-[180px] sm:h-[200px] w-full" />
       </div>
     )
@@ -189,15 +189,15 @@ export function AppointmentDistributionChart() {
   if (total === 0) {
     return (
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
-        <EmptyChart message="لا يوجد مرضى في الطابور اليوم" />
+        <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
+        <EmptyChart message="لا يوجد مرضى في المرضى اليوم" />
       </div>
     )
   }
 
   return (
     <div className="space-y-1">
-      <p className="text-sm text-muted-foreground">حالة الطابور الحالي</p>
+      <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
       <ChartContainer config={queueConfig} className="mx-auto h-[180px] sm:h-[200px] w-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
@@ -233,7 +233,7 @@ const workloadChartConfig: ChartConfig = {
   },
 }
 
-/** توزيع نوع الخدمة لمراجعي اليوم (من الطابور الممزوج live). */
+/** توزيع نوع الخدمة لمراجعي اليوم (من المرضى الممزوج live). */
 export function DepartmentWorkloadChart() {
   const { merged, isLoading } = useTodayQueuePatientsMerged()
 
@@ -266,7 +266,7 @@ export function DepartmentWorkloadChart() {
     return (
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">مرضى اليوم حسب نوع الخدمة</p>
-        <EmptyChart message="لا يوجد مرضى في الطابور اليوم" />
+        <EmptyChart message="لا يوجد مرضى في المرضى اليوم" />
       </div>
     )
   }
@@ -274,7 +274,7 @@ export function DepartmentWorkloadChart() {
   return (
     <div className="space-y-1">
       <p className="text-sm text-muted-foreground">
-        مرضى اليوم حسب نوع الخدمة ({merged.length.toLocaleString('ar-EG')} في الطابور)
+        مرضى اليوم حسب نوع الخدمة ({merged.length.toLocaleString('ar-EG')} في المرضى)
       </p>
       <ChartContainer config={workloadChartConfig} className="h-[160px] w-full sm:h-[180px]">
         <BarChart accessibilityLayer layout="vertical" data={data} margin={{ left: 4, right: 12, top: 4, bottom: 4 }}>

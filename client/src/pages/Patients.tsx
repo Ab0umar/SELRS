@@ -45,6 +45,8 @@ export default function Patients() {
     setDateTo,
     activeTab,
     setActiveTab,
+    locationTypeFilter,
+    setLocationTypeFilter,
     userStateQuery,
     doctorDirectoryQuery,
     serviceDirectoryQuery,
@@ -186,6 +188,8 @@ export default function Patients() {
               setDateFrom={setDateFrom}
               dateTo={dateTo}
               setDateTo={setDateTo}
+              locationTypeFilter={locationTypeFilter}
+              setLocationTypeFilter={setLocationTypeFilter}
               isAdmin={isAdmin}
               importDateFormat={importDateFormat}
               setImportDateFormat={setImportDateFormat}

@@ -14,6 +14,7 @@ import {
   Glasses,
   CircleDot,
   Syringe,
+  Repeat,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -41,6 +42,7 @@ const quickActions: QuickActionItem[] = [
   { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "schedule-dialog" },
   { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "measurements-panel" },
   { label: "حجز العمليات", icon: Syringe, color: "bg-success text-success-foreground hover:bg-success/90", kind: "operations-booking-dialog" },
+  { label: "متابعة", icon: Repeat, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "followups" },
   { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "refraction" },
   { label: "بنتاكام", icon: CircleDot, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "pentacam-sheet" },
   { label: "الروشتات", icon: Pill, color: "bg-warning text-warning-foreground hover:bg-warning/90", kind: "pick-patient", page: "write-prescription" },
@@ -66,25 +68,9 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
     all.filter((a) => a.kind === kind);
   const byPage = (page: PageKey) => all.find((a) => a.kind === "pick-patient" && a.page === page);
 
-  const reception = [
-    ...byKind("quick-entry-dialog"),
-    ...byKind("schedule-dialog"),
-    ...byKind("operations-booking-dialog"),
-  ];
-
-  const nurse = [
+  const medicalShortcuts = [
     ...byKind("measurements-panel"),
-    byPage("refraction"),
-  ].filter(Boolean) as QuickActionItem[];
-
-  const technician = [
-    ...byKind("measurements-panel"),
-    byPage("refraction"),
-    byPage("pentacam-sheet"),
-  ].filter(Boolean) as QuickActionItem[];
-
-  const doctor = [
-    ...byKind("measurements-panel"),
+    byPage("followups"),
     byPage("refraction"),
     byPage("pentacam-sheet"),
     byPage("write-prescription"),
@@ -94,12 +80,16 @@ function actionsForRole(userRole: UserRole): QuickActionItem[] {
     byPage("patient-summary"),
   ].filter(Boolean) as QuickActionItem[];
 
+  const receptionShortcuts = [
+    ...byKind("quick-entry-dialog"),
+    ...byKind("schedule-dialog"),
+    ...byKind("operations-booking-dialog"),
+    ...medicalShortcuts,
+  ];
+
   if (userRole === "admin" || userRole === "manager") return all;
-  if (userRole === "reception") return reception;
-  if (userRole === "nurse") return nurse;
-  if (userRole === "technician") return technician;
-  if (userRole === "doctor") return doctor;
-  return all;
+  if (userRole === "reception") return receptionShortcuts;
+  return medicalShortcuts;
 }
 
 export type QuickActionsProps = {
@@ -181,11 +171,11 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
         </div>
       )}
 
-      {/* Clinical tools: Measurements, refraction, pentacam, tests */}
-      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
+      {/* Clinical tools: Measurements, refraction, pentacam, tests, followups */}
+      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {visibleActions
-            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
+            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
             .map((action) => {
               const Icon = action.icon;
               return (

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "droprompt": {
+      "type": "sse",
+      "url": "https://mcp.droprompt.com/sse"
+    }
+  }
+}
