@@ -1668,29 +1668,10 @@ async function startServer() {
         return res.redirect(`${settingsUrl}?fb=error&reason=no_pages`);
       }
 
-      if (pages.length === 1) {
-        const page = pages[0]!;
-        await db.update(marketingSettings).set({
-          fbPageId: page.id,
-          fbPageName: page.name,
-          fbAccessToken: page.accessToken,
-          fbConnected: true,
-          fbOauthState: null,
-          fbPendingPages: null,
-        }).where(eq(marketingSettings.id, settings.id));
-        return res.redirect(`${settingsUrl}?fb=connected`);
-      }
-
-      // Multiple pages — store public-safe list for admin selection (no tokens in fbPendingPages)
-      const pendingForStorage = pages.map((p, idx) => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        _idx: idx,
-      }));
-      // Store full pages (with tokens) encoded — we need tokens for selection step
-      // Encode using a simple base64 to avoid logging the raw token
-      const pendingEncoded = Buffer.from(JSON.stringify(pages.map(p => ({ id: p.id, name: p.name, category: p.category, token: p.accessToken })))).toString("base64");
+      // Always show page selection so admin can confirm which page to connect
+      const pendingEncoded = Buffer.from(
+        JSON.stringify(pages.map(p => ({ id: p.id, name: p.name, category: p.category, token: p.accessToken })))
+      ).toString("base64");
       await db.update(marketingSettings).set({
         fbOauthState: null,
         fbPendingPages: pendingEncoded,
