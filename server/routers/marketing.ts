@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { marketingPosts, marketingSettings, marketingLogs } from "../../drizzle/schema";
 import { generateMarketingContent } from "../services/marketing/contentGenerator.service";
 import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
+import { generateMarketingImage, MarketingImageConfigError } from "../services/marketing/imageGenerator.service";
 
 async function addLog(postId: number | null, action: string, status: "success" | "error" | "info", message: string) {
   const db = await getDb();
@@ -195,6 +196,46 @@ export const marketingRouter = router({
         hashtags: generated.hashtags,
         imagePrompt: generated.imagePrompt,
       };
+    }),
+
+  // ─── Image Generation ─────────────────────────────────────
+
+  generateImageForPost: adminProcedure
+    .input(z.object({ postId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [post] = await db
+        .select({ id: marketingPosts.id, imagePrompt: marketingPosts.imagePrompt, status: marketingPosts.status })
+        .from(marketingPosts)
+        .where(eq(marketingPosts.id, input.postId))
+        .limit(1);
+
+      if (!post) throw new Error("Post not found");
+
+      const prompt = post.imagePrompt?.trim();
+      if (!prompt) throw new Error("Post has no imagePrompt — generate content first");
+
+      try {
+        const imageUrl = await generateMarketingImage(prompt, input.postId);
+        await db
+          .update(marketingPosts)
+          .set({ imageUrl })
+          .where(eq(marketingPosts.id, input.postId));
+        await addLog(input.postId, "generate_image", "success", `Image saved: ${imageUrl}`);
+        return { imageUrl };
+      } catch (err) {
+        const isConfig = err instanceof MarketingImageConfigError;
+        await addLog(
+          input.postId,
+          "generate_image",
+          "error",
+          isConfig ? "No image API configured" : String(err)
+        );
+        if (isConfig) throw new Error("لم يتم تكوين خدمة توليد الصور — أضف OPENAI_API_KEY في إعدادات الخادم");
+        throw new Error("فشل توليد الصورة — يرجى المحاولة مرة أخرى");
+      }
     }),
 
   // ─── Settings ─────────────────────────────────────────────

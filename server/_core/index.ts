@@ -1608,6 +1608,8 @@ async function startServer() {
       res.status(500).json({ ok: false, error: String(error?.message ?? "Failed to read Pentacam image") });
     }
   });
+  const marketingImageDir = path.resolve(process.env.MARKETING_IMAGE_DIR || path.join(process.cwd(), "uploads", "marketing"));
+  app.use("/uploads/marketing", express.static(marketingImageDir, { maxAge: "1d", fallthrough: true }));
   app.use("/pentacam-exports", express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }));
   app.use(
     "/pentacam-failed",
