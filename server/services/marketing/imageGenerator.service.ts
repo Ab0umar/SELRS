@@ -51,17 +51,25 @@ async function generateWithDalle(prompt: string, postId: number): Promise<string
     n: 1,
     size: "1024x1024",
     quality: "standard",
-    response_format: "url",
   });
 
-  const imageUrl = response.data?.[0]?.url;
-  if (!imageUrl) throw new Error("DALL-E 3 returned no image URL");
+  // Try URL first (default), fall back to b64_json if present
+  const item = response.data?.[0];
+  if (!item) throw new Error("DALL-E 3 returned no image data");
 
-  // Download and save locally — DALL-E URLs expire after ~1 hour
-  const res = await fetch(imageUrl);
-  if (!res.ok) throw new Error(`Failed to download DALL-E image: ${res.status}`);
-  const buffer = Buffer.from(await res.arrayBuffer());
-  return saveImageLocally(buffer, postId);
+  if (item.b64_json) {
+    const buffer = Buffer.from(item.b64_json, "base64");
+    return saveImageLocally(buffer, postId);
+  }
+
+  if (item.url) {
+    const res = await fetch(item.url);
+    if (!res.ok) throw new Error(`Failed to download DALL-E image: ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return saveImageLocally(buffer, postId);
+  }
+
+  throw new Error("DALL-E 3 returned neither url nor b64_json");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
