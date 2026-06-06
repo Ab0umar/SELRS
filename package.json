@@ -1,6 +1,6 @@
 {
   "name": "SELRS",
-  "version": "1.0.160",
+  "version": "1.0.166",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -166,7 +166,7 @@
     "vite-plugin-manus-runtime": "^0.0.57",
     "vitest": "^4.1.6"
   },
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@11.5.0",
   "pnpm": {
     "overrides": {
       "tailwindcss>nanoid": "3.3.7"
