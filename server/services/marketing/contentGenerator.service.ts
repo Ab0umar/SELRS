@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "../../_core/env";
 import type { PostDay } from "./topicRotation";
 import { DAY_CATEGORY_LABELS } from "./topicRotation";
+import { buildBrandAwareImagePrompt, type PartialBrandProfile } from "./brandStyleAnalyzer.service";
 
 export interface GeneratedContent {
   title: string;
@@ -12,8 +13,12 @@ export interface GeneratedContent {
   imagePrompt: string;
 }
 
-function buildPrompt(topic: string, day: PostDay): string {
+function buildPrompt(topic: string, day: PostDay, brandProfile: PartialBrandProfile | null): string {
   const category = DAY_CATEGORY_LABELS[day];
+  const imagePromptInstruction = brandProfile
+    ? `"imagePrompt": "A specific image generation prompt that STRICTLY matches the brand visual identity described: colors ${brandProfile.dominantColors}, style: ${brandProfile.brandingStyle}, composition: ${brandProfile.imageComposition}. Topic: ${topic}. Do NOT use generic medical stock imagery."`
+    : `"imagePrompt": "وصف بالإنجليزية لصورة احترافية مناسبة للمنشور (للذكاء الاصطناعي)"`;
+
   return `أنت خبير تسويق رقمي متخصص في المراكز الطبية لطب وجراحة العيون.
 اكتب منشور Facebook احترافي وجذاب لمركز "ساعدني" لطب العيون والليزك عن موضوع: "${topic}" (ضمن فئة: ${category}).
 
@@ -30,7 +35,7 @@ function buildPrompt(topic: string, day: PostDay): string {
   "content": "نص المنشور الكامل مع إيموجي مناسبة",
   "cta": "نداء للعمل قصير وواضح",
   "hashtags": "5-7 هاشتاقات متعلقة بالموضوع وطب العيون",
-  "imagePrompt": "وصف بالإنجليزية لصورة احترافية مناسبة للمنشور (للذكاء الاصطناعي)"
+  ${imagePromptInstruction}
 }`;
 }
 
@@ -58,7 +63,7 @@ function parseSafeJson(raw: string): GeneratedContent | null {
   }
 }
 
-function makeFallback(topic: string, day: PostDay): GeneratedContent {
+function makeFallback(topic: string, day: PostDay, brandProfile: PartialBrandProfile | null): GeneratedContent {
   const category = DAY_CATEGORY_LABELS[day];
   return {
     title: `${topic} — مركز ساعدني لطب العيون`,
@@ -66,19 +71,20 @@ function makeFallback(topic: string, day: PostDay): GeneratedContent {
     content: `✨ ${topic}\n\nهل تعلم أن ${topic} من أهم الموضوعات في مجال ${category}؟\n\nفي مركز ساعدني لطب وجراحة العيون، نقدم لك أحدث التقنيات والرعاية المتخصصة.\n\n🔬 فريق من أمهر الأطباء\n💡 تقنيات طبية حديثة\n❤️ رعاية شاملة لصحة عيونك\n\nلا تتردد في الاستفسار — صحة عيونك أولويتنا.`,
     cta: "احجز موعدك الآن عبر الاتصال أو الواتساب",
     hashtags: `#${topic.replace(/\s+/g, "_")} #طب_العيون #مركز_ساعدني #صحة_العيون #الليزك`,
-    imagePrompt: `Professional ophthalmology clinic image about ${topic}, clean medical aesthetic, blue and white tones, arabic medical center`,
+    imagePrompt: buildBrandAwareImagePrompt(topic, brandProfile),
   };
 }
 
 export async function generateMarketingContent(
   topic: string,
-  day: PostDay
+  day: PostDay,
+  brandProfile: PartialBrandProfile | null = null
 ): Promise<GeneratedContent> {
   const apiKey = ENV.geminiApiKey;
 
   if (!apiKey) {
     console.warn("[marketing] GEMINI_API_KEY not set — using fallback content");
-    return makeFallback(topic, day);
+    return makeFallback(topic, day, brandProfile);
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -91,7 +97,7 @@ export async function generateMarketingContent(
     },
   });
 
-  const prompt = buildPrompt(topic, day);
+  const prompt = buildPrompt(topic, day, brandProfile);
 
   try {
     const result = await model.generateContent(prompt);
@@ -100,12 +106,17 @@ export async function generateMarketingContent(
 
     if (!parsed || !parsed.title || !parsed.content) {
       console.warn("[marketing] Gemini returned unexpected structure, using fallback", text.slice(0, 200));
-      return makeFallback(topic, day);
+      return makeFallback(topic, day, brandProfile);
+    }
+
+    // If brand profile exists but Gemini gave a generic imagePrompt, override with brand-aware one
+    if (brandProfile && parsed.imagePrompt && parsed.imagePrompt.length < 80) {
+      parsed.imagePrompt = buildBrandAwareImagePrompt(topic, brandProfile);
     }
 
     return parsed;
   } catch (err) {
     console.error("[marketing] Gemini API error:", err);
-    return makeFallback(topic, day);
+    return makeFallback(topic, day, brandProfile);
   }
 }

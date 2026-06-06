@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { BarChart2, ChevronRight, FileText, LayoutDashboard, Settings, Share2 } from "lucide-react";
+import { BookImage, ChevronRight, FileText, LayoutDashboard, Settings, Share2 } from "lucide-react";
 
 interface MarketingLayoutProps {
   children: ReactNode;
@@ -26,6 +26,13 @@ const navItems = [
     label: "المسودات",
     description: "المنشورات غير المكتملة",
     icon: FileText,
+    exact: false,
+  },
+  {
+    href: "/marketing/brand",
+    label: "مكتبة العلامة التجارية",
+    description: "تصاميم مرجعية وهوية بصرية",
+    icon: BookImage,
     exact: false,
   },
   {

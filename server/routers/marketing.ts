@@ -1,16 +1,46 @@
 import { z } from "zod";
 import { desc, eq, count as drizzleCount } from "drizzle-orm";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { nanoid } from "nanoid";
 import { router, adminProcedure } from "../_core/procedures";
 import { getDb } from "../db";
-import { marketingPosts, marketingSettings, marketingLogs } from "../../drizzle/schema";
+import {
+  marketingPosts,
+  marketingSettings,
+  marketingLogs,
+  marketingReferenceDesigns,
+  marketingBrandProfile,
+} from "../../drizzle/schema";
 import { generateMarketingContent } from "../services/marketing/contentGenerator.service";
 import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
 import { generateMarketingImage, MarketingImageConfigError } from "../services/marketing/imageGenerator.service";
+import {
+  analyzeDesignImage,
+  buildBrandProfile,
+  type StyleAttributes,
+} from "../services/marketing/brandStyleAnalyzer.service";
+import { ENV } from "../_core/env";
 
 async function addLog(postId: number | null, action: string, status: "success" | "error" | "info", message: string) {
   const db = await getDb();
   if (!db) return;
   await db.insert(marketingLogs).values({ postId, action, status, message });
+}
+
+async function getActiveBrandProfile() {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(marketingBrandProfile).limit(1);
+  return row ?? null;
+}
+
+function getReferenceDesignDir(): string {
+  return path.resolve(
+    ENV.marketingImageDir
+      ? path.join(ENV.marketingImageDir, "reference-designs")
+      : path.join(process.cwd(), "uploads", "marketing", "reference-designs")
+  );
 }
 
 export const marketingRouter = router({
@@ -160,10 +190,13 @@ export const marketingRouter = router({
         selectedTopic = pickTopic(day, usedCount);
       }
 
+      // Read brand profile (if available) to guide image prompt generation
+      const brandProfile = await getActiveBrandProfile();
+
       // Generate AI content
       let generated;
       try {
-        generated = await generateMarketingContent(selectedTopic, day);
+        generated = await generateMarketingContent(selectedTopic, day, brandProfile);
       } catch (err) {
         await addLog(null, "generate_post", "error", `Content generation failed: ${String(err)}`);
         throw new Error("فشل توليد المحتوى — يرجى المحاولة مرة أخرى");
@@ -309,5 +342,145 @@ export const marketingRouter = router({
       .orderBy(desc(marketingPosts.createdAt))
       .limit(5);
     return { counts, recentPosts };
+  }),
+
+  // ─── Brand Library ────────────────────────────────────────────────────────
+
+  uploadReferenceDesign: adminProcedure
+    .input(z.object({
+      filename: z.string().min(1).max(255),
+      mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      base64Data: z.string().min(1),
+      fileSize: z.number().int().positive().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const dir = getReferenceDesignDir();
+      await fs.mkdir(dir, { recursive: true });
+
+      const ext = input.mimeType === "image/png" ? "png" : input.mimeType === "image/webp" ? "webp" : "jpg";
+      const safeFilename = `${Date.now()}-${nanoid(8)}.${ext}`;
+      const filePath = path.join(dir, safeFilename);
+      const fileUrl = `/uploads/marketing/reference-designs/${safeFilename}`;
+
+      const buffer = Buffer.from(input.base64Data, "base64");
+      await fs.writeFile(filePath, buffer);
+
+      const [result] = await db.insert(marketingReferenceDesigns).values({
+        filename: safeFilename,
+        originalName: input.filename,
+        filePath,
+        fileUrl,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize ?? buffer.length,
+        uploadedBy: ctx.user.id,
+      });
+      const id = (result as { insertId?: number }).insertId ?? 0;
+
+      // Run async analysis — don't block upload response
+      void (async () => {
+        try {
+          const attrs = await analyzeDesignImage(filePath, input.mimeType);
+          if (attrs) {
+            await db
+              .update(marketingReferenceDesigns)
+              .set({
+                styleAttributes: JSON.stringify(attrs),
+                analyzedAt: new Date(),
+              })
+              .where(eq(marketingReferenceDesigns.id, id));
+            await addLog(null, "analyze_design", "success", `Analyzed design: ${safeFilename}`);
+          }
+        } catch (err) {
+          await addLog(null, "analyze_design", "error", String(err));
+        }
+      })();
+
+      await addLog(null, "upload_reference_design", "info", `Uploaded: ${input.filename}`);
+      return { id, fileUrl };
+    }),
+
+  listReferenceDesigns: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const rows = await db
+      .select()
+      .from(marketingReferenceDesigns)
+      .orderBy(desc(marketingReferenceDesigns.createdAt));
+    return rows;
+  }),
+
+  deleteReferenceDesign: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [row] = await db
+        .select({ filePath: marketingReferenceDesigns.filePath })
+        .from(marketingReferenceDesigns)
+        .where(eq(marketingReferenceDesigns.id, input.id))
+        .limit(1);
+      if (row?.filePath) {
+        await fs.unlink(row.filePath).catch(() => {});
+      }
+      await db.delete(marketingReferenceDesigns).where(eq(marketingReferenceDesigns.id, input.id));
+      await addLog(null, "delete_reference_design", "info", `Deleted design id: ${input.id}`);
+      return { ok: true };
+    }),
+
+  getBrandProfile: adminProcedure.query(async () => {
+    const profile = await getActiveBrandProfile();
+    return profile;
+  }),
+
+  rebuildBrandProfile: adminProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const designs = await db
+      .select()
+      .from(marketingReferenceDesigns)
+      .orderBy(desc(marketingReferenceDesigns.createdAt));
+
+    if (designs.length === 0) {
+      throw new Error("لا توجد تصاميم مرجعية — ارفع بعض التصاميم أولاً");
+    }
+
+    const analyses: StyleAttributes[] = [];
+    for (const design of designs) {
+      if (design.styleAttributes) {
+        try {
+          analyses.push(JSON.parse(design.styleAttributes) as StyleAttributes);
+        } catch {}
+      } else if (design.filePath) {
+        const attrs = await analyzeDesignImage(design.filePath, design.mimeType);
+        if (attrs) {
+          analyses.push(attrs);
+          await db
+            .update(marketingReferenceDesigns)
+            .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
+            .where(eq(marketingReferenceDesigns.id, design.id));
+        }
+      }
+    }
+
+    if (analyses.length === 0) {
+      throw new Error("لم يتم تحليل أي تصميم — تأكد من إعداد GEMINI_API_KEY");
+    }
+
+    const profile = await buildBrandProfile(analyses, designs.length);
+    if (!profile) throw new Error("فشل بناء ملف العلامة التجارية");
+
+    const [existing] = await db.select().from(marketingBrandProfile).limit(1);
+    if (existing) {
+      await db.update(marketingBrandProfile).set({ ...profile, builtAt: new Date() }).where(eq(marketingBrandProfile.id, existing.id));
+    } else {
+      await db.insert(marketingBrandProfile).values({ ...profile, builtAt: new Date() });
+    }
+
+    await addLog(null, "rebuild_brand_profile", "success", `Profile built from ${analyses.length} designs`);
+    return profile;
   }),
 });

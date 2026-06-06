@@ -1604,3 +1604,38 @@ export const marketingLogs = mysqlTable("marketing_logs", {
 
 export type MarketingLog = typeof marketingLogs.$inferSelect;
 export type InsertMarketingLog = typeof marketingLogs.$inferInsert;
+
+export const marketingReferenceDesigns = mysqlTable("marketing_reference_designs", {
+  id: int("id").autoincrement().primaryKey(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  originalName: varchar("original_name", { length: 255 }).notNull(),
+  filePath: varchar("file_path", { length: 1000 }).notNull(),
+  fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: int("file_size"),
+  styleAttributes: text("style_attributes"),
+  analyzedAt: timestamp("analyzed_at"),
+  uploadedBy: int("uploaded_by"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  createdAtIdx: index("idx_ref_designs_created").on(table.createdAt),
+}));
+
+export type MarketingReferenceDesign = typeof marketingReferenceDesigns.$inferSelect;
+export type InsertMarketingReferenceDesign = typeof marketingReferenceDesigns.$inferInsert;
+
+export const marketingBrandProfile = mysqlTable("marketing_brand_profile", {
+  id: int("id").autoincrement().primaryKey(),
+  dominantColors: text("dominant_colors"),
+  colorPalette: text("color_palette"),
+  layoutStyle: text("layout_style"),
+  imageComposition: text("image_composition"),
+  brandingStyle: text("branding_style"),
+  medicalVisualStyle: text("medical_visual_style"),
+  ctaPositioning: text("cta_positioning"),
+  logoPlacementStyle: text("logo_placement_style"),
+  overallAesthetic: text("overall_aesthetic"),
+  designCount: int("design_count").default(0).notNull(),
+  rawProfile: text("raw_profile"),
+  builtAt: timestamp("built_at"),
+});

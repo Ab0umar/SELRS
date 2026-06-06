@@ -1610,6 +1610,7 @@ async function startServer() {
   });
   const marketingImageDir = path.resolve(process.env.MARKETING_IMAGE_DIR || path.join(process.cwd(), "uploads", "marketing"));
   app.use("/uploads/marketing", express.static(marketingImageDir, { maxAge: "1d", fallthrough: true }));
+  app.use("/uploads/marketing/reference-designs", express.static(path.join(marketingImageDir, "reference-designs"), { maxAge: "1d", fallthrough: true }));
   app.use("/pentacam-exports", express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }));
   app.use(
     "/pentacam-failed",
