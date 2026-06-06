@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { desc, eq, and, inArray } from "drizzle-orm";
-import { router, adminProcedure, protectedProcedure } from "../_core/procedures";
+import { desc, eq, count as drizzleCount } from "drizzle-orm";
+import { router, adminProcedure } from "../_core/procedures";
 import { getDb } from "../db";
 import { marketingPosts, marketingSettings, marketingLogs } from "../../drizzle/schema";
+import { generateMarketingContent } from "../services/marketing/contentGenerator.service";
+import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
 
 async function addLog(postId: number | null, action: string, status: "success" | "error" | "info", message: string) {
   const db = await getDb();
@@ -144,36 +146,55 @@ export const marketingRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const topicsByDay: Record<string, string[]> = {
-        saturday: ["LASIK", "Femto LASIK", "PRK", "ICL", "Astigmatism", "Pentacam", "Corneal Mapping", "Pre-LASIK Assessment"],
-        tuesday: ["Cataract", "Premium Lenses", "Keratoconus", "Corneal Cross Linking", "Corneal Transplantation"],
-        thursday: ["Dry Eye", "Glaucoma", "Diabetes & Eye Health", "Retina Health", "Children Vision", "Digital Eye Strain"],
-      };
+      const day = input.postDay as PostDay;
 
-      const topics = topicsByDay[input.postDay] ?? [];
-      const selectedTopic = input.topic ?? topics[Math.floor(Math.random() * topics.length)] ?? "Eye Health";
+      // Determine topic: explicit override or round-robin from list
+      let selectedTopic = input.topic;
+      if (!selectedTopic) {
+        const [countRow] = await db
+          .select({ total: drizzleCount() })
+          .from(marketingPosts)
+          .where(eq(marketingPosts.postDay, day));
+        const usedCount = countRow?.total ?? 0;
+        selectedTopic = pickTopic(day, usedCount);
+      }
 
-      const title = `${selectedTopic} — Post ${new Date().toLocaleDateString("en-GB")}`;
-      const content = `[AI content placeholder for topic: ${selectedTopic}]`;
-      const hashtags = `#${selectedTopic.replace(/\s+/g, "")} #EyeHealth #SaadanyEyeCenter`;
-      const cta = "Book your appointment today! Call or WhatsApp us.";
-      const imagePrompt = `Professional ophthalmology image about ${selectedTopic}, clean medical aesthetic, blue tones`;
+      // Generate AI content
+      let generated;
+      try {
+        generated = await generateMarketingContent(selectedTopic, day);
+      } catch (err) {
+        await addLog(null, "generate_post", "error", `Content generation failed: ${String(err)}`);
+        throw new Error("فشل توليد المحتوى — يرجى المحاولة مرة أخرى");
+      }
 
       const [result] = await db.insert(marketingPosts).values({
-        title,
-        content,
+        title: generated.title,
+        content: generated.content,
         topic: selectedTopic,
-        cta,
-        hashtags,
-        imagePrompt,
+        idea: generated.idea,
+        cta: generated.cta,
+        hashtags: generated.hashtags,
+        imagePrompt: generated.imagePrompt,
         platform: "facebook",
-        postDay: input.postDay,
+        postDay: day,
         status: "draft",
         createdBy: ctx.user.id,
       });
       const id = (result as { insertId?: number }).insertId ?? 0;
-      await addLog(id, "generate_post", "success", `Generated post for topic: ${selectedTopic}`);
-      return { id, title, content, topic: selectedTopic };
+
+      await addLog(id, "generate_post", "success", `Generated AI post — topic: ${selectedTopic}`);
+
+      return {
+        id,
+        title: generated.title,
+        content: generated.content,
+        topic: selectedTopic,
+        idea: generated.idea,
+        cta: generated.cta,
+        hashtags: generated.hashtags,
+        imagePrompt: generated.imagePrompt,
+      };
     }),
 
   // ─── Settings ─────────────────────────────────────────────

@@ -28,6 +28,7 @@ const envSchema = z.object({
   ATTENDANCE_BIZ_HOURS_START: z.string().optional().default("7"),
   ATTENDANCE_BIZ_HOURS_END: z.string().optional().default("20"),
   ATTENDANCE_SAFETY_WINDOW_MIN: z.string().optional().default("120"),
+  GEMINI_API_KEY: z.string().optional().default(""),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -67,4 +68,5 @@ export const ENV = {
   attendanceBizHoursStart: parseInt(parsed.ATTENDANCE_BIZ_HOURS_START, 10),
   attendanceBizHoursEnd: parseInt(parsed.ATTENDANCE_BIZ_HOURS_END, 10),
   attendanceSafetyWindowMin: parseInt(parsed.ATTENDANCE_SAFETY_WINDOW_MIN, 10),
+  geminiApiKey: parsed.GEMINI_API_KEY,
 };

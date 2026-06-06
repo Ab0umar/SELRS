@@ -1,20 +1,26 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+  CalendarDays,
   CheckCircle2,
   Clock,
+  ExternalLink,
   FileText,
+  Hash,
+  Image,
+  Lightbulb,
   Loader2,
+  MessageSquare,
   RefreshCw,
   Send,
   Sparkles,
   ToggleLeft,
   ToggleRight,
   XCircle,
-  CalendarDays,
 } from "lucide-react";
 
 const DAY_LABELS: Record<string, string> = {
@@ -30,9 +36,21 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   scheduled: { label: "مجدول", className: "bg-info/15 text-info" },
 };
 
+interface GeneratedPreview {
+  id: number;
+  title: string;
+  content: string;
+  topic: string;
+  idea?: string | null;
+  cta?: string | null;
+  hashtags?: string | null;
+  imagePrompt?: string | null;
+}
+
 export default function MarketingDashboard() {
   const [generateDay, setGenerateDay] = useState<"saturday" | "tuesday" | "thursday">("saturday");
   const [publishId, setPublishId] = useState<number | null>(null);
+  const [preview, setPreview] = useState<GeneratedPreview | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -40,9 +58,11 @@ export default function MarketingDashboard() {
   const settingsQuery = trpc.marketing.getSettings.useQuery();
 
   const generateMutation = trpc.marketing.generatePost.useMutation({
-    onSuccess: () => {
-      toast.success("تم إنشاء المنشور وحفظه كمسودة");
+    onSuccess: (data) => {
+      setPreview(data);
+      toast.success(`تم توليد منشور عن: ${data.topic}`);
       void utils.marketing.dashboardSummary.invalidate();
+      void utils.marketing.listPosts.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -53,7 +73,10 @@ export default function MarketingDashboard() {
       setPublishId(null);
       void utils.marketing.dashboardSummary.invalidate();
     },
-    onError: (err) => { toast.error(err.message); setPublishId(null); },
+    onError: (err) => {
+      toast.error(err.message);
+      setPublishId(null);
+    },
   });
 
   const updateSettingsMutation = trpc.marketing.updateSettings.useMutation({
@@ -94,7 +117,7 @@ export default function MarketingDashboard() {
         ))}
       </div>
 
-      {/* Actions row */}
+      {/* Actions */}
       <div className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-4 text-sm font-semibold text-foreground">إجراءات سريعة</h2>
         <div className="flex flex-wrap gap-3">
@@ -120,7 +143,7 @@ export default function MarketingDashboard() {
               ) : (
                 <Sparkles className="mr-1.5 h-4 w-4" />
               )}
-              توليد منشور
+              {generateMutation.isPending ? "جارٍ التوليد…" : "توليد منشور"}
             </Button>
           </div>
 
@@ -128,9 +151,7 @@ export default function MarketingDashboard() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              updateSettingsMutation.mutate({ autoPublish: !settings?.autoPublish })
-            }
+            onClick={() => updateSettingsMutation.mutate({ autoPublish: !settings?.autoPublish })}
             disabled={updateSettingsMutation.isPending || settingsQuery.isLoading}
           >
             {settings?.autoPublish ? (
@@ -146,26 +167,112 @@ export default function MarketingDashboard() {
             )}
           </Button>
 
-          {/* Connect Facebook (placeholder) */}
+          {/* Facebook placeholder */}
           <Button size="sm" variant="outline" disabled>
             ربط Facebook (قريباً)
           </Button>
 
-          {/* Refresh */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void utils.marketing.dashboardSummary.invalidate()}
-          >
+          <Button size="sm" variant="ghost" onClick={() => void utils.marketing.dashboardSummary.invalidate()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Generating indicator */}
+        {generateMutation.isPending && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Gemini AI يولّد محتوى عن <strong>{DAY_LABELS[generateDay]}</strong>…</span>
+          </div>
+        )}
       </div>
+
+      {/* Generated Content Preview */}
+      {preview && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-primary">تم توليد المنشور</h2>
+              <Badge className="bg-primary/15 text-primary text-xs">{preview.topic}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/marketing/drafts">
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  فتح المسودات
+                </Button>
+              </Link>
+              <button
+                onClick={() => setPreview(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Title */}
+          <div>
+            <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-1">العنوان</p>
+            <p className="text-sm font-semibold text-foreground">{preview.title}</p>
+          </div>
+
+          {/* Idea */}
+          {preview.idea && (
+            <div className="flex gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground/50 mb-0.5">الفكرة التسويقية</p>
+                <p className="text-sm text-foreground">{preview.idea}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="flex gap-2">
+            <MessageSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-foreground/50 mb-0.5">نص المنشور</p>
+              <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">{preview.content}</p>
+            </div>
+          </div>
+
+          {/* CTA */}
+          {preview.cta && (
+            <div className="rounded-lg border border-primary/20 bg-background px-3 py-2">
+              <p className="text-xs font-semibold text-foreground/50 mb-0.5">نداء للعمل (CTA)</p>
+              <p className="text-sm font-medium text-primary">{preview.cta}</p>
+            </div>
+          )}
+
+          {/* Hashtags */}
+          {preview.hashtags && (
+            <div className="flex gap-2">
+              <Hash className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-primary/80">{preview.hashtags}</p>
+            </div>
+          )}
+
+          {/* Image prompt */}
+          {preview.imagePrompt && (
+            <div className="flex gap-2">
+              <Image className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground/50 mb-0.5">وصف الصورة (AI Image Prompt)</p>
+                <p className="text-xs text-muted-foreground italic">{preview.imagePrompt}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent Posts */}
       <div className="rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-4 py-3">
+        <div className="border-b border-border px-4 py-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">آخر المنشورات</h2>
+          <Link href="/marketing/drafts">
+            <span className="text-xs text-primary hover:underline cursor-pointer">عرض المسودات ←</span>
+          </Link>
         </div>
         {summaryQuery.isLoading ? (
           <div className="flex items-center justify-center py-10">
@@ -183,8 +290,9 @@ export default function MarketingDashboard() {
                 <div key={post.id} className="flex items-start justify-between gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-foreground">{post.title}</div>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {post.postDay && <span>{DAY_LABELS[post.postDay] ?? post.postDay}</span>}
+                      {post.topic && <><span>·</span><span>{post.topic}</span></>}
                       <span>·</span>
                       <span>{new Date(post.createdAt).toLocaleDateString("ar-EG")}</span>
                     </div>

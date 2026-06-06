@@ -60,6 +60,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@esbuild-kit/core-utils": "^3.3.2",
     "@esbuild-kit/esm-loader": "^2.6.5",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@openai/codex": "^0.121.0",
     "@radix-ui/react-accordion": "^1.2.12",
