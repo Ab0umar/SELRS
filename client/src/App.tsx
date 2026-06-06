@@ -38,6 +38,7 @@ import { useAuth } from "./hooks/useAuth"
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Home = lazy(() => import("./pages/Home"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Patients = lazy(() => import("./pages/Patients"));
 const PatientDetails = lazy(() => import("./pages/PatientDetails"));
@@ -550,6 +551,7 @@ const Router = memo(function Router() {
       />
       <Route path={"/prototypes"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Prototypes /></ProtectedRoute>} />
       <Route path={"/documentation"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Documentation /></ProtectedRoute>} />
+      <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
