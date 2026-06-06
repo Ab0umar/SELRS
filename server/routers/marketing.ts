@@ -306,8 +306,8 @@ export const marketingRouter = router({
           "error",
           isConfig ? "No image API configured" : String(err)
         );
-        if (isConfig) throw new Error("لم يتم تكوين خدمة توليد الصور — أضف OPENAI_API_KEY في إعدادات الخادم");
-        throw new Error("فشل توليد الصورة — يرجى المحاولة مرة أخرى");
+        if (isConfig) throw new Error("لم يتم تكوين خدمة توليد الصور — أضف GEMINI_API_KEY في إعدادات الخادم");
+        throw err; // surface actual error so it's visible in logs and UI
       }
     }),
 

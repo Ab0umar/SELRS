@@ -44,12 +44,21 @@ async function saveImageLocally(buffer: Buffer, mimeType: string, postId: number
 
 // ─── Gemini image generation ──────────────────────────────────────────────────
 
-async function generateWithGemini(prompt: string, postId: number): Promise<string> {
-  const genAI = new GoogleGenerativeAI(ENV.geminiApiKey);
+// Models to try in order — first available wins
+const IMAGE_MODELS = [
+  "gemini-2.0-flash-preview-image-generation",
+  "gemini-2.0-flash-exp",
+  "gemini-2.5-flash",
+];
 
+async function tryGeminiModel(
+  genAI: GoogleGenerativeAI,
+  modelName: string,
+  prompt: string,
+  postId: number
+): Promise<string | null> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-preview-image-generation",
-    // responseModalities not yet typed in @google/generative-ai 0.24.x but required for image output
+    model: modelName,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generationConfig: { responseModalities: ["IMAGE"] } as any,
   });
@@ -65,8 +74,29 @@ async function generateWithGemini(prompt: string, postId: number): Promise<strin
       }
     }
   }
+  return null;
+}
 
-  throw new Error("Gemini returned no image data — check model availability in your region");
+async function generateWithGemini(prompt: string, postId: number): Promise<string> {
+  const genAI = new GoogleGenerativeAI(ENV.geminiApiKey);
+  const errors: string[] = [];
+
+  for (const modelName of IMAGE_MODELS) {
+    try {
+      const url = await tryGeminiModel(genAI, modelName, prompt, postId);
+      if (url) {
+        console.log(`[image-gen] Success with model: ${modelName}`);
+        return url;
+      }
+      errors.push(`${modelName}: returned no image data`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[image-gen] Model ${modelName} failed: ${msg}`);
+      errors.push(`${modelName}: ${msg}`);
+    }
+  }
+
+  throw new Error(`All Gemini image models failed:\n${errors.join("\n")}`);
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
