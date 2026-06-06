@@ -3,11 +3,11 @@
  *
  * Priority:
  *   1. Forge API (BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY)
- *   2. OpenAI DALL-E 3 (OPENAI_API_KEY)
+ *   2. OpenAI gpt-image-1 (OPENAI_API_KEY)
  *   3. Throws MarketingImageConfigError when neither is configured
  *
  * Note: Gemini image generation is country-restricted (unavailable in Egypt).
- * DALL-E 3 returns a URL that expires — we download and save locally.
+ * gpt-image-1 returns b64_json — saved directly to disk.
  */
 
 import fs from "node:fs/promises";
@@ -42,20 +42,19 @@ async function saveImageLocally(buffer: Buffer, postId: number): Promise<string>
 
 // ─── DALL-E 3 generation ──────────────────────────────────────────────────────
 
-async function generateWithDalle(prompt: string, postId: number): Promise<string> {
+async function generateWithOpenAI(prompt: string, postId: number): Promise<string> {
   const client = new OpenAI({ apiKey: ENV.openaiApiKey });
 
   const response = await client.images.generate({
-    model: "dall-e-3",
+    model: "gpt-image-1",
     prompt,
     n: 1,
     size: "1024x1024",
     quality: "standard",
   });
 
-  // Try URL first (default), fall back to b64_json if present
   const item = response.data?.[0];
-  if (!item) throw new Error("DALL-E 3 returned no image data");
+  if (!item) throw new Error("gpt-image-1 returned no image data");
 
   if (item.b64_json) {
     const buffer = Buffer.from(item.b64_json, "base64");
@@ -64,12 +63,12 @@ async function generateWithDalle(prompt: string, postId: number): Promise<string
 
   if (item.url) {
     const res = await fetch(item.url);
-    if (!res.ok) throw new Error(`Failed to download DALL-E image: ${res.status}`);
+    if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
     const buffer = Buffer.from(await res.arrayBuffer());
     return saveImageLocally(buffer, postId);
   }
 
-  throw new Error("DALL-E 3 returned neither url nor b64_json");
+  throw new Error("gpt-image-1 returned neither url nor b64_json");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -87,7 +86,7 @@ export async function generateMarketingImage(
 
   // Priority 2: OpenAI DALL-E 3
   if (ENV.openaiApiKey) {
-    return generateWithDalle(imagePrompt, postId);
+    return generateWithOpenAI(imagePrompt, postId);
   }
 
   throw new MarketingImageConfigError();
