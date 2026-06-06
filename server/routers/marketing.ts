@@ -221,22 +221,27 @@ export const marketingRouter = router({
 
       // Determine topic: explicit override or round-robin from list
       let selectedTopic = input.topic;
+      let postIndex = 0;
       if (!selectedTopic) {
         const [countRow] = await db
           .select({ total: drizzleCount() })
           .from(marketingPosts)
           .where(eq(marketingPosts.postDay, day));
-        const usedCount = countRow?.total ?? 0;
-        selectedTopic = pickTopic(day, usedCount);
+        postIndex = countRow?.total ?? 0;
+        selectedTopic = pickTopic(day, postIndex);
       }
 
       // Read brand profile (if available) to guide image prompt generation
       const brandProfile = await getActiveBrandProfile();
 
+      // Load clinic name from settings
+      const [settingsRow] = await db.select({ clinicName: marketingSettings.clinicName }).from(marketingSettings).limit(1);
+      const clinicName = settingsRow?.clinicName ?? "مركزك لطب العيون";
+
       // Generate AI content
       let generated;
       try {
-        generated = await generateMarketingContent(selectedTopic, day, brandProfile);
+        generated = await generateMarketingContent(selectedTopic, day, brandProfile, clinicName, postIndex);
       } catch (err) {
         await addLog(null, "generate_post", "error", `Content generation failed: ${String(err)}`);
         throw new Error("فشل توليد المحتوى — يرجى المحاولة مرة أخرى");
@@ -327,6 +332,7 @@ export const marketingRouter = router({
 
   updateSettings: adminProcedure
     .input(z.object({
+      clinicName: z.string().min(1).max(255).optional(),
       autoPublish: z.boolean().optional(),
       saturdayEnabled: z.boolean().optional(),
       tuesdayEnabled: z.boolean().optional(),

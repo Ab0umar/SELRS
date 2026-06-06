@@ -166,9 +166,10 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
     const [brandRow] = await db.select().from(marketingBrandProfile).limit(1);
 
     // Generate content
+    const clinicName = settings.clinicName ?? "مركزك لطب العيون";
     let generated;
     try {
-      generated = await generateMarketingContent(topic, day, brandRow ?? null);
+      generated = await generateMarketingContent(topic, day, brandRow ?? null, clinicName, usedCount);
     } catch (err) {
       await log(null, "scheduler_generate_content", "error", String(err));
       await setSchedulerStatus("error");

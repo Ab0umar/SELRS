@@ -180,6 +180,7 @@ export default function MarketingSettings() {
   const fbStatus = fbStatusQuery.data;
 
   const [form, setForm] = useState({
+    clinicName: "مركزك لطب العيون",
     autoPublish: false,
     saturdayEnabled: true,
     tuesdayEnabled: true,
@@ -190,6 +191,7 @@ export default function MarketingSettings() {
   useEffect(() => {
     if (settings) {
       setForm({
+        clinicName: settings.clinicName ?? "مركزك لطب العيون",
         autoPublish: settings.autoPublish,
         saturdayEnabled: settings.saturdayEnabled,
         tuesdayEnabled: settings.tuesdayEnabled,
@@ -344,6 +346,20 @@ export default function MarketingSettings() {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Clinic name */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-1 text-sm font-semibold text-foreground">اسم المركز</h2>
+        <p className="mb-3 text-xs text-muted-foreground">يُستخدم في المحتوى المُولَّد تلقائياً</p>
+        <input
+          type="text"
+          value={form.clinicName}
+          onChange={(e) => setForm((f) => ({ ...f, clinicName: e.target.value }))}
+          placeholder="مثال: مركز عيون الشروق"
+          dir="rtl"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
       </div>
 
       {/* Auto publish settings */}
