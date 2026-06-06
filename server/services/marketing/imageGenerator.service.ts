@@ -3,17 +3,17 @@
  *
  * Priority:
  *   1. Existing Forge API (BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY)
- *   2. OpenAI DALL-E 3 (OPENAI_API_KEY)
+ *   2. Gemini image generation (GEMINI_API_KEY) — gemini-2.0-flash-preview-image-generation
  *   3. Throws MarketingImageConfigError when neither is configured
  *
  * Storage:
  *   - Forge path: handled internally by generateImage() → storagePut() → returns URL
- *   - OpenAI path: downloads image bytes → saves to <cwd>/uploads/marketing/ →
- *     returns /uploads/marketing/<filename> (served as static by Express)
+ *   - Gemini path: returns inline base64 bytes → saves to uploads/marketing/ → /uploads/marketing/<file>
  */
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "../../_core/env";
 import { generateImage as forgeGenerateImage } from "../../_core/imageGeneration";
 
@@ -21,60 +21,55 @@ export class MarketingImageConfigError extends Error {
   constructor() {
     super(
       "No image generation API configured. " +
-        "Set OPENAI_API_KEY (DALL-E 3) or BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY."
+        "Set GEMINI_API_KEY or BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY."
     );
     this.name = "MarketingImageConfigError";
   }
 }
 
-// ─── Local-disk storage (OpenAI path) ────────────────────────────────────────
+// ─── Local disk storage ───────────────────────────────────────────────────────
 
 function getLocalImageDir(): string {
-  return (
-    ENV.marketingImageDir ||
-    path.resolve(process.cwd(), "uploads", "marketing")
-  );
+  return ENV.marketingImageDir || path.resolve(process.cwd(), "uploads", "marketing");
 }
 
-async function saveImageLocally(
-  buffer: Buffer,
-  ext: string,
-  postId: number
-): Promise<string> {
+async function saveImageLocally(buffer: Buffer, mimeType: string, postId: number): Promise<string> {
   const dir = getLocalImageDir();
   await fs.mkdir(dir, { recursive: true });
+  const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
   const filename = `${postId}-${Date.now()}.${ext}`;
   await fs.writeFile(path.join(dir, filename), buffer);
   return `/uploads/marketing/${filename}`;
 }
 
-// ─── OpenAI DALL-E 3 ─────────────────────────────────────────────────────────
+// ─── Gemini image generation ──────────────────────────────────────────────────
 
-async function generateWithOpenAI(prompt: string, postId: number): Promise<string> {
-  const { default: OpenAI } = await import("openai");
-  const client = new OpenAI({ apiKey: ENV.openaiApiKey });
+async function generateWithGemini(prompt: string, postId: number): Promise<string> {
+  const genAI = new GoogleGenerativeAI(ENV.geminiApiKey);
 
-  const response = await client.images.generate({
-    model: "dall-e-3",
-    prompt,
-    n: 1,
-    size: "1024x1024",
-    quality: "standard",
-    response_format: "url",
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash-preview-image-generation",
+    // responseModalities not yet typed in @google/generative-ai 0.24.x but required for image output
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    generationConfig: { responseModalities: ["IMAGE"] } as any,
   });
 
-  const imageUrl = response.data?.[0]?.url;
-  if (!imageUrl) throw new Error("DALL-E 3 returned no image URL");
+  const result = await model.generateContent(prompt);
+  const candidates = result.response.candidates ?? [];
 
-  // Download the image (DALL-E URLs expire in ~1h)
-  const fetched = await fetch(imageUrl);
-  if (!fetched.ok) throw new Error(`Failed to download DALL-E image: ${fetched.status}`);
-  const buffer = Buffer.from(await fetched.arrayBuffer());
+  for (const candidate of candidates) {
+    for (const part of candidate.content.parts) {
+      if (part.inlineData?.data && part.inlineData?.mimeType) {
+        const buffer = Buffer.from(part.inlineData.data, "base64");
+        return saveImageLocally(buffer, part.inlineData.mimeType, postId);
+      }
+    }
+  }
 
-  return saveImageLocally(buffer, "png", postId);
+  throw new Error("Gemini returned no image data — check model availability in your region");
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function generateMarketingImage(
   imagePrompt: string,
@@ -87,9 +82,9 @@ export async function generateMarketingImage(
     return result.url;
   }
 
-  // Priority 2: OpenAI DALL-E 3
-  if (ENV.openaiApiKey) {
-    return generateWithOpenAI(imagePrompt, postId);
+  // Priority 2: Gemini image generation
+  if (ENV.geminiApiKey) {
+    return generateWithGemini(imagePrompt, postId);
   }
 
   throw new MarketingImageConfigError();
