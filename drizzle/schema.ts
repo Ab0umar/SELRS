@@ -1539,3 +1539,68 @@ export const patientPortalBookings = mysqlTable("patient_portal_bookings", {
 
 export type PatientPortalBooking = typeof patientPortalBookings.$inferSelect;
 export type InsertPatientPortalBooking = typeof patientPortalBookings.$inferInsert;
+
+// ============================================================
+// Marketing Automation Module
+// ============================================================
+
+export const marketingPosts = mysqlTable("marketing_posts", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content"),
+  topic: varchar("topic", { length: 255 }),
+  idea: text("idea"),
+  cta: varchar("cta", { length: 500 }),
+  hashtags: text("hashtags"),
+  imagePrompt: text("image_prompt"),
+  imageUrl: varchar("image_url", { length: 1000 }),
+  platform: mysqlEnum("platform", ["facebook", "instagram", "both"]).default("facebook").notNull(),
+  postDay: mysqlEnum("post_day", ["saturday", "tuesday", "thursday"]),
+  status: mysqlEnum("status", ["draft", "published", "failed", "scheduled"]).default("draft").notNull(),
+  fbPostId: varchar("fb_post_id", { length: 255 }),
+  scheduledAt: timestamp("scheduled_at"),
+  publishedAt: timestamp("published_at"),
+  createdBy: int("created_by"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  statusIdx: index("idx_marketing_posts_status").on(table.status),
+  dayIdx: index("idx_marketing_posts_day").on(table.postDay),
+  createdAtIdx: index("idx_marketing_posts_created").on(table.createdAt),
+}));
+
+export type MarketingPost = typeof marketingPosts.$inferSelect;
+export type InsertMarketingPost = typeof marketingPosts.$inferInsert;
+
+export const marketingSettings = mysqlTable("marketing_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  autoPublish: boolean("auto_publish").default(false).notNull(),
+  saturdayEnabled: boolean("saturday_enabled").default(true).notNull(),
+  tuesdayEnabled: boolean("tuesday_enabled").default(true).notNull(),
+  thursdayEnabled: boolean("thursday_enabled").default(true).notNull(),
+  publishHour: int("publish_hour").default(9).notNull(),
+  fbPageId: varchar("fb_page_id", { length: 255 }),
+  fbAccessToken: text("fb_access_token"),
+  fbPageName: varchar("fb_page_name", { length: 255 }),
+  fbConnected: boolean("fb_connected").default(false).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MarketingSettings = typeof marketingSettings.$inferSelect;
+export type InsertMarketingSettings = typeof marketingSettings.$inferInsert;
+
+export const marketingLogs = mysqlTable("marketing_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("post_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  status: mysqlEnum("status", ["success", "error", "info"]).default("info").notNull(),
+  message: text("message"),
+  metadata: text("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  postIdx: index("idx_marketing_logs_post").on(table.postId),
+  createdAtIdx: index("idx_marketing_logs_created").on(table.createdAt),
+}));
+
+export type MarketingLog = typeof marketingLogs.$inferSelect;
+export type InsertMarketingLog = typeof marketingLogs.$inferInsert;

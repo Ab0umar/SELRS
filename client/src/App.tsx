@@ -107,6 +107,12 @@ const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const StockroomShell = lazy(() => import("./pages/StockroomShell"));
+// Marketing module
+import MarketingLayout from "./pages/marketing/MarketingLayout";
+const MarketingDashboard = lazy(() => import("./pages/marketing/MarketingDashboard"));
+const PostHistory = lazy(() => import("./pages/marketing/PostHistory"));
+const DraftPosts = lazy(() => import("./pages/marketing/DraftPosts"));
+const MarketingSettings = lazy(() => import("./pages/marketing/MarketingSettings"));
 // Attendance module
 import AttendanceLayout from "./pages/attendance/AttendanceLayout";
 const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
@@ -356,6 +362,12 @@ const Router = memo(function Router() {
       <Route path={"/accounting/instapay"} component={() => <ProtectedRoute><AccountingInstapay /></ProtectedRoute>} />
       <Route path={"/accounting/dr-saadany"} component={() => <ProtectedRoute><AccountingDrSaadany /></ProtectedRoute>} />
       <Route path={"/accounting/print"} component={() => <ProtectedRoute><PrintPreview /></ProtectedRoute>} />
+
+      {/* Marketing Module Routes */}
+      <Route path={"/marketing"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><MarketingDashboard /></MarketingLayout></ProtectedRoute>} />
+      <Route path={"/marketing/history"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><PostHistory /></MarketingLayout></ProtectedRoute>} />
+      <Route path={"/marketing/drafts"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><DraftPosts /></MarketingLayout></ProtectedRoute>} />
+      <Route path={"/marketing/settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><MarketingSettings /></MarketingLayout></ProtectedRoute>} />
 
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
       <Route path={"/patient-hub/*?"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
