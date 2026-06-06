@@ -9,6 +9,7 @@ import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "./auth";
+import { registerZKTecoAdms } from "./zktecoAdms";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -19,7 +20,7 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
-import { uploadToS3, downloadFromS3, listObjectsInS3 } from "./s3";
+import { uploadToS3, downloadFromS3, listObjectsInS3, getPresignedUrlFromS3 } from "./s3";
 import * as db from "../db";
 const execFile = promisify(execFileCb);
 
@@ -70,7 +71,7 @@ type OcrTsvRow = {
 const IMPORTABLE_IMAGE_EXT = /\.(jpg|jpeg|png|webp|bmp|tif|tiff)$/i;
 let blackIceDbCycleBusy = false;
 const DEFAULT_ALLOWED_CORS_ORIGINS = [
-  "https://op.selrs.cc",
+  "https://selrs.cc",
   "http://localhost",
   "https://localhost",
   "capacitor://localhost",
@@ -853,7 +854,7 @@ async function startServer() {
             });
 
             if ((existing as any[]).length > 0) {
-              console.log(`[blackice-import] Skipping ${fileName} (already imported as ID ${(existing as any[])[0].id})`);
+              // already-imported skips are too verbose to log individually
               continue;
             }
 
@@ -1189,9 +1190,10 @@ async function startServer() {
         return;
       }
 
+      // First query: metadata only — no file_data BLOB (can be multi-MB, wasteful if s3_key exists)
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
-          `SELECT id, document_id, file_name, mime_type, file_data, s3_key, created_at
+          `SELECT id, document_id, file_name, mime_type, s3_key, created_at
            FROM blackice_uploads
            WHERE id = ?
            LIMIT 1`,
@@ -1203,7 +1205,6 @@ async function startServer() {
               document_id: string;
               file_name: string | null;
               mime_type: string | null;
-              file_data: Buffer | null;
               s3_key: string | null;
               created_at: Date | string;
             }
@@ -1215,21 +1216,25 @@ async function startServer() {
         return;
       }
 
-      let fileBuffer: Buffer | null = null;
       if (row.s3_key) {
+        // Redirect to a pre-signed S3 URL — browser fetches directly, server is not in the data path
         try {
-          fileBuffer = await downloadFromS3(row.s3_key);
+          const signedUrl = await getPresignedUrlFromS3(row.s3_key, 3600);
+          res.redirect(302, signedUrl);
+          return;
         } catch (error: any) {
-          console.warn(`[blackice-api] S3 download failed for key ${row.s3_key}, falling back to DB blob`, error);
-          if (row.file_data && row.file_data.length > 0) {
-            fileBuffer = row.file_data;
-          }
+          console.warn(`[blackice-api] Failed to generate presigned URL for ${row.s3_key}, falling back to proxy`, error);
         }
-      } else if (row.file_data && row.file_data.length > 0) {
-        fileBuffer = row.file_data;
       }
 
-      if (!fileBuffer || fileBuffer.length === 0) {
+      // No S3 key (or presign failed) — fetch BLOB from DB and stream it
+      const blobRow = await withDb(async (conn) => {
+        const [r] = await conn.query(`SELECT file_data FROM blackice_uploads WHERE id = ? LIMIT 1`, [id]);
+        return (r as any[])[0] as { file_data: Buffer | null } | undefined;
+      });
+      const fileBuffer = blobRow?.file_data && blobRow.file_data.length > 0 ? blobRow.file_data : null;
+
+      if (!fileBuffer) {
         res.status(404).json({ ok: false, error: "Upload has no binary data" });
         return;
       }
@@ -1242,7 +1247,7 @@ async function startServer() {
 
       res.setHeader("Content-Type", mimeType);
       res.setHeader("Content-Length", String(fileBuffer.length));
-      res.setHeader("Cache-Control", "private, max-age=60");
+      res.setHeader("Cache-Control", "private, max-age=3600");
       res.setHeader(
         "Content-Disposition",
         `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`
@@ -1608,11 +1613,97 @@ async function startServer() {
       res.status(500).json({ ok: false, error: String(error?.message ?? "Failed to read Pentacam image") });
     }
   });
+  const marketingImageDir = path.resolve(process.env.MARKETING_IMAGE_DIR || path.join(process.cwd(), "uploads", "marketing"));
+  app.use("/uploads/marketing", express.static(marketingImageDir, { maxAge: "1d", fallthrough: true }));
+  app.use("/uploads/marketing/reference-designs", express.static(path.join(marketingImageDir, "reference-designs"), { maxAge: "1d", fallthrough: true }));
   app.use("/pentacam-exports", express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }));
   app.use(
     "/pentacam-failed",
     express.static(path.join(pentacamExportsDir, "_failed"), { maxAge: "5m", fallthrough: true })
   );
+
+  // Facebook OAuth callback — security: state is verified, token never logged or returned to client
+  app.get("/api/marketing/facebook/callback", async (req, res) => {
+    const { code, state, error: fbError } = req.query as Record<string, string | undefined>;
+
+    const appOrigin = process.env.FB_APP_ORIGIN || `${req.protocol}://${req.get("host")}`;
+    const settingsUrl = `${appOrigin}/marketing/settings`;
+
+    if (fbError) {
+      return res.redirect(`${settingsUrl}?fb=error&reason=${encodeURIComponent(fbError)}`);
+    }
+    if (!code || !state) {
+      return res.redirect(`${settingsUrl}?fb=error&reason=missing_params`);
+    }
+
+    try {
+      const { getDb } = await import("../db");
+      const { eq } = await import("drizzle-orm");
+      const { marketingSettings } = await import("../../drizzle/schema");
+      const {
+        exchangeCodeForToken,
+        exchangeForLongLivedToken,
+        getManagedPages,
+        toPublicPage,
+      } = await import("../services/marketing/facebookOAuth.service");
+
+      const db = await getDb();
+      if (!db) return res.redirect(`${settingsUrl}?fb=error&reason=db_unavailable`);
+
+      // Verify CSRF state
+      const [settings] = await db.select({ id: marketingSettings.id, fbOauthState: marketingSettings.fbOauthState }).from(marketingSettings).limit(1);
+      if (!settings || !settings.fbOauthState || settings.fbOauthState !== state) {
+        return res.redirect(`${settingsUrl}?fb=error&reason=invalid_state`);
+      }
+
+      const redirectUri = process.env.FB_REDIRECT_URI || `${appOrigin}/api/marketing/facebook/callback`;
+
+      const shortToken = await exchangeCodeForToken(code, redirectUri);
+      const longToken = await exchangeForLongLivedToken(shortToken);
+      const pages = await getManagedPages(longToken);
+
+      // Clear oauth state regardless of outcome
+      if (pages.length === 0) {
+        await db.update(marketingSettings).set({ fbOauthState: null }).where(eq(marketingSettings.id, settings.id));
+        return res.redirect(`${settingsUrl}?fb=error&reason=no_pages`);
+      }
+
+      if (pages.length === 1) {
+        const page = pages[0]!;
+        await db.update(marketingSettings).set({
+          fbPageId: page.id,
+          fbPageName: page.name,
+          fbAccessToken: page.accessToken,
+          fbConnected: true,
+          fbOauthState: null,
+          fbPendingPages: null,
+        }).where(eq(marketingSettings.id, settings.id));
+        return res.redirect(`${settingsUrl}?fb=connected`);
+      }
+
+      // Multiple pages — store public-safe list for admin selection (no tokens in fbPendingPages)
+      const pendingForStorage = pages.map((p, idx) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        _idx: idx,
+      }));
+      // Store full pages (with tokens) encoded — we need tokens for selection step
+      // Encode using a simple base64 to avoid logging the raw token
+      const pendingEncoded = Buffer.from(JSON.stringify(pages.map(p => ({ id: p.id, name: p.name, category: p.category, token: p.accessToken })))).toString("base64");
+      await db.update(marketingSettings).set({
+        fbOauthState: null,
+        fbPendingPages: pendingEncoded,
+      }).where(eq(marketingSettings.id, settings.id));
+
+      return res.redirect(`${settingsUrl}?fb=select`);
+    } catch (err) {
+      console.error("[fb-oauth] Callback error:", (err as Error).message);
+      return res.redirect(`${settingsUrl}?fb=error&reason=server_error`);
+    }
+  });
+  // ZKTeco ADMS push endpoint (remote fingerprint devices)
+  registerZKTecoAdms(app);
 
   // tRPC API
   app.use(

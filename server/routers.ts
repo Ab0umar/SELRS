@@ -8,6 +8,10 @@ import { accountingRouter } from "./routers/accounting";
 import { stockroomRouter } from "./routers/stockroom";
 import { attendanceRouter } from "./routers/attendance";
 import { salaryRouter } from "./routers/salary";
+import { patientPortalRouter } from "./routers/patientPortal";
+import { externalDoctorsRouter } from "./routers/externalDoctors";
+import { doctorPortalRouter } from "./routers/doctorPortal";
+import { marketingRouter } from "./routers/marketing";
 import * as db from "./db";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./_core/auth";
 import { TRPCError } from "@trpc/server";
@@ -128,12 +132,16 @@ export const appRouter = router({
       } as const;
     }),
   }),
+  patientPortal: patientPortalRouter,
+  externalDoctors: externalDoctorsRouter,
+  doctorPortal: doctorPortalRouter,
   medical: medicalRouter,
   patient: patientRouter,
   accounting: accountingRouter,
   attendance: attendanceRouter,
   stockroom: stockroomRouter,
   salary: salaryRouter,
+  marketing: marketingRouter,
 });
 
 export type AppRouter = typeof appRouter;

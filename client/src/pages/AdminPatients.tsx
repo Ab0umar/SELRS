@@ -68,12 +68,16 @@ export default function AdminPatients() {
     { label: "الليزك", value: list.monthStats.lasik },
     { label: "المركز", value: list.monthStats.center },
     { label: "خارجي", value: list.monthStats.external },
+    { label: "عمليات مركز", value: list.monthStats.surgery_c },
+    { label: "عمليات خارجي", value: list.monthStats.surgery_ex },
     { label: "الإجمالي", value: list.monthStats.total },
   ];
   const yearlyBannerStats = [
     { label: "الليزك", value: list.yearStats.lasik },
     { label: "المركز", value: list.yearStats.center },
     { label: "خارجي", value: list.yearStats.external },
+    { label: "عمليات مركز", value: list.yearStats.surgery_c },
+    { label: "عمليات خارجي", value: list.yearStats.surgery_ex },
     { label: "الإجمالي", value: list.yearStats.total },
   ];
 
@@ -128,7 +132,7 @@ export default function AdminPatients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
                 {monthlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -194,7 +198,7 @@ export default function AdminPatients() {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
                 {yearlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -285,6 +289,7 @@ export default function AdminPatients() {
             savePatientPageStatePending={list.savePatientPageStateMutation.isPending}
             selectedPatients={list.selectedPatients}
             serviceCodeToLabel={list.serviceCodeToLabel}
+            serviceCodeToType={list.serviceCodeToType}
             setPageSize={list.setPageSize}
             updatePatientPending={list.updatePatientMutation.isPending}
             visiblePatients={list.visiblePatients}

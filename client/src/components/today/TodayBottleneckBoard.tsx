@@ -383,29 +383,47 @@ function BookingRequestCard({
   removing,
   isReadOnly,
   onRemove,
+  onMoveToCheckedIn,
+  movingToCheckedIn,
 }: {
   request: VisitScheduleRequestRow;
   removing: boolean;
   isReadOnly?: boolean;
   onRemove: () => void;
+  onMoveToCheckedIn?: () => void;
+  movingToCheckedIn?: boolean;
 }) {
   const serviceText = serviceTypeLabels[String(request.service ?? "")] ?? request.service ?? "—";
 
   return (
     <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-right shadow-sm">
-      <div className="flex items-start gap-3">
-        <label className="mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-card-foreground transition-colors hover:bg-warning/10">
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-primary"
-            checked={removing}
-            disabled={removing || isReadOnly}
-            aria-label={`إزالة ${request.fullName} من حجز`}
-            onChange={(event) => {
-              if (event.target.checked) onRemove();
-            }}
-          />
-        </label>
+      <div className="flex items-start gap-2">
+        <div className="mt-1 flex shrink-0 flex-col gap-2">
+          <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-info/30 bg-background text-card-foreground transition-colors hover:bg-info/10" title="نقل إلى التسجيل">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-info"
+              checked={movingToCheckedIn ?? false}
+              disabled={movingToCheckedIn || isReadOnly || removing}
+              aria-label={`نقل ${request.fullName} إلى التسجيل`}
+              onChange={(event) => {
+                if (event.target.checked && onMoveToCheckedIn) onMoveToCheckedIn();
+              }}
+            />
+          </label>
+          <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-card-foreground transition-colors hover:bg-warning/10" title="إلغاء">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={removing}
+              disabled={removing || isReadOnly || movingToCheckedIn}
+              aria-label={`إزالة ${request.fullName} من حجز`}
+              onChange={(event) => {
+                if (event.target.checked) onRemove();
+              }}
+            />
+          </label>
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{request.fullName || "—"}</p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
@@ -576,7 +594,7 @@ export function TodayBottleneckBoard({
       toast.success("تم تسجيل المريض كمعالج");
     },
     onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة الطابور"));
+      toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة المرضى"));
     },
   });
 
@@ -793,7 +811,7 @@ export function TodayBottleneckBoard({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              الطابور
+              المرضى
               {merged.length > 0 ? (
                 <Badge className="bg-muted/80 text-[10px] tabular-nums text-muted-foreground">
                   {merged.length.toLocaleString("ar-EG")}
@@ -871,7 +889,7 @@ export function TodayBottleneckBoard({
 
         {isHistoricalDate ? (
           <div className="mt-3 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-            هذا التاريخ للقراءة فقط. يمكنك مراجعة الطابور والعمليات، لكن إجراءات التسجيل والحجز متوقفة.
+            هذا التاريخ للقراءة فقط. يمكنك مراجعة المرضى والعمليات، لكن إجراءات التسجيل والحجز متوقفة.
           </div>
         ) : null}
       </div>
@@ -972,8 +990,13 @@ export function TodayBottleneckBoard({
                       key={request.id}
                       request={request}
                       removing={removeScheduleRequest.isPending && removeScheduleRequest.variables?.requestId === request.id}
+                      movingToCheckedIn={false}
                       isReadOnly={isHistoricalDate}
                       onRemove={() => removeScheduleRequest.mutate({ requestId: request.id })}
+                      onMoveToCheckedIn={() => {
+                        // TODO: Implement moving schedule request to checked-in status
+                        toast.info("سيتم نقل الحجز إلى التسجيل");
+                      }}
                     />
                   ))}
                 </div>

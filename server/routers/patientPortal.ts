@@ -1,16 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure, adminProcedure, patientPortalProcedure } from "../_core/procedures";
-import { getDb } from "../db";
+import { getDb, getGlassesRecordsByPatient, getPrescriptionsWithItemsByPatient } from "../db";
 import {
   patientPortalSessions,
   patientPortalBookings,
   bookingScheduleConfig,
+  bookingClosures,
   patients,
 } from "../../drizzle/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, ne, sql, lte, gte, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
+import { sendFcmPushToRegisteredDevices } from "../_core/fcmPush";
+import { sendWebPushToSubscription } from "../_core/webPush";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -26,10 +29,16 @@ const BOOKING_TYPE_LABELS: Record<string, string> = {
   specialist: "كشف أخصائي",
   lasik: "فحوصات الليزك",
   external: "أشعة خارجي",
+  followup: "متابعة",
 };
 
 // weekdayMask: bit 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-function getAvailableDatesForMask(mask: number, from: Date, count: number): string[] {
+function getAvailableDatesForMask(
+  mask: number,
+  from: Date,
+  count: number,
+  closures: Array<{ startDate: string; endDate: string }> = [],
+): string[] {
   const dates: string[] = [];
   const cursor = new Date(from);
   cursor.setHours(0, 0, 0, 0);
@@ -38,9 +47,14 @@ function getAvailableDatesForMask(mask: number, from: Date, count: number): stri
   if (cursor < today) cursor.setTime(today.getTime());
 
   for (let tries = 0; tries < 365 && dates.length < count; tries++) {
-    const dow = cursor.getDay(); // 0=Sun ... 6=Sat
+    const dow = cursor.getDay();
     if ((mask >> dow) & 1) {
-      dates.push(cursor.toISOString().slice(0, 10));
+      const y = cursor.getFullYear();
+      const m = String(cursor.getMonth() + 1).padStart(2, "0");
+      const d = String(cursor.getDate()).padStart(2, "0");
+      const dateStr = `${y}-${m}-${d}`;
+      const inClosure = closures.some((c) => dateStr >= c.startDate && dateStr <= c.endDate);
+      if (!inClosure) dates.push(dateStr);
     }
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -53,7 +67,7 @@ export const patientPortalRouter = router({
   login: publicProcedure
     .input(z.object({
       phone: z.string().min(8).max(20),
-      dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "تاريخ الميلاد غير صحيح"),
+      patientCode: z.string().min(1).max(30),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -62,20 +76,21 @@ export const patientPortalRouter = router({
       const phone = normalizePhone(input.phone);
 
       const [patient] = await db
-        .select({ id: patients.id, fullName: patients.fullName, patientCode: patients.patientCode, dateOfBirth: patients.dateOfBirth })
+        .select({ id: patients.id, fullName: patients.fullName, patientCode: patients.patientCode })
         .from(patients)
         .where(eq(patients.phone, phone))
         .limit(1);
 
-      if (!patient || !patient.dateOfBirth) {
+      if (!patient) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "البيانات غير مسجلة — تواصل مع الاستقبال",
         });
       }
 
-      const storedDob = String(patient.dateOfBirth).slice(0, 10);
-      if (storedDob !== input.dateOfBirth) {
+      const storedCode = String(patient.patientCode ?? "").trim().toLowerCase();
+      const inputCode  = input.patientCode.trim().toLowerCase();
+      if (!storedCode || storedCode !== inputCode) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "البيانات غير صحيحة — تواصل مع الاستقبال",
@@ -151,10 +166,18 @@ export const patientPortalRouter = router({
     return list;
   }),
 
-  getAvailableDates: patientPortalProcedure
+  getMyRefractions: patientPortalProcedure.query(async ({ ctx }) => {
+    return await getGlassesRecordsByPatient(ctx.patientSession.patientId);
+  }),
+
+  getMyPrescriptions: patientPortalProcedure.query(async ({ ctx }) => {
+    return await getPrescriptionsWithItemsByPatient(ctx.patientSession.patientId);
+  }),
+
+  getAvailableDates: publicProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
         fromDate: z.string().optional(),
       }),
     )
@@ -174,14 +197,32 @@ export const patientPortalRouter = router({
       if (!isActive) return { dates: [], label: BOOKING_TYPE_LABELS[input.bookingType] };
 
       const from = input.fromDate ? new Date(input.fromDate) : new Date();
-      const dates = getAvailableDatesForMask(mask, from, 14);
+
+      // Fetch active closures that overlap the potential date range (next ~6 months)
+      const rangeEnd = new Date(from);
+      rangeEnd.setMonth(rangeEnd.getMonth() + 6);
+      const fromStr = from.toISOString().slice(0, 10);
+      const toStr = rangeEnd.toISOString().slice(0, 10);
+      const closureRows = await db
+        .select({ startDate: bookingClosures.startDate, endDate: bookingClosures.endDate, bookingType: bookingClosures.bookingType })
+        .from(bookingClosures)
+        .where(and(lte(bookingClosures.startDate, toStr), gte(bookingClosures.endDate, fromStr)));
+      // Only closures that apply to this booking type (null = all types)
+      const closures = closureRows
+        .filter((r) => r.bookingType == null || r.bookingType === input.bookingType)
+        .map((r) => ({
+          startDate: typeof r.startDate === "string" ? r.startDate : (r.startDate as Date).toISOString().slice(0, 10),
+          endDate: typeof r.endDate === "string" ? r.endDate : (r.endDate as Date).toISOString().slice(0, 10),
+        }));
+
+      const dates = getAvailableDatesForMask(mask, from, 14, closures);
       return { dates, label: BOOKING_TYPE_LABELS[input.bookingType] };
     }),
 
   createBooking: patientPortalProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
@@ -193,10 +234,58 @@ export const patientPortalRouter = router({
       await db.insert(patientPortalBookings).values({
         patientId: ctx.patientSession.patientId,
         bookingType: input.bookingType,
-        requestedDate: input.requestedDate,
-        notes: input.notes ?? null,
+        requestedDate: new Date(input.requestedDate),
+        notes: input.notes ?? undefined,
         status: "pending",
       });
+
+      const typeLabel = BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      sendFcmPushToRegisteredDevices({
+        notificationId: `booking-new-${Date.now()}`,
+        title: "طلب حجز جديد",
+        body: `${typeLabel} — ${input.requestedDate}`,
+        kind: "info",
+        targetRoles: ["admin", "reception"],
+        path: "/admin-hub/portal-bookings",
+        entityType: "booking",
+      }).catch(() => {});
+
+      return { ok: true };
+    }),
+
+  createGuestBooking: publicProcedure
+    .input(
+      z.object({
+        guestName: z.string().min(2).max(100),
+        guestPhone: z.string().min(8).max(20),
+        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db.insert(patientPortalBookings).values({
+        guestName: input.guestName,
+        guestPhone: normalizePhone(input.guestPhone),
+        bookingType: input.bookingType,
+        requestedDate: new Date(input.requestedDate),
+        notes: input.notes ?? undefined,
+        status: "pending",
+      });
+
+      const typeLabel = BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      sendFcmPushToRegisteredDevices({
+        notificationId: `booking-guest-${Date.now()}`,
+        title: "طلب حجز جديد (زائر)",
+        body: `${input.guestName} — ${typeLabel} — ${input.requestedDate}`,
+        kind: "info",
+        targetRoles: ["admin", "reception"],
+        path: "/admin-hub/portal-bookings",
+        entityType: "booking",
+      }).catch(() => {});
 
       return { ok: true };
     }),
@@ -215,6 +304,32 @@ export const patientPortalRouter = router({
     return rows.map((r) => ({ ...r, typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType }));
   }),
 
+  getNotifications: patientPortalProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+    const rows = await db
+      .select()
+      .from(patientPortalBookings)
+      .where(and(
+        eq(patientPortalBookings.patientId, ctx.patientSession.patientId),
+        ne(patientPortalBookings.status, "pending"),
+      ))
+      .orderBy(desc(patientPortalBookings.createdAt))
+      .limit(20);
+
+    return rows.map((r) => ({
+      id: r.id,
+      bookingType: r.bookingType,
+      typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType,
+      status: r.status,
+      confirmedDate: r.confirmedDate,
+      staffNotes: r.staffNotes,
+      requestedDate: r.requestedDate,
+      createdAt: r.createdAt,
+    }));
+  }),
+
   // ── Staff / Admin ─────────────────────────────────────────────────────────
 
   listBookings: protectedProcedure
@@ -229,8 +344,8 @@ export const patientPortalRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-      const conditions = [];
-      if (input.date) conditions.push(eq(patientPortalBookings.requestedDate, input.date));
+      const conditions: ReturnType<typeof eq>[] = [];
+      if (input.date) conditions.push(eq(patientPortalBookings.requestedDate, new Date(input.date)));
       if (input.status) conditions.push(eq(patientPortalBookings.status, input.status));
 
       const rows = await db
@@ -249,10 +364,61 @@ export const patientPortalRouter = router({
       return rows.map((r) => ({
         ...r.booking,
         typeLabel: BOOKING_TYPE_LABELS[r.booking.bookingType] ?? r.booking.bookingType,
-        patientName: r.patientName,
-        patientCode: r.patientCode,
-        patientPhone: r.patientPhone,
+        patientName: r.patientName ?? r.booking.guestName ?? null,
+        patientCode: r.patientCode ?? null,
+        patientPhone: r.patientPhone ?? r.booking.guestPhone ?? null,
+        isGuest: r.booking.patientId === null,
       }));
+    }),
+
+  createStaffBooking: protectedProcedure
+    .input(
+      z.object({
+        patientId: z.number().int(),
+        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        confirmedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        status: z.enum(["pending", "confirmed", "cancelled", "completed"]).default("confirmed"),
+        notes: z.string().max(500).optional(),
+        staffNotes: z.string().max(1000).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db.insert(patientPortalBookings).values({
+        patientId: input.patientId,
+        bookingType: input.bookingType,
+        requestedDate: new Date(input.requestedDate),
+        confirmedDate: input.confirmedDate ? new Date(input.confirmedDate) : undefined,
+        status: input.status,
+        notes: input.notes ?? undefined,
+        staffNotes: input.staffNotes ?? undefined,
+      });
+
+      return { ok: true };
+    }),
+
+  deleteBooking: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.delete(patientPortalBookings).where(eq(patientPortalBookings.id, input.id));
+      return { ok: true };
+    }),
+
+  registerPatientPushToken: patientPortalProcedure
+    .input(z.object({ subscription: z.string().min(10) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db
+        .update(patientPortalSessions)
+        .set({ pushSubscription: input.subscription })
+        .where(eq(patientPortalSessions.token, ctx.patientSession.token));
+      return { ok: true };
     }),
 
   updateBooking: protectedProcedure
@@ -272,10 +438,48 @@ export const patientPortalRouter = router({
         .update(patientPortalBookings)
         .set({
           status: input.status,
-          staffNotes: input.staffNotes ?? null,
-          confirmedDate: input.confirmedDate ?? null,
+          staffNotes: input.staffNotes ?? undefined,
+          confirmedDate: input.confirmedDate ? new Date(input.confirmedDate) : undefined,
         })
         .where(eq(patientPortalBookings.id, input.id));
+
+      // Notify patient if status changed to confirmed or cancelled
+      if (input.status === "confirmed" || input.status === "cancelled") {
+        const [booking] = await db
+          .select({ patientId: patientPortalBookings.patientId, bookingType: patientPortalBookings.bookingType })
+          .from(patientPortalBookings)
+          .where(eq(patientPortalBookings.id, input.id))
+          .limit(1);
+
+        if (booking?.patientId) {
+          const sessions = await db
+            .select({ pushSubscription: patientPortalSessions.pushSubscription })
+            .from(patientPortalSessions)
+            .where(eq(patientPortalSessions.patientId, booking.patientId));
+
+          const statusLabel = input.status === "confirmed" ? "تم تأكيد موعدك" : "تم رفض طلب الحجز";
+          const typeLabel = BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType;
+
+          for (const session of sessions) {
+            if (session.pushSubscription) {
+              sendWebPushToSubscription(session.pushSubscription, {
+                notificationId: `booking-${input.id}-${input.status}`,
+                title: statusLabel,
+                body: typeLabel,
+                kind: input.status === "confirmed" ? "success" : "warning",
+                path: "/my/bookings",
+              }).then((result) => {
+                if (result === "expired") {
+                  db.update(patientPortalSessions)
+                    .set({ pushSubscription: null })
+                    .where(eq(patientPortalSessions.pushSubscription, session.pushSubscription!))
+                    .catch(() => {});
+                }
+              }).catch(() => {});
+            }
+          }
+        }
+      }
 
       return { ok: true };
     }),
@@ -285,7 +489,7 @@ export const patientPortalRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
     const rows = await db.select().from(bookingScheduleConfig);
-    const types = ["consultant", "specialist", "lasik", "external"] as const;
+    const types = ["consultant", "specialist", "lasik", "external", "followup"] as const;
     return types.map((t) => {
       const found = rows.find((r) => r.bookingType === t);
       return {
@@ -298,10 +502,49 @@ export const patientPortalRouter = router({
     });
   }),
 
-  updateSchedule: adminProcedure
+  // ── Closure periods ───────────────────────────────────────────────────────
+
+  listClosures: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    return db.select().from(bookingClosures).orderBy(bookingClosures.startDate);
+  }),
+
+  addClosure: protectedProcedure
+    .input(z.object({
+      label: z.string().min(1).max(255),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]).nullable().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      if (input.endDate < input.startDate) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.insert(bookingClosures).values({
+        label: input.label,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        bookingType: input.bookingType ?? null,
+      } as any);
+      return { ok: true };
+    }),
+
+  deleteClosure: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.delete(bookingClosures).where(eq(bookingClosures.id, input.id));
+      return { ok: true };
+    }),
+
+  updateSchedule: protectedProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
         weekdayMask: z.number().int().min(0).max(127),
         isActive: z.boolean(),
       }),

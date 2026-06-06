@@ -232,7 +232,7 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
             subtitle="إدارة مواعيد المتابعة"
             icon={<CalendarCheck className="h-5 w-5" />}
             action={
-              <Button size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setLocation("/patients")} type="button">
+              <Button size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setLocation("/followup/0")} type="button">
                 <Plus className="h-4 w-4" />
                 <span className="text-xs sm:text-sm">متابعة جديدة</span>
               </Button>

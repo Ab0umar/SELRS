@@ -1823,7 +1823,7 @@ export async function getAllPatientsForMatching(): Promise<Array<{ id: number; p
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
-    sql`SELECT id, patientCode, fullName, lastVisit, createdAt FROM patients ORDER BY CAST(patientCode AS UNSIGNED) ASC`
+    sql`SELECT id, patientCode, fullName, lastVisit, createdAt FROM patients`
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []).map((r: any) => ({
@@ -1927,7 +1927,7 @@ export async function getPatientStats(
   const safeYear = Number.isFinite(year) ? Math.trunc(year) : 0;
   const safeMonth = Number.isFinite(month as number) ? Math.trunc(month as number) : undefined;
   if (safeYear < 1900 || safeYear > 3000) {
-    return { total: 0, center: 0, external: 0, lasik: 0 };
+    return { total: 0, center: 0, external: 0, lasik: 0, surgery_c: 0, surgery_ex: 0 };
   }
 
   const normalizeServiceType = (value: unknown) => {
@@ -2058,6 +2058,7 @@ export async function getPatientStats(
     return sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN (${sql.join(codes.map((code) => sql`${code}`), sql`, `)})`;
   };
 
+  const surgeryExpr = sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1503', '1504', '1509', '1510', '1511', '1512', '1514', '1515', '1516', '1517', '1518', '1519', '1567', '1568', '1578', '1579', '1580', '1581', '1585', '1587', '1593', '1599', '1607')`;
   const effectiveServiceDate = sql`COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))`;
   const whereClauses: any[] = [sql`YEAR(${effectiveServiceDate}) = ${safeYear}`];
   if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
@@ -2103,16 +2104,20 @@ export async function getPatientStats(
         center: sql<number>`COUNT(DISTINCT CASE WHEN ${patients.locationType} = 'center' THEN ${patients.id} END)`,
         external: sql<number>`COUNT(DISTINCT CASE WHEN ${patients.locationType} = 'external' THEN ${patients.id} END)`,
         lasik: sql<number>`COUNT(DISTINCT CASE WHEN ${lasikExpr} THEN ${patients.id} END)`,
+        surgery_c: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'center' THEN ${patients.id} END)`,
+        surgery_ex: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'external' THEN ${patients.id} END)`,
       })
       .from(patientServiceEntries)
       .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
       .where(whereClause);
-    const row = rows[0] ?? { total: 0, center: 0, external: 0, lasik: 0 };
+    const row = rows[0] ?? { total: 0, center: 0, external: 0, lasik: 0, surgery_c: 0, surgery_ex: 0 };
     return {
       total: Number(row.total ?? 0),
       center: Number(row.center ?? 0),
       external: Number(row.external ?? 0),
       lasik: Number(row.lasik ?? 0),
+      surgery_c: Number(row.surgery_c ?? 0),
+      surgery_ex: Number(row.surgery_ex ?? 0),
     };
   }
 
@@ -2158,13 +2163,16 @@ export async function getPatientStats(
   `) as any;
   const rawRow = Array.isArray(rawCount) ? rawCount[0]?.[0] : rawCount?.rows?.[0];
 
-  const lasikRows = await db
-    .select({ lasik: sql<number>`COUNT(DISTINCT ${patientServiceEntries.patientId})` })
+  const statsRows = await db
+    .select({
+      lasik: sql<number>`COUNT(DISTINCT CASE WHEN LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1501', '1502') THEN ${patientServiceEntries.patientId} END)`,
+      surgery_c: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'center' THEN ${patientServiceEntries.patientId} END)`,
+      surgery_ex: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'external' THEN ${patientServiceEntries.patientId} END)`,
+    })
     .from(patientServiceEntries)
     .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
     .where(
       and(
-        sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1501', '1502')`,
         sql`YEAR(COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))) = ${safeYear}`,
         ...(patientWhereClause ? [patientWhereClause] : [])
       )
@@ -2173,12 +2181,14 @@ export async function getPatientStats(
   const patientRows = [rawRow ?? { total: 0, center: 0, external: 0 }];
 
   const pr = patientRows[0] ?? { total: 0, center: 0, external: 0 };
-  const lr = lasikRows[0] ?? { lasik: 0 };
+  const sr = statsRows[0] ?? { lasik: 0, surgery_c: 0, surgery_ex: 0 };
   return {
     total: Number(pr.total ?? 0),
     center: Number(pr.center ?? 0),
     external: Number(pr.external ?? 0),
-    lasik: Number(lr.lasik ?? 0),
+    lasik: Number(sr.lasik ?? 0),
+    surgery_c: Number(sr.surgery_c ?? 0),
+    surgery_ex: Number(sr.surgery_ex ?? 0),
   };
 }
 
@@ -3709,6 +3719,47 @@ export async function deletePentacamResultsByIds(ids: number[]) {
   return normalized.length;
 }
 
+export async function getLinkedBlackiceUploadsWithPatient(limit = 80000) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 200000);
+  const result = await db.execute(
+    sql`SELECT bu.id, bu.file_name, bu.patient_id, p.patientCode, p.fullName
+        FROM blackice_uploads bu
+        JOIN patients p ON bu.patient_id = p.id
+        WHERE bu.patient_id IS NOT NULL AND bu.file_name IS NOT NULL
+        LIMIT ${safeLimit}`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function unlinkBlackiceUploadsByIds(ids: number[]): Promise<number> {
+  if (!ids.length) return 0;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL not set");
+  const mysql = (await import("mysql2/promise")).default;
+  const conn = await mysql.createConnection(url);
+  try {
+    const placeholders = ids.map(() => "?").join(",");
+    const [result] = await conn.query(
+      `UPDATE blackice_uploads SET patient_id = NULL WHERE id IN (${placeholders})`,
+      ids
+    );
+    return Number((result as any)?.affectedRows ?? 0);
+  } finally {
+    await conn.end().catch(() => {});
+  }
+}
+
+export async function reassignBlackiceUploadPatient(uploadId: number, patientId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.execute(
+    sql`UPDATE blackice_uploads SET patient_id = ${patientId} WHERE id = ${uploadId}`
+  );
+}
+
 export async function getBlackiceUploadsByPatient(patientId: number, limit = 100) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -3739,32 +3790,51 @@ export async function linkBlackiceUploadToPatient(baseName: string, patientId: n
  * Uses mysql2/promise directly — avoids the Drizzle $client ambiguity that caused
  * either "not iterable" crashes or indefinite hangs on sequential per-file calls.
  */
+export async function getPatientIdsByCodes(codes: string[]): Promise<Map<string, number>> {
+  if (!codes.length) return new Map();
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const unique = Array.from(new Set(codes.map((c) => String(c ?? "").trim()).filter(Boolean)));
+  if (!unique.length) return new Map();
+  const result = await db.execute(
+    sql`SELECT id, patientCode FROM patients WHERE patientCode IN (${sql.join(unique.map((c) => sql`${c}`), sql`, `)})`
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  const map = new Map<string, number>();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const code = String((r as any).patientCode ?? "").trim();
+    const id = Number((r as any).id ?? 0);
+    if (code && id > 0) map.set(code, id);
+  }
+  return map;
+}
+
 export async function linkBlackiceUploadsBatch(
   pairs: Array<{ fileName: string; patientId: number }>
 ): Promise<number> {
   if (!pairs.length) return 0;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
+
   const conn = await mysql.createConnection(url);
   try {
-    // Build one UPDATE … CASE WHEN … END per patientId group
-    // to avoid N individual round-trips.
-    const byPatient = new Map<number, string[]>();
+    // Single UPDATE with CASE WHEN — one table scan for all pairs instead of N per-patient scans.
+    // Without an index on file_name every per-patient UPDATE is a full scan; 100+ scans × seconds each
+    // easily exceeds the 100s Cloudflare timeout.
+    const caseWhenClauses = pairs.map(() => "WHEN ? THEN ?").join(" ");
+    const inPlaceholders = pairs.map(() => "?").join(",");
+    const params: (string | number)[] = [];
     for (const { fileName, patientId } of pairs) {
-      const files = byPatient.get(patientId) ?? [];
-      files.push(fileName);
-      byPatient.set(patientId, files);
+      params.push(fileName, patientId);
     }
-    let total = 0;
-    for (const [patientId, fileNames] of byPatient) {
-      const placeholders = fileNames.map(() => "?").join(",");
-      const [result] = await conn.execute(
-        `UPDATE blackice_uploads SET patient_id = ? WHERE file_name IN (${placeholders}) AND patient_id IS NULL`,
-        [patientId, ...fileNames]
-      );
-      total += Number((result as any)?.affectedRows ?? 0);
+    for (const { fileName } of pairs) {
+      params.push(fileName);
     }
-    return total;
+    const [result] = await conn.query(
+      `UPDATE blackice_uploads SET patient_id = CASE file_name ${caseWhenClauses} END WHERE file_name IN (${inPlaceholders}) AND patient_id IS NULL`,
+      params
+    );
+    return Number((result as any)?.affectedRows ?? 0);
   } finally {
     await conn.end().catch(() => {});
   }

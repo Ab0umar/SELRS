@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { serviceTypeLabels } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ const SERVICE_KEYS = ["consultant", "specialist", "lasik", "surgery", "external"
 export function ScheduleVisitDialog({
   open,
   onOpenChange,
-  /** عند فتحها من مريض محدد في الطابور — تعبئة أولية */
+  /** عند فتحها من مريض محدد في المرضى — تعبئة أولية */
   prefilledPatientId,
 }: {
   open: boolean;
@@ -39,6 +40,8 @@ export function ScheduleVisitDialog({
   const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [phone, setPhone] = useState("");
   const [service, setService] = useState<string>("consultant");
+  const [moveToCheckedIn, setMoveToCheckedIn] = useState(false);
+  const [cancelPreviousAppointment, setCancelPreviousAppointment] = useState(false);
 
   const patientQuery = trpc.patient.getPatient.useQuery(prefilledPatientId ?? 0, {
     enabled: open && Boolean(prefilledPatientId && prefilledPatientId > 0),
@@ -179,12 +182,37 @@ export function ScheduleVisitDialog({
 
               <div className="space-y-1">
                 <Label className="font-bold text-[11px] text-primary">تاريخ الزيارة</Label>
-                <Input 
-                  type="date" 
-                  value={visitDate} 
-                  onChange={(e) => setVisitDate(e.target.value)} 
-                  className="h-9 text-sm font-mono border-primary/20 bg-background" 
+                <Input
+                  type="date"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  className="h-9 text-sm font-mono border-primary/20 bg-background"
                 />
+              </div>
+
+              <div className="space-y-2.5 pt-2 border-t border-primary/10">
+                <div className="flex items-center gap-2.5">
+                  <Checkbox
+                    id="move-to-checkin"
+                    checked={moveToCheckedIn}
+                    onCheckedChange={(checked) => setMoveToCheckedIn(Boolean(checked))}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="move-to-checkin" className="text-[11px] font-medium cursor-pointer text-primary">
+                    نقل إلى التسجيل
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Checkbox
+                    id="cancel-previous"
+                    checked={cancelPreviousAppointment}
+                    onCheckedChange={(checked) => setCancelPreviousAppointment(Boolean(checked))}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="cancel-previous" className="text-[11px] font-medium cursor-pointer text-primary">
+                    إلغاء الموعد السابق
+                  </Label>
+                </div>
               </div>
 
               <div className="pt-2">

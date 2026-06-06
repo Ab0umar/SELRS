@@ -69,7 +69,7 @@ export function useAdminPatientsList() {
     staleTime: 60 * 60 * 1000,
     refetchOnReconnect: false,
   });
-  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
+  const serviceDirectoryQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
     refetchOnWindowFocus: false,
     staleTime: 60 * 60 * 1000,
     refetchOnReconnect: false,
@@ -675,6 +675,7 @@ export function useAdminPatientsList() {
     searchTerm,
     selectedPatients,
     serviceCodeToLabel,
+    serviceCodeToType,
     serviceTypeFilter,
     setDateFrom,
     setDateTo,

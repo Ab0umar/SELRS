@@ -166,6 +166,8 @@ const sheetOptions: Array<{ value: SheetType; label: string }> = [
   { value: "specialist", label: "اخصائي" },
   { value: "lasik", label: "فحوصات الليزك" },
   { value: "external", label: "خارجي" },
+  { value: "surgery_center", label: "عمليات مركز" },
+  { value: "surgery_external", label: "عمليات خارجي" },
   { value: "pentacam_c", label: "Pentacam C" },
   { value: "pentacam_ex", label: "Pentacam Ex" },
   { value: "pentacam_ex_c", label: "Pentacam Ex.C" },
@@ -514,8 +516,12 @@ export default function AdminServices() {
       toast.error("لا توجد خدمات محددة للنقل");
       return;
     }
+    const updated = services.filter((s) => selectedVisible.includes(s.id));
     setServices((prev) => prev.map((s) => (selectedVisible.includes(s.id) ? { ...s, category: moveTarget } : s)));
     setSelectedIds((prev) => prev.filter((id) => !selectedVisible.includes(id)));
+    updated.forEach((s) =>
+      updateServiceInDbMutation.mutate({ id: s.id, category: moveTarget ?? null }),
+    );
     toast.success(`تم نقل ${selectedVisible.length} خدمة إلى ${getCategoryLabel(moveTarget)}`);
   };
 
@@ -525,8 +531,13 @@ export default function AdminServices() {
       toast.error("لا توجد خدمات محددة لتغيير الشيت");
       return;
     }
-    setServices((prev) => prev.map((s) => (selectedVisible.includes(s.id) ? { ...s, defaultSheet: sheetTarget } : s)));
+    const updated = services.filter((s) => selectedVisible.includes(s.id));
+    const newSrvTyp = normalizeSrvTyp(undefined, "consultant", sheetTarget);
+    setServices((prev) => prev.map((s) => (selectedVisible.includes(s.id) ? { ...s, defaultSheet: sheetTarget, srvTyp: newSrvTyp } : s)));
     setSelectedIds((prev) => prev.filter((id) => !selectedVisible.includes(id)));
+    updated.forEach((s) =>
+      updateServiceInDbMutation.mutate({ id: s.id, defaultSheet: sheetTarget, srvTyp: newSrvTyp }),
+    );
     toast.success(`تم تغيير الشيت لـ ${selectedVisible.length} خدمة`);
   };
 

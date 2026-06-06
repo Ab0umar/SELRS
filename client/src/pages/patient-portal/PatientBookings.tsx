@@ -1,66 +1,153 @@
+import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, Sparkles, TicketCheck } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
 import PatientLayout from "./PatientLayout";
-import { Badge } from "@/components/ui/badge";
+import {
+  PortalEmptyState,
+  PortalLoadingRows,
+  PortalMetric,
+  PortalPanel,
+  PortalShell,
+  PortalStatusBadge,
+  formatArabicDate,
+} from "./portal-ui";
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
-  pending:   { label: "قيد المراجعة", variant: "secondary" },
-  confirmed: { label: "مؤكد", variant: "default" },
-  cancelled: { label: "ملغي", variant: "destructive" },
-  completed: { label: "مكتمل", variant: "outline" },
+const STATUS_META: Record<string, { label: string; tone: "pending" | "confirmed" | "cancelled" | "completed" }> = {
+  pending: { label: "قيد المراجعة", tone: "pending" },
+  confirmed: { label: "مؤكد", tone: "confirmed" },
+  cancelled: { label: "ملغي", tone: "cancelled" },
+  completed: { label: "مكتمل", tone: "completed" },
 };
 
-const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-function formatDate(d: string | null | undefined) {
-  if (!d) return "";
-  const date = new Date(d);
-  return `${DAY_NAMES[date.getDay()]} ${date.toLocaleDateString("ar-EG")}`;
-}
-
 export default function PatientBookings() {
-  const { data, isLoading, error } = trpc.patientPortal.getMyBookings.useQuery();
+  const { data, isLoading, error, refetch } = trpc.patientPortal.getMyBookings.useQuery();
+
+  const summary = useMemo(() => {
+    const bookings = data ?? [];
+    return {
+      total: bookings.length,
+      pending: bookings.filter((item) => item.status === "pending").length,
+      confirmed: bookings.filter((item) => item.status === "confirmed").length,
+      completed: bookings.filter((item) => item.status === "completed").length,
+    };
+  }, [data]);
 
   return (
     <PatientLayout>
-      <h2 className="text-lg font-bold text-gray-900 mb-4">مواعيدي</h2>
+      <PortalShell
+        title="مواعيدي"
+        subtitle="سجل الحجز هنا يظهر الحالة الحالية، الموعد المؤكد إن وُجد، وأي ملاحظات من الاستقبال."
+      >
+        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <PortalPanel title="ملخص سريع" description="نظرة مختصرة على حالة الحجوزات الحالية.">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <PortalMetric label="إجمالي الحجوزات" value={summary.total} tone="neutral" />
+              <PortalMetric label="قيد المراجعة" value={summary.pending} tone="orange" />
+              <PortalMetric label="مؤكدة" value={summary.confirmed} tone="blue" />
+              <PortalMetric label="مكتملة" value={summary.completed} tone="neutral" />
+            </div>
 
-      {isLoading && <p className="text-gray-500 text-center py-8">جاري التحميل...</p>}
-      {error && <p className="text-red-500 text-center py-8">{error.message}</p>}
-
-      {data && data.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-4xl mb-3">📅</p>
-          <p>لا توجد حجوزات سابقة</p>
-        </div>
-      )}
-
-      {data && data.length > 0 && (
-        <div className="space-y-3">
-          {data.map((b) => {
-            const cfg = STATUS_CONFIG[b.status] ?? { label: b.status, variant: "outline" as const };
-            return (
-              <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-gray-900">{b.typeLabel}</p>
-                    <p className="text-sm text-gray-500">{formatDate(b.requestedDate)}</p>
-                  </div>
-                  <Badge variant={cfg.variant}>{cfg.label}</Badge>
+            <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex items-start gap-3">
+                <Sparkles className="mt-0.5 size-4 text-primary" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">حجز جديد</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    إذا لم تجد الموعد المطلوب، يمكنك إرسال طلب جديد بسرعة.
+                  </p>
                 </div>
-                {b.confirmedDate && b.confirmedDate !== b.requestedDate && (
-                  <p className="text-xs text-blue-600">الموعد المؤكد: {formatDate(b.confirmedDate)}</p>
-                )}
-                {b.staffNotes && (
-                  <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">{b.staffNotes}</p>
-                )}
-                {b.notes && (
-                  <p className="text-xs text-gray-400">ملاحظتك: {b.notes}</p>
-                )}
               </div>
-            );
-          })}
+              <Button asChild className="mt-4 w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                <Link href="/my/book">
+                  <CalendarDays className="size-4" />
+                  حجز موعد جديد
+                </Link>
+              </Button>
+            </div>
+          </PortalPanel>
+
+          <PortalPanel title="السجل الكامل" description="آخر الحجوزات أولاً، مع الحالة والتفاصيل المهمة لكل طلب.">
+            {isLoading && <PortalLoadingRows rows={4} />}
+
+            {error && (
+              <PortalEmptyState
+                icon={<ShieldAlert className="size-5" />}
+                title="تعذر تحميل المواعيد"
+                description={error.message}
+                action={
+                  <Button onClick={() => void refetch()} className="gap-2">
+                    <RefreshCw className="size-4" />
+                    إعادة المحاولة
+                  </Button>
+                }
+              />
+            )}
+
+            {data && data.length === 0 && (
+              <PortalEmptyState
+                icon={<TicketCheck className="size-5" />}
+                title="لا توجد حجوزات سابقة"
+                description="يمكنك إرسال طلب جديد من زر الحجز الموجود في الملخص."
+              />
+            )}
+
+            {data && data.length > 0 && (
+              <div className="space-y-3">
+                {data.map((item) => {
+                  const meta = STATUS_META[item.status] ?? STATUS_META.pending;
+                  return (
+                    <div key={item.id} className="rounded-xl border border-border bg-background p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">{item.typeLabel}</p>
+                            <PortalStatusBadge status={item.status} label={meta.label} />
+                          </div>
+                          <div className="grid gap-1 text-sm text-muted-foreground">
+                            <p>تاريخ الطلب: {formatArabicDate(item.requestedDate)}</p>
+                            {item.confirmedDate && <p>الموعد المؤكد: {formatArabicDate(item.confirmedDate)}</p>}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-left text-xs text-muted-foreground">
+                          <p>آخر تحديث</p>
+                          <p>{formatArabicDate(item.updatedAt ?? item.createdAt)}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-xl bg-muted/25 p-3">
+                          <p className="text-xs text-muted-foreground">الحالة</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{meta.label}</p>
+                        </div>
+                        <div className="rounded-xl bg-muted/25 p-3">
+                          <p className="text-xs text-muted-foreground">ملاحظتك</p>
+                          <p className="mt-1 text-sm leading-6 text-foreground">
+                            {item.notes || "لا توجد ملاحظات"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {item.staffNotes && (
+                        <div className="mt-3 rounded-xl bg-secondary/10 p-3">
+                          <div className="flex items-start gap-2">
+                            <ClipboardList className="mt-0.5 size-4 shrink-0 text-secondary" />
+                            <div>
+                              <p className="text-xs font-medium text-foreground">ملاحظة الاستقبال</p>
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.staffNotes}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </PortalPanel>
         </div>
-      )}
+      </PortalShell>
     </PatientLayout>
   );
 }

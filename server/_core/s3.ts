@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 function getEnvVar(key: string, defaultValue?: string): string {
   const value = process.env[key];
@@ -37,6 +38,13 @@ export async function uploadToS3(key: string, body: Buffer, contentType: string)
     ContentType: contentType,
   });
   await client.send(command);
+}
+
+export async function getPresignedUrlFromS3(key: string, expiresInSeconds = 3600): Promise<string> {
+  const bucket = getEnvVar("AWS_S3_BUCKET");
+  const client = getS3Client();
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
 }
 
 export async function downloadFromS3(key: string): Promise<Buffer> {

@@ -1,0 +1,403 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides", "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ cross-env NODE_ENV=development tsx watch server/_core/index.ts
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+[2m٤:٢٠:١٩ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":3}
+[2m٤:٢٠:١٩ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:20:16.117Z","path":"/external-doctors"}
+[2m٤:٢٠:١٩ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors","time":"2026-06-05T01:20:13.352Z"}
+[2m٤:٢٠:٢١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":2}
+[2m٤:٢٠:٢١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:20:17.696Z","path":"/doctor-portal/dashboard"}
+[2m٤:٢٠:٢١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors","time":"2026-06-05T01:20:13.352Z"}
+[2m٤:٢١:٠٧ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors","time":"2026-06-05T01:21:04.290Z"}
+[2m٤:٢١:٠٧ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors","time":"2026-06-05T01:21:04.291Z"}
+[2m٤:٢١:١١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":4}
+[2m٤:٢١:١١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:21:08.300Z","path":"/external-doctors"}
+[2m٤:٢١:١١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors","time":"2026-06-05T01:21:04.291Z"}
+[2m٤:٢١:٤١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":2}
+[2m٤:٢١:٤١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:21:37.956Z","path":"/external-doctors/referrals"}
+[2m٤:٢١:٤١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/external-doctors/referrals","time":"2026-06-05T01:21:33.015Z"}
+[2m٤:٢١:٥٠ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":98}
+[2m٤:٢١:٥٠ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:21:46.754Z","path":"/my/refraction"}
+[2m٤:٢١:٥٠ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub","time":"2026-06-05T01:21:41.121Z"}
+[2m٤:٢١:٥١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":49}
+[2m٤:٢١:٥١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:21:48.104Z","path":"/attendance/reports"}
+[2m٤:٢١:٥١ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub","time":"2026-06-05T01:21:41.121Z"}
+[2m٤:٢١:٥٢ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":90}
+[2m٤:٢١:٥٢ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-05T01:21:49.372Z","path":"/admin-hub"}
+[2m٤:٢١:٥٢ ص[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub","time":"2026-06-05T01:21:41.121Z"}
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 859,examination,{"serviceCode":"1512","serviceCodes":["1512","1590","1613"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 724,examination,{"serviceCode":"1596","serviceCodes":["1596","1501","1502","1511","1589"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 252,examination,{"serviceCode":"1522","serviceCodes":["1522","1512","1569","1586","1600"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 166,examination,{"serviceCode":"1586","serviceCodes":["1586","1521"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 21,examination,{"serviceCode":"1572","serviceCodes":["1572","1610","1612"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 156,examination,{"serviceCode":"1521","serviceCodes":["1521","1600"]}
+[mssql-sync] row errors: Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 125,examination,{"serviceCode":"1589","serviceCodes":["1589","1508"]} | Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 252,examination,{"serviceCode":"1522","serviceCodes":["1522","1512","1569","1586","1600"]} | Failed query: insert into `patientPageStates` (`id`, `patientId`, `page`, `data`, `createdAt`, `updatedAt`) values (default, ?, ?, ?, default, default)
+params: 859,examination,{"serviceCode":"1512","serviceCodes":["1512","1590","1613"]}
+[blackice-import] Failed 0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG: ENOENT: no such file or directory, rename 'E:\SRV100_Acc\Pentacam\0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG' -> 'E:\SRV100_Acc\Pentacam\2627_Baymi_Alsherbny_Omnyaa_OD_1.JPG'
+[blackice-import] Failed 0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG: ENOENT: no such file or directory, rename 'E:\SRV100_Acc\Pentacam\0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG' -> 'E:\SRV100_Acc\Pentacam\4050_Ebrahem_El_Banna_Mohamed_OS_1.JPG'
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.0

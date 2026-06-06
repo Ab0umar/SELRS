@@ -75,7 +75,7 @@ export default function GlobalCommandPalette() {
   const quickLinks = useMemo(() => {
     const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
     const items = [
-      { label: "لوحة التحكم", path: "/dashboard", icon: LayoutDashboard },
+      ...(!isAdmin ? [{ label: "لوحة التحكم", path: "/dashboard", icon: LayoutDashboard }] : []),
       { label: "مرضى اليوم", path: "/today", icon: Clock },
       { label: "المرضى", path: "/patients", icon: UserRound },
       { label: "العمليات", path: "/operations", icon: CalendarDays },
@@ -83,10 +83,9 @@ export default function GlobalCommandPalette() {
       { label: "المتابعات", path: "/followups", icon: Repeat },
       { label: "الفحوصات", path: "/examination", icon: Eye },
       { label: "الروشتات", path: "/prescriptions", icon: Pill },
-      { label: "الملف الطبي", path: "/patient-file", icon: FileText },
+      ...(!isAdmin ? [{ label: "الملف الطبي", path: "/patient-file", icon: FileText }] : []),
     ];
     if (isAdmin) {
-      items.push({ label: "مركز الإدارة", path: "/admin-hub", icon: LayoutGrid });
       items.push({ label: "إعدادات النظام", path: "/admin/settings", icon: Settings });
     }
     return items;

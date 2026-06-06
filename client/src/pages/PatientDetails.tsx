@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import {
-  ArrowRight,
   CalendarDays,
   Eye,
   FileText,
@@ -12,13 +11,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { usePatientDetails } from "@/hooks/patient-details/usePatientDetails";
 import { PatientDetailsError } from "@/components/patient-details/PatientDetailsError";
 import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
+import { ExternalDoctorReferralPanel } from "@/components/patient-details/ExternalDoctorReferralPanel";
 import { ExaminationsTab } from "@/components/patient-details/ExaminationsTab";
 import { PentacamTab } from "@/components/patient-details/PentacamTab";
 import { DiagnosisTab } from "@/components/patient-details/DiagnosisTab";
@@ -99,51 +98,6 @@ export default function PatientDetails() {
 
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
-      {/* Sticky identity strip */}
-      <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-background">
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 print:hidden"
-            onClick={() => goBack()}
-            aria-label="رجوع"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="truncate font-semibold leading-tight text-foreground">
-              {pd.patientName || "ملف المريض"}
-            </span>
-            {pd.patientCode && (
-              <span dir="ltr" className="shrink-0 font-mono text-xs text-muted-foreground">
-                #{pd.patientCode}
-              </span>
-            )}
-            {age && (
-              <span className="shrink-0 text-xs text-muted-foreground">{age} سنة</span>
-            )}
-            {diagnosisLabel && (
-              <Badge variant="secondary" className="shrink-0 text-[11px] font-normal">
-                {diagnosisLabel}
-              </Badge>
-            )}
-          </div>
-
-          {reportPath && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden shrink-0 gap-1.5 text-xs print:hidden sm:flex"
-              onClick={() => setLocation(reportPath)}
-            >
-              <FileText className="h-3.5 w-3.5" aria-hidden />
-              التقرير
-            </Button>
-          )}
-        </div>
-      </header>
 
       {/* Two-column layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -176,6 +130,10 @@ export default function PatientDetails() {
               );
             })}
           </nav>
+
+          {pd.isAdmin && pd.patientCode && (
+            <ExternalDoctorReferralPanel patientCode={pd.patientCode} />
+          )}
 
           <div className="mt-auto space-y-1.5 border-t border-border/50 p-3">
             <PatientPicker
@@ -245,6 +203,7 @@ export default function PatientDetails() {
                   parsedExamSources={pd.parsedExamSources}
                   openExamSections={pd.openExamSections}
                   toggleExamSection={pd.toggleExamSection}
+                  followupSheets={(pd.followupSheetsQuery.data ?? []) as any[]}
                 />
               )}
               {pd.canViewPentacam && pd.activeTab === "pentacam" && (
@@ -272,7 +231,9 @@ export default function PatientDetails() {
                   visitsData={(pd.visitsQuery.data ?? []) as any[]}
                   surgeries={pd.surgeries}
                   followups={pd.followups}
+                  followupSheets={(pd.followupSheetsQuery.data ?? []) as any[]}
                   isAdmin={pd.isAdmin && !inPatientHub}
+                  patientId={patientId}
                   editingVisitId={pd.editingVisitId}
                   editVisitDate={pd.editVisitDate}
                   setEditingVisitId={pd.setEditingVisitId}
@@ -285,6 +246,7 @@ export default function PatientDetails() {
                       pd.examinationsQuery.refetch(),
                       pd.pentacamQuery.refetch(),
                       pd.followupsQuery.refetch(),
+                      pd.followupSheetsQuery.refetch(),
                     ]);
                   }}
                 />

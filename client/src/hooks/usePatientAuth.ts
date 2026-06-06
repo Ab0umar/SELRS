@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
 const STORAGE_KEY = "patient_portal_token";
+const META_KEY = "patient_portal_meta";
+const AUTH_EVENT = "patient_portal_auth_changed";
 
 export type PatientAuthState = {
   token: string | null;
@@ -31,7 +33,7 @@ export function usePatientAuth(): PatientAuthState {
   });
   const [patientMeta, setPatientMeta] = useState<{ name: string; patientCode: string } | null>(() => {
     try {
-      const raw = localStorage.getItem("patient_portal_meta");
+      const raw = localStorage.getItem(META_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   });
@@ -39,10 +41,42 @@ export function usePatientAuth(): PatientAuthState {
   const payload = token ? decodeJwtPayload(token) : null;
   const isLoggedIn = Boolean(payload?.type === "patient" && payload?.patientId);
 
+  const syncFromStorage = useCallback(() => {
+    try {
+      const nextToken = localStorage.getItem(STORAGE_KEY);
+      const nextMetaRaw = localStorage.getItem(META_KEY);
+      const nextMeta = nextMetaRaw ? JSON.parse(nextMetaRaw) : null;
+      setToken(nextToken);
+      setPatientMeta(nextMeta);
+    } catch {
+      setToken(null);
+      setPatientMeta(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY || event.key === META_KEY) {
+        syncFromStorage();
+      }
+    };
+
+    const handleAuthChange = () => {
+      syncFromStorage();
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(AUTH_EVENT, handleAuthChange);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(AUTH_EVENT, handleAuthChange);
+    };
+  }, [syncFromStorage]);
+
   useEffect(() => {
     if (token && !isLoggedIn) {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem("patient_portal_meta");
+      localStorage.removeItem(META_KEY);
       setToken(null);
       setPatientMeta(null);
     }
@@ -50,16 +84,18 @@ export function usePatientAuth(): PatientAuthState {
 
   const login = useCallback((newToken: string, patient: { name: string; patientCode: string }) => {
     localStorage.setItem(STORAGE_KEY, newToken);
-    localStorage.setItem("patient_portal_meta", JSON.stringify(patient));
+    localStorage.setItem(META_KEY, JSON.stringify(patient));
     setToken(newToken);
     setPatientMeta(patient);
+    window.dispatchEvent(new Event(AUTH_EVENT));
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("patient_portal_meta");
+    localStorage.removeItem(META_KEY);
     setToken(null);
     setPatientMeta(null);
+    window.dispatchEvent(new Event(AUTH_EVENT));
   }, []);
 
   return {

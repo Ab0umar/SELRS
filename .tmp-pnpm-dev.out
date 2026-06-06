@@ -1,0 +1,698 @@
+[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٥٦:٥٨ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٣:٥٧:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٣:٥٧:١٣ ص [tsx] change in ./server\_core\context.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+٣:٥٧:٢٣ ص [tsx] change in ./server\_core\context.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٥٧:٣١ ص [tsx] change in ./server\_core\procedures.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٥٨:٣٢ ص [tsx] change in ./server\routers.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٥٨:٣٨ ص [tsx] change in ./server\routers.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٢٠:٠٢ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٤:٢٠:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[2m٤:٢٠:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[2m٤:٢١:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢١:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢١:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢٢:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[2m٤:٢٢:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢٢:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/patient-portal/PatientRefraction.tsx[22m
+[2m٤:٢٢:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2224 skipped=2171 interval=5000
+[2m٤:٢٣:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢٣:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٤:٢٣:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[2m٤:٢٣:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:٢٣:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+٤:٢٣:٥٦ ص [tsx] change in ./server\routers\externalDoctors.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٢٤:٠٢ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+٤:٢٤:١٣ ص [tsx] change in ./server\routers\externalDoctors.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٢٤:٢٤ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٢٤:٣١ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+٤:٣٠:٠٢ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٣١:٤٢ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Port 4000 is busy, using port 4001 instead
+[clinic] Server running on http://0.0.0.0:4001/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+٤:٣٤:٢٤ ص [tsx] change in ./server\routers\doctorPortal.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٤:٣٤:٣١ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٥:٢٩:٢٣ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٥:٢٩:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٥:٣٠:١٧ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٥:٣٠:٣٠ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Port 4000 is busy, using port 4001 instead
+[clinic] Server running on http://0.0.0.0:4001/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+٥:٣٠:٤٧ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٥:٣٠:٥٧ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+٥:٣٤:٤٨ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٥:٣٥:١٣ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٥:٣٥:٢٤ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Port 4000 is busy, using port 4001 instead
+[clinic] Server running on http://0.0.0.0:4001/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٦:٠٥:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٠٥:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[2m٦:٠٩:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٠٩:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٠٩:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2225 skipped=2170 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[2m٦:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:١٤:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٦:١٨:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:١٨:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:١٨:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2212 skipped=2183 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٦:٢٦:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٢٦:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٢٦:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٦:٢٩:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٢٩:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٢٩:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[2m٦:٣٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٣٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٣١:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[2m٦:٣٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٣٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٣٢:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[2m٦:٥٠:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٥٠:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٥٠:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[2m٦:٥١:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٥١:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m٦:٥١:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2225 skipped=2170 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
+[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD (2).JPG to S3: blackice-imports/1780631916282-1357_Mahgoub_Reyad_Mohamed_OD (2).JPG
+[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD (2).JPG
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
+[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG to S3: blackice-imports/1780632008119-1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG
+[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG to S3: blackice-imports/1780632158804-1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG
+[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2223 skipped=2172 interval=5000
+[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2223 skipped=2172 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2224 skipped=2171 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
+[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2446 source=E:/SRV100_Acc/Pentacam
+[blackice-import] Uploaded 0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG to S3: blackice-imports/1780632963410-0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG
+[blackice-import] Uploaded 0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG to S3: blackice-imports/1780632968666-0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG
+[blackice-import] Uploaded 0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG to S3: blackice-imports/1780632978018-0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG
+[blackice-import] Imported 0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] Uploaded 0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG to S3: blackice-imports/1780632996513-0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG
+[blackice-import] Imported 0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG
+[blackice-import] Uploaded 1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG to S3: blackice-imports/1780633005742-1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG
+[blackice-import] Imported 1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
+[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
+٧:١٩:٢١ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
+c٧:١٩:٢٨ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٧:١٩:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
