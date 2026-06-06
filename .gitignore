@@ -30,6 +30,7 @@ Pentacam/
 Pentacam/incoming/
 Pentacam/processed/
 Pentacam/failed/
+Uploads/
 
 # Android build outputs
 android/
