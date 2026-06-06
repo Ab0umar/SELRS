@@ -87,7 +87,7 @@ export async function analyzeDesignImage(
       model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 4096,
         responseMimeType: "application/json",
       },
     });
@@ -191,7 +191,7 @@ export async function buildBrandProfile(
       model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 4096,
         responseMimeType: "application/json",
       },
     });
