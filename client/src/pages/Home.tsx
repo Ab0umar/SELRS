@@ -146,17 +146,17 @@ export default function Home() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
 
         {/* Brand header above card */}
-        <div className="w-full max-w-[480px] mb-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-5 bg-white border border-[#dbe7f4] rounded-2xl shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
-            <BrandLogo className="size-20 object-contain" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-[#003D82] sm:text-3xl">
+        <div className="w-full max-w-[480px] mb-8 text-center flex items-center justify-center gap-6">
+          <div className="text-right space-y-1">
+            <h1 className="text-3xl font-black tracking-tight text-[#003D82] mt-0">
               مركز عيون الشروق
             </h1>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-secondary">
+            <p className="text-sm font-black text-[#FF9E00] mt-0">
               بوابة الموظفين والمسؤولين
             </p>
+          </div>
+          <div className="inline-flex items-center justify-center p-3 bg-white border border-[#dbe7f4] rounded-full shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
+            <BrandLogo className="size-20 object-contain" />
           </div>
         </div>
 
@@ -201,19 +201,18 @@ export default function Home() {
                 </label>
               </div>
               <div className="relative">
-                <UserRound className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
                 <Input
                   id="username"
                   type="text"
                   placeholder="أدخل اسم المستخدم"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-12 text-left font-medium tracking-wide border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl pr-10"
-                  dir="ltr"
+                  className="h-12 text-center font-medium border-[#d7e2ee] focus-visible:ring-primary/10 rounded-full pl-10"
                   disabled={submitting}
                   required
                   autoComplete="username"
                 />
+                <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
               </div>
             </div>
 
@@ -224,24 +223,23 @@ export default function Home() {
                 </label>
               </div>
               <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="أدخل كلمة المرور"
+                  placeholder="******"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 font-medium border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl px-10 text-left"
-                  dir="ltr"
+                  className="h-12 font-medium border-[#d7e2ee] focus-visible:ring-primary/10 rounded-full px-10 text-center"
                   disabled={submitting}
                   required
                   autoComplete="current-password"
                 />
+                <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
                 <button
                   type="button"
                   aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground cursor-pointer"
                   tabIndex={-1}
                 >
                   <Eye className="size-4" />
@@ -250,16 +248,6 @@ export default function Home() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-                  disabled={submitting}
-                />
-                <span className="text-xs font-medium text-muted-foreground">تذكرني</span>
-              </label>
               <a
                 href="#"
                 onClick={(e) => e.preventDefault()}
@@ -267,12 +255,22 @@ export default function Home() {
               >
                 نسيت كلمة المرور؟
               </a>
+              <label className="flex cursor-pointer items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground">تذكرني</span>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  disabled={submitting}
+                />
+              </label>
             </div>
 
             <div className="pt-2">
               <Button
                 type="submit"
-                className="h-12 w-full text-base font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer"
+                className="h-12 w-full text-base font-bold bg-[#FF9E00] text-white hover:bg-[#FF9E00]/90 transition-colors rounded-full shadow-xs cursor-pointer"
                 disabled={submitting}
               >
                 {submitting ? (
