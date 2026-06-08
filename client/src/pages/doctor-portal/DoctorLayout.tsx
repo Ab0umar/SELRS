@@ -37,7 +37,6 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
                     <p className="truncate text-lg font-semibold leading-none text-primary sm:text-xl">
                       {fullName ?? username ?? "طبيب"}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">وصول التصوير الخارجي</p>
                   </div>
                   <Button
                     variant="outline"
