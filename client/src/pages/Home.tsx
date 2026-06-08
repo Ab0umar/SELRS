@@ -147,7 +147,7 @@ export default function Home() {
 
         {/* Brand header above card */}
         <div className="w-full max-w-[480px] mb-8 text-center flex flex-row items-center justify-center gap-6">
-          <BrandLogo className="size-20 object-contain" />
+          <BrandLogo className="size-28 object-contain" />
           <div className="text-right space-y-1">
             <h1 className="text-3xl font-black tracking-tight text-[#003D82] mt-0">
               مركز عيون الشروق
