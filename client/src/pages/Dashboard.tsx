@@ -17,6 +17,7 @@ import {
   Archive,
   Search,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   AlertTriangle,
   Zap,
@@ -1167,7 +1168,7 @@ export default function Dashboard() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
   const [activeTab, setActiveTab] = useState<TabId>("today");
-  const [workspacesExpanded, setWorkspacesExpanded] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),
@@ -1249,6 +1250,19 @@ export default function Dashboard() {
         <Surface className="overflow-hidden">
           <div className="grid gap-3 px-4 py-3 lg:grid-cols-[auto_1fr] lg:items-center">
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="hidden xl:flex h-10 w-10 rounded-lg shrink-0 border-border/50 hover:bg-muted/40 cursor-pointer"
+                aria-label={sidebarOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
+              >
+                {sidebarOpen ? (
+                  <ChevronRight className="h-5 w-5" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </Button>
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Zap className="h-5 w-5" aria-hidden />
               </span>
@@ -1268,8 +1282,14 @@ export default function Dashboard() {
           </div>
         </Surface>
 
-        <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <div className={cn(
+          "grid gap-4 transition-all duration-300",
+          sidebarOpen ? "xl:grid-cols-[18rem_minmax(0,1fr)]" : "xl:grid-cols-1"
+        )}>
+          <aside className={cn(
+            "space-y-4 xl:sticky xl:top-24 xl:self-start",
+            !sidebarOpen && "xl:hidden"
+          )}>
             <div
               className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden"
               aria-label="لوحات جانبية"
@@ -1336,39 +1356,31 @@ export default function Dashboard() {
                 mobileAsidePanel !== "workspaces" && "hidden xl:block",
               )}
             >
-              <div 
-                className="border-b border-border/40 px-4 py-3 cursor-pointer select-none hover:bg-muted/30 transition-colors"
-                onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
-              >
+              <div className="border-b border-border/40 px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-foreground">
-                      مساحات العمل
-                    </h2>
-                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", !workspacesExpanded && "-rotate-90")} />
-                  </div>
+                  <h2 className="text-base font-semibold text-foreground">
+                    مساحات العمل
+                  </h2>
                   <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
                     مباشر
                   </span>
                 </div>
               </div>
-              {workspacesExpanded && (
-                <div
-                  className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
-                  role="tablist"
-                  aria-label="أقسام لوحة التحكم"
-                >
-                  {visibleTabs.map((tab) => (
-                    <WorkspaceButton
-                      key={tab.id}
-                      tab={tab}
-                      active={activeTab === tab.id}
-                      badge={badges[tab.id]}
-                      onClick={() => setActiveTab(tab.id)}
-                    />
-                  ))}
-                </div>
-              )}
+              <div
+                className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
+                role="tablist"
+                aria-label="أقسام لوحة التحكم"
+              >
+                {visibleTabs.map((tab) => (
+                  <WorkspaceButton
+                    key={tab.id}
+                    tab={tab}
+                    active={activeTab === tab.id}
+                    badge={badges[tab.id]}
+                    onClick={() => setActiveTab(tab.id)}
+                  />
+                ))}
+              </div>
             </Surface>
 
             <Surface className="hidden xl:block">
