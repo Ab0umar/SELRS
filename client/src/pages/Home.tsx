@@ -136,7 +136,7 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-between bg-gradient-to-tr from-[#EBF2F9] via-[#F4F8FB] to-[#FFFFFF] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
+      className="min-h-screen flex flex-col justify-between bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
       dir="rtl"
     >
       {/* Top brand gradient bar */}
@@ -146,13 +146,13 @@ export default function Home() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
 
         {/* Brand header above card */}
-        <div className="w-full max-w-[480px] mb-8 flex flex-row items-center justify-center gap-5 px-2">
-          <BrandLogo className="size-24 object-contain select-none shrink-0" />
-          <div className="text-right space-y-1.5">
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#003D82] leading-tight m-0">
+        <div className="w-full max-w-[480px] mb-8 flex flex-row items-center justify-center gap-4 px-2">
+          <BrandLogo className="size-28 object-contain select-none shrink-0" />
+          <div className="text-right space-y-1">
+            <h1 className="text-4xl font-black text-[#0F3E7C] leading-none m-0">
               مركز عيون الشروق
             </h1>
-            <p className="text-sm font-semibold text-[#FF9E00] leading-none m-0 tracking-wide">
+            <p className="text-[15px] font-bold text-[#FC9918] leading-none m-0">
               لامراض القرنيه و تصحيح الابصار
             </p>
           </div>
