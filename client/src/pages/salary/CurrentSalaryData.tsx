@@ -245,16 +245,102 @@ function SalaryTable({
   );
 }
 
+// ── Shifts Table Component ──────────────────────────────────
+interface ShiftsTableProps {
+  title: string;
+  data: any[];
+  employees: any[];
+  isLoading: boolean;
+}
+
+function ShiftsTable({
+  title,
+  data,
+  employees,
+  isLoading,
+}: ShiftsTableProps) {
+  const getEmployeeName = (empCd: string) => {
+    const emp = employees.find((e) => e.code === empCd);
+    return emp?.name || empCd;
+  };
+
+  const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">عدد كادر الشفتات: {data.length}</span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          جاري التحميل...
+        </div>
+      ) : data.length === 0 ? (
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          لا توجد كفاءات شفتات مسجلة
+        </div>
+      ) : (
+        <div className="overflow-x-auto" dir="rtl">
+          <table dir="rtl" className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-right font-bold w-40">الاسم</th>
+                <th className="px-4 py-3 text-right font-bold">النوع</th>
+                <th className="px-4 py-3 text-right font-bold">قيمة الشفت</th>
+                <th className="px-4 py-3 text-right font-bold">ربط الحضور</th>
+                <th className="px-4 py-3 text-right font-bold">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((s, idx) => (
+                <tr
+                  key={s.id}
+                  className={`border-b border-border/40 transition-colors hover:bg-muted/30 ${
+                    idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
+                  }`}
+                >
+                  <td className="px-4 py-3 font-semibold text-foreground">{s.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{TYPE_LABEL[s.type]}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                    {fmt(Number(s.ratePerShift))} ج.م
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {s.empCd ? getEmployeeName(s.empCd) : <span className="text-[10px] italic text-muted-foreground/50">يدوي</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}>
+                      {s.active ? "نشط" : "غير نشط"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CurrentSalaryData() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BasicForm>(BLANK);
   const [showForm, setShowForm] = useState(false);
+  const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("shifts"); // default shifts on right
 
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
+  const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
 
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
+  const shiftStaff: any[] = shiftStaffQ.data ?? [];
 
   const deleteMut = (trpc as any).salary.deleteBasic.useMutation({
     onSuccess: () => {
@@ -264,25 +350,23 @@ export default function CurrentSalaryData() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  // Separate data by location (assuming there's a location field)
-  // If not, we'll use a simple split for demo purposes
-  const centerData = basics.filter((b) => {
+  // Separate data by location
+  const centerSalaries = basics.filter((b) => {
     const emp = employees.find((e) => e.code === b.empCd);
     return emp?.location === "center" || emp?.type === "center";
   });
 
-  const clinicData = basics.filter((b) => {
+  const clinicSalaries = basics.filter((b) => {
     const emp = employees.find((e) => e.code === b.empCd);
     return emp?.location === "clinic" || emp?.type === "clinic";
   });
 
-  // If no location data, split by index (50/50)
-  const allData = centerData.length === 0 && clinicData.length === 0
-    ? {
-        center: basics.slice(0, Math.ceil(basics.length / 2)),
-        clinic: basics.slice(Math.ceil(basics.length / 2)),
-      }
-    : { center: centerData, clinic: clinicData };
+  // Filter shifts belonging to center (shifts only belong to Center)
+  const centerShifts = shiftStaff.filter((s) => {
+    if (!s.empCd) return true;
+    const emp = employees.find((e) => e.code === s.empCd);
+    return !emp || emp.location === "center" || emp.type === "center";
+  });
 
   const handleEdit = (item: any) => {
     setEditingId(item.id);
@@ -316,7 +400,7 @@ export default function CurrentSalaryData() {
             بيانات الرواتب الحالية
           </h1>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            الرواتب والبدلات المسجلة حالياً مقسمة حسب موقع العمل
+            الرواتب والبدلات والشفتات المسجلة حالياً مقسمة حسب موقع العمل
           </p>
         </div>
         <div className="flex gap-2">
@@ -381,50 +465,100 @@ export default function CurrentSalaryData() {
       )}
 
       {/* Tables Container */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Center Table */}
-        <SalaryTable
-          title="المركز"
-          subtitle="الموظفون العاملون بالمركز"
-          data={allData.center}
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isLoading={basicsQ.isLoading}
-          isPending={deleteMut.isPending}
-        />
+      <div className="space-y-6">
+        {/* Center Section */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
+            <h2 className="text-lg font-bold text-foreground">المركز</h2>
+            {/* Center Tabs Header - Shifts on the right, Salaries on the left */}
+            <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+              <button
+                onClick={() => setCenterTab("shifts")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "shifts"
+                    ? "bg-white text-blue-600 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الشفتات
+              </button>
+              <button
+                onClick={() => setCenterTab("salaries")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "salaries"
+                    ? "bg-white text-blue-600 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الرواتب
+              </button>
+            </div>
+          </div>
 
-        {/* Clinic Table */}
-        <SalaryTable
-          title="العيادة"
-          subtitle="الموظفون العاملون بالعيادة"
-          data={allData.clinic}
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isLoading={basicsQ.isLoading}
-          isPending={deleteMut.isPending}
-        />
+          {centerTab === "salaries" ? (
+            <SalaryTable
+              title="رواتب موظفي المركز"
+              subtitle="الرواتب والبدلات لموظفي المركز"
+              data={centerSalaries}
+              employees={employees}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isLoading={basicsQ.isLoading}
+              isPending={deleteMut.isPending}
+            />
+          ) : (
+            <ShiftsTable
+              title="طاقم شفتات المركز"
+              data={centerShifts}
+              employees={employees}
+              isLoading={shiftStaffQ.isLoading}
+            />
+          )}
+        </div>
+
+        {/* Clinic Section */}
+        <div className="space-y-3 pt-4">
+          <div className="border-b border-border pb-2">
+            <h2 className="text-lg font-bold text-foreground">العيادة</h2>
+          </div>
+
+          <SalaryTable
+            title="رواتب موظفي العيادة"
+            subtitle="الرواتب والبدلات لموظفي العيادة"
+            data={clinicSalaries}
+            employees={employees}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            isLoading={basicsQ.isLoading}
+            isPending={deleteMut.isPending}
+          />
+        </div>
       </div>
 
       {/* Summary Section */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
+          <div className="text-sm text-muted-foreground">إجمالي موظفي الرواتب</div>
           <div className="mt-2 text-2xl font-bold text-foreground">
             {basics.length}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">إجمالي كادر الشفتات</div>
+          <div className="mt-2 text-2xl font-bold text-blue-600">
+            {shiftStaff.length}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
           <div className="text-sm text-muted-foreground">موظفو المركز</div>
           <div className="mt-2 text-2xl font-bold text-primary">
-            {allData.center.length}
+            {centerSalaries.length}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="text-sm text-muted-foreground">موظفو العيادة</div>
           <div className="mt-2 text-2xl font-bold text-secondary">
-            {allData.clinic.length}
+            {clinicSalaries.length}
           </div>
         </div>
       </div>
