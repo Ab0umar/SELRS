@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, doctorPortalProcedure } from "../_core/procedures";
-import { getDb } from "../db";
+import { getDb, getGlassesRecordsByPatient, getPrescriptionsWithItemsByPatient } from "../db";
 import {
   externalDoctors,
   externalDoctorReferrals,
@@ -95,7 +95,7 @@ export const doctorPortalRouter = router({
     const referralCodes = new Set(referrals.map((r) => r.patientCode));
 
     // Auto-mapped patients by doctorCode — only those with pentacam images
-    let autoPatients: { patientCode: string; fullName: string | null; age: string | null; gender: string | null; lastVisit: Date | null }[] = [];
+    let autoPatients: { patientCode: string; fullName: string | null; age: number | null; gender: "male" | "female" | null; lastVisit: Date | null }[] = [];
     if (doctor?.doctorCode) {
       autoPatients = await db
         .select({
@@ -120,8 +120,8 @@ export const doctorPortalRouter = router({
       referralId: number | null;
       patientCode: string;
       fullName: string | null;
-      age: string | null;
-      gender: string | null;
+      age: number | null;
+      gender: "male" | "female" | null;
       lastVisit: Date | null;
       assignedAt: Date | null;
       source: "referral" | "auto";
@@ -227,9 +227,23 @@ export const doctorPortalRouter = router({
         }
       }
 
-      // Look up patient DB id
+      // Look up patient DB id and profile details
       const [patient] = await db
-        .select({ id: patients.id, fullName: patients.fullName })
+        .select({
+          id: patients.id,
+          fullName: patients.fullName,
+          patientCode: patients.patientCode,
+          phone: patients.phone,
+          dateOfBirth: patients.dateOfBirth,
+          age: patients.age,
+          gender: patients.gender,
+          address: patients.address,
+          medicalHistory: patients.medicalHistory,
+          allergies: patients.allergies,
+          serviceType: patients.serviceType,
+          lastVisit: patients.lastVisit,
+          status: patients.status,
+        })
         .from(patients)
         .where(eq(patients.patientCode, input.patientCode))
         .limit(1);
@@ -250,16 +264,25 @@ export const doctorPortalRouter = router({
       await logAccess(ctx.doctorSession.doctorId, input.patientCode, "view_images");
 
       const raw: any[] = Array.isArray(rows) ? (Array.isArray(rows[0]) ? rows[0] : rows) : [];
+      const images = raw.map((row: any) => ({
+        id: Number(row.id),
+        fileName: String(row.file_name ?? ""),
+        mimeType: String(row.mime_type ?? "application/octet-stream"),
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
+        viewUrl: `/api/blackice/uploads/${row.id}`,
+      }));
+
+      // Fetch refractions and prescriptions
+      const refractions = await getGlassesRecordsByPatient(patient.id);
+      const prescriptions = await getPrescriptionsWithItemsByPatient(patient.id);
+
       return {
         patientCode: input.patientCode,
         patientName: patient.fullName,
-        images: raw.map((row: any) => ({
-          id: Number(row.id),
-          fileName: String(row.file_name ?? ""),
-          mimeType: String(row.mime_type ?? "application/octet-stream"),
-          createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
-          viewUrl: `/api/blackice/uploads/${row.id}`,
-        })),
+        patient,
+        images,
+        refractions,
+        prescriptions,
       };
     }),
 });
