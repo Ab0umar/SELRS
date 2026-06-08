@@ -134,6 +134,8 @@ function SectionHeader({
   );
 }
 
+
+
 function Surface({
   children,
   className,
@@ -398,6 +400,8 @@ function TodayPanel({
     { refetchOnWindowFocus: false },
   );
 
+  const [innerSidebarOpen, setInnerSidebarOpen] = useState(true);
+
   const total = merged.length;
   const treated = merged.filter((p) => p.queueStatus === "treated").length;
   const waiting = total - treated;
@@ -539,7 +543,26 @@ function TodayPanel({
       {/* Queue + side */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <Surface className="flex-1 min-w-0">
-          <SectionHeader title="مرضى اليوم و العمليات" />
+          <SectionHeader title="مرضى اليوم و العمليات">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInnerSidebarOpen(!innerSidebarOpen)}
+              className="hidden lg:flex h-8 gap-1.5 text-xs font-semibold border-border/50 hover:bg-muted/40 cursor-pointer"
+            >
+              {innerSidebarOpen ? (
+                <>
+                  <ChevronRight className="h-4 w-4" />
+                  <span>إخفاء الإحصائيات</span>
+                </>
+              ) : (
+                <>
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>إحصائيات اليوم</span>
+                </>
+              )}
+            </Button>
+          </SectionHeader>
           <div className="p-3">
             <AppointmentsSection
               selectedDate={selectedDate}
@@ -548,21 +571,23 @@ function TodayPanel({
             />
           </div>
         </Surface>
-        <div className="space-y-4 w-full lg:w-72 xl:w-80 shrink-0">
-          <Surface>
-            <SectionHeader title="توزيع الخدمات" />
-            <div className="px-4 py-3.5">
-              <ServiceBreakdown selectedDate={selectedDate} />
-            </div>
-          </Surface>
-          <OffUsersTodayCard />
-          <Surface>
-            <SectionHeader title="إحصائيات طبية" />
-            <div className="px-4 py-3.5">
-              <MedicalTotals />
-            </div>
-          </Surface>
-        </div>
+        {innerSidebarOpen && (
+          <div className="space-y-4 w-full lg:w-72 xl:w-80 shrink-0">
+            <Surface className="overflow-hidden">
+              <SectionHeader title="توزيع الخدمات" />
+              <div className="px-4 py-3.5">
+                <ServiceBreakdown selectedDate={selectedDate} />
+              </div>
+            </Surface>
+            <OffUsersTodayCard />
+            <Surface className="overflow-hidden">
+              <SectionHeader title="إحصائيات طبية" />
+              <div className="px-4 py-3.5">
+                <MedicalTotals />
+              </div>
+            </Surface>
+          </div>
+        )}
       </div>
 
       {/* Charts */}
@@ -1182,7 +1207,7 @@ export default function Dashboard() {
     }
   }, [permsLoaded, visibleTabs, activeTab]);
   const [mobileAsidePanel, setMobileAsidePanel] = useState<
-    "workspaces" | "links" | null
+    "workspaces" | null
   >("workspaces");
   const utils = trpc.useUtils();
   const now = useClock();
@@ -1301,12 +1326,6 @@ export default function Dashboard() {
                   icon: LayoutDashboard,
                   cls: "border-secondary/30 bg-secondary/15 text-secondary",
                 },
-                {
-                  id: "links" as const,
-                  label: "انتقال سريع",
-                  icon: ChevronLeft,
-                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
-                },
               ].map(({ id, label, icon: Icon, cls }) => {
                 const active = mobileAsidePanel === id;
                 return (
@@ -1381,6 +1400,33 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
+
+              {/* Quick Navigation — merged into same card */}
+              <div className="border-t border-border/40 px-4 py-2">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  انتقال سريع
+                </p>
+                <div className="space-y-0.5">
+                  {[
+                    { href: "/today-patients", label: "مرضى اليوم", icon: Users },
+                    { href: "/operations", label: "العمليات", icon: Syringe },
+                    { href: "/patients", label: "كل المرضى", icon: Search },
+                    { href: "/accounting", label: "الحسابات", icon: Wallet },
+                  ].map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {label}
+                      </span>
+                      <ChevronLeft className="h-3 w-3 opacity-50" aria-hidden />
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </Surface>
 
             <Surface className="hidden xl:block">
@@ -1407,33 +1453,7 @@ export default function Dashboard() {
               </div>
             </Surface>
 
-            <Surface
-              className={cn(mobileAsidePanel !== "links" && "hidden xl:block")}
-            >
-              <SectionHeader title="انتقال سريع" />
-              <div className="grid grid-cols-2 gap-2 px-4 py-3 xl:block xl:divide-y xl:divide-border/40 xl:py-0">
-                {[
-                  { href: "/today-patients", label: "مرضى اليوم", icon: Users },
-                  { href: "/operations", label: "العمليات", icon: Syringe },
-                  { href: "/patients", label: "كل المرضى", icon: Search },
-                  { href: "/accounting", label: "الحسابات", icon: Wallet },
-                ].map(({ href, label, icon: Icon }) => (
-                  <Link key={href} href={href} className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-colors hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary xl:rounded-none xl:border-0 xl:bg-transparent xl:px-0 xl:hover:bg-transparent xl:hover:text-primary">
-                      <span className="flex items-center gap-2">
-                        <Icon
-                          className="h-3.5 w-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        {label}
-                      </span>
-                      <ChevronLeft
-                        className="h-3.5 w-3.5 text-muted-foreground"
-                        aria-hidden
-                      />
-                  </Link>
-                ))}
-              </div>
-            </Surface>
+
           </aside>
 
           <main className="min-w-0 space-y-4">
