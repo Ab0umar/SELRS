@@ -136,7 +136,7 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-between bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
+      className="min-h-screen flex flex-col justify-between bg-gradient-to-tr from-[#EBF2F9] via-[#F4F8FB] to-[#FFFFFF] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
       dir="rtl"
     >
       {/* Top brand gradient bar */}
