@@ -147,6 +147,9 @@ export default function Home() {
 
         {/* Brand header above card */}
         <div className="w-full max-w-[480px] mb-8 text-center flex items-center justify-center gap-6">
+          <div className="inline-flex items-center justify-center p-3 bg-white border border-[#dbe7f4] rounded-full shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
+            <BrandLogo className="size-20 object-contain" />
+          </div>
           <div className="text-right space-y-1">
             <h1 className="text-3xl font-black tracking-tight text-[#003D82] mt-0">
               مركز عيون الشروق
@@ -154,9 +157,6 @@ export default function Home() {
             <p className="text-sm font-black text-[#FF9E00] mt-0">
               بوابة الموظفين والمسؤولين
             </p>
-          </div>
-          <div className="inline-flex items-center justify-center p-3 bg-white border border-[#dbe7f4] rounded-full shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
-            <BrandLogo className="size-20 object-contain" />
           </div>
         </div>
 
