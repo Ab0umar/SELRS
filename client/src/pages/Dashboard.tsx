@@ -1167,6 +1167,7 @@ export default function Dashboard() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
   const [activeTab, setActiveTab] = useState<TabId>("today");
+  const [workspacesExpanded, setWorkspacesExpanded] = useState(true);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),
@@ -1335,31 +1336,39 @@ export default function Dashboard() {
                 mobileAsidePanel !== "workspaces" && "hidden xl:block",
               )}
             >
-              <div className="border-b border-border/40 px-4 py-3">
+              <div 
+                className="border-b border-border/40 px-4 py-3 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+                onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
+              >
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold text-foreground">
-                    مساحات العمل
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-foreground">
+                      مساحات العمل
+                    </h2>
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", !workspacesExpanded && "-rotate-90")} />
+                  </div>
                   <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
                     مباشر
                   </span>
                 </div>
               </div>
-              <div
-                className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
-                role="tablist"
-                aria-label="أقسام لوحة التحكم"
-              >
-                {visibleTabs.map((tab) => (
-                  <WorkspaceButton
-                    key={tab.id}
-                    tab={tab}
-                    active={activeTab === tab.id}
-                    badge={badges[tab.id]}
-                    onClick={() => setActiveTab(tab.id)}
-                  />
-                ))}
-              </div>
+              {workspacesExpanded && (
+                <div
+                  className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
+                  role="tablist"
+                  aria-label="أقسام لوحة التحكم"
+                >
+                  {visibleTabs.map((tab) => (
+                    <WorkspaceButton
+                      key={tab.id}
+                      tab={tab}
+                      active={activeTab === tab.id}
+                      badge={badges[tab.id]}
+                      onClick={() => setActiveTab(tab.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </Surface>
 
             <Surface className="hidden xl:block">
