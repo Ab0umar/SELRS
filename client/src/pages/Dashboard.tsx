@@ -537,8 +537,8 @@ function TodayPanel({
       </div>
 
       {/* Queue + side */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Surface className="lg:col-span-2">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        <Surface className="flex-1 min-w-0">
           <SectionHeader title="مرضى اليوم و العمليات" />
           <div className="p-3">
             <AppointmentsSection
@@ -548,7 +548,7 @@ function TodayPanel({
             />
           </div>
         </Surface>
-        <div className="space-y-4">
+        <div className="space-y-4 w-full lg:w-72 xl:w-80 shrink-0">
           <Surface>
             <SectionHeader title="توزيع الخدمات" />
             <div className="px-4 py-3.5">
