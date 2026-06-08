@@ -5,81 +5,146 @@ import { Plus, Pencil, Check, X, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
-const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-const SHIFTS = ["صباحي","ليلي"];
+const DAYS_AR = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const DAYS_SHORT = ["ح","ن","ث","ر","خ","ج","س"];
+// dow: 0=Sunday … 6=Saturday
+const PRESET_SAT_WED = [6, 0, 1, 2, 3]; // السبت→الأربعاء
+const PRESET_SUN_THU = [0, 1, 2, 3, 4]; // الأحد→الخميس
 
 interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; userId: number | null; }
 const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "", userId: null };
 
-// dayOfWeek → set of active shiftNames
+// dayOfWeek → set of active shiftNames (kept for reference)
 type CycleMap = Record<number, string[]>;
 
-function buildCycleMap(staffCycles: any[]): CycleMap {
-  const m: CycleMap = {};
-  for (const c of staffCycles) {
-    if (!m[c.dayOfWeek]) m[c.dayOfWeek] = [];
-    if (!m[c.dayOfWeek].includes(c.shiftName)) m[c.dayOfWeek].push(c.shiftName);
-  }
-  return m;
-}
 
 function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: any[]; onSaved: () => void }) {
   const staffCycles = cycles.filter((c: any) => c.staffId === staffId);
-  const [local, setLocal] = useState<CycleMap>(() => buildCycleMap(staffCycles));
+
+  // Derive initial shift type from saved data (default Morning)
+  const savedShift = staffCycles[0]?.shiftName === "Night" ? "Night" : "Morning";
+  const savedDays = new Set<number>(staffCycles.map((c: any) => c.dayOfWeek));
+
+  const [shiftType, setShiftType] = useState<"Morning" | "Night">(savedShift);
+  const [days, setDays] = useState<Set<number>>(savedDays);
 
   useEffect(() => {
-    setLocal(buildCycleMap(cycles.filter((c: any) => c.staffId === staffId)));
+    const sc = cycles.filter((c: any) => c.staffId === staffId);
+    setShiftType(sc[0]?.shiftName === "Night" ? "Night" : "Morning");
+    setDays(new Set<number>(sc.map((c: any) => c.dayOfWeek)));
   }, [cycles, staffId]);
 
   const saveMut = (trpc as any).salary.setStaffCycle.useMutation({
-    onSuccess: () => { onSaved(); toast.success("Cycle saved"); },
+    onSuccess: () => { onSaved(); toast.success("تم حفظ أيام الدوام"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  function toggle(dow: number, shift: string) {
-    setLocal(m => {
-      const current = m[dow] ?? [];
-      const next = current.includes(shift)
-        ? current.filter(s => s !== shift)
-        : [...current, shift];
-      return { ...m, [dow]: next };
+  function toggleDay(dow: number) {
+    setDays(d => {
+      const n = new Set(d);
+      n.has(dow) ? n.delete(dow) : n.add(dow);
+      return n;
     });
   }
 
+  function applyPreset(preset: number[]) {
+    setDays(new Set(preset));
+  }
+
   function save() {
-    const cycle = Object.entries(local).flatMap(([d, shifts]) =>
-      shifts.map(s => ({ dayOfWeek: parseInt(d), shiftName: s }))
-    );
+    const cycle = Array.from(days).map(dow => ({ dayOfWeek: dow, shiftName: shiftType }));
     saveMut.mutate({ staffId, cycle });
   }
 
   return (
-    <div className="px-4 pb-3 pt-1 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">دورة أسبوعية</p>
-      <div className="flex flex-wrap gap-3">
-        {DAYS.map((day, dow) => (
-          <div key={dow} className="flex flex-col items-center gap-1.5 min-w-[52px]">
-            <span className="text-xs font-medium text-muted-foreground">{day}</span>
-            {SHIFTS.map(shift => (
-              <label key={shift} className="flex items-center gap-1 text-xs cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={(local[dow] ?? []).includes(shift)}
-                  onChange={() => toggle(dow, shift)}
-                  className="rounded"
-                />
-                {shift}
-              </label>
-            ))}
-          </div>
-        ))}
+    <div className="px-4 pb-4 pt-2 space-y-3" dir="rtl">
+      {/* Shift type */}
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-muted-foreground">نوع الوردية</p>
+        <div className="flex gap-2">
+          {(["Morning", "Night"] as const).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setShiftType(s)}
+              className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                shiftType === s
+                  ? s === "Morning"
+                    ? "border-orange-400 bg-orange-500/10 text-orange-700"
+                    : "border-blue-400 bg-blue-500/10 text-blue-700"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+              }`}
+            >
+              {s === "Morning" ? "☀ صباحي" : "🌙 مسائي"}
+            </button>
+          ))}
+        </div>
       </div>
-      <Button size="sm" onClick={save} disabled={saveMut.isPending}>
-        {saveMut.isPending ? "جارٍ الحفظ…" : "حفظ الدورة"}
-      </Button>
+
+      {/* Day selection */}
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <p className="text-xs font-semibold text-muted-foreground">أيام الدوام</p>
+          <div className="flex gap-1.5">
+            <button type="button" onClick={() => applyPreset(PRESET_SAT_WED)}
+              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 transition-colors">
+              س→ر
+            </button>
+            <button type="button" onClick={() => applyPreset(PRESET_SUN_THU)}
+              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 transition-colors">
+              ح→خ
+            </button>
+            <button type="button" onClick={() => setDays(new Set())}
+              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 text-destructive transition-colors">
+              مسح
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {DAYS_AR.map((name, dow) => {
+            const active = days.has(dow);
+            const isFri = dow === 5;
+            return (
+              <button
+                key={dow}
+                type="button"
+                onClick={() => !isFri && toggleDay(dow)}
+                title={isFri ? "الجمعة إجازة" : name}
+                className={`flex flex-col items-center rounded-lg border px-2.5 py-2 text-center transition-colors ${
+                  isFri
+                    ? "border-dashed border-border/40 bg-muted/20 cursor-not-allowed opacity-40"
+                    : active
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <span className="text-xs font-bold">{DAYS_SHORT[dow]}</span>
+                <span className="text-[9px] leading-tight mt-0.5 opacity-70">{name}</span>
+              </button>
+            );
+          })}
+        </div>
+        {days.size > 0 && (
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            {Array.from(days).sort((a,b)=>a-b).map(d => DAYS_AR[d]).join(" ، ")} — {days.size} أيام
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saveMut.isPending || days.size === 0}
+          className="flex-1 rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+        >
+          {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
+        </button>
+      </div>
     </div>
   );
 }
+
 
 export default function ShiftStaff() {
   const [adding, setAdding] = useState(false);

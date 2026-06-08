@@ -767,6 +767,17 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  clearRoster: managerProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      await db.delete(shiftAttendance).where(
+        and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))
+      );
+      return { success: true };
+    }),
+
   // ── Official Holidays ─────────────────────────────────────
   // Readable by all authenticated users (needed for the roster view)
   listHolidays: protectedProcedure

@@ -249,9 +249,21 @@ export const adminNavGroups: NavGroup[] = [
   },
 ];
 
+const FULL_ATTENDANCE_ROLES = ["manager", "reception", "accountant", "nurse"];
+
 /** نفس هيكل الإدمن بدون «مركز الإدارة»، مع إضافة «حضوري» للجميع */
 export const staffNavGroups: NavGroup[] = [
-  ...adminNavGroups.slice(0, -1),
+  ...adminNavGroups.slice(0, -1).map((g) =>
+    g === attendanceNavGroup
+      ? {
+          ...attendanceNavGroup,
+          items: attendanceNavGroup.items.map((item) => ({
+            ...item,
+            roles: FULL_ATTENDANCE_ROLES,
+          })),
+        }
+      : g,
+  ),
   { icon: CalendarCheck, label: "حضوري", path: "/attendance/my", isMain: true },
-  { icon: CalendarDays, label: "الروستر", path: "/attendance/shift-schedule", roles: ["doctor", "technician", "nurse"], isMain: true },
+  { icon: CalendarDays, label: "الروستر", path: "/attendance/shift-schedule", roles: ["doctor", "technician"], isMain: true },
 ];

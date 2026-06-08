@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Star,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -204,6 +205,19 @@ export default function ShiftSchedule() {
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+  const clearRosterMut = (trpc as any).salary.clearRoster.useMutation({
+    onSuccess: () => {
+      schedQ.refetch();
+      payrollQ.refetch();
+      toast.success("تم مسح الروستر بالكامل");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  function handleClearRoster() {
+    if (!window.confirm(`هل أنت متأكد من مسح كل ورديات شهر ${MONTHS_AR[month - 1]} ${year}؟\nهذه العملية لا يمكن التراجع عنها.`))
+      return;
+    clearRosterMut.mutate({ year, month });
+  }
   const holidaysQ = (trpc as any).salary.listHolidays.useQuery({ year, month });
   const addHolidayMut = (trpc as any).salary.addHoliday.useMutation({
     onSuccess: () => {
@@ -429,6 +443,16 @@ export default function ShiftSchedule() {
                     >
                       <Star size={14} />
                       العطلات الرسمية
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleClearRoster}
+                      disabled={clearRosterMut.isPending || attendance.length === 0}
+                      className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 size={14} />
+                      مسح الروستر
                     </Button>
                   </>
                 )}

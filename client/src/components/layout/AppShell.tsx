@@ -197,6 +197,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           onOpenMore={() => window.dispatchEvent(new Event("selrs:open-command-palette"))}
           moreOpen={false}
           isAdmin={isAdmin}
+          userRole={userRole}
           allowedRoots={allowedRoots}
           permissionsLoaded={permissionsQuery.isSuccess}
         />

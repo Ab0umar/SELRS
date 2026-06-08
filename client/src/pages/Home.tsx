@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Capacitor } from "@capacitor/core";
-import { Activity, Globe, LockKeyhole, LogIn, UserRound, WifiOff } from "lucide-react";
+import {
+  Eye,
+  LockKeyhole,
+  LogIn,
+  Microscope,
+  Scan,
+  Stethoscope,
+  UserRound,
+  WifiOff,
+  Zap,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,25 +22,45 @@ import {
   getOfflineCacheSummary,
   subscribeNetworkStatus,
 } from "@/lib/appRuntime";
-import { BRAND_NAME_AR } from "@/lib/brand";
+import {
+  BRAND_FOOTER_EN,
+  BRAND_NAME_AR,
+  BRAND_TAGLINE_AR,
+} from "@/lib/brand";
 import {
   NATIVE_LAST_USERNAME_KEY,
   hydrateDurableValue,
   saveDurableValue,
 } from "@/lib/nativeStorage";
 
+const SERVICES = [
+  { icon: Zap,        ar: "تصحيح الإبصار" },
+  { icon: Eye,        ar: "المياه البيضاء" },
+  { icon: Scan,       ar: "أشعة القرنية"   },
+  { icon: Microscope, ar: "زراعة العدسات"  },
+] as const;
+
+const STATS = [
+  { value: "+10K", label: "مريض"  },
+  { value: "15+",  label: "طبيب"  },
+  { value: "24/7", label: "خدمة"  },
+] as const;
+
 export default function Home() {
   const { loading, user } = useAuth();
   const [, setLocation] = useLocation();
-  const [username, setUsername] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("last_username") ?? "";
-  });
+  const [username, setUsername] = useState(() =>
+    typeof window !== "undefined"
+      ? (window.localStorage.getItem("last_username") ?? "")
+      : "",
+  );
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("remember_me") !== "0";
-  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() =>
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("remember_me") !== "0"
+      : true,
+  );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(() =>
@@ -45,15 +75,13 @@ export default function Home() {
   }, [loading, user, setLocation]);
 
   useEffect(
-    () => subscribeNetworkStatus((status) => setIsOnline(status.connected)),
+    () => subscribeNetworkStatus((s) => setIsOnline(s.connected)),
     [],
   );
 
   useEffect(() => {
     void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then(
-      (stored) => {
-        if (stored) setUsername(stored);
-      },
+      (stored) => { if (stored) setUsername(stored); },
     );
   }, []);
 
@@ -61,62 +89,34 @@ export default function Home() {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-
     try {
-      const response = await fetch(getApiUrl("/api/auth/login"), {
+      const res = await fetch(getApiUrl("/api/auth/login"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, rememberMe }),
         credentials: "include",
       });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(data?.error || "فشل تسجيل الدخول");
-        return;
-      }
-
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data?.error || "فشل تسجيل الدخول"); return; }
       if (typeof window !== "undefined") {
-        const usePersistentStorage = Capacitor.isNativePlatform()
-          ? true
-          : rememberMe;
-        window.localStorage.setItem(
-          "remember_me",
-          usePersistentStorage ? "1" : "0",
-        );
+        const persist = Capacitor.isNativePlatform() ? true : rememberMe;
+        window.localStorage.setItem("remember_me", persist ? "1" : "0");
         window.localStorage.setItem("last_username", username.trim());
-        void saveDurableValue(
-          NATIVE_LAST_USERNAME_KEY,
-          username.trim(),
-          "last_username",
-        );
-        const store = usePersistentStorage
-          ? window.localStorage
-          : window.sessionStorage;
-        const clear = usePersistentStorage
-          ? window.sessionStorage
-          : window.localStorage;
-        clear.removeItem("user");
-        clear.removeItem("token");
-        store.removeItem("user");
-        store.removeItem("token");
-        if (data?.user) {
-          store.setItem("user", JSON.stringify(data.user));
-        }
-        if (data?.token) {
-          store.setItem("token", String(data.token));
-        }
+        void saveDurableValue(NATIVE_LAST_USERNAME_KEY, username.trim(), "last_username");
+        const store = persist ? window.localStorage : window.sessionStorage;
+        const clear = persist ? window.sessionStorage : window.localStorage;
+        clear.removeItem("user"); clear.removeItem("token");
+        store.removeItem("user"); store.removeItem("token");
+        if (data?.user)  store.setItem("user",  JSON.stringify(data.user));
+        if (data?.token) store.setItem("token", String(data.token));
       }
-
       setLocation("/dashboard");
-    } catch (error) {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setError("لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة.");
-      } else {
-        setError(error instanceof Error ? error.message : "فشل تسجيل الدخول");
-      }
+    } catch (err) {
+      setError(
+        !navigator.onLine
+          ? "لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة."
+          : err instanceof Error ? err.message : "فشل تسجيل الدخول",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -124,207 +124,177 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted px-4 text-center text-muted-foreground">
-        <div className="space-y-3">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
-          <p className="text-sm font-medium">جاري التحميل...</p>
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="space-y-3 text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground/70" />
+          <p className="text-sm font-medium text-primary-foreground/50">جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      dir="rtl"
-      className="relative min-h-dvh overflow-hidden bg-muted text-muted-foreground selection:bg-primary/10"
-    >
-      <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <section className="w-full max-w-[26rem]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-black tracking-tight text-foreground">
-                بوابة الطاقم الطبي
-              </h1>
-              <p className="mt-1 text-sm font-medium text-muted-foreground">
-                تسجيل الدخول
-              </p>
-            </div>
+    <div dir="rtl" className="flex min-h-dvh flex-col bg-background">
 
-            <div
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                isOnline
-                  ? "border-primary/20 bg-primary/10 text-primary"
-                  : "border-warning/50 bg-warning/10 text-warning"
-              }`}
-            >
-              {!isOnline ? <WifiOff className="h-3.5 w-3.5" /> : null}
-              {isOnline ? "متصل" : `غير متصل (${offlineCacheSummary.count})`}
+      {/* ── Navy top section ── */}
+      <div className="relative overflow-hidden bg-primary px-6 pb-7 pt-10 sm:pt-12">
+        <div className="pointer-events-none absolute -left-12 -top-12 h-52 w-52 rounded-full bg-secondary/15 blur-[70px]" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full bg-white/5 blur-[60px]" aria-hidden />
+
+        {/* Logo + clinic name */}
+        <div className="relative flex items-center gap-4">
+          <div className="flex-shrink-0 rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/20">
+            <BrandLogo className="h-14 w-14" />
+          </div>
+          <div>
+            <h1 className="text-[1.75rem] font-black leading-none tracking-tight text-primary-foreground">
+              {BRAND_NAME_AR}
+            </h1>
+            <p className="mt-1.5 text-[13px] font-bold text-secondary">{BRAND_TAGLINE_AR}</p>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="relative mt-5 flex items-stretch rounded-xl bg-white/8 ring-1 ring-white/10">
+          {STATS.map(({ value, label }, i) => (
+            <div key={label} className="flex flex-1 items-center">
+              {i > 0 && <div className="h-8 w-px flex-shrink-0 bg-white/15" />}
+              <div className="flex flex-1 flex-col items-center py-2.5">
+                <p className="text-base font-black text-primary-foreground">{value}</p>
+                <p className="text-[10px] font-medium text-primary-foreground/55">{label}</p>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* Service pills */}
+        <div className="relative mt-4 flex flex-wrap gap-1.5">
+          {SERVICES.map(({ icon: Icon, ar }) => (
+            <div
+              key={ar}
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold text-primary-foreground/85 ring-1 ring-white/15"
+            >
+              <Icon className="h-2.5 w-2.5 text-secondary" />
+              {ar}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── White form section — fills remaining height ── */}
+      <div className="flex flex-1 flex-col px-6 py-5">
+        <div className="flex flex-1 flex-col gap-4">
+
+          <div>
+            <h2 className="text-lg font-black text-foreground">تسجيل الدخول</h2>
+            <p className="text-xs text-muted-foreground">أدخل بياناتك للوصول إلى النظام</p>
           </div>
 
-          <div className="overflow-hidden rounded-[1.25rem] border border-border bg-background shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <div className="space-y-5 px-6 py-7 sm:px-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-border bg-primary/10">
-                  <BrandLogo className="h-8 w-8" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    {BRAND_NAME_AR}
-                  </p>
-                  <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">
-                    تسجيل الدخول
-                  </h2>
-                </div>
-              </div>
+          {error ? (
+            <Alert className="border-destructive/20 bg-destructive/8 py-2 text-destructive-text">
+              <AlertDescription className="text-xs">{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          {!isOnline ? (
+            <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text">
+              <AlertDescription className="text-xs">
+                وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
-              <form onSubmit={handleLogin} className="space-y-4">
-                {error ? (
-                  <Alert
-                    variant="destructive"
-                    className="border-destructive/30 bg-destructive/10 text-destructive"
-                  >
-                    <AlertDescription className="text-sm font-medium">
-                      {error}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-
-                {!isOnline ? (
-                  <Alert className="border-warning/50 bg-warning/10 text-warning">
-                    <AlertDescription className="text-sm font-medium">
-                      أنت تعمل في وضع عدم الاتصال، سيتم حفظ آخر اسم مستخدم فقط (
-                      {offlineCacheSummary.count} ملف مخزن)
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="username"
-                    className="text-sm font-semibold text-muted-foreground"
-                  >
-                    اسم المستخدم
-                  </label>
-                  <div className="relative">
-                    <UserRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="اسم المستخدم"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
-                      dir="ltr"
-                      disabled={submitting}
-                      required
-                      autoComplete="username"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="password"
-                    className="text-sm font-semibold text-muted-foreground"
-                  >
-                    كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 rounded-[1rem] border-border bg-muted/80 pr-12 text-left text-[15px] font-medium shadow-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
-                      dir="ltr"
-                      disabled={submitting}
-                      required
-                      autoComplete="current-password"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-[1rem] border border-border bg-muted/70 px-4 py-3">
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">
-                      تذكرني
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {rememberMe
-                        ? "يبقى الدخول محفوظًا على هذا الجهاز"
-                        : "جلسة مؤقتة"}
-                    </div>
-                  </div>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="peer sr-only"
-                      disabled={submitting}
-                    />
-                    <div className="h-7 w-12 rounded-full bg-border transition-colors peer-checked:bg-primary" />
-                    <div className="absolute left-1 h-5 w-5 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-5" />
-                  </label>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="h-14 w-full rounded-[1rem] bg-primary text-[15px] font-bold text-primary-foreground shadow-[0_14px_28px_rgba(0,31,71,0.14)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    "جاري تسجيل الدخول..."
-                  ) : (
-                    <span className="inline-flex items-center justify-center gap-2">
-                      تسجيل الدخول
-                      <LogIn className="h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
-              </form>
-
-              <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
-                <Activity className="h-3.5 w-3.5 text-primary" />
-                <span>
-                  {isOnline
-                    ? "متصل بالإنترنت"
-                    : `مخزن محليًا (${offlineCacheSummary.count})`}
-                </span>
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div className="space-y-1">
+              <label htmlFor="username" className="text-xs font-semibold text-foreground">اسم المستخدم</label>
+              <div className="relative">
+                <UserRound className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Input
+                  id="username" type="text" placeholder="أدخل اسم المستخدم"
+                  value={username} onChange={(e) => setUsername(e.target.value)}
+                  className="h-9 rounded-lg border-border bg-muted/40 pr-9 text-left text-sm placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/50"
+                  dir="ltr" disabled={submitting} required autoComplete="username"
+                />
               </div>
             </div>
 
-            <div className="border-t border-border px-6 py-4 space-y-2">
-              <p className="text-[11px] font-medium text-center text-muted-foreground/60 uppercase tracking-widest mb-3">بوابات أخرى</p>
+            <div className="space-y-1">
+              <label htmlFor="password" className="text-xs font-semibold text-foreground">كلمة المرور</label>
+              <div className="relative">
+                <LockKeyhole className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Input
+                  id="password" type={showPassword ? "text" : "password"} placeholder="أدخل كلمة المرور"
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="h-9 rounded-lg border-border bg-muted/40 px-9 text-left text-sm placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/50"
+                  dir="ltr" disabled={submitting} required autoComplete="current-password"
+                />
+                <button
+                  type="button" aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+                  tabIndex={-1}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary" disabled={submitting} />
+                <span className="text-xs text-muted-foreground">تذكرني</span>
+              </label>
+              <a href="#" onClick={(e) => e.preventDefault()} className="text-xs font-medium text-primary hover:underline">
+                نسيت كلمة المرور؟
+              </a>
+            </div>
+
+            <Button
+              type="submit"
+              className="h-10 w-full rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={submitting}
+            >
+              {submitting ? "جاري تسجيل الدخول..." : (
+                <span className="flex items-center justify-center gap-2">تسجيل الدخول <LogIn className="h-4 w-4" /></span>
+              )}
+            </Button>
+          </form>
+
+          {/* Portal links */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-border/50" />
+              <span className="text-[10px] font-semibold text-muted-foreground/60">بوابات أخرى</span>
+              <div className="flex-1 border-t border-border/50" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <Link href="/my/login">
-                <div className="flex items-center gap-3 rounded-[1rem] border border-border bg-muted/50 px-4 py-3 transition-colors hover:bg-muted active:bg-muted cursor-pointer">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <UserRound className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">بوابة المريض</p>
-                    <p className="text-xs text-muted-foreground">متابعة الملف والحجوزات</p>
-                  </div>
+                <div className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/25 hover:bg-muted">
+                  <UserRound className="h-3 w-3 text-muted-foreground" /> دخول المريض
                 </div>
               </Link>
               <Link href="/doctor-portal/login">
-                <div className="flex items-center gap-3 rounded-[1rem] border border-border bg-muted/50 px-4 py-3 transition-colors hover:bg-muted active:bg-muted cursor-pointer">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <Globe className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">بوابة الطبيب الخارجي</p>
-                    <p className="text-xs text-muted-foreground">عرض صور المرضى</p>
-                  </div>
+                <div className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/25 hover:bg-muted">
+                  <Stethoscope className="h-3 w-3 text-muted-foreground" /> دخول الطبيب
                 </div>
               </Link>
             </div>
           </div>
-        </section>
-      </main>
+
+        </div>
+
+        {/* Footer — pushed to bottom */}
+        <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
+          <div className={`flex items-center gap-1.5 text-[10px] font-semibold ${
+            isOnline ? "text-primary/50" : "text-warning-text"
+          }`}>
+            {!isOnline && <WifiOff className="h-3 w-3" />}
+            {isOnline ? "متصل بالنظام" : `غير متصل (${offlineCacheSummary.count})`}
+          </div>
+          <p className="text-[9px] text-muted-foreground/40">{BRAND_FOOTER_EN}</p>
+        </div>
+      </div>
+
     </div>
   );
 }

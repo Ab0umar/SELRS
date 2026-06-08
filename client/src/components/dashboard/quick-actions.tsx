@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import type { LucideIcon } from "lucide-react";
@@ -15,8 +15,10 @@ import {
   CircleDot,
   Syringe,
   Repeat,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import {
   Dialog,
   DialogContent,
@@ -29,84 +31,214 @@ import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { PageKey } from "@/lib/dashboard-data";
 import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntryDialog";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
+import { AddPortalBookingDialog } from "@/components/dashboard/AddPortalBookingDialog";
 
 type QuickActionItem =
-  | { label: string; icon: LucideIcon; color: string; kind: "quick-entry-dialog" }
-  | { label: string; icon: LucideIcon; color: string; kind: "schedule-dialog" }
-  | { label: string; icon: LucideIcon; color: string; kind: "measurements-panel" }
-  | { label: string; icon: LucideIcon; color: string; kind: "operations-booking-dialog" }
-  | { label: string; icon: LucideIcon; color: string; kind: "pick-patient"; page: PageKey };
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "quick-entry-dialog";
+      permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "schedule-dialog";
+      permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "portal-booking-dialog";
+      permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "measurements-panel";
+      permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "operations-booking-dialog";
+      permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "pick-patient";
+      page: PageKey;
+      permPath: string;
+    };
 
 const quickActions: QuickActionItem[] = [
-  { label: "تسجيل مريض", icon: UserPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "quick-entry-dialog" },
-  { label: "حجز موعد", icon: CalendarPlus, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "schedule-dialog" },
-  { label: "القياسات و الفحص", icon: Eye, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "measurements-panel" },
-  { label: "حجز العمليات", icon: Syringe, color: "bg-success text-success-foreground hover:bg-success/90", kind: "operations-booking-dialog" },
-  { label: "متابعة", icon: Repeat, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "followups" },
-  { label: "مقاس النظارة", icon: Glasses, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "refraction" },
-  { label: "بنتاكام", icon: CircleDot, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "pentacam-sheet" },
-  { label: "الروشتات", icon: Pill, color: "bg-warning text-warning-foreground hover:bg-warning/90", kind: "pick-patient", page: "write-prescription" },
-  { label: "تحاليل و اشعه", icon: FlaskConical, color: "bg-secondary text-secondary-foreground hover:bg-secondary/90", kind: "pick-patient", page: "request-tests" },
-  { label: "تشخيص / تقرير", icon: FileText, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "pick-patient", page: "medical-reports" },
-  { label: "الملف الطبي", icon: FileHeart, color: "bg-primary text-primary-foreground hover:bg-primary/90", kind: "pick-patient", page: "patient-details" },
-  { label: "تقرير المريض", icon: FileSpreadsheet, color: "bg-muted/60 text-muted-foreground hover:bg-muted/80", kind: "pick-patient", page: "patient-summary" },
+  {
+    label: "تسجيل مريض",
+    icon: UserPlus,
+    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    kind: "quick-entry-dialog",
+    permPath: "/patients",
+  },
+  {
+    label: "تحديد موعد / كشف",
+    icon: CalendarPlus,
+    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    kind: "portal-booking-dialog",
+    permPath: "/operations",
+  },
+  {
+    label: "القياسات و الفحص",
+    icon: Eye,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "measurements-panel",
+    permPath: "/examination",
+  },
+  {
+    label: "حجز العمليات",
+    icon: Syringe,
+    color: "bg-success text-success-foreground hover:bg-success/90",
+    kind: "operations-booking-dialog",
+    permPath: "/operations",
+  },
+  {
+    label: "متابعة",
+    icon: Repeat,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "pick-patient",
+    page: "followups",
+    permPath: "/followup",
+  },
+  {
+    label: "مقاس النظارة",
+    icon: Glasses,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "pick-patient",
+    page: "refraction",
+    permPath: "/refraction",
+  },
+  {
+    label: "بنتاكام",
+    icon: CircleDot,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "pick-patient",
+    page: "pentacam-sheet",
+    permPath: "/sheets",
+  },
+  {
+    label: "الروشتات",
+    icon: Pill,
+    color: "bg-warning text-warning-foreground hover:bg-warning/90",
+    kind: "pick-patient",
+    page: "write-prescription",
+    permPath: "/prescription",
+  },
+  {
+    label: "تحاليل و اشعه",
+    icon: FlaskConical,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "pick-patient",
+    page: "request-tests",
+    permPath: "/request-tests",
+  },
+  {
+    label: "تشخيص / تقرير",
+    icon: FileText,
+    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    kind: "pick-patient",
+    page: "medical-reports",
+    permPath: "/medical-reports",
+  },
+  {
+    label: "الملف الطبي",
+    icon: FileHeart,
+    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    kind: "pick-patient",
+    page: "patient-details",
+    permPath: "/patient-file",
+  },
+  {
+    label: "تقرير المريض",
+    icon: FileSpreadsheet,
+    color: "bg-muted/60 text-muted-foreground hover:bg-muted/80",
+    kind: "pick-patient",
+    page: "patient-summary",
+    permPath: "/patient-summary",
+  },
 ];
 
-type UserRole =
-  | "admin"
-  | "manager"
-  | "reception"
-  | "nurse"
-  | "technician"
-  | "doctor"
-  | "accountant"
-  | "";
+function normPerm(raw: string): string {
+  return (
+    raw
+      .replace(/:r[w]?$/, "")
+      .split("?")[0]
+      .split("#")[0] || "/"
+  );
+}
 
-function actionsForRole(userRole: UserRole): QuickActionItem[] {
-  const all = quickActions;
-  const byKind = <K extends QuickActionItem["kind"]>(kind: K) =>
-    all.filter((a) => a.kind === kind);
-  const byPage = (page: PageKey) => all.find((a) => a.kind === "pick-patient" && a.page === page);
-
-  const medicalShortcuts = [
-    ...byKind("measurements-panel"),
-    byPage("followups"),
-    byPage("refraction"),
-    byPage("pentacam-sheet"),
-    byPage("write-prescription"),
-    byPage("request-tests"),
-    byPage("medical-reports"),
-    byPage("patient-details"),
-    byPage("patient-summary"),
-  ].filter(Boolean) as QuickActionItem[];
-
-  const receptionShortcuts = [
-    ...byKind("quick-entry-dialog"),
-    ...byKind("schedule-dialog"),
-    ...byKind("operations-booking-dialog"),
-    ...medicalShortcuts,
-  ];
-
-  if (userRole === "admin" || userRole === "manager") return all;
-  if (userRole === "reception") return receptionShortcuts;
-  return medicalShortcuts;
+function isPermAllowed(permPath: string, allowedPaths: string[]): boolean {
+  return allowedPaths.some((p) => {
+    const base = p.includes("/:") ? p.split("/:")[0] : p;
+    return (
+      base === permPath ||
+      permPath.startsWith(base + "/") ||
+      base.startsWith(permPath + "/")
+    );
+  });
 }
 
 export type QuickActionsProps = {
-  /** «القياسات و الفحص»: فتح منتقي المريض ثم `MedicalFilePanel`. */
   onOpenMeasurementsMedicalFile?: () => void;
-  /** «حجز العمليات»: فتح نافذة حجز العمليات السريعة (موديال). */
   onOpenOperationsBooking?: () => void;
 };
 
-export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBooking }: QuickActionsProps) {
+export function QuickActions({
+  onOpenMeasurementsMedicalFile,
+  onOpenOperationsBooking,
+}: QuickActionsProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [portalBookingOpen, setPortalBookingOpen] = useState(false);
   const [pickPage, setPickPage] = useState<PageKey | null>(null);
-  const userRole = String(user?.role ?? "").toLowerCase() as UserRole;
-  const visibleActions = actionsForRole(userRole);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const userRole = String(user?.role ?? "").toLowerCase();
+  const isAdmin = userRole === "admin";
+
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+
+  const allowedPaths = useMemo(() => {
+    if (isAdmin) return [];
+    const raw = (permissionsQuery.data ?? []) as string[];
+    return Array.from(new Set(raw.map(normPerm).filter((p) => p.length > 0)));
+  }, [isAdmin, permissionsQuery.data]);
+
+  const visibleActions = useMemo(() => {
+    if (isAdmin) return quickActions;
+    if (!permissionsQuery.isSuccess) return [];
+    return quickActions.filter((a) => isPermAllowed(a.permPath, allowedPaths));
+  }, [isAdmin, permissionsQuery.isSuccess, allowedPaths]);
+
+  const isMoreAction = (action: QuickActionItem) =>
+    action.color.includes("bg-secondary") ||
+    action.color.includes("bg-warning") ||
+    (action.kind === "pick-patient" &&
+      ["medical-reports", "patient-details", "patient-summary"].includes(
+        action.page,
+      ));
+  const mainActions = visibleActions.filter((action) => !isMoreAction(action));
+  const moreActions = visibleActions.filter(isMoreAction);
 
   const navigateForPatient = (page: PageKey, patientId: number) => {
     const path = patientNavPathForPageKey(page, patientId);
@@ -114,12 +246,56 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
     else setLocation("/dashboard");
   };
 
+  const handleAction = (action: QuickActionItem) => {
+    if (action.kind === "quick-entry-dialog") {
+      setQuickEntryOpen(true);
+      return;
+    }
+    if (action.kind === "schedule-dialog") {
+      setScheduleOpen(true);
+      return;
+    }
+    if (action.kind === "portal-booking-dialog") {
+      setPortalBookingOpen(true);
+      return;
+    }
+    if (action.kind === "operations-booking-dialog") {
+      if (onOpenOperationsBooking) {
+        onOpenOperationsBooking();
+        return;
+      }
+      setLocation("/operations");
+      return;
+    }
+    if (action.kind === "measurements-panel") {
+      if (onOpenMeasurementsMedicalFile) {
+        onOpenMeasurementsMedicalFile();
+        return;
+      }
+      setLocation("/examination");
+      return;
+    }
+    setPickPage(action.page);
+  };
+
+  if (!visibleActions.length) return null;
+
   return (
     <>
-      <QuickPatientEntryDialog open={quickEntryOpen} onOpenChange={setQuickEntryOpen} />
+      <QuickPatientEntryDialog
+        open={quickEntryOpen}
+        onOpenChange={setQuickEntryOpen}
+      />
       <ScheduleVisitDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
-      <Dialog open={pickPage != null} onOpenChange={(o) => !o && setPickPage(null)}>
-        <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-lg" dir="rtl">
+      <AddPortalBookingDialog open={portalBookingOpen} onOpenChange={setPortalBookingOpen} />
+      <Dialog
+        open={pickPage != null}
+        onOpenChange={(o) => !o && setPickPage(null)}
+      >
+        <DialogContent
+          className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-lg"
+          dir="rtl"
+        >
           <DialogHeader className="text-right">
             <DialogTitle className="text-right">اختر المريض</DialogTitle>
             <DialogDescription className="text-right text-muted-foreground">
@@ -128,107 +304,104 @@ export function QuickActions({ onOpenMeasurementsMedicalFile, onOpenOperationsBo
           </DialogHeader>
           <PatientPicker
             onSelect={(patient) => {
-              if (pickPage && patient?.id) {
+              if (pickPage && patient?.id)
                 navigateForPatient(pickPage, patient.id);
-              }
               setPickPage(null);
             }}
           />
         </DialogContent>
       </Dialog>
 
-      {/* Primary CTAs: Register, Schedule & Operations */}
-      {visibleActions.filter((a) => ["quick-entry-dialog", "schedule-dialog", "operations-booking-dialog"].includes(a.kind)).length > 0 && (
-        <div className="flex gap-3">
-          {visibleActions.filter((a) => ["quick-entry-dialog", "schedule-dialog", "operations-booking-dialog"].includes(a.kind)).map((action, i) => {
+      <div
+        className="overflow-x-auto scrollbar-none"
+        aria-label="اختصارات لوحة التحكم"
+      >
+        <div className="flex w-max min-w-full items-center gap-2 pb-1">
+          {mainActions.map((action) => {
             const Icon = action.icon;
+            const isPrimary = [
+              "quick-entry-dialog",
+              "schedule-dialog",
+              "operations-booking-dialog",
+            ].includes(action.kind);
             return (
               <button
                 key={action.label}
                 type="button"
                 aria-label={action.label}
-                onClick={() => {
-                  if (action.kind === "quick-entry-dialog") { setQuickEntryOpen(true); return; }
-                  if (action.kind === "schedule-dialog") { setScheduleOpen(true); return; }
-                  if (action.kind === "operations-booking-dialog") {
-                    if (onOpenOperationsBooking) { onOpenOperationsBooking(); return; }
-                    setLocation("/operations");
-                    return;
-                  }
-                }}
+                onClick={() => handleAction(action)}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-[background-color,transform] active:scale-[0.97]",
-                  i === 0
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  "group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border px-0 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3",
+                  isPrimary
+                    ? "border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "border-border/60 bg-background text-foreground hover:border-primary/25 hover:bg-accent/30",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {action.label}
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                    action.color,
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <span className="hidden whitespace-nowrap sm:inline">
+                  {action.label}
+                </span>
               </button>
             );
           })}
+          {moreActions.length > 0 && (
+            <button
+              type="button"
+              aria-label={
+                moreOpen ? "إغلاق اختصارات المزيد" : "فتح اختصارات المزيد"
+              }
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((open) => !open)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/15 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:bg-secondary/20 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform",
+                    moreOpen && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </span>
+              <span className="hidden whitespace-nowrap sm:inline">المزيد</span>
+              <span className="hidden rounded-full bg-secondary/15 px-1.5 text-[11px] tabular-nums sm:inline">
+                {moreActions.length}
+              </span>
+            </button>
+          )}
         </div>
-      )}
 
-      {/* Clinical tools: Measurements, refraction, pentacam, tests, followups */}
-      {visibleActions.some((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : ""))) && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {visibleActions
-            .filter((a) => a.kind === "measurements-panel" || (a.kind === "pick-patient" && ["followups", "refraction", "pentacam-sheet", "request-tests"].includes(("page" in a) ? a.page : "")))
-            .map((action) => {
+        {moreOpen && moreActions.length > 0 && (
+          <div className="mt-2 flex w-max min-w-full items-center gap-2 border-t border-border/40 pt-2">
+            {moreActions.map((action) => {
               const Icon = action.icon;
               return (
                 <button
                   key={action.label}
                   type="button"
                   aria-label={action.label}
-                  onClick={() => {
-                    if (action.kind === "measurements-panel") {
-                      if (onOpenMeasurementsMedicalFile) { onOpenMeasurementsMedicalFile(); return; }
-                      setLocation("/examination");
-                      return;
-                    }
-                    if (action.kind === "pick-patient") { setPickPage(action.page); }
-                  }}
-                  className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/60 px-2.5 py-1.5 text-sm font-medium text-muted-foreground active:scale-[0.97]"
+                  onClick={() => handleAction(action)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/10 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:border-secondary/50 hover:bg-secondary/15 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3"
                 >
-                  <div className={cn("flex h-6 w-6 items-center justify-center rounded", action.color)}>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
                     <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                  </div>
-                  {action.label}
+                  </span>
+                  <span className="hidden whitespace-nowrap sm:inline">
+                    {action.label}
+                  </span>
                 </button>
               );
             })}
-        </div>
-      )}
-
-      {/* Admin/report links: Prescriptions, reports, file, summary */}
-      {visibleActions.some((a) => a.kind === "pick-patient" && ["write-prescription", "medical-reports", "patient-details", "patient-summary"].includes(("page" in a) ? a.page : "")) && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {visibleActions
-            .filter((a) =>
-              (a.kind === "pick-patient" && ["write-prescription", "medical-reports", "patient-details", "patient-summary"].includes(("page" in a) ? a.page : ""))
-            )
-            .map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.label}
-                  type="button"
-                  aria-label={action.label}
-                  onClick={() => {
-                    if (action.kind === "pick-patient") { setPickPage(action.page); }
-                  }}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted active:scale-[0.97]"
-                >
-                  <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-                  {action.label}
-                </button>
-              );
-            })}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </>
   );
 }

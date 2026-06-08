@@ -14,12 +14,13 @@ const DAY_LABELS: Record<string, string> = {
 export default function DraftPosts() {
   const [publishId, setPublishId] = useState<number | null>(null);
   const [imageGenId, setImageGenId] = useState<number | null>(null);
+  const [limit, setLimit] = useState(25);
 
   const utils = trpc.useUtils();
 
   const listQuery = trpc.marketing.listPosts.useQuery({
     status: "draft",
-    limit: 100,
+    limit,
     offset: 0,
   });
 
@@ -63,12 +64,12 @@ export default function DraftPosts() {
           <h1 className="text-lg font-bold text-foreground">المسودات</h1>
           <p className="text-sm text-muted-foreground">{posts.length} مسودة في الانتظار</p>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => void utils.marketing.listPosts.invalidate()}>
+        <Button size="sm" variant="ghost" aria-label="تحديث القائمة" onClick={() => void utils.marketing.listPosts.invalidate()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4" aria-live="polite" aria-busy={listQuery.isLoading}>
         {listQuery.isLoading ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -80,15 +81,17 @@ export default function DraftPosts() {
             <p className="mt-1 text-xs text-muted-foreground">استخدم زر "توليد منشور" من لوحة التحكم</p>
           </div>
         ) : (
-          posts.map((post) => (
+          <>
+            {posts.map((post) => (
             <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
               {/* Image area */}
               {post.imageUrl ? (
                 <div className="relative h-52 w-full bg-muted">
                   <img
                     src={post.imageUrl}
-                    alt={post.title ?? "Post image"}
+                    alt={post.title ?? "صورة منشور تسويقي"}
                     className="h-full w-full object-cover"
+                    loading="lazy"
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                   />
                 </div>
@@ -169,7 +172,8 @@ export default function DraftPosts() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    aria-label="حذف المسودة"
+                    className="h-9 w-9 p-0 text-destructive hover:text-destructive"
                     onClick={() => deleteMutation.mutate({ id: post.id })}
                     disabled={deleteMutation.isPending}
                   >
@@ -178,7 +182,15 @@ export default function DraftPosts() {
                 </div>
               </div>
             </div>
-          ))
+          ))}
+            {posts.length === limit && (
+              <div className="flex justify-center pt-2">
+                <Button size="sm" variant="ghost" onClick={() => setLimit((l) => l + 25)}>
+                  عرض المزيد
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

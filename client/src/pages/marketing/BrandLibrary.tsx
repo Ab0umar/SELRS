@@ -122,6 +122,7 @@ export default function BrandLibrary() {
         <Button
           size="sm"
           variant="ghost"
+          aria-label="تحديث"
           onClick={() => {
             void utils.marketing.listReferenceDesigns.invalidate();
             void utils.marketing.getBrandProfile.invalidate();
@@ -133,10 +134,14 @@ export default function BrandLibrary() {
 
       {/* Upload zone */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="رفع تصاميم مرجعية — اسحب أو انقر للاختيار"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); void handleFiles(e.dataTransfer.files); }}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); } }}
         className={`relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
           dragOver
             ? "border-primary bg-primary/10"
@@ -231,7 +236,7 @@ export default function BrandLibrary() {
       </div>
 
       {/* Reference designs grid */}
-      <div>
+      <div aria-live="polite" aria-busy={designsQuery.isLoading}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">
             التصاميم المرجعية ({designs.length})
@@ -259,6 +264,7 @@ export default function BrandLibrary() {
                       src={design.fileUrl}
                       alt={design.originalName}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                     />
                     {/* Overlay on hover */}

@@ -1,7 +1,7 @@
-import { lazy, Suspense, useState, useEffect } from 'react'
-import { QuickActions } from '@/components/dashboard/quick-actions'
-import { useMedicalFileLauncher } from '@/hooks/useMedicalFileLauncher'
-import { AppointmentsSection } from '@/components/dashboard/appointments-activity'
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
+import { AppointmentsSection } from "@/components/dashboard/appointments-activity";
 import {
   Clock,
   Activity,
@@ -12,91 +12,156 @@ import {
   CircleDot,
   Glasses,
   LayoutDashboard,
+  CalendarDays,
   Wallet,
   Archive,
   Search,
   ChevronLeft,
+  ChevronDown,
   AlertTriangle,
   Zap,
   Cpu,
   UserX,
-} from 'lucide-react'
-import { serviceTypeLabels } from '@/lib/dashboard-data'
-import { trpc } from '@/lib/trpc'
-import { useTodayQueuePatientsMerged } from '@/hooks/useTodayQueuePatientsMerged'
-import { cn } from '@/lib/utils'
-import { OperationsBookingQuickDialog } from '@/components/operations/OperationsBookingQuickDialog'
-import { getLocalDateIso } from '@/hooks/operations/operationsShared'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Link } from 'wouter'
-import { formatMoneyAr } from './accounting/accountingFormat'
+} from "lucide-react";
+import { serviceTypeLabels } from "@/lib/dashboard-data";
+import { usePermissions } from "@/hooks/usePermissions";
+import { trpc } from "@/lib/trpc";
+import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
+import { cn } from "@/lib/utils";
+import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
+import { getLocalDateIso } from "@/hooks/operations/operationsShared";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
+import { formatMoneyAr } from "./accounting/accountingFormat";
 
 // ─── Lazy charts ────────────────────────────────────────────────────────────
 const ChartLoading = () => (
   <div className="h-[200px] animate-pulse rounded-lg bg-muted/40" />
-)
+);
 const PatientTrendChart = lazy(() =>
-  import('@/components/dashboard/charts').then((m) => ({ default: m.PatientTrendChart }))
-)
+  import("@/components/dashboard/charts").then((m) => ({
+    default: m.PatientTrendChart,
+  })),
+);
 const DepartmentWorkloadChart = lazy(() =>
-  import('@/components/dashboard/charts').then((m) => ({ default: m.DepartmentWorkloadChart }))
-)
+  import("@/components/dashboard/charts").then((m) => ({
+    default: m.DepartmentWorkloadChart,
+  })),
+);
 
 // ─── Tabs config ────────────────────────────────────────────────────────────
-type TabId = 'today' | 'hub' | 'accounting' | 'attendance' | 'stockroom'
+type TabId = "today" | "hub" | "accounting" | "attendance" | "stockroom";
 
 const TABS: Array<{
-  id: TabId
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  iconWrapCls: string
+  id: TabId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconWrapCls: string;
+  permPath: string | null;
 }> = [
-  { id: 'today',      label: 'لوحة التحكم',  icon: LayoutDashboard, iconWrapCls: 'bg-primary/10 text-primary' },
-  { id: 'hub',        label: 'مركز المريض',  icon: Users,         iconWrapCls: 'bg-secondary/15 text-secondary' },
-  { id: 'accounting', label: 'الحسابات',     icon: Wallet,        iconWrapCls: 'bg-warning/20 text-warning' },
-  { id: 'attendance', label: 'الحضور',       icon: Clock,         iconWrapCls: 'bg-success/15 text-success' },
-  { id: 'stockroom',  label: 'المخزن',       icon: Archive,       iconWrapCls: 'bg-muted text-muted-foreground' },
-]
+  {
+    id: "today",
+    label: "لوحة التحكم",
+    icon: LayoutDashboard,
+    iconWrapCls: "bg-primary/10 text-primary",
+    permPath: null, // always visible
+  },
+  {
+    id: "hub",
+    label: "مركز المريض",
+    icon: Users,
+    iconWrapCls: "bg-secondary/15 text-secondary",
+    permPath: "/patient-hub",
+  },
+  {
+    id: "accounting",
+    label: "الحسابات",
+    icon: Wallet,
+    iconWrapCls: "bg-warning/20 text-warning",
+    permPath: "/accounting",
+  },
+  {
+    id: "attendance",
+    label: "الحضور",
+    icon: Clock,
+    iconWrapCls: "bg-success/15 text-success",
+    permPath: "/attendance",
+  },
+  {
+    id: "stockroom",
+    label: "المخزن",
+    icon: Archive,
+    iconWrapCls: "bg-muted text-muted-foreground",
+    permPath: "/stockroom",
+  },
+];
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 function useClock() {
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000)
-    return () => clearInterval(id)
-  }, [])
-  return now
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
 }
 
 function useDebounce<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value)
+  const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), ms)
-    return () => clearTimeout(id)
-  }, [value, ms])
-  return debounced
+    const id = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return debounced;
 }
 
-function SectionHeader({ title, children }: { title: string; children?: React.ReactNode }) {
+function SectionHeader({
+  title,
+  children,
+}: {
+  title: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-      <h3 className="text-base font-semibold leading-tight text-foreground">{title}</h3>
+      <h3 className="text-base font-semibold leading-tight text-foreground">
+        {title}
+      </h3>
       {children}
     </div>
-  )
+  );
+}
+
+function Surface({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border/50 bg-background shadow-sm",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 function StatRow({
   label,
   value,
-  valueClass = '',
+  valueClass = "",
   icon: Icon,
 }: {
-  label: string
-  value: React.ReactNode
-  valueClass?: string
-  icon?: React.ComponentType<{ className?: string }>
+  label: string;
+  value: React.ReactNode;
+  valueClass?: string;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="flex items-center justify-between py-2 text-sm">
@@ -104,31 +169,34 @@ function StatRow({
         {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />}
         <span>{label}</span>
       </div>
-      <span className={cn('font-semibold tabular-nums', valueClass)}>{value}</span>
+      <span className={cn("font-semibold tabular-nums", valueClass)}>
+        {value}
+      </span>
     </div>
-  )
+  );
 }
 
 function PanelLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href}>
-      <a className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-        {label}
-        <ChevronLeft className="h-3 w-3" aria-hidden />
-      </a>
+    <Link href={href} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+      {label}
+      <ChevronLeft className="h-3 w-3" aria-hidden />
     </Link>
-  )
+  );
 }
 
 // ─── Today panel ─────────────────────────────────────────────────────────────
 function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
-  const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate)
+  const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate);
 
   if (isLoading) {
     return (
       <div className="space-y-3 py-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-background px-3 py-3">
+          <div
+            key={i}
+            className="rounded-xl border border-border/60 bg-background px-3 py-3"
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 space-y-2">
                 <Skeleton className="h-3.5 w-24 rounded-full" />
@@ -140,35 +208,37 @@ function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   const serviceCounts = merged.reduce<Record<string, number>>((acc, p) => {
-    const k = String(p.serviceType ?? 'unknown')
-    acc[k] = (acc[k] || 0) + 1
-    return acc
-  }, {})
+    const k = String(p.serviceType ?? "unknown");
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
 
   const colors: Record<string, string> = {
-    consultant: 'bg-primary',
-    specialist: 'bg-primary/60',
-    lasik: 'bg-secondary',
-    surgery: 'bg-warning',
-    external: 'bg-muted-foreground/40',
-  }
+    consultant: "bg-primary",
+    specialist: "bg-primary/60",
+    lasik: "bg-secondary",
+    surgery: "bg-warning",
+    external: "bg-muted-foreground/40",
+  };
 
-  const total = merged.length
+  const total = merged.length;
   const items = Object.entries(serviceCounts).map(([key, count]) => ({
     label: serviceTypeLabels[key as keyof typeof serviceTypeLabels] || key,
     count,
     pct: total > 0 ? Math.round((count / total) * 100) : 0,
-    color: colors[key] || 'bg-muted-foreground/40',
-  }))
+    color: colors[key] || "bg-muted-foreground/40",
+  }));
 
   if (items.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-muted-foreground">لا يوجد مرضى اليوم</p>
-    )
+      <p className="py-4 text-center text-sm text-muted-foreground">
+        لا يوجد مرضى اليوم
+      </p>
+    );
   }
 
   return (
@@ -177,83 +247,122 @@ function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
         <div key={item.label} className="space-y-1">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <span className={cn('inline-block h-2 w-2 rounded-full', item.color)} aria-hidden />
+              <span
+                className={cn("inline-block h-2 w-2 rounded-full", item.color)}
+                aria-hidden
+              />
               <span className="font-medium">{item.label}</span>
             </div>
             <span className="text-muted-foreground tabular-nums">
-              {item.count} — {item.pct}%
+              {item.count}، {item.pct}%
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div
-              className={cn('h-full w-full origin-right rounded-full transition-transform duration-500 ease-out', item.color)}
+              className={cn(
+                "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
+                item.color,
+              )}
               style={{ transform: `scaleX(${item.pct / 100})` }}
             />
           </div>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function MedicalTotals() {
-  const q = trpc.medical.getMedicalTotals.useQuery(undefined, { refetchOnWindowFocus: false })
+  const q = trpc.medical.getMedicalTotals.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const fmt = (n: number | undefined, loading: boolean) =>
-    loading ? '—' : (n ?? 0).toLocaleString('ar-EG')
-  const t = q.data
+    loading ? "-" : (n ?? 0).toLocaleString("ar-EG");
+  const t = q.data;
 
   return (
     <div className="space-y-1">
       {[
-        { label: 'إجمالي المرضى', value: fmt(t?.patients, q.isLoading), icon: Users },
-        { label: 'Autoref',       value: fmt(t?.autoref,   q.isLoading), icon: Eye },
-        { label: 'Refraction',    value: fmt(t?.refraction,q.isLoading), icon: Glasses },
-        { label: 'بنتاكام',      value: fmt(t?.pentacam,  q.isLoading), icon: CircleDot },
-        { label: 'عمليات',        value: fmt(t?.operations,q.isLoading), icon: Syringe },
+        {
+          label: "إجمالي المرضى",
+          value: fmt(t?.patients, q.isLoading),
+          icon: Users,
+        },
+        { label: "Autoref", value: fmt(t?.autoref, q.isLoading), icon: Eye },
+        {
+          label: "Refraction",
+          value: fmt(t?.refraction, q.isLoading),
+          icon: Glasses,
+        },
+        {
+          label: "بنتاكام",
+          value: fmt(t?.pentacam, q.isLoading),
+          icon: CircleDot,
+        },
+        {
+          label: "عمليات",
+          value: fmt(t?.operations, q.isLoading),
+          icon: Syringe,
+        },
       ].map((r) => (
         <StatRow key={r.label} label={r.label} value={r.value} icon={r.icon} />
       ))}
     </div>
-  )
+  );
 }
 
 const LEAVE_TYPE_AR: Record<string, string> = {
-  annual: 'سنوية',
-  sick: 'مرضية',
-  unpaid: 'بدون راتب',
-  other: 'أخرى',
-}
+  annual: "سنوية",
+  sick: "مرضية",
+  unpaid: "بدون راتب",
+  other: "أخرى",
+};
 
 function OffUsersTodayCard() {
   const q = (trpc as any).attendance.offTodayList.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
-  })
-  const list: Array<{ empCd: string; fullName: string; department: string | null; type: string; approved: boolean }> = q.data ?? []
+  });
+  const list: Array<{
+    empCd: string;
+    fullName: string;
+    department: string | null;
+    type: string;
+    approved: boolean;
+  }> = q.data ?? [];
 
   return (
     <div className="rounded-lg border border-border/70 bg-background">
       <SectionHeader title="إجازات اليوم">
         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning/15 px-1.5 text-[11px] font-semibold text-warning tabular-nums">
-          {q.isLoading ? '…' : list.length}
+          {q.isLoading ? "…" : list.length}
         </span>
       </SectionHeader>
       <div className="px-4 py-3">
         {q.isLoading ? (
           <div className="space-y-2">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-5 rounded" />)}
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-5 rounded" />
+            ))}
           </div>
         ) : list.length === 0 ? (
-          <p className="py-2 text-center text-sm text-muted-foreground">لا توجد إجازات اليوم</p>
+          <p className="py-2 text-center text-sm text-muted-foreground">
+            لا توجد إجازات اليوم
+          </p>
         ) : (
           <ul className="space-y-1.5 max-h-48 overflow-y-auto">
             {list.map((emp) => (
               <li key={emp.empCd} className="flex items-center gap-2 text-sm">
-                <UserX className="h-3.5 w-3.5 shrink-0 text-warning/70" aria-hidden />
-                <span className="flex-1 truncate font-medium">{emp.fullName}</span>
+                <UserX
+                  className="h-3.5 w-3.5 shrink-0 text-warning/70"
+                  aria-hidden
+                />
+                <span className="flex-1 truncate font-medium">
+                  {emp.fullName}
+                </span>
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   {LEAVE_TYPE_AR[emp.type] ?? emp.type}
-                  {!emp.approved && ' (معلق)'}
+                  {!emp.approved && " (معلق)"}
                 </span>
               </li>
             ))}
@@ -262,16 +371,14 @@ function OffUsersTodayCard() {
       </div>
       {!q.isLoading && list.length > 0 && (
         <div className="border-t border-border/40 px-4 py-2">
-          <Link href="/attendance/employees">
-            <a className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          <Link href="/attendance/employees" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
               عرض تفاصيل الحضور
               <ChevronLeft className="h-3 w-3" aria-hidden />
-            </a>
           </Link>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function TodayPanel({
@@ -279,35 +386,63 @@ function TodayPanel({
   onSelectedDateChange,
   openMedicalFileForPatient,
 }: {
-  selectedDate: string
-  onSelectedDateChange: (d: string) => void
-  openMedicalFileForPatient: (id: number) => void
+  selectedDate: string;
+  onSelectedDateChange: (d: string) => void;
+  openMedicalFileForPatient: (id: number) => void;
 }) {
-  const { merged, isLoading: queueLoading } = useTodayQueuePatientsMerged(selectedDate)
+  const { merged, isLoading: queueLoading } =
+    useTodayQueuePatientsMerged(selectedDate);
   const opsQuery = trpc.medical.getTodayOperationLists.useQuery(
     { date: selectedDate },
-    { refetchOnWindowFocus: false }
-  )
+    { refetchOnWindowFocus: false },
+  );
 
-  const total = merged.length
-  const treated = merged.filter((p) => p.queueStatus === 'treated').length
-  const waiting = total - treated
-  const completionRate = total > 0 ? Math.round((treated / total) * 100) : 0
-  const opsCount = opsQuery.data?.length ?? 0
+  const total = merged.length;
+  const treated = merged.filter((p) => p.queueStatus === "treated").length;
+  const waiting = total - treated;
+  const completionRate = total > 0 ? Math.round((treated / total) * 100) : 0;
+  const opsCount = opsQuery.data?.length ?? 0;
 
   const tiles = [
-    { label: 'مرضى اليوم',   value: total,   icon: Users },
-    { label: 'تم معالجتهم',  value: treated, icon: Activity },
-    { label: 'في الانتظار',  value: waiting, icon: Clock },
-    { label: 'العمليات',     value: opsCount, icon: Syringe },
-  ]
+    {
+      label: "مرضى اليوم",
+      value: total,
+      icon: Users,
+      cls: "bg-primary/10 text-primary",
+      bar: "bg-primary",
+    },
+    {
+      label: "تم معالجتهم",
+      value: treated,
+      icon: Activity,
+      cls: "bg-success/15 text-success",
+      bar: "bg-success",
+    },
+    {
+      label: "في الانتظار",
+      value: waiting,
+      icon: Clock,
+      cls: "bg-warning/15 text-warning",
+      bar: "bg-warning",
+    },
+    {
+      label: "العمليات",
+      value: opsCount,
+      icon: Syringe,
+      cls: "bg-secondary/15 text-secondary",
+      bar: "bg-secondary",
+    },
+  ];
 
   if (queueLoading || opsQuery.isLoading) {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {tiles.map((_, i) => (
-            <div key={i} className="rounded-lg border border-border/50 bg-background px-3 py-2.5">
+            <div
+              key={i}
+              className="rounded-lg border border-border/50 bg-background px-3 py-2.5"
+            >
               <div className="flex items-center gap-3">
                 <Skeleton className="h-9 w-9 rounded-md" />
                 <div className="min-w-0 flex-1 space-y-2">
@@ -324,145 +459,164 @@ function TodayPanel({
           <Skeleton className="h-64 rounded-lg" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       {/* Tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        {tiles.map((t, i) => {
-          const Icon = t.icon
-          const isAccent = i === 1
+        {tiles.map((t) => {
+          const Icon = t.icon;
           return (
-            <div
+            <Surface
               key={t.label}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-3 sm:px-4',
-                isAccent
-                  ? 'bg-primary/[0.06] ring-1 ring-primary/15'
-                  : 'bg-background border border-border/50'
-              )}
+              className="relative overflow-hidden px-3 py-2.5"
             >
               <div
-                className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
-                  isAccent ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground/70'
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden />
+                className={cn("absolute inset-x-0 top-0 h-1", t.bar)}
+                aria-hidden
+              />
+              <div className="flex items-center gap-3 pt-1">
+                <div
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+                    t.cls,
+                  )}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold leading-none text-foreground tabular-nums">
+                    {t.value}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground">
+                    {t.label}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className={cn('text-2xl leading-none tabular-nums sm:text-3xl', isAccent ? 'font-extrabold text-primary' : 'font-bold text-foreground')}>
-                  {t.value}
-                </p>
-                <p className={cn('mt-1 text-sm', isAccent ? 'font-medium text-primary' : 'text-muted-foreground')}>
-                  {t.label}
-                </p>
-              </div>
-            </div>
-          )
+            </Surface>
+          );
         })}
       </div>
 
       {/* Completion bar */}
-      <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background px-4 py-2.5">
-        <span className="shrink-0 text-sm text-muted-foreground">نسبة الإنجاز</span>
-        <div
-          className="h-2 flex-1 rounded-full bg-muted overflow-hidden"
-          role="progressbar"
-          aria-valuenow={completionRate}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="نسبة الإنجاز"
-        >
+      <Surface className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <span className="shrink-0 text-sm font-medium text-foreground">
+            نسبة الإنجاز
+          </span>
           <div
-            className={cn(
-              'h-full w-full origin-right rounded-full transition-transform duration-500 ease-out',
-              completionRate >= 80 ? 'bg-success/100' : completionRate >= 50 ? 'bg-primary' : 'bg-secondary'
-            )}
-            style={{ transform: `scaleX(${completionRate / 100})` }}
-          />
+            className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuenow={completionRate}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="نسبة الإنجاز"
+          >
+            <div
+              className={cn(
+                "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
+                completionRate >= 80
+                  ? "bg-success"
+                  : completionRate >= 50
+                    ? "bg-primary"
+                    : "bg-secondary",
+              )}
+              style={{ transform: `scaleX(${completionRate / 100})` }}
+            />
+          </div>
+          <span className="w-10 text-left text-sm font-semibold tabular-nums">
+            {completionRate}%
+          </span>
         </div>
-        <span className="text-sm font-semibold tabular-nums w-10 text-left">{completionRate}%</span>
-      </div>
+      </Surface>
 
       {/* Queue + side */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Surface className="lg:col-span-2">
           <SectionHeader title="مرضى اليوم و العمليات" />
-          <div className="pt-3">
+          <div className="p-3">
             <AppointmentsSection
               selectedDate={selectedDate}
               onSelectedDateChange={onSelectedDateChange}
               onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
             />
           </div>
-        </div>
-        <div className="space-y-5">
-          <div className="rounded-lg border border-border/70 bg-background">
+        </Surface>
+        <div className="space-y-4">
+          <Surface>
             <SectionHeader title="توزيع الخدمات" />
             <div className="p-4">
               <ServiceBreakdown selectedDate={selectedDate} />
             </div>
-          </div>
+          </Surface>
           <OffUsersTodayCard />
-          <div className="rounded-lg border border-border/70 bg-background">
+          <Surface>
             <SectionHeader title="إحصائيات طبية" />
             <div className="px-4 py-3">
               <MedicalTotals />
             </div>
-          </div>
+          </Surface>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-background lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Surface className="lg:col-span-2">
           <SectionHeader title="اتجاه المرضى" />
           <div className="p-3 sm:p-4">
             <Suspense fallback={<ChartLoading />}>
               <PatientTrendChart />
             </Suspense>
           </div>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-background">
+        </Surface>
+        <Surface>
           <SectionHeader title="أقسام المركز" />
           <div className="p-3 sm:p-4">
             <Suspense fallback={<ChartLoading />}>
               <DepartmentWorkloadChart />
             </Suspense>
           </div>
-        </div>
+        </Surface>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Patient Hub panel ───────────────────────────────────────────────────────
-type RecentPatient = { id: number; name: string; code: string; lastVisit: string }
+type RecentPatient = {
+  id: number;
+  name: string;
+  code: string;
+  lastVisit: string;
+};
 
 function PatientHubPanel() {
-  const [query, setQuery] = useState('')
-  const debouncedQuery = useDebounce(query, 350)
-  const [recent, setRecent] = useState<RecentPatient[]>([])
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 350);
+  const [recent, setRecent] = useState<RecentPatient[]>([]);
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem('hub_recent_patients')
-      if (raw) setRecent(JSON.parse(raw) as RecentPatient[])
-    } catch { /* ignore */ }
-  }, [])
+      const raw = sessionStorage.getItem("hub_recent_patients");
+      if (raw) setRecent(JSON.parse(raw) as RecentPatient[]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
     { searchTerm: debouncedQuery },
-    { enabled: debouncedQuery.length >= 2 }
-  )
-  const totalsQuery = trpc.medical.getMedicalTotals.useQuery(undefined, { refetchOnWindowFocus: false })
+    { enabled: debouncedQuery.length >= 2 },
+  );
+  const totalsQuery = trpc.medical.getMedicalTotals.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
-  const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('ar-EG')
+  const fmt = (n: number | undefined) => (n ?? 0).toLocaleString("ar-EG");
 
-  const showSearch = debouncedQuery.length >= 2
+  const showSearch = debouncedQuery.length >= 2;
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -474,7 +628,10 @@ function PatientHubPanel() {
           </SectionHeader>
           <div className="p-4">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
+              <Search
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                aria-hidden
+              />
               <input
                 type="search"
                 value={query}
@@ -489,20 +646,24 @@ function PatientHubPanel() {
               <div className="mt-3">
                 {searchQuery.isLoading && (
                   <div className="space-y-2">
-                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 rounded-md" />)}
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-10 rounded-md" />
+                    ))}
                   </div>
                 )}
                 {searchQuery.data && searchQuery.data.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">لا نتائج لـ «{debouncedQuery}»</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    لا نتائج لـ «{debouncedQuery}»
+                  </p>
                 )}
                 {searchQuery.data && searchQuery.data.length > 0 && (
                   <div className="divide-y divide-border/40">
                     {searchQuery.data.slice(0, 8).map((p) => (
-                      <Link key={p.id} href={`/patients/${p.id}`}>
-                        <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
+                      <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                           <span className="font-medium">{p.fullName}</span>
-                          <span className="text-sm text-muted-foreground tabular-nums">{p.patientCode ?? '—'}</span>
-                        </a>
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {p.patientCode ?? "-"}
+                          </span>
                       </Link>
                     ))}
                   </div>
@@ -512,14 +673,16 @@ function PatientHubPanel() {
 
             {!showSearch && recent.length > 0 && (
               <div className="mt-3">
-                <p className="mb-2 text-sm font-medium text-muted-foreground">آخر المرضى</p>
+                <p className="mb-2 text-sm font-medium text-muted-foreground">
+                  آخر المرضى
+                </p>
                 <div className="divide-y divide-border/40">
                   {recent.map((p) => (
-                    <Link key={p.id} href={`/patients/${p.id}`}>
-                      <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
+                    <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                         <span className="font-medium">{p.name}</span>
-                        <span className="text-sm text-muted-foreground tabular-nums">{p.code}</span>
-                      </a>
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {p.code}
+                        </span>
                     </Link>
                   ))}
                 </div>
@@ -527,7 +690,9 @@ function PatientHubPanel() {
             )}
 
             {!showSearch && recent.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">ابحث عن مريض للبدء</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                ابحث عن مريض للبدء
+              </p>
             )}
           </div>
         </div>
@@ -540,28 +705,50 @@ function PatientHubPanel() {
         </SectionHeader>
         <div className="px-4 py-3 space-y-1">
           {totalsQuery.isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-7 rounded" />)
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 rounded" />
+            ))
           ) : (
             <>
-              <StatRow label="إجمالي المرضى" value={fmt(totalsQuery.data?.patients)} icon={Users} />
-              <StatRow label="عمليات"         value={fmt(totalsQuery.data?.operations)} icon={Syringe} />
-              <StatRow label="بنتاكام"        value={fmt(totalsQuery.data?.pentacam)} icon={CircleDot} />
-              <StatRow label="Autoref"         value={fmt(totalsQuery.data?.autoref)} icon={Eye} />
-              <StatRow label="Refraction"      value={fmt(totalsQuery.data?.refraction)} icon={Glasses} />
+              <StatRow
+                label="إجمالي المرضى"
+                value={fmt(totalsQuery.data?.patients)}
+                icon={Users}
+              />
+              <StatRow
+                label="عمليات"
+                value={fmt(totalsQuery.data?.operations)}
+                icon={Syringe}
+              />
+              <StatRow
+                label="بنتاكام"
+                value={fmt(totalsQuery.data?.pentacam)}
+                icon={CircleDot}
+              />
+              <StatRow
+                label="Autoref"
+                value={fmt(totalsQuery.data?.autoref)}
+                icon={Eye}
+              />
+              <StatRow
+                label="Refraction"
+                value={fmt(totalsQuery.data?.refraction)}
+                icon={Glasses}
+              />
             </>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Accounting panel ────────────────────────────────────────────────────────
 function AccountingPanel() {
-  const today = getLocalDateIso()
-  const q = trpc.accounting.dashboardSummary.useQuery({ date: today })
+  const today = getLocalDateIso();
+  const q = trpc.accounting.dashboardSummary.useQuery({ date: today });
 
-  const d = q.data
+  const d = q.data;
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -572,12 +759,18 @@ function AccountingPanel() {
         </SectionHeader>
         <div className="px-4 py-3 space-y-1">
           {q.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-7 rounded" />)
+            Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 rounded" />
+            ))
           ) : (
             <>
               <StatRow
                 label="إيرادات اليوم"
-                value={<span className="text-success">{formatMoneyAr(d?.totalRevenueToday ?? 0)} ج.م</span>}
+                value={
+                  <span className="text-success">
+                    {formatMoneyAr(d?.totalRevenueToday ?? 0)} ج.م
+                  </span>
+                }
                 icon={Wallet}
               />
               <StatRow
@@ -588,7 +781,11 @@ function AccountingPanel() {
               <div className="my-2 border-t border-border/40" />
               <StatRow
                 label="إيرادات الشهر"
-                value={<span>{formatMoneyAr(d?.totalRevenueThisMonth ?? 0)} ج.م</span>}
+                value={
+                  <span>
+                    {formatMoneyAr(d?.totalRevenueThisMonth ?? 0)} ج.م
+                  </span>
+                }
                 icon={Wallet}
               />
               <StatRow
@@ -606,66 +803,86 @@ function AccountingPanel() {
         <SectionHeader title="روابط سريعة" />
         <div className="divide-y divide-border/40 px-4">
           {[
-            { href: '/accounting/ledger',   label: 'الخزنة — قيود' },
-            { href: '/accounting/cashbook', label: 'الخزنة — رصيد' },
-            { href: '/accounting/advances', label: 'كشف السلف' },
-            { href: '/accounting/loans',    label: 'القروض' },
-            { href: '/accounting',          label: 'لوحة الحسابات الكاملة' },
+            { href: "/accounting/ledger", label: "الخزنة، قيود" },
+            { href: "/accounting/cashbook", label: "الخزنة، رصيد" },
+            { href: "/accounting/advances", label: "كشف السلف" },
+            { href: "/accounting/loans", label: "القروض" },
+            { href: "/accounting", label: "لوحة الحسابات الكاملة" },
           ].map(({ href, label }) => (
-            <Link key={href} href={href}>
-              <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
+            <Link key={href} href={href} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                 <span>{label}</span>
-                <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-              </a>
+                <ChevronLeft
+                  className="h-3.5 w-3.5 text-muted-foreground"
+                  aria-hidden
+                />
             </Link>
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Attendance panel ────────────────────────────────────────────────────────
 function AttendancePanel() {
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const q = (trpc as any).attendance.dashboardSummary.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
-  })
-  const d = q.data
+  });
+  const d = q.data;
 
   const syncMut = (trpc as any).attendance.syncNow.useMutation({
     onSuccess: (res: any) => {
-      setSyncMsg(res.success ? `✓ ${res.rowsInserted ?? 0} سجل جديد` : `✗ ${res.error ?? 'خطأ'}`)
-      q.refetch()
+      setSyncMsg(
+        res.success
+          ? `✓ ${res.rowsInserted ?? 0} سجل جديد`
+          : `✗ ${res.error ?? "خطأ"}`,
+      );
+      q.refetch();
     },
     onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
-  })
+  });
 
   const matMut = (trpc as any).attendance.materializeDaily.useMutation({
     onSuccess: (res: any) => {
-      setSyncMsg(`✓ حساب ${res.rowsWritten ?? 0} يوم`)
-      q.refetch()
+      setSyncMsg(`✓ حساب ${res.rowsWritten ?? 0} يوم`);
+      q.refetch();
     },
     onError: (err: any) => setSyncMsg(`✗ ${err.message}`),
-  })
+  });
 
-  const handleSync = () => { setSyncMsg(null); syncMut.mutate({}) }
+  const handleSync = () => {
+    setSyncMsg(null);
+    syncMut.mutate({});
+  };
   const handleMat = () => {
-    setSyncMsg(null)
-    const today = new Date()
-    const from = new Date(today); from.setDate(from.getDate() - 90)
-    matMut.mutate({ fromDate: from.toISOString().slice(0, 10), toDate: today.toISOString().slice(0, 10) })
-  }
+    setSyncMsg(null);
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(from.getDate() - 90);
+    matMut.mutate({
+      fromDate: from.toISOString().slice(0, 10),
+      toDate: today.toISOString().slice(0, 10),
+    });
+  };
 
   const stats = [
-    { label: 'حاضر اليوم',         value: d?.presentToday ?? 0,            cls: 'text-success' },
-    { label: 'غائب اليوم',          value: d?.absentToday ?? 0,             cls: 'text-destructive' },
-    { label: 'متأخر اليوم',         value: d?.lateToday ?? 0,               cls: 'text-warning' },
-    { label: 'داخل الآن',           value: d?.insideNow ?? 0,               cls: 'text-primary' },
-    { label: 'لم يسجل الخروج أمس',  value: d?.missingCheckoutYesterday ?? 0, cls: 'text-secondary' },
-  ]
+    { label: "حاضر اليوم", value: d?.presentToday ?? 0, cls: "text-success" },
+    {
+      label: "غائب اليوم",
+      value: d?.absentToday ?? 0,
+      cls: "text-destructive",
+    },
+    { label: "متأخر اليوم", value: d?.lateToday ?? 0, cls: "text-warning" },
+    { label: "داخل الآن", value: d?.insideNow ?? 0, cls: "text-primary" },
+    {
+      label: "لم يسجل الخروج أمس",
+      value: d?.missingCheckoutYesterday ?? 0,
+      cls: "text-secondary",
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -675,46 +892,69 @@ function AttendancePanel() {
           <PanelLink href="/attendance" label="الحضور" />
         </SectionHeader>
         <div className="px-4 py-3 space-y-1">
-          {q.isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-7 rounded" />)
-          ) : (
-            stats.map((s) => (
-              <StatRow
-                key={s.label}
-                label={s.label}
-                value={<span className={cn('text-lg font-bold', s.cls)}>{s.value}</span>}
-              />
-            ))
-          )}
+          {q.isLoading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-7 rounded" />
+              ))
+            : stats.map((s) => (
+                <StatRow
+                  key={s.label}
+                  label={s.label}
+                  value={
+                    <span className={cn("text-lg font-bold", s.cls)}>
+                      {s.value}
+                    </span>
+                  }
+                />
+              ))}
         </div>
         {!q.isLoading && d?.lastSync && (
           <div className="border-t border-border/40 px-4 py-2.5 text-sm text-muted-foreground">
-            آخر مزامنة:{' '}
+            آخر مزامنة:{" "}
             <span className="font-medium">
-              {d.lastSync.status === 'never'   ? 'لم تتم' :
-               d.lastSync.status === 'ok'      ? 'ناجحة'  :
-               d.lastSync.status === 'failed'  ? 'فشلت'   :
-               d.lastSync.status}
+              {d.lastSync.status === "never"
+                ? "لم تتم"
+                : d.lastSync.status === "ok"
+                  ? "ناجحة"
+                  : d.lastSync.status === "failed"
+                    ? "فشلت"
+                    : d.lastSync.status}
             </span>
             {d.lastSync.finishedAt && (
               <span className="mr-2">
-                — {new Date(d.lastSync.finishedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                ،{" "}
+                {new Date(d.lastSync.finishedAt).toLocaleTimeString("ar-EG", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             )}
           </div>
         )}
         <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2 flex-wrap">
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-sm"
-            onClick={handleSync} disabled={syncMut.isPending}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-2.5 text-sm"
+            onClick={handleSync}
+            disabled={syncMut.isPending}
+          >
             <Zap className="h-3 w-3" />
-            {syncMut.isPending ? 'جارٍ…' : 'مزامنة FK'}
+            {syncMut.isPending ? "جارٍ…" : "مزامنة FK"}
           </Button>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-sm"
-            onClick={handleMat} disabled={matMut.isPending}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-2.5 text-sm"
+            onClick={handleMat}
+            disabled={matMut.isPending}
+          >
             <Cpu className="h-3 w-3" />
-            {matMut.isPending ? 'جارٍ…' : 'إعادة الحساب'}
+            {matMut.isPending ? "جارٍ…" : "إعادة الحساب"}
           </Button>
-          {syncMsg && <span className="text-sm text-muted-foreground">{syncMsg}</span>}
+          {syncMsg && (
+            <span className="text-sm text-muted-foreground">{syncMsg}</span>
+          )}
         </div>
       </div>
 
@@ -723,55 +963,59 @@ function AttendancePanel() {
         <SectionHeader title="روابط سريعة" />
         <div className="divide-y divide-border/40 px-4">
           {[
-            { href: '/attendance/live',      label: 'اللوحة المباشرة' },
-            { href: '/attendance/employees', label: 'الموظفون' },
-            { href: '/attendance/reports',   label: 'التقارير' },
-            { href: '/attendance/settings',  label: 'الإعدادات' },
+            { href: "/attendance/live", label: "اللوحة المباشرة" },
+            { href: "/attendance/employees", label: "الموظفون" },
+            { href: "/attendance/reports", label: "التقارير" },
+            { href: "/attendance/settings", label: "الإعدادات" },
           ].map(({ href, label }) => (
-            <Link key={href} href={href}>
-              <a className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
+            <Link key={href} href={href} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
                 <span>{label}</span>
-                <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-              </a>
+                <ChevronLeft
+                  className="h-3.5 w-3.5 text-muted-foreground"
+                  aria-hidden
+                />
             </Link>
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Stockroom panel ─────────────────────────────────────────────────────────
 const STOCK_CATEGORIES = [
-  { key: 'قطرات العين',                label: 'قطرات العين',                icon: Eye },
-  { key: 'غرفة العمليات',              label: 'غرفة العمليات',              icon: Syringe },
-  { key: 'مستلزمات وأدوات جراحية',    label: 'مستلزمات جراحية',            icon: Archive },
-  { key: 'لوازم مكتبية',              label: 'لوازم مكتبية',               icon: Activity },
-]
+  { key: "قطرات العين", label: "قطرات العين", icon: Eye },
+  { key: "غرفة العمليات", label: "غرفة العمليات", icon: Syringe },
+  { key: "مستلزمات وأدوات جراحية", label: "مستلزمات جراحية", icon: Archive },
+  { key: "لوازم مكتبية", label: "لوازم مكتبية", icon: Activity },
+];
 
 function StockroomPanel() {
-  const q = trpc.stockroom.getReports.useQuery({})
-  const inventory = q.data?.inventory ?? []
+  const q = trpc.stockroom.getReports.useQuery({});
+  const inventory = q.data?.inventory ?? [];
 
   const getCategoryStats = (key: string) => {
-    const items = inventory.filter((i) => i.category === key)
+    const items = inventory.filter((i) => i.category === key);
     return {
       total: items.length,
-      low: items.filter((i) => i.status === 'كمية قليلة').length,
-      out: items.filter((i) => i.status === 'نفذ المخزون').length,
-    }
-  }
+      low: items.filter((i) => i.status === "كمية قليلة").length,
+      out: items.filter((i) => i.status === "نفذ المخزون").length,
+    };
+  };
 
   const totalAlerts = inventory.filter(
-    (i) => i.status === 'كمية قليلة' || i.status === 'نفذ المخزون'
-  ).length
+    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+  ).length;
 
   return (
     <div className="space-y-4">
       {/* Alert banner */}
       {!q.isLoading && totalAlerts > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+          <AlertTriangle
+            className="h-4 w-4 shrink-0 text-warning"
+            aria-hidden
+          />
           <p className="text-sm text-warning font-medium">
             {totalAlerts} صنف يحتاج إعادة تعبئة
           </p>
@@ -784,9 +1028,12 @@ function StockroomPanel() {
       {/* Category grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {STOCK_CATEGORIES.map(({ key, label, icon: Icon }) => {
-          const stats = getCategoryStats(key)
+          const stats = getCategoryStats(key);
           return (
-            <div key={key} className="rounded-lg border border-border/50 bg-background">
+            <div
+              key={key}
+              className="rounded-lg border border-border/50 bg-background"
+            >
               <div className="flex items-center gap-2.5 border-b border-border/40 px-4 py-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground">
                   <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -795,152 +1042,432 @@ function StockroomPanel() {
               </div>
               <div className="px-4 py-3 space-y-1">
                 {q.isLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6 rounded" />)
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-6 rounded" />
+                  ))
                 ) : (
                   <>
-                    <StatRow label="إجمالي الأصناف"  value={stats.total} />
+                    <StatRow label="إجمالي الأصناف" value={stats.total} />
                     <StatRow
                       label="كمية قليلة"
                       value={stats.low}
-                      valueClass={stats.low > 0 ? 'text-warning' : ''}
+                      valueClass={stats.low > 0 ? "text-warning" : ""}
                     />
                     <StatRow
                       label="نفذ المخزون"
                       value={stats.out}
-                      valueClass={stats.out > 0 ? 'text-destructive' : ''}
+                      valueClass={stats.out > 0 ? "text-destructive" : ""}
                     />
                   </>
                 )}
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Tab strip badge ──────────────────────────────────────────────────────────
 function TabBadge({ count, cls }: { count: number; cls: string }) {
-  if (count === 0) return null
+  if (count === 0) return null;
   return (
-    <span className={cn('ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.8125rem] font-medium leading-none', cls)}>
+    <span
+      className={cn(
+        "ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.8125rem] font-medium leading-none",
+        cls,
+      )}
+    >
       {count}
     </span>
-  )
+  );
+}
+
+function StatusPill({
+  icon: Icon,
+  label,
+  value,
+  cls,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+  cls: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-8 min-w-0 flex-row items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold sm:px-3 sm:text-sm",
+        cls,
+      )}
+      dir="rtl"
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      <span className="tabular-nums">{value}</span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function WorkspaceButton({
+  tab,
+  active,
+  badge,
+  onClick,
+}: {
+  tab: (typeof TABS)[number];
+  active: boolean;
+  badge?: React.ReactNode;
+  onClick: () => void;
+}) {
+  const Icon = tab.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center gap-3 rounded-lg border px-0 py-0 text-sm transition-[background-color,border-color] xl:h-auto xl:w-full xl:justify-between xl:px-3 xl:py-2.5",
+        active
+          ? "border-primary/30 bg-primary/10 text-primary"
+          : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-muted/30 hover:text-foreground",
+      )}
+      aria-selected={active}
+      role="tab"
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+            active ? "bg-primary text-primary-foreground" : tab.iconWrapCls,
+          )}
+        >
+          <Icon className="h-4 w-4" aria-hidden />
+        </span>
+        <span className="hidden truncate font-semibold xl:inline">
+          {tab.label}
+        </span>
+      </span>
+      <span className="hidden xl:inline">{badge}</span>
+    </button>
+  );
 }
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { medicalFilePortal, openMedicalFilePicker, openMedicalFileForPatient } =
-    useMedicalFileLauncher()
-  const [bookingOpen, setBookingOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(getLocalDateIso)
-  const [activeTab, setActiveTab] = useState<TabId>('today')
-  const utils = trpc.useUtils()
-  const now = useClock()
+  const {
+    medicalFilePortal,
+    openMedicalFilePicker,
+    openMedicalFileForPatient,
+  } = useMedicalFileLauncher();
+  const { canAccess, isLoaded: permsLoaded } = usePermissions();
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
+  const [activeTab, setActiveTab] = useState<TabId>("today");
 
-  // Badge data — lightweight, loaded on mount
-  const { merged } = useTodayQueuePatientsMerged(selectedDate)
-  const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, { refetchInterval: 60_000 })
-  const stockQ = trpc.stockroom.getReports.useQuery({})
+  const visibleTabs = useMemo(
+    () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),
+    [canAccess, permsLoaded], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
-  const todayBadge = merged.length
-  const attBadge = attQ.data?.absentToday ?? 0
+  // If the active tab gets hidden, fall back to the first visible one.
+  useEffect(() => {
+    if (permsLoaded && !visibleTabs.find((t) => t.id === activeTab)) {
+      setActiveTab(visibleTabs[0]?.id ?? "today");
+    }
+  }, [permsLoaded, visibleTabs, activeTab]);
+  const [mobileAsidePanel, setMobileAsidePanel] = useState<
+    "workspaces" | "links" | null
+  >("workspaces");
+  const utils = trpc.useUtils();
+  const now = useClock();
+
+  // Lightweight badge data loaded on mount.
+  const { merged } = useTodayQueuePatientsMerged(selectedDate);
+  const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, {
+    refetchInterval: 60_000,
+  });
+  const stockQ = trpc.stockroom.getReports.useQuery({});
+
+  const todayBadge = merged.length;
+  const attBadge = attQ.data?.absentToday ?? 0;
   const stockBadge = (stockQ.data?.inventory ?? []).filter(
-    (i) => i.status === 'كمية قليلة' || i.status === 'نفذ المخزون'
-  ).length
+    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+  ).length;
 
   const badges: Partial<Record<TabId, React.ReactNode>> = {
-    today:      <TabBadge count={todayBadge} cls="bg-primary/10 text-primary" />,
-    attendance: attBadge > 0 ? <TabBadge count={attBadge} cls="bg-warning/20 text-warning" /> : null,
-    stockroom:  stockBadge > 0 ? <TabBadge count={stockBadge} cls="bg-destructive/10 text-destructive" /> : null,
-  }
+    today: <TabBadge count={todayBadge} cls="bg-primary/10 text-primary" />,
+    attendance:
+      attBadge > 0 ? (
+        <TabBadge count={attBadge} cls="bg-warning/20 text-warning" />
+      ) : null,
+    stockroom:
+      stockBadge > 0 ? (
+        <TabBadge count={stockBadge} cls="bg-destructive/10 text-destructive" />
+      ) : null,
+  };
 
-  const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })
-  const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })
+  const dateStr = now.toLocaleDateString("ar-EG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const timeStr = now.toLocaleTimeString("ar-EG", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 
   const handleRefreshToday = () => {
-    void utils.medical.getMedicalTotals.invalidate()
-    void utils.medical.getTodayOperationLists.invalidate()
-    void utils.medical.getTodayPatientsByQueueStatus.invalidate()
-  }
+    void utils.medical.getMedicalTotals.invalidate();
+    void utils.medical.getTodayOperationLists.invalidate();
+    void utils.medical.getTodayPatientsByQueueStatus.invalidate();
+  };
+
+  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
+  const ActiveTabIcon = activeTabMeta.icon;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 sm:space-y-5" dir="rtl">
-      {medicalFilePortal}
-      <OperationsBookingQuickDialog
-        open={bookingOpen}
-        onOpenChange={setBookingOpen}
-        onSaved={() => { void utils.medical.getTodayOperationLists.invalidate() }}
-      />
+    <div
+      className="selrs-page-bg -m-3 min-h-full px-3 py-4 sm:-m-4 sm:px-4 sm:py-5 md:-m-4"
+      dir="rtl"
+    >
+      <div className="mx-auto w-full max-w-[1440px] space-y-4">
+        {medicalFilePortal}
+        <OperationsBookingQuickDialog
+          open={bookingOpen}
+          onOpenChange={setBookingOpen}
+          onSaved={() => {
+            void utils.medical.getTodayOperationLists.invalidate();
+          }}
+        />
 
-      {/* Quick actions */}
-      <QuickActions
-        onOpenMeasurementsMedicalFile={openMedicalFilePicker}
-        onOpenOperationsBooking={() => setBookingOpen(true)}
-      />
+        <Surface className="overflow-hidden">
+          <div className="grid gap-3 px-4 py-3 lg:grid-cols-[auto_1fr] lg:items-center">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Zap className="h-5 w-5" aria-hidden />
+              </span>
+              <div>
+                <h1 className="text-xl font-bold leading-tight text-foreground sm:text-2xl">
+                  أوامر التشغيل
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {dateStr}، {timeStr}
+                </p>
+              </div>
+            </div>
+            <QuickActions
+              onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+              onOpenOperationsBooking={() => setBookingOpen(true)}
+            />
+          </div>
+        </Surface>
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl">لوحة تحكم المشرف</h1>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {dateStr} — {timeStr}
-          </p>
-        </div>
-        {activeTab === 'today' && (
-          <Button variant="outline" size="sm" onClick={handleRefreshToday} className="gap-1.5 text-sm">
-            <RefreshCw className="h-3 w-3" aria-hidden />
-            تحديث
-          </Button>
-        )}
-      </div>
+        <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+          <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+            <div
+              className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden"
+              aria-label="لوحات جانبية"
+            >
+              {[
+                {
+                  id: "workspaces" as const,
+                  label: "مساحات العمل",
+                  icon: LayoutDashboard,
+                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
+                },
+                {
+                  id: "links" as const,
+                  label: "انتقال سريع",
+                  icon: ChevronLeft,
+                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
+                },
+              ].map(({ id, label, icon: Icon, cls }) => {
+                const active = mobileAsidePanel === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-label={active ? `إغلاق ${label}` : `فتح ${label}`}
+                    aria-expanded={active}
+                    onClick={() =>
+                      setMobileAsidePanel((current) =>
+                        current === id ? null : id,
+                      )
+                    }
+                    className={cn(
+                      "flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98]",
+                      active
+                        ? cls
+                        : "border-border/60 bg-background text-muted-foreground hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                        active
+                          ? "bg-secondary text-secondary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                    <span className="whitespace-nowrap">{label}</span>
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 transition-transform",
+                        active && "rotate-180",
+                      )}
+                      aria-hidden
+                    />
+                  </button>
+                );
+              })}
+            </div>
 
-      {/* Tab strip */}
-      <div className="border-b border-border/50">
-        <div className="flex gap-0 overflow-x-auto">
-          {TABS.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex shrink-0 items-center gap-2 px-4 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                  isActive
-                    ? 'border-b-2 border-primary -mb-px font-semibold text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-t'
-                )}
-                aria-selected={isActive}
-                role="tab"
+            <Surface
+              className={cn(
+                "overflow-hidden",
+                mobileAsidePanel !== "workspaces" && "hidden xl:block",
+              )}
+            >
+              <div className="border-b border-border/40 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold text-foreground">
+                    مساحات العمل
+                  </h2>
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                    مباشر
+                  </span>
+                </div>
+              </div>
+              <div
+                className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
+                role="tablist"
+                aria-label="أقسام لوحة التحكم"
               >
-                <span className={cn('flex h-6 w-6 items-center justify-center rounded', tab.iconWrapCls)}>
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                </span>
-                {tab.label}
-                {badges[tab.id]}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+                {visibleTabs.map((tab) => (
+                  <WorkspaceButton
+                    key={tab.id}
+                    tab={tab}
+                    active={activeTab === tab.id}
+                    badge={badges[tab.id]}
+                    onClick={() => setActiveTab(tab.id)}
+                  />
+                ))}
+              </div>
+            </Surface>
 
-      {/* Panel */}
-      <div>
-        {activeTab === 'today' && (
-          <TodayPanel
-            selectedDate={selectedDate}
-            onSelectedDateChange={setSelectedDate}
-            openMedicalFileForPatient={openMedicalFileForPatient}
-          />
-        )}
-        {activeTab === 'hub'        && <PatientHubPanel />}
-        {activeTab === 'accounting' && <AccountingPanel />}
-        {activeTab === 'attendance' && <AttendancePanel />}
-        {activeTab === 'stockroom'  && <StockroomPanel />}
+            <Surface className="hidden xl:block">
+              <SectionHeader title="مؤشرات فورية" />
+              <div className="flex flex-wrap items-center gap-2 px-4 py-3 xl:block xl:space-y-2">
+                <StatusPill
+                  icon={Users}
+                  label="مريض اليوم"
+                  value={todayBadge.toLocaleString("ar-EG")}
+                  cls="bg-primary/10 text-primary"
+                />
+                <StatusPill
+                  icon={UserX}
+                  label="غياب"
+                  value={attBadge.toLocaleString("ar-EG")}
+                  cls="bg-warning/15 text-warning"
+                />
+                <StatusPill
+                  icon={Archive}
+                  label="تنبيه مخزون"
+                  value={stockBadge.toLocaleString("ar-EG")}
+                  cls="bg-destructive/15 text-destructive"
+                />
+              </div>
+            </Surface>
+
+            <Surface
+              className={cn(mobileAsidePanel !== "links" && "hidden xl:block")}
+            >
+              <SectionHeader title="انتقال سريع" />
+              <div className="grid grid-cols-2 gap-2 px-4 py-3 xl:block xl:divide-y xl:divide-border/40 xl:py-0">
+                {[
+                  { href: "/today-patients", label: "مرضى اليوم", icon: Users },
+                  { href: "/operations", label: "العمليات", icon: Syringe },
+                  { href: "/patients", label: "كل المرضى", icon: Search },
+                  { href: "/accounting", label: "الحسابات", icon: Wallet },
+                ].map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-colors hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary xl:rounded-none xl:border-0 xl:bg-transparent xl:px-0 xl:hover:bg-transparent xl:hover:text-primary">
+                      <span className="flex items-center gap-2">
+                        <Icon
+                          className="h-3.5 w-3.5 text-muted-foreground"
+                          aria-hidden
+                        />
+                        {label}
+                      </span>
+                      <ChevronLeft
+                        className="h-3.5 w-3.5 text-muted-foreground"
+                        aria-hidden
+                      />
+                  </Link>
+                ))}
+              </div>
+            </Surface>
+          </aside>
+
+          <main className="min-w-0 space-y-4">
+            <Surface className="overflow-hidden">
+              <div className="grid gap-3 px-4 py-3 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ActiveTabIcon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      المساحة الحالية
+                    </p>
+                    <h2 className="truncate text-xl font-bold text-foreground">
+                      {activeTabMeta.label}
+                    </h2>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success/15 px-3 text-sm font-semibold text-success">
+                    <Activity className="h-3.5 w-3.5" aria-hidden />
+                    متابعة حية
+                  </span>
+                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary/15 px-3 text-sm font-semibold text-secondary tabular-nums">
+                    <Clock className="h-3.5 w-3.5" aria-hidden />
+                    {timeStr}
+                  </span>
+                  {activeTab === "today" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshToday}
+                      className="h-8 gap-1.5 text-sm"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                      تحديث
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Surface>
+
+            <div>
+              {activeTab === "today" && (
+                <TodayPanel
+                  selectedDate={selectedDate}
+                  onSelectedDateChange={setSelectedDate}
+                  openMedicalFileForPatient={openMedicalFileForPatient}
+                />
+              )}
+              {activeTab === "hub" && <PatientHubPanel />}
+              {activeTab === "accounting" && <AccountingPanel />}
+              {activeTab === "attendance" && <AttendancePanel />}
+              {activeTab === "stockroom" && <StockroomPanel />}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
-  )
+  );
 }

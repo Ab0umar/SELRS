@@ -79,7 +79,7 @@ export default function PayrollReport() {
   // Separate regular and shift employees
   const regularRows = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
   const shiftRows = rows.filter((r: any) => String(r.empCd).startsWith("shift_"));
-  
+
   // Build enhanced shift rows with day/night breakdown from roster
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
     // Get shift counts from roster (shift-schedule)
@@ -694,7 +694,7 @@ export default function PayrollReport() {
                     <td className="px-3 py-3 text-center font-bold text-primary">{fmt(r.netBasic)}</td>
                   </tr>
                 ))}
-                {regularRows.length === 0 && (
+              {regularRows.length === 0 && (
                   <tr><td colSpan={11} className="px-4 py-10 text-center text-muted-foreground">لا توجد رواتب عادية</td></tr>
                 )}
               </tbody>
@@ -749,7 +749,7 @@ export default function PayrollReport() {
                     <td className="px-3 py-3 text-center">{fmt(r.shiftNightRate)}</td>
                     <td className="px-3 py-3 text-center font-medium text-success">{fmt(r.shiftNightTotal)}</td>
                     <td className="px-3 py-3 text-center text-destructive">{fmt(r.totalDeductions)}</td>
-                    <td className="px-3 py-3 text-center">{pct(r.leaveMultiplier)}</td>
+                    <td className="px-3 py-3 text-center tabular-nums">{pct(r.leaveMultiplier)}</td>
                     <td className="px-3 py-3 text-center font-bold text-primary">{fmt(r.netBasic)}</td>
                   </tr>
                 ))}
@@ -776,7 +776,102 @@ export default function PayrollReport() {
         </section>
       )}
 
-      {/* ── Commissions section ── */}
+      {/* ── Shift Commissions (inside Shifts tab) ── */}
+      {section === "مركز" && activeTab === "shifts" && enhancedShiftRows.length > 0 && (() => {
+        const EXAM_PRICE = 50;
+        const EXAM_EMP_PCT = 0.40;
+        const TIERS = [
+          { deduction: 123.75, empPct: 0.455 },
+          { deduction: 110,    empPct: 0.455 },
+          { deduction: 85,     empPct: 0.47  },
+          { deduction: 60,     empPct: 0.50  },
+        ];
+
+        const pool = sectionPool;
+        const examCount      = Number(pool?.examCount  ?? 0);
+        const examStaffPool  = Math.round(examCount * EXAM_PRICE * EXAM_EMP_PCT * 100) / 100;
+        const pentacamStaff  = Math.round((
+          (Number(pool?.cases450 ?? 0) * TIERS[0].deduction * TIERS[0].empPct) +
+          (Number(pool?.cases400 ?? 0) * TIERS[1].deduction * TIERS[1].empPct) +
+          (Number(pool?.cases350 ?? 0) * TIERS[2].deduction * TIERS[2].empPct) +
+          (Number(pool?.cases250 ?? 0) * TIERS[3].deduction * TIERS[3].empPct)
+        ) * 100) / 100;
+
+        const totalShiftPay = enhancedShiftRows
+          .filter((r: any) => r.type === "doctor")
+          .reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+
+        const commRows = enhancedShiftRows
+          .filter((r: any) => r.type === "doctor")
+          .map((r: any) => {
+          const base = Number(r.netBasic);
+          const share    = totalShiftPay > 0 ? base / totalShiftPay : 0;
+          const attend   = Math.round(base * 0.25 * 100) / 100;
+          const examComm = Math.round(share * examStaffPool * 100) / 100;
+          const pentComm = Math.round(share * pentacamStaff  * 100) / 100;
+          return { ...r, base, share, attend, examComm, pentComm, total: attend + examComm + pentComm };
+        });
+
+        const tAttend = commRows.reduce((s: number, r: any) => s + r.attend,   0);
+        const tExam   = commRows.reduce((s: number, r: any) => s + r.examComm, 0);
+        const tPent   = commRows.reduce((s: number, r: any) => s + r.pentComm, 0);
+        const tTotal  = commRows.reduce((s: number, r: any) => s + r.total,    0);
+
+        return (
+          <section className="rounded-xl border border-border bg-background">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <h3 className="text-base font-semibold">عمولات الشفتات</h3>
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <span>إجمالي نسبة الفحص: <strong className="text-foreground">{fmt(examStaffPool)} ج</strong></span>
+                <span>إجمالي نسبة البنتاكام: <strong className="text-foreground">{fmt(pentacamStaff)} ج</strong></span>
+              </div>
+            </div>
+            <div className="overflow-x-auto" dir="rtl">
+              <table dir="rtl" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs">
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">الموظف</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">الأساسي (صافي الشفتات)</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">النسبة %</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">حضور (٢٥٪)</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">فحص</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground">بنتاكام</th>
+                    <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commRows.map((r: any) => (
+                    <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="px-3 py-3 text-center">
+                        <div className="font-medium">{r.fullName}</div>
+                        <div className="text-xs text-muted-foreground">{r.type === "doctor" ? "طبيب" : "فني"}</div>
+                      </td>
+                      <td className="px-3 py-3 text-center tabular-nums">{fmt(r.base)}</td>
+                      <td className="px-3 py-3 text-center tabular-nums">{pct(r.share)}</td>
+                      <td className="px-3 py-3 text-center tabular-nums">{fmt(r.attend)}</td>
+                      <td className="px-3 py-3 text-center tabular-nums">{fmt(r.examComm)}</td>
+                      <td className="px-3 py-3 text-center tabular-nums">{fmt(r.pentComm)}</td>
+                      <td className="px-3 py-3 text-center tabular-nums font-bold text-primary">{fmt(r.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                    <td className="px-3 py-2" colSpan={3}>الإجمالي</td>
+                    <td className="px-3 py-2 text-center tabular-nums">{fmt(tAttend)}</td>
+                    <td className="px-3 py-2 text-center tabular-nums">{fmt(tExam)}</td>
+                    <td className="px-3 py-2 text-center tabular-nums">{fmt(tPent)}</td>
+                    <td className="px-3 py-2 text-center tabular-nums font-bold text-primary">{fmt(tTotal)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ── Commissions section — hidden in shifts tab ── */}
+      {(section === "عيادة" || activeTab === "salaries") && (
       <section className="rounded-xl border border-border bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-base font-semibold">العمولات — {periodLabel}</h3>
@@ -824,6 +919,53 @@ export default function PayrollReport() {
               {regularRows.length === 0 && (
                 <tr><td colSpan={section !== "عيادة" ? 9 : 8} className="px-4 py-10 text-center text-muted-foreground">لا توجد عمولات</td></tr>
               )}
+              {/* ── Tech shift rows appended to salary commissions ── */}
+              {section === "مركز" && enhancedShiftRows.filter((r: any) => r.type !== "doctor").map((tech: any) => {
+                const EXAM_PRICE_T = 50;
+                const EXAM_EMP_PCT_T = 0.40;
+                const TIERS_T = [
+                  { deduction: 123.75, empPct: 0.455 },
+                  { deduction: 110,    empPct: 0.455 },
+                  { deduction: 85,     empPct: 0.47  },
+                  { deduction: 60,     empPct: 0.50  },
+                ];
+                const pool2 = sectionPool;
+                const examPool2 = Math.round((Number(pool2?.examCount ?? 0) * EXAM_PRICE_T * EXAM_EMP_PCT_T) * 100) / 100;
+                const pentPool2 = Math.round((
+                  (Number(pool2?.cases450 ?? 0) * TIERS_T[0].deduction * TIERS_T[0].empPct) +
+                  (Number(pool2?.cases400 ?? 0) * TIERS_T[1].deduction * TIERS_T[1].empPct) +
+                  (Number(pool2?.cases350 ?? 0) * TIERS_T[2].deduction * TIERS_T[2].empPct) +
+                  (Number(pool2?.cases250 ?? 0) * TIERS_T[3].deduction * TIERS_T[3].empPct)
+                ) * 100) / 100;
+                // total salary = regular employees + this tech
+                const totalSalary = regularRows.reduce((s: number, r: any) => s + Number(r.basicSalary), 0) + Number(tech.netBasic);
+                const techShare = totalSalary > 0 ? Number(tech.netBasic) / totalSalary : 0;
+                const tAttend2  = Math.round(Number(tech.netBasic) * 0.25 * 100) / 100;
+                const tExam2    = Math.round(techShare * examPool2 * 100) / 100;
+                const tPent2    = Math.round(techShare * pentPool2 * 100) / 100;
+                const techAllowances = getAllowanceValues(tech);
+                const tCola2    = techAllowances.cola;
+                const tTravel2  = techAllowances.travel;
+                const tOTMin2   = tech.overtimeMinutes ?? 0;
+                const tOTPay2   = Number(tech.overtimePay ?? 0);
+                const tTotal2   = tAttend2 + tExam2 + tPent2 + tCola2 + tTravel2 + tOTPay2;
+                return (
+                  <tr key={`tech-${tech.id}`} className="border-b border-border/50 bg-amber-50/30 hover:bg-amber-50/50">
+                    <td className="px-3 py-3 text-center">
+                      <div className="font-medium">{tech.fullName}</div>
+                      <div className="text-xs text-amber-600">فني شفتات</div>
+                    </td>
+                    <td className="px-3 py-3 text-center text-success">{fmt(tAttend2)}</td>
+                    <td className="px-3 py-3 text-center text-success">{fmt(tExam2)}</td>
+                    {section !== "عيادة" && <td className="px-3 py-3 text-center text-success">{fmt(tPent2)}</td>}
+                    <td className="px-3 py-3 text-center text-success">{fmt(tCola2)}</td>
+                    <td className="px-3 py-3 text-center text-success">{fmt(tTravel2)}</td>
+                    <td className="px-3 py-3 text-center text-success">{tOTMin2}</td>
+                    <td className="px-3 py-3 text-center text-success">{fmt(tOTPay2)}</td>
+                    <td className="px-3 py-3 text-center font-bold text-primary">{fmt(tTotal2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
             {regularRows.length > 0 && (
               <tfoot>
@@ -845,6 +987,7 @@ export default function PayrollReport() {
           </table>
         </div>
       </section>
+      )}
     </div>
   );
 }

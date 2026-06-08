@@ -197,7 +197,7 @@ export default function MarketingDashboard() {
             )}
           </Button>
 
-          <Button size="sm" variant="ghost" onClick={() => void utils.marketing.dashboardSummary.invalidate()}>
+          <Button size="sm" variant="ghost" aria-label="تحديث" onClick={() => void utils.marketing.dashboardSummary.invalidate()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -229,6 +229,7 @@ export default function MarketingDashboard() {
               </Link>
               <button
                 onClick={() => setPreview(null)}
+                aria-label="إغلاق المعاينة"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 ✕
@@ -238,14 +239,14 @@ export default function MarketingDashboard() {
 
           {/* Title */}
           <div>
-            <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-1">العنوان</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">العنوان</p>
             <p className="text-sm font-semibold text-foreground">{preview.title}</p>
           </div>
 
           {/* Idea */}
           {preview.idea && (
             <div className="flex gap-2">
-              <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <Lightbulb className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-foreground/50 mb-0.5">الفكرة التسويقية</p>
                 <p className="text-sm text-foreground">{preview.idea}</p>
@@ -481,7 +482,7 @@ function SchedulerCard({
         </p>
       )}
       {data?.autoPublish && !data?.fbConnected && (
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+        <p className="mt-2 text-xs text-warning">
           Facebook غير مربوط — سيتم حفظ المنشورات كمسودات فقط
         </p>
       )}
