@@ -94,7 +94,7 @@ function SalaryTable({
           <h3 className="text-base font-bold text-foreground">{title}</h3>
         </div>
         <div className="text-right">
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">الإجمالي</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">إجمالي الرواتب</div>
           <div className="text-lg font-black text-blue-600 tabular-nums">
             {fmt(totalAmount)} <span className="text-xs font-semibold text-muted-foreground">ج.م</span>
           </div>
@@ -109,7 +109,6 @@ function SalaryTable({
       ) : (
         <div className="overflow-x-auto" dir="rtl">
           <table dir="rtl" className="w-full text-xs">
-            {/* Table Header */}
             <thead>
               <tr className="border-b border-border bg-blue-50/60 text-blue-900 font-bold">
                 <th className="px-4 py-3 text-right font-bold w-40">الموظف</th>
@@ -125,7 +124,6 @@ function SalaryTable({
               </tr>
             </thead>
 
-            {/* Table Body */}
             <tbody>
               {data.map((item, idx) => (
                 <tr
@@ -204,6 +202,83 @@ function SalaryTable({
   );
 }
 
+// ── Shifts Table Component ──────────────────────────────────
+interface ShiftsTableProps {
+  title: string;
+  data: any[];
+  employees: any[];
+}
+
+function ShiftsTable({
+  title,
+  data,
+  employees,
+}: ShiftsTableProps) {
+  const getEmployeeName = (empCd: string) => {
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
+  };
+
+  const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+      <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-bold text-foreground">{title}</h3>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">عدد كادر الشفتات: {data.length}</span>
+        </div>
+      </div>
+
+      {data.length === 0 ? (
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          لا توجد كفاءات شفتات مسجلة مطابقة للبحث
+        </div>
+      ) : (
+        <div className="overflow-x-auto" dir="rtl">
+          <table dir="rtl" className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-blue-50/60 text-blue-900 font-bold">
+                <th className="px-4 py-3 text-right font-bold w-40">الاسم</th>
+                <th className="px-4 py-3 text-right font-bold">النوع</th>
+                <th className="px-4 py-3 text-right font-bold">قيمة الشفت</th>
+                <th className="px-4 py-3 text-right font-bold">ربط الحضور</th>
+                <th className="px-4 py-3 text-right font-bold">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((s, idx) => (
+                <tr
+                  key={s.id}
+                  className={`border-b border-border/40 transition-colors hover:bg-blue-50/30 ${
+                    idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
+                  }`}
+                >
+                  <td className="px-4 py-3 font-semibold text-foreground">{s.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{TYPE_LABEL[s.type]}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                    {fmt(Number(s.ratePerShift))} ج.م
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-sm">
+                    {s.empCd ? getEmployeeName(s.empCd) : <span className="text-xs italic text-muted-foreground/50">يدوي</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}>
+                      {s.active ? "نشط" : "غير نشط"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────
 export default function SalaryBasics() {
   const [showForm, setShowForm] = useState(false);
@@ -211,10 +286,17 @@ export default function SalaryBasics() {
   const [form, setForm] = useState<BasicForm>(BLANK);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Tabs status for both departments
+  const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("salaries");
+  const [clinicTab, setClinicTab] = useState<"salaries" | "shifts">("salaries");
+
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
+  const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
+
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
+  const shiftStaff: any[] = shiftStaffQ.data ?? [];
 
   const setMut = (trpc as any).salary.setBasic.useMutation({
     onSuccess: () => { basicsQ.refetch(); setShowForm(false); setForm(BLANK); toast.success("تم الحفظ"); },
@@ -282,14 +364,38 @@ export default function SalaryBasics() {
     return empName.includes(query) || empCd.includes(query);
   });
 
-  // Separate filtered data by department (Center vs Clinic)
-  const centerData = filteredBasics.filter((b) => {
+  // Filter list of shift staff by search query
+  const filteredShifts = shiftStaff.filter((s) => {
+    const empName = (s.name || "").toLowerCase();
+    const linkedEmpName = s.empCd ? getEmployeeName(s.empCd).toLowerCase() : "";
+    const empCd = String(s.empCd || "").toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    return empName.includes(query) || linkedEmpName.includes(query) || empCd.includes(query);
+  });
+
+  // Center basic salaries & shifts
+  const centerSalaries = filteredBasics.filter((b) => {
     const dept = b.department?.toLowerCase().trim();
     return dept === "مركز" || dept === "center";
   });
 
-  const clinicData = filteredBasics.filter((b) => {
+  const centerShifts = filteredShifts.filter((s) => {
+    if (!s.empCd) return true; // Default manual shifts to Center
+    const emp = employees.find((e) => e.empCd === s.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return dept === "مركز" || dept === "center";
+  });
+
+  // Clinic basic salaries & shifts
+  const clinicSalaries = filteredBasics.filter((b) => {
     const dept = b.department?.toLowerCase().trim();
+    return dept === "عيادة" || dept === "clinic";
+  });
+
+  const clinicShifts = filteredShifts.filter((s) => {
+    if (!s.empCd) return false;
+    const emp = employees.find((e) => e.empCd === s.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
     return dept === "عيادة" || dept === "clinic";
   });
 
@@ -313,7 +419,7 @@ export default function SalaryBasics() {
             <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
             <input
               type="text"
-              placeholder="بحث عن موظف بالاسم أو الكود..."
+              placeholder="بحث بالاسم أو الكود..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 w-64 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -465,44 +571,120 @@ export default function SalaryBasics() {
         </div>
       )}
 
-      {/* Center Table */}
-      <SalaryTable
-        title="رواتب موظفي المركز"
-        data={centerData}
-        employees={employees}
-        onEdit={handleEdit}
-        onDelete={(id) => deleteMut.mutate({ id })}
-        isPending={deleteMut.isPending}
-      />
+      {/* ── Center Section (المركز) ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
+          <h2 className="text-lg font-black text-foreground">المركز</h2>
+          {/* Tabs header for Center */}
+          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+            <button
+              onClick={() => setCenterTab("salaries")}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                centerTab === "salaries"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              الرواتب
+            </button>
+            <button
+              onClick={() => setCenterTab("shifts")}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                centerTab === "shifts"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              الشفتات
+            </button>
+          </div>
+        </div>
 
-      {/* Clinic Table */}
-      <SalaryTable
-        title="رواتب موظفي العيادة"
-        data={clinicData}
-        employees={employees}
-        onEdit={handleEdit}
-        onDelete={(id) => deleteMut.mutate({ id })}
-        isPending={deleteMut.isPending}
-      />
+        {/* Tab Content for Center */}
+        {centerTab === "salaries" ? (
+          <SalaryTable
+            title="رواتب موظفي المركز"
+            data={centerSalaries}
+            employees={employees}
+            onEdit={handleEdit}
+            onDelete={(id) => deleteMut.mutate({ id })}
+            isPending={deleteMut.isPending}
+          />
+        ) : (
+          <ShiftsTable
+            title="طاقم شفتات المركز"
+            data={centerShifts}
+            employees={employees}
+          />
+        )}
+      </div>
+
+      {/* ── Clinic Section (العيادة) ── */}
+      <div className="space-y-3 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
+          <h2 className="text-lg font-black text-foreground">العيادة</h2>
+          {/* Tabs header for Clinic */}
+          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+            <button
+              onClick={() => setClinicTab("salaries")}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                clinicTab === "salaries"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              الرواتب
+            </button>
+            <button
+              onClick={() => setClinicTab("shifts")}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                clinicTab === "shifts"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              الشفتات
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content for Clinic */}
+        {clinicTab === "salaries" ? (
+          <SalaryTable
+            title="رواتب موظفي العيادة"
+            data={clinicSalaries}
+            employees={employees}
+            onEdit={handleEdit}
+            onDelete={(id) => deleteMut.mutate({ id })}
+            isPending={deleteMut.isPending}
+          />
+        ) : (
+          <ShiftsTable
+            title="طاقم شفتات العيادة"
+            data={clinicShifts}
+            employees={employees}
+          />
+        )}
+      </div>
 
       {/* Summary Statistics */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 pt-4">
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي الموظفين</div>
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي الموظفين والكادر</div>
           <div className="mt-2 text-2xl font-black text-foreground tabular-nums">
-            {basics.length}
+            {basics.length + shiftStaff.length}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">موظفو المركز</div>
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي المركز</div>
           <div className="mt-2 text-2xl font-black text-blue-600 tabular-nums">
-            {basics.filter(b => b.department?.toLowerCase().trim() === "مركز" || b.department?.toLowerCase().trim() === "center").length}
+            {centerSalaries.length + centerShifts.length}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">موظفو العيادة</div>
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي العيادة</div>
           <div className="mt-2 text-2xl font-black text-secondary tabular-nums">
-            {basics.filter(b => b.department?.toLowerCase().trim() === "عيادة" || b.department?.toLowerCase().trim() === "clinic").length}
+            {clinicSalaries.length + clinicShifts.length}
           </div>
         </div>
       </div>
