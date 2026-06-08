@@ -76,193 +76,212 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
   const recentNotifications = useMemo(() => notifications.slice(0, 4), [notifications]);
 
   return (
-    <div className="min-h-screen bg-[#f6f9fd] text-foreground" dir="rtl">
-      <div className="mx-auto min-h-screen w-full max-w-none px-0 py-0">
-        <div className="overflow-hidden rounded-none border-0 bg-white shadow-none sm:rounded-[2rem] sm:border sm:border-[#dce9f5] sm:shadow-[0_20px_60px_rgba(28,64,104,0.08)]">
-          <div className="bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.24),transparent_28%),linear-gradient(180deg,#002A63_0%,#0F4E93_38%,#DDEAF7_79%,#F8FAFC_100%)] px-4 pb-24 pt-5 text-white sm:px-6 sm:pb-28 lg:px-10 lg:pb-32">
-            <div className="mx-auto flex max-w-2xl items-center justify-center gap-4 rounded-[1.5rem] border border-white/10 bg-[#0b3d78]/22 px-5 py-3 text-center text-white shadow-[0_14px_30px_rgba(0,0,0,0.12)] backdrop-blur-[2px]">
-              <BrandLogo className="size-10 shrink-0 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)] sm:size-12" />
-              <div className="min-w-0">
-                <h1 className="text-2xl font-semibold leading-none sm:text-3xl">مركز عيون الشروق</h1>
-                <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.28em] text-white/80">SELRS</p>
-              </div>
+    <div className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans" dir="rtl">
+      
+      {/* Sticky top brand navigation bar */}
+      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          
+          {/* Logo & Portal title */}
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl hidden sm:block">
+              <BrandLogo className="size-8 object-contain" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-primary leading-tight">مركز عيون الشروق</h1>
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">بوابة المرضى الإلكترونية</p>
             </div>
           </div>
 
-          <div className="-mt-20 px-4 pb-5 sm:px-6 sm:pb-6 lg:-mt-24 lg:px-10">
-            <div className="mx-auto max-w-7xl space-y-4">
-              <div className="rounded-[2rem] border border-[#dbe7f4] bg-white p-4 shadow-[0_12px_36px_rgba(28,64,104,0.06)] sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-secondary">بوابة المرضى</p>
-                    <p className="truncate text-lg font-semibold leading-none text-primary sm:text-xl">
-                      {name ?? "بوابة المرضى"}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {patientCode ? `كود المريض ${patientCode}` : "الدخول الآمن إلى الملف، الأشعة، والمواعيد"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="relative gap-2 border-secondary/25 bg-secondary/5 text-secondary hover:bg-secondary/10"
-                      onClick={() => setShowNotifications((v) => !v)}
-                    >
-                      <Bell className="size-4 text-secondary" />
-                      <span className="hidden sm:inline">الإشعارات</span>
-                      {notificationCount > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="absolute -left-2 -top-2 min-w-5 justify-center rounded-full border-0 bg-secondary px-1.5 py-0 text-[10px] text-secondary-foreground"
-                        >
-                          {notificationCount}
-                        </Badge>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={logout}
-                      className="gap-2 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
-                    >
-                      <LogOut className="size-4" />
-                      <span className="hidden sm:inline">خروج</span>
-                    </Button>
-                  </div>
-                </div>
-
-                <nav className="mt-4 flex items-center gap-2 overflow-x-auto rounded-full border border-[#dbe7f4] bg-[#f6f9fd] p-1">
-                  {NAV.map((item) => {
-                    const Icon = item.icon;
-                    const active = location.startsWith(item.href);
-                    return (
-                      <Link key={item.href} href={item.href}>
-                        <span
-                          className={cn(
-                            "inline-flex min-w-[7.5rem] items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap",
-                            active
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:bg-white hover:text-primary",
-                          )}
-                        >
-                          <Icon className="size-4" />
-                          {item.label}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-
-                {showNotifications && (
-                  <div className="mt-3 rounded-[1.5rem] border border-[#dbe7f4] bg-white p-4 text-foreground shadow-[0_12px_36px_rgba(28,64,104,0.06)]">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">آخر التحديثات</p>
-                        <p className="text-xs text-muted-foreground">تظهر حالة المواعيد الأخيرة هنا</p>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)} className="text-muted-foreground">
-                        إغلاق
-                      </Button>
-                    </div>
-
-                    {PUSH_SUPPORTED && VAPID_KEY && pushState !== "granted" && (
-                      <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          {pushState === "denied" ? (
-                            <BellOff className="size-4 shrink-0 text-muted-foreground" />
-                          ) : (
-                            <BellRing className="size-4 shrink-0 text-primary" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-foreground">
-                              {pushState === "denied" ? "الإشعارات محظورة" : "فعّل الإشعارات"}
-                            </p>
-                            <p className="text-[11px] leading-4 text-muted-foreground">
-                              {pushState === "denied"
-                                ? "أتح الإشعارات من إعدادات المتصفح"
-                                : "احصل على إشعار فور تأكيد موعدك"}
-                            </p>
-                          </div>
-                        </div>
-                        {pushState !== "denied" && (
-                          <Button size="sm" onClick={handleEnablePush} disabled={pushState === "requesting"} className="shrink-0 rounded-xl text-xs">
-                            {pushState === "requesting" ? "جاري..." : "تفعيل"}
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {pushState === "granted" && PUSH_SUPPORTED && (
-                      <div className="mb-3 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-700">
-                        <BellRing className="size-3.5 shrink-0" />
-                        الإشعارات مفعّلة — ستصلك إشعارات تأكيد المواعيد
-                      </div>
-                    )}
-
-                    {isLoading ? (
-                      <div className="space-y-2">
-                        <div className="h-16 animate-pulse rounded-xl bg-[#eef4fa]" />
-                        <div className="h-16 animate-pulse rounded-xl bg-[#eef4fa]" />
-                      </div>
-                    ) : recentNotifications.length > 0 ? (
-                      <div className="grid gap-2">
-                        {recentNotifications.map((item) => (
-                          <div key={item.id} className="rounded-[1.25rem] border border-[#e1ebf6] bg-[#fbfdff] p-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="truncate text-sm font-semibold text-foreground">{item.typeLabel}</p>
-                                  <PortalStatusBadge
-                                    status={item.status}
-                                    label={
-                                      item.status === "pending"
-                                        ? "قيد المراجعة"
-                                        : item.status === "confirmed"
-                                          ? "مؤكد"
-                                          : item.status === "cancelled"
-                                            ? "ملغي"
-                                            : "مكتمل"
-                                    }
-                                  />
-                                </div>
-                                <p className="text-xs leading-5 text-muted-foreground">
-                                  {item.status === "confirmed"
-                                    ? "تم تأكيد الموعد من الاستقبال"
-                                    : item.status === "cancelled"
-                                      ? "تم إلغاء الموعد"
-                                      : item.status === "completed"
-                                        ? "تم إكمال الموعد"
-                                        : "تمت إضافة تحديث جديد للطلب"}
-                                </p>
-                              </div>
-                              <div className="shrink-0 text-left text-[11px] leading-5 text-muted-foreground">
-                                <div>{formatArabicDateTime(item.confirmedDate ?? item.requestedDate)}</div>
-                              </div>
-                            </div>
-                            {item.staffNotes && (
-                              <p className="mt-2 rounded-lg bg-[#eff4fa] px-3 py-2 text-xs leading-5 text-muted-foreground">
-                                {item.staffNotes}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-[#d7e2ee] bg-[#f7fbfe] px-4 py-8 text-center text-sm text-muted-foreground">
-                        لا توجد تحديثات جديدة حالياً
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <main>{children}</main>
+          {/* User profile & action tools */}
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex flex-col text-left pl-2 border-l border-border/60">
+              <span className="text-xs font-bold text-foreground text-right">{name}</span>
+              <span className="text-[10px] text-muted-foreground text-right">كود: {patientCode}</span>
             </div>
+
+            {/* Notification Bell */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative rounded-xl hover:bg-muted/50 cursor-pointer size-10"
+              onClick={() => setShowNotifications((v) => !v)}
+            >
+              <Bell className="size-5 text-muted-foreground" />
+              {notificationCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 size-4 bg-secondary text-secondary-foreground text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                  {notificationCount}
+                </span>
+              )}
+            </Button>
+
+            {/* Logout button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              className="rounded-xl hover:bg-destructive/5 hover:text-destructive text-muted-foreground cursor-pointer size-10"
+              title="تسجيل الخروج"
+            >
+              <LogOut className="size-5" />
+            </Button>
           </div>
         </div>
+      </header>
+
+      {/* Main layout frame */}
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
+        
+        {/* Desktop sub-navigation tabs */}
+        <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            const active = location.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href}>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-[#dbe7f4]"
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Notifications Slide-Down Box */}
+        {showNotifications && (
+          <div className="rounded-2xl border border-[#dbe7f4] bg-white p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">آخر التحديثات والإشعارات</h3>
+                <p className="text-[11px] text-muted-foreground">تحديثات حالة الحجوزات والملف</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)} className="h-8 rounded-lg text-xs cursor-pointer">
+                إغلاق
+              </Button>
+            </div>
+
+            {PUSH_SUPPORTED && VAPID_KEY && pushState !== "granted" && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {pushState === "denied" ? (
+                    <BellOff className="size-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <BellRing className="size-4 text-primary shrink-0 animate-pulse" />
+                  )}
+                  <div className="min-w-0 text-xs">
+                    <p className="font-bold text-foreground">
+                      {pushState === "denied" ? "الإشعارات محظورة" : "تفعيل الإشعارات الفورية"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {pushState === "denied" ? "يرجى السماح بالإشعارات من المتصفح" : "احصل على تنبيه فوري لتأكيد المواعيد"}
+                    </p>
+                  </div>
+                </div>
+                {pushState !== "denied" && (
+                  <Button size="sm" onClick={handleEnablePush} disabled={pushState === "requesting"} className="h-8 rounded-lg text-xs shrink-0 cursor-pointer">
+                    {pushState === "requesting" ? "جاري..." : "تفعيل"}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {pushState === "granted" && PUSH_SUPPORTED && (
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs text-emerald-700">
+                <BellRing className="size-3.5 shrink-0" />
+                <span>الإشعارات الفورية مفعّلة بنجاح</span>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="space-y-2 py-4">
+                <div className="h-12 animate-pulse rounded-xl bg-[#eef4fa]" />
+                <div className="h-12 animate-pulse rounded-xl bg-[#eef4fa]" />
+              </div>
+            ) : recentNotifications.length > 0 ? (
+              <div className="grid gap-2">
+                {recentNotifications.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-[#e1ebf6] bg-[#fbfdff] p-3 text-xs leading-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-foreground">{item.typeLabel}</p>
+                          <PortalStatusBadge
+                            status={item.status}
+                            label={
+                              item.status === "pending"
+                                ? "قيد المراجعة"
+                                : item.status === "confirmed"
+                                  ? "مؤكد"
+                                  : item.status === "cancelled"
+                                    ? "ملغي"
+                                    : "مكتمل"
+                            }
+                          />
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          {item.status === "confirmed"
+                            ? "تم تأكيد موعدك بنجاح من قبل الاستقبال."
+                            : item.status === "cancelled"
+                              ? "تم إلغاء طلب الموعد."
+                              : item.status === "completed"
+                                ? "تم إكمال الزيارة الطبية."
+                                : "طلب الموعد قيد المراجعة حالياً."}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {formatArabicDateTime(item.confirmedDate ?? item.requestedDate)}
+                      </span>
+                    </div>
+                    {item.staffNotes && (
+                      <p className="mt-2 rounded-lg bg-[#eff4fa]/60 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                        {item.staffNotes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[#d7e2ee] bg-[#f7fbfe] py-8 text-center text-xs text-muted-foreground">
+                لا توجد إشعارات أو تحديثات جديدة حالياً
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Viewport content area */}
+        <main className="flex-1 pb-20 md:pb-6">{children}</main>
       </div>
+
+      {/* Mobile Fixed Bottom Navigation bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white border-t border-[#e2edf7] flex items-center justify-around px-2 shadow-lg">
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          const active = location.startsWith(item.href);
+          return (
+            <Link key={item.href} href={item.href}>
+              <span
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl transition-all duration-150 cursor-pointer",
+                  active
+                    ? "text-primary font-bold scale-105"
+                    : "text-muted-foreground hover:text-primary"
+                )}
+              >
+                <Icon className={cn("size-5", active ? "text-primary" : "text-muted-foreground")} />
+                <span className="text-[9px] tracking-tight">{item.label.split(" ")[0]}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

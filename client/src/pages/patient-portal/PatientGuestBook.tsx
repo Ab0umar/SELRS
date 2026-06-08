@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { arEG } from "date-fns/locale";
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, UserRound } from "lucide-react";
+import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,6 @@ import { BrandLogo } from "@/components/BrandLogo";
 import {
   PortalEmptyState,
   PortalLoadingRows,
-  PortalPanel,
-  PortalShell,
   PortalStatusBadge,
   formatArabicDate,
 } from "./portal-ui";
@@ -28,9 +26,9 @@ const TYPES = [
 
 const TYPE_HINTS: Record<(typeof TYPES)[number]["value"], string> = {
   consultant: "ا.د محمد السعدني غرابه",
-  specialist: "كشف او مقاس نظاره",
-  lasik: "الفحوصات الخاصه بعمليات تصحيح الابصار",
-  external: "",
+  specialist: "كشف أو مقاس نظارة",
+  lasik: "الفحوصات الخاصة بعمليات تصحيح الإبصار",
+  external: "أشعة بنتاكام للقرنية",
   followup: "لمراجعة ما بعد الزيارة",
 };
 
@@ -90,6 +88,7 @@ export default function PatientGuestBook() {
 
   const availableDates = useMemo(() => schedule?.dates ?? [], [schedule]);
   const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+  const availableCount = availableDates.length;
   const selectedLabel = useMemo(() => availableDates.find((d) => d === selectedDate), [availableDates, selectedDate]);
   const minDate = useMemo(() => (availableDates[0] ? isoToDate(availableDates[0]) : undefined), [availableDates]);
   const maxDate = useMemo(() => {
@@ -130,230 +129,263 @@ export default function PatientGuestBook() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f9fd] text-foreground" dir="rtl">
-      <div className="mx-auto min-h-screen w-full max-w-none px-0 py-0">
-        <div className="overflow-hidden rounded-none border-0 bg-white shadow-none sm:rounded-[2rem] sm:border sm:border-[#dce9f5] sm:shadow-[0_20px_60px_rgba(28,64,104,0.08)]">
-          <div className="bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.24),transparent_28%),linear-gradient(180deg,#002A63_0%,#0F4E93_38%,#DDEAF7_79%,#F8FAFC_100%)] px-4 pb-24 pt-5 text-white sm:px-6 sm:pb-28 lg:px-10 lg:pb-32">
-            <div className="mx-auto flex max-w-2xl items-center justify-center gap-4 rounded-[1.5rem] border border-white/10 bg-[#0b3d78]/22 px-5 py-3 text-center text-white shadow-[0_14px_30px_rgba(0,0,0,0.12)] backdrop-blur-[2px]">
-              <BrandLogo className="size-10 shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)] sm:size-12" />
-              <div className="min-w-0">
-                <h1 className="text-2xl font-semibold leading-none sm:text-3xl">مركز عيون الشروق</h1>
-                <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.28em] text-white/80">SELRS</p>
+    <div className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground" dir="rtl">
+      
+      {/* Sticky top header bar */}
+      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          
+          {/* Logo & Portal title */}
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl">
+              <BrandLogo className="size-8 object-contain" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-primary leading-tight">مركز عيون الشروق</h1>
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">بوابة المرضى الإلكترونية</p>
+            </div>
+          </div>
+
+          {/* Back to login button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/my/login")}
+            className="rounded-xl hover:bg-muted/50 text-muted-foreground cursor-pointer flex items-center gap-2 h-10 px-3.5"
+          >
+            <ArrowLeft className="size-4" />
+            <span>العودة للدخول</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Main layout container */}
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
+        
+        {/* Title bar */}
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-primary">حجز موعد كزائر جديد 📅</h2>
+          <p className="text-xs text-muted-foreground">لمن لا يملك ملفاً طبياً مسجلاً حالياً بالمركز، يمكنك تقديم طلب الحجز مباشرة.</p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          
+          {/* Form Content Column */}
+          <div className="space-y-4">
+            
+            {/* 1. Guest Personal Details */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">1. البيانات الشخصية للزائر</h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">الاسم الكامل للزائر</label>
+                  <Input
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="الاسم كما هو في البطاقة"
+                    className="h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10"
+                    dir="rtl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">رقم الموبايل للتواصل</label>
+                  <Input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="01XXXXXXXXX"
+                    className="h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-left font-medium tracking-wide"
+                    dir="ltr"
+                    autoComplete="tel"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="-mt-20 px-4 pb-6 sm:px-6 sm:pb-8 lg:-mt-24 lg:px-10">
-            <div className="mx-auto grid max-w-7xl gap-4">
-        <PortalShell
-          title="حجز موعد كزائر"
-          subtitle="لمن لا يملك ملفاً حالياً، مع نفس تجربة الحجز الواضحة الموجودة داخل البوابة."
-        >
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4">
-              <PortalPanel
-                title="بيانات الزائر"
-                description="الاسم ورقم الموبايل هما وسيلتا التواصل الأساسيان."
-              >
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="block text-sm font-medium text-foreground">الاسم الكامل</label>
-                    <Input
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="الاسم كما هو في البطاقة"
-                      dir="rtl"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="block text-sm font-medium text-foreground">رقم الموبايل</label>
-                    <Input
-                      type="tel"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="01XXXXXXXXX"
-                      dir="ltr"
-                      className="text-left"
-                      autoComplete="tel"
-                    />
-                  </div>
-                </div>
-              </PortalPanel>
-
-              <PortalPanel
-                title="نوع الحجز"
-                description="اختر الخدمة الأقرب لطلبك، ثم انتقل للتاريخ المتاح."
-              >
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {TYPES.map((item) => {
-                    const active = bookingType === item.value;
-                    return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() => {
-                          setBookingType(item.value);
-                          setSelectedDate("");
-                        }}
-                        className={[
-                          "rounded-xl border px-3 py-3 text-right transition-colors",
-                          active
-                            ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                            : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
-                        ].join(" ")}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold">{item.label}</p>
-                            {TYPE_HINTS[item.value] && <p className="mt-1 text-xs leading-5">{TYPE_HINTS[item.value]}</p>}
-                          </div>
-                          {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground" />}
+            {/* 2. Booking Type */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">2. نوع الحجز والخدمة</h3>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {TYPES.map((item) => {
+                  const active = bookingType === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => {
+                        setBookingType(item.value);
+                        setSelectedDate("");
+                      }}
+                      className={[
+                        "rounded-xl border px-3.5 py-3 text-right transition-all duration-200 cursor-pointer",
+                        active
+                          ? "border-primary bg-primary/5 text-foreground shadow-xs"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground">{item.label}</p>
+                          <p className="text-[10px] text-muted-foreground leading-normal">{TYPE_HINTS[item.value]}</p>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </PortalPanel>
-
-              <PortalPanel
-                title="التاريخ المتاح"
-                description="اختر اليوم المناسب من التواريخ المتاحة لهذا النوع من الحجز."
-              >
-                {loadingDates && <PortalLoadingRows rows={3} />}
-
-                {error && (
-                  <PortalEmptyState
-                    icon={<ShieldAlert className="size-5" />}
-                    title="تعذر تحميل التواريخ"
-                    description={error.message}
-                    action={
-                      <Button onClick={() => void refetch()} className="gap-2">
-                        <RefreshCw className="size-4" />
-                        إعادة المحاولة
-                      </Button>
-                    }
-                  />
-                )}
-
-                {!loadingDates && schedule && schedule.dates.length === 0 && (
-                  <PortalEmptyState
-                    icon={<CalendarDays className="size-5" />}
-                    title="لا توجد مواعيد متاحة حالياً"
-                    description="يمكنك تغيير نوع الحجز أو العودة لاحقاً."
-                  />
-                )}
-
-                {!loadingDates && schedule && schedule.dates.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="w-full overflow-hidden rounded-[1.25rem] border border-[#dbe7f4] bg-[#f8fbff] p-2 sm:p-3">
-                      <Calendar
-                        mode="single"
-                        dir="rtl"
-                        locale={arEG}
-                        formatters={ARABIC_CALENDAR_FORMATTERS}
-                        classNames={MOBILE_SAFE_CALENDAR_CLASS_NAMES}
-                        month={calendarMonth}
-                        defaultMonth={calendarMonth}
-                        selected={selectedDate ? isoToDate(selectedDate) : undefined}
-                        onMonthChange={setCalendarMonth}
-                        onSelect={(date) => {
-                          if (!date) {
-                            setSelectedDate("");
-                            return;
-                          }
-                          const next = dateToIso(date);
-                          if (availableDateSet.has(next)) setSelectedDate(next);
-                        }}
-                        disabled={(date) => !availableDateSet.has(dateToIso(date))}
-                        modifiers={{
-                          monday: (date) => bookingType === "consultant" && date.getDay() === 1,
-                          consultantTanta: (date) => bookingType === "consultant" && isConsultantTantaDay(date),
-                        }}
-                        modifiersClassNames={{
-                          monday: "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
-                          consultantTanta: "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
-                        }}
-                        fromDate={minDate}
-                        toDate={maxDate}
-                        className="w-full p-1 [--cell-size:clamp(2rem,12vw,2.5rem)] sm:p-2 sm:[--cell-size:clamp(2.2rem,6vw,2.75rem)]"
-                      />
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-xs font-medium">
-                      {bookingType === "consultant" && (
-                        <>
-                          <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">كفرالشيخ</span>
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">طنطا</span>
-                        </>
-                      )}
-                    </div>
-
-                  </div>
-                )}
-              </PortalPanel>
-
-              <PortalPanel
-                title="ملاحظات إضافية"
-                description="اختياري، ويمكن أن يساعد الاستقبال في تجهيز الطلب."
-              >
-                <Textarea
-                  rows={4}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="أي ملاحظات إضافية..."
-                  className="resize-none"
-                  dir="rtl"
-                />
-              </PortalPanel>
+                        {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground text-[10px]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <PortalPanel title="ملخص الطلب" description="راجع البيانات قبل الإرسال.">
-                <div className="space-y-2" dir="rtl">
-                  {[
-                    { label: "الاسم", value: guestName || "غير مدخل" },
-                    { label: "رقم الموبايل", value: guestPhone || "غير مدخل" },
-                    { label: "الخدمة", value: schedule?.label ?? bookingType },
-                    { label: "اليوم", value: selectedLabel ? formatArabicDate(selectedLabel) : "لم يتم اختيار يوم" },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2.5">
-                      <span className="text-sm text-muted-foreground">{label}</span>
-                      <span className="text-sm font-semibold text-foreground">{value}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* 3. Available Calendar Dates */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">3. تاريخ الحجز المفضل</h3>
+              </div>
 
-                <div className="mt-3 rounded-xl border border-border bg-muted/20 p-3" dir="rtl">
-                  <div className="flex items-start gap-3">
-                    <UserRound className="mt-0.5 size-4 shrink-0 text-primary" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">حالة الإرسال</p>
-                      <p className="text-sm leading-6 text-muted-foreground">
-                        بعد الإرسال، سيُسجل الطلب كموعد جديد بحالة قيد المراجعة.
-                      </p>
-                    </div>
+              {loadingDates && <PortalLoadingRows rows={3} />}
+
+              {error && (
+                <PortalEmptyState
+                  icon={<ShieldAlert className="size-5" />}
+                  title="تعذر تحميل المواعيد المتاحة"
+                  description={error.message}
+                  action={
+                    <Button onClick={() => void refetch()} className="gap-2 cursor-pointer">
+                      <RefreshCw className="size-4" />
+                      إعادة المحاولة
+                    </Button>
+                  }
+                />
+              )}
+
+              {!loadingDates && schedule && availableCount === 0 && (
+                <PortalEmptyState
+                  icon={<CalendarDays className="size-5" />}
+                  title="لا توجد مواعيد متاحة حالياً"
+                  description="يمكنك تغيير نوع الفحص أو مراجعة الاستقبال هاتفياً."
+                />
+              )}
+
+              {!loadingDates && schedule && availableCount > 0 && (
+                <div className="space-y-4">
+                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-[#dbe7f4] bg-[#f8fbff] p-2 sm:max-w-[22rem] sm:p-4">
+                    <Calendar
+                      mode="single"
+                      dir="rtl"
+                      locale={arEG}
+                      formatters={ARABIC_CALENDAR_FORMATTERS}
+                      classNames={MOBILE_SAFE_CALENDAR_CLASS_NAMES}
+                      month={calendarMonth}
+                      defaultMonth={calendarMonth}
+                      selected={selectedDate ? isoToDate(selectedDate) : undefined}
+                      onMonthChange={setCalendarMonth}
+                      onSelect={(date) => {
+                        if (!date) {
+                          setSelectedDate("");
+                          return;
+                        }
+                        const next = dateToIso(date);
+                        if (availableDateSet.has(next)) setSelectedDate(next);
+                      }}
+                      disabled={(date) => !availableDateSet.has(dateToIso(date))}
+                      modifiers={{
+                        monday: (date) => bookingType === "consultant" && date.getDay() === 1,
+                        consultantTanta: (date) => bookingType === "consultant" && isConsultantTantaDay(date),
+                      }}
+                      modifiersClassNames={{
+                        monday: "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
+                        consultantTanta: "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
+                      }}
+                      fromDate={minDate}
+                      toDate={maxDate}
+                      className="mx-auto w-full max-w-full p-1 [--cell-size:clamp(1.65rem,8.1vw,2.05rem)] min-[390px]:[--cell-size:clamp(1.85rem,8.4vw,2.2rem)] sm:p-2 sm:[--cell-size:--spacing(7)]"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 text-xs font-semibold">
+                    {bookingType === "consultant" && (
+                      <>
+                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">كفرالشيخ</span>
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">طنطا</span>
+                      </>
+                    )}
                   </div>
                 </div>
+              )}
+            </div>
 
-                <Button
-                  className="mt-4 h-11 w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  onClick={handleSubmit}
-                  disabled={!selectedDate || createGuestBooking.isPending}
-                >
-                  {createGuestBooking.isPending ? "جاري الإرسال..." : "إرسال طلب الحجز"}
-                </Button>
-              </PortalPanel>
-
-              <PortalEmptyState
-                icon={<ClipboardList className="size-5" />}
-                title="الخطوة التالية"
-                description="بعد إرسال الطلب، يمكن متابعة الحالة من صفحة المواعيد إذا تم ربطه بملفك لاحقاً."
+            {/* 4. Notes */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">4. ملاحظات وتوجيهات إضافية</h3>
+              </div>
+              <Textarea
+                rows={4}
+                value={notes}
+                placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها..."
+                onChange={(e) => setNotes(e.target.value)}
+                className="resize-none rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10"
               />
             </div>
+
           </div>
-          </PortalShell>
+
+          {/* Booking Summary Sidebar Column */}
+          <div className="space-y-4">
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">ملخص طلب الحجز كزائر</h3>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">الاسم</span>
+                  <span className="text-xs font-bold text-foreground truncate max-w-[150px]">{guestName.trim() || "غير مدخل"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">رقم الموبايل</span>
+                  <span className="text-xs font-bold text-foreground tracking-wide">{guestPhone.trim() || "غير مدخل"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">نوع الحجز</span>
+                  <span className="text-xs font-bold text-foreground">{schedule?.label ?? bookingType}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">تاريخ اليوم المختار</span>
+                  <span className="text-xs font-bold text-primary">{selectedLabel ? formatArabicDate(selectedLabel) : "لم يتم الاختيار بعد"}</span>
+                </div>
+              </div>
+
+              {notes.trim() && (
+                <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-muted-foreground">
+                    <ClipboardList className="size-4 shrink-0 text-primary" />
+                    <span>ملاحظتك المرفقة:</span>
+                  </div>
+                  <p className="text-xs leading-5 text-muted-foreground">{notes.trim()}</p>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-[#e2edf7] bg-[#F4F8FB]/60 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
+                <p className="font-semibold text-primary">تنبيه هام:</p>
+                <p>بعد إرسال طلب الحجز بنجاح، سيتواصل معك الاستقبال هاتفياً لتأكيد وتحديد توقيت الزيارة بدقة وتسجيل ملفك الطبي الجديد.</p>
+              </div>
+
+              <Button
+                className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2 mt-4"
+                onClick={handleSubmit}
+                disabled={!selectedDate || !guestName.trim() || guestPhone.trim().length < 8 || createGuestBooking.isPending}
+              >
+                {createGuestBooking.isPending ? "جاري إرسال الحجز..." : "تأكيد وإرسال طلب الحجز"}
+              </Button>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>

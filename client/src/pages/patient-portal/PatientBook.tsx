@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { arEG } from "date-fns/locale";
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert } from "lucide-react";
+import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,9 +11,6 @@ import PatientLayout from "./PatientLayout";
 import {
   PortalEmptyState,
   PortalLoadingRows,
-  PortalMetric,
-  PortalPanel,
-  PortalShell,
   PortalStatusBadge,
   formatArabicDate,
 } from "./portal-ui";
@@ -27,9 +24,9 @@ const TYPES = [
 
 const TYPE_HELP: Record<(typeof TYPES)[number]["value"], string> = {
   consultant: "ا.د محمد السعدني غرابه",
-  specialist: "كشف او مقاس نظاره",
-  lasik: "فحوصات الليزك فقط",
-  external: "اشعة بنتاكام فقط",
+  specialist: "كشف أو مقاس نظارة",
+  lasik: "فحوصات تصحيح الإبصار",
+  external: "أشعة بنتاكام فقط",
 };
 
 const ARABIC_CALENDAR_FORMATTERS = {
@@ -112,13 +109,42 @@ export default function PatientBook() {
     createBooking.mutate({ bookingType, requestedDate: selectedDate, notes: notes.trim() || undefined });
   };
 
+  const handleBack = () => {
+    window.location.href = "/my/bookings";
+  };
+
   return (
     <PatientLayout>
-      <PortalShell title="حجز موعد جديد">
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="space-y-6">
+        
+        {/* Title bar */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-primary">حجز موعد جديد 📅</h2>
+            <p className="text-xs text-muted-foreground">اختر الخدمة واليوم المفضل لطلب الحجز بالمركز.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="size-4" />
+            رجوع
+          </Button>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          
+          {/* Form Content Column */}
           <div className="space-y-4">
-            <PortalPanel title="1. نوع الحجز">
-              <div className="grid gap-2 sm:grid-cols-2">
+            
+            {/* 1. Booking Type */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">1. نوع الحجز والخدمة</h3>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {TYPES.map((item) => {
                   const active = bookingType === item.value;
                   return (
@@ -130,29 +156,31 @@ export default function PatientBook() {
                         setSelectedDate("");
                       }}
                       className={[
-                        "rounded-xl border px-3 py-3 text-right transition-colors",
+                        "rounded-xl border px-3.5 py-3 text-right transition-all duration-200 cursor-pointer",
                         active
-                          ? "border-primary bg-primary/5 text-foreground shadow-sm"
+                          ? "border-primary bg-primary/5 text-foreground shadow-xs"
                           : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
                       ].join(" ")}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold">{item.label}</p>
-                          <p className="mt-1 text-xs leading-5">{TYPE_HELP[item.value]}</p>
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground">{item.label}</p>
+                          <p className="text-[10px] text-muted-foreground leading-normal">{TYPE_HELP[item.value]}</p>
                         </div>
-                        {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground" />}
+                        {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground text-[10px]" />}
                       </div>
                     </button>
                   );
                 })}
               </div>
-            </PortalPanel>
+            </div>
 
-            <PortalPanel>
-              <div className="mb-4">
-                <h2 className="text-sm font-semibold text-foreground">2. التاريخ المتاح</h2>
+            {/* 2. Available Calendar Dates */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">2. تاريخ الحجز المفضل</h3>
               </div>
+
               {loadingDates && <PortalLoadingRows rows={3} />}
 
               {error && (
@@ -161,7 +189,7 @@ export default function PatientBook() {
                   title="تعذر تحميل المواعيد المتاحة"
                   description={error.message}
                   action={
-                    <Button onClick={() => void refetch()} className="gap-2">
+                    <Button onClick={() => void refetch()} className="gap-2 cursor-pointer">
                       <RefreshCw className="size-4" />
                       إعادة المحاولة
                     </Button>
@@ -173,12 +201,13 @@ export default function PatientBook() {
                 <PortalEmptyState
                   icon={<CalendarDays className="size-5" />}
                   title="لا توجد مواعيد متاحة حالياً"
+                  description="يمكنك تغيير نوع الفحص أو مراجعة الاستقبال هاتفياً."
                 />
               )}
 
               {!loadingDates && schedule && availableCount > 0 && (
-                <div className="space-y-3">
-                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-[1.25rem] border border-[#dbe7f4] bg-[#f8fbff] p-1 sm:max-w-[21rem] sm:p-3">
+                <div className="space-y-4">
+                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-[#dbe7f4] bg-[#f8fbff] p-2 sm:max-w-[22rem] sm:p-4">
                     <Calendar
                       mode="single"
                       dir="rtl"
@@ -211,7 +240,7 @@ export default function PatientBook() {
                       className="mx-auto w-full max-w-full p-1 [--cell-size:clamp(1.65rem,8.1vw,2.05rem)] min-[390px]:[--cell-size:clamp(1.85rem,8.4vw,2.2rem)] sm:p-2 sm:[--cell-size:--spacing(7)]"
                     />
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-xs font-medium">
+                  <div className="flex items-center justify-center gap-2.5 text-xs font-semibold">
                     {bookingType === "consultant" && (
                       <>
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">كفرالشيخ</span>
@@ -221,49 +250,70 @@ export default function PatientBook() {
                   </div>
                 </div>
               )}
-            </PortalPanel>
+            </div>
 
-            <PortalPanel title="3. ملاحظاتك">
+            {/* 3. Notes */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">3. ملاحظات وتوجيهات إضافية</h3>
+              </div>
               <Textarea
                 rows={4}
                 value={notes}
+                placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها..."
                 onChange={(e) => setNotes(e.target.value)}
-                className="resize-none"
+                className="resize-none rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10"
               />
-            </PortalPanel>
+            </div>
+
           </div>
 
+          {/* Booking Summary Sidebar Column */}
           <div className="space-y-4">
-            <PortalPanel title="ملخص الحجز">
-              <div className="space-y-3">
-                <PortalMetric label="نوع الحجز" value={schedule?.label ?? bookingType} tone="orange" />
-                <PortalMetric label="اليوم المحدد" value={selectedLabel ? formatArabicDate(selectedLabel) : "لم يتم اختيار تاريخ"} tone="blue" />
-                <PortalMetric label="عدد الأيام المتاحة" value={availableCount || "0"} tone="neutral" />
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">ملخص الحجز</h3>
               </div>
 
-              <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3">
-                <div className="flex items-start gap-3">
-                  <ClipboardList className="mt-0.5 size-4 text-primary" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">الملاحظات</p>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {notes.trim() || "لا توجد ملاحظات مضافة"}
-                    </p>
-                  </div>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">نوع الحجز</span>
+                  <span className="text-xs font-bold text-foreground">{schedule?.label ?? bookingType}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">تاريخ اليوم المختار</span>
+                  <span className="text-xs font-bold text-primary">{selectedLabel ? formatArabicDate(selectedLabel) : "لم يتم الاختيار بعد"}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">الخيارات المتاحة</span>
+                  <span className="text-xs font-bold text-foreground">{availableCount} أيام متاحة</span>
                 </div>
               </div>
 
+              {notes.trim() && (
+                <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-muted-foreground">
+                    <ClipboardList className="size-4 shrink-0 text-primary" />
+                    <span>ملاحظتك المرفقة:</span>
+                  </div>
+                  <p className="text-xs leading-5 text-muted-foreground">{notes.trim()}</p>
+                </div>
+              )}
+
               <Button
-                className="mt-4 h-11 w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2 mt-4"
                 onClick={handleSubmit}
                 disabled={!selectedDate || createBooking.isPending}
               >
-                {createBooking.isPending ? "جاري الإرسال..." : "إرسال طلب الحجز"}
+                {createBooking.isPending ? "جاري إرسال الحجز..." : "تأكيد وإرسال طلب الحجز"}
               </Button>
-            </PortalPanel>
+
+            </div>
           </div>
+
         </div>
-      </PortalShell>
+      </div>
     </PatientLayout>
   );
 }
