@@ -408,29 +408,33 @@ function TodayPanel({
       label: "مرضى اليوم",
       value: total,
       icon: Users,
-      cls: "bg-primary/10 text-primary",
-      bar: "bg-primary",
+      cls: "bg-blue-500 text-white",
+      bgCls: "bg-blue-50/20 border-blue-100/70 hover:border-blue-200 text-blue-900",
+      labelCls: "text-blue-700/80",
     },
     {
       label: "تم معالجتهم",
       value: treated,
       icon: Activity,
-      cls: "bg-success/15 text-success",
-      bar: "bg-success",
+      cls: "bg-emerald-500 text-white",
+      bgCls: "bg-emerald-50/20 border-emerald-100/70 hover:border-emerald-200 text-emerald-900",
+      labelCls: "text-emerald-700/80",
     },
     {
       label: "في الانتظار",
       value: waiting,
       icon: Clock,
-      cls: "bg-warning/15 text-warning",
-      bar: "bg-warning",
+      cls: "bg-amber-500 text-white",
+      bgCls: "bg-amber-50/20 border-amber-100/70 hover:border-amber-200 text-amber-900",
+      labelCls: "text-amber-700/80",
     },
     {
       label: "العمليات",
       value: opsCount,
       icon: Syringe,
-      cls: "bg-secondary/15 text-secondary",
-      bar: "bg-secondary",
+      cls: "bg-orange-500 text-white",
+      bgCls: "bg-orange-50/20 border-orange-100/70 hover:border-orange-200 text-orange-900",
+      labelCls: "text-orange-700/80",
     },
   ];
 
@@ -465,49 +469,48 @@ function TodayPanel({
   return (
     <div className="space-y-4">
       {/* Tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {tiles.map((t) => {
           const Icon = t.icon;
           return (
-            <Surface
+            <div
               key={t.label}
-              className="relative overflow-hidden px-3 py-2.5"
+              className={cn(
+                "rounded-lg border px-3.5 py-3 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
+                t.bgCls
+              )}
             >
-              <div
-                className={cn("absolute inset-x-0 top-0 h-1", t.bar)}
-                aria-hidden
-              />
-              <div className="flex items-center gap-3 pt-1">
+              <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-xs",
                     t.cls,
                   )}
                 >
                   <Icon className="h-4 w-4" aria-hidden />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-2xl font-bold leading-none text-foreground tabular-nums">
+                  <p className="text-2xl font-bold leading-none tabular-nums">
                     {t.value}
                   </p>
-                  <p className="mt-1 text-xs font-medium text-muted-foreground">
+                  <p className={cn("mt-1 text-xs font-semibold", t.labelCls)}>
                     {t.label}
                   </p>
                 </div>
               </div>
-            </Surface>
+            </div>
           );
         })}
       </div>
 
       {/* Completion bar */}
-      <Surface className="px-4 py-3">
+      <div className="rounded-lg border border-blue-100/50 bg-blue-50/5 px-4 py-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <span className="shrink-0 text-sm font-medium text-foreground">
-            نسبة الإنجاز
+          <span className="shrink-0 text-sm font-bold text-foreground">
+            نسبة إنجاز اليوم
           </span>
           <div
-            className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+            className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#e2edf7]"
             role="progressbar"
             aria-valuenow={completionRate}
             aria-valuemin={0}
@@ -518,22 +521,22 @@ function TodayPanel({
               className={cn(
                 "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
                 completionRate >= 80
-                  ? "bg-success"
+                  ? "bg-emerald-500"
                   : completionRate >= 50
-                    ? "bg-primary"
-                    : "bg-secondary",
+                    ? "bg-blue-600"
+                    : "bg-orange-500",
               )}
               style={{ transform: `scaleX(${completionRate / 100})` }}
             />
           </div>
-          <span className="w-10 text-left text-sm font-semibold tabular-nums">
+          <span className="w-10 text-left text-sm font-bold text-foreground tabular-nums">
             {completionRate}%
           </span>
         </div>
-      </Surface>
+      </div>
 
       {/* Queue + side */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Surface className="lg:col-span-2">
           <SectionHeader title="مرضى اليوم و العمليات" />
           <div className="p-3">
@@ -562,7 +565,7 @@ function TodayPanel({
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Surface className="lg:col-span-2">
           <SectionHeader title="اتجاه المرضى" />
           <div className="p-3 sm:p-4">
