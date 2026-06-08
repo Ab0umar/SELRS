@@ -32,14 +32,14 @@ const navigationSections = [
     items: [
       {
         href: "/salary",
-        label: "الرواتب الأساسية",
-        description: "تحضير الرواتب والبدلات",
+        label: "بيانات الرواتب الأساسية",
+        description: "إدخال وتعديل الرواتب والشفتات",
         activeFor: ["/salary"],
       },
       {
         href: "/salary/current-data",
         label: "بيانات الرواتب الحالية",
-        description: "عرض الرواتب المسجلة حسب موقع العمل",
+        description: "عرض وطباعة الرواتب والشفتات",
         activeFor: ["/salary/current-data"],
       },
     ],
@@ -52,7 +52,7 @@ const navigationSections = [
     items: [
       {
         href: "/salary/pools",
-        label: "العمولات الشهرية",
+        label: "النسب الشهرية",
         description: "تسجيل عمولات الكشف والبنتاكام",
         activeFor: ["/salary/pools"],
       },
