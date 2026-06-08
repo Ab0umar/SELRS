@@ -146,7 +146,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
 
         {/* Brand header above card */}
-        <div className="w-full max-w-[480px] mb-8 text-center flex items-center justify-center gap-6">
+        <div className="w-full max-w-[480px] mb-8 text-center flex flex-row-reverse items-center justify-center gap-6">
           <div className="inline-flex items-center justify-center p-3 bg-white border border-[#dbe7f4] rounded-full shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
             <BrandLogo className="size-20 object-contain" />
           </div>
