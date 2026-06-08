@@ -26,7 +26,6 @@ import {
   DollarSign,
   KeyRound,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
   Network,
   Search,
@@ -222,14 +221,6 @@ export function AppTopNav({
         paths: ["/accounting"],
         checkPath: "/accounting",
       },
-      {
-        icon: LayoutGrid,
-        label: "المزيد",
-        path: "#",
-        key: "more",
-        paths: [],
-        checkPath: undefined,
-      },
     ],
     [],
   );
@@ -362,27 +353,16 @@ export function AppTopNav({
                 );
               })
             : mainNavTabs.map((tab) => {
-                const active =
-                  tab.key === "more"
-                    ? false
-                    : tab.paths.some((p) => {
-                        const base = location.split("?")[0];
-                        return base === p || base.startsWith(`${p}/`);
-                      });
+                const active = tab.paths.some((p) => {
+                  const base = location.split("?")[0];
+                  return base === p || base.startsWith(`${p}/`);
+                });
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => {
-                      if (tab.key === "more") {
-                        window.dispatchEvent(
-                          new Event("selrs:open-command-palette"),
-                        );
-                      } else {
-                        onNavigate(tab.path);
-                      }
-                    }}
+                    onClick={() => onNavigate(tab.path)}
                     className={cn(
                       "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
                       active
