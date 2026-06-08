@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, History } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const today = new Date().toISOString().split("T")[0];
-const thisYear = new Date().getFullYear();
 
 interface BasicForm {
   empCd: string;
@@ -29,8 +28,8 @@ const BLANK: BasicForm = {
 
 const FIELDS: { key: keyof BasicForm; label: string }[] = [
   { key: "basicAmount",          label: "الراتب الأساسي" },
-  { key: "socialAllowance",      label: "اعانة اجتماعية" },
-  { key: "costOfLivingAllowance",label: "علاء معيشة" },
+  { key: "socialAllowance",      label: "إعانة اجتماعية" },
+  { key: "costOfLivingAllowance",label: "بدل غلاء معيشة" },
   { key: "transportAllowance",   label: "بدل انتقال" },
   { key: "workNatureAllowance",  label: "طبيعة عمل" },
   { key: "receptionAllowance",   label: "بدل استقبال" },
@@ -60,108 +59,7 @@ function fmt(n: number) {
   });
 }
 
-const inputCls = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
-
-// ── Raise history panel ───────────────────────────────────
-function RaiseHistoryPanel({ empCd, empName }: { empCd: string; empName: string }) {
-  const [raiseAmount, setRaiseAmount] = useState("");
-  const [raiseYear, setRaiseYear] = useState(String(thisYear));
-  const [raiseNotes, setRaiseNotes] = useState("");
-
-  const histQ = (trpc as any).salary.listRaiseHistory.useQuery({ empCd });
-  const history: any[] = histQ.data ?? [];
-
-  const setMut = (trpc as any).salary.setRaise.useMutation({
-    onSuccess: () => { histQ.refetch(); setRaiseAmount(""); setRaiseNotes(""); toast.success("تم حفظ الزيادة"); },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
-  });
-  const delMut = (trpc as any).salary.deleteRaise.useMutation({
-    onSuccess: () => { histQ.refetch(); toast.success("تم الحذف"); },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
-  });
-
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amt = parseFloat(raiseAmount);
-    if (!amt || amt <= 0) { toast.error("أدخل مبلغ الزيادة"); return; }
-    setMut.mutate({ empCd, year: parseInt(raiseYear), raiseAmount: amt, notes: raiseNotes || undefined });
-  };
-
-  const totalRaises = history.reduce((s, r) => s + Number(r.raiseAmount), 0);
-
-  return (
-    <tr>
-      <td colSpan={10} className="bg-muted/10 px-6 py-4">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <History size={14} /> سجل الزيادات — {empName}
-            </span>
-            {totalRaises > 0 && (
-              <span className="text-xs text-muted-foreground">
-                إجمالي الزيادات: <span className="font-bold text-foreground">{totalRaises.toLocaleString("ar-EG")} ج.م</span>
-              </span>
-            )}
-          </div>
-
-          {/* Add form */}
-          <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-2">
-            <div className="space-y-1">
-              <label className="block text-xs text-muted-foreground">السنة</label>
-              <input type="number" value={raiseYear} min={2000} max={2100}
-                onChange={e => setRaiseYear(e.target.value)}
-                className="w-24 rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary" />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs text-muted-foreground">مبلغ الزيادة (ج.م)</label>
-              <input type="number" value={raiseAmount} min={0} step="0.01" placeholder="0.00"
-                onChange={e => setRaiseAmount(e.target.value)}
-                className="w-32 rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary" />
-            </div>
-            <div className="space-y-1 flex-1 min-w-32">
-              <label className="block text-xs text-muted-foreground">ملاحظات</label>
-              <input type="text" value={raiseNotes} onChange={e => setRaiseNotes(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary" />
-            </div>
-            <Button type="submit" size="sm" disabled={setMut.isPending} className="gap-1">
-              <Plus size={13} /> إضافة
-            </Button>
-          </form>
-
-          {/* History table */}
-          {history.length > 0 ? (
-            <table className="w-full text-sm" dir="rtl">
-              <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="py-1.5 text-right font-medium">السنة</th>
-                  <th className="py-1.5 text-right font-medium">المبلغ</th>
-                  <th className="py-1.5 text-right font-medium">ملاحظات</th>
-                  <th className="py-1.5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/40">
-                    <td className="py-1.5 font-medium">{r.year}</td>
-                    <td className="py-1.5 text-primary font-bold">{Number(r.raiseAmount).toLocaleString("ar-EG")} ج.م</td>
-                    <td className="py-1.5 text-muted-foreground">{r.notes ?? "—"}</td>
-                    <td className="py-1.5">
-                      <Button variant="ghost" size="sm" onClick={() => { if (confirm("حذف هذه الزيادة؟")) delMut.mutate({ id: r.id }); }}>
-                        <Trash2 size={13} className="text-destructive" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-xs text-muted-foreground">لا توجد زيادات مسجلة بعد</p>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-}
+const inputCls = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
 // ── Salary Table Component ─────────────────────────────────
 interface SalaryTableProps {
@@ -171,8 +69,6 @@ interface SalaryTableProps {
   onEdit: (item: any) => void;
   onDelete: (id: number) => void;
   isPending: boolean;
-  expandedEmp: string | null;
-  onToggleExpand: (empCd: string) => void;
 }
 
 function SalaryTable({
@@ -182,8 +78,6 @@ function SalaryTable({
   onEdit,
   onDelete,
   isPending,
-  expandedEmp,
-  onToggleExpand,
 }: SalaryTableProps) {
   const getEmployeeName = (empCd: string) => {
     const emp = employees.find((e) => e.empCd === empCd);
@@ -193,61 +87,41 @@ function SalaryTable({
   const totalAmount = data.reduce((sum, item) => sum + rowTotal(item), 0);
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
       {/* Header */}
-      <div className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-6 py-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">الإجمالي</div>
-            <div className="text-2xl font-bold text-primary">{fmt(totalAmount)}</div>
+      <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-bold text-foreground">{title}</h3>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">الإجمالي</div>
+          <div className="text-lg font-black text-blue-600 tabular-nums">
+            {fmt(totalAmount)} <span className="text-xs font-semibold text-muted-foreground">ج.م</span>
           </div>
         </div>
       </div>
 
       {/* Table */}
       {data.length === 0 ? (
-        <div className="px-6 py-8 text-center text-muted-foreground">
-          لا توجد بيانات رواتب مسجلة
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          لا توجد بيانات رواتب مسجلة مطابقة للبحث
         </div>
       ) : (
         <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm">
+          <table dir="rtl" className="w-full text-xs">
             {/* Table Header */}
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-right font-semibold text-foreground w-32">
-                  الموظف
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الراتب الأساسي
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  اعانة اجتماعية
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  علاء معيشة
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  بدل انتقال
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  طبيعة عمل
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  بدل استقبال
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الزيادة السنوية
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الإجمالي
-                </th>
-                <th className="px-4 py-3 text-center font-semibold text-foreground w-20">
-                  الإجراءات
-                </th>
+              <tr className="border-b border-border bg-blue-50/60 text-blue-900 font-bold">
+                <th className="px-4 py-3 text-right font-bold w-40">الموظف</th>
+                <th className="px-4 py-3 text-right font-bold">الراتب الأساسي</th>
+                <th className="px-4 py-3 text-right font-bold">إعانة اجتماعية</th>
+                <th className="px-4 py-3 text-right font-bold">بدل غلاء معيشة</th>
+                <th className="px-4 py-3 text-right font-bold">بدل انتقال</th>
+                <th className="px-4 py-3 text-right font-bold">طبيعة عمل</th>
+                <th className="px-4 py-3 text-right font-bold">بدل استقبال</th>
+                <th className="px-4 py-3 text-right font-bold">الزيادة السنوية</th>
+                <th className="px-4 py-3 text-right font-bold">الإجمالي</th>
+                <th className="px-4 py-3 text-center font-bold w-20">الإجراءات</th>
               </tr>
             </thead>
 
@@ -256,11 +130,11 @@ function SalaryTable({
               {data.map((item, idx) => (
                 <tr
                   key={item.id}
-                  className={`border-b border-border/50 transition-colors hover:bg-muted/30 ${
-                    idx % 2 === 0 ? "bg-background" : "bg-muted/10"
+                  className={`border-b border-border/40 transition-colors hover:bg-blue-50/30 ${
+                    idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
                   }`}
                 >
-                  <td className="px-4 py-3 font-medium text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">
                     {getEmployeeName(item.empCd)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
@@ -284,7 +158,7 @@ function SalaryTable({
                   <td className="px-4 py-3 text-right tabular-nums">
                     {fmt(Number(item.yearlyRaise ?? 0))}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
+                  <td className="px-4 py-3 text-right font-bold text-blue-600 tabular-nums">
                     {fmt(rowTotal(item))}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -294,7 +168,7 @@ function SalaryTable({
                         size="sm"
                         onClick={() => onEdit(item)}
                         disabled={isPending}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-blue-50/50"
                       >
                         <Pencil className="h-4 w-4 text-blue-600" />
                       </Button>
@@ -307,7 +181,7 @@ function SalaryTable({
                           }
                         }}
                         disabled={isPending}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
@@ -321,8 +195,8 @@ function SalaryTable({
       )}
 
       {/* Footer */}
-      <div className="border-t border-border bg-muted/20 px-6 py-3 flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border bg-slate-50/30 px-6 py-3">
+        <div className="text-xs text-muted-foreground">
           عدد الموظفين: <span className="font-semibold text-foreground">{data.length}</span>
         </div>
       </div>
@@ -335,7 +209,7 @@ export default function SalaryBasics() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BasicForm>(BLANK);
-  const [expandedEmp, setExpandedEmp] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
@@ -354,6 +228,11 @@ export default function SalaryBasics() {
     onSuccess: () => { basicsQ.refetch(); toast.success("تم الحذف"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+
+  const getEmployeeName = (empCd: string) => {
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -395,16 +274,21 @@ export default function SalaryBasics() {
     setShowForm(true);
   };
 
-  const toggleExpand = (empCd: string) =>
-    setExpandedEmp(prev => prev === empCd ? null : empCd);
+  // Filter list of basics by search query
+  const filteredBasics = basics.filter((b) => {
+    const empName = getEmployeeName(b.empCd).toLowerCase();
+    const empCd = String(b.empCd).toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    return empName.includes(query) || empCd.includes(query);
+  });
 
-  // Separate data by department (Center vs Clinic)
-  const centerData = basics.filter((b) => {
+  // Separate filtered data by department (Center vs Clinic)
+  const centerData = filteredBasics.filter((b) => {
     const dept = b.department?.toLowerCase().trim();
     return dept === "مركز" || dept === "center";
   });
 
-  const clinicData = basics.filter((b) => {
+  const clinicData = filteredBasics.filter((b) => {
     const dept = b.department?.toLowerCase().trim();
     return dept === "عيادة" || dept === "clinic";
   });
@@ -414,119 +298,211 @@ export default function SalaryBasics() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">مسار التحضير</p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">مسار التحضير</p>
+          <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl mt-0.5">
             بيانات الرواتب الأساسية
           </h1>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             الرواتب والبدلات والزيادات التي يعتمد عليها كشف الشهر
           </p>
         </div>
-        <Button onClick={() => { setEditingId(null); setForm(BLANK); setShowForm(!showForm); }} className="gap-2">
-          <Plus className="h-4 w-4" />
-          إضافة راتب
-        </Button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Real-time search bar */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+            <input
+              type="text"
+              placeholder="بحث عن موظف بالاسم أو الكود..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-64 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          <Button 
+            onClick={() => { setEditingId(null); setForm(BLANK); setShowForm(true); }} 
+            className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 px-4 rounded-lg shadow-sm font-semibold transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة راتب
+          </Button>
+        </div>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Slide-Over Side Drawer Form */}
       {showForm && (
-        <section className="rounded-xl border border-border bg-background">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="text-base font-semibold">{editingId ? "تعديل الراتب" : "راتب جديد"}</h3>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
-            {!editingId && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">الموظف</label>
-                <select value={form.empCd} onChange={(e) => setForm({ ...form, empCd: e.target.value })} className={inputCls} required>
-                  <option value="">-- اختر موظفاً --</option>
-                  {employees.map((emp: any) => (
-                    <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">بنود الراتب</p>
-              <div className="grid gap-3 sm:grid-cols-4">
-                {FIELDS.map(({ key, label }) => (
-                  <div key={key} className="space-y-1">
-                    <label className="block text-sm font-medium">{label}</label>
-                    <input type="number" value={(form as any)[key]} min={0} step="0.01"
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                      className={inputCls} />
+        <div className="fixed inset-0 z-50 overflow-hidden" dir="rtl">
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Backdrop Overlay */}
+            <div 
+              className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity cursor-pointer"
+              onClick={() => { setShowForm(false); setEditingId(null); }}
+            />
+            {/* Drawer Panel */}
+            <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
+              <div className="pointer-events-auto w-screen max-w-md transform bg-white shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col">
+                {/* Header */}
+                <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-foreground">
+                    {editingId ? `تعديل راتب: ${getEmployeeName(form.empCd)}` : "إضافة راتب أساسي جديد"}
+                  </h3>
+                  <button 
+                    type="button" 
+                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => { setShowForm(false); setEditingId(null); }}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+
+                {/* Form Body (Scrollable) */}
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+                  {!editingId ? (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-foreground">الموظف</label>
+                      <select 
+                        value={form.empCd} 
+                        onChange={(e) => setForm({ ...form, empCd: e.target.value })} 
+                        className={inputCls} 
+                        required
+                      >
+                        <option value="">-- اختر موظفاً من القائمة --</option>
+                        {employees.map((emp: any) => (
+                          <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-blue-50/50 border border-blue-100 p-3 space-y-1">
+                      <div className="text-[10px] font-bold text-blue-900 uppercase">اسم الموظف كود ({form.empCd})</div>
+                      <div className="text-sm font-bold text-foreground">{getEmployeeName(form.empCd)}</div>
+                    </div>
+                  )}
+
+                  {/* Salary Components Section */}
+                  <div className="rounded-xl border border-border bg-slate-50/30 p-4 space-y-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">تفاصيل بنود الراتب</p>
+                    <div className="space-y-3.5">
+                      {FIELDS.map(({ key, label }) => (
+                        <div key={key} className="space-y-1.5">
+                          <label className="block text-xs font-bold text-foreground">{label}</label>
+                          <input 
+                            type="number" 
+                            value={(form as any)[key]} 
+                            min={0} 
+                            step="0.01"
+                            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                            className={inputCls} 
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center justify-between rounded-md bg-primary/10 px-3 py-2">
-                <span className="text-sm font-medium">الإجمالي</span>
-                <span className="text-base font-bold text-primary">{totalOf(form).toLocaleString("ar-EG")} ج.م</span>
+
+                  {/* Calculator Highlight */}
+                  <div className="mt-3 flex items-center justify-between rounded-lg bg-blue-50 border border-blue-100 px-4 py-3">
+                    <span className="text-xs font-bold text-blue-900">إجمالي مستحقات الراتب</span>
+                    <span className="text-lg font-black text-blue-700 tabular-nums">
+                      {totalOf(form).toLocaleString("en-EG")} ج.م
+                    </span>
+                  </div>
+
+                  {/* Effective dates & notes */}
+                  <div className="space-y-3.5 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-foreground">تاريخ السريان</label>
+                      <input 
+                        type="date" 
+                        value={form.effectiveFrom} 
+                        onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })} 
+                        className={inputCls} 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-foreground">تاريخ الانتهاء (اختياري)</label>
+                      <input 
+                        type="date" 
+                        value={form.effectiveTo} 
+                        onChange={(e) => setForm({ ...form, effectiveTo: e.target.value })} 
+                        className={inputCls} 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-foreground">ملاحظات</label>
+                      <input 
+                        type="text" 
+                        value={form.notes} 
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })} 
+                        className={inputCls} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons in Drawer */}
+                  <div className="flex gap-3 pt-4 border-t border-border mt-6">
+                    <Button 
+                      type="submit" 
+                      className="flex-1 h-11 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-lg shadow-xs"
+                      disabled={setMut.isPending || updateMut.isPending}
+                    >
+                      {editingId ? "حفظ التعديلات" : "إضافة الراتب"}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="h-11 border-border text-muted-foreground hover:text-foreground font-semibold rounded-lg"
+                      onClick={() => { setShowForm(false); setEditingId(null); }}
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </form>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">تاريخ السريان</label>
-                <input type="date" value={form.effectiveFrom} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })} className={inputCls} required />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">تاريخ الانتهاء (اختياري)</label>
-                <input type="date" value={form.effectiveTo} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value })} className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">ملاحظات</label>
-                <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={inputCls} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" disabled={setMut.isPending || updateMut.isPending}>{editingId ? "حفظ التعديل" : "إضافة"}</Button>
-              <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>إلغاء</Button>
-            </div>
-          </form>
-        </section>
+          </div>
+        </div>
       )}
 
       {/* Center Table */}
       <SalaryTable
-        title="المركز"
+        title="رواتب موظفي المركز"
         data={centerData}
         employees={employees}
         onEdit={handleEdit}
         onDelete={(id) => deleteMut.mutate({ id })}
         isPending={deleteMut.isPending}
-        expandedEmp={expandedEmp}
-        onToggleExpand={toggleExpand}
       />
 
       {/* Clinic Table */}
       <SalaryTable
-        title="العيادة"
+        title="رواتب موظفي العيادة"
         data={clinicData}
         employees={employees}
         onEdit={handleEdit}
         onDelete={(id) => deleteMut.mutate({ id })}
         isPending={deleteMut.isPending}
-        expandedEmp={expandedEmp}
-        onToggleExpand={toggleExpand}
       />
 
       {/* Summary Statistics */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
-          <div className="mt-2 text-2xl font-bold text-foreground">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي الموظفين</div>
+          <div className="mt-2 text-2xl font-black text-foreground tabular-nums">
             {basics.length}
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-sm text-muted-foreground">موظفو المركز</div>
-          <div className="mt-2 text-2xl font-bold text-primary">
-            {centerData.length}
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">موظفو المركز</div>
+          <div className="mt-2 text-2xl font-black text-blue-600 tabular-nums">
+            {basics.filter(b => b.department?.toLowerCase().trim() === "مركز" || b.department?.toLowerCase().trim() === "center").length}
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-sm text-muted-foreground">موظفو العيادة</div>
-          <div className="mt-2 text-2xl font-bold text-secondary">
-            {clinicData.length}
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">موظفو العيادة</div>
+          <div className="mt-2 text-2xl font-black text-secondary tabular-nums">
+            {basics.filter(b => b.department?.toLowerCase().trim() === "عيادة" || b.department?.toLowerCase().trim() === "clinic").length}
           </div>
         </div>
       </div>
