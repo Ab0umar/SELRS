@@ -86,8 +86,8 @@ function SalaryTable({
   isPending,
 }: SalaryTableProps) {
   const getEmployeeName = (empCd: string) => {
-    const emp = employees.find((e) => e.code === empCd);
-    return emp?.name || empCd;
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
   };
 
   const totalAmount = data.reduce((sum, item) => sum + rowTotal(item), 0);
@@ -260,8 +260,8 @@ function ShiftsTable({
   isLoading,
 }: ShiftsTableProps) {
   const getEmployeeName = (empCd: string) => {
-    const emp = employees.find((e) => e.code === empCd);
-    return emp?.name || empCd;
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
   };
 
   const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
@@ -352,20 +352,23 @@ export default function CurrentSalaryData() {
 
   // Separate data by location
   const centerSalaries = basics.filter((b) => {
-    const emp = employees.find((e) => e.code === b.empCd);
-    return emp?.location === "center" || emp?.type === "center";
+    const emp = employees.find((e) => e.empCd === b.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return dept === "مركز" || dept === "center";
   });
 
   const clinicSalaries = basics.filter((b) => {
-    const emp = employees.find((e) => e.code === b.empCd);
-    return emp?.location === "clinic" || emp?.type === "clinic";
+    const emp = employees.find((e) => e.empCd === b.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return dept === "عيادة" || dept === "clinic";
   });
 
   // Filter shifts belonging to center (shifts only belong to Center)
   const centerShifts = shiftStaff.filter((s) => {
     if (!s.empCd) return true;
-    const emp = employees.find((e) => e.code === s.empCd);
-    return !emp || emp.location === "center" || emp.type === "center";
+    const emp = employees.find((e) => e.empCd === s.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return !emp || dept === "مركز" || dept === "center";
   });
 
   const handleEdit = (item: any) => {
@@ -430,8 +433,8 @@ export default function CurrentSalaryData() {
                 <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                   <option>اختر موظفاً</option>
                   {employees.map((emp) => (
-                    <option key={emp.code} value={emp.code}>
-                      {emp.name}
+                    <option key={emp.empCd} value={emp.empCd}>
+                      {emp.fullName}
                     </option>
                   ))}
                 </select>
