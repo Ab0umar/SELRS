@@ -153,7 +153,7 @@ export default function Home() {
               مركز عيون الشروق
             </h1>
             <p className="text-sm font-black text-[#FF9E00] mt-0">
-              بوابة الموظفين والمسؤولين
+              لامراض القرنيه و تصحيح الابصار
             </p>
           </div>
         </div>
