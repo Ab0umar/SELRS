@@ -147,8 +147,8 @@ export default function Home() {
 
         {/* Brand header above card */}
         <div className="w-full max-w-[480px] mb-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-3.5 bg-white border border-[#dbe7f4] rounded-2xl shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
-            <BrandLogo className="size-12 object-contain" />
+          <div className="inline-flex items-center justify-center p-5 bg-white border border-[#dbe7f4] rounded-2xl shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
+            <BrandLogo className="size-20 object-contain" />
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight text-[#003D82] sm:text-3xl">
