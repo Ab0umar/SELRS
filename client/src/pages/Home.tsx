@@ -34,18 +34,18 @@ import {
   saveDurableValue,
 } from "@/lib/nativeStorage";
 
-const SERVICES = [
-  { icon: Zap,        ar: "تصحيح الإبصار" },
-  { icon: Eye,        ar: "المياه البيضاء" },
-  { icon: Scan,       ar: "أشعة القرنية"   },
-  { icon: Microscope, ar: "زراعة العدسات"  },
-] as const;
-
-const STATS = [
-  { value: "+10K", label: "مريض"  },
-  { value: "15+",  label: "طبيب"  },
-  { value: "24/7", label: "خدمة"  },
-] as const;
+const eyeSpecialties = [
+  "علاج أمراض القرنية",
+  "تصحيح الإبصار (الليزك)",
+  "إزالة المياه البيضاء (Cataract)",
+  "زراعة عدسات (IOL / ICL)",
+  "علاج حول العين (Squint)",
+  "عمليات الفيمتو ليزك (Femto)",
+  "فحص قاع العين والشبكية (Fundus)",
+  "تجهيز النظارات الطبية (Glasses)",
+  "العدسات اللاصقة (Lenses)",
+  "تصوير البنتاكام (Pentacam)",
+];
 
 export default function Home() {
   const { loading, user } = useAuth();
@@ -125,10 +125,10 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-primary">
+      <div className="flex min-h-screen items-center justify-center bg-[#003D82]">
         <div className="space-y-3 text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground/70" />
-          <p className="text-sm font-medium text-primary-foreground/50">جاري التحميل...</p>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+          <p className="text-sm font-medium text-white/60">جاري التحميل...</p>
         </div>
       </div>
     );
@@ -136,191 +136,265 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-between bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
+      className="min-h-screen flex flex-col lg:grid lg:grid-cols-[1fr_480px] bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
       dir="rtl"
     >
-      {/* Top brand gradient bar */}
-      <div className="h-2 w-full bg-gradient-to-r from-[#003D82] via-[#FF6B35] to-[#003D82]" />
+      {/* ── Left column (Desktop Branding Panel) ── */}
+      <div className="hidden lg:flex flex-1 flex-col justify-between p-12 bg-gradient-to-br from-[#E2EDF7] to-[#F4F8FB] border-l border-[#dbe7f4] relative overflow-hidden">
+        {/* Grid pattern background overlay */}
+        <div
+          className="absolute inset-0 opacity-35 pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(to right, #d2e1f2 1px, transparent 1px), linear-gradient(to bottom, #d2e1f2 1px, transparent 1px)",
+            backgroundSize: "3.5rem 3.5rem"
+          }}
+        />
+        {/* Soft atmospheric gradient highlights */}
+        <div className="absolute -bottom-24 -left-24 size-96 rounded-full bg-gradient-to-tr from-secondary/8 via-primary/4 to-transparent blur-3xl pointer-events-none" />
+        <div className="absolute top-12 -right-12 size-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-      {/* Main content container */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
-
-        {/* Brand header above card */}
-        <div className="w-full max-w-[480px] mb-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-3.5 bg-white border border-[#dbe7f4] rounded-2xl shadow-[0_8px_24px_rgba(28,64,104,0.03)]">
-            <BrandLogo className="size-12 object-contain" />
+        {/* Top Header */}
+        <div className="relative flex items-center gap-3">
+          <div className="p-2 bg-white border border-[#dbe7f4] rounded-2xl shadow-xs">
+            <BrandLogo className="size-10 object-contain" />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-[#003D82] sm:text-3xl">
-              مركز عيون الشروق
-            </h1>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-secondary">
-              بوابة الموظفين والمسؤولين
+          <div>
+            <h2 className="text-lg font-bold text-[#003D82] leading-tight">مركز عيون الشروق</h2>
+            <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">
+              رعاية طبية متخصصة ومتميزة للعين
             </p>
           </div>
         </div>
 
-        {/* Card */}
-        <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#dbe7f4] bg-white p-6 shadow-[0_20px_50px_rgba(28,64,104,0.05)] sm:p-8">
+        {/* Mid section: Slogan & eye specialties */}
+        <div className="relative my-auto py-8 space-y-8 max-w-lg">
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-lg uppercase">
+              مركز عيون متكامل
+            </span>
+            <h3 className="text-3xl font-black text-foreground leading-snug">
+              رؤية أوضح، <br />
+              لحياة أفضل وأجمل.
+            </h3>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              نقدم لك أدق الفحوصات والعمليات الجراحية المتقدمة للقرنية والعيوب الانكسارية بأحدث التقنيات الطبية.
+            </p>
+          </div>
 
-          {/* Card heading */}
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
-              <LogIn className="size-5" />
+          {/* Clean stats row (no 24/7) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/60 backdrop-blur-md border border-[#e2edf7] rounded-2xl p-4 shadow-xs">
+              <p className="text-2xl font-black text-[#003D82]">+10K</p>
+              <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">عملية ناجحة بالمركز</p>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                تسجيل دخول آمن
-              </p>
-              <h2 className="text-xl font-bold text-foreground leading-tight">
-                دخول النظام
-              </h2>
+            <div className="bg-white/60 backdrop-blur-md border border-[#e2edf7] rounded-2xl p-4 shadow-xs">
+              <p className="text-2xl font-black text-[#003D82]">15+</p>
+              <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">استشاري وأخصائي عيون</p>
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            {error ? (
-              <Alert className="border-destructive/20 bg-destructive/5 text-destructive font-medium text-xs py-2 rounded-xl">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-
-            {!isOnline ? (
-              <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text rounded-xl">
-                <AlertDescription className="text-xs font-medium">
-                  وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground" htmlFor="username">
-                  اسم المستخدم
-                </label>
-              </div>
-              <div className="relative">
-                <UserRound className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="أدخل اسم المستخدم"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="h-12 text-left font-medium tracking-wide border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl pr-10"
-                  dir="ltr"
-                  disabled={submitting}
-                  required
-                  autoComplete="username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground" htmlFor="password">
-                  كلمة المرور
-                </label>
-              </div>
-              <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="أدخل كلمة المرور"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 font-medium border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl px-10 text-left"
-                  dir="ltr"
-                  disabled={submitting}
-                  required
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground cursor-pointer"
-                  tabIndex={-1}
+          {/* Specialties tag cloud */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-[#003D82] uppercase tracking-wider">تخصصاتنا الطبية الدقيقة:</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {eyeSpecialties.map((item) => (
+                <span
+                  key={item}
+                  className="bg-white border border-[#e2edf7] px-3 py-1 rounded-xl text-[10px] font-semibold text-foreground shadow-xs transition-all hover:border-primary/20"
                 >
-                  <Eye className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-                  disabled={submitting}
-                />
-                <span className="text-xs font-medium text-muted-foreground">تذكرني</span>
-              </label>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-xs font-bold text-primary hover:underline"
-              >
-                نسيت كلمة المرور؟
-              </a>
-            </div>
-
-            <div className="pt-2">
-              <Button
-                type="submit"
-                className="h-12 w-full text-base font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-5 animate-spin" />
-                    <span>جاري التحقق...</span>
-                  </div>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    تسجيل الدخول <LogIn className="size-4" />
-                  </span>
-                )}
-              </Button>
-            </div>
-          </form>
-
-          {/* Portal links */}
-          <div className="mt-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 border-t border-border/50" />
-              <span className="text-[10px] font-bold text-muted-foreground/60">بوابات أخرى</span>
-              <div className="flex-1 border-t border-border/50" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Link href="/my/login">
-                <div className="flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-[#F4F8FB] text-[11px] font-bold text-foreground transition-colors hover:border-primary/25 hover:bg-[#e2edf7]">
-                  <UserRound className="size-3.5 text-muted-foreground" /> دخول المريض
-                </div>
-              </Link>
-              <Link href="/doctor-portal/login">
-                <div className="flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-[#F4F8FB] text-[11px] font-bold text-foreground transition-colors hover:border-primary/25 hover:bg-[#e2edf7]">
-                  <Stethoscope className="size-3.5 text-muted-foreground" /> دخول الطبيب
-                </div>
-              </Link>
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
+        </div>
 
+        {/* Footer info */}
+        <div className="relative text-[10px] text-muted-foreground/50 font-medium">
+          تخضع جميع الفحوصات لمعايير الجودة الطبية العالمية الصارمة.
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="py-4 border-t border-[#dbe7f4] bg-white flex flex-col sm:flex-row items-center justify-between px-6 gap-2 text-xs text-muted-foreground">
-        <div className={`flex items-center gap-1.5 font-bold ${isOnline ? "text-primary/50" : "text-warning-text"}`}>
-          {!isOnline && <WifiOff className="size-3.5" />}
-          {isOnline ? "متصل بالنظام" : `غير متصل (${offlineCacheSummary.count})`}
+      {/* ── Right column (Login Area) ── */}
+      <div className="flex-1 flex flex-col justify-between">
+        {/* Top brand gradient bar (Mobile Only) */}
+        <div className="lg:hidden h-2 w-full bg-gradient-to-r from-[#003D82] via-[#FF6B35] to-[#003D82]" />
+
+        {/* Center content */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-16">
+          {/* Brand header (Mobile Only) */}
+          <div className="lg:hidden w-full max-w-[480px] mb-8 text-center space-y-4">
+            <div className="inline-flex items-center justify-center p-3.5 bg-white border border-[#dbe7f4] rounded-2xl shadow-xs">
+              <BrandLogo className="size-12 object-contain" />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-[#003D82] sm:text-3xl">
+                مركز عيون الشروق
+              </h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-secondary">
+                بوابة الموظفين والمسؤولين
+              </p>
+            </div>
+          </div>
+
+          {/* Card */}
+          <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#dbe7f4] bg-white p-6 shadow-[0_20px_50px_rgba(28,64,104,0.04)] sm:p-8">
+            
+            {/* Card heading */}
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                <LogIn className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  تسجيل دخول آمن
+                </p>
+                <h2 className="text-xl font-bold text-foreground leading-tight">
+                  دخول النظام
+                </h2>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              {error ? (
+                <Alert className="border-destructive/20 bg-destructive/5 text-destructive font-medium text-xs py-2 rounded-xl">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              {!isOnline ? (
+                <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text rounded-xl">
+                  <AlertDescription className="text-xs font-medium">
+                    وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground" htmlFor="username">
+                  اسم المستخدم
+                </label>
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="أدخل اسم المستخدم"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="h-12 text-left font-medium tracking-wide border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl pr-10"
+                    dir="ltr"
+                    disabled={submitting}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground" htmlFor="password">
+                  كلمة المرور
+                </label>
+                <div className="relative">
+                  <LockKeyhole className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="أدخل كلمة المرور"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 font-medium border-[#d7e2ee] focus-visible:ring-primary/10 rounded-xl px-10 text-left"
+                    dir="ltr"
+                    disabled={submitting}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    <Eye className="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    disabled={submitting}
+                  />
+                  <span className="text-xs font-medium text-muted-foreground">تذكرني</span>
+                </label>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  نسيت كلمة المرور؟
+                </a>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  className="h-12 w-full text-base font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-5 animate-spin" />
+                      <span>جاري التحقق...</span>
+                    </div>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      تسجيل الدخول <LogIn className="size-4" />
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {/* Portal links */}
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-border/50" />
+                <span className="text-[10px] font-bold text-muted-foreground/60">بوابات أخرى</span>
+                <div className="flex-1 border-t border-border/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/my/login">
+                  <div className="flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-[#F4F8FB] text-[11px] font-bold text-foreground transition-colors hover:border-primary/25 hover:bg-[#e2edf7]">
+                    <UserRound className="size-3.5 text-muted-foreground" /> دخول المريض
+                  </div>
+                </Link>
+                <Link href="/doctor-portal/login">
+                  <div className="flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-[#F4F8FB] text-[11px] font-bold text-foreground transition-colors hover:border-primary/25 hover:bg-[#e2edf7]">
+                    <Stethoscope className="size-3.5 text-muted-foreground" /> دخول الطبيب
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <p className="text-[11px] text-muted-foreground/50">© {new Date().getFullYear()} مركز عيون الشروق. جميع الحقوق محفوظة.</p>
-      </footer>
+
+        {/* Footer */}
+        <footer className="py-4 border-t border-[#dbe7f4] bg-white flex flex-col sm:flex-row items-center justify-between px-6 gap-2 text-xs text-muted-foreground">
+          <div className={`flex items-center gap-1.5 font-bold ${isOnline ? "text-primary/50" : "text-warning-text"}`}>
+            {!isOnline && <WifiOff className="size-3.5" />}
+            {isOnline ? "متصل بالنظام" : `غير متصل (${offlineCacheSummary.count})`}
+          </div>
+          <p className="text-[11px] text-muted-foreground/50">© {new Date().getFullYear()} مركز عيون الشروق. جميع الحقوق محفوظة.</p>
+        </footer>
+      </div>
     </div>
   );
 }
