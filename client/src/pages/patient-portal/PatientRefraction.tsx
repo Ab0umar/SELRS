@@ -15,8 +15,8 @@ function v(value: unknown) {
 
 function EyeCard({ side, sph, cyl, axis, va, pd }: { side: "OS" | "OD"; sph: unknown; cyl: unknown; axis: unknown; va?: string; pd?: unknown }) {
   const isOS = side === "OS";
-  const cols = isOS ? [{ l: "Sph. (كروي)", val: sph }, { l: "Cyl. (اسطواني)", val: cyl }, { l: "Axis (محور)", val: axis }, { l: "PD (المسافة)", val: pd }]
-                    : [{ l: "Sph. (كروي)", val: sph }, { l: "Cyl. (اسطواني)", val: cyl }, { l: "Axis (محور)", val: axis }];
+  const cols = isOS ? [{ l: "SPH", val: sph }, { l: "CYL", val: cyl }, { l: "AXIS", val: axis }, { l: "PD", val: pd }]
+                    : [{ l: "SPH", val: sph }, { l: "CYL", val: cyl }, { l: "AXIS", val: axis }];
   return (
     <div className={`flex-1 rounded-xl border p-4.5 transition-all duration-200 ${isOS ? "border-blue-100 bg-blue-50/30" : "border-emerald-100 bg-emerald-50/30"}`}>
       <div className="mb-3 flex items-center justify-between">
@@ -26,15 +26,14 @@ function EyeCard({ side, sph, cyl, axis, va, pd }: { side: "OS" | "OD"; sph: unk
       <div className={`grid gap-2 ${isOS ? "grid-cols-4" : "grid-cols-3"}`} dir="ltr">
         {cols.map(({ l, val }) => (
           <div key={l} className="rounded-xl border border-white bg-white/90 p-2 text-center shadow-xs">
-            <div className="text-[10px] font-bold text-muted-foreground">{l.split(" ")[0]}</div>
-            <div className="text-[9px] text-muted-foreground/60 leading-none">{l.includes("(") ? l.substring(l.indexOf("(")) : ""}</div>
+            <div className="text-[11px] font-bold text-muted-foreground">{l}</div>
             <div className="mt-1 text-base font-black text-foreground">{v(val)}</div>
           </div>
         ))}
       </div>
       {va && va !== "—" && (
         <div className="mt-3 rounded-xl border border-white bg-white/90 px-3 py-1.5 flex justify-between items-center" dir="ltr">
-          <span className="text-[10px] font-bold text-muted-foreground">حدة الإبصار V/A</span>
+          <span className="text-[10px] font-bold text-muted-foreground">V/A</span>
           <span className="text-sm font-black text-foreground">{va}</span>
         </div>
       )}
