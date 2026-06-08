@@ -34,7 +34,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-secondary">بوابة الطبيب</p>
-                    <p className="truncate text-lg font-semibold leading-none text-primary sm:text-xl">
+                    <p className="text-lg font-semibold leading-none text-primary sm:text-xl">
                       {fullName ?? username ?? "طبيب"}
                     </p>
                   </div>
