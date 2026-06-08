@@ -146,13 +146,13 @@ export default function Home() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
 
         {/* Brand header above card */}
-        <div className="w-full max-w-[480px] mb-8 flex flex-row items-center justify-center gap-4 px-2">
-          <BrandLogo className="size-28 object-contain select-none shrink-0" />
-          <div className="text-right space-y-1">
-            <h1 className="text-4xl font-black text-[#0F3E7C] leading-none m-0">
+        <div className="w-full max-w-[480px] mb-8 flex flex-row items-center justify-center gap-3.5 px-2">
+          <BrandLogo className="size-24 object-contain select-none shrink-0" />
+          <div className="text-right flex flex-col justify-center gap-2">
+            <h1 className="text-3xl font-extrabold text-[#0F3E7C] leading-none m-0">
               مركز عيون الشروق
             </h1>
-            <p className="text-[15px] font-bold text-[#FC9918] leading-none m-0">
+            <p className="text-[14px] font-bold text-[#FC9918] leading-none m-0">
               لامراض القرنيه و تصحيح الابصار
             </p>
           </div>
