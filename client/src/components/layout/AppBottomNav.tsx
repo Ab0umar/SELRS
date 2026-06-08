@@ -101,16 +101,18 @@ interface AppBottomNavProps {
   onOpenMore: () => void
   moreOpen?: boolean
   isAdmin?: boolean
+  userRole?: string
   allowedRoots?: unknown
   permissionsLoaded?: boolean
 }
 
-export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdmin = false, allowedRoots, permissionsLoaded = true }: AppBottomNavProps) {
+export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdmin = false, userRole = "", allowedRoots, permissionsLoaded = true }: AppBottomNavProps) {
   const allTabs = isAdmin ? adminTabs : staffTabs
 
   const tabs = allTabs.filter((tab) => {
     if (tab.key === "more") return true
     if (isAdmin) return true
+    if (tab.key === "roster" && !["doctor", "technician"].includes(userRole)) return false
     if (!permissionsLoaded) return false
     const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "")
     return pathGrantedByRoots(cleanPath, allowedRoots as any)

@@ -107,8 +107,8 @@ export function AdminPatientsToolbar({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل الأطباء</SelectItem>
-                {doctorOptions.map((doctor) => (
-                  <SelectItem key={doctor} value={doctor}>
+                {doctorOptions.map((doctor, index) => (
+                  <SelectItem key={`${doctor}-${index}`} value={doctor}>
                     {doctor}
                   </SelectItem>
                 ))}

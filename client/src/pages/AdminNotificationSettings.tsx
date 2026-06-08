@@ -424,6 +424,22 @@ export default function AdminNotificationSettings() {
   const [settings, setSettings] = useState<NotifSettings>(DEFAULT);
   const [savedSettings, setSavedSettings] = useState<NotifSettings>(DEFAULT);
   const [initialized, setInitialized] = useState(false);
+  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission;
+  });
+
+  const anyLocalEnabled =
+    settings.patients.local ||
+    settings.operations.local ||
+    settings.attendance.local ||
+    settings.stockroom.local;
+
+  const requestBrowserPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setBrowserPermission(result);
+  };
 
   const fcmConfigured = metaQuery.data?.fcmConfigured ?? true;
   const users: UserRecord[] = (usersQuery.data as UserRecord[] | undefined) ?? [];
@@ -481,6 +497,35 @@ export default function AdminNotificationSettings() {
       </div>
 
       <Separator />
+
+      {/* Browser notification permission banner */}
+      {anyLocalEnabled && browserPermission !== "unsupported" && browserPermission !== "granted" && (
+        <div className={cn(
+          "flex items-start gap-3 rounded-xl border px-4 py-3",
+          browserPermission === "denied"
+            ? "border-destructive/30 bg-destructive/5"
+            : "border-warning/30 bg-warning/5"
+        )}>
+          <Bell className="mt-0.5 size-4 shrink-0 text-warning" />
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {browserPermission === "denied"
+                ? "الإشعارات المحلية محجوبة من المتصفح"
+                : "الإشعارات المحلية تحتاج إذن المتصفح"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {browserPermission === "denied"
+                ? "افتح إعدادات المتصفح وأذن الإشعارات لهذا الموقع يدوياً."
+                : "اسمح للمتصفح بإظهار الإشعارات حتى تعمل قناة الإشعارات المحلية."}
+            </p>
+          </div>
+          {browserPermission === "default" && (
+            <Button size="sm" variant="outline" onClick={requestBrowserPermission}>
+              اسمح
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Patients */}
       <CategorySection

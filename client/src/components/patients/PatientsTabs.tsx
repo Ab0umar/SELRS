@@ -7,6 +7,7 @@ interface PatientsTabsProps {
 }
 
 const tabsConfig = [
+  { value: "all", label: "الكل" },
   { value: "consultant", label: "استشاري" },
   { value: "specialist", label: "اخصائي" },
   { value: "lasik", label: "فحوصات الليزك" },

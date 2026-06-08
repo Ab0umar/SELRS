@@ -60,6 +60,8 @@ const WEEKDAYS = [
   { bit: 6, label: "س", fullLabel: "السبت" },
 ];
 
+// weekdayMask is managed from the Employees page, not here
+
 export default function ShiftAssignments() {
   const [tab, setTab] = useState<"assignments" | "cycles" | "swap">("assignments");
   const [showForm, setShowForm] = useState(false);
@@ -249,26 +251,7 @@ export default function ShiftAssignments() {
 
   const clearAll = () => setBulk((prev) => ({ ...prev, selectedEmps: [] }));
 
-  const toggleWeekday = (bit: number, forBulk = false) => {
-    if (forBulk) {
-      setBulk((prev) => ({
-        ...prev,
-        weekdayMask: prev.weekdayMask ^ (1 << bit),
-      }));
-      return;
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      weekdayMask: (prev.weekdayMask ?? 127) ^ (1 << bit),
-    }));
-  };
-
-  const weekdayIds = {
-    single: "attendance-shift-weekdays",
-    bulk: "attendance-shift-bulk-weekdays",
-    edit: (id: number) => `attendance-shift-edit-weekdays-${id}`,
-  };
+  // weekdayMask editing removed — managed from Employees page
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6" dir="rtl">
@@ -454,38 +437,7 @@ export default function ShiftAssignments() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label
-                  id={weekdayIds.single}
-                  className="block text-sm font-medium text-foreground"
-                >
-                  أيام العمل
-                </label>
-                <div
-                  className="flex flex-wrap gap-2"
-                  aria-labelledby={weekdayIds.single}
-                >
-                  {WEEKDAYS.map(({ bit, label, fullLabel }) => (
-                    <button
-                      key={bit}
-                      type="button"
-                      onClick={() => toggleWeekday(bit)}
-                      aria-label={`تبديل ${fullLabel}`}
-                      aria-pressed={Boolean(
-                        (form.weekdayMask ?? 127) & (1 << bit),
-                      )}
-                      title={fullLabel}
-                      className={`h-11 w-11 rounded-full border text-sm font-medium transition-colors ${
-                        (form.weekdayMask ?? 127) & (1 << bit)
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-muted-foreground"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" disabled={assignShiftMutation.isPending}>
@@ -558,40 +510,7 @@ export default function ShiftAssignments() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label
-                id={weekdayIds.bulk}
-                className="block text-sm font-medium text-foreground"
-              >
-                أيام العمل
-              </label>
-              <div
-                className="flex flex-wrap gap-2"
-                aria-labelledby={weekdayIds.bulk}
-              >
-                {WEEKDAYS.map(({ bit, label, fullLabel }) => (
-                  <button
-                    key={bit}
-                    type="button"
-                    onClick={() => toggleWeekday(bit, true)}
-                    aria-label={`تبديل ${fullLabel}`}
-                    aria-pressed={Boolean(bulk.weekdayMask & (1 << bit))}
-                    title={fullLabel}
-                    className={`h-11 w-11 rounded-full border text-sm font-medium transition-colors ${
-                      bulk.weekdayMask & (1 << bit)
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-muted-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                أح=الأحد، إث=الاثنين، ث=الثلاثاء، أر=الأربعاء، خ=الخميس،
-                ج=الجمعة، س=السبت. الافتراضي: الاثنين إلى الجمعة.
-              </p>
-            </div>
+
 
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -700,7 +619,6 @@ export default function ShiftAssignments() {
                     <th className="px-4 py-3 text-right">الوردية</th>
                     <th className="px-4 py-3 text-right">من</th>
                     <th className="px-4 py-3 text-right">حتى</th>
-                    <th className="px-4 py-3 text-right">أيام</th>
                     <th className="px-4 py-3 text-right"></th>
                   </tr>
                 </thead>
@@ -767,39 +685,7 @@ export default function ShiftAssignments() {
                                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                               />
                             </td>
-                            <td className="px-2 py-2">
-                              <div
-                                id={weekdayIds.edit(assignment.id)}
-                                className="flex flex-wrap gap-1"
-                                aria-label="أيام العمل القابلة للتعديل"
-                              >
-                                {WEEKDAYS.map(({ bit, label, fullLabel }) => (
-                                  <button
-                                    key={bit}
-                                    type="button"
-                                    onClick={() =>
-                                      setEditRow((prev) => ({
-                                        ...prev,
-                                        weekdayMask:
-                                          prev.weekdayMask ^ (1 << bit),
-                                      }))
-                                    }
-                                    aria-label={`تبديل ${fullLabel}`}
-                                    aria-pressed={Boolean(
-                                      editRow.weekdayMask & (1 << bit),
-                                    )}
-                                    title={fullLabel}
-                                    className={`h-10 w-10 rounded-full border text-xs font-medium transition-colors ${
-                                      editRow.weekdayMask & (1 << bit)
-                                        ? "border-primary bg-primary text-primary-foreground"
-                                        : "border-border bg-background text-muted-foreground"
-                                    }`}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
+
                             <td className="px-2 py-2">
                               <div className="flex items-center gap-1">
                                 <Button
@@ -843,14 +729,7 @@ export default function ShiftAssignments() {
                             <td className="px-4 py-2 text-foreground">
                               {assignment.effectiveTo ?? "—"}
                             </td>
-                            <td className="px-4 py-2 text-xs text-muted-foreground">
-                              {WEEKDAYS.filter(
-                                ({ bit }) =>
-                                  (assignment.weekdayMask ?? 127) & (1 << bit),
-                              )
-                                .map(({ label }) => label)
-                                .join(" ")}
-                            </td>
+
                             <td className="px-4 py-2">
                               <div className="flex items-center gap-1">
                                 <Button

@@ -7,7 +7,37 @@ import { type NativeAppInfo } from "@/lib/appRuntime";
 import { registerWebPush, unregisterWebPush, getWebPushSubscription } from "@/lib/pushNotifications";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
+const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
 const PUSH_TOKEN_KEY = "selrs_web_push_token_v1";
+
+// ─── Browser (local) notification helpers ─────────────────────────────────────
+
+function isBrowserNotificationSupported() {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function getBrowserNotificationPermission(): NotificationPermission | "unsupported" {
+  if (!isBrowserNotificationSupported()) return "unsupported";
+  return Notification.permission;
+}
+
+async function requestBrowserNotificationPermission(): Promise<boolean> {
+  if (!isBrowserNotificationSupported()) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
+}
+
+function fireBrowserNotification(title: string, body: string) {
+  if (!isBrowserNotificationSupported()) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    new Notification(title, { body, icon: "/favicon.ico", dir: "rtl", lang: "ar" });
+  } catch {
+    // Some browsers block new Notification() outside user gesture — safe to ignore
+  }
+}
 
 type AppNotificationItem = {
   id: string;
@@ -55,6 +85,18 @@ function AppNotificationsBridge() {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const storageKey = `selrs_seen_app_notifications_${String(user?.id ?? "guest")}`;
   const notificationsQuery = useAppNotificationFeed(isAuthenticated);
+  const settingsQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: APP_NOTIFICATION_SETTINGS_KEY },
+    { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false }
+  );
+
+  const isLocalEnabled = (() => {
+    const raw = (settingsQuery.data as any)?.value;
+    if (!raw || typeof raw !== "object") return false;
+    const patients = (raw as any).patients;
+    if (!patients || typeof patients !== "object") return false;
+    return patients.enabled === true && patients.local === true;
+  })();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -111,12 +153,14 @@ function AppNotificationsBridge() {
       else if (tone === "warning") toast.warning(title, { description: message });
       else if (tone === "error") toast.error(title, { description: message });
       else toast(title, { description: message });
+      // Browser local notification (fires if local channel is enabled + permission granted)
+      if (isLocalEnabled) fireBrowserNotification(title, message);
     }
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIdsRef.current).slice(-200)));
     }
-  }, [isAuthenticated, notificationsQuery.data, storageKey, user?.id, user?.role]);
+  }, [isAuthenticated, isLocalEnabled, notificationsQuery.data, storageKey, user?.id, user?.role]);
 
   return null;
 }

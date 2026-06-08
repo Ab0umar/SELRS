@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Clock } from "lucide-react";
+import { Plus, Trash2, Clock, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 type PermType = "in" | "out";
@@ -57,6 +57,14 @@ export default function Permissions() {
     onSuccess: () => {
       permsQuery.refetch();
       toast.success("تم الحذف");
+    },
+    onError: (e) => toast.error("خطأ: " + e.message),
+  });
+
+  const approveMut = trpc.attendance.approvePermission.useMutation({
+    onSuccess: () => {
+      permsQuery.refetch();
+      toast.success("تم الاعتماد بنجاح");
     },
     onError: (e) => toast.error("خطأ: " + e.message),
   });
@@ -282,15 +290,16 @@ export default function Permissions() {
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="min-w-[46rem] w-full text-sm" dir="rtl">
+        <table dir="rtl" className="min-w-[50rem] w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-right py-3 px-4">الموظف</th>
                     <th className="text-right py-3 px-4">التاريخ</th>
                     <th className="text-right py-3 px-4">النوع</th>
                     <th className="text-right py-3 px-4">المدة</th>
+                    <th className="text-right py-3 px-4">الحالة</th>
                     <th className="text-right py-3 px-4">ملاحظة</th>
-                    <th className="text-right py-3 px-4"></th>
+                    <th className="text-right py-3 px-4">الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,20 +315,45 @@ export default function Permissions() {
                         {typeLabel(p.type)}
                       </td>
                       <td className="py-2 px-4">{p.durationMinutes} د</td>
-                      <td className="py-2 px-4 text-muted-foreground">
+                      <td className="py-2 px-4">
+                        {p.approved ? (
+                          <span className="flex items-center gap-1 font-medium text-success">
+                            <CheckCircle size={14} />
+                            معتمد
+                          </span>
+                        ) : (
+                          <span className="font-medium text-warning">
+                            انتظار الموافقة
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-4 text-muted-foreground text-xs">
                         {p.note ?? "—"}
                       </td>
                       <td className="py-2 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteMut.mutate({ id: p.id })}
-                          disabled={deleteMut.isPending}
-                          className="h-10 w-10 p-0"
-                          aria-label={`حذف إذن ${p.empCd} بتاريخ ${String(p.date).split("T")[0]}`}
-                        >
-                          <Trash2 size={15} className="text-destructive" />
-                        </Button>
+                        <div className="flex gap-1">
+                          {!p.approved && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => approveMut.mutate({ id: p.id })}
+                              disabled={approveMut.isPending}
+                              className="min-h-10 px-3 text-success border-success/30"
+                            >
+                              اعتماد
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMut.mutate({ id: p.id })}
+                            disabled={deleteMut.isPending}
+                            className="h-10 w-10 p-0"
+                            aria-label={`حذف إذن ${p.empCd} بتاريخ ${String(p.date).split("T")[0]}`}
+                          >
+                            <Trash2 size={15} className="text-destructive" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

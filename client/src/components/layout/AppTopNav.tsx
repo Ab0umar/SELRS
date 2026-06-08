@@ -33,10 +33,21 @@ import {
   Settings,
   Syringe,
   UserCog,
+  UserX,
   Users,
 } from "lucide-react";
-import { type CSSProperties, useMemo, useState, useSyncExternalStore } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  type CSSProperties,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import {
   normalizeNavPath,
   pathGrantedByRoots,
@@ -70,6 +81,61 @@ type AppTopNavProps = {
   onOpenPassword: () => void;
   onLogout: () => void;
 };
+
+function DashboardAppbarIndicators() {
+  const { merged } = useTodayQueuePatientsMerged();
+  const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, {
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
+  const stockQ = trpc.stockroom.getReports.useQuery({});
+  const stockBadge = (stockQ.data?.inventory ?? []).filter(
+    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+  ).length;
+
+  const items = [
+    {
+      label: "مرضى اليوم",
+      value: merged.length,
+      icon: Users,
+      cls: "bg-primary/10 text-primary",
+    },
+    {
+      label: "غياب اليوم",
+      value: attQ.data?.absentToday ?? 0,
+      icon: UserX,
+      cls: "bg-warning/15 text-warning",
+    },
+    {
+      label: "تنبيهات المخزن",
+      value: stockBadge,
+      icon: Archive,
+      cls: "bg-destructive/15 text-destructive",
+    },
+  ];
+
+  return (
+    <div
+      className="flex min-w-0 shrink items-center gap-1 md:hidden"
+      aria-label="مؤشرات فورية"
+    >
+      {items.map(({ label, value, icon: Icon, cls }) => (
+        <span
+          key={label}
+          className={cn(
+            "inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2 text-[11px] font-semibold tabular-nums",
+            cls,
+          )}
+          title={label}
+          aria-label={`${label}: ${value.toLocaleString("ar-EG")}`}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>{value.toLocaleString("ar-EG")}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function AppTopNav({
   location,
@@ -117,31 +183,74 @@ export function AppTopNav({
 
   const allNavTabs = useMemo(
     () => [
-      { icon: Clock, label: "اليوم", path: "/dashboard", key: "today", paths: ["/today", "/today-patients", "/dashboard"], checkPath: "/dashboard" },
-      { icon: Users, label: "مركز المريض", path: "/patient-hub", key: "patients", paths: ["/patient-hub", "/patients-hub", "/patients", "/new-cases", "/followups", "/visits"], checkPath: "/patient-hub" },
-      { icon: Syringe, label: "العمليات", path: "/operations", key: "operations", paths: ["/operations"], checkPath: "/operations" },
-      { icon: Banknote, label: "الحسابات", path: "/accounting", key: "accounting", paths: ["/accounting"], checkPath: "/accounting" },
-      { icon: LayoutGrid, label: "المزيد", path: "#", key: "more", paths: [], checkPath: undefined },
+      {
+        icon: Clock,
+        label: "اليوم",
+        path: "/dashboard",
+        key: "today",
+        paths: ["/today", "/today-patients", "/dashboard"],
+        checkPath: "/dashboard",
+      },
+      {
+        icon: Users,
+        label: "مركز المريض",
+        path: "/patient-hub",
+        key: "patients",
+        paths: [
+          "/patient-hub",
+          "/patients-hub",
+          "/patients",
+          "/new-cases",
+          "/followups",
+          "/visits",
+        ],
+        checkPath: "/patient-hub",
+      },
+      {
+        icon: Syringe,
+        label: "العمليات",
+        path: "/operations",
+        key: "operations",
+        paths: ["/operations"],
+        checkPath: "/operations",
+      },
+      {
+        icon: Banknote,
+        label: "الحسابات",
+        path: "/accounting",
+        key: "accounting",
+        paths: ["/accounting"],
+        checkPath: "/accounting",
+      },
+      {
+        icon: LayoutGrid,
+        label: "المزيد",
+        path: "#",
+        key: "more",
+        paths: [],
+        checkPath: undefined,
+      },
     ],
     [],
   );
 
-  const mainNavTabs = useMemo(
-    () => {
-      if (isAdmin) return [];
-      if (!permissionsQuery.isSuccess) return [];
-      return allNavTabs.filter((tab) => {
-        if (tab.key === "more") return true;
-        const cleanPath = normalizeNavPath(tab.checkPath?.split("?")[0] ?? "");
-        return pathGrantedByRoots(cleanPath, allowedRoots);
-      });
-    },
-    [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots],
-  );
+  const mainNavTabs = useMemo(() => {
+    if (isAdmin) return [];
+    if (!permissionsQuery.isSuccess) return [];
+    return allNavTabs.filter((tab) => {
+      if (tab.key === "more") return true;
+      const cleanPath = normalizeNavPath(tab.checkPath?.split("?")[0] ?? "");
+      return pathGrantedByRoots(cleanPath, allowedRoots);
+    });
+  }, [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots]);
 
   const adminQuickTabs = useMemo(
     () => [
-      { icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
+      {
+        icon: LayoutDashboard,
+        label: "لوحة التحكم",
+        path: "/dashboard?tab=admin",
+      },
       { icon: Network, label: "مركز المريض", path: "/patient-hub" },
       { icon: Banknote, label: "الحسابات", path: "/accounting" },
       { icon: DollarSign, label: "المرتبات", path: "/salary" },
@@ -161,7 +270,10 @@ export function AppTopNav({
       navGroups
         .filter(
           (item): item is NavGroupSection =>
-            "items" in item && item.navKey !== "accounting" && item.navKey !== "attendance",
+            "items" in item &&
+            item.navKey !== "accounting" &&
+            item.navKey !== "attendance" &&
+            item.navKey !== "salary",
         )
         .map((group) => ({ ...group, items: group.items.filter(leafVisible) }))
         .filter((group) => group.items.length > 0),
@@ -186,9 +298,10 @@ export function AppTopNav({
   const userName =
     user && typeof user.name === "string" && String(user.name).trim()
       ? String((user as User).name).trim()
-      : String((user as User | null)?.username ?? "").trim() || "—";
+      : String((user as User | null)?.username ?? "").trim() || "-";
 
   const accountingActive = tabActive(location, "/accounting");
+  const isDashboardRoute = location.split("?")[0] === "/dashboard";
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -213,11 +326,16 @@ export function AppTopNav({
           aria-label="الرئيسية"
         >
           <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-background" />
-          <span className="hidden text-sm font-black text-foreground md:block">{BRAND_NAME_AR}</span>
+          <span className="hidden text-sm font-black text-foreground md:block">
+            {BRAND_NAME_AR}
+          </span>
         </button>
 
-        {/* Main tabs — desktop only */}
-        <nav className="hidden items-stretch md:flex" aria-label="القائمة الرئيسية">
+        {/* Main tabs, desktop only */}
+        <nav
+          className="hidden items-stretch md:flex"
+          aria-label="القائمة الرئيسية"
+        >
           {isAdmin
             ? adminQuickTabs.map((tab) => {
                 const active = tabActive(location, tab.path);
@@ -244,10 +362,13 @@ export function AppTopNav({
                 );
               })
             : mainNavTabs.map((tab) => {
-                const active = tab.key === "more" ? false : tab.paths.some((p) => {
-                  const base = location.split("?")[0];
-                  return base === p || base.startsWith(`${p}/`);
-                });
+                const active =
+                  tab.key === "more"
+                    ? false
+                    : tab.paths.some((p) => {
+                        const base = location.split("?")[0];
+                        return base === p || base.startsWith(`${p}/`);
+                      });
                 const Icon = tab.icon;
                 return (
                   <button
@@ -255,7 +376,9 @@ export function AppTopNav({
                     type="button"
                     onClick={() => {
                       if (tab.key === "more") {
-                        window.dispatchEvent(new Event("selrs:open-command-palette"));
+                        window.dispatchEvent(
+                          new Event("selrs:open-command-palette"),
+                        );
                       } else {
                         onNavigate(tab.path);
                       }
@@ -304,41 +427,79 @@ export function AppTopNav({
                     )}
                     aria-label="فتح قائمة الحسابات"
                   >
-                    <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                    <ChevronDown
+                      className="h-3.5 w-3.5 opacity-70"
+                      aria-hidden
+                    />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52" style={{ direction: "rtl" } satisfies CSSProperties}>
+                <DropdownMenuContent
+                  align="start"
+                  className="w-52"
+                  style={{ direction: "rtl" } satisfies CSSProperties}
+                >
                   {(() => {
-                    const byPath = new Map(accountingItems.map(i => [i.path, i]));
-                    const pick = (paths: string[]) => paths.map(p => byPath.get(p)).filter(Boolean) as typeof accountingItems;
-                    const treasury   = pick(["/accounting/ledger", "/accounting/daily-revenue", "/accounting/service-revenue", "/accounting/receipts"]);
-                    const statements = pick(["/accounting/cashbook", "/accounting/advances", "/accounting/instapay", "/accounting/home-fund", "/accounting/dr-saadany"]);
-                    const loans      = pick(["/accounting/loans"]);
-                    const knownPaths = new Set([...treasury, ...statements, ...loans].map(i => i.path));
-                    const reports    = accountingItems.filter(i => !knownPaths.has(i.path));
+                    const byPath = new Map(
+                      accountingItems.map((i) => [i.path, i]),
+                    );
+                    const pick = (paths: string[]) =>
+                      paths
+                        .map((p) => byPath.get(p))
+                        .filter(Boolean) as typeof accountingItems;
+                    const treasury = pick([
+                      "/accounting/ledger",
+                      "/accounting/daily-revenue",
+                      "/accounting/service-revenue",
+                      "/accounting/receipts",
+                    ]);
+                    const statements = pick([
+                      "/accounting/cashbook",
+                      "/accounting/advances",
+                      "/accounting/instapay",
+                      "/accounting/home-fund",
+                      "/accounting/dr-saadany",
+                    ]);
+                    const loans = pick(["/accounting/loans"]);
+                    const knownPaths = new Set(
+                      [...treasury, ...statements, ...loans].map((i) => i.path),
+                    );
+                    const reports = accountingItems.filter(
+                      (i) => !knownPaths.has(i.path),
+                    );
                     const labelOverrides: Record<string, string> = {
-                      "/accounting/cashbook":  "الخزينة",
-                      "/accounting/advances":  "السلف",
+                      "/accounting/cashbook": "الخزينة",
+                      "/accounting/advances": "السلف",
                       "/accounting/home-fund": "البيت",
                     };
-                    const renderSection = (label: string, items: typeof accountingItems, sep = true) =>
+                    const renderSection = (
+                      label: string,
+                      items: typeof accountingItems,
+                      sep = true,
+                    ) =>
                       items.length > 0 ? (
                         <>
                           {sep && <DropdownMenuSeparator />}
-                          <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</DropdownMenuLabel>
+                          <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {label}
+                          </DropdownMenuLabel>
                           {items.map((item) => (
-                            <DropdownMenuItem key={item.path} className="cursor-pointer gap-2" onClick={() => onNavigate(item.path)}>
-                              <item.icon className="h-4 w-4" />{labelOverrides[item.path] ?? item.label}
+                            <DropdownMenuItem
+                              key={item.path}
+                              className="cursor-pointer gap-2"
+                              onClick={() => onNavigate(item.path)}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {labelOverrides[item.path] ?? item.label}
                             </DropdownMenuItem>
                           ))}
                         </>
                       ) : null;
                     return (
                       <>
-                        {renderSection("الخزينة",    treasury,   false)}
-                        {renderSection("كشف حساب",   statements, true)}
-                        {renderSection("صندوق القرض", loans,      true)}
-                        {renderSection("تقارير",      reports,    true)}
+                        {renderSection("الخزينة", treasury, false)}
+                        {renderSection("كشف حساب", statements, true)}
+                        {renderSection("صندوق القرض", loans, true)}
+                        {renderSection("تقارير", reports, true)}
                       </>
                     );
                   })()}
@@ -353,12 +514,17 @@ export function AppTopNav({
 
         {/* Controls */}
         <div className="flex shrink-0 items-center gap-0.5 px-2">
-          {/* المزيد popover — desktop only, accordion sections closed by default */}
+          {isDashboardRoute && <DashboardAppbarIndicators />}
+
+          {/* المزيد popover, desktop only, accordion sections closed by default */}
           {moreGroups.length > 0 && (
-            <Popover open={moreOpen} onOpenChange={(o) => {
-              setMoreOpen(o);
-              if (!o) setOpenSections({});
-            }}>
+            <Popover
+              open={moreOpen}
+              onOpenChange={(o) => {
+                setMoreOpen(o);
+                if (!o) setOpenSections({});
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   type="button"
@@ -368,7 +534,10 @@ export function AppTopNav({
                 >
                   <span>المزيد</span>
                   <ChevronDown
-                    className={cn("h-3.5 w-3.5 opacity-70 transition-transform duration-200", moreOpen && "rotate-180")}
+                    className={cn(
+                      "h-3.5 w-3.5 opacity-70 transition-transform duration-200",
+                      moreOpen && "rotate-180",
+                    )}
                     aria-hidden
                   />
                 </Button>
@@ -382,7 +551,10 @@ export function AppTopNav({
                   const key = group.navKey ?? String(gi);
                   const isOpen = openSections[key] ?? false;
                   return (
-                    <div key={key} className={cn(gi > 0 && "border-t border-border/50")}>
+                    <div
+                      key={key}
+                      className={cn(gi > 0 && "border-t border-border/50")}
+                    >
                       <button
                         type="button"
                         onClick={() => toggleSection(key)}
@@ -436,7 +608,7 @@ export function AppTopNav({
             <Search className="h-4 w-4" />
           </Button>
 
-          {/* Date badge — hidden on small screens */}
+          {/* Date badge, hidden on small screens */}
           <Badge
             variant="outline"
             className="hidden whitespace-nowrap py-1 text-[10px] font-normal sm:inline-flex"
@@ -460,7 +632,11 @@ export function AppTopNav({
                 <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48" style={{ direction: "rtl" } satisfies CSSProperties}>
+            <DropdownMenuContent
+              align="end"
+              className="w-48"
+              style={{ direction: "rtl" } satisfies CSSProperties}
+            >
               <DropdownMenuLabel>الحساب</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -477,7 +653,7 @@ export function AppTopNav({
                 <CalendarCheck className="h-4 w-4" />
                 حضوري
               </DropdownMenuItem>
-              {!isAdmin && ["doctor", "technician", "nurse"].includes(String(user?.role ?? "")) && (
+              {!isAdmin && ["doctor", "technician"].includes(userRole) && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
                   onClick={() => onNavigate("/attendance/shift-schedule")}
@@ -495,11 +671,17 @@ export function AppTopNav({
                   مركز الإدارة
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={onOpenAccount}>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={onOpenAccount}
+              >
                 <UserCog className="h-4 w-4" />
                 Account Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={onOpenPassword}>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={onOpenPassword}
+              >
                 <KeyRound className="h-4 w-4" />
                 تغيير كلمة المرور
               </DropdownMenuItem>

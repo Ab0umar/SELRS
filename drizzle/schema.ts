@@ -1701,3 +1701,24 @@ export const marketingBrandProfile = mysqlTable("marketing_brand_profile", {
   rawProfile: mediumtext("raw_profile"),
   builtAt: timestamp("built_at"),
 });
+
+export const attendanceShiftChangeRequests = mysqlTable("attendance_shift_change_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  empCd: varchar("emp_cd", { length: 32 }).notNull(),
+  requestType: mysqlEnum("request_type", ["daily", "weekly", "monthly", "swap"]).notNull(),
+  newShiftId: int("new_shift_id"),
+  weekdayMask: int("weekday_mask"),
+  cycleId: int("cycle_id"),
+  swapEmpCd: varchar("swap_emp_cd", { length: 32 }),
+  dateFrom: date("date_from").notNull(),
+  dateTo: date("date_to"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  note: varchar("note", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  idxRequestEmp: index("idx_request_emp").on(table.empCd),
+}));
+
+export type AttendanceShiftChangeRequest = typeof attendanceShiftChangeRequests.$inferSelect;
+export type InsertAttendanceShiftChangeRequest = typeof attendanceShiftChangeRequests.$inferInsert;

@@ -533,6 +533,32 @@ export default function LasikRevenue() {
               >
                 إعادة ضبط
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-1.5 border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                onClick={() => {
+                  const now = new Date();
+                  const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                  const lastOfLastMonth  = new Date(now.getFullYear(), now.getMonth(), 0);
+                  const preset: ServiceRevenueInput = {
+                    fromDate: toDateInputValue(firstOfLastMonth),
+                    toDate:   toDateInputValue(lastOfLastMonth),
+                    sectionCode: 15,
+                    serviceCodes: [
+                      "1501","1502","1523","1522","1524",
+                      "1560","1561","1562","1570","1571","1572",
+                      "1586","1589","1590","1600","1601",
+                      "1613","1614","1615","1616",
+                    ],
+                  };
+                  setDraft(preset);
+                  setLocation(buildServiceRevenueUrl(preset));
+                }}
+                aria-label="تطبيق فلتر خدمات القسم 15 للشهر الماضي"
+              >
+                ⚡ خدمات القسم ١٥
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1164,6 +1190,245 @@ export default function LasikRevenue() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Per-service summary card ─────────────────────────────────── */}
+        {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
+          <Card className={`${styles.noPrint} border-border shadow-sm`}>
+            <CardHeader>
+              <CardTitle className="text-base">ملخص الخدمات</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto p-0">
+              <table className="w-full text-sm" dir="rtl">
+                <thead>
+                  <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
+                    <th className="px-4 py-3">الخدمة</th>
+                    <th className="px-4 py-3 text-center tabular-nums">العدد الإجمالي</th>
+                    <th className="px-4 py-3 text-center tabular-nums">بدون خصم</th>
+                    <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Flatten all details across all sections grouped by serviceCode
+                    const byService = new Map<string, { name: string | null; details: ServiceRevenueDetail[] }>();
+                    for (const section of sections) {
+                      for (const svc of section.services) {
+                        const existing = byService.get(svc.serviceCode);
+                        if (existing) {
+                          existing.details.push(...(svc.details ?? []));
+                        } else {
+                          byService.set(svc.serviceCode, {
+                            name: svc.serviceName ?? null,
+                            details: [...(svc.details ?? [])],
+                          });
+                        }
+                      }
+                    }
+
+                    return Array.from(byService.entries()).map(([code, { name, details }]) => {
+                      const totalQty = details.reduce((s, d) => s + d.quantity, 0);
+                      const noDiscountQty = details
+                        .filter((d) => !d.discount || d.discount === 0)
+                        .reduce((s, d) => s + d.quantity, 0);
+
+                      // Group discounted rows by discount amount
+                      const discountGroups = new Map<number, number>();
+                      for (const d of details) {
+                        if (d.discount && d.discount > 0) {
+                          discountGroups.set(d.discount, (discountGroups.get(d.discount) ?? 0) + d.quantity);
+                        }
+                      }
+                      const discountedQty = totalQty - noDiscountQty;
+
+                      return (
+                        <tr key={code} className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors">
+                          <td className="px-4 py-2.5 font-medium">
+                            {toArabicDigits(code)}
+                            {name ? <span className="mr-1 text-xs text-muted-foreground">— {name}</span> : null}
+                          </td>
+                          <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                            {formatCountAr(totalQty)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
+                            {formatCountAr(noDiscountQty)}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {discountedQty === 0 ? (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {Array.from(discountGroups.entries())
+                                  .sort((a, b) => a[0] - b[0])
+                                  .map(([discAmt, qty]) => (
+                                    <span
+                                      key={discAmt}
+                                      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                                    >
+                                      {formatCountAr(qty)} × {formatMoneyAr(discAmt)}
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/60 font-semibold">
+                    <td className="px-4 py-2.5">الإجمالي</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums">
+                      {formatCountAr(frontendGrandTotal.quantity)}
+                    </td>
+                    <td className="px-4 py-2.5 text-center tabular-nums text-success">
+                      {formatCountAr(
+                        sections
+                          .flatMap((s) => s.services)
+                          .flatMap((svc) => svc.details ?? [])
+                          .filter((d) => !d.discount || d.discount === 0)
+                          .reduce((sum, d) => sum + d.quantity, 0),
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {formatCountAr(
+                        sections
+                          .flatMap((s) => s.services)
+                          .flatMap((svc) => svc.details ?? [])
+                          .filter((d) => d.discount && d.discount > 0)
+                          .reduce((sum, d) => sum + d.quantity, 0),
+                      )} بخصم
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* ── Pentacam price-bucket summary ──────────────────────────────── */}
+        {!serviceRevenueQuery.isLoading && sections.length > 0 ? (() => {
+          const PRICE_BUCKETS = [250, 350, 400, 450];
+
+          function nearestBucket(price: number): number {
+            return PRICE_BUCKETS.reduce((a, b) =>
+              Math.abs(b - price) < Math.abs(a - price) ? b : a,
+            );
+          }
+
+          const CODE_TO_BUCKET: Record<string, number> = {
+            "1502": 450,
+            "1572": 350, "1590": 350, "1600": 350, "1601": 350, "1616": 350,
+            "1614": 250, "1615": 250,
+          };
+          const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
+          const pentacamDetails: Array<ServiceRevenueDetail & { bucket: number }> = [];
+          for (const section of sections) {
+            for (const svc of section.services) {
+              if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
+              for (const d of svc.details ?? []) {
+                pentacamDetails.push({ ...d, bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0 });
+              }
+            }
+          }
+
+          if (pentacamDetails.length === 0) return null;
+
+          // ÷2 helper — each record = 2 eyes → 1 person
+          const half = (n: number) => Math.round(n / 2);
+
+          // Group by bucket
+          const byBucket = new Map<number, typeof pentacamDetails>();
+          for (const d of pentacamDetails) {
+            if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []);
+            byBucket.get(d.bucket)!.push(d);
+          }
+
+          const totalAll = half(pentacamDetails.reduce((s, d) => s + d.quantity, 0));
+          const noDiscAll = half(pentacamDetails
+            .filter((d) => !d.discount || d.discount === 0)
+            .reduce((s, d) => s + d.quantity, 0));
+          const discAll = totalAll - noDiscAll;
+
+          return (
+            <Card className={`${styles.noPrint} border-border shadow-sm`}>
+              <CardHeader>
+                <CardTitle className="text-base">ملخص بنتاكام — حسب السعر <span className="text-xs font-normal text-muted-foreground">(العدد للشخص ÷ ٢)</span></CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                <table className="w-full text-sm" dir="rtl">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
+                      <th className="px-4 py-3">السعر</th>
+                      <th className="px-4 py-3 text-center">العدد الإجمالي</th>
+                      <th className="px-4 py-3 text-center">بدون خصم</th>
+                      <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PRICE_BUCKETS.map((bucket) => {
+                      const rows = byBucket.get(bucket) ?? [];
+                      if (rows.length === 0) return null;
+
+                      const totalQty = half(rows.reduce((s, d) => s + d.quantity, 0));
+                      const noDiscQty = half(rows
+                        .filter((d) => !d.discount || d.discount === 0)
+                        .reduce((s, d) => s + d.quantity, 0));
+
+                      const discGroups = new Map<number, number>();
+                      for (const d of rows) {
+                        if (d.discount && d.discount > 0) {
+                          discGroups.set(d.discount, (discGroups.get(d.discount) ?? 0) + d.quantity);
+                        }
+                      }
+                      const discQty = totalQty - noDiscQty;
+
+                      return (
+                        <tr key={bucket} className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors">
+                          <td className="px-4 py-2.5 font-semibold tabular-nums">
+                            {formatMoneyAr(bucket)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                            {formatCountAr(totalQty)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
+                            {formatCountAr(noDiscQty)}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {discQty === 0 ? (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {Array.from(discGroups.entries())
+                                  .sort((a, b) => a[0] - b[0])
+                                  .map(([discAmt, qty]) => (
+                                    <span
+                                      key={discAmt}
+                                      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                                    >
+                                      {formatCountAr(half(qty))} × {formatMoneyAr(discAmt)}
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/60 font-semibold">
+                      <td className="px-4 py-2.5">الإجمالي</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums">{formatCountAr(totalAll)}</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums text-success">{formatCountAr(noDiscAll)}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{formatCountAr(discAll)} بخصم</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </CardContent>
+            </Card>
+          );
+        })() : null}
       </div>
     </AccountingShell>
   );

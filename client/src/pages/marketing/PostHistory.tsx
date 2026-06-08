@@ -20,12 +20,13 @@ const DAY_LABELS: Record<string, string> = {
 
 export default function PostHistory() {
   const [filter, setFilter] = useState<"published" | "failed" | "all">("published");
+  const [limit, setLimit] = useState(25);
 
   const utils = trpc.useUtils();
 
   const listQuery = trpc.marketing.listPosts.useQuery({
     status: filter,
-    limit: 100,
+    limit,
     offset: 0,
   });
 
@@ -43,7 +44,7 @@ export default function PostHistory() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">سجل المنشورات</h1>
-        <Button size="sm" variant="ghost" onClick={() => void utils.marketing.listPosts.invalidate()}>
+        <Button size="sm" variant="ghost" aria-label="تحديث القائمة" onClick={() => void utils.marketing.listPosts.invalidate()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -54,6 +55,7 @@ export default function PostHistory() {
           <button
             key={f}
             onClick={() => setFilter(f)}
+            aria-pressed={filter === f}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               filter === f
                 ? "bg-primary text-primary-foreground"
@@ -66,7 +68,7 @@ export default function PostHistory() {
       </div>
 
       {/* Cards grid */}
-      <div className="space-y-4">
+      <div className="space-y-4" aria-live="polite" aria-busy={listQuery.isLoading}>
         {listQuery.isLoading ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -76,76 +78,87 @@ export default function PostHistory() {
             لا توجد منشورات
           </div>
         ) : (
-          posts.map((post) => {
-            const badge = STATUS_BADGE[post.status] ?? { label: post.status, className: "" };
-            return (
-              <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                {/* Image */}
-                {post.imageUrl ? (
-                  <div className="relative h-48 w-full bg-muted">
-                    <img
-                      src={post.imageUrl}
-                      alt={post.title ?? "Post image"}
-                      className="h-full w-full object-cover"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-24 items-center justify-center bg-muted/20 border-b border-border">
-                    <ImageIcon className="h-5 w-5 text-muted-foreground/25" />
-                  </div>
-                )}
-
-                <div className="p-4 space-y-2">
-                  {/* Header */}
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      {post.status === "published"
-                        ? <CheckCircle2 className="h-4 w-4 text-success" />
-                        : post.status === "failed"
-                          ? <XCircle className="h-4 w-4 text-destructive" />
-                          : <CalendarDays className="h-4 w-4 text-muted-foreground" />}
+          <>
+            {posts.map((post) => {
+              const badge = STATUS_BADGE[post.status] ?? { label: post.status, className: "" };
+              return (
+                <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                  {/* Image */}
+                  {post.imageUrl ? (
+                    <div className="relative h-48 w-full bg-muted">
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title ?? (post.topic ? `صورة منشور: ${post.topic}` : "صورة منشور تسويقي")}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground leading-snug">{post.title}</p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {post.topic && <span>{post.topic}</span>}
-                        {post.postDay && <><span>·</span><span>{DAY_LABELS[post.postDay] ?? post.postDay}</span></>}
-                        <span>·</span>
-                        <span>
-                          {post.publishedAt
-                            ? new Date(post.publishedAt).toLocaleDateString("ar-EG")
-                            : new Date(post.createdAt).toLocaleDateString("ar-EG")}
-                        </span>
+                  ) : (
+                    <div className="flex h-24 items-center justify-center bg-muted/20 border-b border-border">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground/25" />
+                    </div>
+                  )}
+
+                  <div className="p-4 space-y-2">
+                    {/* Header */}
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 shrink-0">
+                        {post.status === "published"
+                          ? <CheckCircle2 className="h-4 w-4 text-success" />
+                          : post.status === "failed"
+                            ? <XCircle className="h-4 w-4 text-destructive" />
+                            : <CalendarDays className="h-4 w-4 text-muted-foreground" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground leading-snug">{post.title}</p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {post.topic && <span>{post.topic}</span>}
+                          {post.postDay && <><span>·</span><span>{DAY_LABELS[post.postDay] ?? post.postDay}</span></>}
+                          <span>·</span>
+                          <span>
+                            {post.publishedAt
+                              ? new Date(post.publishedAt).toLocaleDateString("ar-EG")
+                              : new Date(post.createdAt).toLocaleDateString("ar-EG")}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge className={`text-xs ${badge.className}`}>{badge.label}</Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label="حذف المنشور"
+                          className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+                          onClick={() => deleteMutation.mutate({ id: post.id })}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Badge className={`text-xs ${badge.className}`}>{badge.label}</Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                        onClick={() => deleteMutation.mutate({ id: post.id })}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+
+                    {/* Content */}
+                    {post.content && (
+                      <p className="line-clamp-2 text-sm text-foreground/75 leading-relaxed">{post.content}</p>
+                    )}
+
+                    {/* Hashtags */}
+                    {post.hashtags && (
+                      <p className="text-xs text-primary/70">{post.hashtags}</p>
+                    )}
                   </div>
-
-                  {/* Content */}
-                  {post.content && (
-                    <p className="line-clamp-2 text-sm text-foreground/75 leading-relaxed">{post.content}</p>
-                  )}
-
-                  {/* Hashtags */}
-                  {post.hashtags && (
-                    <p className="text-xs text-primary/70">{post.hashtags}</p>
-                  )}
                 </div>
+              );
+            })}
+            {posts.length === limit && (
+              <div className="flex justify-center pt-2">
+                <Button size="sm" variant="ghost" onClick={() => setLimit((l) => l + 25)}>
+                  عرض المزيد
+                </Button>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
     </div>

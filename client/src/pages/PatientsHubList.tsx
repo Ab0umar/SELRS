@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Printer, Search, ChevronRight, ChevronLeft, Users } from "lucide-react";
+import { Printer, Search, ChevronRight, ChevronLeft, Users, CircleDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,22 @@ import { trpc } from "@/lib/trpc";
 import { PatientMedicalStatusStrip, PatientMedicalStatusDots, type PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
 import { patientSheetPathByServiceType } from "@/lib/patientNavPaths";
 import { type PatientRow, type SheetTypeChoice, type ServiceType, normalizeSheetTypeChoice, toLegacyServiceType } from "@/hooks/admin-patients/adminPatientsShared";
+import { usePermissions } from "@/hooks/usePermissions";
+
+type SheetFilter = "all" | "autoref" | "glasses" | "pentacam" | "prescription" | "tests" | "reports" | "none";
+
+function matchesSheetFilter(status: PatientMedicalStatus | undefined, filter: SheetFilter): boolean {
+  if (filter === "all") return true;
+  if (!status) return filter === "none";
+  if (filter === "none") return !status.autoref && !status.afterRef && !status.glasses && !status.pentacam && !status.prescription && !status.tests && !status.reports;
+  if (filter === "autoref")      return status.autoref || status.afterRef;
+  if (filter === "glasses")      return status.glasses;
+  if (filter === "pentacam")     return status.pentacam;
+  if (filter === "prescription") return status.prescription;
+  if (filter === "tests")        return status.tests;
+  if (filter === "reports")      return status.reports;
+  return true;
+}
 
 /* ────────────────────── helpers ─────────────────────── */
 
@@ -21,7 +37,7 @@ function toIsoDate(val: string): string {
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   consultant: "استشاري", specialist: "أخصائي", lasik: "ليزك",
-  external: "خارجي", surgery: "عمليات مركز", surgery_external: "عمليات خارجي",
+  external: "خارجي", surgery: "عمليات مركز", surgery_center: "عمليات مركز", surgery_external: "عمليات خارجي",
   pentacam_c: "Pentacam C", pentacam_ex: "Pentacam Ex", pentacam_ex_c: "Pentacam Ex.C",
 };
 
@@ -138,16 +154,30 @@ const HubPatientRow = memo(function HubPatientRow({
 /* ────────────────────── main list ───────────────────── */
 
 export default function PatientsHubList() {
+  const { canAccess } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [serviceTypeFilter, setServiceTypeFilter] = useState<"all" | SheetTypeChoice>("all");
   const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
+  const [sheetFilter, setSheetFilter] = useState<SheetFilter>("all");
   const [cursor, setCursor] = useState<unknown>(null);
   const [cursorHistory, setCursorHistory] = useState<unknown[]>([]);
   const [pageSize, setPageSize] = useState(50);
   const [isMobile, setIsMobile] = useState(false);
+
+  const sheetFilterOptions = useMemo(() => {
+    const opts: { value: SheetFilter; label: string }[] = [{ value: "all", label: "كل البيانات" }];
+    if (canAccess("/examination"))    opts.push({ value: "autoref",      label: "Autoref" });
+    if (canAccess("/refraction"))     opts.push({ value: "glasses",      label: "مقاس النظارة" });
+    if (canAccess("/sheets"))         opts.push({ value: "pentacam",     label: "Pentacam" });
+    if (canAccess("/prescription"))   opts.push({ value: "prescription", label: "روشتة" });
+    if (canAccess("/request-tests"))  opts.push({ value: "tests",        label: "تحاليل وأشعة" });
+    if (canAccess("/medical-reports")) opts.push({ value: "reports",     label: "تقارير طبية" });
+    opts.push({ value: "none", label: "بدون بيانات" });
+    return opts;
+  }, [canAccess]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -196,6 +226,11 @@ export default function PatientsHubList() {
   );
   const statuses = statusQuery.data as Record<number, PatientMedicalStatus> | undefined;
 
+  const filteredRows = useMemo<PatientRow[]>(() => {
+    if (sheetFilter === "all") return allRows;
+    return allRows.filter((r) => matchesSheetFilter(statuses?.[r.id], sheetFilter));
+  }, [allRows, sheetFilter, statuses]);
+
   const goNext = () => {
     if (!nextCursor) return;
     setCursorHistory((h) => [...h, cursor]);
@@ -235,11 +270,14 @@ export default function PatientsHubList() {
                   <SelectItem value="specialist">أخصائي</SelectItem>
                   <SelectItem value="lasik">ليزك</SelectItem>
                   <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="surgery_center">عمليات مركز</SelectItem>
                 </>
               )}
               {locationTypeFilter === "external" && (
                 <>
                   <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                   <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
                 </>
               )}
@@ -249,8 +287,10 @@ export default function PatientsHubList() {
                   <SelectItem value="specialist">أخصائي</SelectItem>
                   <SelectItem value="lasik">ليزك</SelectItem>
                   <SelectItem value="external">خارجي</SelectItem>
-                  <SelectItem value="surgery">عمليات مركز</SelectItem>
+                  <SelectItem value="surgery_center">عمليات مركز</SelectItem>
                   <SelectItem value="pentacam_c">Pentacam C</SelectItem>
+                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
+                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
                   <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
                 </>
               )}
@@ -264,6 +304,19 @@ export default function PatientsHubList() {
               <SelectItem value="external">خارجي</SelectItem>
             </SelectContent>
           </Select>
+          {sheetFilterOptions.length > 2 && (
+            <Select value={sheetFilter} onValueChange={(v) => setSheetFilter(v as SheetFilter)}>
+              <SelectTrigger className="h-9 w-36 rounded-lg text-xs">
+                <CircleDot className="me-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="البيانات" />
+              </SelectTrigger>
+              <SelectContent>
+                {sheetFilterOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center gap-1.5">
             <label className="text-xs text-muted-foreground whitespace-nowrap">من</label>
             <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCursor(null); setCursorHistory([]); }} className="h-9 w-32 rounded-lg text-xs" />

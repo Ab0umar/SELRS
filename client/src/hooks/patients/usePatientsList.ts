@@ -36,7 +36,7 @@ export function usePatientsList(isAuthenticated: boolean) {
   const [pageSize, setPageSize] = useState(25);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [activeTab, setActiveTab] = useState("consultant");
+  const [activeTab, setActiveTab] = useState("all");
   const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
   const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
 
@@ -74,6 +74,7 @@ export function usePatientsList(isAuthenticated: boolean) {
     if (data.activeTab !== undefined) {
       const nextTab = String(data.activeTab ?? "consultant");
       const allowedTabs = new Set([
+        "all",
         "consultant", "specialist", "pentacam", "pentacam_center", "pentacam_external",
         "pentacam_c", "pentacam_ex", "pentacam_ex_c", "lasik", "external", "surgery", "surgery_external",
       ]);
@@ -140,6 +141,7 @@ export function usePatientsList(isAuthenticated: boolean) {
   const useClientFilterWindow = Boolean(liveSearchTerm || hasActiveDateFilters);
 
   const backendServiceType = useMemo<"consultant" | "specialist" | "lasik" | "surgery" | "external" | undefined>(() => {
+    if (activeTab === "all") return undefined;
     if (activeTab === "consultant" || activeTab === "specialist" || activeTab === "lasik" || activeTab === "surgery" || activeTab === "external") {
       return activeTab;
     }
@@ -432,10 +434,12 @@ export function usePatientsList(isAuthenticated: boolean) {
       serviceTypeToDefaultName,
     ]);
 
-  const tabFilteredPatients = currentPatients.filter((patient) => {
-    const serviceTypes = resolveServiceTypes(patient);
-    return serviceTypes.has(activeTab);
-  });
+  const tabFilteredPatients = activeTab === "all"
+    ? currentPatients
+    : currentPatients.filter((patient) => {
+        const serviceTypes = resolveServiceTypes(patient);
+        return serviceTypes.has(activeTab);
+      });
   const filteredPatients = tabFilteredPatients;
 
   const searchSuggestions = useMemo(() => {

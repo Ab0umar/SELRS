@@ -9,11 +9,13 @@ import {
   ArrowRight, Calendar, Clock, FileText, ShieldCheck,
   TrendingDown, TrendingUp, Hourglass, CheckCircle2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const todayStr = new Date().toISOString().split('T')[0];
 const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   .toISOString().split('T')[0];
 const thisYear = new Date().getFullYear();
+const DAYS_FULL = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
 const STATUS_AR: Record<string, string> = {
   present: 'حاضر', absent: 'غائب', leave: 'إجازة',
@@ -62,6 +64,34 @@ export default function EmployeeDetail() {
   const [permMsg, setPermMsg] = useState<string | null>(null);
   const [leaveMsg, setLeaveMsg] = useState<string | null>(null);
 
+  // Shift change request form state
+  const [shiftForm, setShiftForm] = useState({
+    requestType: 'daily' as 'daily' | 'weekly' | 'monthly' | 'swap',
+    newShiftId: 0,
+    weekdayMask: 62, // default Sun-Thu
+    cycleId: 0,
+    swapEmpCd: '',
+    dateFrom: todayStr,
+    dateTo: todayStr,
+    note: '',
+  });
+  const [weeklyDays, setWeeklyDays] = useState<Set<number>>(new Set([0, 1, 2, 3, 4]));
+  const [shiftMsg, setShiftMsg] = useState<string | null>(null);
+
+  const toggleWeeklyDay = (dayIndex: number) => {
+    const updated = new Set(weeklyDays);
+    if (updated.has(dayIndex)) {
+      updated.delete(dayIndex);
+    } else {
+      updated.add(dayIndex);
+    }
+    setWeeklyDays(updated);
+    setShiftForm(prev => ({
+      ...prev,
+      weekdayMask: Array.from(updated).reduce((m, d) => m | (1 << d), 0),
+    }));
+  };
+
   // Queries
   const employeeQuery = (trpc as any).attendance.employeesList.useQuery();
   const employee = employeeQuery.data?.employees?.find((e: any) => e.empCd === empCd);
@@ -81,12 +111,25 @@ export default function EmployeeDetail() {
     { enabled: !!empCd }
   );
 
+  const shiftRequestsQuery = (trpc as any).attendance.listShiftChangeRequests.useQuery(
+    { empCd },
+    { enabled: !!empCd }
+  );
+
+  const shiftsQuery = (trpc as any).attendance.listShifts.useQuery();
+  const cyclesQuery = (trpc as any).attendance.listShiftCycles.useQuery();
+
+  const shifts = shiftsQuery.data ?? [];
+  const cycles = cyclesQuery.data ?? [];
+  const employees = employeeQuery.data?.employees ?? [];
+
   // Mutations
   const createPermMut = (trpc as any).attendance.createPermission.useMutation({
     onSuccess: () => {
       setPermMsg('✓ تم حفظ الإذن');
       permReportQuery.refetch();
       setPermForm({ date: todayStr, type: 'out', durationMinutes: 60, note: '' });
+      dailyQuery.refetch();
     },
     onError: (err: any) => setPermMsg(`✗ ${err.message}`),
   });
@@ -96,8 +139,45 @@ export default function EmployeeDetail() {
       setLeaveMsg('✓ تم حفظ الإجازة');
       leaveBalanceQuery.refetch();
       setLeaveForm({ dateFrom: todayStr, dateTo: todayStr, type: 'annual', note: '' });
+      dailyQuery.refetch();
     },
     onError: (err: any) => setLeaveMsg(`✗ ${err.message}`),
+  });
+
+  const createShiftMut = (trpc as any).attendance.createShiftChangeRequest.useMutation({
+    onSuccess: () => {
+      setShiftMsg('✓ تم حفظ طلب تغيير الموعد');
+      shiftRequestsQuery.refetch();
+      setShiftForm({
+        requestType: 'daily',
+        newShiftId: 0,
+        weekdayMask: 62,
+        cycleId: 0,
+        swapEmpCd: '',
+        dateFrom: todayStr,
+        dateTo: todayStr,
+        note: '',
+      });
+      setWeeklyDays(new Set([0, 1, 2, 3, 4]));
+    },
+    onError: (err: any) => setShiftMsg(`✗ ${err.message}`),
+  });
+
+  const approveShiftMut = (trpc as any).attendance.approveShiftChangeRequest.useMutation({
+    onSuccess: () => {
+      shiftRequestsQuery.refetch();
+      dailyQuery.refetch();
+      toast.success("تم اعتماد تعديل الموعد بنجاح");
+    },
+    onError: (err: any) => toast.error(`خطأ أثناء الاعتماد: ${err.message}`),
+  });
+
+  const rejectShiftMut = (trpc as any).attendance.rejectShiftChangeRequest.useMutation({
+    onSuccess: () => {
+      shiftRequestsQuery.refetch();
+      toast.success("تم رفض تعديل الموعد");
+    },
+    onError: (err: any) => toast.error(`خطأ أثناء الرفض: ${err.message}`),
   });
 
   // Compute current-month stats from daily records
@@ -417,8 +497,292 @@ export default function EmployeeDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Shift swap/change request */}
+          <Card className="border-border">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <Clock className="h-4 w-4 text-amber-600" />
+                طلب تغيير / تبديل موعد
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pb-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">نوع التغيير المطلوب</label>
+                <select
+                  value={shiftForm.requestType}
+                  onChange={e => setShiftForm({ ...shiftForm, requestType: e.target.value as any })}
+                  className={inputCls}
+                >
+                  <option value="daily">يومي (مؤقت لفترة)</option>
+                  <option value="weekly">أسبوعي (أيام عمل ووردية)</option>
+                  <option value="monthly">شهري (ربط بدورة كاملة)</option>
+                  <option value="swap">تبادل مع زميل</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">من تاريخ</label>
+                  <input
+                    type="date" value={shiftForm.dateFrom}
+                    onChange={e => setShiftForm({ ...shiftForm, dateFrom: e.target.value, dateTo: e.target.value > shiftForm.dateTo ? e.target.value : shiftForm.dateTo })}
+                    className={inputCls}
+                  />
+                </div>
+
+                {(shiftForm.requestType === 'daily' || shiftForm.requestType === 'swap') && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-muted-foreground">حتى تاريخ</label>
+                    <input
+                      type="date" value={shiftForm.dateTo} min={shiftForm.dateFrom}
+                      onChange={e => setShiftForm({ ...shiftForm, dateTo: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+
+                {shiftForm.requestType === 'monthly' && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-muted-foreground">حتى تاريخ (اختياري)</label>
+                    <input
+                      type="date" value={shiftForm.dateTo} min={shiftForm.dateFrom}
+                      onChange={e => setShiftForm({ ...shiftForm, dateTo: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+
+                {(shiftForm.requestType === 'daily' || shiftForm.requestType === 'weekly') && (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">الوردية المطلوبة</label>
+                    <select
+                      value={shiftForm.newShiftId || ""}
+                      onChange={e => setShiftForm({ ...shiftForm, newShiftId: e.target.value ? parseInt(e.target.value) : 0 })}
+                      className={inputCls}
+                    >
+                      <option value="">— اختر الوردية —</option>
+                      {shifts.map((s: any) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.startTime} - {s.endTime})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {shiftForm.requestType === 'weekly' && (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">أيام العمل المطلوبة</label>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {DAYS_FULL.map((name, index) => {
+                        const active = weeklyDays.has(index);
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => toggleWeeklyDay(index)}
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${
+                              active
+                                ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                                : "bg-background border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {shiftForm.requestType === 'monthly' && (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">الدورة المطلوبة</label>
+                    <select
+                      value={shiftForm.cycleId || ""}
+                      onChange={e => setShiftForm({ ...shiftForm, cycleId: e.target.value ? parseInt(e.target.value) : 0 })}
+                      className={inputCls}
+                    >
+                      <option value="">— اختر الدورة —</option>
+                      {cycles.map((c: any) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.period === 'week' ? 'أسبوعية' : c.period === 'month' ? 'شهرية' : 'يومية'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {shiftForm.requestType === 'swap' && (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">الزميل المراد التبادل معه</label>
+                    <select
+                      value={shiftForm.swapEmpCd}
+                      onChange={e => setShiftForm({ ...shiftForm, swapEmpCd: e.target.value })}
+                      className={inputCls}
+                    >
+                      <option value="">— اختر الزميل —</option>
+                      {employees.filter((e: any) => e.empCd !== empCd).map((emp: any) => (
+                        <option key={emp.empCd} value={emp.empCd}>
+                          {emp.fullName} ({emp.empCd})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">ملاحظة أو سبب الطلب</label>
+                  <input
+                    type="text" value={shiftForm.note} placeholder="اختياري"
+                    onChange={e => setShiftForm({ ...shiftForm, note: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (shiftForm.requestType === 'daily' && !shiftForm.newShiftId) {
+                    return setShiftMsg('✗ يرجى تحديد الوردية المطلوبة');
+                  }
+                  if (shiftForm.requestType === 'weekly' && !shiftForm.newShiftId) {
+                    return setShiftMsg('✗ يرجى تحديد الوردية المطلوبة');
+                  }
+                  if (shiftForm.requestType === 'weekly' && weeklyDays.size === 0) {
+                    return setShiftMsg('✗ يرجى تحديد يوم عمل واحد على الأقل');
+                  }
+                  if (shiftForm.requestType === 'monthly' && !shiftForm.cycleId) {
+                    return setShiftMsg('✗ يرجى تحديد الدورة المطلوبة');
+                  }
+                  if (shiftForm.requestType === 'swap' && !shiftForm.swapEmpCd) {
+                    return setShiftMsg('✗ يرجى تحديد الزميل المراد التبادل معه');
+                  }
+
+                  setShiftMsg(null);
+                  createShiftMut.mutate({ empCd, ...shiftForm });
+                }}
+                disabled={createShiftMut.isPending}
+                className="w-full"
+              >
+                <CheckCircle2 className="ml-2 h-4 w-4" />
+                {createShiftMut.isPending ? 'جاري الحفظ…' : 'حفظ الطلب'}
+              </Button>
+
+              {shiftMsg && (
+                <p className={`text-center text-xs font-medium ${shiftMsg.startsWith('✓') ? 'text-success' : 'text-destructive'}`}>
+                  {shiftMsg}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* ── Shift Change Requests List ── */}
+      <Card className="border-border">
+        <CardHeader className="pb-2 pt-4">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Clock className="h-4 w-4 text-primary" />
+            طلبات تغيير وتبديل المواعيد
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          {shiftRequestsQuery.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : !shiftRequestsQuery.data?.length ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">لا توجد طلبات تغيير مواعيد مسجلة</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">نوع الطلب</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">الفترة</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">التفاصيل</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">ملاحظات</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">الحالة</th>
+                    <th className="px-4 py-3 text-center font-semibold text-foreground">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shiftRequestsQuery.data.map((r: any) => {
+                    const typeAr = r.requestType === 'daily' ? 'يومي (مؤقت)' : r.requestType === 'weekly' ? 'أسبوعي' : r.requestType === 'monthly' ? 'شهري' : 'تبادل مع زميل';
+                    
+                    let details = '';
+                    if (r.requestType === 'daily' || r.requestType === 'weekly') {
+                      details = `الوردية: ${r.newShiftName || '—'}`;
+                      if (r.requestType === 'weekly' && r.weekdayMask) {
+                        const days = [];
+                        for (let i = 0; i < 7; i++) {
+                          if (r.weekdayMask & (1 << i)) days.push(DAYS_FULL[i]);
+                        }
+                        details += ` (${days.join('، ')})`;
+                      }
+                    } else if (r.requestType === 'monthly') {
+                      details = `الدورة: ${r.cycleName || '—'}`;
+                    } else if (r.requestType === 'swap') {
+                      details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || '—'}`;
+                    }
+
+                    return (
+                      <tr key={r.id} className="border-b transition-colors hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium text-foreground">{typeAr}</td>
+                        <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
+                          {r.dateFrom} {r.dateTo ? `← ${r.dateTo}` : ''}
+                        </td>
+                        <td className="px-4 py-3 text-foreground text-xs">{details}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{r.note || '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            r.status === 'approved' ? 'bg-success/10 text-success' :
+                            r.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
+                            'bg-warning/10 text-warning'
+                          }`}>
+                            {r.status === 'approved' ? 'معتمد' : r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {r.status === 'pending' ? (
+                            <div className="flex justify-center gap-1.5">
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 text-xs bg-success hover:bg-success/90"
+                                onClick={() => approveShiftMut.mutate({ requestId: r.id })}
+                                disabled={approveShiftMut.isPending}
+                              >
+                                اعتماد
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 px-2.5 text-xs"
+                                onClick={() => {
+                                  const note = prompt('ملاحظة الرفض (اختياري):');
+                                  if (note !== null) {
+                                    rejectShiftMut.mutate({ requestId: r.id, note });
+                                  }
+                                }}
+                                disabled={rejectShiftMut.isPending}
+                              >
+                                رفض
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Attendance History ── */}
       <Card className="border-border">

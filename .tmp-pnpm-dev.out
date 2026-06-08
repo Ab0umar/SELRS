@@ -1,698 +1,514 @@
 [ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٣:٥٦:٥٨ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+[2m١٢:٤٦:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+[clinic] Server running on http://0.0.0.0:2000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m١٢:٥٠:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/Home.tsx[22m
+[2m١٢:٥٠:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥١:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٢:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/WebAppEnhancements.tsx[22m
+[2m١٢:٥٢:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/WebAppEnhancements.tsx[22m
+[2m١٢:٥٢:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/WebAppEnhancements.tsx[22m
+[2m١٢:٥٢:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/WebAppEnhancements.tsx[22m
+[2m١٢:٥٣:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٣:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٦:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٦:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٦:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٦:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٦:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٧:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/Home.tsx[22m
+[2m١٢:٥٨:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١٢:٥٨:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=174 skipped=2193 interval=5000
+[2m١:٠٢:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/Home.tsx[22m
+[2m١:٠٢:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٠٢:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2229 skipped=2199 interval=5000
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2237 skipped=2191 interval=5000
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2232 skipped=2196 interval=5000
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2233 skipped=2195 interval=5000
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2234 skipped=2194 interval=5000
+[2m٣:٠٤:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٤:٥٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٤:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٤٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٠٥:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٠:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٠:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٠:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١١:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١١:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١١:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١١:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١١:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٢:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٢:١١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٢:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٤:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2200 inserted=0 updated=2232 skipped=2196 interval=5000
+٤:٤٧:٥٥ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+c٤:٤٨:٠٢ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
+c٤:٤٨:١٢ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[2m٣:٥٧:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
-٣:٥٧:١٣ ص [tsx] change in ./server\_core\context.ts Rerunning...
+[2m٤:٤٨:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+[clinic] Server running on http://0.0.0.0:2000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٤:٥٩:٢٥ ص [tsx] change in ./server\_core\systemRouter.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٥:٠٠:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٧:٠٩:٤٢ ص [tsx] change in ./server\db.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٧:١٠:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٧:٤١:٤٠ ص [tsx] unlink in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٧:٤١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٧:٤٠:١٥ م [tsx] change in ./server\db.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٦:٤٦:٤٠ ص [tsx] change in ./server\routers\salary.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٦:٤٧:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+٨:٣٠:٠٦ ص [tsx] change in ./server\routers\attendance.ts Rerunning...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
 [clinic] Server running on http://0.0.0.0:4000/
 [DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
 [PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-٣:٥٧:٢٣ ص [tsx] change in ./server\_core\context.ts Restarting...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٣:٥٧:٣١ ص [tsx] change in ./server\_core\procedures.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٣:٥٨:٣٢ ص [tsx] change in ./server\routers.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٣:٥٨:٣٨ ص [tsx] change in ./server\routers.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٢٠:٠٢ ص [tsx] change in ./drizzle\schema.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[2m٤:٢٠:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
-[clinic] Server running on http://0.0.0.0:4000/
-[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
-[PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[2m٤:٢٠:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[2m٤:٢١:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢١:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢١:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢٢:٠٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٠٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[2m٤:٢٢:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٢٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢٢:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/patient-portal/PatientRefraction.tsx[22m
-[2m٤:٢٢:٤٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٢:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٠٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2224 skipped=2171 interval=5000
-[2m٤:٢٣:٠٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٠٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٠٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢٣:٠٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:١٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٢٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٢٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٢٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٣٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٣٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٣٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٤:٢٣:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٤٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٤٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٤٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٤٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[2m٤:٢٣:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٥٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٥٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٥٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٤:٢٣:٥٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-٤:٢٣:٥٦ ص [tsx] change in ./server\routers\externalDoctors.ts Restarting...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٢٤:٠٢ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[clinic] Server running on http://0.0.0.0:4000/
-[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
-[PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-٤:٢٤:١٣ ص [tsx] change in ./server\routers\externalDoctors.ts Restarting...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٢٤:٢٤ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٢٤:٣١ ص [tsx] change in ./server\routers\externalDoctors.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[clinic] Server running on http://0.0.0.0:4000/
-[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
-[PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-٤:٣٠:٠٢ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٣١:٤٢ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[2m٨:٤٧:١٢ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+٨:٤٧:١٢ ص [tsx] change in ./server\routers\attendance.ts Restarting...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
 [clinic] Port 4000 is busy, using port 4001 instead
 [clinic] Server running on http://0.0.0.0:4001/
 [DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
 [PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-٤:٣٤:٢٤ ص [tsx] change in ./server\routers\doctorPortal.ts Restarting...
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٨:٤٩:٢٦ ص [tsx] change in ./drizzle\schema.ts Restarting...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٤:٣٤:٣١ ص [tsx] change in ./server\routers\doctorPortal.ts Rerunning...
+٨:٥١:٠٧ ص [tsx] change in ./server\routers\attendance.ts Rerunning...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٥:٢٩:٢٣ ص [tsx] change in ./drizzle\schema.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[2m٥:٢٩:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
-٥:٣٠:١٧ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٥:٣٠:٣٠ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[clinic] Port 4000 is busy, using port 4001 instead
-[clinic] Server running on http://0.0.0.0:4001/
-[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
-[PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-٥:٣٠:٤٧ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٥:٣٠:٥٧ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
+٨:٥٣:٢٥ ص [tsx] change in ./server\routers\attendance.ts Rerunning...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
 [clinic] Server running on http://0.0.0.0:4000/
 [DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
 [PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-٥:٣٤:٤٨ ص [tsx] change in ./drizzle\schema.ts Rerunning...
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٨:٥٤:٤٨ ص [tsx] change in ./server\routers\attendance.ts Restarting...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٥:٣٥:١٣ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-٥:٣٥:٢٤ ص [tsx] change in ./server\routers\patientPortal.ts Rerunning...
-c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[clinic] Port 4000 is busy, using port 4001 instead
-[clinic] Server running on http://0.0.0.0:4001/
+[clinic] Server running on http://0.0.0.0:4000/
 [DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
 [PunchReception] Started listening to device events
-[blackice-import] Watching E:/SRV100_Acc/Pentacam every 30000ms (source -> E:\SRV100_Acc\Pentacam)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-ocr] Enabled (poll=30000ms, batch=2, lang=eng, psm=6)
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٦:٠٥:٢٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٠٥:٣١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[2m٦:٠٩:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٠٩:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٠٩:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2225 skipped=2170 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[2m٦:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:١٤:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:١٤:١٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٦:١٨:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:١٨:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:١٨:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2212 skipped=2183 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٦:٢٦:٣٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٢٦:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٢٦:٣٥ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٦:٢٩:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٢٩:٣٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٢٩:٣٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[2m٦:٣٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٣٠:٥٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٣١:٠١ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[2m٦:٣٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٣٢:٤٩ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٣٢:٥٠ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[2m٦:٥٠:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٥٠:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٥٠:٢٨ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[2m٦:٥١:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٥١:٢٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[2m٦:٥١:٢٧ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2225 skipped=2170 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2222 skipped=2173 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2221 skipped=2174 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2215 skipped=2180 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2213 skipped=2182 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2220 skipped=2175 interval=5000
-[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD (2).JPG to S3: blackice-imports/1780631916282-1357_Mahgoub_Reyad_Mohamed_OD (2).JPG
-[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD (2).JPG
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2219 skipped=2176 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
-[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG to S3: blackice-imports/1780632008119-1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG
-[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD_(2).JPG
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] Uploaded 1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG to S3: blackice-imports/1780632158804-1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG
-[blackice-import] Imported 1357_Mahgoub_Reyad_Mohamed_OD_dup1.JPG
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2217 skipped=2178 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2223 skipped=2172 interval=5000
-[blackice-import] cycle candidates=2477 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2218 skipped=2177 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2214 skipped=2181 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2476 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2211 skipped=2184 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2223 skipped=2172 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2224 skipped=2171 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2216 skipped=2179 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2226 skipped=2169 interval=5000
-[blackice-import] cycle candidates=2442 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2446 source=E:/SRV100_Acc/Pentacam
-[blackice-import] Uploaded 0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG to S3: blackice-imports/1780632963410-0404_Baymi_Alsherbny_Omnyaa_OD_dup1.JPG
-[blackice-import] Uploaded 0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG to S3: blackice-imports/1780632968666-0452_Ebrahem_El_Banna_Mohamed_OS_dup1.JPG
-[blackice-import] Uploaded 0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG to S3: blackice-imports/1780632978018-0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG
-[blackice-import] Imported 0640_Ahmad_Elmasrey_Mohamad_OD_dup1.JPG
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] Uploaded 0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG to S3: blackice-imports/1780632996513-0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG
-[blackice-import] Imported 0730_Mohamed_Ghazy_Khaled_OS_dup1.JPG
-[blackice-import] Uploaded 1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG to S3: blackice-imports/1780633005742-1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG
-[blackice-import] Imported 1274_Mokhtar_Agezy_Tarek_OD_dup1.JPG
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-[blackice-import] cycle candidates=2448 source=E:/SRV100_Acc/Pentacam
-[mssql-sync] ok mode=full fetched=2184 inserted=0 updated=2227 skipped=2168 interval=5000
-٧:١٩:٢١ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
-c٧:١٩:٢٨ ص [tsx] change in ./server\routers\patientPortal.ts Restarting...
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٩:٠٢:٠٨ ص [tsx] change in ./server\routers\attendance.ts Rerunning...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
-[2m٧:١٩:٣٤ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+[2m٩:٠٢:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٩:٠٧:١٦ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[AUDIT] shift_assigned - success
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2253 skipped=2213 interval=5000
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2251 skipped=2215 interval=5000
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2257 skipped=2209 interval=5000
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2248 skipped=2218 interval=5000
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2253 skipped=2213 interval=5000
+[mssql-sync] ok mode=full fetched=2219 inserted=0 updated=2254 skipped=2214 interval=5000
+[mssql-sync] ok mode=full fetched=2221 inserted=0 updated=2256 skipped=2214 interval=5000
+[mssql-sync] ok mode=full fetched=2221 inserted=0 updated=2256 skipped=2214 interval=5000
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[mssql-sync] ok mode=full fetched=2221 inserted=0 updated=2273 skipped=2217 interval=5000
+SE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.3
+٩:٠٢:٠٨ ص [tsx] change in ./server\routers\attendance.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[2m٩:٠٢:٢٣ ص[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.22.3

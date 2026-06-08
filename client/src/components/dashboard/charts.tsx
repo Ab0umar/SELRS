@@ -110,9 +110,18 @@ export function PatientTrendChart() {
         وفقًا لأحدث 500 سجل — توزيع شهري تقريبي ({rows.length.toLocaleString('ar-EG')} صفوف)
       </p>
       <ChartContainer config={trendChartConfig} className="h-[180px] w-full sm:h-[220px]">
-        <AreaChart accessibilityLayer data={chartData} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
+        <AreaChart accessibilityLayer data={chartData} margin={{ left: 0, right: 8, top: 4, bottom: 24 }}>
           <CartesianGrid vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} interval={0} tick={{ fontSize: 12 }} />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={4}
+            interval="preserveStartEnd"
+            tick={{ fontSize: 10, textAnchor: 'end' }}
+            angle={-35}
+            height={40}
+          />
           <YAxis hide />
           <ChartTooltip
             cursor={false}
