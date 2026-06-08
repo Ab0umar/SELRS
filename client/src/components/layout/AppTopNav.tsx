@@ -400,8 +400,8 @@ export function AppTopNav({
                 );
               })}
 
-          {/* الحسابات dropdown */}
-          {!isAdmin && accountingItems.length > 0 && (
+          {/* الحسابات dropdown — only shown when not already in mainNavTabs */}
+          {!isAdmin && accountingItems.length > 0 && !mainNavTabs.some((t) => t.key === "accounting") && (
             <div className="flex h-full items-stretch">
               <button
                 type="button"
