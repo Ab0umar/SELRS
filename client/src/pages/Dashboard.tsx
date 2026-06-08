@@ -351,7 +351,7 @@ function OffUsersTodayCard() {
             لا توجد إجازات اليوم
           </p>
         ) : (
-          <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+          <ul className="space-y-1.5">
             {list.map((emp) => (
               <li key={emp.empCd} className="flex items-center gap-2 text-sm">
                 <UserX
@@ -551,14 +551,14 @@ function TodayPanel({
         <div className="space-y-4">
           <Surface>
             <SectionHeader title="توزيع الخدمات" />
-            <div className="p-4">
+            <div className="px-4 py-3.5">
               <ServiceBreakdown selectedDate={selectedDate} />
             </div>
           </Surface>
           <OffUsersTodayCard />
           <Surface>
             <SectionHeader title="إحصائيات طبية" />
-            <div className="px-4 py-3">
+            <div className="px-4 py-3.5">
               <MedicalTotals />
             </div>
           </Surface>
