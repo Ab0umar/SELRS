@@ -1400,33 +1400,6 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
-
-              {/* Quick Navigation — merged into same card */}
-              <div className="border-t border-border/40 px-4 py-2">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  انتقال سريع
-                </p>
-                <div className="space-y-0.5">
-                  {[
-                    { href: "/today-patients", label: "مرضى اليوم", icon: Users },
-                    { href: "/operations", label: "العمليات", icon: Syringe },
-                    { href: "/patients", label: "كل المرضى", icon: Search },
-                    { href: "/accounting", label: "الحسابات", icon: Wallet },
-                  ].map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {label}
-                      </span>
-                      <ChevronLeft className="h-3 w-3 opacity-50" aria-hidden />
-                    </Link>
-                  ))}
-                </div>
-              </div>
             </Surface>
 
             <Surface className="hidden xl:block">
@@ -1458,6 +1431,7 @@ export default function Dashboard() {
 
           <main className="min-w-0 space-y-4">
             <Surface className="overflow-hidden">
+              {/* Row 1: workspace identity + live badges */}
               <div className="grid gap-3 px-4 py-3 lg:grid-cols-[1fr_auto] lg:items-center">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -1493,6 +1467,28 @@ export default function Dashboard() {
                     </Button>
                   )}
                 </div>
+              </div>
+
+              {/* Row 2: quick navigation links */}
+              <div className="flex items-center gap-1 border-t border-border/40 px-4 py-2 overflow-x-auto scrollbar-none">
+                <span className="shrink-0 text-[11px] font-semibold text-muted-foreground ml-1">
+                  انتقال سريع:
+                </span>
+                {[
+                  { href: "/today-patients", label: "مرضى اليوم", icon: Users },
+                  { href: "/operations", label: "العمليات", icon: Syringe },
+                  { href: "/patients", label: "كل المرضى", icon: Search },
+                  { href: "/accounting", label: "الحسابات", icon: Wallet },
+                ].map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                  >
+                    <Icon className="h-3 w-3" aria-hidden />
+                    {label}
+                  </Link>
+                ))}
               </div>
             </Surface>
 
