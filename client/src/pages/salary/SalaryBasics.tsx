@@ -288,7 +288,6 @@ export default function SalaryBasics() {
 
   // Tabs status for both departments
   const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("salaries");
-  const [clinicTab, setClinicTab] = useState<"salaries" | "shifts">("salaries");
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
@@ -392,12 +391,6 @@ export default function SalaryBasics() {
     return dept === "عيادة" || dept === "clinic";
   });
 
-  const clinicShifts = filteredShifts.filter((s) => {
-    if (!s.empCd) return false;
-    const emp = employees.find((e) => e.empCd === s.empCd);
-    const dept = emp?.department?.toLowerCase().trim();
-    return dept === "عيادة" || dept === "clinic";
-  });
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -621,50 +614,18 @@ export default function SalaryBasics() {
 
       {/* ── Clinic Section (العيادة) ── */}
       <div className="space-y-3 pt-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
+        <div className="border-b border-border pb-2">
           <h2 className="text-lg font-black text-foreground">العيادة</h2>
-          {/* Tabs header for Clinic */}
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
-            <button
-              onClick={() => setClinicTab("salaries")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                clinicTab === "salaries"
-                  ? "bg-white text-blue-600 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              الرواتب
-            </button>
-            <button
-              onClick={() => setClinicTab("shifts")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                clinicTab === "shifts"
-                  ? "bg-white text-blue-600 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              الشفتات
-            </button>
-          </div>
         </div>
 
-        {/* Tab Content for Clinic */}
-        {clinicTab === "salaries" ? (
-          <SalaryTable
-            title="رواتب موظفي العيادة"
-            data={clinicSalaries}
-            employees={employees}
-            onEdit={handleEdit}
-            onDelete={(id) => deleteMut.mutate({ id })}
-            isPending={deleteMut.isPending}
-          />
-        ) : (
-          <ShiftsTable
-            title="طاقم شفتات العيادة"
-            data={clinicShifts}
-            employees={employees}
-          />
-        )}
+        <SalaryTable
+          title="رواتب موظفي العيادة"
+          data={clinicSalaries}
+          employees={employees}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMut.mutate({ id })}
+          isPending={deleteMut.isPending}
+        />
       </div>
 
       {/* Summary Statistics */}
@@ -684,7 +645,7 @@ export default function SalaryBasics() {
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إجمالي العيادة</div>
           <div className="mt-2 text-2xl font-black text-secondary tabular-nums">
-            {clinicSalaries.length + clinicShifts.length}
+            {clinicSalaries.length}
           </div>
         </div>
       </div>
