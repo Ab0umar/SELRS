@@ -149,6 +149,7 @@ import DoctorPortalRoute from "./components/DoctorPortalRoute";
 // Patient portal
 const PatientLogin = lazy(() => import("./pages/patient-portal/PatientLogin"));
 const PatientGuestBook = lazy(() => import("./pages/patient-portal/PatientGuestBook"));
+const PatientDashboard = lazy(() => import("./pages/patient-portal/PatientDashboard"));
 const PatientFile = lazy(() => import("./pages/patient-portal/PatientFile"));
 const PatientRefraction = lazy(() => import("./pages/patient-portal/PatientRefraction"));
 const PatientPrescription = lazy(() => import("./pages/patient-portal/PatientPrescription"));
