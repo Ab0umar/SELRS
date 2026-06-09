@@ -1105,6 +1105,7 @@ export const visitScheduleRequests = mysqlTable(
     visitDate: date("visitDate").notNull(),
     phone: varchar("phone", { length: 32 }),
     service: varchar("service", { length: 128 }).notNull(),
+    patientType: varchar("patientType", { length: 32 }).default("existing"),
     createdByUserId: int("createdByUserId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

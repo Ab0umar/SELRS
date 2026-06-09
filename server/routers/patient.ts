@@ -78,6 +78,7 @@ export const patientRouter = router({
         visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         phone: z.string().max(32).optional().nullable(),
         service: z.string().min(1).max(128),
+        patientType: z.enum(["existing", "new", "guest"]).optional().default("existing"),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -93,6 +94,7 @@ export const patientRouter = router({
             input.visitDate as unknown as InsertVisitScheduleRequest["visitDate"],
           phone: input.phone?.trim() || null,
           service: input.service.trim(),
+          patientType: input.patientType ?? "existing",
           createdByUserId: ctx.user.id,
         };
         const { id } = await db.insertVisitScheduleRequest(payload);
