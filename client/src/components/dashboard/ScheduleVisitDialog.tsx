@@ -152,8 +152,7 @@ export function ScheduleVisitDialog({
                   {(
                     [
                       { value: "existing", label: "مريض مسجل" },
-                      { value: "new", label: "حالة جديدة" },
-                      { value: "guest", label: "ضيف / زائر" },
+                      { value: "new", label: "مريض جديد" },
                     ] as const
                   ).map((opt) => (
                     <button
