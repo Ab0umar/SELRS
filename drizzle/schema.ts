@@ -2319,3 +2319,117 @@ export type AttendanceShiftChangeRequest =
   typeof attendanceShiftChangeRequests.$inferSelect;
 export type InsertAttendanceShiftChangeRequest =
   typeof attendanceShiftChangeRequests.$inferInsert;
+
+// ── KF Module Tables ──────────────────────────────────────────────────────
+
+export const kfPatients = mysqlTable("kf_patients", {
+  kfId: int("kf_id").autoincrement().primaryKey(),
+  kfCode: varchar("kf_code", { length: 20 }).notNull().unique(),
+  fullName: varchar("full_name", { length: 255 }).notNull(),
+  dateOfBirth: date("date_of_birth"),
+  age: int("age"),
+  gender: mysqlEnum("gender", ["male", "female"]),
+  nationalId: varchar("national_id", { length: 20 }),
+  phone: varchar("phone", { length: 20 }),
+  alternatePhone: varchar("alternate_phone", { length: 20 }),
+  address: text("address"),
+  occupation: varchar("occupation", { length: 255 }),
+  medicalHistory: text("medical_history"),
+  allergies: text("allergies"),
+  notes: text("notes"),
+  selrsPatientCode: varchar("selrs_patient_code", { length: 50 }),
+  createdByUserId: int("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfPatient = typeof kfPatients.$inferSelect;
+export type InsertKfPatient = typeof kfPatients.$inferInsert;
+
+export const kfVisits = mysqlTable("kf_visits", {
+  kfVisitId: int("kf_visit_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  visitDate: date("visit_date").notNull(),
+  visitType: mysqlEnum("visit_type", [
+    "consultation",
+    "examination",
+    "followup",
+    "operation",
+  ]).default("consultation"),
+  doctorName: varchar("doctor_name", { length: 255 }),
+  status: mysqlEnum("status", [
+    "scheduled",
+    "arrived",
+    "in_progress",
+    "completed",
+    "cancelled",
+  ]).default("scheduled"),
+  notes: text("notes"),
+  createdByUserId: int("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfVisit = typeof kfVisits.$inferSelect;
+export type InsertKfVisit = typeof kfVisits.$inferInsert;
+
+export const kfExaminations = mysqlTable("kf_examinations", {
+  kfExamId: int("kf_exam_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  kfVisitId: int("kf_visit_id"),
+  examDate: date("exam_date").notNull(),
+  rightVa: varchar("right_va", { length: 20 }),
+  leftVa: varchar("left_va", { length: 20 }),
+  rightRefraction: json("right_refraction"),
+  leftRefraction: json("left_refraction"),
+  iopRight: varchar("iop_right", { length: 20 }),
+  iopLeft: varchar("iop_left", { length: 20 }),
+  diagnosis: text("diagnosis"),
+  plan: text("plan"),
+  notes: text("notes"),
+  doctorName: varchar("doctor_name", { length: 255 }),
+  examinedByUserId: int("examined_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfExamination = typeof kfExaminations.$inferSelect;
+export type InsertKfExamination = typeof kfExaminations.$inferInsert;
+
+export const kfOperations = mysqlTable("kf_operations", {
+  kfOpId: int("kf_op_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  kfVisitId: int("kf_visit_id"),
+  opDate: date("op_date").notNull(),
+  opType: varchar("op_type", { length: 255 }).notNull(),
+  eye: mysqlEnum("eye", ["right", "left", "both"]),
+  doctorName: varchar("doctor_name", { length: 255 }),
+  status: mysqlEnum("status", ["scheduled", "completed", "cancelled"]).default(
+    "scheduled",
+  ),
+  notes: text("notes"),
+  createdByUserId: int("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfOperation = typeof kfOperations.$inferSelect;
+export type InsertKfOperation = typeof kfOperations.$inferInsert;
+
+export const kfFollowups = mysqlTable("kf_followups", {
+  kfFollowupId: int("kf_followup_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  kfVisitId: int("kf_visit_id"),
+  kfOpId: int("kf_op_id"),
+  followupDate: date("followup_date").notNull(),
+  notes: text("notes"),
+  status: mysqlEnum("status", ["scheduled", "completed", "missed"]).default(
+    "scheduled",
+  ),
+  createdByUserId: int("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfFollowup = typeof kfFollowups.$inferSelect;
+export type InsertKfFollowup = typeof kfFollowups.$inferInsert;

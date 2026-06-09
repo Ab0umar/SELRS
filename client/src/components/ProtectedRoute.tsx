@@ -70,6 +70,12 @@ export default function ProtectedRoute({
       userRole === "accountant"
     )
       return true;
+    if (
+      userRole === "accountant" &&
+      (cleanPath === "/kf" || cleanPath.startsWith("/kf/"))
+    ) {
+      return true;
+    }
     /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
     if (
       cleanPath === "/examinations/catalog" ||

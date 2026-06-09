@@ -142,6 +142,17 @@ const Documentation = lazy(() => import("./pages/dev/Documentation"));
 const TodayPatients = lazy(() => import("./pages/TodayPatients"));
 const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const StockroomShell = lazy(() => import("./pages/StockroomShell"));
+const KfShell = lazy(() => import("./pages/kf/KfShell"));
+const KfHome = lazy(() => import("./pages/kf/KfHome"));
+const KfPatients = lazy(() => import("./pages/kf/KfPatients"));
+const KfPatientForm = lazy(() => import("./pages/kf/KfPatientForm"));
+const KfPatientDetail = lazy(() => import("./pages/kf/KfPatientDetail"));
+const KfVisitForm = lazy(() => import("./pages/kf/KfVisitForm"));
+const KfExaminationForm = lazy(() => import("./pages/kf/KfExaminationForm"));
+const KfOperationForm = lazy(() => import("./pages/kf/KfOperationForm"));
+const KfFollowupForm = lazy(() => import("./pages/kf/KfFollowupForm"));
+const KfOperations = lazy(() => import("./pages/kf/KfOperations"));
+const KfFollowups = lazy(() => import("./pages/kf/KfFollowups"));
 // Marketing module
 import MarketingLayout from "./pages/marketing/MarketingLayout";
 const MarketingDashboard = lazy(
@@ -890,6 +901,118 @@ const Router = memo(function Router() {
         component={() => (
           <ProtectedRoute>
             <PrintPreview />
+          </ProtectedRoute>
+        )}
+      />
+
+      {/* KF Module Routes */}
+      <Route
+        path={"/kf"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfHome />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/new"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfPatientForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId/edit"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfPatientForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId/visits/new"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfVisitForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId/examinations/new"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfExaminationForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId/operations/new"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfOperationForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId/followups/new"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfFollowupForm />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients/:kfPatientId"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfPatientDetail />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/patients"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfPatients />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/operations"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfOperations />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/followups"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfFollowups />
+            </KfShell>
           </ProtectedRoute>
         )}
       />

@@ -189,5 +189,7 @@ export const trpc = _trpc as typeof _trpc & {
   patientPortal: PortalProcedures;
   externalDoctors: ExternalDoctorsProcedures;
   doctorPortal: DoctorPortalProcedures;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  kf: any;
 };
 export const transformer = superjson;
