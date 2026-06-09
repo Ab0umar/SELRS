@@ -2580,212 +2580,303 @@ Sample: {
        please check the style of container, or the props width(100%) and height(100%),
        or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
        height and width.
-tyles/web.css[22m
-[2m٧:٣٧:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/patient-portal/PatientGuestBook.tsx[22m
-[2m٧:٣٨:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:١٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٤٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٨:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:١٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٤٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٩:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2265 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2302 skipped=2261 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2304 skipped=2259 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2300 skipped=2263 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2300 skipped=2263 interval=5000
+[2m٣:٣٤:٣٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T12:34:33.914Z"}
+[2m٣:٣٤:٣٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T12:34:33.916Z"}
+[2m٣:٣٤:٣٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":4}
+[2m٣:٣٤:٣٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T12:34:36.363Z","path":"/dashboard"}
+[2m٣:٣٤:٣٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T12:34:33.916Z"}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٣:٣٤:٣٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٣:٣٤:٣٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٣:٣٤:٣٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2297 skipped=2266 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2303 skipped=2260 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2265 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2296 skipped=2267 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2304 skipped=2259 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2303 skipped=2260 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2265 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2265 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2300 skipped=2263 interval=5000
+[2m٤:١٨:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:١٨:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٤:١٨:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:١٨:٥٢ م[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mReferenceError: create is not defined
+    at AddPortalBookingDialog (http://localhost:4000/src/components/dashboard/AddPortalBookingDialog.tsx?t=1781011130881:417:17)
+    at Object.react_stack_bottom_frame (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:12868:12)
+    at renderWithHooks (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:4213:19)
+    at updateFunctionComponent (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:5569:16)
+    at beginWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:6140:20)
+    at runWithFiberInDEV (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:851:66)
+    at performUnitOfWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8429:92)
+    at workLoopSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8325:37)
+    at renderRootSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8309:6)
+    at performWorkOnRoot (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:7994:27)
+
+The above error occurred in the <AddPortalBookingDialog> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[2m٤:١٩:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:١٩:٠٢ م[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mReferenceError: create is not defined
+    at AddPortalBookingDialog (http://localhost:4000/src/components/dashboard/AddPortalBookingDialog.tsx?t=1781011141016:466:17)
+    at Object.react_stack_bottom_frame (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:12868:12)
+    at renderWithHooks (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:4213:19)
+    at updateFunctionComponent (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:5569:16)
+    at beginWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:6140:20)
+    at runWithFiberInDEV (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:851:66)
+    at performUnitOfWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8429:92)
+    at workLoopSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8325:37)
+    at renderRootSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8309:6)
+    at performWorkOnRoot (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:7994:27)
+
+The above error occurred in the <AddPortalBookingDialog> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2302 skipped=2261 interval=5000
+[2m٤:١٩:٢٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:١٩:٢٤ م[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mReferenceError: create is not defined
+    at AddPortalBookingDialog (http://localhost:4000/src/components/dashboard/AddPortalBookingDialog.tsx?t=1781011163495:511:17)
+    at Object.react_stack_bottom_frame (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:12868:12)
+    at renderWithHooks (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:4213:19)
+    at updateFunctionComponent (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:5569:16)
+    at beginWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:6140:20)
+    at runWithFiberInDEV (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:851:66)
+    at performUnitOfWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8429:92)
+    at workLoopSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8325:37)
+    at renderRootSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8309:6)
+    at performWorkOnRoot (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:7994:27)
+
+The above error occurred in the <AddPortalBookingDialog> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[2m٤:١٩:٢٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":37}
+[2m٤:١٩:٢٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"navigate","redirectCount":0,"time":"2026-06-09T13:19:26.695Z","path":"/dashboard"}
+[2m٤:١٩:٢٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:23:19.887Z"}
+[2m٤:١٩:٢٨ م[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mReferenceError: create is not defined
+    at AddPortalBookingDialog (http://localhost:4000/src/components/dashboard/AddPortalBookingDialog.tsx?t=1781011163495:511:17)
+    at Object.react_stack_bottom_frame (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:12868:12)
+    at renderWithHooks (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:4213:19)
+    at updateFunctionComponent (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:5569:16)
+    at beginWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:6140:20)
+    at runWithFiberInDEV (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:851:66)
+    at performUnitOfWork (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8429:92)
+    at workLoopSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8325:37)
+    at renderRootSync (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:8309:6)
+    at performWorkOnRoot (http://localhost:4000/@fs/D:/C/SRV100_Acc/node_modules/.vite/deps/react-dom_client.js?v=9ee2619a:7994:27)
+
+The above error occurred in the <AddPortalBookingDialog> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[2m٤:١٩:٢٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:19:29.976Z"}
+[2m٤:١٩:٢٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:19:29.977Z"}
+[2m٤:١٩:٣٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":38}
+[2m٤:١٩:٣٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T13:19:32.380Z","path":"/dashboard"}
+[2m٤:١٩:٣٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:19:29.977Z"}
+[2m٤:١٩:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٤:١٩:٣٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٤:٢٠:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢٠:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/ScheduleVisitDialog.tsx[22m
+[2m٤:٢١:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢١:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢١:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢١:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2265 interval=5000
+[2m٤:٢٢:١٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:22:15.812Z"}
+[2m٤:٢٢:١٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:22:15.813Z"}
+[2m٤:٢٢:١٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":39}
+[2m٤:٢٢:١٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T13:22:18.199Z","path":"/dashboard"}
+[2m٤:٢٢:١٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:22:15.813Z"}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٤:٢٢:١٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٢:١٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٢:١٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٢:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢٣:١٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢٣:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢٣:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/components/dashboard/AddPortalBookingDialog.tsx[22m
+[2m٤:٢٣:٤٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:23:46.495Z"}
+[2m٤:٢٣:٤٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:23:46.496Z"}
+[2m٤:٢٣:٤٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":40}
+[2m٤:٢٣:٤٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T13:23:48.885Z","path":"/dashboard"}
+[2m٤:٢٣:٤٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:23:46.496Z"}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٤:٢٣:٥٠ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٣:٥٠ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٣:٥٠ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2301 skipped=2262 interval=5000
+[2m٤:٢٤:٤٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:24:49.297Z"}
+[2m٤:٢٤:٤٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:24:49.299Z"}
+[2m٤:٢٤:٥١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":41}
+[2m٤:٢٤:٥١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T13:24:51.710Z","path":"/dashboard"}
+[2m٤:٢٤:٥١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/dashboard","time":"2026-06-09T13:24:49.299Z"}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٤:٢٤:٥٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٤:٥٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٤:٢٤:٥٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 [2m٧:٣٩:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 [2m٧:٤٠:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 [2m٧:٤٠:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
