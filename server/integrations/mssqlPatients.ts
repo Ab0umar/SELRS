@@ -4328,11 +4328,11 @@ function getSyncQuery(
         ) AS changedAt
       FROM op2026.dbo.PAJRNRCVH
       WHERE ISNULL(PAT_CD, '') <> ''
-        AND COALESCE(
+        ${sinceLiteral ? `AND COALESCE(
           CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END,
           CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END,
           CASE WHEN ISDATE(VST_DT) = 1 THEN CONVERT(datetime, VST_DT) END
-        ) IS NOT NULL
+        ) IS NOT NULL` : ""}
         ${sinceClause}
     )
     SELECT TOP (${limit})
