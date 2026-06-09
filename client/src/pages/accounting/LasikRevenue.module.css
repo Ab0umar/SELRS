@@ -38,7 +38,8 @@
   margin: 0;
 }
 
-.noPrint {}
+.noPrint {
+}
 
 .serviceBlock {
   box-sizing: border-box;
@@ -61,7 +62,8 @@
   line-height: 1.35;
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
 }
 
 .serviceHeaderToggle {
@@ -96,7 +98,8 @@
   line-height: 1.35;
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
   vertical-align: middle;
 }
 
@@ -132,7 +135,8 @@
   font-weight: 700;
   background: var(--muted);
   color: var(--muted-foreground);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
 }
 
 .gridTable th:first-child,
@@ -159,8 +163,10 @@
 .serviceSubtotalRow td {
   font-weight: 700;
   background: color-mix(in srgb, var(--secondary) 12%, var(--background));
-  border-top: 1px solid color-mix(in srgb, var(--secondary) 40%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--secondary) 40%, var(--background));
+  border-top: 1px solid
+    color-mix(in srgb, var(--secondary) 40%, var(--background));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--secondary) 40%, var(--background));
 }
 
 .totalsArea {
@@ -211,8 +217,10 @@
 .sectionTotalRow td {
   font-weight: 700;
   background: color-mix(in srgb, var(--foreground) 12%, var(--background));
-  border-top: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-top: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
   border-right: 1px solid var(--border);
 }
 
@@ -232,9 +240,12 @@
 .periodTotalRow td {
   font-weight: 700;
   background: color-mix(in srgb, var(--primary) 12%, var(--background));
-  border-top: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
-  border-right: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-top: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-right: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
 }
 
 .periodTotalRow td:first-child {
@@ -269,8 +280,12 @@
   color: var(--muted-foreground);
 }
 
-.colCompact { width: 1%; }
-.colStretch { width: auto; }
+.colCompact {
+  width: 1%;
+}
+.colStretch {
+  width: auto;
+}
 
 @media print {
   @page {
@@ -311,11 +326,19 @@
     background: #fff !important;
   }
 
-  :global(body.print-service-revenue [data-print-service-revenue-table] [data-slot="card-header"]) {
+  :global(
+    body.print-service-revenue
+      [data-print-service-revenue-table]
+      [data-slot="card-header"]
+  ) {
     padding: 0 !important;
   }
 
-  :global(body.print-service-revenue [data-print-service-revenue-table] [data-slot="card-content"]) {
+  :global(
+    body.print-service-revenue
+      [data-print-service-revenue-table]
+      [data-slot="card-content"]
+  ) {
     padding: 0 !important;
   }
 

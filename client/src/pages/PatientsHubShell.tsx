@@ -60,19 +60,24 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 export default function PatientsHubShell() {
   const [location] = useLocation();
 
-  const isHubHome = location === "/patients-hub" || location === "/patients-hub/";
+  const isHubHome =
+    location === "/patients-hub" || location === "/patients-hub/";
 
   const renderComponent = () => {
     if (isHubHome) return null;
     if (location === "/patients-hub/list") return <PatientsHubList />;
     if (location === "/patients-hub/quick") return <QuickPatientEntry />;
-    if (location === "/patients-hub/followups") return <Redirect to="/followups" />;
+    if (location === "/patients-hub/followups")
+      return <Redirect to="/followups" />;
     if (location === "/patients-hub/visits") return <Redirect to="/visits" />;
 
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
         المسار غير معروف. ارجع إلى{" "}
-        <Link href="/patients-hub" className="font-semibold text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/patients-hub"
+          className="font-semibold text-primary underline-offset-4 hover:underline"
+        >
           مركز المرضى
         </Link>
         .
@@ -101,8 +106,12 @@ export default function PatientsHubShell() {
               <CardContent className="flex h-full flex-col gap-4 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 space-y-1 text-right">
-                    <h3 className="font-black text-base tracking-tight">{mod.title}</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{mod.description}</p>
+                    <h3 className="font-black text-base tracking-tight">
+                      {mod.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {mod.description}
+                    </p>
                   </div>
                   <div
                     className={cn(
@@ -114,7 +123,10 @@ export default function PatientsHubShell() {
                   </div>
                 </div>
                 <div className="mt-auto pt-2">
-                  <Button asChild className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2">
+                  <Button
+                    asChild
+                    className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2"
+                  >
                     <Link href={mod.href}>
                       <LayoutGrid className="h-4 w-4" />
                       فتح الموديول
@@ -135,7 +147,13 @@ export default function PatientsHubShell() {
         >
           <div className="flex flex-wrap gap-2 border-t border-border/60 px-4 py-4 justify-end bg-card/80">
             {MORE_LINKS.map((item) => (
-              <Button key={item.href} variant="outline" size="sm" asChild className="rounded-full">
+              <Button
+                key={item.href}
+                variant="outline"
+                size="sm"
+                asChild
+                className="rounded-full"
+              >
                 <Link href={item.href}>{item.label}</Link>
               </Button>
             ))}
@@ -146,7 +164,10 @@ export default function PatientsHubShell() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right"
+      dir="rtl"
+    >
       {!isHubHome ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" asChild className="gap-1">
@@ -155,7 +176,9 @@ export default function PatientsHubShell() {
               مركز المرضى
             </Link>
           </Button>
-          <span className="text-xs text-muted-foreground">التنقل الكامل متاح أيضاً من القائمة الجانبية.</span>
+          <span className="text-xs text-muted-foreground">
+            التنقل الكامل متاح أيضاً من القائمة الجانبية.
+          </span>
         </div>
       ) : null}
 

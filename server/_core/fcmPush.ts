@@ -33,7 +33,10 @@ let accessTokenCache: AccessTokenCache | null = null;
 function getFcmCredentials(): FcmCredentials | null {
   if (ENV.fcmServiceAccountJson) {
     try {
-      const parsed = JSON.parse(ENV.fcmServiceAccountJson) as Record<string, unknown>;
+      const parsed = JSON.parse(ENV.fcmServiceAccountJson) as Record<
+        string,
+        unknown
+      >;
       const projectId = String(parsed.project_id ?? "").trim();
       const clientEmail = String(parsed.client_email ?? "").trim();
       const privateKey = String(parsed.private_key ?? "").trim();
@@ -51,7 +54,9 @@ function getFcmCredentials(): FcmCredentials | null {
 
   const projectId = String(ENV.fcmProjectId ?? "").trim();
   const clientEmail = String(ENV.fcmClientEmail ?? "").trim();
-  const privateKey = String(ENV.fcmPrivateKey ?? "").replace(/\\n/g, "\n").trim();
+  const privateKey = String(ENV.fcmPrivateKey ?? "")
+    .replace(/\\n/g, "\n")
+    .trim();
   if (!projectId || !clientEmail || !privateKey) return null;
 
   return {
@@ -100,10 +105,12 @@ async function getAccessToken() {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`Failed to obtain FCM access token (${response.status}): ${detail}`);
+    throw new Error(
+      `Failed to obtain FCM access token (${response.status}): ${detail}`,
+    );
   }
 
-  const json = await response.json() as {
+  const json = (await response.json()) as {
     access_token?: string;
     expires_in?: number;
   };
@@ -160,9 +167,13 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
     ? Array.from(
         new Set(
           payload.targetRoles
-            .map((value) => String(value ?? "").trim().toLowerCase())
-            .filter(Boolean)
-        )
+            .map((value) =>
+              String(value ?? "")
+                .trim()
+                .toLowerCase(),
+            )
+            .filter(Boolean),
+        ),
       )
     : [];
   const normalizedTargetUserIds = Array.isArray(payload.targetUserIds)
@@ -170,8 +181,8 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
         new Set(
           payload.targetUserIds
             .map((value) => Number(value))
-            .filter((value) => Number.isFinite(value) && value > 0)
-        )
+            .filter((value) => Number.isFinite(value) && value > 0),
+        ),
       )
     : [];
   const userRoleCache = new Map<number, string>();
@@ -191,7 +202,10 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
     }
     const registrationUserId = Number((registration as any).userId ?? 0);
     if (normalizedTargetUserIds.length > 0) {
-      if (!Number.isFinite(registrationUserId) || !normalizedTargetUserIds.includes(registrationUserId)) {
+      if (
+        !Number.isFinite(registrationUserId) ||
+        !normalizedTargetUserIds.includes(registrationUserId)
+      ) {
         skipped += 1;
         continue;
       }
@@ -204,7 +218,9 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
       let userRole = userRoleCache.get(registrationUserId);
       if (!userRole) {
         const user = await db.getUserById(registrationUserId).catch(() => null);
-        userRole = String((user as any)?.role ?? "").trim().toLowerCase();
+        userRole = String((user as any)?.role ?? "")
+          .trim()
+          .toLowerCase();
         if (userRole) userRoleCache.set(registrationUserId, userRole);
       }
       if (!userRole || !normalizedTargetRoles.includes(userRole)) {
@@ -235,7 +251,8 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
               targetUserIds: normalizedTargetUserIds.join(","),
               path: payload.path ?? "",
               entityType: payload.entityType ?? "",
-              entityId: payload.entityId == null ? "" : String(payload.entityId),
+              entityId:
+                payload.entityId == null ? "" : String(payload.entityId),
             },
             android: {
               priority: "high",
@@ -245,7 +262,7 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
             },
           },
         }),
-      }
+      },
     );
 
     if (response.ok) {
@@ -258,7 +275,9 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
       await db.disablePushDeviceToken(token).catch(() => {});
     }
     skipped += 1;
-    console.warn(`[FCM] Failed to send push (${response.status}) for token ${token.slice(0, 12)}...: ${detail}`);
+    console.warn(
+      `[FCM] Failed to send push (${response.status}) for token ${token.slice(0, 12)}...: ${detail}`,
+    );
   }
 
   return {

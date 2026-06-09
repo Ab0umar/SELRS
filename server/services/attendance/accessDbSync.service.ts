@@ -6,9 +6,9 @@
  * falls back to reading punch data from Access DB (Taurus.mdb)
  */
 
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
 
 interface AccessPunch {
   empNo: string;
@@ -26,7 +26,7 @@ export class AccessDbSyncService {
 
   constructor(accessDbPath?: string) {
     // Default to known Taratus location
-    this.accessDbPath = accessDbPath || 'D:\\Taurus V3.0\\Taurus.mdb';
+    this.accessDbPath = accessDbPath || "D:\\Taurus V3.0\\Taurus.mdb";
   }
 
   /**
@@ -46,7 +46,7 @@ export class AccessDbSyncService {
       if (stats.size === 0) {
         return {
           available: false,
-          error: 'Access DB file is empty or corrupted',
+          error: "Access DB file is empty or corrupted",
         };
       }
 
@@ -108,7 +108,7 @@ $results | ConvertTo-Json
 
       // Execute PowerShell command
       const result = execSync(`powershell -NoProfile -Command "${psCommand}"`, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
       });
 
       // Parse results
@@ -122,7 +122,7 @@ $results | ConvertTo-Json
         : [];
     } catch (error) {
       throw new Error(
-        `Failed to read Access DB: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to read Access DB: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -167,14 +167,14 @@ $results | ConvertTo-Json
 `;
 
       const result = execSync(`powershell -NoProfile -Command "${psCommand}"`, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
       });
 
       const records = JSON.parse(result);
       return Array.isArray(records) ? records : [];
     } catch (error) {
       throw new Error(
-        `Failed to read employee list: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to read employee list: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -182,9 +182,7 @@ $results | ConvertTo-Json
 
 let accessSyncInstance: AccessDbSyncService | null = null;
 
-export function getAccessDbSync(
-  dbPath?: string
-): AccessDbSyncService {
+export function getAccessDbSync(dbPath?: string): AccessDbSyncService {
   if (!accessSyncInstance) {
     accessSyncInstance = new AccessDbSyncService(dbPath);
   }

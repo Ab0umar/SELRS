@@ -12,11 +12,15 @@ export const PENTACAM_ALLOWED_SRV_CODES = [
   "1616",
 ] as const;
 
-const PENTACAM_ALLOWED_SRV_CODE_SET = new Set(PENTACAM_ALLOWED_SRV_CODES.map((code) => code.toLowerCase()));
+const PENTACAM_ALLOWED_SRV_CODE_SET = new Set(
+  PENTACAM_ALLOWED_SRV_CODES.map((code) => code.toLowerCase()),
+);
 const PENTACAM_ALLOWED_LOCATION_TYPES = new Set(["center", "external"]);
 
 function normalizeText(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function pushCode(set: Set<string>, value: unknown): void {
@@ -59,4 +63,3 @@ export function isPentacamEligiblePatient(patient: unknown): boolean {
   const serviceCodes = extractPentacamServiceCodes(row);
   return serviceCodes.some((code) => PENTACAM_ALLOWED_SRV_CODE_SET.has(code));
 }
-

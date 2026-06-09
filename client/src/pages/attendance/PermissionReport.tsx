@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const todayStr = new Date().toISOString().split("T")[0];
-const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+const firstOfMonth = new Date(
+  new Date().getFullYear(),
+  new Date().getMonth(),
+  1,
+)
   .toISOString()
   .split("T")[0];
 
@@ -141,7 +145,9 @@ export default function PermissionReport() {
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">من</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                من
+              </label>
               <input
                 type="date"
                 value={from}
@@ -151,7 +157,9 @@ export default function PermissionReport() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">إلى</label>
+              <label className="block text-sm font-medium text-muted-foreground">
+                إلى
+              </label>
               <input
                 type="date"
                 value={to}
@@ -252,41 +260,93 @@ export default function PermissionReport() {
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm" dir="rtl">
+              <table dir="rtl" className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/60">
-                    <th className="border-b px-4 py-2 text-right font-semibold text-foreground" rowSpan={2}>الكود</th>
-                    <th className="border-b px-4 py-2 text-right font-semibold text-foreground" rowSpan={2}>الاسم</th>
-                    <th className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-center font-semibold text-primary" colSpan={2}>أذونات دخول</th>
-                    <th className="border-b border-secondary/20 bg-secondary/5 px-4 py-2 text-center font-semibold text-secondary" colSpan={2}>أذونات خروج</th>
-                    <th className="border-b px-4 py-2 text-right font-semibold text-foreground" rowSpan={2}>إجمالي (د)</th>
+                    <th
+                      className="border-b px-4 py-2 text-right font-semibold text-foreground"
+                      rowSpan={2}
+                    >
+                      الكود
+                    </th>
+                    <th
+                      className="border-b px-4 py-2 text-right font-semibold text-foreground"
+                      rowSpan={2}
+                    >
+                      الاسم
+                    </th>
+                    <th
+                      className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-center font-semibold text-primary"
+                      colSpan={2}
+                    >
+                      أذونات دخول
+                    </th>
+                    <th
+                      className="border-b border-secondary/20 bg-secondary/5 px-4 py-2 text-center font-semibold text-secondary"
+                      colSpan={2}
+                    >
+                      أذونات خروج
+                    </th>
+                    <th
+                      className="border-b px-4 py-2 text-right font-semibold text-foreground"
+                      rowSpan={2}
+                    >
+                      إجمالي (د)
+                    </th>
                   </tr>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">عدد</th>
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">دقائق</th>
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">عدد</th>
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">دقائق</th>
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">
+                      عدد
+                    </th>
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">
+                      دقائق
+                    </th>
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">
+                      عدد
+                    </th>
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">
+                      دقائق
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row: any) => (
-                    <tr key={row.empCd} className="border-b transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{row.empCd}</td>
-                      <td className="px-4 py-2 font-medium text-foreground">{row.empName ?? "-"}</td>
+                    <tr
+                      key={row.empCd}
+                      className="border-b transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                        {row.empCd}
+                      </td>
+                      <td className="px-4 py-2 font-medium text-foreground">
+                        {row.empName ?? "-"}
+                      </td>
                       <td className="px-4 py-2 text-primary">{row.inCount}</td>
-                      <td className="px-4 py-2 text-primary">{row.totalInMins}</td>
-                      <td className="px-4 py-2 text-secondary">{row.outCount}</td>
-                      <td className="px-4 py-2 text-secondary">{row.totalOutMins}</td>
-                      <td className="px-4 py-2 font-semibold text-foreground">{(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}</td>
+                      <td className="px-4 py-2 text-primary">
+                        {row.totalInMins}
+                      </td>
+                      <td className="px-4 py-2 text-secondary">
+                        {row.outCount}
+                      </td>
+                      <td className="px-4 py-2 text-secondary">
+                        {row.totalOutMins}
+                      </td>
+                      <td className="px-4 py-2 font-semibold text-foreground">
+                        {(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 bg-primary/5 font-bold">
-                    <td className="px-4 py-2" colSpan={2}>الإجمالي</td>
+                    <td className="px-4 py-2" colSpan={2}>
+                      الإجمالي
+                    </td>
                     <td className="px-4 py-2 text-primary">{totalInCount}</td>
                     <td className="px-4 py-2 text-primary">{totalInMins}</td>
-                    <td className="px-4 py-2 text-secondary">{totalOutCount}</td>
+                    <td className="px-4 py-2 text-secondary">
+                      {totalOutCount}
+                    </td>
                     <td className="px-4 py-2 text-secondary">{totalOutMins}</td>
                     <td className="px-4 py-2">{totalInMins + totalOutMins}</td>
                   </tr>

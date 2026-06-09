@@ -3,13 +3,42 @@ import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, doctorProcedure, nurseProcedure, technicianProcedure, receptionProcedure, managerProcedure, adminProcedure, medicalStaffProcedure } from "../_core/procedures";
+import {
+  router,
+  protectedProcedure,
+  doctorProcedure,
+  nurseProcedure,
+  technicianProcedure,
+  receptionProcedure,
+  managerProcedure,
+  adminProcedure,
+  medicalStaffProcedure,
+} from "../_core/procedures";
 import { authService } from "../_core/auth";
-import { getAppNotificationSettings, pushAppNotification, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
+import {
+  getAppNotificationSettings,
+  pushAppNotification,
+  DEFAULT_APP_NOTIFICATION_SETTINGS,
+} from "../_core/appNotifications";
 import { isFcmConfigured } from "../_core/fcmPush";
 import * as db from "../db";
 import { eq, asc, desc, and, inArray, sql } from "drizzle-orm";
-import { services, doctorsLookup, patients, examinations, examinationChecklistItems, patientPageStates, autorefractometryData, afterRefractionData, glassesRecords, pentacamResults, doctorReports, testRequests, prescriptions, patientServiceEntries } from "../../drizzle/schema";
+import {
+  services,
+  doctorsLookup,
+  patients,
+  examinations,
+  examinationChecklistItems,
+  patientPageStates,
+  autorefractometryData,
+  afterRefractionData,
+  glassesRecords,
+  pentacamResults,
+  doctorReports,
+  testRequests,
+  prescriptions,
+  patientServiceEntries,
+} from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -27,14 +56,28 @@ import {
 
 const DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG = {
   enabled: true,
-  intervalMs: Math.max(5_000, Number(process.env.MSSQL_SYNC_INTERVAL_MS ?? 30_000)),
-  limit: Math.max(1, Math.min(20_000, Number(process.env.MSSQL_SYNC_LIMIT ?? 5000))),
-  incremental: String(process.env.MSSQL_SYNC_INCREMENTAL_AUTO ?? "true").toLowerCase() !== "false",
-  overwriteExisting: String(process.env.MSSQL_SYNC_UPDATE_EXISTING ?? "false").toLowerCase() === "true",
+  intervalMs: Math.max(
+    5_000,
+    Number(process.env.MSSQL_SYNC_INTERVAL_MS ?? 30_000),
+  ),
+  limit: Math.max(
+    1,
+    Math.min(20_000, Number(process.env.MSSQL_SYNC_LIMIT ?? 5000)),
+  ),
+  incremental:
+    String(process.env.MSSQL_SYNC_INCREMENTAL_AUTO ?? "true").toLowerCase() !==
+    "false",
+  overwriteExisting:
+    String(process.env.MSSQL_SYNC_UPDATE_EXISTING ?? "false").toLowerCase() ===
+    "true",
   preserveManualEdits:
-    String(process.env.MSSQL_SYNC_PRESERVE_MANUAL_EDITS ?? "true").toLowerCase() !== "false",
+    String(
+      process.env.MSSQL_SYNC_PRESERVE_MANUAL_EDITS ?? "true",
+    ).toLowerCase() !== "false",
   linkServicesForExisting:
-    String(process.env.MSSQL_SYNC_LINK_SERVICES_FOR_EXISTING ?? "true").toLowerCase() !== "false",
+    String(
+      process.env.MSSQL_SYNC_LINK_SERVICES_FOR_EXISTING ?? "true",
+    ).toLowerCase() !== "false",
 };
 
 const getSystemSettingFallbackValue = (key: string) => {
@@ -48,45 +91,104 @@ const getSystemSettingFallbackValue = (key: string) => {
 
 const LASIK_CODES = new Set(["1501", "1502"]);
 const CONSULTANT_CODES = new Set(["1589"]);
-const SPECIALIST_CODES = new Set(["1586", "1604", "1605", "1606", "1608", "1609", "1613"]);
-const XRAY_CODES = new Set(["1590", "1600", "1601", "1614", "1615", "1616", "1572"]);
+const SPECIALIST_CODES = new Set([
+  "1586",
+  "1604",
+  "1605",
+  "1606",
+  "1608",
+  "1609",
+  "1613",
+]);
+const XRAY_CODES = new Set([
+  "1590",
+  "1600",
+  "1601",
+  "1614",
+  "1615",
+  "1616",
+  "1572",
+]);
 
 function resolvePatientNotifTitle(serviceCodes: string[]): string {
-  const codes = new Set(serviceCodes.map((c) => String(c).trim()).filter(Boolean));
+  const codes = new Set(
+    serviceCodes.map((c) => String(c).trim()).filter(Boolean),
+  );
   if (codes.has("1501") && codes.has("1502")) return "حجز فحص ليزك جديد";
-  if ([...codes].some((c) => CONSULTANT_CODES.has(c))) return "حجز كشف استشاري جديد";
-  if ([...codes].some((c) => SPECIALIST_CODES.has(c))) return "حجز كشف أخصائي جديد";
+  if ([...codes].some((c) => CONSULTANT_CODES.has(c)))
+    return "حجز كشف استشاري جديد";
+  if ([...codes].some((c) => SPECIALIST_CODES.has(c)))
+    return "حجز كشف أخصائي جديد";
   if ([...codes].some((c) => XRAY_CODES.has(c))) return "حجز اشعه جديد";
   return "حجز جديد";
 }
 
-function resolveNotificationTargetRolesByUserRole(role: unknown): string[] | null {
-  const normalizedRole = String(role ?? "").trim().toLowerCase();
+function resolveNotificationTargetRolesByUserRole(
+  role: unknown,
+): string[] | null {
+  const normalizedRole = String(role ?? "")
+    .trim()
+    .toLowerCase();
   if (normalizedRole === "reception") return null;
-  if (normalizedRole === "nurse" || normalizedRole === "technician") return ["doctor"];
+  if (normalizedRole === "nurse" || normalizedRole === "technician")
+    return ["doctor"];
   return null;
 }
 
-async function assertPentacamViewPermission(user: { id: number; role?: string | null }) {
-  const role = String(user?.role ?? "").trim().toLowerCase();
+async function assertPentacamViewPermission(user: {
+  id: number;
+  role?: string | null;
+}) {
+  const role = String(user?.role ?? "")
+    .trim()
+    .toLowerCase();
   if (role === "admin") return;
-  const permissions = await db.getEffectiveUserPermissions(user.id, user.role ?? undefined);
+  const permissions = await db.getEffectiveUserPermissions(
+    user.id,
+    user.role ?? undefined,
+  );
   if (permissions.includes("/sheets/pentacam/:id")) return;
-  throw new TRPCError({ code: "FORBIDDEN", message: "No permission for Pentacam exports" });
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "No permission for Pentacam exports",
+  });
 }
 
-const doctorLocationTypeSchema = z.preprocess((value) => {
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (raw === "external" || raw === "خارجي" || raw === "outside" || raw === "out") return "external";
-  return "center";
-}, z.enum(["center", "external"]));
+const doctorLocationTypeSchema = z.preprocess(
+  (value) => {
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (
+      raw === "external" ||
+      raw === "خارجي" ||
+      raw === "outside" ||
+      raw === "out"
+    )
+      return "external";
+    return "center";
+  },
+  z.enum(["center", "external"]),
+);
 
-const doctorTypeSchema = z.preprocess((value) => {
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (raw === "specialist" || raw === "اخصائي" || raw === "أخصائي") return "specialist";
-  if (raw === "external" || raw === "خارجي" || raw === "outside" || raw === "out") return "external";
-  return "consultant";
-}, z.enum(["consultant", "specialist", "external"]));
+const doctorTypeSchema = z.preprocess(
+  (value) => {
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (raw === "specialist" || raw === "اخصائي" || raw === "أخصائي")
+      return "specialist";
+    if (
+      raw === "external" ||
+      raw === "خارجي" ||
+      raw === "outside" ||
+      raw === "out"
+    )
+      return "external";
+    return "consultant";
+  },
+  z.enum(["consultant", "specialist", "external"]),
+);
 
 const doctorDirectoryEntrySchema = z.object({
   id: z.string().min(1),
@@ -101,14 +203,24 @@ const serviceDirectoryEntrySchema = z.object({
   id: z.string().min(1),
   code: z.string().min(1),
   name: z.string().min(1),
-  category: z.enum(["examination", "radiology", "operations", "miscellaneous"]).optional(),
-  serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]),
-  srvTyp: z
-    .preprocess((value) => {
+  category: z
+    .enum(["examination", "radiology", "operations", "miscellaneous"])
+    .optional(),
+  serviceType: z.enum([
+    "consultant",
+    "specialist",
+    "lasik",
+    "surgery",
+    "external",
+  ]),
+  srvTyp: z.preprocess(
+    (value) => {
       const raw = String(value ?? "").trim();
       if (!raw) return undefined;
       return raw;
-    }, z.enum(["1", "2"]).optional()),
+    },
+    z.enum(["1", "2"]).optional(),
+  ),
   defaultSheet: z
     .enum([
       "consultant",
@@ -144,7 +256,10 @@ const readReadyPrescriptionTemplatesFromFile = async (filePath: string) => {
     }
   };
   const normalizeHeader = (value: unknown) =>
-    decodeHeader(value).trim().toLowerCase().replace(/[\s\-_]+/g, "");
+    decodeHeader(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s\-_]+/g, "");
   const buildRowLookup = (row: Record<string, unknown>) => {
     const lookup = new Map<string, unknown>();
     for (const [key, value] of Object.entries(row)) {
@@ -177,7 +292,11 @@ const readReadyPrescriptionTemplatesFromFile = async (filePath: string) => {
     if (!sheet) return [] as Array<Record<string, unknown>>;
     return XLSX.utils
       .sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
-      .map((row) => ({ ...row, __sheetName: sheetName, __sheetIndex: sheetIndex }));
+      .map((row) => ({
+        ...row,
+        __sheetName: sheetName,
+        __sheetIndex: sheetIndex,
+      }));
   });
 
   const grouped = new Map<
@@ -200,32 +319,62 @@ const readReadyPrescriptionTemplatesFromFile = async (filePath: string) => {
   for (const row of rows) {
     const lookup = buildRowLookup(row);
     const templateIdRaw = String(
-      getRowValue(lookup, "templateId", "template_id", "template id", "كود القالب") ?? ""
+      getRowValue(
+        lookup,
+        "templateId",
+        "template_id",
+        "template id",
+        "كود القالب",
+      ) ?? "",
     );
     const templateNameRaw = String(
-      getRowValue(lookup, "templateName", "template_name", "template name", "اسم القالب") ?? ""
+      getRowValue(
+        lookup,
+        "templateName",
+        "template_name",
+        "template name",
+        "اسم القالب",
+      ) ?? "",
     );
     const templateKeyRaw = String(
-      getRowValue(lookup, "templateKey", "template_key", "template key") ?? ""
+      getRowValue(lookup, "templateKey", "template_key", "template key") ?? "",
     );
     const sheetNameRaw = String((row as any).__sheetName ?? "");
     const sheetIndexRaw = Number((row as any).__sheetIndex ?? -1);
     const medicationName = String(
-      getRowValue(lookup, "medicationName", "medication_name", "medication name", "اسم الدواء") ?? ""
+      getRowValue(
+        lookup,
+        "medicationName",
+        "medication_name",
+        "medication name",
+        "اسم الدواء",
+      ) ?? "",
     ).trim();
-    const dosage = String(getRowValue(lookup, "dosage", "الجرعة", "جرعة") ?? "").trim();
-    const frequency = String(getRowValue(lookup, "frequency", "التكرار") ?? "").trim();
-    const duration = String(getRowValue(lookup, "duration", "المدة") ?? "").trim();
-    const instructions = String(getRowValue(lookup, "instructions", "التعليمات") ?? "").trim();
+    const dosage = String(
+      getRowValue(lookup, "dosage", "الجرعة", "جرعة") ?? "",
+    ).trim();
+    const frequency = String(
+      getRowValue(lookup, "frequency", "التكرار") ?? "",
+    ).trim();
+    const duration = String(
+      getRowValue(lookup, "duration", "المدة") ?? "",
+    ).trim();
+    const instructions = String(
+      getRowValue(lookup, "instructions", "التعليمات") ?? "",
+    ).trim();
 
     const normalizedBaseId =
       normalizeTemplateId(templateKeyRaw) ||
       normalizeTemplateId(
-        templateIdRaw && sheetIndexRaw >= 0 ? `${templateIdRaw}__s${sheetIndexRaw}` : ""
+        templateIdRaw && sheetIndexRaw >= 0
+          ? `${templateIdRaw}__s${sheetIndexRaw}`
+          : "",
       ) ||
       normalizeTemplateId(templateIdRaw) ||
       normalizeTemplateId(
-        templateNameRaw && sheetIndexRaw >= 0 ? `${templateNameRaw}__s${sheetIndexRaw}` : ""
+        templateNameRaw && sheetIndexRaw >= 0
+          ? `${templateNameRaw}__s${sheetIndexRaw}`
+          : "",
       ) ||
       normalizeTemplateId(templateNameRaw) ||
       normalizeTemplateId(sheetNameRaw) ||
@@ -258,12 +407,14 @@ const readReadyPrescriptionTemplatesFromFile = async (filePath: string) => {
     });
   }
 
-  return Array.from(grouped.values()).filter((t) => t.prescriptionItems.length > 0);
+  return Array.from(grouped.values()).filter(
+    (t) => t.prescriptionItems.length > 0,
+  );
 };
 
 const readReadyTestTemplatesFromFile = async (
   filePath: string,
-  tests: Array<{ id: number; name?: string | null }>
+  tests: Array<{ id: number; name?: string | null }>,
 ) => {
   const decodeHeader = (value: unknown) => {
     const raw = String(value ?? "");
@@ -275,7 +426,10 @@ const readReadyTestTemplatesFromFile = async (
     }
   };
   const normalizeHeader = (value: unknown) =>
-    decodeHeader(value).trim().toLowerCase().replace(/[\s\-_]+/g, "");
+    decodeHeader(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s\-_]+/g, "");
   const buildRowLookup = (row: Record<string, unknown>) => {
     const lookup = new Map<string, unknown>();
     for (const [key, value] of Object.entries(row)) {
@@ -308,13 +462,25 @@ const readReadyTestTemplatesFromFile = async (
     if (!sheet) return [] as Array<Record<string, unknown>>;
     return XLSX.utils
       .sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
-      .map((row) => ({ ...row, __sheetName: sheetName, __sheetIndex: sheetIndex }));
+      .map((row) => ({
+        ...row,
+        __sheetName: sheetName,
+        __sheetIndex: sheetIndex,
+      }));
   });
 
   const byName = new Map(
     tests
-      .map((test) => [String(test?.name ?? "").trim().toLowerCase(), test.id] as const)
-      .filter((entry) => entry[0])
+      .map(
+        (test) =>
+          [
+            String(test?.name ?? "")
+              .trim()
+              .toLowerCase(),
+            test.id,
+          ] as const,
+      )
+      .filter((entry) => entry[0]),
   );
 
   const grouped = new Map<
@@ -331,32 +497,51 @@ const readReadyTestTemplatesFromFile = async (
   for (const row of rows) {
     const lookup = buildRowLookup(row);
     const templateIdRaw = String(
-      getRowValue(lookup, "templateId", "template_id", "template id", "كود القالب") ?? ""
+      getRowValue(
+        lookup,
+        "templateId",
+        "template_id",
+        "template id",
+        "كود القالب",
+      ) ?? "",
     );
     const templateNameRaw = String(
-      getRowValue(lookup, "templateName", "template_name", "template name", "اسم القالب") ?? ""
+      getRowValue(
+        lookup,
+        "templateName",
+        "template_name",
+        "template name",
+        "اسم القالب",
+      ) ?? "",
     );
     const templateKeyRaw = String(
-      getRowValue(lookup, "templateKey", "template_key", "template key") ?? ""
+      getRowValue(lookup, "templateKey", "template_key", "template key") ?? "",
     );
     const sheetNameRaw = String((row as any).__sheetName ?? "");
     const sheetIndexRaw = Number((row as any).__sheetIndex ?? -1);
     const testIdRaw = Number(
-      getRowValue(lookup, "testId", "test_id", "test id", "كود الفحص") ?? 0
+      getRowValue(lookup, "testId", "test_id", "test id", "كود الفحص") ?? 0,
     );
     const testNameRaw = String(
-      getRowValue(lookup, "testName", "test_name", "test name", "اسم الفحص") ?? ""
+      getRowValue(lookup, "testName", "test_name", "test name", "اسم الفحص") ??
+        "",
     ).trim();
-    const notes = String(getRowValue(lookup, "notes", "ملاحظات", "الملاحظات") ?? "").trim();
+    const notes = String(
+      getRowValue(lookup, "notes", "ملاحظات", "الملاحظات") ?? "",
+    ).trim();
 
     const normalizedBaseId =
       normalizeTemplateId(templateKeyRaw) ||
       normalizeTemplateId(
-        templateIdRaw && sheetIndexRaw >= 0 ? `${templateIdRaw}__s${sheetIndexRaw}` : ""
+        templateIdRaw && sheetIndexRaw >= 0
+          ? `${templateIdRaw}__s${sheetIndexRaw}`
+          : "",
       ) ||
       normalizeTemplateId(templateIdRaw) ||
       normalizeTemplateId(
-        templateNameRaw && sheetIndexRaw >= 0 ? `${templateNameRaw}__s${sheetIndexRaw}` : ""
+        templateNameRaw && sheetIndexRaw >= 0
+          ? `${templateNameRaw}__s${sheetIndexRaw}`
+          : "",
       ) ||
       normalizeTemplateId(templateNameRaw) ||
       normalizeTemplateId(sheetNameRaw) ||
@@ -407,7 +592,7 @@ const readyTemplateOverrideUpdateSchema = z.object({
         testId: z.number().optional().default(0),
         testName: z.string().optional(),
         notes: z.string().optional(),
-      })
+      }),
     )
     .optional(),
   prescriptionItems: z
@@ -418,7 +603,7 @@ const readyTemplateOverrideUpdateSchema = z.object({
         frequency: z.string().optional(),
         duration: z.string().optional(),
         instructions: z.string().optional(),
-      })
+      }),
     )
     .optional(),
 });
@@ -435,7 +620,7 @@ const readyTemplateOverrideImportSchema = z.object({
             testId: z.number().optional().default(0),
             testName: z.string().optional(),
             notes: z.string().optional(),
-          })
+          }),
         )
         .optional(),
       prescriptionItems: z
@@ -446,10 +631,10 @@ const readyTemplateOverrideImportSchema = z.object({
             frequency: z.string().optional(),
             duration: z.string().optional(),
             instructions: z.string().optional(),
-          })
+          }),
         )
         .optional(),
-    })
+    }),
   ),
 });
 
@@ -459,7 +644,9 @@ const inferSrvTyp = (entry: {
   srvTyp?: "1" | "2";
 }): "1" | "2" => {
   if (entry.srvTyp === "1" || entry.srvTyp === "2") return entry.srvTyp;
-  const sheet = String(entry.defaultSheet ?? "").trim().toLowerCase();
+  const sheet = String(entry.defaultSheet ?? "")
+    .trim()
+    .toLowerCase();
   if (
     entry.serviceType === "external" ||
     sheet === "external" ||
@@ -476,11 +663,19 @@ const inferSrvTyp = (entry: {
 
 const normalizeServiceDefaultSheet = (
   value: unknown,
-  fallbackServiceType: "consultant" | "specialist" | "lasik" | "surgery" | "external"
+  fallbackServiceType:
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external",
 ) => {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return fallbackServiceType;
-  if (raw === "pentacam" || raw === "radiology_center") return "pentacam_center";
+  if (raw === "pentacam" || raw === "radiology_center")
+    return "pentacam_center";
   if (raw === "radiology_external") return "pentacam_external";
   if (raw === "pentacam_c") return "pentacam_c";
   if (raw === "pentacam_ex") return "pentacam_ex";
@@ -498,10 +693,14 @@ const normalizeServiceDefaultSheet = (
 
 const serviceTypeFromSheetOrType = (
   defaultSheetRaw: unknown,
-  serviceTypeRaw: unknown
+  serviceTypeRaw: unknown,
 ): "consultant" | "specialist" | "lasik" | "surgery" | "external" => {
-  const sheet = String(defaultSheetRaw ?? "").trim().toLowerCase();
-  const type = String(serviceTypeRaw ?? "").trim().toLowerCase();
+  const sheet = String(defaultSheetRaw ?? "")
+    .trim()
+    .toLowerCase();
+  const type = String(serviceTypeRaw ?? "")
+    .trim()
+    .toLowerCase();
   if (
     sheet === "external" ||
     sheet === "surgery_external" ||
@@ -623,7 +822,10 @@ function extractPatientCodeCandidatesFromFileName(fileName: string): string[] {
   }
 
   // IMAGEnet variants with short alpha prefix/suffix around numeric code.
-  if (/^[A-Za-z]{1,5}\d{3,12}$/.test(first) || /^\d{3,12}[A-Za-z]{1,5}$/.test(first)) {
+  if (
+    /^[A-Za-z]{1,5}\d{3,12}$/.test(first) ||
+    /^\d{3,12}[A-Za-z]{1,5}$/.test(first)
+  ) {
     const digits = first.replace(/\D+/g, "");
     if (/^\d{3,12}$/.test(digits)) out.add(digits);
   }
@@ -642,13 +844,42 @@ function normalizePentacamPhoneticToken(token: string): string {
   if (!raw) return "";
 
   const arabicMap: Record<string, string> = {
-    "ا": "a", "أ": "a", "إ": "a", "آ": "a", "ء": "",
-    "ؤ": "w", "ئ": "y", "ب": "b", "ت": "t", "ث": "s",
-    "ج": "g", "ح": "h", "خ": "kh", "د": "d", "ذ": "z",
-    "ر": "r", "ز": "z", "س": "s", "ش": "sh", "ص": "s",
-    "ض": "d", "ط": "t", "ظ": "z", "ع": "a", "غ": "g",
-    "ف": "f", "ق": "k", "ك": "k", "ل": "l", "م": "m",
-    "ن": "n", "ه": "h", "ة": "h", "و": "w", "ي": "y", "ى": "y",
+    ا: "a",
+    أ: "a",
+    إ: "a",
+    آ: "a",
+    ء: "",
+    ؤ: "w",
+    ئ: "y",
+    ب: "b",
+    ت: "t",
+    ث: "s",
+    ج: "g",
+    ح: "h",
+    خ: "kh",
+    د: "d",
+    ذ: "z",
+    ر: "r",
+    ز: "z",
+    س: "s",
+    ش: "sh",
+    ص: "s",
+    ض: "d",
+    ط: "t",
+    ظ: "z",
+    ع: "a",
+    غ: "g",
+    ف: "f",
+    ق: "k",
+    ك: "k",
+    ل: "l",
+    م: "m",
+    ن: "n",
+    ه: "h",
+    ة: "h",
+    و: "w",
+    ي: "y",
+    ى: "y",
   };
 
   const mapped = Array.from(raw)
@@ -656,9 +887,7 @@ function normalizePentacamPhoneticToken(token: string): string {
     .join("")
     .toLowerCase();
 
-  const folded = mapped
-    .replace(/ph/g, "f")
-    .replace(/ch/g, "sh");
+  const folded = mapped.replace(/ph/g, "f").replace(/ch/g, "sh");
 
   const normalizedAbd = folded
     // Unify Abd El / Abd Al / Abdel* shapes.
@@ -690,7 +919,9 @@ function buildPentacamTokenSignatureSet(value: string): Set<string> {
 }
 
 function buildPentacamNameKeys(fullName: string): string[] {
-  const clean = String(fullName ?? "").replace(/\s+/g, " ").trim();
+  const clean = String(fullName ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!clean) return [];
   const parts = clean.split(" ").filter(Boolean);
   const variants = new Set<string>();
@@ -751,7 +982,8 @@ async function buildPentacamPatientCandidates(): Promise<{
     const tokenSignatureSet = new Set<string>();
     for (const key of keys) {
       for (const token of tokenizePentacamMatchText(key)) tokenSet.add(token);
-      for (const signature of buildPentacamTokenSignatureSet(key)) tokenSignatureSet.add(signature);
+      for (const signature of buildPentacamTokenSignatureSet(key))
+        tokenSignatureSet.add(signature);
     }
     candidates.push({
       patient: row,
@@ -765,12 +997,14 @@ async function buildPentacamPatientCandidates(): Promise<{
 
 function resolvePatientForPentacamFileName(
   fileName: string,
-  matcher: { byCode: Map<string, any>; candidates: PentacamPatientCandidate[] }
+  matcher: { byCode: Map<string, any>; candidates: PentacamPatientCandidate[] },
 ): { patient: any; matchedBy: string } | null {
   const codeCandidates = extractPatientCodeCandidatesFromFileName(fileName);
   const hasExplicitCode = codeCandidates.length > 0;
   for (const candidate of codeCandidates) {
-    const patient = matcher.byCode.get(candidate) ?? matcher.byCode.get(candidate.toUpperCase());
+    const patient =
+      matcher.byCode.get(candidate) ??
+      matcher.byCode.get(candidate.toUpperCase());
     if (patient) return { patient, matchedBy: `code:${candidate}` };
   }
   if (hasExplicitCode) return null;
@@ -795,7 +1029,8 @@ function resolvePatientForPentacamFileName(
   };
   const patientDayDiff = (patient: any) => {
     const refMs = patientReferenceMs(patient);
-    if (!Number.isFinite(capturedAtMs) || !Number.isFinite(refMs)) return Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(capturedAtMs) || !Number.isFinite(refMs))
+      return Number.POSITIVE_INFINITY;
     return Math.abs(Math.round((capturedAtMs - refMs) / 86400000));
   };
   const patientTieKey = (patient: any) => {
@@ -805,7 +1040,12 @@ function resolvePatientForPentacamFileName(
   };
 
   // First pass: direct key include (supports 2nd/3rd/1st order keys).
-  let bestInclude: { patient: any; score: number; matchedBy: string; dayDiff: number } | null = null;
+  let bestInclude: {
+    patient: any;
+    score: number;
+    matchedBy: string;
+    dayDiff: number;
+  } | null = null;
   for (const candidate of matcher.candidates) {
     for (const nameKey of candidate.normalizedNameKeys) {
       if (!nameKey || nameKey.length < 4) continue;
@@ -827,16 +1067,27 @@ function resolvePatientForPentacamFileName(
           dayDiff === bestInclude.dayDiff &&
           patientTieKey(candidate.patient) < patientTieKey(bestInclude.patient))
       ) {
-        bestInclude = { patient: candidate.patient, score, matchedBy: `name:${nameKey}`, dayDiff };
+        bestInclude = {
+          patient: candidate.patient,
+          score,
+          matchedBy: `name:${nameKey}`,
+          dayDiff,
+        };
       }
     }
   }
-  if (bestInclude) return { patient: bestInclude.patient, matchedBy: bestInclude.matchedBy };
+  if (bestInclude)
+    return { patient: bestInclude.patient, matchedBy: bestInclude.matchedBy };
 
   // Second pass: token overlap for partial names and spacing drift.
   if (fileTokens.size === 0) return null;
 
-  let bestToken: { patient: any; overlap: number; matchedBy: string; dayDiff: number } | null = null;
+  let bestToken: {
+    patient: any;
+    overlap: number;
+    matchedBy: string;
+    dayDiff: number;
+  } | null = null;
   for (const candidate of matcher.candidates) {
     let overlap = 0;
     for (const token of fileTokens) {
@@ -852,10 +1103,16 @@ function resolvePatientForPentacamFileName(
         dayDiff === bestToken.dayDiff &&
         patientTieKey(candidate.patient) < patientTieKey(bestToken.patient))
     ) {
-      bestToken = { patient: candidate.patient, overlap, matchedBy: `tokens:${overlap}`, dayDiff };
+      bestToken = {
+        patient: candidate.patient,
+        overlap,
+        matchedBy: `tokens:${overlap}`,
+        dayDiff,
+      };
     }
   }
-  if (bestToken) return { patient: bestToken.patient, matchedBy: bestToken.matchedBy };
+  if (bestToken)
+    return { patient: bestToken.patient, matchedBy: bestToken.matchedBy };
 
   // Third pass: Arabic-English phonetic overlap.
   // Guardrail: phonetic similarity alone is too risky for lookalike Arabic names
@@ -864,7 +1121,12 @@ function resolvePatientForPentacamFileName(
   if (fileTokenSignatures.size === 0) return null;
   const hasArabicCharsInFile = /[\u0600-\u06FF]/.test(workingFragment);
 
-  let bestPhonetic: { patient: any; overlap: number; matchedBy: string; dayDiff: number } | null = null;
+  let bestPhonetic: {
+    patient: any;
+    overlap: number;
+    matchedBy: string;
+    dayDiff: number;
+  } | null = null;
   for (const candidate of matcher.candidates) {
     let overlap = 0;
     for (const signature of fileTokenSignatures) {
@@ -892,11 +1154,17 @@ function resolvePatientForPentacamFileName(
         dayDiff === bestPhonetic.dayDiff &&
         patientTieKey(candidate.patient) < patientTieKey(bestPhonetic.patient))
     ) {
-      bestPhonetic = { patient: candidate.patient, overlap, matchedBy: `phonetic:${overlap}`, dayDiff };
+      bestPhonetic = {
+        patient: candidate.patient,
+        overlap,
+        matchedBy: `phonetic:${overlap}`,
+        dayDiff,
+      };
     }
   }
 
-  if (bestPhonetic) return { patient: bestPhonetic.patient, matchedBy: bestPhonetic.matchedBy };
+  if (bestPhonetic)
+    return { patient: bestPhonetic.patient, matchedBy: bestPhonetic.matchedBy };
 
   // No aggressive fallback in clinical mode.
   return null;
@@ -905,7 +1173,7 @@ function resolvePatientForPentacamFileName(
 function suggestPatientsForPentacamFileName(
   fileName: string,
   matcher: { byCode: Map<string, any>; candidates: PentacamPatientCandidate[] },
-  limit: number = 3
+  limit: number = 3,
 ): Array<{ patient: any; matchedBy: string; score: number }> {
   const nameFragment = extractPentacamNameFragment(fileName);
   if (!nameFragment) return [];
@@ -963,7 +1231,9 @@ function suggestPatientsForPentacamFileName(
         : Number.POSITIVE_INFINITY;
     const matchedBy =
       includeBy ||
-      (tokenOverlap > 0 ? `tokens:${tokenOverlap}` : `phonetic:${phoneticOverlap}`);
+      (tokenOverlap > 0
+        ? `tokens:${tokenOverlap}`
+        : `phonetic:${phoneticOverlap}`);
     scored.push({
       patient: candidate.patient,
       matchedBy,
@@ -975,12 +1245,20 @@ function suggestPatientsForPentacamFileName(
     });
   }
 
-  const hasNearYear = scored.some((entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365);
-  const hasNearThreeYears = scored.some((entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365 * 3);
+  const hasNearYear = scored.some(
+    (entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365,
+  );
+  const hasNearThreeYears = scored.some(
+    (entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365 * 3,
+  );
   const filteredByDate = hasNearYear
-    ? scored.filter((entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365)
+    ? scored.filter(
+        (entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365,
+      )
     : hasNearThreeYears
-      ? scored.filter((entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365 * 3)
+      ? scored.filter(
+          (entry) => Number.isFinite(entry.dayDiff) && entry.dayDiff <= 365 * 3,
+        )
       : scored;
 
   filteredByDate.sort((a, b) => {
@@ -1014,9 +1292,18 @@ function suggestPatientsForPentacamFileName(
       second.includeScore >= top.includeScore - 1 &&
       second.tokenOverlap >= top.tokenOverlap - 1 &&
       second.phoneticOverlap >= top.phoneticOverlap - 1;
-    if (closeScores && closeEvidence) return [top].map(({ patient, matchedBy, score }) => ({ patient, matchedBy, score }));
+    if (closeScores && closeEvidence)
+      return [top].map(({ patient, matchedBy, score }) => ({
+        patient,
+        matchedBy,
+        score,
+      }));
   }
-  return outRaw.map(({ patient, matchedBy, score }) => ({ patient, matchedBy, score }));
+  return outRaw.map(({ patient, matchedBy, score }) => ({
+    patient,
+    matchedBy,
+    score,
+  }));
 }
 function reorderPatientNameSecondThirdFirst(rawName: string): string {
   const clean = rawName.replace(/\s+/g, " ").trim();
@@ -1034,7 +1321,9 @@ function sanitizeLabel(rawValue: string): string {
 }
 
 function normalizePentacamKey(key: string): string {
-  return String(key ?? "").trim().replace(/^\/+/, "");
+  return String(key ?? "")
+    .trim()
+    .replace(/^\/+/, "");
 }
 
 function resolvePentacamSourceKeyCandidates(fileName: string): string[] {
@@ -1059,7 +1348,10 @@ function buildPentacamObjectUrl(key: string): string {
   return `/api/pentacam/exports/file/${encodeURIComponent(normalizePentacamKey(key))}`;
 }
 
-async function movePentacamObjectToPatient(params: { patientId: number; fileName: string }) {
+async function movePentacamObjectToPatient(params: {
+  patientId: number;
+  fileName: string;
+}) {
   const sourceName = path.posix.basename(String(params.fileName ?? "").trim());
   const destinationKey = buildPentacamPatientKey(params.patientId, sourceName);
   const sourceCandidates = resolvePentacamSourceKeyCandidates(sourceName);
@@ -1104,25 +1396,40 @@ function parsePentacamLocalMeta(notes: unknown): null | {
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
-    if (String((parsed as any).kind ?? "") !== "local-pentacam-export-v1") return null;
+    if (String((parsed as any).kind ?? "") !== "local-pentacam-export-v1")
+      return null;
     return parsed as any;
   } catch {
     return null;
   }
 }
 
-function pentacamEyeHasAnyData(row: Record<string, unknown>, side: "OD" | "OS"): boolean {
+function pentacamEyeHasAnyData(
+  row: Record<string, unknown>,
+  side: "OD" | "OS",
+): boolean {
   if (side === "OD") {
-    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].some((v) => String(v ?? "").trim().length > 0);
+    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].some(
+      (v) => String(v ?? "").trim().length > 0,
+    );
   }
-  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].some((v) => String(v ?? "").trim().length > 0);
+  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].some(
+    (v) => String(v ?? "").trim().length > 0,
+  );
 }
 
-function pentacamEyeIsComplete(row: Record<string, unknown>, side: "OD" | "OS"): boolean {
+function pentacamEyeIsComplete(
+  row: Record<string, unknown>,
+  side: "OD" | "OS",
+): boolean {
   if (side === "OD") {
-    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].every((v) => String(v ?? "").trim().length > 0);
+    return [row.k1OD, row.k2OD, row.axisOD, row.thinnestPointOD].every(
+      (v) => String(v ?? "").trim().length > 0,
+    );
   }
-  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].every((v) => String(v ?? "").trim().length > 0);
+  return [row.k1OS, row.k2OS, row.axisOS, row.thinnestPointOS].every(
+    (v) => String(v ?? "").trim().length > 0,
+  );
 }
 
 function expandPentacamDashboardRows(rows: any[]) {
@@ -1143,10 +1450,16 @@ function expandPentacamDashboardRows(rows: any[]) {
 
   for (const row of rows) {
     const meta = parsePentacamLocalMeta((row as any)?.notes);
-    const metaEye = String(meta?.eyeSide ?? "").trim().toLowerCase();
-    const importStatus = String(meta?.importStatus ?? "").trim().toLowerCase();
+    const metaEye = String(meta?.eyeSide ?? "")
+      .trim()
+      .toLowerCase();
+    const importStatus = String(meta?.importStatus ?? "")
+      .trim()
+      .toLowerCase();
     const forceRepeat =
-      importStatus.includes("repeat") || importStatus === "failed" || importStatus.includes("quality");
+      importStatus.includes("repeat") ||
+      importStatus === "failed" ||
+      importStatus.includes("quality");
 
     const considerOD =
       pentacamEyeHasAnyData(row, "OD") ||
@@ -1161,7 +1474,8 @@ function expandPentacamDashboardRows(rows: any[]) {
 
     const emit = (side: "OD" | "OS") => {
       const complete = pentacamEyeIsComplete(row, side);
-      const quality: "accepted" | "repeat" = forceRepeat || !complete ? "repeat" : "accepted";
+      const quality: "accepted" | "repeat" =
+        forceRepeat || !complete ? "repeat" : "accepted";
       const vals =
         side === "OD"
           ? {
@@ -1178,13 +1492,17 @@ function expandPentacamDashboardRows(rows: any[]) {
             };
       const rawDoctor = String(row.doctorDisplayName ?? "").trim();
       const doctorName =
-        rawDoctor && !/^د\.?/u.test(rawDoctor) && !/^dr\.?/i.test(rawDoctor) ? `د. ${rawDoctor}` : rawDoctor;
+        rawDoctor && !/^د\.?/u.test(rawDoctor) && !/^dr\.?/i.test(rawDoctor)
+          ? `د. ${rawDoctor}`
+          : rawDoctor;
 
       out.push({
         resultId: Number(row.id),
         visitId: Number(row.visitId),
         patientId: Number(row.patientId),
-        patientName: decodeMojibake(String(row.patientFullName ?? "").trim() || `مريض #${row.patientId}`),
+        patientName: decodeMojibake(
+          String(row.patientFullName ?? "").trim() || `مريض #${row.patientId}`,
+        ),
         doctorName: decodeMojibake(doctorName),
         visitDate: (row as any).visitDate ?? row.createdAt ?? null,
         eye: side,
@@ -1231,8 +1549,16 @@ type FailedPentacamPreview = {
 
 function assertSafePentacamFileName(fileName: string): string {
   const normalized = String(fileName ?? "").trim();
-  if (!normalized || normalized.includes("/") || normalized.includes("\\") || normalized.includes("..")) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid file name: ${fileName}` });
+  if (
+    !normalized ||
+    normalized.includes("/") ||
+    normalized.includes("\\") ||
+    normalized.includes("..")
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Invalid file name: ${fileName}`,
+    });
   }
   return normalized;
 }
@@ -1251,7 +1577,10 @@ async function nextAvailablePentacamPath(initialPath: string): Promise<string> {
   let candidate = initialPath;
   let index = 1;
   while (await pathExists(candidate)) {
-    candidate = path.join(parsed.dir, `${parsed.name}_dup${index}${parsed.ext}`);
+    candidate = path.join(
+      parsed.dir,
+      `${parsed.name}_dup${index}${parsed.ext}`,
+    );
     index += 1;
   }
   return candidate;
@@ -1259,7 +1588,8 @@ async function nextAvailablePentacamPath(initialPath: string): Promise<string> {
 
 function extractPentacamPageType(fileName: string): string {
   const lower = String(fileName ?? "").toLowerCase();
-  if (lower.includes("enhanced") && lower.includes("ectasia")) return "Enhanced Ectasia";
+  if (lower.includes("enhanced") && lower.includes("ectasia"))
+    return "Enhanced Ectasia";
   if (lower.includes("topometric")) return "Topometric";
   if (lower.includes("4 maps") && lower.includes("refr")) return "4 Maps Refr";
   if (lower.includes("4 maps")) return "4 Maps";
@@ -1283,9 +1613,13 @@ function buildFailedPentacamGroupKey(fileName: string): string {
 }
 
 async function listFailedPentacamRows() {
-  const entries = await readdir(PENTACAM_FAILED_DIR, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(PENTACAM_FAILED_DIR, {
+    withFileTypes: true,
+  }).catch(() => []);
   const files = entries
-    .filter((entry) => entry.isFile() && /\.(jpg|jpeg|png|webp)$/i.test(entry.name))
+    .filter(
+      (entry) => entry.isFile() && /\.(jpg|jpeg|png|webp)$/i.test(entry.name),
+    )
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
@@ -1294,7 +1628,11 @@ async function listFailedPentacamRows() {
     files.map(async (fileName) => {
       const fullPath = path.join(PENTACAM_FAILED_DIR, fileName);
       const info = await stat(fullPath);
-      const suggestions = suggestPatientsForPentacamFileName(fileName, matcher, 3).map((entry) => ({
+      const suggestions = suggestPatientsForPentacamFileName(
+        fileName,
+        matcher,
+        3,
+      ).map((entry) => ({
         patientId: Number((entry.patient as any)?.id ?? 0),
         patientCode: String((entry.patient as any)?.patientCode ?? ""),
         fullName: String((entry.patient as any)?.fullName ?? ""),
@@ -1324,17 +1662,23 @@ async function listFailedPentacamRows() {
           : [],
         suggestions,
       };
-    })
+    }),
   );
 
   rows.sort((a, b) => Date.parse(b.modifiedAt) - Date.parse(a.modifiedAt));
   return rows;
 }
 
-async function previewFailedPentacamRenameTargets(fileNames: string[], idCode: string): Promise<FailedPentacamPreview[]> {
+async function previewFailedPentacamRenameTargets(
+  fileNames: string[],
+  idCode: string,
+): Promise<FailedPentacamPreview[]> {
   const normalizedId = String(idCode ?? "").trim();
   if (!/^\d{3,12}$/.test(normalizedId)) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "A valid ID is required" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A valid ID is required",
+    });
   }
 
   const seenTargets = new Set<string>();
@@ -1342,10 +1686,16 @@ async function previewFailedPentacamRenameTargets(fileNames: string[], idCode: s
   for (const rawFileName of fileNames) {
     const fileName = assertSafePentacamFileName(rawFileName);
     const baseName = stripLeadingCodeLabel(fileName);
-    const targetPath = path.join(PENTACAM_ROOT_DIR, `${normalizedId}_${baseName}`);
+    const targetPath = path.join(
+      PENTACAM_ROOT_DIR,
+      `${normalizedId}_${baseName}`,
+    );
     let candidate = targetPath;
     let willDuplicate = false;
-    if ((await pathExists(candidate)) || seenTargets.has(candidate.toLowerCase())) {
+    if (
+      (await pathExists(candidate)) ||
+      seenTargets.has(candidate.toLowerCase())
+    ) {
       willDuplicate = true;
       candidate = await nextAvailablePentacamPath(candidate);
     }
@@ -1359,13 +1709,24 @@ async function previewFailedPentacamRenameTargets(fileNames: string[], idCode: s
   return previews;
 }
 
-async function moveFailedPentacamFile(fileName: string, targetFileName: string): Promise<string> {
-  const sourcePath = path.join(PENTACAM_FAILED_DIR, assertSafePentacamFileName(fileName));
+async function moveFailedPentacamFile(
+  fileName: string,
+  targetFileName: string,
+): Promise<string> {
+  const sourcePath = path.join(
+    PENTACAM_FAILED_DIR,
+    assertSafePentacamFileName(fileName),
+  );
   const info = await stat(sourcePath).catch(() => null);
   if (!info?.isFile()) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Failed file not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Failed file not found",
+    });
   }
-  const finalPath = await nextAvailablePentacamPath(path.join(PENTACAM_ROOT_DIR, targetFileName));
+  const finalPath = await nextAvailablePentacamPath(
+    path.join(PENTACAM_ROOT_DIR, targetFileName),
+  );
   await rename(sourcePath, finalPath);
   return path.basename(finalPath);
 }
@@ -1383,18 +1744,27 @@ type LocalPentacamMismatchEntry = {
   suggestedPatientName?: string;
 };
 
-async function scanMismatchedLocalPentacamLinks(limit: number): Promise<LocalPentacamMismatchEntry[]> {
+async function scanMismatchedLocalPentacamLinks(
+  limit: number,
+): Promise<LocalPentacamMismatchEntry[]> {
   // Scan blackice_uploads (where autolinking writes) not pentacamResults (old workflow)
   const rows = await db.getLinkedBlackiceUploadsWithPatient(limit);
   const out: LocalPentacamMismatchEntry[] = [];
 
   // Build code→patient map only from the rows we have (avoid loading all patients)
-  const codeToPatient = new Map<string, { id: number; patientCode: string; fullName: string }>();
+  const codeToPatient = new Map<
+    string,
+    { id: number; patientCode: string; fullName: string }
+  >();
   for (const row of rows as any[]) {
     const code = String(row.patientCode ?? "").trim();
     const id = Number(row.patient_id ?? 0);
     if (code && id > 0 && !codeToPatient.has(code)) {
-      codeToPatient.set(code, { id, patientCode: code, fullName: String(row.fullName ?? "").trim() });
+      codeToPatient.set(code, {
+        id,
+        patientCode: code,
+        fullName: String(row.fullName ?? "").trim(),
+      });
     }
   }
 
@@ -1403,8 +1773,10 @@ async function scanMismatchedLocalPentacamLinks(limit: number): Promise<LocalPen
     if (!fileName) continue;
     const codeCandidates = Array.from(
       new Set(
-        extractPatientCodeCandidatesFromFileName(fileName).filter((v) => /^\d{3,12}$/.test(String(v)))
-      )
+        extractPatientCodeCandidatesFromFileName(fileName).filter((v) =>
+          /^\d{3,12}$/.test(String(v)),
+        ),
+      ),
     );
     if (codeCandidates.length === 0) continue;
 
@@ -1413,10 +1785,13 @@ async function scanMismatchedLocalPentacamLinks(limit: number): Promise<LocalPen
     const currentPatientName = String(row.fullName ?? "").trim();
 
     // File is correctly linked — skip
-    if (currentPatientCode && codeCandidates.includes(currentPatientCode)) continue;
+    if (currentPatientCode && codeCandidates.includes(currentPatientCode))
+      continue;
 
     // Find which candidate codes resolve to known patients
-    const suggestedCodes = codeCandidates.filter((code) => codeToPatient.has(code));
+    const suggestedCodes = codeCandidates.filter((code) =>
+      codeToPatient.has(code),
+    );
 
     if (suggestedCodes.length === 1) {
       const suggested = codeToPatient.get(suggestedCodes[0])!;
@@ -1449,7 +1824,9 @@ async function scanMismatchedLocalPentacamLinks(limit: number): Promise<LocalPen
   return out;
 }
 
-function normalizeVisitType(raw: string): "consultation" | "examination" | "surgery" | "followup" {
+function normalizeVisitType(
+  raw: string,
+): "consultation" | "examination" | "surgery" | "followup" {
   const value = raw?.trim().toLowerCase();
   switch (value) {
     case "consultation":
@@ -1484,7 +1861,9 @@ function normalizeVisitType(raw: string): "consultation" | "examination" | "surg
  * Get fresh doctor name from patient record (not from cache)
  * Called for notifications to ensure current doctor is displayed
  */
-async function readFreshDoctorNameForPatient(patientId: number): Promise<string> {
+async function readFreshDoctorNameForPatient(
+  patientId: number,
+): Promise<string> {
   try {
     const patient = await db.getPatientById(patientId);
     if (patient?.treatingDoctor) {
@@ -1509,55 +1888,93 @@ function readDoctorNameFromStateData(value: unknown): string {
   return signed;
 }
 
-function readRoleSignatureFromStateData(value: unknown, role: "reception" | "nurse" | "technician"): string {
+function readRoleSignatureFromStateData(
+  value: unknown,
+  role: "reception" | "nurse" | "technician",
+): string {
   if (!value || typeof value !== "object") return "";
   const payload = value as Record<string, any>;
   return String(payload.signatures?.[role] ?? "").trim();
 }
 
-async function resolveDoctorCodeById(doctorId?: number | null): Promise<string | undefined> {
+async function resolveDoctorCodeById(
+  doctorId?: number | null,
+): Promise<string | undefined> {
   console.log(`[resolveDoctorCodeById] Looking up doctorId=${doctorId}`);
   if (!doctorId) {
-    console.log(`[resolveDoctorCodeById] doctorId is empty, returning undefined`);
+    console.log(
+      `[resolveDoctorCodeById] doctorId is empty, returning undefined`,
+    );
     return undefined;
   }
   try {
     const row = await db.getSystemSetting("doctor_directory");
     if (row?.value) {
-      const doctors = JSON.parse(row.value) as Array<{ id?: string | number; code?: string }>;
-      console.log(`[resolveDoctorCodeById] Found ${doctors.length} doctors in directory`);
+      const doctors = JSON.parse(row.value) as Array<{
+        id?: string | number;
+        code?: string;
+      }>;
+      console.log(
+        `[resolveDoctorCodeById] Found ${doctors.length} doctors in directory`,
+      );
       const doctor = doctors.find((d) => Number(d.id) === doctorId);
       if (doctor?.code) {
-        console.log(`[resolveDoctorCodeById] Matched doctor ${doctorId} -> code=${doctor.code}`);
+        console.log(
+          `[resolveDoctorCodeById] Matched doctor ${doctorId} -> code=${doctor.code}`,
+        );
         return String(doctor.code).trim();
       } else {
-        console.log(`[resolveDoctorCodeById] No matching doctor found for id=${doctorId}`);
+        console.log(
+          `[resolveDoctorCodeById] No matching doctor found for id=${doctorId}`,
+        );
       }
     } else {
-      console.log(`[resolveDoctorCodeById] doctor_directory not found in system settings`);
+      console.log(
+        `[resolveDoctorCodeById] doctor_directory not found in system settings`,
+      );
     }
   } catch (err) {
-    console.error(`[resolveDoctorCodeById] Error parsing doctor_directory:`, err);
+    console.error(
+      `[resolveDoctorCodeById] Error parsing doctor_directory:`,
+      err,
+    );
   }
   return undefined;
 }
 
-async function resolveDoctorCodeByName(doctorName?: string | null): Promise<string | undefined> {
-  const target = String(doctorName ?? "").trim().toLowerCase();
+async function resolveDoctorCodeByName(
+  doctorName?: string | null,
+): Promise<string | undefined> {
+  const target = String(doctorName ?? "")
+    .trim()
+    .toLowerCase();
   if (!target) return undefined;
   try {
     const row = await db.getSystemSetting("doctor_directory");
     if (!row?.value) return undefined;
-    const doctors = JSON.parse(row.value) as Array<{ name?: string; code?: string }>;
-    const exact = doctors.find((d) => String(d?.name ?? "").trim().toLowerCase() === target);
+    const doctors = JSON.parse(row.value) as Array<{
+      name?: string;
+      code?: string;
+    }>;
+    const exact = doctors.find(
+      (d) =>
+        String(d?.name ?? "")
+          .trim()
+          .toLowerCase() === target,
+    );
     if (exact?.code) return String(exact.code).trim();
     const fuzzy = doctors.find((d) => {
-      const n = String(d?.name ?? "").trim().toLowerCase();
+      const n = String(d?.name ?? "")
+        .trim()
+        .toLowerCase();
       return n && (n.includes(target) || target.includes(n));
     });
     if (fuzzy?.code) return String(fuzzy.code).trim();
   } catch (err) {
-    console.error(`[resolveDoctorCodeByName] Error parsing doctor_directory:`, err);
+    console.error(
+      `[resolveDoctorCodeByName] Error parsing doctor_directory:`,
+      err,
+    );
   }
   return undefined;
 }
@@ -1569,7 +1986,10 @@ function normalizePhoneKey(value: unknown): string {
   return digits || raw.toLowerCase();
 }
 
-async function findExistingPatientByNameOrPhone(fullNameRaw?: string | null, phoneRaw?: string | null) {
+async function findExistingPatientByNameOrPhone(
+  fullNameRaw?: string | null,
+  phoneRaw?: string | null,
+) {
   const fullName = String(fullNameRaw ?? "").trim();
   const phone = String(phoneRaw ?? "").trim();
   if (!fullName && !phone) return null;
@@ -1591,32 +2011,50 @@ async function findExistingPatientByNameOrPhone(fullNameRaw?: string | null, pho
   const targetPhone = normalizePhoneKey(phone);
   const candidates = Array.from(byId.values());
   for (const candidate of candidates) {
-    const candidateName = String((candidate as any)?.fullName ?? "").trim().toLowerCase();
+    const candidateName = String((candidate as any)?.fullName ?? "")
+      .trim()
+      .toLowerCase();
     const candidatePhone = normalizePhoneKey((candidate as any)?.phone ?? "");
-    const candidateAltPhone = normalizePhoneKey((candidate as any)?.alternatePhone ?? "");
+    const candidateAltPhone = normalizePhoneKey(
+      (candidate as any)?.alternatePhone ?? "",
+    );
     const nameMatch = Boolean(targetName) && candidateName === targetName;
-    const phoneMatch = Boolean(targetPhone) && (candidatePhone === targetPhone || candidateAltPhone === targetPhone);
+    const phoneMatch =
+      Boolean(targetPhone) &&
+      (candidatePhone === targetPhone || candidateAltPhone === targetPhone);
     if (nameMatch || phoneMatch) return candidate;
   }
   return null;
 }
 
-async function resolveServiceCodeForType(serviceType: string | undefined): Promise<string> {
-  console.log(`[resolveServiceCodeForType] Starting with serviceType="${serviceType}"`);
-  const type = String(serviceType ?? "").trim().toLowerCase();
+async function resolveServiceCodeForType(
+  serviceType: string | undefined,
+): Promise<string> {
+  console.log(
+    `[resolveServiceCodeForType] Starting with serviceType="${serviceType}"`,
+  );
+  const type = String(serviceType ?? "")
+    .trim()
+    .toLowerCase();
   if (!type) {
-    console.log(`[resolveServiceCodeForType] serviceType is empty, returning ""`);
+    console.log(
+      `[resolveServiceCodeForType] serviceType is empty, returning ""`,
+    );
     return "";
   }
 
   try {
     const row = await db.getSystemSetting("service_directory");
-    console.log(`[resolveServiceCodeForType] service_directory row exists:`, Boolean(row?.value));
+    console.log(
+      `[resolveServiceCodeForType] service_directory row exists:`,
+      Boolean(row?.value),
+    );
 
     let list: any[] = [];
     if (row?.value) {
       // Handle both string and already-parsed JSON
-      const value = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+      const value =
+        typeof row.value === "string" ? JSON.parse(row.value) : row.value;
       list = Array.isArray(value) ? value : [];
     }
 
@@ -1628,18 +2066,24 @@ async function resolveServiceCodeForType(serviceType: string | undefined): Promi
         entry &&
         entry.isActive !== false &&
         String(entry.code ?? "").trim() &&
-        String(entry.serviceType ?? "").trim().toLowerCase() === type
+        String(entry.serviceType ?? "")
+          .trim()
+          .toLowerCase() === type,
     );
 
     if (matching.length > 0) {
       const code = String(matching[0].code).trim();
-      console.log(`[resolveServiceCodeForType] Matched serviceType="${type}" to code=${code}`);
+      console.log(
+        `[resolveServiceCodeForType] Matched serviceType="${type}" to code=${code}`,
+      );
       return code;
     }
 
     // Do not fallback to an unrelated service code from another type.
     // Returning empty avoids writing a wrong service to MSSQL.
-    console.log(`[resolveServiceCodeForType] No active service matched type="${type}"`);
+    console.log(
+      `[resolveServiceCodeForType] No active service matched type="${type}"`,
+    );
   } catch (err) {
     console.error(`[resolveServiceCodeForType] Error:`, err);
   }
@@ -1667,7 +2111,9 @@ async function pushNewPatientToMssql(patient: {
   discountValue?: number | null;
   paValue?: number | null;
 }) {
-  console.log(`[pushNewPatientToMssql] Patient ${patient.patientCode}, serviceType="${patient.serviceType}", providedServiceCode="${patient.serviceCode}"`);
+  console.log(
+    `[pushNewPatientToMssql] Patient ${patient.patientCode}, serviceType="${patient.serviceType}", providedServiceCode="${patient.serviceCode}"`,
+  );
 
   // Use only explicit serviceCode (or doctor-scoped resolution upstream). Avoid generic type-only inference.
   // Type-only fallback can map to the wrong service when multiple services share the same type.
@@ -1699,21 +2145,42 @@ function registrationPricingPayload(input: {
   servicePrice?: number | null;
   serviceQty?: number | null;
   discountValue?: number | null;
-}): { servicePrice: number; serviceQty: number; discountValue: number; paValue: number } | Record<string, never> {
-  if (input.servicePrice == null && input.serviceQty == null && input.discountValue == null) {
+}):
+  | {
+      servicePrice: number;
+      serviceQty: number;
+      discountValue: number;
+      paValue: number;
+    }
+  | Record<string, never> {
+  if (
+    input.servicePrice == null &&
+    input.serviceQty == null &&
+    input.discountValue == null
+  ) {
     return {};
   }
   const servicePrice = Math.max(0, Number(input.servicePrice ?? 0));
-  const serviceQty = Math.max(1, Math.trunc(Number(input.serviceQty ?? 1)) || 1);
+  const serviceQty = Math.max(
+    1,
+    Math.trunc(Number(input.serviceQty ?? 1)) || 1,
+  );
   const gross = servicePrice * serviceQty;
   const disc = Math.min(Math.max(0, Number(input.discountValue ?? 0)), gross);
   const paValue = Math.max(0, gross - disc);
   return { servicePrice, serviceQty, discountValue: disc, paValue };
 }
 
-async function canPushToMssql(user: { id: number; role: string }): Promise<boolean> {
-  const role = String(user.role ?? "").trim().toLowerCase();
-  console.log(`[mssql-push] canPushToMssql check started for user ${user.id}, role=${role}`);
+async function canPushToMssql(user: {
+  id: number;
+  role: string;
+}): Promise<boolean> {
+  const role = String(user.role ?? "")
+    .trim()
+    .toLowerCase();
+  console.log(
+    `[mssql-push] canPushToMssql check started for user ${user.id}, role=${role}`,
+  );
   if (role === "admin") {
     console.log(`[mssql-push] User is admin, granting MSSQL push permission`);
     return true;
@@ -1723,10 +2190,15 @@ async function canPushToMssql(user: { id: number; role: string }): Promise<boole
   try {
     // Check user-specific permissions first
     const state = await db.getUserPermissionState(user.id);
-    console.log(`[mssql-push] User permission state:`, { hasOverride: state.hasOverride, pageIds: state.pageIds });
+    console.log(`[mssql-push] User permission state:`, {
+      hasOverride: state.hasOverride,
+      pageIds: state.pageIds,
+    });
     if (state.hasOverride) {
       const hasPermission = state.pageIds.includes(required);
-      console.log(`[mssql-push] User has override, has ${required}? ${hasPermission}`);
+      console.log(
+        `[mssql-push] User has override, has ${required}? ${hasPermission}`,
+      );
       return hasPermission;
     }
 
@@ -1740,13 +2212,20 @@ async function canPushToMssql(user: { id: number; role: string }): Promise<boole
 
     // Final check: get effective permissions
     const effective = await db.getEffectiveUserPermissions(user.id, role);
-    console.log(`[mssql-push] Effective permissions for user ${user.id}:`, effective);
+    console.log(
+      `[mssql-push] Effective permissions for user ${user.id}:`,
+      effective,
+    );
     if (Array.isArray(effective) && effective.includes(required)) {
-      console.log(`[mssql-push] Effective permissions include ${required}, granting permission`);
+      console.log(
+        `[mssql-push] Effective permissions include ${required}, granting permission`,
+      );
       return true;
     }
 
-    console.log(`[mssql-push] No permission for ${required} found, denying MSSQL push`);
+    console.log(
+      `[mssql-push] No permission for ${required} found, denying MSSQL push`,
+    );
     return false;
   } catch (error) {
     console.warn("[mssql-push] Permission check failed:", error);
@@ -1759,37 +2238,46 @@ export const medicalRouter = router({
 
   // Reception: Create new patient
   createPatient: protectedProcedure
-    .input(z.object({
-      patientCode: z.string().optional(),
-      fullName: z.string(),
-      dateOfBirth: z.string().optional(),
-      age: z.number().optional(),
-      gender: z.enum(["male", "female"]).optional(),
-      nationalId: z.string().optional(),
-      phone: z.string(),
-      alternatePhone: z.string().optional(),
-      address: z.string().optional(),
-      occupation: z.string().optional(),
-      referralSource: z.string().optional(),
-      branch: z.enum(["examinations", "surgery"]).optional(),
-      serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
-      locationType: z.enum(["center", "external"]).optional(),
-      doctorId: z.number().optional(),
-      doctorCode: z.string().optional(),
-      doctorName: z.string().optional(),
-      serviceCode: z.string().optional(),
-      servicePrice: z.number().nonnegative().optional(),
-      discountValue: z.number().nonnegative().optional(),
-      lastVisit: z.string().optional(),
-      skipIfExists: z.boolean().optional(),
-    }))
+    .input(
+      z.object({
+        patientCode: z.string().optional(),
+        fullName: z.string(),
+        dateOfBirth: z.string().optional(),
+        age: z.number().optional(),
+        gender: z.enum(["male", "female"]).optional(),
+        nationalId: z.string().optional(),
+        phone: z.string(),
+        alternatePhone: z.string().optional(),
+        address: z.string().optional(),
+        occupation: z.string().optional(),
+        referralSource: z.string().optional(),
+        branch: z.enum(["examinations", "surgery"]).optional(),
+        serviceType: z
+          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .optional(),
+        locationType: z.enum(["center", "external"]).optional(),
+        doctorId: z.number().optional(),
+        doctorCode: z.string().optional(),
+        doctorName: z.string().optional(),
+        serviceCode: z.string().optional(),
+        servicePrice: z.number().nonnegative().optional(),
+        discountValue: z.number().nonnegative().optional(),
+        lastVisit: z.string().optional(),
+        skipIfExists: z.boolean().optional(),
+      }),
+    )
     .mutation(async (opts) => {
       const { input, ctx } = opts;
       console.log(`[createPatient] ===== START =====`);
-      console.log(`[createPatient] Input received: doctorId=${input.doctorId}, doctorCode=${input.doctorCode}, serviceType=${input.serviceType}`);
+      console.log(
+        `[createPatient] Input received: doctorId=${input.doctorId}, doctorCode=${input.doctorCode}, serviceType=${input.serviceType}`,
+      );
 
       // Check permission for creating/editing patient data
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role,
+      );
       const canCreatePatient =
         permissions.includes("/patient-data/edit") ||
         permissions.includes("/quick-entry") ||
@@ -1797,82 +2285,154 @@ export const medicalRouter = router({
       if (!canCreatePatient) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You do not have permission to create patient records. Contact admin to enable /patient-data/edit or patient intake permissions.",
+          message:
+            "You do not have permission to create patient records. Contact admin to enable /patient-data/edit or patient intake permissions.",
         });
       }
       try {
         const { skipIfExists, ...patientInput } = input;
-        const hasExplicitPatientCode = Boolean(String(patientInput.patientCode ?? "").trim());
+        const hasExplicitPatientCode = Boolean(
+          String(patientInput.patientCode ?? "").trim(),
+        );
         const existingByIdentity = hasExplicitPatientCode
           ? null
-          : await findExistingPatientByNameOrPhone(patientInput.fullName, patientInput.phone);
+          : await findExistingPatientByNameOrPhone(
+              patientInput.fullName,
+              patientInput.phone,
+            );
         if (existingByIdentity) {
           const existingId = Number((existingByIdentity as any)?.id ?? 0);
-          const existingCode = String((existingByIdentity as any)?.patientCode ?? "").trim();
-          let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
+          const existingCode = String(
+            (existingByIdentity as any)?.patientCode ?? "",
+          ).trim();
+          let pushResult: {
+            inserted: boolean;
+            note?: string;
+            trNo?: number | null;
+          } | null = null;
           let mssqlPushError: string | null = null;
           if (existingId > 0) {
-            await db.updatePatient(existingId, {
-              lastVisit: patientInput.lastVisit ? new Date(patientInput.lastVisit) : new Date(),
-              ...(patientInput.serviceType ? { serviceType: patientInput.serviceType } : {}),
-              ...(patientInput.locationType ? { locationType: patientInput.locationType } : {}),
-              ...(patientInput.doctorId ? { doctorId: patientInput.doctorId } : {}),
-            }).catch(() => null);
+            await db
+              .updatePatient(existingId, {
+                lastVisit: patientInput.lastVisit
+                  ? new Date(patientInput.lastVisit)
+                  : new Date(),
+                ...(patientInput.serviceType
+                  ? { serviceType: patientInput.serviceType }
+                  : {}),
+                ...(patientInput.locationType
+                  ? { locationType: patientInput.locationType }
+                  : {}),
+                ...(patientInput.doctorId
+                  ? { doctorId: patientInput.doctorId }
+                  : {}),
+              })
+              .catch(() => null);
           }
           if (!existingCode) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Existing patient has no patientCode" });
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Existing patient has no patientCode",
+            });
           }
           // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById(patientInput.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
+            doctorCode =
+              (await resolveDoctorCodeById(
+                patientInput.doctorId ?? (existingByIdentity as any)?.doctorId,
+              )) ?? null;
           }
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
+            doctorCode =
+              (await resolveDoctorCodeByName(
+                patientInput.doctorName ?? null,
+              )) ?? null;
           }
           const pricingPayload = registrationPricingPayload({
             servicePrice: patientInput.servicePrice,
             discountValue: patientInput.discountValue,
           });
           pushResult = await pushNewPatientToMssql({
-                patientCode: existingCode,
-                fullName: String((existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "").trim(),
-                phone: String((existingByIdentity as any)?.phone ?? patientInput.phone ?? "").trim() || null,
-                address: String((existingByIdentity as any)?.address ?? patientInput.address ?? "").trim() || null,
-                age: Number.isFinite(Number((existingByIdentity as any)?.age))
-                  ? Number((existingByIdentity as any)?.age)
-                  : Number.isFinite(Number(patientInput.age))
-                    ? Number(patientInput.age)
-                    : null,
-                gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
-                dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? patientInput.dateOfBirth ?? null,
-                branch: String((existingByIdentity as any)?.branch ?? patientInput.branch ?? "examinations").trim() || "examinations",
-                serviceType: patientInput.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
-                locationType:
-                  (patientInput.serviceType === "external" ? "external" : patientInput.locationType) ??
-                  (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
-                doctorCode: doctorCode || null,
-                enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-                serviceCode: patientInput.serviceCode || null,
-                servicePrice: pricingPayload.servicePrice,
-                discountValue: pricingPayload.discountValue,
-                paValue: pricingPayload.paValue,
-              }).catch((error) => {
-                mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
-                console.warn("[mssql-push] createPatient(existing) failed", {
-                  patientCode: existingCode,
-                  message: mssqlPushError,
-                });
-                return null;
-              });
+            patientCode: existingCode,
+            fullName: String(
+              (existingByIdentity as any)?.fullName ??
+                patientInput.fullName ??
+                "",
+            ).trim(),
+            phone:
+              String(
+                (existingByIdentity as any)?.phone ?? patientInput.phone ?? "",
+              ).trim() || null,
+            address:
+              String(
+                (existingByIdentity as any)?.address ??
+                  patientInput.address ??
+                  "",
+              ).trim() || null,
+            age: Number.isFinite(Number((existingByIdentity as any)?.age))
+              ? Number((existingByIdentity as any)?.age)
+              : Number.isFinite(Number(patientInput.age))
+                ? Number(patientInput.age)
+                : null,
+            gender:
+              String((existingByIdentity as any)?.gender ?? "").trim() || null,
+            dateOfBirth:
+              (existingByIdentity as any)?.dateOfBirth ??
+              patientInput.dateOfBirth ??
+              null,
+            branch:
+              String(
+                (existingByIdentity as any)?.branch ??
+                  patientInput.branch ??
+                  "examinations",
+              ).trim() || "examinations",
+            serviceType:
+              patientInput.serviceType ??
+              (existingByIdentity as any)?.serviceType ??
+              null,
+            locationType:
+              (patientInput.serviceType === "external"
+                ? "external"
+                : patientInput.locationType) ??
+              (String(
+                (existingByIdentity as any)?.locationType ?? "",
+              ).trim() === "external"
+                ? "external"
+                : "center"),
+            doctorCode: doctorCode || null,
+            enteredBy:
+              String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
+            serviceCode: patientInput.serviceCode || null,
+            servicePrice: pricingPayload.servicePrice,
+            discountValue: pricingPayload.discountValue,
+            paValue: pricingPayload.paValue,
+          }).catch((error) => {
+            mssqlPushError = String(
+              (error as any)?.message ?? error ?? "unknown",
+            );
+            console.warn("[mssql-push] createPatient(existing) failed", {
+              patientCode: existingCode,
+              message: mssqlPushError,
+            });
+            return null;
+          });
           if (!pushResult?.inserted && pushResult?.note) {
             mssqlPushError = pushResult.note;
           }
-          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_RECEIPT_EXISTING", "patient", existingId, {
-            message: `Created new receipt for existing patient (name/phone match): ${String((existingByIdentity as any)?.fullName ?? "")}`,
-            patientCode: existingCode,
-            mssqlPushError,
-          });
+          await db.logAuditEvent(
+            ctx.user.id,
+            "CREATE_PATIENT_RECEIPT_EXISTING",
+            "patient",
+            existingId,
+            {
+              message: `Created new receipt for existing patient (name/phone match): ${String((existingByIdentity as any)?.fullName ?? "")}`,
+              patientCode: existingCode,
+              mssqlPushError,
+            },
+          );
           return {
             success: true,
             reused: true,
@@ -1890,11 +2450,21 @@ export const medicalRouter = router({
         const existing = await db.getPatientByCode(code);
         if (existing) {
           if (skipIfExists) {
-            return { success: true, skipped: true, patientId: existing.id ?? 0, patientCode: code };
+            return {
+              success: true,
+              skipped: true,
+              patientId: existing.id ?? 0,
+              patientCode: code,
+            };
           }
-          throw new TRPCError({ code: "CONFLICT", message: "Patient code already exists" });
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Patient code already exists",
+          });
         }
-        console.log(`[createPatient] Saving patient with doctorId=${patientInput.doctorId}`);
+        console.log(
+          `[createPatient] Saving patient with doctorId=${patientInput.doctorId}`,
+        );
         await db.createPatient({
           ...patientInput,
           patientCode: code,
@@ -1906,63 +2476,92 @@ export const medicalRouter = router({
               : patientInput.locationType || "center",
           doctorId: patientInput.doctorId ?? null,
           // Opening date is the reference date for patient timeline/stats.
-          lastVisit: patientInput.lastVisit ? new Date(patientInput.lastVisit) : new Date(),
+          lastVisit: patientInput.lastVisit
+            ? new Date(patientInput.lastVisit)
+            : new Date(),
           status: "new",
         });
 
         const created = await db.getPatientByCode(code);
-        console.log(`[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`);
-        let pushResult: { inserted: boolean; note?: string; trNo?: number | null } | null = null;
+        console.log(
+          `[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`,
+        );
+        let pushResult: {
+          inserted: boolean;
+          note?: string;
+          trNo?: number | null;
+        } | null = null;
         let mssqlPushError: string | null = null;
         if (created?.patientCode && created?.fullName) {
           // Prefer explicit doctorCode, then doctorId, then doctorName.
           let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeById((created as any).doctorId) ?? null;
+            doctorCode =
+              (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
           }
           if (!doctorCode) {
-            doctorCode = await resolveDoctorCodeByName(patientInput.doctorName ?? null) ?? null;
+            doctorCode =
+              (await resolveDoctorCodeByName(
+                patientInput.doctorName ?? null,
+              )) ?? null;
           }
           console.log(`[createPatient] Resolved doctorCode=${doctorCode}`);
           const pricingPayload = registrationPricingPayload({
             servicePrice: patientInput.servicePrice,
             discountValue: patientInput.discountValue,
           });
-          console.log("[createPatient] Attempting MSSQL push for new patient", { patientCode: String(created.patientCode) });
-            pushResult = await pushNewPatientToMssql({
+          console.log("[createPatient] Attempting MSSQL push for new patient", {
+            patientCode: String(created.patientCode),
+          });
+          pushResult = await pushNewPatientToMssql({
+            patientCode: String(created.patientCode),
+            fullName: String(created.fullName),
+            phone: created.phone,
+            address: created.address,
+            age: created.age,
+            gender: (created as any).gender ?? null,
+            dateOfBirth: (created as any).dateOfBirth ?? null,
+            branch: (created as any).branch ?? "examinations",
+            serviceType: (created as any).serviceType ?? null,
+            locationType: (created as any).locationType ?? "center",
+            doctorCode: doctorCode || null,
+            enteredBy:
+              String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
+            serviceCode: patientInput.serviceCode || null,
+            servicePrice: pricingPayload.servicePrice,
+            discountValue: pricingPayload.discountValue,
+            paValue: pricingPayload.paValue,
+          }).catch((error) => {
+            mssqlPushError = String(
+              (error as any)?.message ?? error ?? "unknown",
+            );
+            console.warn("[mssql-push] createPatient failed", {
               patientCode: String(created.patientCode),
-              fullName: String(created.fullName),
-              phone: created.phone,
-              address: created.address,
-              age: created.age,
-              gender: (created as any).gender ?? null,
-              dateOfBirth: (created as any).dateOfBirth ?? null,
-              branch: (created as any).branch ?? "examinations",
-              serviceType: (created as any).serviceType ?? null,
-              locationType: (created as any).locationType ?? "center",
-              doctorCode: doctorCode || null,
-              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
-              serviceCode: patientInput.serviceCode || null,
-              servicePrice: pricingPayload.servicePrice,
-              discountValue: pricingPayload.discountValue,
-              paValue: pricingPayload.paValue,
-            }).catch((error) => {
-              mssqlPushError = String((error as any)?.message ?? error ?? "unknown");
-              console.warn("[mssql-push] createPatient failed", {
-                patientCode: String(created.patientCode),
-                message: mssqlPushError,
-              });
-              return null;
+              message: mssqlPushError,
             });
+            return null;
+          });
         }
-        await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
-          message: `Created patient: ${input.fullName}`,
-        });
-        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_PATIENT",
+          "patient",
+          created?.id ?? 0,
+          {
+            message: `Created patient: ${input.fullName}`,
+          },
+        );
+        const notificationSettings = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (notificationSettings.patients.enabled) {
-          const targetRoles = resolveNotificationTargetRolesByUserRole((ctx.user as any)?.role);
+          const targetRoles = resolveNotificationTargetRolesByUserRole(
+            (ctx.user as any)?.role,
+          );
           const notifTitle = resolvePatientNotifTitle(
-            [input.serviceCode].filter(Boolean) as string[]
+            [input.serviceCode].filter(Boolean) as string[],
           );
           await pushAppNotification({
             title: notifTitle,
@@ -1975,22 +2574,47 @@ export const medicalRouter = router({
             meta: {
               patientCode: code,
               fullName: input.fullName,
-              createdBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+              createdBy:
+                String(
+                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+                ).trim() || null,
             },
-            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
+            channels: {
+              inApp: notificationSettings.patients.inApp,
+              push: notificationSettings.patients.push,
+            },
           }).catch((error) => {
-            console.warn("[patient-create] Failed to append app notification:", error);
+            console.warn(
+              "[patient-create] Failed to append app notification:",
+              error,
+            );
           });
         }
 
         const mssqlLinked = Boolean(pushResult?.inserted);
         if (!mssqlLinked && (mssqlPushError || pushResult?.note)) {
-          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT", "patient", created?.id ?? 0, {
-            message: `Created patient: ${input.fullName}`,
-            mssqlWarning: mssqlPushError || pushResult?.note || "MSSQL sync failed",
-          });
+          await db.logAuditEvent(
+            ctx.user.id,
+            "CREATE_PATIENT",
+            "patient",
+            created?.id ?? 0,
+            {
+              message: `Created patient: ${input.fullName}`,
+              mssqlWarning:
+                mssqlPushError || pushResult?.note || "MSSQL sync failed",
+            },
+          );
         }
-        return { success: true, patientId: created?.id ?? 0, patientCode: code, receiptNo: pushResult?.trNo ?? null, mssqlLinked, mssqlNote: !mssqlLinked ? (mssqlPushError || pushResult?.note) : undefined };
+        return {
+          success: true,
+          patientId: created?.id ?? 0,
+          patientCode: code,
+          receiptNo: pushResult?.trNo ?? null,
+          mssqlLinked,
+          mssqlNote: !mssqlLinked
+            ? mssqlPushError || pushResult?.note
+            : undefined,
+        };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create patient: ${error}`);
@@ -2010,23 +2634,38 @@ export const medicalRouter = router({
             phone: z.string().optional(),
             address: z.string().optional(),
             branch: z.enum(["examinations", "surgery", ""]).optional(),
-            serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", ""]).optional(),
+            serviceType: z
+              .enum([
+                "consultant",
+                "specialist",
+                "lasik",
+                "surgery",
+                "external",
+                "",
+              ])
+              .optional(),
             locationType: z.enum(["center", "external", ""]).optional(),
             doctorCode: z.string().optional(),
             doctorName: z.string().optional(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const batchId = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const summary = await db.stagePatientImportRows(batchId, input.rows);
-      await db.logAuditEvent(ctx.user.id, "STAGE_PATIENT_IMPORT", "patient_import_staging", 0, {
-        batchId,
-        total: summary.total,
-        valid: summary.valid,
-        invalid: summary.invalid,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "STAGE_PATIENT_IMPORT",
+        "patient_import_staging",
+        0,
+        {
+          batchId,
+          total: summary.total,
+          valid: summary.valid,
+          invalid: summary.invalid,
+        },
+      );
       return summary;
     }),
 
@@ -2034,19 +2673,31 @@ export const medicalRouter = router({
     .input(z.object({ batchId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const result = await db.applyPatientImportBatch(input.batchId);
-      await db.logAuditEvent(ctx.user.id, "APPLY_PATIENT_IMPORT", "patient_import_staging", 0, {
-        batchId: input.batchId,
-        inserted: result.inserted,
-        updated: result.updated,
-        failed: result.failed,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "APPLY_PATIENT_IMPORT",
+        "patient_import_staging",
+        0,
+        {
+          batchId: input.batchId,
+          inserted: result.inserted,
+          updated: result.updated,
+          failed: result.failed,
+        },
+      );
       if (result.inserted > 0) {
-        const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        const notificationSettings = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (notificationSettings.patients.enabled) {
           const sheetServiceCode = result.firstInserted
-            ? await resolveServiceCodeForType(result.firstInserted.serviceType).catch(() => "")
+            ? await resolveServiceCodeForType(
+                result.firstInserted.serviceType,
+              ).catch(() => "")
             : "";
-          const sheetTitle = resolvePatientNotifTitle(sheetServiceCode ? [sheetServiceCode] : []);
+          const sheetTitle = resolvePatientNotifTitle(
+            sheetServiceCode ? [sheetServiceCode] : [],
+          );
           const sheetMessage = result.firstInserted
             ? result.inserted > 1
               ? `${result.firstInserted.fullName} (و ${result.inserted - 1} آخرين)`
@@ -2058,10 +2709,20 @@ export const medicalRouter = router({
             kind: "success",
             source: "sheet_patient_import",
             entityType: "patient",
-            meta: { batchId: input.batchId, inserted: result.inserted, updated: result.updated },
-            channels: { inApp: notificationSettings.patients.inApp, push: notificationSettings.patients.push },
+            meta: {
+              batchId: input.batchId,
+              inserted: result.inserted,
+              updated: result.updated,
+            },
+            channels: {
+              inApp: notificationSettings.patients.inApp,
+              push: notificationSettings.patients.push,
+            },
           }).catch((error) => {
-            console.warn("[sheet-import] Failed to append app notification:", error);
+            console.warn(
+              "[sheet-import] Failed to append app notification:",
+              error,
+            );
           });
         }
       }
@@ -2075,61 +2736,67 @@ export const medicalRouter = router({
     }),
 
   getPatientImportPreview: adminProcedure
-    .input(z.object({ batchId: z.string().min(1), limit: z.number().int().min(1).max(500).optional() }))
+    .input(
+      z.object({
+        batchId: z.string().min(1),
+        limit: z.number().int().min(1).max(500).optional(),
+      }),
+    )
     .query(async ({ input }) => {
-      return await db.getPatientImportPreview(input.batchId, input.limit ?? 100);
+      return await db.getPatientImportPreview(
+        input.batchId,
+        input.limit ?? 100,
+      );
     }),
 
-  getOpsHealth: adminProcedure
-    .query(async () => {
-      return await db.getOpsHealthStatus();
-    }),
+  getOpsHealth: adminProcedure.query(async () => {
+    return await db.getOpsHealthStatus();
+  }),
 
-  getBuildInfo: protectedProcedure
-    .query(async () => {
-      return await getBuildInfo();
-    }),
+  getBuildInfo: protectedProcedure.query(async () => {
+    return await getBuildInfo();
+  }),
 
-  getRuntimeDbInfo: adminProcedure
-    .query(async () => {
-      const raw = String(process.env.DATABASE_URL ?? "").trim();
-      if (!raw) {
-        return {
-          hasDatabaseUrl: false,
-          protocol: null as string | null,
-          host: null as string | null,
-          port: null as number | null,
-          database: null as string | null,
-          maskedUrl: null as string | null,
-        };
-      }
-      try {
-        const parsed = new URL(raw);
-        const database = parsed.pathname?.replace(/^\//, "") || null;
-        const portNum = parsed.port ? Number(parsed.port) : null;
-        const maskedUser = parsed.username ? "***" : "";
-        const maskedPass = parsed.password ? ":***" : "";
-        const authPart = parsed.username || parsed.password ? `${maskedUser}${maskedPass}@` : "";
-        const maskedUrl = `${parsed.protocol}//${authPart}${parsed.host}${parsed.pathname}${parsed.search}`;
-        return {
-          hasDatabaseUrl: true,
-          protocol: parsed.protocol.replace(":", ""),
-          host: parsed.hostname || null,
-          port: Number.isFinite(portNum) ? portNum : null,
-          database,
-          maskedUrl,
-        };
-      } catch {
-        return {
-          hasDatabaseUrl: true,
-          protocol: null as string | null,
-          host: null as string | null,
-          port: null as number | null,
-          database: null as string | null,
-          maskedUrl: "invalid DATABASE_URL format",
-        };
-      }
-    }),
+  getRuntimeDbInfo: adminProcedure.query(async () => {
+    const raw = String(process.env.DATABASE_URL ?? "").trim();
+    if (!raw) {
+      return {
+        hasDatabaseUrl: false,
+        protocol: null as string | null,
+        host: null as string | null,
+        port: null as number | null,
+        database: null as string | null,
+        maskedUrl: null as string | null,
+      };
+    }
+    try {
+      const parsed = new URL(raw);
+      const database = parsed.pathname?.replace(/^\//, "") || null;
+      const portNum = parsed.port ? Number(parsed.port) : null;
+      const maskedUser = parsed.username ? "***" : "";
+      const maskedPass = parsed.password ? ":***" : "";
+      const authPart =
+        parsed.username || parsed.password ? `${maskedUser}${maskedPass}@` : "";
+      const maskedUrl = `${parsed.protocol}//${authPart}${parsed.host}${parsed.pathname}${parsed.search}`;
+      return {
+        hasDatabaseUrl: true,
+        protocol: parsed.protocol.replace(":", ""),
+        host: parsed.hostname || null,
+        port: Number.isFinite(portNum) ? portNum : null,
+        database,
+        maskedUrl,
+      };
+    } catch {
+      return {
+        hasDatabaseUrl: true,
+        protocol: null as string | null,
+        host: null as string | null,
+        port: null as number | null,
+        database: null as string | null,
+        maskedUrl: "invalid DATABASE_URL format",
+      };
+    }
+  }),
 
   syncPatientsFromMssql: adminProcedure
     .input(
@@ -2139,7 +2806,7 @@ export const medicalRouter = router({
           dryRun: z.boolean().optional(),
           incremental: z.boolean().optional(),
         })
-        .optional()
+        .optional(),
     )
     .mutation(async ({ input, ctx }) => {
       const result = await syncPatientsFromMssql({
@@ -2147,16 +2814,22 @@ export const medicalRouter = router({
         dryRun: input?.dryRun ?? false,
         incremental: input?.incremental ?? false,
       });
-      await db.logAuditEvent(ctx.user.id, "SYNC_PATIENTS_FROM_MSSQL", "patient", 0, {
-        fetched: result.fetched,
-        inserted: result.inserted,
-        updated: result.updated,
-        skipped: result.skipped,
-        dryRun: result.dryRun,
-        incremental: result.incremental,
-        incrementalSince: result.incrementalSince,
-        lastMarker: result.lastMarker,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SYNC_PATIENTS_FROM_MSSQL",
+        "patient",
+        0,
+        {
+          fetched: result.fetched,
+          inserted: result.inserted,
+          updated: result.updated,
+          skipped: result.skipped,
+          dryRun: result.dryRun,
+          incremental: result.incremental,
+          incrementalSince: result.incrementalSince,
+          lastMarker: result.lastMarker,
+        },
+      );
       return result;
     }),
 
@@ -2167,7 +2840,7 @@ export const medicalRouter = router({
           dryRun: z.boolean().optional(),
           onlyConsultant: z.boolean().optional(),
         })
-        .optional()
+        .optional(),
     )
     .mutation(async ({ input, ctx }) => {
       const dbConn = await db.getDb();
@@ -2196,7 +2869,10 @@ export const medicalRouter = router({
           defaultSheet: (row.defaultSheet as string | null) ?? null,
         });
       }
-      console.log(`[resetPatientServiceTypes] Loaded ${svcMap.size} services. Sample codes:`, Array.from(svcMap.keys()).slice(0, 10));
+      console.log(
+        `[resetPatientServiceTypes] Loaded ${svcMap.size} services. Sample codes:`,
+        Array.from(svcMap.keys()).slice(0, 10),
+      );
 
       const pageStateRows = await dbConn
         .select({
@@ -2230,7 +2906,8 @@ export const medicalRouter = router({
           const sv = String(v ?? "").trim();
           if (nk && sv) normalizedMap[nk] = sv;
         }
-        if (Object.keys(normalizedMap).length > 0) sheetTypeByPatientId.set(patientId, normalizedMap);
+        if (Object.keys(normalizedMap).length > 0)
+          sheetTypeByPatientId.set(patientId, normalizedMap);
       }
 
       // Get all patients with their current service type
@@ -2250,10 +2927,16 @@ export const medicalRouter = router({
           id: patientServiceEntries.id,
         })
         .from(patientServiceEntries)
-        .orderBy(desc(patientServiceEntries.serviceDate), desc(patientServiceEntries.id));
+        .orderBy(
+          desc(patientServiceEntries.serviceDate),
+          desc(patientServiceEntries.id),
+        );
 
       // Build map of patient ID -> latest service code
-      const latestServiceByPatient = new Map<number, { serviceCode: string | null; currentType: string | null }>();
+      const latestServiceByPatient = new Map<
+        number,
+        { serviceCode: string | null; currentType: string | null }
+      >();
       for (const p of allPatients) {
         latestServiceByPatient.set(p.id, {
           serviceCode: null,
@@ -2271,10 +2954,13 @@ export const medicalRouter = router({
         withServiceEntry++;
         latestServiceByPatient.set(patientId, {
           serviceCode: entry.serviceCode,
-          currentType: latestServiceByPatient.get(patientId)?.currentType ?? null,
+          currentType:
+            latestServiceByPatient.get(patientId)?.currentType ?? null,
         });
       }
-      console.log(`[resetPatientServiceTypes] Found ${allServiceEntries.length} total service entries, ${withServiceEntry} patients with latest service entries`);
+      console.log(
+        `[resetPatientServiceTypes] Found ${allServiceEntries.length} total service entries, ${withServiceEntry} patients with latest service entries`,
+      );
 
       let scanned = 0;
       let updated = 0;
@@ -2282,13 +2968,23 @@ export const medicalRouter = router({
       let mappedFromServices = 0;
       let mappedFromPageState = 0;
       let unresolved = 0;
-      const changedSample: Array<{ id: number; from: string; to: string; code: string }> = [];
+      const changedSample: Array<{
+        id: number;
+        from: string;
+        to: string;
+        code: string;
+      }> = [];
 
       let filteredByConsultant = 0;
-      for (const [id, { serviceCode, currentType }] of latestServiceByPatient.entries()) {
+      for (const [
+        id,
+        { serviceCode, currentType },
+      ] of latestServiceByPatient.entries()) {
         scanned += 1;
         const code = normalizeServiceCodeKey(serviceCode);
-        const normalizedCurrentType = String(currentType ?? "").trim().toLowerCase();
+        const normalizedCurrentType = String(currentType ?? "")
+          .trim()
+          .toLowerCase();
         if (!id || !code) continue;
         withCode += 1;
         if (onlyConsultant && normalizedCurrentType !== "consultant") {
@@ -2313,8 +3009,15 @@ export const medicalRouter = router({
           unresolved += 1;
         }
 
-        if (id % 500 === 0 || code === "1586" || (code === "1521" && id < 1000) || (code === "1572" && id < 1000)) {
-          console.log(`[resetPatientServiceTypes] Patient ${id}: code="${code}", currentType="${normalizedCurrentType}", svc=${svc ? `{defaultSheet:"${svc.defaultSheet}"}` : "null"}, nextType="${nextType}", willUpdate=${!nextType || nextType === normalizedCurrentType ? "NO" : "YES"}`);
+        if (
+          id % 500 === 0 ||
+          code === "1586" ||
+          (code === "1521" && id < 1000) ||
+          (code === "1572" && id < 1000)
+        ) {
+          console.log(
+            `[resetPatientServiceTypes] Patient ${id}: code="${code}", currentType="${normalizedCurrentType}", svc=${svc ? `{defaultSheet:"${svc.defaultSheet}"}` : "null"}, nextType="${nextType}", willUpdate=${!nextType || nextType === normalizedCurrentType ? "NO" : "YES"}`,
+          );
         }
         if (!nextType || nextType === normalizedCurrentType) continue;
 
@@ -2323,25 +3026,40 @@ export const medicalRouter = router({
             .update(patients)
             .set({
               serviceType: nextType as any,
-              ...(nextType === "external" ? { locationType: "external" as const } : {}),
+              ...(nextType === "external"
+                ? { locationType: "external" as const }
+                : {}),
               updatedAt: new Date(),
             })
             .where(eq(patients.id, id));
         }
         updated += 1;
         if (changedSample.length < 20) {
-          changedSample.push({ id, from: normalizedCurrentType || "-", to: nextType, code });
+          changedSample.push({
+            id,
+            from: normalizedCurrentType || "-",
+            to: nextType,
+            code,
+          });
         }
       }
 
-      console.log(`[resetPatientServiceTypes] SUMMARY: scanned=${scanned}, withCode=${withCode}, filteredByConsultant=${filteredByConsultant}, mappedFromServices=${mappedFromServices}, mappedFromPageState=${mappedFromPageState}, unresolved=${unresolved}, updated=${updated}, dryRun=${dryRun}, onlyConsultant=${onlyConsultant}`);
+      console.log(
+        `[resetPatientServiceTypes] SUMMARY: scanned=${scanned}, withCode=${withCode}, filteredByConsultant=${filteredByConsultant}, mappedFromServices=${mappedFromServices}, mappedFromPageState=${mappedFromPageState}, unresolved=${unresolved}, updated=${updated}, dryRun=${dryRun}, onlyConsultant=${onlyConsultant}`,
+      );
 
-      await db.logAuditEvent(ctx.user.id, "RESET_PATIENT_SERVICE_TYPES_FROM_SERVICE_CODE", "patient", 0, {
-        scanned,
-        updated,
-        dryRun,
-        onlyConsultant,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "RESET_PATIENT_SERVICE_TYPES_FROM_SERVICE_CODE",
+        "patient",
+        0,
+        {
+          scanned,
+          updated,
+          dryRun,
+          onlyConsultant,
+        },
+      );
 
       return {
         scanned,
@@ -2356,43 +3074,55 @@ export const medicalRouter = router({
       };
     }),
 
-  resetMssqlSyncCodes: adminProcedure
-    .mutation(async ({ ctx }) => {
-      const affected = await db.resetMssqlSyncCodes();
-      await db.logAuditEvent(ctx.user.id, "RESET_MSSQL_SYNC_CODES", "patient", 0, { affected });
-      return { affected };
-    }),
+  resetMssqlSyncCodes: adminProcedure.mutation(async ({ ctx }) => {
+    const affected = await db.resetMssqlSyncCodes();
+    await db.logAuditEvent(
+      ctx.user.id,
+      "RESET_MSSQL_SYNC_CODES",
+      "patient",
+      0,
+      { affected },
+    );
+    return { affected };
+  }),
 
   resetPatientsAutoIncrement: adminProcedure
     .input(z.object({ value: z.number().int().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const dbConn = await db.getDb();
       if (!dbConn) throw new Error("Database not available");
-      await dbConn.execute(`ALTER TABLE patients AUTO_INCREMENT = ${input.value}`);
-      await db.logAuditEvent(ctx.user.id, "RESET_PATIENTS_AUTO_INCREMENT", "patient", 0, { value: input.value });
+      await dbConn.execute(
+        `ALTER TABLE patients AUTO_INCREMENT = ${input.value}`,
+      );
+      await db.logAuditEvent(
+        ctx.user.id,
+        "RESET_PATIENTS_AUTO_INCREMENT",
+        "patient",
+        0,
+        { value: input.value },
+      );
       return { value: input.value };
     }),
 
-  getMssqlSyncStatus: adminProcedure
-    .query(async () => {
-      try {
-        return await getMssqlSyncStatus();
-      } catch (error) {
-        console.warn("[medical.getMssqlSyncStatus] fallback", error);
-        return {
-          lastSuccessAt: null,
-          lastMarker: null,
-          lastMode: null,
-          lastResult: null,
-          running: false,
-          lastRunStartedAt: null,
-          lastRunFinishedAt: null,
-          lastError: "unavailable",
-          nextRunAt: null,
-          lastChangeCount: null,
-        };
-      }
-    }),
+  getMssqlSyncStatus: adminProcedure.query(async () => {
+    try {
+      return await getMssqlSyncStatus();
+    } catch (error) {
+      console.warn("[medical.getMssqlSyncStatus] fallback", error);
+      return {
+        lastSuccessAt: null,
+        lastMarker: null,
+        lastMode: null,
+        lastResult: null,
+        running: false,
+        lastRunStartedAt: null,
+        lastRunFinishedAt: null,
+        lastError: "unavailable",
+        nextRunAt: null,
+        lastChangeCount: null,
+      };
+    }
+  }),
 
   backfillMssqlServiceNames: adminProcedure
     .input(
@@ -2400,54 +3130,70 @@ export const medicalRouter = router({
         .object({
           limit: z.number().int().min(1).max(50000).optional(),
         })
-        .optional()
+        .optional(),
     )
     .mutation(async ({ input, ctx }) => {
       const result = await backfillPapatSrvNamesInMssql(input?.limit);
-      await db.logAuditEvent(ctx.user.id, "BACKFILL_MSSQL_PAPAT_SRV_NAMES", "systemSetting", 0, {
-        limit: input?.limit ?? null,
-        updated: result.updated,
-        note: result.note ?? "",
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "BACKFILL_MSSQL_PAPAT_SRV_NAMES",
+        "systemSetting",
+        0,
+        {
+          limit: input?.limit ?? null,
+          updated: result.updated,
+          note: result.note ?? "",
+        },
+      );
       return result;
     }),
 
-  getMssqlSyncRuntimeConfig: adminProcedure
-    .query(async () => {
-      const fallback = DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG;
-      const row = await db.getSystemSetting("mssql_sync_runtime_v1").catch(() => null);
-      if (!row?.value) return fallback;
-      try {
-        const parsed = JSON.parse(String(row.value ?? "{}")) as Record<string, unknown>;
-        return {
-          enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : fallback.enabled,
-          intervalMs:
-            Number.isFinite(Number(parsed.intervalMs)) && Number(parsed.intervalMs) >= 5_000
-              ? Math.trunc(Number(parsed.intervalMs))
-              : fallback.intervalMs,
-          limit:
-            Number.isFinite(Number(parsed.limit)) && Number(parsed.limit) >= 1
-              ? Math.min(20_000, Math.trunc(Number(parsed.limit)))
-              : fallback.limit,
-          incremental:
-            typeof parsed.incremental === "boolean" ? parsed.incremental : fallback.incremental,
-          overwriteExisting:
-            typeof parsed.overwriteExisting === "boolean"
-              ? parsed.overwriteExisting
-              : fallback.overwriteExisting,
-          preserveManualEdits:
-            typeof parsed.preserveManualEdits === "boolean"
-              ? parsed.preserveManualEdits
-              : fallback.preserveManualEdits,
-          linkServicesForExisting:
-            typeof parsed.linkServicesForExisting === "boolean"
-              ? parsed.linkServicesForExisting
-              : fallback.linkServicesForExisting,
-        };
-      } catch {
-        return fallback;
-      }
-    }),
+  getMssqlSyncRuntimeConfig: adminProcedure.query(async () => {
+    const fallback = DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG;
+    const row = await db
+      .getSystemSetting("mssql_sync_runtime_v1")
+      .catch(() => null);
+    if (!row?.value) return fallback;
+    try {
+      const parsed = JSON.parse(String(row.value ?? "{}")) as Record<
+        string,
+        unknown
+      >;
+      return {
+        enabled:
+          typeof parsed.enabled === "boolean"
+            ? parsed.enabled
+            : fallback.enabled,
+        intervalMs:
+          Number.isFinite(Number(parsed.intervalMs)) &&
+          Number(parsed.intervalMs) >= 5_000
+            ? Math.trunc(Number(parsed.intervalMs))
+            : fallback.intervalMs,
+        limit:
+          Number.isFinite(Number(parsed.limit)) && Number(parsed.limit) >= 1
+            ? Math.min(20_000, Math.trunc(Number(parsed.limit)))
+            : fallback.limit,
+        incremental:
+          typeof parsed.incremental === "boolean"
+            ? parsed.incremental
+            : fallback.incremental,
+        overwriteExisting:
+          typeof parsed.overwriteExisting === "boolean"
+            ? parsed.overwriteExisting
+            : fallback.overwriteExisting,
+        preserveManualEdits:
+          typeof parsed.preserveManualEdits === "boolean"
+            ? parsed.preserveManualEdits
+            : fallback.preserveManualEdits,
+        linkServicesForExisting:
+          typeof parsed.linkServicesForExisting === "boolean"
+            ? parsed.linkServicesForExisting
+            : fallback.linkServicesForExisting,
+      };
+    } catch {
+      return fallback;
+    }
+  }),
 
   updateMssqlSyncRuntimeConfig: adminProcedure
     .input(
@@ -2459,14 +3205,20 @@ export const medicalRouter = router({
         overwriteExisting: z.boolean().optional(),
         preserveManualEdits: z.boolean().optional(),
         linkServicesForExisting: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       if (input.overwriteExisting) {
-        await db.logAuditEvent(ctx.user.id, "MSSQL_SYNC_OVERWRITE_MODE_ENABLED", "systemSetting", 0, {
-          warning:
-            "Overwrite mode will backfill patient fields. Existing user-edited values may be changed if empty-check allows update path.",
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "MSSQL_SYNC_OVERWRITE_MODE_ENABLED",
+          "systemSetting",
+          0,
+          {
+            warning:
+              "Overwrite mode will backfill patient fields. Existing user-edited values may be changed if empty-check allows update path.",
+          },
+        );
       }
       await db.updateSystemSettings("mssql_sync_runtime_v1", {
         enabled: input.enabled,
@@ -2476,80 +3228,128 @@ export const medicalRouter = router({
         overwriteExisting:
           typeof input.overwriteExisting === "boolean"
             ? input.overwriteExisting
-            : String(process.env.MSSQL_SYNC_UPDATE_EXISTING ?? "false").toLowerCase() === "true",
+            : String(
+                process.env.MSSQL_SYNC_UPDATE_EXISTING ?? "false",
+              ).toLowerCase() === "true",
         preserveManualEdits:
           typeof input.preserveManualEdits === "boolean"
             ? input.preserveManualEdits
-            : String(process.env.MSSQL_SYNC_PRESERVE_MANUAL_EDITS ?? "true").toLowerCase() !== "false",
+            : String(
+                process.env.MSSQL_SYNC_PRESERVE_MANUAL_EDITS ?? "true",
+              ).toLowerCase() !== "false",
         linkServicesForExisting:
           typeof input.linkServicesForExisting === "boolean"
             ? input.linkServicesForExisting
-            : String(process.env.MSSQL_SYNC_LINK_SERVICES_FOR_EXISTING ?? "true").toLowerCase() !== "false",
+            : String(
+                process.env.MSSQL_SYNC_LINK_SERVICES_FOR_EXISTING ?? "true",
+              ).toLowerCase() !== "false",
       });
-      await db.logAuditEvent(ctx.user.id, "UPDATE_MSSQL_SYNC_RUNTIME_CONFIG", "systemSetting", 0, {
-        ...input,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_MSSQL_SYNC_RUNTIME_CONFIG",
+        "systemSetting",
+        0,
+        {
+          ...input,
+        },
+      );
       return { success: true };
     }),
 
   // Create patient from examination (any authenticated user)
   createPatientFromExamination: protectedProcedure
-    .input(z.object({
-      patientCode: z.string().optional(),
-      fullName: z.string(),
-      dateOfBirth: z.string().optional(),
-      age: z.number().optional(),
-      phone: z.string().optional(),
-      address: z.string().optional(),
-      occupation: z.string().optional(),
-      serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
-      locationType: z.enum(["center", "external"]).default("center"),
-      doctorId: z.number().optional(),
-      doctorCode: z.string().optional(),
-      doctorName: z.string().optional(),
-      serviceCode: z.string().optional(),
-      servicePrice: z.number().optional(),
-      serviceQty: z.number().optional(),
-      discountValue: z.number().optional(),
-      services: z.array(z.object({
-        code: z.string(),
-        qty: z.union([z.string(), z.number()]),
-        price: z.number(),
-        discount: z.number(),
-      })).optional(),
-    }))
+    .input(
+      z.object({
+        patientCode: z.string().optional(),
+        fullName: z.string(),
+        dateOfBirth: z.string().optional(),
+        age: z.number().optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        occupation: z.string().optional(),
+        serviceType: z
+          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .optional(),
+        locationType: z.enum(["center", "external"]).default("center"),
+        doctorId: z.number().optional(),
+        doctorCode: z.string().optional(),
+        doctorName: z.string().optional(),
+        serviceCode: z.string().optional(),
+        servicePrice: z.number().optional(),
+        serviceQty: z.number().optional(),
+        discountValue: z.number().optional(),
+        services: z
+          .array(
+            z.object({
+              code: z.string(),
+              qty: z.union([z.string(), z.number()]),
+              price: z.number(),
+              discount: z.number(),
+            }),
+          )
+          .optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
-        const existingByIdentity = await findExistingPatientByNameOrPhone(input.fullName, input.phone ?? "");
-        
+        const existingByIdentity = await findExistingPatientByNameOrPhone(
+          input.fullName,
+          input.phone ?? "",
+        );
+
         // Resolve doctor code
         let doctorCode = String(input.doctorCode ?? "").trim() || null;
         if (!doctorCode) {
-          doctorCode = await resolveDoctorCodeById(input.doctorId ?? (existingByIdentity as any)?.doctorId) ?? null;
+          doctorCode =
+            (await resolveDoctorCodeById(
+              input.doctorId ?? (existingByIdentity as any)?.doctorId,
+            )) ?? null;
         }
         if (!doctorCode) {
-          doctorCode = await resolveDoctorCodeByName(input.doctorName ?? null) ?? null;
+          doctorCode =
+            (await resolveDoctorCodeByName(input.doctorName ?? null)) ?? null;
         }
 
-        const processServices = input.services && input.services.length > 0 
-          ? input.services 
-          : input.serviceCode ? [{ code: input.serviceCode, qty: input.serviceQty ?? 1, price: input.servicePrice ?? 0, discount: input.discountValue ?? 0 }] : [];
+        const processServices =
+          input.services && input.services.length > 0
+            ? input.services
+            : input.serviceCode
+              ? [
+                  {
+                    code: input.serviceCode,
+                    qty: input.serviceQty ?? 1,
+                    price: input.servicePrice ?? 0,
+                    discount: input.discountValue ?? 0,
+                  },
+                ]
+              : [];
 
         if (existingByIdentity) {
           const existingId = Number((existingByIdentity as any)?.id ?? 0);
-          const existingCode = String((existingByIdentity as any)?.patientCode ?? "").trim();
-          
+          const existingCode = String(
+            (existingByIdentity as any)?.patientCode ?? "",
+          ).trim();
+
           if (existingId > 0) {
-            await db.updatePatient(existingId, {
-              lastVisit: new Date(),
-              ...(input.serviceType ? { serviceType: input.serviceType } : {}),
-              ...(input.locationType ? { locationType: input.locationType } : {}),
-              ...(input.doctorId ? { doctorId: input.doctorId } : {}),
-            }).catch(() => null);
+            await db
+              .updatePatient(existingId, {
+                lastVisit: new Date(),
+                ...(input.serviceType
+                  ? { serviceType: input.serviceType }
+                  : {}),
+                ...(input.locationType
+                  ? { locationType: input.locationType }
+                  : {}),
+                ...(input.doctorId ? { doctorId: input.doctorId } : {}),
+              })
+              .catch(() => null);
           }
 
           if (!existingCode) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Existing patient has no patientCode" });
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Existing patient has no patientCode",
+            });
           }
 
           let firstTrNo: number | null = null;
@@ -2558,23 +3358,51 @@ export const medicalRouter = router({
           if (processServices.length === 0) {
             const pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
-              fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? "").trim(),
-              phone: String((existingByIdentity as any)?.phone ?? input.phone ?? "").trim() || null,
-              address: String((existingByIdentity as any)?.address ?? input.address ?? "").trim() || null,
+              fullName: String(
+                (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
+              ).trim(),
+              phone:
+                String(
+                  (existingByIdentity as any)?.phone ?? input.phone ?? "",
+                ).trim() || null,
+              address:
+                String(
+                  (existingByIdentity as any)?.address ?? input.address ?? "",
+                ).trim() || null,
               age: Number.isFinite(Number((existingByIdentity as any)?.age))
                 ? Number((existingByIdentity as any)?.age)
                 : Number.isFinite(Number(input.age))
                   ? Number(input.age)
                   : null,
-              gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
-              dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? input.dateOfBirth ?? null,
-              branch: String((existingByIdentity as any)?.branch ?? "examinations").trim() || "examinations",
-              serviceType: input.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
+              gender:
+                String((existingByIdentity as any)?.gender ?? "").trim() ||
+                null,
+              dateOfBirth:
+                (existingByIdentity as any)?.dateOfBirth ??
+                input.dateOfBirth ??
+                null,
+              branch:
+                String(
+                  (existingByIdentity as any)?.branch ?? "examinations",
+                ).trim() || "examinations",
+              serviceType:
+                input.serviceType ??
+                (existingByIdentity as any)?.serviceType ??
+                null,
               locationType:
-                (input.serviceType === "external" ? "external" : input.locationType) ??
-                (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
+                (input.serviceType === "external"
+                  ? "external"
+                  : input.locationType) ??
+                (String(
+                  (existingByIdentity as any)?.locationType ?? "",
+                ).trim() === "external"
+                  ? "external"
+                  : "center"),
               doctorCode: doctorCode || null,
-              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+              enteredBy:
+                String(
+                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+                ).trim() || null,
               serviceCode: null,
             });
             firstTrNo = pushResult?.trNo ?? null;
@@ -2591,42 +3419,90 @@ export const medicalRouter = router({
 
             const pushResult = await pushNewPatientToMssql({
               patientCode: existingCode,
-              fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? "").trim(),
-              phone: String((existingByIdentity as any)?.phone ?? input.phone ?? "").trim() || null,
-              address: String((existingByIdentity as any)?.address ?? input.address ?? "").trim() || null,
+              fullName: String(
+                (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
+              ).trim(),
+              phone:
+                String(
+                  (existingByIdentity as any)?.phone ?? input.phone ?? "",
+                ).trim() || null,
+              address:
+                String(
+                  (existingByIdentity as any)?.address ?? input.address ?? "",
+                ).trim() || null,
               age: Number.isFinite(Number((existingByIdentity as any)?.age))
                 ? Number((existingByIdentity as any)?.age)
                 : Number.isFinite(Number(input.age))
                   ? Number(input.age)
                   : null,
-              gender: String((existingByIdentity as any)?.gender ?? "").trim() || null,
-              dateOfBirth: (existingByIdentity as any)?.dateOfBirth ?? input.dateOfBirth ?? null,
-              branch: String((existingByIdentity as any)?.branch ?? "examinations").trim() || "examinations",
-              serviceType: input.serviceType ?? ((existingByIdentity as any)?.serviceType ?? null),
+              gender:
+                String((existingByIdentity as any)?.gender ?? "").trim() ||
+                null,
+              dateOfBirth:
+                (existingByIdentity as any)?.dateOfBirth ??
+                input.dateOfBirth ??
+                null,
+              branch:
+                String(
+                  (existingByIdentity as any)?.branch ?? "examinations",
+                ).trim() || "examinations",
+              serviceType:
+                input.serviceType ??
+                (existingByIdentity as any)?.serviceType ??
+                null,
               locationType:
-                (input.serviceType === "external" ? "external" : input.locationType) ??
-                (String((existingByIdentity as any)?.locationType ?? "").trim() === "external" ? "external" : "center"),
+                (input.serviceType === "external"
+                  ? "external"
+                  : input.locationType) ??
+                (String(
+                  (existingByIdentity as any)?.locationType ?? "",
+                ).trim() === "external"
+                  ? "external"
+                  : "center"),
               doctorCode: doctorCode || null,
-              enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+              enteredBy:
+                String(
+                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+                ).trim() || null,
               serviceCode: srv.code,
-              servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
-              serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
-              discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
-              paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
+              servicePrice:
+                "servicePrice" in pricingPayload
+                  ? (pricingPayload.servicePrice ?? null)
+                  : null,
+              serviceQty:
+                "serviceQty" in pricingPayload
+                  ? (pricingPayload.serviceQty ?? null)
+                  : null,
+              discountValue:
+                "discountValue" in pricingPayload
+                  ? (pricingPayload.discountValue ?? null)
+                  : null,
+              paValue:
+                "paValue" in pricingPayload
+                  ? (pricingPayload.paValue ?? null)
+                  : null,
             });
 
             if (i === 0) firstTrNo = pushResult?.trNo ?? null;
           }
 
-          await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_RECEIPT_EXISTING_MULTI", "patient", existingId, {
-            message: `Created ${processServices.length} receipts for existing patient`,
-            patientCode: existingCode,
-          });
+          await db.logAuditEvent(
+            ctx.user.id,
+            "CREATE_PATIENT_RECEIPT_EXISTING_MULTI",
+            "patient",
+            existingId,
+            {
+              message: `Created ${processServices.length} receipts for existing patient`,
+              patientCode: existingCode,
+            },
+          );
 
           return {
             id: existingId,
             patientCode: existingCode,
-            fullName: String((existingByIdentity as any)?.fullName ?? input.fullName ?? ""),
+            fullName: String(
+              (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
+            ),
             receiptNo: firstTrNo,
           };
         }
@@ -2638,7 +3514,10 @@ export const medicalRouter = router({
 
         const existing = await db.getPatientByCode(code);
         if (existing) {
-          throw new TRPCError({ code: "CONFLICT", message: "Patient code already exists" });
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Patient code already exists",
+          });
         }
 
         await db.createPatient({
@@ -2658,7 +3537,10 @@ export const medicalRouter = router({
 
         const newPatient = await db.getPatientByCode(code);
         if (!newPatient) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create patient record" });
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create patient record",
+          });
         }
 
         let firstTrNo: number | null = null;
@@ -2676,7 +3558,10 @@ export const medicalRouter = router({
             serviceType: input.serviceType || "consultant",
             locationType: input.locationType,
             doctorCode: doctorCode || null,
-            enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+            enteredBy:
+              String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
             serviceCode: null,
           });
           firstTrNo = pushResult?.trNo ?? null;
@@ -2701,20 +3586,41 @@ export const medicalRouter = router({
             serviceType: input.serviceType || "consultant",
             locationType: input.locationType,
             doctorCode: doctorCode || null,
-            enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+            enteredBy:
+              String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
             serviceCode: srv.code,
-            servicePrice: "servicePrice" in pricingPayload ? pricingPayload.servicePrice ?? null : null,
-            serviceQty: "serviceQty" in pricingPayload ? pricingPayload.serviceQty ?? null : null,
-            discountValue: "discountValue" in pricingPayload ? pricingPayload.discountValue ?? null : null,
-            paValue: "paValue" in pricingPayload ? pricingPayload.paValue ?? null : null,
+            servicePrice:
+              "servicePrice" in pricingPayload
+                ? (pricingPayload.servicePrice ?? null)
+                : null,
+            serviceQty:
+              "serviceQty" in pricingPayload
+                ? (pricingPayload.serviceQty ?? null)
+                : null,
+            discountValue:
+              "discountValue" in pricingPayload
+                ? (pricingPayload.discountValue ?? null)
+                : null,
+            paValue:
+              "paValue" in pricingPayload
+                ? (pricingPayload.paValue ?? null)
+                : null,
           });
           if (i === 0) firstTrNo = pushResult?.trNo ?? null;
         }
 
-        await db.logAuditEvent(ctx.user.id, "CREATE_PATIENT_MULTI_SRV", "patient", Number(newPatient.id), {
-          message: `Registered new patient with ${processServices.length} services`,
-          patientCode: code,
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_PATIENT_MULTI_SRV",
+          "patient",
+          Number(newPatient.id),
+          {
+            message: `Registered new patient with ${processServices.length} services`,
+            patientCode: code,
+          },
+        );
 
         return {
           id: Number(newPatient.id),
@@ -2732,24 +3638,34 @@ export const medicalRouter = router({
     }),
 
   linkMultipleServicesToMssql: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      services: z.array(z.object({
-        code: z.string().min(1),
-        quantity: z.number().int().min(1).max(10).optional(),
-        doctorCode: z.string().optional(),
-        doctorName: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        services: z.array(
+          z.object({
+            code: z.string().min(1),
+            quantity: z.number().int().min(1).max(10).optional(),
+            doctorCode: z.string().optional(),
+            doctorName: z.string().optional(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const allowed = await canPushToMssql(ctx.user);
       if (!allowed) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "No permission for MSSQL adding" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No permission for MSSQL adding",
+        });
       }
       const patient = await db.getPatientById(input.patientId);
       const patientCode = String((patient as any)?.patientCode ?? "").trim();
       if (!patientCode) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Patient code missing" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Patient code missing",
+        });
       }
 
       const results = [];
@@ -2759,16 +3675,26 @@ export const medicalRouter = router({
           srv.code,
           srv.quantity ?? null,
           String(srv.doctorCode ?? "").trim() || null,
-          String(srv.doctorName ?? "").trim() || null
+          String(srv.doctorName ?? "").trim() || null,
         );
-        results.push({ serviceCode: srv.code, linked: res.linked, note: res.note });
+        results.push({
+          serviceCode: srv.code,
+          linked: res.linked,
+          note: res.note,
+        });
       }
 
-      await db.logAuditEvent(ctx.user.id, "LINK_MULTIPLE_SERVICES_MSSQL", "patient", input.patientId, {
-        patientCode,
-        count: input.services.length,
-        results,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "LINK_MULTIPLE_SERVICES_MSSQL",
+        "patient",
+        input.patientId,
+        {
+          patientCode,
+          count: input.services.length,
+          results,
+        },
+      );
 
       return { success: true, results };
     }),
@@ -2784,12 +3710,18 @@ export const medicalRouter = router({
     .input(
       z.object({
         searchTerm: z.string(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external", "pentacam"]).optional(),
+        sheetType: z
+          .enum(["consultant", "specialist", "lasik", "external", "pentacam"])
+          .optional(),
         locationType: z.enum(["center", "external"]).optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      return await db.searchPatients(input.searchTerm, input.sheetType, input.locationType);
+      return await db.searchPatients(
+        input.searchTerm,
+        input.sheetType,
+        input.locationType,
+      );
     }),
 
   // Get all patients
@@ -2801,7 +3733,9 @@ export const medicalRouter = router({
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
         doctorName: z.string().optional(),
-        serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
+        serviceType: z
+          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .optional(),
         locationType: z.enum(["center", "external"]).optional(),
         limit: z.number().int().min(1).max(500).optional(),
         cursor: z
@@ -2811,77 +3745,81 @@ export const medicalRouter = router({
             id: z.number().int().positive(),
           })
           .optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return await db.getAllPatients(input);
     }),
 
-    getPatientStats: adminProcedure
-      .input(
-        z.object({
+  getPatientStats: adminProcedure
+    .input(
+      z.object({
         year: z.number().int().min(1900).max(3000),
         month: z.number().int().min(1).max(12).optional(),
         searchTerm: z.string().optional(),
         doctorName: z.string().optional(),
-        serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
+        serviceType: z
+          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .optional(),
         locationType: z.enum(["center", "external"]).optional(),
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-        return await db.getPatientStats(input.year, input.month, {
-          searchTerm: input.searchTerm,
-          doctorName: input.doctorName,
-          serviceType: input.serviceType,
-          locationType: input.locationType,
-          dateFrom: input.dateFrom,
-          dateTo: input.dateTo,
-        });
-      }),
+      return await db.getPatientStats(input.year, input.month, {
+        searchTerm: input.searchTerm,
+        doctorName: input.doctorName,
+        serviceType: input.serviceType,
+        locationType: input.locationType,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+    }),
   getPatientStatsBundle: adminProcedure
-      .input(
-        z.object({
-          year: z.number().int().min(1900).max(3000),
-          month: z.number().int().min(1).max(12),
-          searchTerm: z.string().optional(),
-          doctorName: z.string().optional(),
-          serviceType: z.enum(["consultant", "specialist", "lasik", "surgery", "external"]).optional(),
-          locationType: z.enum(["center", "external"]).optional(),
-          dateFrom: z.string().optional(),
-          dateTo: z.string().optional(),
-        }),
-      )
-      .query(async ({ input }) => {
-        const filters = {
-          searchTerm: input.searchTerm,
-          doctorName: input.doctorName,
-          serviceType: input.serviceType,
-          locationType: input.locationType,
-          dateFrom: input.dateFrom,
-          dateTo: input.dateTo,
-        };
-
-        let previousYear = input.year;
-        let previousMonth = input.month - 1;
-        if (previousMonth < 1) {
-          previousMonth = 12;
-          previousYear -= 1;
-        }
-
-        const [currentMonth, previousMonthStats, yearly] = await Promise.all([
-          db.getPatientStats(input.year, input.month, filters),
-          db.getPatientStats(previousYear, previousMonth, filters),
-          db.getPatientStats(input.year, undefined, filters),
-        ]);
-
-        return {
-          currentMonth,
-          previousMonth: previousMonthStats,
-          yearly,
-        };
+    .input(
+      z.object({
+        year: z.number().int().min(1900).max(3000),
+        month: z.number().int().min(1).max(12),
+        searchTerm: z.string().optional(),
+        doctorName: z.string().optional(),
+        serviceType: z
+          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .optional(),
+        locationType: z.enum(["center", "external"]).optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
       }),
+    )
+    .query(async ({ input }) => {
+      const filters = {
+        searchTerm: input.searchTerm,
+        doctorName: input.doctorName,
+        serviceType: input.serviceType,
+        locationType: input.locationType,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      };
+
+      let previousYear = input.year;
+      let previousMonth = input.month - 1;
+      if (previousMonth < 1) {
+        previousMonth = 12;
+        previousYear -= 1;
+      }
+
+      const [currentMonth, previousMonthStats, yearly] = await Promise.all([
+        db.getPatientStats(input.year, input.month, filters),
+        db.getPatientStats(previousYear, previousMonth, filters),
+        db.getPatientStats(input.year, undefined, filters),
+      ]);
+
+      return {
+        currentMonth,
+        previousMonth: previousMonthStats,
+        yearly,
+      };
+    }),
 
   getTodayPatientsBySheet: protectedProcedure
     .input(z.object({ date: z.string().optional() }).optional())
@@ -2891,10 +3829,12 @@ export const medicalRouter = router({
 
   // Update patient
   updatePatient: receptionProcedure
-    .input(z.object({
-      patientId: z.number(),
-      updates: z.record(z.string(), z.any()),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        updates: z.record(z.string(), z.any()),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         const nextUpdates = { ...input.updates } as Record<string, any>;
@@ -2925,18 +3865,28 @@ export const medicalRouter = router({
         const updated = await db.getPatientById(input.patientId);
 
         // Push patient details only to MSSQL (no service linking from update flow).
-        if (updated?.patientCode && updated?.fullName && (await canPushToMssql(ctx.user))) {
+        if (
+          updated?.patientCode &&
+          updated?.fullName &&
+          (await canPushToMssql(ctx.user))
+        ) {
           await upsertPatientToMssql({
             patientCode: String(updated.patientCode),
             fullName: String(updated.fullName),
             phone: String((updated as any).phone ?? "").trim() || null,
             address: String((updated as any).address ?? "").trim() || null,
-            age: Number.isFinite(Number((updated as any).age)) ? Number((updated as any).age) : null,
+            age: Number.isFinite(Number((updated as any).age))
+              ? Number((updated as any).age)
+              : null,
             gender: String((updated as any).gender ?? "").trim() || null,
             dateOfBirth: (updated as any).dateOfBirth ?? null,
             branch: String((updated as any).branch ?? "").trim() || null,
-            locationType: String((updated as any).locationType ?? "").trim() || null,
-            enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+            locationType:
+              String((updated as any).locationType ?? "").trim() || null,
+            enteredBy:
+              String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
           }).catch((error) => {
             console.warn("[mssql-push] updatePatient upsert failed", {
               patientCode: String(updated.patientCode),
@@ -2947,15 +3897,15 @@ export const medicalRouter = router({
 
         // Service linking to MSSQL is explicit only via linkPatientServiceToMssql mutation.
         // Keep updatePatient from adding extra service rows based on serviceType changes.
-        
+
         await db.logAuditEvent(
           ctx.user.id,
           "UPDATE_PATIENT",
           "patient",
           input.patientId,
-          { message: `Updated patient data` }
+          { message: `Updated patient data` },
         );
-        
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to update patient: ${error}`);
@@ -2969,10 +3919,12 @@ export const medicalRouter = router({
         doctorCode: z.string().min(1),
         doctorName: z.string().min(1),
         doctorLocationType: z.enum(["center", "external"]),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const uniqueIds = Array.from(new Set(input.patientIds.filter((id) => Number.isFinite(id))));
+      const uniqueIds = Array.from(
+        new Set(input.patientIds.filter((id) => Number.isFinite(id))),
+      );
       const nextDoctorCode = input.doctorCode.trim();
       const nextDoctorName = input.doctorName.trim();
       const nextLocationType = input.doctorLocationType;
@@ -2986,7 +3938,9 @@ export const medicalRouter = router({
       for (const patientId of uniqueIds) {
         const patient = await db.getPatientById(patientId);
         if (!patient) continue;
-        const previousDoctorName = String((patient as any).treatingDoctor ?? "").trim();
+        const previousDoctorName = String(
+          (patient as any).treatingDoctor ?? "",
+        ).trim();
         snapshots.push({
           patientId,
           serviceType: (patient as any).serviceType ?? null,
@@ -3008,12 +3962,17 @@ export const medicalRouter = router({
 
       await db.logAuditEvent(ctx.user.id, "BULK_ASSIGN_DOCTOR", "patient", 0, {
         count: snapshots.length,
-        fromLocationCounts: snapshots.reduce<Record<string, number>>((acc, item) => {
-          const key = String(item.locationType ?? "unknown");
-          acc[key] = (acc[key] ?? 0) + 1;
-          return acc;
-        }, {}),
-        fromDoctorSamples: Array.from(new Set(snapshots.map((s) => s.doctorName).filter(Boolean))).slice(0, 10),
+        fromLocationCounts: snapshots.reduce<Record<string, number>>(
+          (acc, item) => {
+            const key = String(item.locationType ?? "unknown");
+            acc[key] = (acc[key] ?? 0) + 1;
+            return acc;
+          },
+          {},
+        ),
+        fromDoctorSamples: Array.from(
+          new Set(snapshots.map((s) => s.doctorName).filter(Boolean)),
+        ).slice(0, 10),
         toDoctor: nextDoctorName,
         doctorCode: nextDoctorCode,
         doctorName: nextDoctorName,
@@ -3028,11 +3987,19 @@ export const medicalRouter = router({
     .input(
       z.object({
         patientIds: z.array(z.number()).min(1),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external", "surgery"]),
-      })
+        sheetType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "surgery",
+        ]),
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const uniqueIds = Array.from(new Set(input.patientIds.filter((id) => Number.isFinite(id))));
+      const uniqueIds = Array.from(
+        new Set(input.patientIds.filter((id) => Number.isFinite(id))),
+      );
       const nextSheetType = input.sheetType;
       const snapshots: Array<{
         patientId: number;
@@ -3044,9 +4011,14 @@ export const medicalRouter = router({
       for (const patientId of uniqueIds) {
         const patient = await db.getPatientById(patientId);
         if (!patient) continue;
-        const existingState = await db.getPatientPageState(patientId, "examination");
+        const existingState = await db.getPatientPageState(
+          patientId,
+          "examination",
+        );
         const existingData =
-          existingState && typeof (existingState as any).data === "object" && (existingState as any).data
+          existingState &&
+          typeof (existingState as any).data === "object" &&
+          (existingState as any).data
             ? ((existingState as any).data as Record<string, any>)
             : {};
         snapshots.push({
@@ -3062,22 +4034,34 @@ export const medicalRouter = router({
         });
       }
 
-      await db.logAuditEvent(ctx.user.id, "BULK_ASSIGN_SHEET_TYPE", "patient", 0, {
-        count: snapshots.length,
-        fromServiceTypeCounts: snapshots.reduce<Record<string, number>>((acc, item) => {
-          const key = String(item.serviceType ?? "unknown");
-          acc[key] = (acc[key] ?? 0) + 1;
-          return acc;
-        }, {}),
-        fromLocationCounts: snapshots.reduce<Record<string, number>>((acc, item) => {
-          const key = String(item.locationType ?? "unknown");
-          acc[key] = (acc[key] ?? 0) + 1;
-          return acc;
-        }, {}),
-        toSheetType: nextSheetType,
-        sheetType: nextSheetType,
-        patientIds: uniqueIds.slice(0, 200),
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "BULK_ASSIGN_SHEET_TYPE",
+        "patient",
+        0,
+        {
+          count: snapshots.length,
+          fromServiceTypeCounts: snapshots.reduce<Record<string, number>>(
+            (acc, item) => {
+              const key = String(item.serviceType ?? "unknown");
+              acc[key] = (acc[key] ?? 0) + 1;
+              return acc;
+            },
+            {},
+          ),
+          fromLocationCounts: snapshots.reduce<Record<string, number>>(
+            (acc, item) => {
+              const key = String(item.locationType ?? "unknown");
+              acc[key] = (acc[key] ?? 0) + 1;
+              return acc;
+            },
+            {},
+          ),
+          toSheetType: nextSheetType,
+          sheetType: nextSheetType,
+          patientIds: uniqueIds.slice(0, 200),
+        },
+      );
 
       return { success: true, updatedCount: snapshots.length, snapshots };
     }),
@@ -3091,17 +4075,21 @@ export const medicalRouter = router({
             serviceType: z.string().nullable().optional(),
             locationType: z.string().nullable().optional(),
             doctorName: z.string().optional(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const snapshots = input.snapshots.filter((item) => Number.isFinite(item.patientId));
+      const snapshots = input.snapshots.filter((item) =>
+        Number.isFinite(item.patientId),
+      );
       let restoredCount = 0;
       for (const snapshot of snapshots) {
         const nextUpdates: Record<string, any> = {};
-        if (snapshot.serviceType) nextUpdates.serviceType = snapshot.serviceType;
-        if (snapshot.locationType) nextUpdates.locationType = snapshot.locationType;
+        if (snapshot.serviceType)
+          nextUpdates.serviceType = snapshot.serviceType;
+        if (snapshot.locationType)
+          nextUpdates.locationType = snapshot.locationType;
         if (Object.keys(nextUpdates).length > 0) {
           await db.updatePatient(snapshot.patientId, nextUpdates);
         }
@@ -3109,10 +4097,16 @@ export const medicalRouter = router({
         restoredCount += 1;
       }
 
-      await db.logAuditEvent(ctx.user.id, "BULK_RESTORE_PATIENTS", "patient", 0, {
-        count: restoredCount,
-        patientIds: snapshots.map((s) => s.patientId).slice(0, 200),
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "BULK_RESTORE_PATIENTS",
+        "patient",
+        0,
+        {
+          count: restoredCount,
+          patientIds: snapshots.map((s) => s.patientId).slice(0, 200),
+        },
+      );
       return { success: true, restoredCount };
     }),
 
@@ -3122,7 +4116,13 @@ export const medicalRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         await db.deletePatientWithAllData(input.patientId);
-        await db.logAuditEvent(ctx.user.id, "DELETE_PATIENT_WITH_DATA", "patient", input.patientId, { message: "Deleted patient and all related data" });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "DELETE_PATIENT_WITH_DATA",
+          "patient",
+          input.patientId,
+          { message: "Deleted patient and all related data" },
+        );
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to delete patient and data: ${error}`);
@@ -3135,7 +4135,13 @@ export const medicalRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         await db.deleteVisitWithAllData(input.visitId);
-        await db.logAuditEvent(ctx.user.id, "DELETE_VISIT_WITH_DATA", "visit", input.visitId, { message: "Deleted visit and all related data" });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "DELETE_VISIT_WITH_DATA",
+          "visit",
+          input.visitId,
+          { message: "Deleted visit and all related data" },
+        );
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to delete visit and data: ${error}`);
@@ -3148,7 +4154,13 @@ export const medicalRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         await db.deleteExaminationDirect(input.examinationId);
-        await db.logAuditEvent(ctx.user.id, "DELETE_EXAMINATION", "examination", input.examinationId, { message: "Deleted examination and related data" });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "DELETE_EXAMINATION",
+          "examination",
+          input.examinationId,
+          { message: "Deleted examination and related data" },
+        );
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to delete examination: ${error}`);
@@ -3156,194 +4168,219 @@ export const medicalRouter = router({
     }),
 
   // Fix orphaned examinations by linking them to proper visits
-  fixOrphanedExaminations: adminProcedure
-    .mutation(async ({ ctx }) => {
-      try {
-        const result = await db.fixOrphanedExaminations();
-        await db.logAuditEvent(ctx.user.id, "FIX_ORPHANED_EXAMINATIONS", "examination", 0, {
-          message: `Fixed ${result.fixed} orphaned examinations out of ${result.total}`
-        });
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Fix orphaned examinations error:", error);
-        throw new Error(`Failed to fix orphaned examinations: ${error}`);
-      }
-    }),
+  fixOrphanedExaminations: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const result = await db.fixOrphanedExaminations();
+      await db.logAuditEvent(
+        ctx.user.id,
+        "FIX_ORPHANED_EXAMINATIONS",
+        "examination",
+        0,
+        {
+          message: `Fixed ${result.fixed} orphaned examinations out of ${result.total}`,
+        },
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Fix orphaned examinations error:", error);
+      throw new Error(`Failed to fix orphaned examinations: ${error}`);
+    }
+  }),
 
   // COMPREHENSIVE AUTO-FIX: Run all data repairs
-  autoFixAllDataIssues: adminProcedure
-    .mutation(async ({ ctx }) => {
-      try {
-        const result = await db.autoFixAllDataIssues();
-        await db.logAuditEvent(ctx.user.id, "AUTO_FIX_ALL_DATA_ISSUES", "system", 0, {
-          message: `Auto-fixed all data issues: ${result.totalFixed} items fixed total. Details: visitId0=${result.fixExamsWithVisitId0.fixed}, orphaned=${result.fixOrphanedExaminations.fixed}, noAppt=${result.fixVisitsWithoutAppointmentId.fixed}`
-        });
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Auto-fix all error:", error);
-        throw new Error(`Failed to auto-fix all issues: ${error}`);
-      }
-    }),
+  autoFixAllDataIssues: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const result = await db.autoFixAllDataIssues();
+      await db.logAuditEvent(
+        ctx.user.id,
+        "AUTO_FIX_ALL_DATA_ISSUES",
+        "system",
+        0,
+        {
+          message: `Auto-fixed all data issues: ${result.totalFixed} items fixed total. Details: visitId0=${result.fixExamsWithVisitId0.fixed}, orphaned=${result.fixOrphanedExaminations.fixed}, noAppt=${result.fixVisitsWithoutAppointmentId.fixed}`,
+        },
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Auto-fix all error:", error);
+      throw new Error(`Failed to auto-fix all issues: ${error}`);
+    }
+  }),
 
   // Diagnostic: Check for invalid visitIds
-  checkInvalidVisitIds: adminProcedure
-    .query(async ({ ctx }) => {
-      try {
-        const result = await db.checkInvalidVisitIds();
-        console.log("Invalid visitIds check result:", result);
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Check invalid visitIds error:", error);
-        throw new Error(`Failed to check invalid visitIds: ${error}`);
-      }
-    }),
+  checkInvalidVisitIds: adminProcedure.query(async ({ ctx }) => {
+    try {
+      const result = await db.checkInvalidVisitIds();
+      console.log("Invalid visitIds check result:", result);
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Check invalid visitIds error:", error);
+      throw new Error(`Failed to check invalid visitIds: ${error}`);
+    }
+  }),
 
   // Diagnostic: Check which visits don't have matching appointments
-  checkVisitsWithoutAppointments: adminProcedure
-    .query(async ({ ctx }) => {
-      try {
-        const result = await db.checkVisitsWithoutAppointments();
-        console.log("Visits without appointments check:", result);
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Check visits without appointments error:", error);
-        throw new Error(`Failed to check visits without appointments: ${error}`);
-      }
-    }),
+  checkVisitsWithoutAppointments: adminProcedure.query(async ({ ctx }) => {
+    try {
+      const result = await db.checkVisitsWithoutAppointments();
+      console.log("Visits without appointments check:", result);
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Check visits without appointments error:", error);
+      throw new Error(`Failed to check visits without appointments: ${error}`);
+    }
+  }),
 
   // CRITICAL FIX: Fix exams with visitId = 0 (prevents bulk deletion bug)
-  fixExamsWithVisitId0: adminProcedure
-    .mutation(async ({ ctx }) => {
-      try {
-        const result = await db.fixExamsWithVisitId0();
-        await db.logAuditEvent(ctx.user.id, "FIX_EXAMS_VISITID_0", "examination", 0, {
-          message: `Fixed ${result.fixed} exams with visitId = 0. ${result.message}`
-        });
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Fix exams with visitId 0 error:", error);
-        throw new Error(`Failed to fix exams with visitId = 0: ${error}`);
-      }
-    }),
+  fixExamsWithVisitId0: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const result = await db.fixExamsWithVisitId0();
+      await db.logAuditEvent(
+        ctx.user.id,
+        "FIX_EXAMS_VISITID_0",
+        "examination",
+        0,
+        {
+          message: `Fixed ${result.fixed} exams with visitId = 0. ${result.message}`,
+        },
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Fix exams with visitId 0 error:", error);
+      throw new Error(`Failed to fix exams with visitId = 0: ${error}`);
+    }
+  }),
 
   // Fix visits without appointmentId by linking to matching appointments
-  fixVisitsWithoutAppointmentId: adminProcedure
-    .mutation(async ({ ctx }) => {
-      try {
-        const result = await db.fixVisitsWithoutAppointmentId();
-        await db.logAuditEvent(ctx.user.id, "FIX_VISITS_WITHOUT_APPOINTMENT", "visit", 0, {
-          message: `Fixed ${result.fixed} visits without appointmentId out of ${result.total}`
-        });
-        return { success: true, ...result };
-      } catch (error) {
-        console.error("Fix visits without appointment error:", error);
-        throw new Error(`Failed to fix visits without appointmentId: ${error}`);
-      }
-    }),
+  fixVisitsWithoutAppointmentId: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const result = await db.fixVisitsWithoutAppointmentId();
+      await db.logAuditEvent(
+        ctx.user.id,
+        "FIX_VISITS_WITHOUT_APPOINTMENT",
+        "visit",
+        0,
+        {
+          message: `Fixed ${result.fixed} visits without appointmentId out of ${result.total}`,
+        },
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      console.error("Fix visits without appointment error:", error);
+      throw new Error(`Failed to fix visits without appointmentId: ${error}`);
+    }
+  }),
 
   // Get dashboard card visibility settings (shared for all users)
-  getDashboardCardVisibility: protectedProcedure
-    .query(async () => {
-      try {
-        const setting = await db.getSystemSetting("dashboard_card_visibility_v1");
-        const defaults = {
-          // Panel cards
-          showPatientDataPanel: true,
-          showMedicalFileCard: true,
-          showTodayPatientsPanel: true,
-          // Dashboard cards
-          showPatients: true,
-          showPatientFile: true,
-          showExaminations: true,
-          showPentacam: true,
-          showAppointments: true,
-          showPricingRules: true,
-          showMedicalReports: true,
-          showPatientSummary: true,
-          showPrescription: true,
-          showRefraction: true,
-          showRequestTests: true,
-          showMedicationsTests: true,
-          showVisits: true,
-          showFollowups: true,
-          showQuickEntry: true,
-          showNewCases: true,
-          showFollowupForm: true,
-          showDoctorView: true,
-          showSheetCopies: true,
-        };
-        if (setting?.value) {
-          try {
-            const stored = JSON.parse(setting.value);
-            return { ...defaults, ...stored };
-          } catch {
-            return defaults;
-          }
+  getDashboardCardVisibility: protectedProcedure.query(async () => {
+    try {
+      const setting = await db.getSystemSetting("dashboard_card_visibility_v1");
+      const defaults = {
+        // Panel cards
+        showPatientDataPanel: true,
+        showMedicalFileCard: true,
+        showTodayPatientsPanel: true,
+        // Dashboard cards
+        showPatients: true,
+        showPatientFile: true,
+        showExaminations: true,
+        showPentacam: true,
+        showAppointments: true,
+        showPricingRules: true,
+        showMedicalReports: true,
+        showPatientSummary: true,
+        showPrescription: true,
+        showRefraction: true,
+        showRequestTests: true,
+        showMedicationsTests: true,
+        showVisits: true,
+        showFollowups: true,
+        showQuickEntry: true,
+        showNewCases: true,
+        showFollowupForm: true,
+        showDoctorView: true,
+        showSheetCopies: true,
+      };
+      if (setting?.value) {
+        try {
+          const stored = JSON.parse(setting.value);
+          return { ...defaults, ...stored };
+        } catch {
+          return defaults;
         }
-        return defaults;
-      } catch (error) {
-        console.error("Get dashboard card visibility error:", error);
-        return {
-          showPatientDataPanel: true,
-          showMedicalFileCard: true,
-          showTodayPatientsPanel: true,
-          showPatients: true,
-          showPatientFile: true,
-          showExaminations: true,
-          showPentacam: true,
-          showAppointments: true,
-          showPricingRules: true,
-          showMedicalReports: true,
-          showPatientSummary: true,
-          showPrescription: true,
-          showRefraction: true,
-          showRequestTests: true,
-          showMedicationsTests: true,
-          showVisits: true,
-          showFollowups: true,
-          showQuickEntry: true,
-          showNewCases: true,
-          showFollowupForm: true,
-          showDoctorView: true,
-          showSheetCopies: true,
-        };
       }
-    }),
+      return defaults;
+    } catch (error) {
+      console.error("Get dashboard card visibility error:", error);
+      return {
+        showPatientDataPanel: true,
+        showMedicalFileCard: true,
+        showTodayPatientsPanel: true,
+        showPatients: true,
+        showPatientFile: true,
+        showExaminations: true,
+        showPentacam: true,
+        showAppointments: true,
+        showPricingRules: true,
+        showMedicalReports: true,
+        showPatientSummary: true,
+        showPrescription: true,
+        showRefraction: true,
+        showRequestTests: true,
+        showMedicationsTests: true,
+        showVisits: true,
+        showFollowups: true,
+        showQuickEntry: true,
+        showNewCases: true,
+        showFollowupForm: true,
+        showDoctorView: true,
+        showSheetCopies: true,
+      };
+    }
+  }),
 
   // Set dashboard card visibility (admin only)
   setDashboardCardVisibility: adminProcedure
-    .input(z.object({
-      // Panel cards
-      showPatientDataPanel: z.boolean(),
-      showMedicalFileCard: z.boolean(),
-      showTodayPatientsPanel: z.boolean(),
-      // Dashboard cards
-      showPatients: z.boolean(),
-      showPatientFile: z.boolean(),
-      showExaminations: z.boolean(),
-      showPentacam: z.boolean(),
-      showAppointments: z.boolean(),
-      showPricingRules: z.boolean(),
-      showMedicalReports: z.boolean(),
-      showPatientSummary: z.boolean(),
-      showPrescription: z.boolean(),
-      showRefraction: z.boolean(),
-      showRequestTests: z.boolean(),
-      showMedicationsTests: z.boolean(),
-      showVisits: z.boolean(),
-      showFollowups: z.boolean(),
-      showQuickEntry: z.boolean(),
-      showNewCases: z.boolean(),
-      showFollowupForm: z.boolean(),
-      showDoctorView: z.boolean(),
-      showSheetCopies: z.boolean(),
-    }))
+    .input(
+      z.object({
+        // Panel cards
+        showPatientDataPanel: z.boolean(),
+        showMedicalFileCard: z.boolean(),
+        showTodayPatientsPanel: z.boolean(),
+        // Dashboard cards
+        showPatients: z.boolean(),
+        showPatientFile: z.boolean(),
+        showExaminations: z.boolean(),
+        showPentacam: z.boolean(),
+        showAppointments: z.boolean(),
+        showPricingRules: z.boolean(),
+        showMedicalReports: z.boolean(),
+        showPatientSummary: z.boolean(),
+        showPrescription: z.boolean(),
+        showRefraction: z.boolean(),
+        showRequestTests: z.boolean(),
+        showMedicationsTests: z.boolean(),
+        showVisits: z.boolean(),
+        showFollowups: z.boolean(),
+        showQuickEntry: z.boolean(),
+        showNewCases: z.boolean(),
+        showFollowupForm: z.boolean(),
+        showDoctorView: z.boolean(),
+        showSheetCopies: z.boolean(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.updateSystemSettings("dashboard_card_visibility_v1", input);
-        await db.logAuditEvent(ctx.user.id, "UPDATE_DASHBOARD_VISIBILITY", "system", 0, {
-          message: `Updated dashboard card visibility`
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "UPDATE_DASHBOARD_VISIBILITY",
+          "system",
+          0,
+          {
+            message: `Updated dashboard card visibility`,
+          },
+        );
         return { success: true, ...input };
       } catch (error) {
         console.error("Set dashboard card visibility error:", error);
@@ -3360,34 +4397,39 @@ export const medicalRouter = router({
           throw new Error(`Patient ${input.patientId} not found`);
         }
         await db.deletePatient(input.patientId);
-        await db.logAuditEvent(ctx.user.id, "DELETE_PATIENT", "patient", input.patientId, {
-          message: `Deleted patient record: ${(patient as any).fullName}`,
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "DELETE_PATIENT",
+          "patient",
+          input.patientId,
+          {
+            message: `Deleted patient record: ${(patient as any).fullName}`,
+          },
+        );
         return { success: true, patientId: input.patientId };
       } catch (error) {
         throw new Error(`Failed to delete patient: ${error}`);
       }
     }),
 
-  deleteAllPatients: adminProcedure
-    .mutation(async ({ ctx }) => {
-      try {
-        const result = await db.deleteAllPatients();
-        await db.logAuditEvent(ctx.user.id, "DELETE_ALL_PATIENTS", "patient", 0, {
-          message: `Deleted all ${result.deletedCount} patients (records preserved)`,
-        });
-        return { success: true, deletedCount: result.deletedCount };
-      } catch (error) {
-        throw new Error(`Failed to delete all patients: ${error}`);
-      }
-    }),
+  deleteAllPatients: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const result = await db.deleteAllPatients();
+      await db.logAuditEvent(ctx.user.id, "DELETE_ALL_PATIENTS", "patient", 0, {
+        message: `Deleted all ${result.deletedCount} patients (records preserved)`,
+      });
+      return { success: true, deletedCount: result.deletedCount };
+    } catch (error) {
+      throw new Error(`Failed to delete all patients: ${error}`);
+    }
+  }),
 
   deletePatientFromMssql: adminProcedure
     .input(
       z.object({
         patientId: z.number().optional(),
         patientCode: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const codeFromInput = String(input.patientCode ?? "").trim();
@@ -3397,15 +4439,24 @@ export const medicalRouter = router({
         patientCode = String((patient as any)?.patientCode ?? "").trim();
       }
       if (!patientCode) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Missing patient code for MSSQL delete" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Missing patient code for MSSQL delete",
+        });
       }
 
       const result = await deletePatientFromMssqlByCode(patientCode);
-      await db.logAuditEvent(ctx.user.id, "DELETE_PATIENT_MSSQL", "patient", Number(input.patientId ?? 0), {
-        patientCode,
-        deleted: result.deleted,
-        note: result.note ?? "",
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_PATIENT_MSSQL",
+        "patient",
+        Number(input.patientId ?? 0),
+        {
+          patientCode,
+          deleted: result.deleted,
+          note: result.note ?? "",
+        },
+      );
       return { success: true, ...result, patientCode };
     }),
 
@@ -3417,17 +4468,23 @@ export const medicalRouter = router({
         quantity: z.number().int().min(1).max(10).optional(),
         doctorCode: z.string().optional(),
         doctorName: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const allowed = await canPushToMssql(ctx.user);
       if (!allowed) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "No permission for MSSQL adding" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No permission for MSSQL adding",
+        });
       }
       const patient = await db.getPatientById(input.patientId);
       const patientCode = String((patient as any)?.patientCode ?? "").trim();
       if (!patientCode) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Patient code missing" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Patient code missing",
+        });
       }
       const serviceCode = String(input.serviceCode ?? "").trim();
       const result = await ensurePatientServiceInMssql(
@@ -3435,38 +4492,54 @@ export const medicalRouter = router({
         serviceCode,
         input.quantity ?? null,
         String(input.doctorCode ?? "").trim() || null,
-        String(input.doctorName ?? "").trim() || null
+        String(input.doctorName ?? "").trim() || null,
       );
       if (!result.linked) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: result.note ? `MSSQL add failed: ${result.note}` : "MSSQL add failed",
+          message: result.note
+            ? `MSSQL add failed: ${result.note}`
+            : "MSSQL add failed",
         });
       }
-      await db.logAuditEvent(ctx.user.id, "LINK_PATIENT_SERVICE_MSSQL", "patient", input.patientId, {
+      await db.logAuditEvent(
+        ctx.user.id,
+        "LINK_PATIENT_SERVICE_MSSQL",
+        "patient",
+        input.patientId,
+        {
+          patientCode,
+          serviceCode,
+          quantity: input.quantity ?? null,
+          doctorCode: String(input.doctorCode ?? "").trim(),
+          doctorName: String(input.doctorName ?? "").trim(),
+          linked: result.linked,
+          note: result.note ?? "",
+        },
+      );
+      return {
+        success: true,
+        linked: true,
+        note: result.note ?? "",
         patientCode,
         serviceCode,
-        quantity: input.quantity ?? null,
-        doctorCode: String(input.doctorCode ?? "").trim(),
-        doctorName: String(input.doctorName ?? "").trim(),
-        linked: result.linked,
-        note: result.note ?? "",
-      });
-      return { success: true, linked: true, note: result.note ?? "", patientCode, serviceCode };
+      };
     }),
 
   // ============ APPOINTMENT ROUTERS ============
 
   // Create appointment
   createAppointment: receptionProcedure
-    .input(z.object({
-      patientId: z.number(),
-      doctorId: z.number().optional(),
-      appointmentDate: z.string(),
-      appointmentType: z.enum(["examination", "surgery", "followup"]),
-      branch: z.enum(["examinations", "surgery"]),
-      notes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        doctorId: z.number().optional(),
+        appointmentDate: z.string(),
+        appointmentType: z.enum(["examination", "surgery", "followup"]),
+        branch: z.enum(["examinations", "surgery"]),
+        notes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         const result = await db.createAppointment({
@@ -3478,16 +4551,23 @@ export const medicalRouter = router({
         let appointmentId = (result as any)?.insertId as number | undefined;
         if (!appointmentId) {
           const createdMs = new Date(input.appointmentDate).getTime();
-          const patientAppointments = await db.getAppointmentsByPatient(input.patientId);
+          const patientAppointments = await db.getAppointmentsByPatient(
+            input.patientId,
+          );
           const candidates = patientAppointments
-            .filter((row: any) => String(row?.appointmentType ?? "") === input.appointmentType)
+            .filter(
+              (row: any) =>
+                String(row?.appointmentType ?? "") === input.appointmentType,
+            )
             .filter((row: any) => String(row?.branch ?? "") === input.branch)
             .map((row: any) => {
               const rowMs =
                 row?.appointmentDate instanceof Date
                   ? row.appointmentDate.getTime()
                   : new Date(String(row?.appointmentDate ?? "")).getTime();
-              const delta = Number.isFinite(rowMs) ? Math.abs(rowMs - createdMs) : Number.MAX_SAFE_INTEGER;
+              const delta = Number.isFinite(rowMs)
+                ? Math.abs(rowMs - createdMs)
+                : Number.MAX_SAFE_INTEGER;
               return { row, delta };
             })
             .filter((item: any) => item.delta <= 2 * 60 * 1000)
@@ -3503,11 +4583,18 @@ export const medicalRouter = router({
         if (!appointmentId) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create appointment - no ID returned from database"
+            message:
+              "Failed to create appointment - no ID returned from database",
           });
         }
 
-        await db.logAuditEvent(ctx.user.id, "CREATE_APPOINTMENT", "appointment", appointmentId, { message: `Created appointment for patient ${input.patientId}` });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_APPOINTMENT",
+          "appointment",
+          appointmentId,
+          { message: `Created appointment for patient ${input.patientId}` },
+        );
 
         return { success: true, appointmentId };
       } catch (error) {
@@ -3525,20 +4612,17 @@ export const medicalRouter = router({
     return await db.getMedicalTotals();
   }),
   // Get all operations
-  getOperations: protectedProcedure
-    .query(async () => {
-      return await db.getAllAppointments();
-    }),
+  getOperations: protectedProcedure.query(async () => {
+    return await db.getAllAppointments();
+  }),
   // Alias: Get all operations
-  getAllOperations: protectedProcedure
-    .query(async () => {
-      return await db.getAllAppointments();
-    }),
+  getAllOperations: protectedProcedure.query(async () => {
+    return await db.getAllAppointments();
+  }),
   // Legacy: Keep getAppointments for backward compatibility
-  getAppointments: protectedProcedure
-    .query(async () => {
-      return await db.getAllAppointments();
-    }),
+  getAppointments: protectedProcedure.query(async () => {
+    return await db.getAllAppointments();
+  }),
   // Delete appointment
   deleteAppointment: managerProcedure
     .input(z.object({ appointmentId: z.number() }))
@@ -3549,21 +4633,25 @@ export const medicalRouter = router({
         "DELETE_APPOINTMENT",
         "appointment",
         input.appointmentId,
-        { message: "Deleted appointment" }
+        { message: "Deleted appointment" },
       );
       return { success: true };
     }),
   // Update appointment (status/notes)
   updateAppointment: managerProcedure
-    .input(z.object({
-      appointmentId: z.number(),
-      updates: z
-        .object({
-          status: z.enum(["scheduled", "completed", "cancelled", "no_show"]).optional(),
-          notes: z.string().optional(),
-        })
-        .partial(),
-    }))
+    .input(
+      z.object({
+        appointmentId: z.number(),
+        updates: z
+          .object({
+            status: z
+              .enum(["scheduled", "completed", "cancelled", "no_show"])
+              .optional(),
+            notes: z.string().optional(),
+          })
+          .partial(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.updateAppointment(input.appointmentId, input.updates);
       await db.logAuditEvent(
@@ -3571,7 +4659,7 @@ export const medicalRouter = router({
         "UPDATE_APPOINTMENT",
         "appointment",
         input.appointmentId,
-        { message: "Updated appointment" }
+        { message: "Updated appointment" },
       );
       return { success: true };
     }),
@@ -3580,31 +4668,39 @@ export const medicalRouter = router({
 
   // Nurse: Create examination data
   createExamination: medicalStaffProcedure
-    .input(z.object({
-      visitId: z.number(),
-      patientId: z.number(),
-      ucvaOD: z.string().optional(),
-      ucvaOS: z.string().optional(),
-      bcvaOD: z.string().optional(),
-      bcvaOS: z.string().optional(),
-      refOD_S: z.number().optional(),
-      refOD_C: z.number().optional(),
-      refOD_A: z.number().optional(),
-      refOS_S: z.number().optional(),
-      refOS_C: z.number().optional(),
-      refOS_A: z.number().optional(),
-      iopOD: z.number().optional(),
-      iopOS: z.number().optional(),
-      examinationNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        patientId: z.number(),
+        ucvaOD: z.string().optional(),
+        ucvaOS: z.string().optional(),
+        bcvaOD: z.string().optional(),
+        bcvaOS: z.string().optional(),
+        refOD_S: z.number().optional(),
+        refOD_C: z.number().optional(),
+        refOD_A: z.number().optional(),
+        refOS_S: z.number().optional(),
+        refOS_C: z.number().optional(),
+        refOS_A: z.number().optional(),
+        iopOD: z.number().optional(),
+        iopOS: z.number().optional(),
+        examinationNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.createExamination({
           ...input,
           examinedBy: ctx.user.id,
         });
-        
-        await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION", "examination", 0, { message: `Created examination for patient ${input.patientId}` });
+
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_EXAMINATION",
+          "examination",
+          0,
+          { message: `Created examination for patient ${input.patientId}` },
+        );
 
         return { success: true };
       } catch (error) {
@@ -3626,13 +4722,17 @@ export const medicalRouter = router({
     }),
 
   getAutorefractometryOverview: protectedProcedure
-    .input(z.object({
-      page: z.number().min(1).optional(),
-      pageSize: z.number().min(1).max(200).optional(),
-      search: z.string().optional(),
-      statusFilter: z.enum(["all", "complete", "partial"]).optional(),
-      locationType: z.enum(["center", "external"]).optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().min(1).optional(),
+          pageSize: z.number().min(1).max(200).optional(),
+          search: z.string().optional(),
+          statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+          locationType: z.enum(["center", "external"]).optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAutorefractometryOverviewRows({
         page: input?.page,
@@ -3660,24 +4760,38 @@ export const medicalRouter = router({
       z.object({
         examinationId: z.number().int().positive(),
         patientId: z.number().int().positive(),
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
-      })
+        od: z
+          .object({
+            s: z.string().optional(),
+            c: z.string().optional(),
+            axis: z.string().optional(),
+          })
+          .optional(),
+        os: z
+          .object({
+            s: z.string().optional(),
+            c: z.string().optional(),
+            axis: z.string().optional(),
+          })
+          .optional(),
+      }),
     )
     .mutation(async ({ input }) => {
       return await db.saveAfterRefractionData(input);
     }),
 
   getVisitsByPatient: protectedProcedure
-    .input(z.union([
-      z.number(),
-      z.object({ patientId: z.number() })
-    ]).nullable().optional())
+    .input(
+      z
+        .union([z.number(), z.object({ patientId: z.number() })])
+        .nullable()
+        .optional(),
+    )
     .query(async ({ input }) => {
       let patientId = null;
-      if (typeof input === 'number') {
+      if (typeof input === "number") {
         patientId = input;
-      } else if (input && typeof input === 'object' && 'patientId' in input) {
+      } else if (input && typeof input === "object" && "patientId" in input) {
         patientId = input.patientId;
       }
       if (patientId === 0) {
@@ -3688,15 +4802,17 @@ export const medicalRouter = router({
     }),
 
   getFollowupVisitsByPatient: protectedProcedure
-    .input(z.union([
-      z.number(),
-      z.object({ patientId: z.number() })
-    ]).nullable().optional())
+    .input(
+      z
+        .union([z.number(), z.object({ patientId: z.number() })])
+        .nullable()
+        .optional(),
+    )
     .query(async ({ input }) => {
       let patientId = null;
-      if (typeof input === 'number') {
+      if (typeof input === "number") {
         patientId = input;
-      } else if (input && typeof input === 'object' && 'patientId' in input) {
+      } else if (input && typeof input === "object" && "patientId" in input) {
         patientId = input.patientId;
       }
       if (!patientId) return [];
@@ -3704,44 +4820,53 @@ export const medicalRouter = router({
     }),
 
   // Get all visits
-  getVisits: protectedProcedure
-    .query(async () => {
-      return await db.getAllVisits();
-    }),
+  getVisits: protectedProcedure.query(async () => {
+    return await db.getAllVisits();
+  }),
 
   // Get all examinations
-  getExaminations: protectedProcedure
-    .query(async () => {
-      return await db.getAllExaminations();
-    }),
+  getExaminations: protectedProcedure.query(async () => {
+    return await db.getAllExaminations();
+  }),
 
   // Update visit date
   updateVisitDate: adminProcedure
-    .input(z.object({
-      visitId: z.number(),
-      visitDate: z.string(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        visitDate: z.string(),
+      }),
+    )
     .mutation(async ({ input }) => {
       // Parse the date
-      const [year, month, day] = input.visitDate.split('-');
-      const visitDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const [year, month, day] = input.visitDate.split("-");
+      const visitDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+      );
 
       await db.updateVisit(input.visitId, { visitDate });
       return { success: true };
     }),
 
   updateVisitExamData: protectedProcedure
-    .input(z.object({
-      visitId: z.number(),
-      updates: z.object({
-        autorefraction: z.any().optional(),
-        pentacam: z.any().optional(),
+    .input(
+      z.object({
+        visitId: z.number(),
+        updates: z.object({
+          autorefraction: z.any().optional(),
+          pentacam: z.any().optional(),
+        }),
       }),
-    }))
+    )
     .mutation(async ({ input, ctx }) => {
       const allowedRoles = ["doctor", "nurse", "admin", "manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to update exam data" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions to update exam data",
+        });
       }
 
       // Get examinations for this visit
@@ -3787,35 +4912,45 @@ export const medicalRouter = router({
   // ============ FOLLOWUP SHEET OPERATIONS ============
 
   saveFollowupSheet: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
-      followupItems: z.array(z.object({
-        tableIndex: z.number(),
-        followupDate: z.string().optional(),
-        followupName: z.string().optional(),
-        vaOD: z.string().optional(),
-        vaOS: z.string().optional(),
-        refracOD: z.any().optional(),
-        refracOS: z.any().optional(),
-        flapOD: z.any().optional(),
-        flapOS: z.any().optional(),
-        iopOD: z.string().optional(),
-        iopOS: z.string().optional(),
-        treatment: z.string().optional(),
-        notes: z.string().optional(),
-        rightEye: z.boolean().optional(),
-        leftEye: z.boolean().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        followupItems: z.array(
+          z.object({
+            tableIndex: z.number(),
+            followupDate: z.string().optional(),
+            followupName: z.string().optional(),
+            vaOD: z.string().optional(),
+            vaOS: z.string().optional(),
+            refracOD: z.any().optional(),
+            refracOS: z.any().optional(),
+            flapOD: z.any().optional(),
+            flapOS: z.any().optional(),
+            iopOD: z.string().optional(),
+            iopOS: z.string().optional(),
+            treatment: z.string().optional(),
+            notes: z.string().optional(),
+            rightEye: z.boolean().optional(),
+            leftEye: z.boolean().optional(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const allowedRoles = ["doctor", "nurse", "admin", "manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to save followup sheet" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions to save followup sheet",
+        });
       }
 
       // Get or create followup sheet
-      let sheet: any = await db.getLatestFollowupSheet(input.patientId, input.sheetType);
+      let sheet: any = await db.getLatestFollowupSheet(
+        input.patientId,
+        input.sheetType,
+      );
       let nextVersion = 1;
 
       if (sheet) {
@@ -3834,7 +4969,14 @@ export const medicalRouter = router({
           sheetType: input.sheetType,
           version: nextVersion,
         });
-        sheet = { id: (result as any)[0], patientId: input.patientId, sheetType: input.sheetType, version: nextVersion, createdAt: new Date(), updatedAt: new Date() };
+        sheet = {
+          id: (result as any)[0],
+          patientId: input.patientId,
+          sheetType: input.sheetType,
+          version: nextVersion,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
       }
 
       // Save items
@@ -3842,11 +4984,15 @@ export const medicalRouter = router({
         if (!item.followupDate) continue; // Skip empty items
 
         const existingItem = await db.getFollowupItemsBySheet(sheet.id);
-        const existingIndex = existingItem.find((i: any) => i.tableIndex === item.tableIndex);
+        const existingIndex = existingItem.find(
+          (i: any) => i.tableIndex === item.tableIndex,
+        );
 
         if (existingIndex) {
           await db.updateFollowupItem(existingIndex.id, {
-            followupDate: item.followupDate ? new Date(item.followupDate) : null,
+            followupDate: item.followupDate
+              ? new Date(item.followupDate)
+              : null,
             followupName: item.followupName,
             vaOD: item.vaOD,
             vaOS: item.vaOS,
@@ -3865,7 +5011,9 @@ export const medicalRouter = router({
           await db.createFollowupItem({
             followupSheetId: sheet.id,
             tableIndex: item.tableIndex,
-            followupDate: item.followupDate ? new Date(item.followupDate) : null,
+            followupDate: item.followupDate
+              ? new Date(item.followupDate)
+              : null,
             followupName: item.followupName,
             vaOD: item.vaOD,
             vaOS: item.vaOS,
@@ -3883,38 +5031,56 @@ export const medicalRouter = router({
         }
       }
 
-      await db.logAuditEvent(ctx.user.id, "SAVE_FOLLOWUP_SHEET", "followup_sheets", sheet.id, { message: `Saved followup sheet version ${sheet.version}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SAVE_FOLLOWUP_SHEET",
+        "followup_sheets",
+        sheet.id,
+        { message: `Saved followup sheet version ${sheet.version}` },
+      );
       return { success: true, sheetId: sheet.id, version: sheet.version };
     }),
 
   getFollowupSheets: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      sheetType: z.enum(["consultant", "specialist", "lasik", "external"]).optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        sheetType: z
+          .enum(["consultant", "specialist", "lasik", "external"])
+          .optional(),
+      }),
+    )
     .query(async ({ input }) => {
-      const sheets = await db.getFollowupSheetsByPatient(input.patientId, input.sheetType);
-      const sheetsWithItems = await Promise.all((sheets as any[]).map(async (sheet) => ({
-        ...sheet,
-        items: await db.getFollowupItemsBySheet(sheet.id),
-      })));
+      const sheets = await db.getFollowupSheetsByPatient(
+        input.patientId,
+        input.sheetType,
+      );
+      const sheetsWithItems = await Promise.all(
+        (sheets as any[]).map(async (sheet) => ({
+          ...sheet,
+          items: await db.getFollowupItemsBySheet(sheet.id),
+        })),
+      );
       return sheetsWithItems;
     }),
 
   // Get all examinations
-  getAllExaminations: protectedProcedure
-    .query(async () => {
-      return await db.getAllExaminations();
-    }),
+  getAllExaminations: protectedProcedure.query(async () => {
+    return await db.getAllExaminations();
+  }),
 
   getRefractionsOverview: protectedProcedure
-    .input(z.object({
-      page: z.number().min(1).optional(),
-      pageSize: z.number().min(1).max(200).optional(),
-      search: z.string().optional(),
-      statusFilter: z.enum(["all", "complete", "partial"]).optional(),
-      locationType: z.enum(["center", "external"]).optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().min(1).optional(),
+          pageSize: z.number().min(1).max(200).optional(),
+          search: z.string().optional(),
+          statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+          locationType: z.enum(["center", "external"]).optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getRefractionsOverviewRows({
         page: input?.page,
@@ -3927,16 +5093,30 @@ export const medicalRouter = router({
 
   // Update examination
   updateExamination: medicalStaffProcedure
-    .input(z.object({
-      examinationId: z.number(),
-      updates: z.record(z.string(), z.any()),
-    }))
+    .input(
+      z.object({
+        examinationId: z.number(),
+        updates: z.record(z.string(), z.any()),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.updateExamination(input.examinationId, input.updates);
 
       // Also persist to dedicated tables if autoref/glasses fields are in updates
       const u = input.updates;
-      const hasAutoref = u.sphereOD || u.sphereOS || u.cylinderOD || u.cylinderOS || u.axisOD || u.axisOS || u.ucvaOD || u.ucvaOS || u.bcvaOD || u.bcvaOS || u.iopOD || u.iopOS;
+      const hasAutoref =
+        u.sphereOD ||
+        u.sphereOS ||
+        u.cylinderOD ||
+        u.cylinderOS ||
+        u.axisOD ||
+        u.axisOS ||
+        u.ucvaOD ||
+        u.ucvaOS ||
+        u.bcvaOD ||
+        u.bcvaOS ||
+        u.iopOD ||
+        u.iopOS;
       const hasGlasses = u.glassesData;
 
       if (hasAutoref || hasGlasses) {
@@ -3946,24 +5126,52 @@ export const medicalRouter = router({
             await db.saveAutorefractometryData({
               examinationId: input.examinationId,
               patientId: exam.patientId,
-              sphereOD: u.sphereOD, cylinderOD: u.cylinderOD, axisOD: u.axisOD, ucvaOD: u.ucvaOD, bcvaOD: u.bcvaOD, iopOD: u.iopOD,
-              sphereOS: u.sphereOS, cylinderOS: u.cylinderOS, axisOS: u.axisOS, ucvaOS: u.ucvaOS, bcvaOS: u.bcvaOS, iopOS: u.iopOS,
+              sphereOD: u.sphereOD,
+              cylinderOD: u.cylinderOD,
+              axisOD: u.axisOD,
+              ucvaOD: u.ucvaOD,
+              bcvaOD: u.bcvaOD,
+              iopOD: u.iopOD,
+              sphereOS: u.sphereOS,
+              cylinderOS: u.cylinderOS,
+              axisOS: u.axisOS,
+              ucvaOS: u.ucvaOS,
+              bcvaOS: u.bcvaOS,
+              iopOS: u.iopOS,
             });
           }
           if (hasGlasses) {
             let gd: any = {};
-            try { gd = JSON.parse(u.glassesData); } catch { /* ignore */ }
+            try {
+              gd = JSON.parse(u.glassesData);
+            } catch {
+              /* ignore */
+            }
             await db.saveGlassesRecord({
               examinationId: input.examinationId,
               patientId: exam.patientId,
-              sOD: gd.od?.s, cOD: gd.od?.c, axisOD: gd.od?.axis || gd.od?.a, pdOD: gd.od?.pd, bcvaOD: gd.od?.bcva,
-              sOS: gd.os?.s, cOS: gd.os?.c, axisOS: gd.os?.axis || gd.os?.a, pdOS: gd.os?.pd, bcvaOS: gd.os?.bcva,
+              sOD: gd.od?.s,
+              cOD: gd.od?.c,
+              axisOD: gd.od?.axis || gd.od?.a,
+              pdOD: gd.od?.pd,
+              bcvaOD: gd.od?.bcva,
+              sOS: gd.os?.s,
+              cOS: gd.os?.c,
+              axisOS: gd.os?.axis || gd.os?.a,
+              pdOS: gd.os?.pd,
+              bcvaOS: gd.os?.bcva,
             });
           }
         }
       }
 
-      await db.logAuditEvent(ctx.user.id, "UPDATE_EXAMINATION", "examination", input.examinationId, { message: "Updated examination" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_EXAMINATION",
+        "examination",
+        input.examinationId,
+        { message: "Updated examination" },
+      );
       return { success: true };
     }),
 
@@ -3971,27 +5179,37 @@ export const medicalRouter = router({
 
   // Technician: Record Pentacam results
   createPentacamResult: technicianProcedure
-    .input(z.object({
-      visitId: z.number(),
-      patientId: z.number(),
-      ltK1: z.number().optional(),
-      ltK2: z.number().optional(),
-      ltAX: z.number().optional(),
-      ltThinnestPoint: z.number().optional(),
-      rtK1: z.number().optional(),
-      rtK2: z.number().optional(),
-      rtAX: z.number().optional(),
-      rtThinnestPoint: z.number().optional(),
-      techniciansNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        patientId: z.number(),
+        ltK1: z.number().optional(),
+        ltK2: z.number().optional(),
+        ltAX: z.number().optional(),
+        ltThinnestPoint: z.number().optional(),
+        rtK1: z.number().optional(),
+        rtK2: z.number().optional(),
+        rtAX: z.number().optional(),
+        rtThinnestPoint: z.number().optional(),
+        techniciansNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.createPentacamResult({
           ...input,
           recordedBy: ctx.user.id,
         });
-        
-        await db.logAuditEvent(ctx.user.id, "CREATE_PENTACAM", "pentacamResult", 0, { message: `Recorded Pentacam results for patient ${input.patientId}` });
+
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_PENTACAM",
+          "pentacamResult",
+          0,
+          {
+            message: `Recorded Pentacam results for patient ${input.patientId}`,
+          },
+        );
 
         return { success: true };
       } catch (error) {
@@ -4001,28 +5219,30 @@ export const medicalRouter = router({
 
   // Doctor: Update or create pentacam results
   updatePentacamResult: medicalStaffProcedure
-    .input(z.object({
-      visitId: z.number(),
-      patientId: z.number(),
-      pentacamId: z.number().optional(), // If updating existing
-      k1OD: z.string().optional(),
-      k2OD: z.string().optional(),
-      axisOD: z.string().optional(),
-      thinnestPointOD: z.string().optional(),
-      apexOD: z.string().optional(),
-      residualOD: z.string().optional(),
-      tttOD: z.string().optional(),
-      ablationOD: z.string().optional(),
-      k1OS: z.string().optional(),
-      k2OS: z.string().optional(),
-      axisOS: z.string().optional(),
-      thinnestPointOS: z.string().optional(),
-      apexOS: z.string().optional(),
-      residualOS: z.string().optional(),
-      tttOS: z.string().optional(),
-      ablationOS: z.string().optional(),
-      techniciansNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        patientId: z.number(),
+        pentacamId: z.number().optional(), // If updating existing
+        k1OD: z.string().optional(),
+        k2OD: z.string().optional(),
+        axisOD: z.string().optional(),
+        thinnestPointOD: z.string().optional(),
+        apexOD: z.string().optional(),
+        residualOD: z.string().optional(),
+        tttOD: z.string().optional(),
+        ablationOD: z.string().optional(),
+        k1OS: z.string().optional(),
+        k2OS: z.string().optional(),
+        axisOS: z.string().optional(),
+        thinnestPointOS: z.string().optional(),
+        apexOS: z.string().optional(),
+        residualOS: z.string().optional(),
+        tttOS: z.string().optional(),
+        ablationOS: z.string().optional(),
+        techniciansNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         const { pentacamId, visitId, patientId, ...data } = input;
@@ -4034,7 +5254,13 @@ export const medicalRouter = router({
             recordedBy: ctx.user.id,
           });
 
-          await db.logAuditEvent(ctx.user.id, "UPDATE_PENTACAM", "pentacamResult", pentacamId, { message: `Updated pentacam results` });
+          await db.logAuditEvent(
+            ctx.user.id,
+            "UPDATE_PENTACAM",
+            "pentacamResult",
+            pentacamId,
+            { message: `Updated pentacam results` },
+          );
         } else {
           // Create new pentacam record
           await db.createPentacamResult({
@@ -4044,7 +5270,13 @@ export const medicalRouter = router({
             ...data,
           });
 
-          await db.logAuditEvent(ctx.user.id, "CREATE_PENTACAM", "pentacamResult", 0, { message: `Created pentacam results for patient ${patientId}` });
+          await db.logAuditEvent(
+            ctx.user.id,
+            "CREATE_PENTACAM",
+            "pentacamResult",
+            0,
+            { message: `Created pentacam results for patient ${patientId}` },
+          );
         }
 
         return { success: true };
@@ -4075,7 +5307,7 @@ export const medicalRouter = router({
         quality: z.enum(["all", "accepted", "repeat"]).optional(),
         limit: z.number().int().min(1).max(500).optional(),
         offset: z.number().int().min(0).optional(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
@@ -4103,28 +5335,47 @@ export const medicalRouter = router({
     }),
 
   getPentacamDashboardStats: protectedProcedure
-    .input(z.object({ locationType: z.enum(["center", "external"]).optional() }).optional())
+    .input(
+      z
+        .object({ locationType: z.enum(["center", "external"]).optional() })
+        .optional(),
+    )
     .query(async ({ input, ctx }) => {
-    await assertPentacamViewPermission(ctx.user);
-    const days = await db.getPentacamDashboardDayStats(input?.locationType);
-    const sample = await db.getPentacamResultsForDashboard({ limit: 400, offset: 0, locationType: input?.locationType });
-    const expanded = expandPentacamDashboardRows(sample);
-    const needsRepeatEyes = expanded.filter((r) => r.quality === "repeat").length;
-    return {
-      examsToday: days.todayCount,
-      examsYesterday: days.yesterdayCount,
-      needsRepeatEyes,
-    };
-  }),
+      await assertPentacamViewPermission(ctx.user);
+      const days = await db.getPentacamDashboardDayStats(input?.locationType);
+      const sample = await db.getPentacamResultsForDashboard({
+        limit: 400,
+        offset: 0,
+        locationType: input?.locationType,
+      });
+      const expanded = expandPentacamDashboardRows(sample);
+      const needsRepeatEyes = expanded.filter(
+        (r) => r.quality === "repeat",
+      ).length;
+      return {
+        examsToday: days.todayCount,
+        examsYesterday: days.yesterdayCount,
+        needsRepeatEyes,
+      };
+    }),
 
   getPentacamFilesByPatient: protectedProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      const safeLimit = Math.min(Number.isFinite(Number(input.limit)) ? Math.max(1, Number(input.limit)) : 100, 500);
+      const safeLimit = Math.min(
+        Number.isFinite(Number(input.limit))
+          ? Math.max(1, Number(input.limit))
+          : 100,
+        500,
+      );
 
       // Source 1: files moved to patient-specific prefix in S3 (via admin import flow).
-      let s3Items: Array<{ fileName: string; storageUrl: string; ts: string | null }> = [];
+      let s3Items: Array<{
+        fileName: string;
+        storageUrl: string;
+        ts: string | null;
+      }> = [];
       try {
         const prefix = buildPentacamPatientPrefix(input.patientId);
         const s3Objects = await listObjectsInS3(prefix);
@@ -4135,24 +5386,38 @@ export const medicalRouter = router({
             storageUrl: `/api/pentacam/exports/file/${encodeURIComponent(obj.key)}`,
             ts: obj.lastModified?.toISOString() ?? null,
           }));
-      } catch { /* listing failed, continue */ }
+      } catch {
+        /* listing failed, continue */
+      }
 
       // Source 2: blackice_uploads rows linked to this patient (OCR-imported pentacam JPGs).
-      const seenNames = new Set<string>(s3Items.map((r) => r.fileName.toLowerCase()));
-      const blackiceRows = await db.getBlackiceUploadsByPatient(input.patientId, safeLimit);
+      const seenNames = new Set<string>(
+        s3Items.map((r) => r.fileName.toLowerCase()),
+      );
+      const blackiceRows = await db.getBlackiceUploadsByPatient(
+        input.patientId,
+        safeLimit,
+      );
       const blackiceItems = blackiceRows
         .filter((row) => {
           const name = String(row.file_name ?? "").trim();
-          return /\.(jpg|jpeg|png|webp)$/i.test(name) && !seenNames.has(path.posix.basename(name).toLowerCase());
+          return (
+            /\.(jpg|jpeg|png|webp)$/i.test(name) &&
+            !seenNames.has(path.posix.basename(name).toLowerCase())
+          );
         })
         .map((row) => {
-          const fileName = path.posix.basename(String(row.file_name ?? "").trim());
+          const fileName = path.posix.basename(
+            String(row.file_name ?? "").trim(),
+          );
           seenNames.add(fileName.toLowerCase());
           return {
             id: row.id,
             fileName,
             storageUrl: `/api/blackice/uploads/${row.id}`,
-            mimeType: String(row.mime_type ?? "").trim() || inferPentacamMimeType(fileName),
+            mimeType:
+              String(row.mime_type ?? "").trim() ||
+              inferPentacamMimeType(fileName),
             ts: row.created_at ? String(row.created_at) : null,
           };
         });
@@ -4191,27 +5456,38 @@ export const medicalRouter = router({
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
-      return await db.getPentacamResultsByPatient(input.patientId, input.limit ?? 10);
+      return await db.getPentacamResultsByPatient(
+        input.patientId,
+        input.limit ?? 10,
+      );
     }),
 
   debugPentacamS3: adminProcedure
     .input(z.object({ prefix: z.string().optional() }))
     .query(async ({ input }) => {
       const objects = await listObjectsInS3(String(input.prefix ?? ""));
-      return objects.slice(0, 200).map((obj) => ({ key: obj.key, size: obj.size }));
+      return objects
+        .slice(0, 200)
+        .map((obj) => ({ key: obj.key, size: obj.size }));
     }),
 
   removePentacamLink: protectedProcedure
     .input(
       z.object({
         resultId: z.number().int().positive(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const deleted = await db.deletePentacamResultsByIds([input.resultId]);
-      await db.logAuditEvent(ctx.user.id, "REMOVE_PENTACAM_LINK", "pentacamResult", input.resultId, {
-        deleted,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REMOVE_PENTACAM_LINK",
+        "pentacamResult",
+        input.resultId,
+        {
+          deleted,
+        },
+      );
       return {
         success: true,
         deleted,
@@ -4223,29 +5499,41 @@ export const medicalRouter = router({
       z.object({
         patientId: z.number().int().positive(),
         fileNames: z.array(z.string().min(1)).min(1).max(500),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const patient = await db.getPatientById(input.patientId);
       if (!patient) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
       }
       const requested = Array.from(
         new Set(
           input.fileNames
             .map((value) => String(value ?? "").trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       if (requested.length === 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "No files selected" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No files selected",
+        });
       }
 
       const invalidPath = requested.find(
-        (fileName) => fileName.includes("/") || fileName.includes("\\") || fileName.includes("..")
+        (fileName) =>
+          fileName.includes("/") ||
+          fileName.includes("\\") ||
+          fileName.includes(".."),
       );
       if (invalidPath) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid file name: ${invalidPath}` });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Invalid file name: ${invalidPath}`,
+        });
       }
 
       let imported = 0;
@@ -4258,27 +5546,39 @@ export const medicalRouter = router({
         }
         // Try linking via blackice_uploads first (no S3 copy needed).
         const baseName = path.posix.basename(fileName);
-        const linked = await db.linkBlackiceUploadToPatient(baseName, input.patientId);
+        const linked = await db.linkBlackiceUploadToPatient(
+          baseName,
+          input.patientId,
+        );
         if (linked > 0) {
           imported += 1;
           continue;
         }
         // Fall back to S3 copy for legacy pentacam-exports prefix files.
         try {
-          await movePentacamObjectToPatient({ patientId: input.patientId, fileName });
+          await movePentacamObjectToPatient({
+            patientId: input.patientId,
+            fileName,
+          });
           imported += 1;
         } catch {
           missing += 1;
         }
       }
 
-      await db.logAuditEvent(ctx.user.id, "IMPORT_LOCAL_PENTACAM_EXPORTS", "pentacamResult", input.patientId, {
-        patientId: input.patientId,
-        requested: requested.length,
-        imported,
-        skipped,
-        missing,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "IMPORT_LOCAL_PENTACAM_EXPORTS",
+        "pentacamResult",
+        input.patientId,
+        {
+          patientId: input.patientId,
+          requested: requested.length,
+          imported,
+          skipped,
+          missing,
+        },
+      );
 
       return {
         success: true,
@@ -4290,30 +5590,38 @@ export const medicalRouter = router({
       };
     }),
 
-
   autoImportLocalPentacamExports: adminProcedure
     .input(
       z.object({
         fileNames: z.array(z.string().min(1)).min(1).max(2000),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const requested = Array.from(
         new Set(
           input.fileNames
             .map((value) => String(value ?? "").trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       if (requested.length === 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "No files selected" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No files selected",
+        });
       }
 
       const invalidPath = requested.find(
-        (fileName) => fileName.includes("/") || fileName.includes("\\") || fileName.includes("..")
+        (fileName) =>
+          fileName.includes("/") ||
+          fileName.includes("\\") ||
+          fileName.includes(".."),
       );
       if (invalidPath) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid file name: ${invalidPath}` });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Invalid file name: ${invalidPath}`,
+        });
       }
 
       let skipped = 0;
@@ -4350,7 +5658,8 @@ export const medicalRouter = router({
             continue;
           }
           linkPairs.push({ fileName: baseName, patientId });
-          importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
+          importedByPatient[String(patientId)] =
+            (importedByPatient[String(patientId)] ?? 0) + 1;
         }
       }
 
@@ -4370,26 +5679,35 @@ export const medicalRouter = router({
             if (unresolvedFiles.length < 5000) unresolvedFiles.push(fileName);
             continue;
           }
-          linkPairs.push({ fileName: path.posix.basename(fileName), patientId });
-          importedByPatient[String(patientId)] = (importedByPatient[String(patientId)] ?? 0) + 1;
+          linkPairs.push({
+            fileName: path.posix.basename(fileName),
+            patientId,
+          });
+          importedByPatient[String(patientId)] =
+            (importedByPatient[String(patientId)] ?? 0) + 1;
         }
       }
 
       // Phase 2: one batch DB update
-      const imported = linkPairs.length > 0
-        ? await db.linkBlackiceUploadsBatch(linkPairs)
-        : 0;
+      const imported =
+        linkPairs.length > 0 ? await db.linkBlackiceUploadsBatch(linkPairs) : 0;
       const alreadyLinked = Math.max(0, linkPairs.length - imported);
       const missing = 0;
 
-      await db.logAuditEvent(ctx.user.id, "AUTO_IMPORT_LOCAL_PENTACAM_EXPORTS", "pentacamResult", 0, {
-        requested: requested.length,
-        imported,
-        alreadyLinked,
-        skipped,
-        missing,
-        unmatched,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "AUTO_IMPORT_LOCAL_PENTACAM_EXPORTS",
+        "pentacamResult",
+        0,
+        {
+          requested: requested.length,
+          imported,
+          alreadyLinked,
+          skipped,
+          missing,
+          unmatched,
+        },
+      );
 
       return {
         success: true,
@@ -4405,19 +5723,19 @@ export const medicalRouter = router({
     }),
 
   getUnmatchedLocalPentacamSuggestions: adminProcedure
-      .input(
-        z.object({
-          fileNames: z.array(z.string().min(1)).min(1).max(5000),
-          limitPerFile: z.number().int().min(1).max(5).optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const requested = Array.from(
+    .input(
+      z.object({
+        fileNames: z.array(z.string().min(1)).min(1).max(5000),
+        limitPerFile: z.number().int().min(1).max(5).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const requested = Array.from(
         new Set(
           input.fileNames
             .map((value) => String(value ?? "").trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       const matcher = await buildPentacamPatientCandidates();
       const limitPerFile = Number(input.limitPerFile ?? 3);
@@ -4435,7 +5753,11 @@ export const medicalRouter = router({
 
       for (const fileName of requested) {
         if (!/\.(jpg|jpeg|png|webp)$/i.test(fileName)) continue;
-        const top = suggestPatientsForPentacamFileName(fileName, matcher, limitPerFile);
+        const top = suggestPatientsForPentacamFileName(
+          fileName,
+          matcher,
+          limitPerFile,
+        );
         // Always include the file even with no candidates — manual search input must show for every unmatched file
         suggestions.push({
           fileName,
@@ -4457,13 +5779,15 @@ export const medicalRouter = router({
     }),
 
   getMismatchedLocalPentacamLinks: adminProcedure
-      .input(
-        z.object({
+    .input(
+      z
+        .object({
           limit: z.number().int().min(1).max(100000).optional(),
-        }).optional()
-      )
-      .mutation(async ({ input }) => {
-        const limit = Number(input?.limit ?? 80000);
+        })
+        .optional(),
+    )
+    .mutation(async ({ input }) => {
+      const limit = Number(input?.limit ?? 80000);
       const rows = await scanMismatchedLocalPentacamLinks(limit);
       return {
         success: true,
@@ -4474,20 +5798,22 @@ export const medicalRouter = router({
       };
     }),
 
-  listFailedPentacamFiles: adminProcedure
-      .query(async () => {
-        return await listFailedPentacamRows();
-      }),
+  listFailedPentacamFiles: adminProcedure.query(async () => {
+    return await listFailedPentacamRows();
+  }),
 
   previewFailedPentacamRename: adminProcedure
-      .input(
-        z.object({
-          fileNames: z.array(z.string().min(1)).min(1).max(30),
-          idCode: z.string().min(1),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const files = await previewFailedPentacamRenameTargets(input.fileNames, input.idCode);
+    .input(
+      z.object({
+        fileNames: z.array(z.string().min(1)).min(1).max(30),
+        idCode: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const files = await previewFailedPentacamRenameTargets(
+        input.fileNames,
+        input.idCode,
+      );
       return {
         success: true,
         count: files.length,
@@ -4497,22 +5823,34 @@ export const medicalRouter = router({
     }),
 
   reviewFailedPentacamFile: adminProcedure
-      .input(
-        z.object({
-          fileName: z.string().min(1),
-          idCode: z.string().min(1),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const previews = await previewFailedPentacamRenameTargets([input.fileName], input.idCode);
+    .input(
+      z.object({
+        fileName: z.string().min(1),
+        idCode: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const previews = await previewFailedPentacamRenameTargets(
+        [input.fileName],
+        input.idCode,
+      );
       const preview = previews[0];
-      const finalFileName = await moveFailedPentacamFile(input.fileName, preview.proposedFileName);
-      await db.logAuditEvent(ctx.user.id, "REVIEW_FAILED_PENTACAM_FILE", "pentacamResult", 0, {
-        fileName: input.fileName,
-        idCode: input.idCode,
-        finalFileName,
-        duplicate: preview.willDuplicate,
-      });
+      const finalFileName = await moveFailedPentacamFile(
+        input.fileName,
+        preview.proposedFileName,
+      );
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REVIEW_FAILED_PENTACAM_FILE",
+        "pentacamResult",
+        0,
+        {
+          fileName: input.fileName,
+          idCode: input.idCode,
+          finalFileName,
+          duplicate: preview.willDuplicate,
+        },
+      );
       return {
         success: true,
         fileName: input.fileName,
@@ -4521,26 +5859,38 @@ export const medicalRouter = router({
     }),
 
   reviewFailedPentacamGroup: adminProcedure
-      .input(
-        z.object({
-          fileNames: z.array(z.string().min(1)).min(1).max(50),
-          idCode: z.string().min(1),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const previews = await previewFailedPentacamRenameTargets(input.fileNames, input.idCode);
+    .input(
+      z.object({
+        fileNames: z.array(z.string().min(1)).min(1).max(50),
+        idCode: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const previews = await previewFailedPentacamRenameTargets(
+        input.fileNames,
+        input.idCode,
+      );
       for (const preview of previews) {
-        await moveFailedPentacamFile(preview.fileName, preview.proposedFileName);
+        await moveFailedPentacamFile(
+          preview.fileName,
+          preview.proposedFileName,
+        );
       }
-      await db.logAuditEvent(ctx.user.id, "REVIEW_FAILED_PENTACAM_GROUP", "pentacamResult", 0, {
-        count: previews.length,
-        idCode: input.idCode,
-        files: previews.map((item) => ({
-          fileName: item.fileName,
-          finalFileName: item.proposedFileName,
-          duplicate: item.willDuplicate,
-        })),
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REVIEW_FAILED_PENTACAM_GROUP",
+        "pentacamResult",
+        0,
+        {
+          count: previews.length,
+          idCode: input.idCode,
+          files: previews.map((item) => ({
+            fileName: item.fileName,
+            finalFileName: item.proposedFileName,
+            duplicate: item.willDuplicate,
+          })),
+        },
+      );
       return {
         success: true,
         count: previews.length,
@@ -4549,18 +5899,27 @@ export const medicalRouter = router({
     }),
 
   releaseFailedPentacamFile: adminProcedure
-      .input(
-        z.object({
-          fileName: z.string().min(1),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const safeFileName = assertSafePentacamFileName(input.fileName);
-      const finalFileName = await moveFailedPentacamFile(safeFileName, safeFileName);
-      await db.logAuditEvent(ctx.user.id, "RELEASE_FAILED_PENTACAM_FILE", "pentacamResult", 0, {
-        fileName: input.fileName,
-        finalFileName,
-      });
+    .input(
+      z.object({
+        fileName: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const safeFileName = assertSafePentacamFileName(input.fileName);
+      const finalFileName = await moveFailedPentacamFile(
+        safeFileName,
+        safeFileName,
+      );
+      await db.logAuditEvent(
+        ctx.user.id,
+        "RELEASE_FAILED_PENTACAM_FILE",
+        "pentacamResult",
+        0,
+        {
+          fileName: input.fileName,
+          finalFileName,
+        },
+      );
       return {
         success: true,
         fileName: input.fileName,
@@ -4569,17 +5928,23 @@ export const medicalRouter = router({
     }),
 
   retryFailedPentacamOcr: adminProcedure
-      .input(
-        z.object({
-          fileName: z.string().min(1),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const safeFileName = assertSafePentacamFileName(input.fileName);
+    .input(
+      z.object({
+        fileName: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const safeFileName = assertSafePentacamFileName(input.fileName);
       const matcher = await buildPentacamPatientCandidates();
-      const suggestions = suggestPatientsForPentacamFileName(safeFileName, matcher, 3);
+      const suggestions = suggestPatientsForPentacamFileName(
+        safeFileName,
+        matcher,
+        3,
+      );
       const topSuggestion = suggestions[0];
-      const detectedId = String((topSuggestion?.patient as any)?.patientCode ?? "").trim();
+      const detectedId = String(
+        (topSuggestion?.patient as any)?.patientCode ?? "",
+      ).trim();
       const score = Number(topSuggestion?.score ?? 0);
       const topPasses = topSuggestion
         ? [
@@ -4590,11 +5955,17 @@ export const medicalRouter = router({
             },
           ]
         : [];
-      await db.logAuditEvent(ctx.user.id, "RETRY_FAILED_PENTACAM_OCR", "pentacamResult", 0, {
-        fileName: input.fileName,
-        detectedId,
-        score,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "RETRY_FAILED_PENTACAM_OCR",
+        "pentacamResult",
+        0,
+        {
+          fileName: input.fileName,
+          detectedId,
+          score,
+        },
+      );
       return {
         success: true,
         fileName: input.fileName,
@@ -4606,27 +5977,39 @@ export const medicalRouter = router({
 
   unlinkMismatchedLocalPentacamLinks: adminProcedure
     .input(
-      z.object({
-        resultIds: z.array(z.number().int().positive()).optional(),
-        obviousOnly: z.boolean().optional(),
-        limit: z.number().int().min(1).max(100000).optional(),
-      }).optional()
+      z
+        .object({
+          resultIds: z.array(z.number().int().positive()).optional(),
+          obviousOnly: z.boolean().optional(),
+          limit: z.number().int().min(1).max(100000).optional(),
+        })
+        .optional(),
     )
-      .mutation(async ({ input, ctx }) => {
-        const explicitIds = Array.isArray(input?.resultIds) ? input!.resultIds : [];
+    .mutation(async ({ input, ctx }) => {
+      const explicitIds = Array.isArray(input?.resultIds)
+        ? input!.resultIds
+        : [];
       let ids = explicitIds;
       if (ids.length === 0) {
-        const scanned = await scanMismatchedLocalPentacamLinks(Number(input?.limit ?? 80000));
+        const scanned = await scanMismatchedLocalPentacamLinks(
+          Number(input?.limit ?? 80000),
+        );
         const obviousOnly = input?.obviousOnly !== false;
         ids = scanned
           .filter((row) => (obviousOnly ? row.kind === "obvious" : true))
           .map((row) => row.resultId);
       }
       const deleted = await db.unlinkBlackiceUploadsByIds(ids);
-      await db.logAuditEvent(ctx.user.id, "UNLINK_MISMATCHED_LOCAL_PENTACAM", "pentacamResult", 0, {
-        requested: ids.length,
-        deleted,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UNLINK_MISMATCHED_LOCAL_PENTACAM",
+        "pentacamResult",
+        0,
+        {
+          requested: ids.length,
+          deleted,
+        },
+      );
       return {
         success: true,
         requested: ids.length,
@@ -4639,17 +6022,26 @@ export const medicalRouter = router({
       z.object({
         resultId: z.number().int().positive(),
         patientId: z.number().int().positive(),
-      })
+      }),
     )
-      .mutation(async ({ input, ctx }) => {
-        const patient = await db.getPatientById(input.patientId);
+    .mutation(async ({ input, ctx }) => {
+      const patient = await db.getPatientById(input.patientId);
       if (!patient) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
       }
       await db.reassignBlackiceUploadPatient(input.resultId, input.patientId);
-      await db.logAuditEvent(ctx.user.id, "REASSIGN_LOCAL_PENTACAM_LINK", "pentacamResult", input.resultId, {
-        patientId: input.patientId,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REASSIGN_LOCAL_PENTACAM_LINK",
+        "pentacamResult",
+        input.resultId,
+        {
+          patientId: input.patientId,
+        },
+      );
       return {
         success: true,
         resultId: input.resultId,
@@ -4658,16 +6050,22 @@ export const medicalRouter = router({
     }),
 
   searchPentacamPatients: adminProcedure
-      .input(
-        z.object({
-          searchTerm: z.string().min(1),
-          limit: z.number().int().min(1).max(50).optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const rows = await db.searchPatients(String(input.searchTerm ?? "").trim());
+    .input(
+      z.object({
+        searchTerm: z.string().min(1),
+        limit: z.number().int().min(1).max(50).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const rows = await db.searchPatients(
+        String(input.searchTerm ?? "").trim(),
+      );
       const limit = Number(input.limit ?? 10);
-      const out: Array<{ patientId: number; patientCode: string; fullName: string }> = [];
+      const out: Array<{
+        patientId: number;
+        patientCode: string;
+        fullName: string;
+      }> = [];
       const seen = new Set<number>();
       for (const row of rows ?? []) {
         const patientId = Number((row as any)?.id ?? 0);
@@ -4687,26 +6085,36 @@ export const medicalRouter = router({
 
   // Doctor: Create report
   createDoctorReport: medicalStaffProcedure
-    .input(z.object({
-      visitId: z.number(),
-      patientId: z.number(),
-      diagnosis: z.string(),
-      clinicalOpinion: z.string().optional(),
-      recommendedTreatment: z.string().optional(),
-      surgeryType: z.string().optional(),
-      surgeryScheduledDate: z.string().optional(),
-      additionalNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        patientId: z.number(),
+        diagnosis: z.string(),
+        clinicalOpinion: z.string().optional(),
+        recommendedTreatment: z.string().optional(),
+        surgeryType: z.string().optional(),
+        surgeryScheduledDate: z.string().optional(),
+        additionalNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.createDoctorReport({
           ...input,
           doctorId: ctx.user.id,
-          surgeryScheduledDate: input.surgeryScheduledDate ? new Date(input.surgeryScheduledDate) : null,
+          surgeryScheduledDate: input.surgeryScheduledDate
+            ? new Date(input.surgeryScheduledDate)
+            : null,
         });
-        
-        await db.logAuditEvent(ctx.user.id, "CREATE_DOCTOR_REPORT", "doctorReport", 0, { message: `Created doctor report for patient ${input.patientId}` });
-        
+
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_DOCTOR_REPORT",
+          "doctorReport",
+          0,
+          { message: `Created doctor report for patient ${input.patientId}` },
+        );
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to create doctor report: ${error}`);
@@ -4715,18 +6123,20 @@ export const medicalRouter = router({
 
   // Doctor: Update existing report
   updateDoctorReport: medicalStaffProcedure
-    .input(z.object({
-      reportId: z.number(),
-      diagnosis: z.string().optional(),
-      clinicalOpinion: z.string().optional(),
-      recommendedTreatment: z.string().optional(),
-      surgeryType: z.string().optional(),
-      surgeryScheduledDate: z.string().optional(),
-      additionalNotes: z.string().optional(),
-      diseases: z.array(z.any()).optional(),
-      prescription: z.string().optional(),
-      recommendations: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        reportId: z.number(),
+        diagnosis: z.string().optional(),
+        clinicalOpinion: z.string().optional(),
+        recommendedTreatment: z.string().optional(),
+        surgeryType: z.string().optional(),
+        surgeryScheduledDate: z.string().optional(),
+        additionalNotes: z.string().optional(),
+        diseases: z.array(z.any()).optional(),
+        prescription: z.string().optional(),
+        recommendations: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         const { reportId, diseases, ...updates } = input;
@@ -4739,11 +6149,19 @@ export const medicalRouter = router({
 
         // Convert surgeryScheduledDate to Date if provided
         if (updates.surgeryScheduledDate) {
-          updateData.surgeryScheduledDate = new Date(updates.surgeryScheduledDate).toISOString();
+          updateData.surgeryScheduledDate = new Date(
+            updates.surgeryScheduledDate,
+          ).toISOString();
         }
 
         await db.updateDoctorReport(reportId, updateData);
-        await db.logAuditEvent(ctx.user.id, "UPDATE_DOCTOR_REPORT", "doctorReport", reportId, { message: `Updated doctor report` });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "UPDATE_DOCTOR_REPORT",
+          "doctorReport",
+          reportId,
+          { message: `Updated doctor report` },
+        );
 
         return { success: true };
       } catch (error) {
@@ -4755,8 +6173,8 @@ export const medicalRouter = router({
   getDoctorReportsByVisit: protectedProcedure
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
-  return await db.getDoctorReportsByVisit(input.visitId);
-  }),
+      return await db.getDoctorReportsByVisit(input.visitId);
+    }),
   getMedicalReportsByPatient: protectedProcedure
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
@@ -4764,7 +6182,9 @@ export const medicalRouter = router({
     }),
 
   getMedicalReportsOverview: protectedProcedure
-    .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
+    .input(
+      z.object({ limit: z.number().min(1).max(500).optional() }).optional(),
+    )
     .query(async ({ input }) => {
       return await db.getMedicalReportsOverviewRows(input?.limit ?? 250);
     }),
@@ -4773,19 +6193,21 @@ export const medicalRouter = router({
     return await db.getAllDoctorReports();
   }),
   createMedicalReport: medicalStaffProcedure
-    .input(z.object({
-      patientId: z.number(),
-      visitDate: z.string().optional(),
-      diagnosis: z.string(),
-      diseases: z.array(z.string()).optional(),
-      prescription: z.string().optional(),
-      clinicalOpinion: z.string().optional(),
-      surgeryType: z.string().optional(),
-      operationType: z.string().optional(),
-      treatment: z.string().optional(),
-      recommendations: z.string().optional(),
-      additionalNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitDate: z.string().optional(),
+        diagnosis: z.string(),
+        diseases: z.array(z.string()).optional(),
+        prescription: z.string().optional(),
+        clinicalOpinion: z.string().optional(),
+        surgeryType: z.string().optional(),
+        operationType: z.string().optional(),
+        treatment: z.string().optional(),
+        recommendations: z.string().optional(),
+        additionalNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.createDoctorReport({
         visitId: 0,
@@ -4795,7 +6217,16 @@ export const medicalRouter = router({
         diseases: input.diseases ? JSON.stringify(input.diseases) : null,
         treatment: input.prescription || input.treatment || "",
         recommendations: input.recommendations || "",
-        visitDate: input.visitDate ? (() => { const [year, month, day] = input.visitDate.split('-'); return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)); })() : null,
+        visitDate: input.visitDate
+          ? (() => {
+              const [year, month, day] = input.visitDate.split("-");
+              return new Date(
+                parseInt(year),
+                parseInt(month) - 1,
+                parseInt(day),
+              );
+            })()
+          : null,
         operationType: input.operationType || input.surgeryType || null,
         clinicalOpinion: input.clinicalOpinion || null,
         additionalNotes: input.additionalNotes || null,
@@ -4806,25 +6237,36 @@ export const medicalRouter = router({
         "CREATE_MEDICAL_REPORT",
         "doctorReport",
         0,
-        { message: "Created medical report" }
+        { message: "Created medical report" },
       );
-    return { success: true };
-  }),
+      return { success: true };
+    }),
   updateMedicalReport: medicalStaffProcedure
-    .input(z.object({
-      reportId: z.number(),
-      visitDate: z.string().optional(),
-      diagnosis: z.string().optional(),
-      diseases: z.array(z.string()).optional(),
-      prescription: z.string().optional(),
-      clinicalOpinion: z.string().optional(),
-      operationType: z.string().optional(),
-      recommendations: z.string().optional(),
-      additionalNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        reportId: z.number(),
+        visitDate: z.string().optional(),
+        diagnosis: z.string().optional(),
+        diseases: z.array(z.string()).optional(),
+        prescription: z.string().optional(),
+        clinicalOpinion: z.string().optional(),
+        operationType: z.string().optional(),
+        recommendations: z.string().optional(),
+        additionalNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.updateDoctorReport(input.reportId, {
-        visitDate: input.visitDate ? (() => { const [year, month, day] = input.visitDate.split('-'); return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)); })() : null,
+        visitDate: input.visitDate
+          ? (() => {
+              const [year, month, day] = input.visitDate.split("-");
+              return new Date(
+                parseInt(year),
+                parseInt(month) - 1,
+                parseInt(day),
+              );
+            })()
+          : null,
         diagnosis: input.diagnosis ?? null,
         diseases: input.diseases ? JSON.stringify(input.diseases) : null,
         treatment: input.prescription ?? null,
@@ -4838,7 +6280,7 @@ export const medicalRouter = router({
         "UPDATE_MEDICAL_REPORT",
         "doctorReport",
         input.reportId,
-        { message: "Updated medical report" }
+        { message: "Updated medical report" },
       );
       return { success: true };
     }),
@@ -4851,7 +6293,7 @@ export const medicalRouter = router({
         "DELETE_MEDICAL_REPORT",
         "doctorReport",
         input.reportId,
-        { message: "Deleted medical report" }
+        { message: "Deleted medical report" },
       );
       return { success: true };
     }),
@@ -4866,17 +6308,28 @@ export const medicalRouter = router({
   }),
 
   createMedication: managerProcedure
-    .input(z.object({
-      name: z.string(),
-      type: z.enum(["tablet", "drops", "ointment", "injection", "suspension", "other"]),
-      activeIngredient: z.string().optional(),
-      strength: z.string().optional(),
-      manufacturer: z.string().optional(),
-      dosage: z.string().optional(),
-      description: z.string().optional(),
-      stockPieces: z.number().int().nonnegative().optional(),
-      inventoryStatus: z.enum(["available", "out_of_stock", "reserved"]).optional(),
-    }))
+    .input(
+      z.object({
+        name: z.string(),
+        type: z.enum([
+          "tablet",
+          "drops",
+          "ointment",
+          "injection",
+          "suspension",
+          "other",
+        ]),
+        activeIngredient: z.string().optional(),
+        strength: z.string().optional(),
+        manufacturer: z.string().optional(),
+        dosage: z.string().optional(),
+        description: z.string().optional(),
+        stockPieces: z.number().int().nonnegative().optional(),
+        inventoryStatus: z
+          .enum(["available", "out_of_stock", "reserved"])
+          .optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.createMedication({
         name: input.name,
@@ -4889,28 +6342,54 @@ export const medicalRouter = router({
         stockPieces: input.stockPieces ?? null,
         inventoryStatus: input.inventoryStatus ?? null,
       });
-      await db.logAuditEvent(ctx.user.id, "CREATE_MEDICATION", "medication", 0, { message: `Added medication ${input.name}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_MEDICATION",
+        "medication",
+        0,
+        { message: `Added medication ${input.name}` },
+      );
       return { success: true };
     }),
 
   updateMedication: managerProcedure
-    .input(z.object({
-      medicationId: z.number(),
-      updates: z.object({
-        name: z.string().optional(),
-        type: z.enum(["tablet", "drops", "ointment", "injection", "suspension", "other"]).optional(),
-        activeIngredient: z.string().optional(),
-        strength: z.string().optional(),
-        manufacturer: z.string().optional(),
-        dosage: z.string().optional(),
-        description: z.string().optional(),
-        stockPieces: z.number().int().nonnegative().nullable().optional(),
-        inventoryStatus: z.enum(["available", "out_of_stock", "reserved"]).nullable().optional(),
+    .input(
+      z.object({
+        medicationId: z.number(),
+        updates: z.object({
+          name: z.string().optional(),
+          type: z
+            .enum([
+              "tablet",
+              "drops",
+              "ointment",
+              "injection",
+              "suspension",
+              "other",
+            ])
+            .optional(),
+          activeIngredient: z.string().optional(),
+          strength: z.string().optional(),
+          manufacturer: z.string().optional(),
+          dosage: z.string().optional(),
+          description: z.string().optional(),
+          stockPieces: z.number().int().nonnegative().nullable().optional(),
+          inventoryStatus: z
+            .enum(["available", "out_of_stock", "reserved"])
+            .nullable()
+            .optional(),
+        }),
       }),
-    }))
+    )
     .mutation(async ({ input, ctx }) => {
       await db.updateMedication(input.medicationId, input.updates);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_MEDICATION", "medication", input.medicationId, { message: "Updated medication" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_MEDICATION",
+        "medication",
+        input.medicationId,
+        { message: "Updated medication" },
+      );
       return { success: true };
     }),
 
@@ -4918,7 +6397,13 @@ export const medicalRouter = router({
     .input(z.object({ medicationId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteMedication(input.medicationId);
-      await db.logAuditEvent(ctx.user.id, "DELETE_MEDICATION", "medication", input.medicationId, { message: "Deleted medication" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_MEDICATION",
+        "medication",
+        input.medicationId,
+        { message: "Deleted medication" },
+      );
       return { success: true };
     }),
 
@@ -4929,18 +6414,48 @@ export const medicalRouter = router({
   }),
 
   createDisease: managerProcedure
-    .input(z.object({ name: z.string(), branch: z.string().optional(), abbrev: z.string().optional() }))
+    .input(
+      z.object({
+        name: z.string(),
+        branch: z.string().optional(),
+        abbrev: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      await db.createDisease(input.name, input.branch ?? null, input.abbrev ?? null);
-      await db.logAuditEvent(ctx.user.id, "CREATE_DISEASE", "disease", 0, { message: `Added disease ${input.name}` });
+      await db.createDisease(
+        input.name,
+        input.branch ?? null,
+        input.abbrev ?? null,
+      );
+      await db.logAuditEvent(ctx.user.id, "CREATE_DISEASE", "disease", 0, {
+        message: `Added disease ${input.name}`,
+      });
       return { success: true };
     }),
 
   updateDisease: managerProcedure
-    .input(z.object({ diseaseId: z.number(), name: z.string(), branch: z.string().optional(), abbrev: z.string().optional() }))
+    .input(
+      z.object({
+        diseaseId: z.number(),
+        name: z.string(),
+        branch: z.string().optional(),
+        abbrev: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      await db.updateDisease(input.diseaseId, input.name, input.branch ?? null, input.abbrev ?? null);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_DISEASE", "disease", input.diseaseId, { message: "Updated disease" });
+      await db.updateDisease(
+        input.diseaseId,
+        input.name,
+        input.branch ?? null,
+        input.abbrev ?? null,
+      );
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_DISEASE",
+        "disease",
+        input.diseaseId,
+        { message: "Updated disease" },
+      );
       return { success: true };
     }),
 
@@ -4948,7 +6463,13 @@ export const medicalRouter = router({
     .input(z.object({ diseaseId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteDisease(input.diseaseId);
-      await db.logAuditEvent(ctx.user.id, "DELETE_DISEASE", "disease", input.diseaseId, { message: "Deleted disease" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_DISEASE",
+        "disease",
+        input.diseaseId,
+        { message: "Deleted disease" },
+      );
       return { success: true };
     }),
 
@@ -4956,11 +6477,13 @@ export const medicalRouter = router({
 
   getAllSymptoms: protectedProcedure.query(async () => {
     const row = await db.getSystemSetting("symptoms_directory");
-    if (!row?.value) return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
+    if (!row?.value)
+      return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
     try {
       const parsed = JSON.parse(row.value);
       const normalized = z.array(symptomDirectoryEntrySchema).safeParse(parsed);
-      if (!normalized.success) return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
+      if (!normalized.success)
+        return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
       return normalized.data;
     } catch {
       return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
@@ -4975,7 +6498,9 @@ export const medicalRouter = router({
       if (row?.value) {
         try {
           const parsed = JSON.parse(row.value);
-          const normalized = z.array(symptomDirectoryEntrySchema).safeParse(parsed);
+          const normalized = z
+            .array(symptomDirectoryEntrySchema)
+            .safeParse(parsed);
           if (normalized.success) current = normalized.data;
         } catch {
           current = [];
@@ -4983,7 +6508,14 @@ export const medicalRouter = router({
       }
       const name = String(input.name ?? "").trim();
       if (!name) return { success: true };
-      if (current.some((item) => String(item.name ?? "").trim().toLowerCase() === name.toLowerCase())) {
+      if (
+        current.some(
+          (item) =>
+            String(item.name ?? "")
+              .trim()
+              .toLowerCase() === name.toLowerCase(),
+        )
+      ) {
         return { success: true, duplicate: true };
       }
       current.push({
@@ -4991,7 +6523,13 @@ export const medicalRouter = router({
         name,
       });
       await db.updateSystemSettings("symptoms_directory", current);
-      await db.logAuditEvent(ctx.user.id, "CREATE_SYMPTOM", "systemSetting", 0, { message: `Added symptom ${name}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_SYMPTOM",
+        "systemSetting",
+        0,
+        { message: `Added symptom ${name}` },
+      );
       return { success: true };
     }),
 
@@ -5003,17 +6541,27 @@ export const medicalRouter = router({
       if (row?.value) {
         try {
           const parsed = JSON.parse(row.value);
-          const normalized = z.array(symptomDirectoryEntrySchema).safeParse(parsed);
+          const normalized = z
+            .array(symptomDirectoryEntrySchema)
+            .safeParse(parsed);
           if (normalized.success) current = normalized.data;
         } catch {
           current = [];
         }
       }
       const next = current.map((item) =>
-        item.id === input.symptomId ? { ...item, name: String(input.name ?? "").trim() } : item
+        item.id === input.symptomId
+          ? { ...item, name: String(input.name ?? "").trim() }
+          : item,
       );
       await db.updateSystemSettings("symptoms_directory", next);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_SYMPTOM", "systemSetting", 0, { symptomId: input.symptomId });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_SYMPTOM",
+        "systemSetting",
+        0,
+        { symptomId: input.symptomId },
+      );
       return { success: true };
     }),
 
@@ -5025,7 +6573,9 @@ export const medicalRouter = router({
       if (row?.value) {
         try {
           const parsed = JSON.parse(row.value);
-          const normalized = z.array(symptomDirectoryEntrySchema).safeParse(parsed);
+          const normalized = z
+            .array(symptomDirectoryEntrySchema)
+            .safeParse(parsed);
           if (normalized.success) current = normalized.data;
         } catch {
           current = [];
@@ -5033,7 +6583,13 @@ export const medicalRouter = router({
       }
       const next = current.filter((item) => item.id !== input.symptomId);
       await db.updateSystemSettings("symptoms_directory", next);
-      await db.logAuditEvent(ctx.user.id, "DELETE_SYMPTOM", "systemSetting", 0, { symptomId: input.symptomId });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_SYMPTOM",
+        "systemSetting",
+        0,
+        { symptomId: input.symptomId },
+      );
       return { success: true };
     }),
 
@@ -5047,17 +6603,19 @@ export const medicalRouter = router({
   }),
 
   createTest: managerProcedure
-    .input(z.object({
-      name: z.string(),
-      type: z.enum(["examination", "lab", "imaging", "other"]),
-      category: z.string().optional(),
-      normalRange: z.string().optional(),
-      unit: z.string().optional(),
-      description: z.string().optional(),
-      priceEgp: z.string().optional(),
-      durationMinutes: z.number().int().nonnegative().optional(),
-      isActive: z.boolean().optional(),
-    }))
+    .input(
+      z.object({
+        name: z.string(),
+        type: z.enum(["examination", "lab", "imaging", "other"]),
+        category: z.string().optional(),
+        normalRange: z.string().optional(),
+        unit: z.string().optional(),
+        description: z.string().optional(),
+        priceEgp: z.string().optional(),
+        durationMinutes: z.number().int().nonnegative().optional(),
+        isActive: z.boolean().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.createTest({
         name: input.name,
@@ -5070,25 +6628,29 @@ export const medicalRouter = router({
         durationMinutes: input.durationMinutes ?? null,
         isActive: input.isActive ?? true,
       });
-      await db.logAuditEvent(ctx.user.id, "CREATE_TEST", "test", 0, { message: `Added test ${input.name}` });
+      await db.logAuditEvent(ctx.user.id, "CREATE_TEST", "test", 0, {
+        message: `Added test ${input.name}`,
+      });
       return { success: true };
     }),
 
   updateTest: managerProcedure
-    .input(z.object({
-      testId: z.number(),
-      updates: z.object({
-        name: z.string().optional(),
-        type: z.enum(["examination", "lab", "imaging", "other"]).optional(),
-        category: z.string().optional(),
-        normalRange: z.string().optional(),
-        unit: z.string().optional(),
-        description: z.string().optional(),
-        priceEgp: z.string().nullable().optional(),
-        durationMinutes: z.number().int().nonnegative().nullable().optional(),
-        isActive: z.boolean().optional(),
+    .input(
+      z.object({
+        testId: z.number(),
+        updates: z.object({
+          name: z.string().optional(),
+          type: z.enum(["examination", "lab", "imaging", "other"]).optional(),
+          category: z.string().optional(),
+          normalRange: z.string().optional(),
+          unit: z.string().optional(),
+          description: z.string().optional(),
+          priceEgp: z.string().nullable().optional(),
+          durationMinutes: z.number().int().nonnegative().nullable().optional(),
+          isActive: z.boolean().optional(),
+        }),
       }),
-    }))
+    )
     .mutation(async ({ input, ctx }) => {
       const raw = { ...input.updates } as Record<string, unknown>;
       for (const key of Object.keys(raw)) {
@@ -5098,7 +6660,9 @@ export const medicalRouter = router({
         raw.category = input.updates.category ?? "";
       }
       await db.updateTest(input.testId, raw);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_TEST", "test", input.testId, { message: "Updated test" });
+      await db.logAuditEvent(ctx.user.id, "UPDATE_TEST", "test", input.testId, {
+        message: "Updated test",
+      });
       return { success: true };
     }),
 
@@ -5106,14 +6670,15 @@ export const medicalRouter = router({
     .input(z.object({ testId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteTest(input.testId);
-      await db.logAuditEvent(ctx.user.id, "DELETE_TEST", "test", input.testId, { message: "Deleted test" });
+      await db.logAuditEvent(ctx.user.id, "DELETE_TEST", "test", input.testId, {
+        message: "Deleted test",
+      });
       return { success: true };
     }),
 
-  getMyTestFavorites: medicalStaffProcedure
-    .query(async ({ ctx }) => {
-      return await db.getTestFavoritesByUser(ctx.user.id);
-    }),
+  getMyTestFavorites: medicalStaffProcedure.query(async ({ ctx }) => {
+    return await db.getTestFavoritesByUser(ctx.user.id);
+  }),
 
   toggleTestFavorite: medicalStaffProcedure
     .input(z.object({ testId: z.number() }))
@@ -5124,17 +6689,21 @@ export const medicalRouter = router({
   // ============ TEST REQUESTS ============
 
   createTestRequest: medicalStaffProcedure
-    .input(z.object({
-      patientId: z.number(),
-      visitId: z.number().optional(),
-      date: z.string().optional(),
-      priority: z.string().optional(),
-      notes: z.string().optional(),
-      items: z.array(z.object({
-        testId: z.number(),
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitId: z.number().optional(),
+        date: z.string().optional(),
+        priority: z.string().optional(),
         notes: z.string().optional(),
-      })),
-    }))
+        items: z.array(
+          z.object({
+            testId: z.number(),
+            notes: z.string().optional(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await db.createTestRequest({
         patientId: input.patientId,
@@ -5157,9 +6726,15 @@ export const medicalRouter = router({
         await db.createTestRequestItems(itemsToInsert);
       }
 
-      await db.logAuditEvent(ctx.user.id, "CREATE_TEST_REQUEST", "testRequest", testRequestId, {
-        message: `Created test request for patient ${input.patientId} with ${input.items?.length || 0} items`
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_TEST_REQUEST",
+        "testRequest",
+        testRequestId,
+        {
+          message: `Created test request for patient ${input.patientId} with ${input.items?.length || 0} items`,
+        },
+      );
       return { success: true };
     }),
 
@@ -5187,25 +6762,33 @@ export const medicalRouter = router({
 
   // Doctor: Create prescription
   createPrescription: medicalStaffProcedure
-    .input(z.object({
-      visitId: z.number(),
-      patientId: z.number(),
-      medicationName: z.string(),
-      dosage: z.string(),
-      frequency: z.string().optional(),
-      duration: z.string().optional(),
-      instructions: z.string().optional(),
-      notes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        patientId: z.number(),
+        medicationName: z.string(),
+        dosage: z.string(),
+        frequency: z.string().optional(),
+        duration: z.string().optional(),
+        instructions: z.string().optional(),
+        notes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.createPrescription({
           ...input,
           doctorId: ctx.user.id,
         });
-        
-        await db.logAuditEvent(ctx.user.id, "CREATE_PRESCRIPTION", "prescription", 0, { message: `Created prescription for patient ${input.patientId}` });
-        
+
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_PRESCRIPTION",
+          "prescription",
+          0,
+          { message: `Created prescription for patient ${input.patientId}` },
+        );
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to create prescription: ${error}`);
@@ -5220,20 +6803,24 @@ export const medicalRouter = router({
     }),
 
   createPrescriptionWithItems: medicalStaffProcedure
-    .input(z.object({
-      patientId: z.number(),
-      visitId: z.number().optional(),
-      date: z.string().optional(),
-      notes: z.string().optional(),
-      items: z.array(z.object({
-        medicationId: z.number().optional(),
-        medicationName: z.string(),
-        dosage: z.string().optional(),
-        frequency: z.string().optional(),
-        duration: z.string().optional(),
-        instructions: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitId: z.number().optional(),
+        date: z.string().optional(),
+        notes: z.string().optional(),
+        items: z.array(
+          z.object({
+            medicationId: z.number().optional(),
+            medicationName: z.string(),
+            dosage: z.string().optional(),
+            frequency: z.string().optional(),
+            duration: z.string().optional(),
+            instructions: z.string().optional(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       console.log("[createPrescriptionWithItems] input", {
         patientId: input.patientId,
@@ -5248,7 +6835,13 @@ export const medicalRouter = router({
         notes: input.notes,
         items: input.items,
       });
-      await db.logAuditEvent(ctx.user.id, "CREATE_PRESCRIPTION", "prescription", 0, { message: `Created prescription for patient ${input.patientId}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_PRESCRIPTION",
+        "prescription",
+        0,
+        { message: `Created prescription for patient ${input.patientId}` },
+      );
       return { success: true };
     }),
 
@@ -5266,13 +6859,19 @@ export const medicalRouter = router({
 
   /** Recent prescriptions list for prescriptions hub (جدول نظرة عامة). */
   getPrescriptionsOverview: protectedProcedure
-    .input(z.object({
-      page: z.number().min(1).optional(),
-      pageSize: z.number().min(1).max(200).optional(),
-      search: z.string().optional(),
-      statusFilter: z.enum(["all", "active", "completed", "expired"]).optional(),
-      locationType: z.enum(["center", "external"]).optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().min(1).optional(),
+          pageSize: z.number().min(1).max(200).optional(),
+          search: z.string().optional(),
+          statusFilter: z
+            .enum(["all", "active", "completed", "expired"])
+            .optional(),
+          locationType: z.enum(["center", "external"]).optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getPrescriptionsOverviewRows({
         page: input?.page,
@@ -5298,7 +6897,7 @@ export const medicalRouter = router({
         "DELETE_PRESCRIPTION",
         "prescription",
         input.prescriptionId,
-        { message: "Deleted prescription" }
+        { message: "Deleted prescription" },
       );
       return { success: true };
     }),
@@ -5307,17 +6906,19 @@ export const medicalRouter = router({
 
   // Doctor: Create surgery record
   createSurgery: medicalStaffProcedure
-    .input(z.object({
-      patientId: z.number(),
-      appointmentId: z.number().optional(),
-      surgeryType: z.string(),
-      surgeryDate: z.string(),
-      preOpUCVA_OD: z.string().optional(),
-      preOpUCVA_OS: z.string().optional(),
-      preOpBCVA_OD: z.string().optional(),
-      preOpBCVA_OS: z.string().optional(),
-      surgeryNotes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        appointmentId: z.number().optional(),
+        surgeryType: z.string(),
+        surgeryDate: z.string(),
+        preOpUCVA_OD: z.string().optional(),
+        preOpUCVA_OS: z.string().optional(),
+        preOpBCVA_OD: z.string().optional(),
+        preOpBCVA_OS: z.string().optional(),
+        surgeryNotes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.createSurgery({
@@ -5326,9 +6927,11 @@ export const medicalRouter = router({
           surgeryDate: new Date(input.surgeryDate),
           status: "scheduled",
         });
-        
-        await db.logAuditEvent(ctx.user.id, "CREATE_SURGERY", "surgery", 0, { message: `Created surgery record for patient ${input.patientId}` });
-        
+
+        await db.logAuditEvent(ctx.user.id, "CREATE_SURGERY", "surgery", 0, {
+          message: `Created surgery record for patient ${input.patientId}`,
+        });
+
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to create surgery: ${error}`);
@@ -5347,20 +6950,28 @@ export const medicalRouter = router({
     .input(z.object({ surgeryId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteSurgery(input.surgeryId);
-      await db.logAuditEvent(ctx.user.id, "DELETE_SURGERY", "surgery", input.surgeryId, { message: "Deleted surgery" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_SURGERY",
+        "surgery",
+        input.surgeryId,
+        { message: "Deleted surgery" },
+      );
       return { success: true };
     }),
 
   // Post-op followup
   createPostOpFollowup: medicalStaffProcedure
-    .input(z.object({
-      surgeryId: z.number(),
-      patientId: z.number().optional(),
-      date: z.string().optional(),
-      followupDate: z.string().optional(),
-      findings: z.string().optional(),
-      recommendations: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        surgeryId: z.number(),
+        patientId: z.number().optional(),
+        date: z.string().optional(),
+        followupDate: z.string().optional(),
+        findings: z.string().optional(),
+        recommendations: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.createPostOpFollowup({
         surgeryId: input.surgeryId,
@@ -5373,7 +6984,13 @@ export const medicalRouter = router({
         findings: input.findings ?? null,
         recommendations: input.recommendations ?? null,
       });
-      await db.logAuditEvent(ctx.user.id, "CREATE_POST_OP", "postOpFollowup", input.surgeryId, { message: "Created followup" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_POST_OP",
+        "postOpFollowup",
+        input.surgeryId,
+        { message: "Created followup" },
+      );
       return { success: true };
     }),
 
@@ -5393,10 +7010,12 @@ export const medicalRouter = router({
 
   // Manager/Admin: Get audit logs
   getAuditLogs: managerProcedure
-    .input(z.object({
-      limit: z.number().default(100),
-      offset: z.number().default(0),
-    }))
+    .input(
+      z.object({
+        limit: z.number().default(100),
+        offset: z.number().default(0),
+      }),
+    )
     .query(async ({ input }) => {
       return await db.getAuditLogs(input.limit);
     }),
@@ -5404,16 +7023,22 @@ export const medicalRouter = router({
   // ============ OPERATION LISTS ============
 
   getOperationList: protectedProcedure
-    .input(z.object({
-      doctorTab: z.string(),
-      listDate: z.string(),
-      operationType: z.string().optional().nullable(),
-    }))
+    .input(
+      z.object({
+        doctorTab: z.string(),
+        listDate: z.string(),
+        operationType: z.string().optional().nullable(),
+      }),
+    )
     .query(async ({ input }) => {
       if (!input.listDate) {
         return { id: null, items: [] as any[] };
       }
-      return await db.getOperationList(input.doctorTab, input.listDate, input.operationType ?? null);
+      return await db.getOperationList(
+        input.doctorTab,
+        input.listDate,
+        input.operationType ?? null,
+      );
     }),
   getOperationListById: protectedProcedure
     .input(z.object({ listId: z.number() }))
@@ -5422,29 +7047,33 @@ export const medicalRouter = router({
     }),
 
   saveOperationList: protectedProcedure
-    .input(z.object({
-      listId: z.number().optional().nullable(),
-      doctorTab: z.string(),
-      listDate: z.string(),
-      operationType: z.string().optional().nullable(),
-      doctorName: z.string().optional().nullable(),
-      listTime: z.string().optional().nullable(),
-      items: z.array(z.object({
-        number: z.string().optional(),
-        name: z.string(),
-        phone: z.string().optional(),
-        doctor: z.string().optional(),
-        operation: z.string().optional(),
-        eye: z.string().optional(),
-        center: z.boolean().optional(),
-        payment: z.string().optional(),
-        hospital: z.string().optional(),
-        code: z.string().optional(),
-        discountType: z.string().optional(),
-        discountValue: z.number().optional(),
-        notes: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        listId: z.number().optional().nullable(),
+        doctorTab: z.string(),
+        listDate: z.string(),
+        operationType: z.string().optional().nullable(),
+        doctorName: z.string().optional().nullable(),
+        listTime: z.string().optional().nullable(),
+        items: z.array(
+          z.object({
+            number: z.string().optional(),
+            name: z.string(),
+            phone: z.string().optional(),
+            doctor: z.string().optional(),
+            operation: z.string().optional(),
+            eye: z.string().optional(),
+            center: z.boolean().optional(),
+            payment: z.string().optional(),
+            hospital: z.string().optional(),
+            code: z.string().optional(),
+            discountType: z.string().optional(),
+            discountValue: z.number().optional(),
+            notes: z.string().optional(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.saveOperationList({
         listId: input.listId ?? null,
@@ -5455,18 +7084,30 @@ export const medicalRouter = router({
         listTime: input.listTime ?? null,
         items: input.items,
       });
-      await db.logAuditEvent(ctx.user.id, "SAVE_OPERATION_LIST", "operationList", 0, { message: `Saved operation list for ${input.doctorTab}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SAVE_OPERATION_LIST",
+        "operationList",
+        0,
+        { message: `Saved operation list for ${input.doctorTab}` },
+      );
 
       // Send notifications for operation lists
-      const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      const notificationSettings = await getAppNotificationSettings().catch(
+        () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+      );
 
       if (notificationSettings.operations.enabled) {
-        const opsTargetUserIds = notificationSettings.operations.userIds.length > 0
-          ? notificationSettings.operations.userIds
-          : null;
+        const opsTargetUserIds =
+          notificationSettings.operations.userIds.length > 0
+            ? notificationSettings.operations.userIds
+            : null;
         const opsCaseCount = input.items?.length ?? 0;
         const opsDate = new Date(`${input.listDate}T00:00:00`);
-        const opsDay = opsDate.toLocaleDateString("ar-EG", { timeZone: "Africa/Cairo", weekday: "long" });
+        const opsDay = opsDate.toLocaleDateString("ar-EG", {
+          timeZone: "Africa/Cairo",
+          weekday: "long",
+        });
         const opsTimeRaw = String(input.listTime ?? "").trim();
         const opsTime = opsTimeRaw
           ? (() => {
@@ -5474,10 +7115,21 @@ export const medicalRouter = router({
               const ampm = h < 12 ? "ص" : "م";
               return `${h % 12 || 12}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
             })()
-          : new Date().toLocaleTimeString("ar-EG", { timeZone: "Africa/Cairo", hour: "numeric", minute: "2-digit", hour12: true });
-        const rawOpsDrName = String(input.doctorName ?? "").trim() ||
-          (input.doctorTab.includes("saadany") ? "سعدني" : input.doctorTab.includes("sawaf") ? "صواف" : input.doctorTab);
-        const opsDoctorName = rawOpsDrName.replace(/^د[./]?\s*/u, "").trim() || rawOpsDrName;
+          : new Date().toLocaleTimeString("ar-EG", {
+              timeZone: "Africa/Cairo",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            });
+        const rawOpsDrName =
+          String(input.doctorName ?? "").trim() ||
+          (input.doctorTab.includes("saadany")
+            ? "سعدني"
+            : input.doctorTab.includes("sawaf")
+              ? "صواف"
+              : input.doctorTab);
+        const opsDoctorName =
+          rawOpsDrName.replace(/^د[./]?\s*/u, "").trim() || rawOpsDrName;
         const opsNotifText = `عمليات د. ${opsDoctorName} - ${opsCaseCount} حالة - ${opsDay} ${opsTime}`;
 
         await pushAppNotification({
@@ -5492,105 +7144,147 @@ export const medicalRouter = router({
             listDate: input.listDate,
             itemCount: input.items?.length ?? 0,
           },
-          channels: { inApp: notificationSettings.operations.inApp, push: notificationSettings.operations.push },
+          channels: {
+            inApp: notificationSettings.operations.inApp,
+            push: notificationSettings.operations.push,
+          },
         });
       }
 
       return { success: true };
     }),
 
-  getOperationListsHistory: protectedProcedure
-    .query(async () => {
-      return await db.getOperationListsHistoryWithItems();
-    }),
+  getOperationListsHistory: protectedProcedure.query(async () => {
+    return await db.getOperationListsHistoryWithItems();
+  }),
 
   getTodayOperationLists: protectedProcedure
-   .input(z.object({ date: z.string().optional() }))
-   .query(async ({ input }) => {
-     const date = input.date || new Date().toISOString().split("T")[0];
-     const [manualLists, bookings] = await Promise.all([
-       db.getOperationListsByDate(date),
-       db.getTodayOperationBookingsGrouped(date),
-     ]);
+    .input(z.object({ date: z.string().optional() }))
+    .query(async ({ input }) => {
+      const date = input.date || new Date().toISOString().split("T")[0];
+      const [manualLists, bookings] = await Promise.all([
+        db.getOperationListsByDate(date),
+        db.getTodayOperationBookingsGrouped(date),
+      ]);
 
-     const mappedBookings = bookings.map((b, i) => ({
-       id: -(i + 1), // unique negative id for UI keys
-       doctorName: b.doctorName,
-       operationType: b.operationType,
-       listTime: null,
-       isBooking: true, // mark for frontend differentiation if needed
-       items: [
-         {
-           id: -(i + 1),
-           name: `حجز مسبق (${b.totalCount} حالة)`,
-           doctor: b.doctorName,
-           operation: b.operationType,
-           casesCount: b.totalCount,
-         },
-       ],
-     }));
+      const mappedBookings = bookings.map((b, i) => ({
+        id: -(i + 1), // unique negative id for UI keys
+        doctorName: b.doctorName,
+        operationType: b.operationType,
+        listTime: null,
+        isBooking: true, // mark for frontend differentiation if needed
+        items: [
+          {
+            id: -(i + 1),
+            name: `حجز مسبق (${b.totalCount} حالة)`,
+            doctor: b.doctorName,
+            operation: b.operationType,
+            casesCount: b.totalCount,
+          },
+        ],
+      }));
 
-     return [...manualLists, ...mappedBookings];
-   }),
+      return [...manualLists, ...mappedBookings];
+    }),
   deleteOperationList: protectedProcedure
-    .input(z.object({
-      doctorTab: z.string(),
-      listDate: z.string(),
-      operationType: z.string().optional().nullable(),
-    }))
+    .input(
+      z.object({
+        doctorTab: z.string(),
+        listDate: z.string(),
+        operationType: z.string().optional().nullable(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.deleteOperationList(input.doctorTab, input.listDate);
-      await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_LIST", "operationList", 0, { message: `Deleted operation list for ${input.doctorTab}` });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_OPERATION_LIST",
+        "operationList",
+        0,
+        { message: `Deleted operation list for ${input.doctorTab}` },
+      );
       return { success: true };
     }),
   deleteOperationListById: protectedProcedure
     .input(z.object({ listId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteOperationListById(input.listId);
-      await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_LIST", "operationList", input.listId, { message: "Deleted operation list by id" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_OPERATION_LIST",
+        "operationList",
+        input.listId,
+        { message: "Deleted operation list by id" },
+      );
       return { success: true };
     }),
 
   getOperationBookings: protectedProcedure
-    .input(z.object({
-      fromDate: z.string().optional(),
-      toDate: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const today = new Date().toISOString().split("T")[0];
-      const bookings = await db.getOperationBookingsByDateRange(input.fromDate ?? today, input.toDate ?? input.fromDate ?? today);
+      const bookings = await db.getOperationBookingsByDateRange(
+        input.fromDate ?? today,
+        input.toDate ?? input.fromDate ?? today,
+      );
       return bookings.map((b) => ({
         ...b,
-        bookingDate: b.bookingDate instanceof Date ? b.bookingDate.toISOString().split("T")[0] : String(b.bookingDate),
+        bookingDate:
+          b.bookingDate instanceof Date
+            ? b.bookingDate.toISOString().split("T")[0]
+            : String(b.bookingDate),
       }));
     }),
   createOperationBooking: protectedProcedure
-    .input(z.object({
-      bookingDate: z.string(),
-      bookingTime: z.string(),
-      doctorName: z.string(),
-      operationType: z.string(),
-      casesCount: z.number().int().min(1),
-      weekdayLabel: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        bookingDate: z.string(),
+        bookingTime: z.string(),
+        doctorName: z.string(),
+        operationType: z.string(),
+        casesCount: z.number().int().min(1),
+        weekdayLabel: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const booking = await db.createOperationBooking(input as any);
-      await db.logAuditEvent(ctx.user.id, "CREATE_OPERATION_BOOKING", "operationBooking", booking.id, {
-        bookingDate: input.bookingDate,
-        doctorName: input.doctorName,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_OPERATION_BOOKING",
+        "operationBooking",
+        booking.id,
+        {
+          bookingDate: input.bookingDate,
+          doctorName: input.doctorName,
+        },
+      );
 
-      const notificationSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      const notificationSettings = await getAppNotificationSettings().catch(
+        () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+      );
 
       if (notificationSettings.operations.enabled) {
-        const bkTargetUserIds = notificationSettings.operations.userIds.length > 0
-          ? notificationSettings.operations.userIds
-          : null;
+        const bkTargetUserIds =
+          notificationSettings.operations.userIds.length > 0
+            ? notificationSettings.operations.userIds
+            : null;
         const rawBkDrName = String(input.doctorName ?? "").trim();
-        const bkDoctorName = rawBkDrName.replace(/^د[./]?\s*/u, "").trim() || rawBkDrName;
-        const bkCaseCount = Math.max(1, Math.trunc(Number(input.casesCount) || 1));
+        const bkDoctorName =
+          rawBkDrName.replace(/^د[./]?\s*/u, "").trim() || rawBkDrName;
+        const bkCaseCount = Math.max(
+          1,
+          Math.trunc(Number(input.casesCount) || 1),
+        );
         const bkDate = new Date(`${input.bookingDate}T00:00:00`);
-        const bkDay = bkDate.toLocaleDateString("ar-EG", { timeZone: "Africa/Cairo", weekday: "long" });
+        const bkDay = bkDate.toLocaleDateString("ar-EG", {
+          timeZone: "Africa/Cairo",
+          weekday: "long",
+        });
         const bkTimeRaw = String(input.bookingTime ?? "").trim();
         const bkTime = bkTimeRaw
           ? (() => {
@@ -5598,7 +7292,12 @@ export const medicalRouter = router({
               const ampm = h < 12 ? "ص" : "م";
               return `${h % 12 || 12}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
             })()
-          : new Date().toLocaleTimeString("ar-EG", { timeZone: "Africa/Cairo", hour: "numeric", minute: "2-digit", hour12: true });
+          : new Date().toLocaleTimeString("ar-EG", {
+              timeZone: "Africa/Cairo",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            });
         const bkNotifText = `عمليات د. ${bkDoctorName} - ${bkCaseCount} حالة - ${bkDay} ${bkTime}`;
 
         await pushAppNotification({
@@ -5615,9 +7314,15 @@ export const medicalRouter = router({
             doctorName: bkDoctorName || null,
             casesCount: bkCaseCount,
           },
-          channels: { inApp: notificationSettings.operations.inApp, push: notificationSettings.operations.push },
+          channels: {
+            inApp: notificationSettings.operations.inApp,
+            push: notificationSettings.operations.push,
+          },
         }).catch((error) => {
-          console.warn("[operation-booking] Failed to append app notification:", error);
+          console.warn(
+            "[operation-booking] Failed to append app notification:",
+            error,
+          );
         });
       }
 
@@ -5625,21 +7330,29 @@ export const medicalRouter = router({
     }),
 
   updateOperationBooking: protectedProcedure
-    .input(z.object({
-      id: z.number(),
-      bookingDate: z.string().optional(),
-      bookingTime: z.string().optional(),
-      doctorName: z.string().optional(),
-      operationType: z.string().optional(),
-      casesCount: z.number().int().min(1).optional(),
-      weekdayLabel: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number(),
+        bookingDate: z.string().optional(),
+        bookingTime: z.string().optional(),
+        doctorName: z.string().optional(),
+        operationType: z.string().optional(),
+        casesCount: z.number().int().min(1).optional(),
+        weekdayLabel: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const { id, ...updates } = input;
       await db.updateOperationBooking(id, updates as any);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_OPERATION_BOOKING", "operationBooking", id, {
-        updates: Object.keys(updates),
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_OPERATION_BOOKING",
+        "operationBooking",
+        id,
+        {
+          updates: Object.keys(updates),
+        },
+      );
       return { success: true };
     }),
 
@@ -5647,7 +7360,13 @@ export const medicalRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteOperationBooking(input.id);
-      await db.logAuditEvent(ctx.user.id, "DELETE_OPERATION_BOOKING", "operationBooking", input.id, {});
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_OPERATION_BOOKING",
+        "operationBooking",
+        input.id,
+        {},
+      );
       return { success: true };
     }),
 
@@ -5673,20 +7392,24 @@ export const medicalRouter = router({
     }),
 
   saveExaminationChecklist: protectedProcedure
-    .input(z.object({
-      examinationId: z.number().int().positive(),
-      patientId: z.number().int().positive(),
-      checklist: z.object({
-        generalDiseases: z.boolean().optional(),
-        pregnancyOrLactation: z.boolean().optional(),
-        usesAllergySupplementsSteroidsOrPressureMeds: z.boolean().optional(),
-        acneTreatment: z.boolean().optional(),
-        familyKeratoconus: z.boolean().optional(),
-        usesTearSubstituteOrExcessTearsOrSandySensation: z.boolean().optional(),
-        symptomsWorseWithAirOrAC: z.boolean().optional(),
-        glaucomaTreatment: z.boolean().optional(),
+    .input(
+      z.object({
+        examinationId: z.number().int().positive(),
+        patientId: z.number().int().positive(),
+        checklist: z.object({
+          generalDiseases: z.boolean().optional(),
+          pregnancyOrLactation: z.boolean().optional(),
+          usesAllergySupplementsSteroidsOrPressureMeds: z.boolean().optional(),
+          acneTreatment: z.boolean().optional(),
+          familyKeratoconus: z.boolean().optional(),
+          usesTearSubstituteOrExcessTearsOrSandySensation: z
+            .boolean()
+            .optional(),
+          symptomsWorseWithAirOrAC: z.boolean().optional(),
+          glaucomaTreatment: z.boolean().optional(),
+        }),
       }),
-    }))
+    )
     .mutation(async ({ input }) => {
       await db.upsertExaminationChecklist({
         examinationId: input.examinationId,
@@ -5697,11 +7420,15 @@ export const medicalRouter = router({
     }),
 
   getExaminationChecklist: protectedProcedure
-    .input(z.object({
-      examinationId: z.number().int().positive(),
-    }))
+    .input(
+      z.object({
+        examinationId: z.number().int().positive(),
+      }),
+    )
     .query(async ({ input }) => {
-      return await db.getExaminationChecklistByExaminationId(input.examinationId);
+      return await db.getExaminationChecklistByExaminationId(
+        input.examinationId,
+      );
     }),
 
   savePatientPageState: protectedProcedure
@@ -5709,16 +7436,18 @@ export const medicalRouter = router({
       z.object({
         patientId: z.number(),
         page: z.string(),
-        data: z.object({
-          sheetSelection: z.string().optional(),
-          visitDate: z.string().optional(),
-          isFollowup: z.boolean().optional(),
-          activeTab: z.union([z.number(), z.string()]).optional(),
-          unsavedDraft: z.record(z.string(), z.any()).optional(),
-          syncLockManual: z.boolean().optional(),
-          // Allow other fields for different pages (patient-details, request-tests, etc)
-        }).catchall(z.any()),
-      })
+        data: z
+          .object({
+            sheetSelection: z.string().optional(),
+            visitDate: z.string().optional(),
+            isFollowup: z.boolean().optional(),
+            activeTab: z.union([z.number(), z.string()]).optional(),
+            unsavedDraft: z.record(z.string(), z.any()).optional(),
+            syncLockManual: z.boolean().optional(),
+            // Allow other fields for different pages (patient-details, request-tests, etc)
+          })
+          .catchall(z.any()),
+      }),
     )
     .mutation(async ({ input }) => {
       await db.upsertPatientPageState(input.patientId, input.page, input.data);
@@ -5732,7 +7461,10 @@ export const medicalRouter = router({
       if (!row?.value) return {};
       try {
         const parsed = JSON.parse(row.value);
-        const byScope = parsed && typeof parsed === "object" ? (parsed as Record<string, any>) : {};
+        const byScope =
+          parsed && typeof parsed === "object"
+            ? (parsed as Record<string, any>)
+            : {};
         const scopeValue = byScope[input.scope];
         return scopeValue && typeof scopeValue === "object" ? scopeValue : {};
       } catch {
@@ -5748,7 +7480,8 @@ export const medicalRouter = router({
       if (row?.value) {
         try {
           const raw = JSON.parse(row.value);
-          if (raw && typeof raw === "object") parsed = raw as Record<string, any>;
+          if (raw && typeof raw === "object")
+            parsed = raw as Record<string, any>;
         } catch {
           parsed = {};
         }
@@ -5758,14 +7491,18 @@ export const medicalRouter = router({
           ? { ...(parsed[input.scope] as Record<string, any>) }
           : {};
       const existing =
-        scopeMap[input.templateId] && typeof scopeMap[input.templateId] === "object"
+        scopeMap[input.templateId] &&
+        typeof scopeMap[input.templateId] === "object"
           ? { ...(scopeMap[input.templateId] as Record<string, any>) }
           : {};
 
-      const hasItemsUpdate = "testItems" in input || "prescriptionItems" in input;
+      const hasItemsUpdate =
+        "testItems" in input || "prescriptionItems" in input;
       const hasNameUpdate = "name" in input;
       const incomingName = String(input.name ?? "").trim();
-      const incomingTestItems = Array.isArray(input.testItems) ? input.testItems : undefined;
+      const incomingTestItems = Array.isArray(input.testItems)
+        ? input.testItems
+        : undefined;
       const incomingPrescriptionItems = Array.isArray(input.prescriptionItems)
         ? input.prescriptionItems
         : undefined;
@@ -5773,7 +7510,9 @@ export const medicalRouter = router({
         hasNameUpdate &&
         hasItemsUpdate &&
         !incomingName &&
-        (incomingTestItems?.length ?? incomingPrescriptionItems?.length ?? 0) === 0;
+        (incomingTestItems?.length ??
+          incomingPrescriptionItems?.length ??
+          0) === 0;
 
       if (shouldDelete) {
         delete scopeMap[input.templateId];
@@ -5781,16 +7520,23 @@ export const medicalRouter = router({
         const next = { ...existing };
         if (hasNameUpdate) next.name = incomingName;
         if (incomingTestItems !== undefined) next.testItems = incomingTestItems;
-        if (incomingPrescriptionItems !== undefined) next.prescriptionItems = incomingPrescriptionItems;
+        if (incomingPrescriptionItems !== undefined)
+          next.prescriptionItems = incomingPrescriptionItems;
         scopeMap[input.templateId] = next;
       }
 
       parsed[input.scope] = scopeMap;
       await db.updateSystemSettings("ready_template_overrides", parsed);
-      await db.logAuditEvent(ctx.user.id, "UPSERT_READY_TEMPLATE_OVERRIDE", "systemSetting", 0, {
-        scope: input.scope,
-        templateId: input.templateId,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPSERT_READY_TEMPLATE_OVERRIDE",
+        "systemSetting",
+        0,
+        {
+          scope: input.scope,
+          templateId: input.templateId,
+        },
+      );
       return { success: true };
     }),
 
@@ -5803,7 +7549,8 @@ export const medicalRouter = router({
       if (row?.value) {
         try {
           const raw = JSON.parse(row.value);
-          if (raw && typeof raw === "object") parsed = raw as Record<string, any>;
+          if (raw && typeof raw === "object")
+            parsed = raw as Record<string, any>;
         } catch {
           parsed = {};
         }
@@ -5811,17 +7558,29 @@ export const medicalRouter = router({
       const scopeMap: Record<string, any> = {};
       for (const template of input.templates) {
         scopeMap[template.templateId] = {
-          ...(template.name !== undefined ? { name: String(template.name ?? "").trim() } : {}),
-          ...(template.testItems !== undefined ? { testItems: template.testItems } : {}),
-          ...(template.prescriptionItems !== undefined ? { prescriptionItems: template.prescriptionItems } : {}),
+          ...(template.name !== undefined
+            ? { name: String(template.name ?? "").trim() }
+            : {}),
+          ...(template.testItems !== undefined
+            ? { testItems: template.testItems }
+            : {}),
+          ...(template.prescriptionItems !== undefined
+            ? { prescriptionItems: template.prescriptionItems }
+            : {}),
         };
       }
       parsed[input.scope] = scopeMap;
       await db.updateSystemSettings("ready_template_overrides", parsed);
-      await db.logAuditEvent(ctx.user.id, "IMPORT_READY_TEMPLATE_OVERRIDES", "systemSetting", 0, {
-        scope: input.scope,
-        count: input.templates.length,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "IMPORT_READY_TEMPLATE_OVERRIDES",
+        "systemSetting",
+        0,
+        {
+          scope: input.scope,
+          count: input.templates.length,
+        },
+      );
       return { success: true };
     }),
 
@@ -5830,7 +7589,7 @@ export const medicalRouter = router({
       z.object({
         scope: readyTemplateScopeSchema,
         filePath: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -5838,7 +7597,10 @@ export const medicalRouter = router({
         const resolvedPath = path.resolve(input.filePath);
         const stats = await stat(resolvedPath).catch(() => null);
         if (!stats || !stats.isFile()) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "File not found." });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "File not found.",
+          });
         }
         if (!/\.xlsx?$/i.test(resolvedPath)) {
           throw new TRPCError({
@@ -5847,7 +7609,10 @@ export const medicalRouter = router({
           });
         }
         if (stats.size > 20 * 1024 * 1024) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "File is too large." });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "File is too large.",
+          });
         }
 
         const templates =
@@ -5858,7 +7623,7 @@ export const medicalRouter = router({
                 (await db.getAllTests()).map((test) => ({
                   id: Number(test.id),
                   name: String(test.name ?? ""),
-                }))
+                })),
               );
         if (templates.length === 0) {
           throw new TRPCError({
@@ -5872,7 +7637,8 @@ export const medicalRouter = router({
         if (row?.value) {
           try {
             const raw = JSON.parse(row.value);
-            if (raw && typeof raw === "object") parsed = raw as Record<string, any>;
+            if (raw && typeof raw === "object")
+              parsed = raw as Record<string, any>;
           } catch {
             parsed = {};
           }
@@ -5881,7 +7647,9 @@ export const medicalRouter = router({
         const scopeMap: Record<string, any> = {};
         for (const template of templates) {
           scopeMap[template.templateId] = {
-            ...(template.name !== undefined ? { name: String(template.name ?? "").trim() } : {}),
+            ...(template.name !== undefined
+              ? { name: String(template.name ?? "").trim() }
+              : {}),
             ...(input.scope === "prescription"
               ? { prescriptionItems: (template as any).prescriptionItems ?? [] }
               : { testItems: (template as any).testItems ?? [] }),
@@ -5890,18 +7658,27 @@ export const medicalRouter = router({
 
         parsed[input.scope] = scopeMap;
         await db.updateSystemSettings("ready_template_overrides", parsed);
-        await db.logAuditEvent(ctx.user.id, "IMPORT_READY_TEMPLATE_OVERRIDES", "systemSetting", 0, {
-          scope: input.scope,
-          count: templates.length,
-          filePath: resolvedPath,
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "IMPORT_READY_TEMPLATE_OVERRIDES",
+          "systemSetting",
+          0,
+          {
+            scope: input.scope,
+            count: templates.length,
+            filePath: resolvedPath,
+          },
+        );
         return { success: true, count: templates.length };
       } catch (error) {
         console.error("[importReadyTemplateOverridesFromFile] failed", error);
         if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "Failed to import templates from file.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to import templates from file.",
         });
       }
     }),
@@ -5911,21 +7688,33 @@ export const medicalRouter = router({
   getSystemSetting: protectedProcedure
     .input(z.object({ key: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      if (input.key === "appointments_pricing_v1" && String(ctx.user.role ?? "").toLowerCase() !== "admin") {
+      if (
+        input.key === "appointments_pricing_v1" &&
+        String(ctx.user.role ?? "").toLowerCase() !== "admin"
+      ) {
         const role = String(ctx.user.role ?? "").toLowerCase();
         if (role !== "accountant") {
-          const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+          const permissions = await db.getEffectiveUserPermissions(
+            ctx.user.id,
+            ctx.user.role ?? undefined,
+          );
           const canReadPricing =
             permissions.includes("appointments_pricing_v1") ||
             permissions.includes("/admin/settings/pricing-rules") ||
             permissions.includes("/appointments/accounts");
           if (!canReadPricing) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "No permission to read appointments pricing." });
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "No permission to read appointments pricing.",
+            });
           }
         }
       }
       const row = await db.getSystemSetting(input.key).catch((error) => {
-        console.warn(`[medical.getSystemSetting] fallback for ${input.key}`, error);
+        console.warn(
+          `[medical.getSystemSetting] fallback for ${input.key}`,
+          error,
+        );
         return null;
       });
       if (!row) {
@@ -5954,13 +7743,15 @@ export const medicalRouter = router({
     }),
 
   registerPushDeviceToken: protectedProcedure
-    .input(z.object({
-      token: z.string().min(20),
-      platform: z.enum(["android", "ios", "web"]),
-      deviceId: z.string().min(1).max(191),
-      appVersion: z.string().max(64).optional(),
-      build: z.string().max(64).optional(),
-    }))
+    .input(
+      z.object({
+        token: z.string().min(20),
+        platform: z.enum(["android", "ios", "web"]),
+        deviceId: z.string().min(1).max(191),
+        appVersion: z.string().max(64).optional(),
+        build: z.string().max(64).optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const registrationId = await db.upsertPushDeviceRegistration({
         userId: ctx.user.id,
@@ -5975,9 +7766,11 @@ export const medicalRouter = router({
     }),
 
   unregisterPushDeviceToken: protectedProcedure
-    .input(z.object({
-      token: z.string().min(20),
-    }))
+    .input(
+      z.object({
+        token: z.string().min(20),
+      }),
+    )
     .mutation(async ({ input }) => {
       await db.deletePushDeviceToken(input.token);
       return { success: true };
@@ -5987,9 +7780,15 @@ export const medicalRouter = router({
     .input(z.object({ key: z.string().min(1), value: z.any() }))
     .mutation(async ({ input, ctx }) => {
       await db.updateSystemSettings(input.key, input.value);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_SYSTEM_SETTING", "systemSetting", 0, {
-        key: input.key,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_SYSTEM_SETTING",
+        "systemSetting",
+        0,
+        {
+          key: input.key,
+        },
+      );
       return { success: true };
     }),
 
@@ -6012,8 +7811,13 @@ export const medicalRouter = router({
       code: decodeMojibake(String(doctor.code ?? "")),
       name: decodeMojibake(String(doctor.name ?? "")),
       isActive: Boolean(doctor.isActive),
-      locationType: (String(doctor.locationType ?? "center") as "center" | "external"),
-      doctorType: (String(doctor.doctorType ?? "consultant") as "consultant" | "specialist" | "external"),
+      locationType: String(doctor.locationType ?? "center") as
+        | "center"
+        | "external",
+      doctorType: String(doctor.doctorType ?? "consultant") as
+        | "consultant"
+        | "specialist"
+        | "external",
     }));
   }),
 
@@ -6023,32 +7827,54 @@ export const medicalRouter = router({
       const dbInstance = await db.getDb();
       if (dbInstance) {
         for (const doctor of input.doctors) {
-          await dbInstance.insert(doctorsLookup).values({
-            id: doctor.id,
-            code: doctor.code,
-            name: doctor.name,
-            isActive: doctor.isActive ? 1 : 0,
-            locationType: doctor.locationType,
-            doctorType: doctor.doctorType,
-          }).onDuplicateKeyUpdate({ set: { code: doctor.code, name: doctor.name, isActive: doctor.isActive ? 1 : 0, locationType: doctor.locationType, doctorType: doctor.doctorType } });
+          await dbInstance
+            .insert(doctorsLookup)
+            .values({
+              id: doctor.id,
+              code: doctor.code,
+              name: doctor.name,
+              isActive: doctor.isActive ? 1 : 0,
+              locationType: doctor.locationType,
+              doctorType: doctor.doctorType,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                code: doctor.code,
+                name: doctor.name,
+                isActive: doctor.isActive ? 1 : 0,
+                locationType: doctor.locationType,
+                doctorType: doctor.doctorType,
+              },
+            });
         }
       }
-      await db.logAuditEvent(ctx.user.id, "UPDATE_DOCTOR_DIRECTORY", "doctors", 0, {
-        count: input.doctors.length,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_DOCTOR_DIRECTORY",
+        "doctors",
+        0,
+        {
+          count: input.doctors.length,
+        },
+      );
       return { success: true };
     }),
 
   getServiceDirectory: protectedProcedure.query(async () => {
     const row = await db.getSystemSetting("service_directory");
-    if (!row?.value) return [] as Array<z.infer<typeof serviceDirectoryEntrySchema>>;
+    if (!row?.value)
+      return [] as Array<z.infer<typeof serviceDirectoryEntrySchema>>;
     try {
       const parsed = JSON.parse(row.value);
       const normalized = z.array(serviceDirectoryEntrySchema).safeParse(parsed);
-      if (!normalized.success) return [] as Array<z.infer<typeof serviceDirectoryEntrySchema>>;
+      if (!normalized.success)
+        return [] as Array<z.infer<typeof serviceDirectoryEntrySchema>>;
       return normalized.data.map((entry) => ({
         ...entry,
-        defaultSheet: normalizeServiceDefaultSheet(entry.defaultSheet ?? entry.serviceType, entry.serviceType),
+        defaultSheet: normalizeServiceDefaultSheet(
+          entry.defaultSheet ?? entry.serviceType,
+          entry.serviceType,
+        ),
         srvTyp: inferSrvTyp(entry),
         code: decodeMojibake(entry.code),
         name: decodeMojibake(entry.name),
@@ -6084,19 +7910,27 @@ export const medicalRouter = router({
     .input(z.object({ services: z.array(serviceDirectoryEntrySchema) }))
     .mutation(async ({ input, ctx }) => {
       await db.updateSystemSettings("service_directory", input.services);
-      await db.logAuditEvent(ctx.user.id, "UPDATE_SERVICE_DIRECTORY", "systemSetting", 0, {
-        count: input.services.length,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_SERVICE_DIRECTORY",
+        "systemSetting",
+        0,
+        {
+          count: input.services.length,
+        },
+      );
       return { success: true };
     }),
 
   // ============ SHEET ENTRIES ============
 
   getSheetEntry: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+      }),
+    )
     .query(async ({ input }) => {
       const stored = await db.getSheetEntry(input.patientId, input.sheetType);
       let base: any = {};
@@ -6109,7 +7943,14 @@ export const medicalRouter = router({
       }
 
       // Build/refresh sheet payload from dedicated tables (source of truth).
-      const [autorefRows, afterRefractionRows, glassesRows, pentacamRows, reports, surgeries] = await Promise.all([
+      const [
+        autorefRows,
+        afterRefractionRows,
+        glassesRows,
+        pentacamRows,
+        reports,
+        surgeries,
+      ] = await Promise.all([
         db.getAutorefractometryByPatient(input.patientId),
         db.getAfterRefractionByPatient(input.patientId),
         db.getGlassesRecordsByPatient(input.patientId),
@@ -6122,44 +7963,106 @@ export const medicalRouter = router({
         (rows ?? []).find((row: any) =>
           keys.some((key) => {
             const value = row?.[key];
-            return value !== null && value !== undefined && String(value).trim() !== "";
-          })
-        ) ?? ((rows ?? [])[0] ?? {});
+            return (
+              value !== null &&
+              value !== undefined &&
+              String(value).trim() !== ""
+            );
+          }),
+        ) ??
+        (rows ?? [])[0] ??
+        {};
 
       const autoref = pickFirstWithValues(autorefRows as any[], [
-        "sphereOD", "cylinderOD", "axisOD", "ucvaOD", "bcvaOD", "iopOD",
-        "sphereOS", "cylinderOS", "axisOS", "ucvaOS", "bcvaOS", "iopOS",
+        "sphereOD",
+        "cylinderOD",
+        "axisOD",
+        "ucvaOD",
+        "bcvaOD",
+        "iopOD",
+        "sphereOS",
+        "cylinderOS",
+        "axisOS",
+        "ucvaOS",
+        "bcvaOS",
+        "iopOS",
       ]) as any;
-      const afterRefraction = pickFirstWithValues(afterRefractionRows as any[], [
-        "sphereOD", "cylinderOD", "axisOD",
-        "sphereOS", "cylinderOS", "axisOS",
-      ]) as any;
+      const afterRefraction = pickFirstWithValues(
+        afterRefractionRows as any[],
+        [
+          "sphereOD",
+          "cylinderOD",
+          "axisOD",
+          "sphereOS",
+          "cylinderOS",
+          "axisOS",
+        ],
+      ) as any;
       const glasses = pickFirstWithValues(glassesRows as any[], [
-        "sOD", "cOD", "axisOD", "pdOD", "bcvaOD",
-        "sOS", "cOS", "axisOS", "pdOS", "bcvaOS",
+        "sOD",
+        "cOD",
+        "axisOD",
+        "pdOD",
+        "bcvaOD",
+        "sOS",
+        "cOS",
+        "axisOS",
+        "pdOS",
+        "bcvaOS",
       ]) as any;
       const pentacam = pickFirstWithValues(pentacamRows as any[], [
-        "k1OD", "k2OD", "axisOD", "thinnestPointOD", "apexOD", "residualOD", "tttOD", "ablationOD",
-        "k1OS", "k2OS", "axisOS", "thinnestPointOS", "apexOS", "residualOS", "tttOS", "ablationOS",
+        "k1OD",
+        "k2OD",
+        "axisOD",
+        "thinnestPointOD",
+        "apexOD",
+        "residualOD",
+        "tttOD",
+        "ablationOD",
+        "k1OS",
+        "k2OS",
+        "axisOS",
+        "thinnestPointOS",
+        "apexOS",
+        "residualOS",
+        "tttOS",
+        "ablationOS",
       ]) as any;
       const report = (reports?.[0] ?? {}) as any;
       const surgery = (surgeries?.[0] ?? {}) as any;
-      const odSphere = autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "";
-      const odCylinder = autoref?.cylinderOD ?? base?.examData?.autorefraction?.od?.c ?? "";
-      const odAxis = autoref?.axisOD ?? base?.examData?.autorefraction?.od?.axis ?? "";
-      const osSphere = autoref?.sphereOS ?? base?.examData?.autorefraction?.os?.s ?? "";
-      const osCylinder = autoref?.cylinderOS ?? base?.examData?.autorefraction?.os?.c ?? "";
-      const osAxis = autoref?.axisOS ?? base?.examData?.autorefraction?.os?.axis ?? "";
-      const odAirPuff = autoref?.iopOD ?? base?.examData?.autorefraction?.od?.airPuff1 ?? "";
-      const osAirPuff = autoref?.iopOS ?? base?.examData?.autorefraction?.os?.airPuff1 ?? "";
+      const odSphere =
+        autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "";
+      const odCylinder =
+        autoref?.cylinderOD ?? base?.examData?.autorefraction?.od?.c ?? "";
+      const odAxis =
+        autoref?.axisOD ?? base?.examData?.autorefraction?.od?.axis ?? "";
+      const osSphere =
+        autoref?.sphereOS ?? base?.examData?.autorefraction?.os?.s ?? "";
+      const osCylinder =
+        autoref?.cylinderOS ?? base?.examData?.autorefraction?.os?.c ?? "";
+      const osAxis =
+        autoref?.axisOS ?? base?.examData?.autorefraction?.os?.axis ?? "";
+      const odAirPuff =
+        autoref?.iopOD ?? base?.examData?.autorefraction?.od?.airPuff1 ?? "";
+      const osAirPuff =
+        autoref?.iopOS ?? base?.examData?.autorefraction?.os?.airPuff1 ?? "";
 
       const payload = {
         ...base,
         formData: {
           ...(base?.formData ?? {}),
-          diagnosis: String(report?.diagnosis ?? "").trim() || base?.formData?.diagnosis || "",
-          treatmentPlan: String(report?.treatment ?? "").trim() || base?.formData?.treatmentPlan || "",
-          recommendations: String(report?.recommendations ?? "").trim() || base?.formData?.recommendations || "",
+          diagnosis:
+            String(report?.diagnosis ?? "").trim() ||
+            base?.formData?.diagnosis ||
+            "",
+          treatmentPlan:
+            String(report?.treatment ?? "").trim() ||
+            base?.formData?.treatmentPlan ||
+            "",
+          recommendations:
+            String(report?.recommendations ?? "").trim() ||
+            base?.formData?.recommendations ||
+            "",
         },
         examData: {
           ...(base?.examData ?? {}),
@@ -6178,12 +8081,28 @@ export const medicalRouter = router({
               a1: odAxis,
               a2: odAxis,
               a3: odAxis,
-              afterS: afterRefraction?.sphereOD ?? base?.examData?.autorefraction?.od?.afterS ?? "",
-              afterC: afterRefraction?.cylinderOD ?? base?.examData?.autorefraction?.od?.afterC ?? "",
-              afterA: afterRefraction?.axisOD ?? base?.examData?.autorefraction?.od?.afterA ?? "",
-              ucva: autoref?.ucvaOD ?? base?.examData?.autorefraction?.od?.ucva ?? "",
-              bcva: autoref?.bcvaOD ?? base?.examData?.autorefraction?.od?.bcva ?? "",
-              iop: autoref?.iopOD ?? base?.examData?.autorefraction?.od?.iop ?? "",
+              afterS:
+                afterRefraction?.sphereOD ??
+                base?.examData?.autorefraction?.od?.afterS ??
+                "",
+              afterC:
+                afterRefraction?.cylinderOD ??
+                base?.examData?.autorefraction?.od?.afterC ??
+                "",
+              afterA:
+                afterRefraction?.axisOD ??
+                base?.examData?.autorefraction?.od?.afterA ??
+                "",
+              ucva:
+                autoref?.ucvaOD ??
+                base?.examData?.autorefraction?.od?.ucva ??
+                "",
+              bcva:
+                autoref?.bcvaOD ??
+                base?.examData?.autorefraction?.od?.bcva ??
+                "",
+              iop:
+                autoref?.iopOD ?? base?.examData?.autorefraction?.od?.iop ?? "",
               airPuff1: odAirPuff,
               airPuff2: odAirPuff,
               airPuff3: odAirPuff,
@@ -6202,12 +8121,28 @@ export const medicalRouter = router({
               a1: osAxis,
               a2: osAxis,
               a3: osAxis,
-              afterS: afterRefraction?.sphereOS ?? base?.examData?.autorefraction?.os?.afterS ?? "",
-              afterC: afterRefraction?.cylinderOS ?? base?.examData?.autorefraction?.os?.afterC ?? "",
-              afterA: afterRefraction?.axisOS ?? base?.examData?.autorefraction?.os?.afterA ?? "",
-              ucva: autoref?.ucvaOS ?? base?.examData?.autorefraction?.os?.ucva ?? "",
-              bcva: autoref?.bcvaOS ?? base?.examData?.autorefraction?.os?.bcva ?? "",
-              iop: autoref?.iopOS ?? base?.examData?.autorefraction?.os?.iop ?? "",
+              afterS:
+                afterRefraction?.sphereOS ??
+                base?.examData?.autorefraction?.os?.afterS ??
+                "",
+              afterC:
+                afterRefraction?.cylinderOS ??
+                base?.examData?.autorefraction?.os?.afterC ??
+                "",
+              afterA:
+                afterRefraction?.axisOS ??
+                base?.examData?.autorefraction?.os?.afterA ??
+                "",
+              ucva:
+                autoref?.ucvaOS ??
+                base?.examData?.autorefraction?.os?.ucva ??
+                "",
+              bcva:
+                autoref?.bcvaOS ??
+                base?.examData?.autorefraction?.os?.bcva ??
+                "",
+              iop:
+                autoref?.iopOS ?? base?.examData?.autorefraction?.os?.iop ?? "",
               airPuff1: osAirPuff,
               airPuff2: osAirPuff,
               airPuff3: osAirPuff,
@@ -6236,33 +8171,58 @@ export const medicalRouter = router({
               ...(base?.examData?.pentacam?.od ?? {}),
               k1: pentacam?.k1OD ?? base?.examData?.pentacam?.od?.k1 ?? "",
               k2: pentacam?.k2OD ?? base?.examData?.pentacam?.od?.k2 ?? "",
-              axis: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.axis ?? "",
+              axis:
+                pentacam?.axisOD ?? base?.examData?.pentacam?.od?.axis ?? "",
               ax1: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax1 ?? "",
               ax2: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax2 ?? "",
-              thinnest: pentacam?.thinnestPointOD ?? base?.examData?.pentacam?.od?.thinnest ?? "",
-              apex: pentacam?.apexOD ?? base?.examData?.pentacam?.od?.apex ?? "",
-              residual: pentacam?.residualOD ?? base?.examData?.pentacam?.od?.residual ?? "",
+              thinnest:
+                pentacam?.thinnestPointOD ??
+                base?.examData?.pentacam?.od?.thinnest ??
+                "",
+              apex:
+                pentacam?.apexOD ?? base?.examData?.pentacam?.od?.apex ?? "",
+              residual:
+                pentacam?.residualOD ??
+                base?.examData?.pentacam?.od?.residual ??
+                "",
               ttt: pentacam?.tttOD ?? base?.examData?.pentacam?.od?.ttt ?? "",
-              ablation: pentacam?.ablationOD ?? base?.examData?.pentacam?.od?.ablation ?? "",
+              ablation:
+                pentacam?.ablationOD ??
+                base?.examData?.pentacam?.od?.ablation ??
+                "",
             },
             os: {
               ...(base?.examData?.pentacam?.os ?? {}),
               k1: pentacam?.k1OS ?? base?.examData?.pentacam?.os?.k1 ?? "",
               k2: pentacam?.k2OS ?? base?.examData?.pentacam?.os?.k2 ?? "",
-              axis: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.axis ?? "",
+              axis:
+                pentacam?.axisOS ?? base?.examData?.pentacam?.os?.axis ?? "",
               ax1: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax1 ?? "",
               ax2: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax2 ?? "",
-              thinnest: pentacam?.thinnestPointOS ?? base?.examData?.pentacam?.os?.thinnest ?? "",
-              apex: pentacam?.apexOS ?? base?.examData?.pentacam?.os?.apex ?? "",
-              residual: pentacam?.residualOS ?? base?.examData?.pentacam?.os?.residual ?? "",
+              thinnest:
+                pentacam?.thinnestPointOS ??
+                base?.examData?.pentacam?.os?.thinnest ??
+                "",
+              apex:
+                pentacam?.apexOS ?? base?.examData?.pentacam?.os?.apex ?? "",
+              residual:
+                pentacam?.residualOS ??
+                base?.examData?.pentacam?.os?.residual ??
+                "",
               ttt: pentacam?.tttOS ?? base?.examData?.pentacam?.os?.ttt ?? "",
-              ablation: pentacam?.ablationOS ?? base?.examData?.pentacam?.os?.ablation ?? "",
+              ablation:
+                pentacam?.ablationOS ??
+                base?.examData?.pentacam?.os?.ablation ??
+                "",
             },
           },
         },
         operationDetails: {
           ...(base?.operationDetails ?? {}),
-          type: String(surgery?.surgeryType ?? "").trim() || base?.operationDetails?.type || "",
+          type:
+            String(surgery?.surgeryType ?? "").trim() ||
+            base?.operationDetails?.type ||
+            "",
           date: surgery?.surgeryDate ?? base?.operationDetails?.date ?? "",
         },
       };
@@ -6271,45 +8231,114 @@ export const medicalRouter = router({
     }),
 
   saveSheetEntry: protectedProcedure
-      .input(z.object({
+    .input(
+      z.object({
         patientId: z.number(),
         sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
         content: z.string(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        await db.upsertSheetEntry({
-          patientId: input.patientId,
-          sheetType: input.sheetType,
-          content: input.content,
-        });
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      await db.upsertSheetEntry({
+        patientId: input.patientId,
+        sheetType: input.sheetType,
+        content: input.content,
+      });
       broadcastSheetUpdate(input.patientId, input.sheetType);
-      await db.logAuditEvent(ctx.user.id, "SAVE_SHEET", "sheetEntry", input.patientId, { sheetType: input.sheetType });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SAVE_SHEET",
+        "sheetEntry",
+        input.patientId,
+        { sheetType: input.sheetType },
+      );
       return { success: true };
     }),
 
   saveRefractionToExamination: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      autorefraction: z.object({
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), ucva: z.string().optional(), bcva: z.string().optional(), iop: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), ucva: z.string().optional(), bcva: z.string().optional(), iop: z.string().optional() }).optional(),
-      }).optional(),
-      glassesData: z.object({
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional() }).optional(),
-      }).optional(),
-      pentacam: z.object({
-        od: z.object({ k1: z.string().optional(), k2: z.string().optional(), axis: z.string().optional(), thinnest: z.string().optional(), apex: z.string().optional(), residualStroma: z.string().optional() }).optional(),
-        os: z.object({ k1: z.string().optional(), k2: z.string().optional(), axis: z.string().optional(), thinnest: z.string().optional(), apex: z.string().optional(), residualStroma: z.string().optional() }).optional(),
-      }).optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        autorefraction: z
+          .object({
+            od: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                ucva: z.string().optional(),
+                bcva: z.string().optional(),
+                iop: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                ucva: z.string().optional(),
+                bcva: z.string().optional(),
+                iop: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        glassesData: z
+          .object({
+            od: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                pd: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                pd: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        pentacam: z
+          .object({
+            od: z
+              .object({
+                k1: z.string().optional(),
+                k2: z.string().optional(),
+                axis: z.string().optional(),
+                thinnest: z.string().optional(),
+                apex: z.string().optional(),
+                residualStroma: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                k1: z.string().optional(),
+                k2: z.string().optional(),
+                axis: z.string().optional(),
+                thinnest: z.string().optional(),
+                apex: z.string().optional(),
+                residualStroma: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       // Get or create today's examination for patient
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const visits = await db.getVisitsByPatient(input.patientId);
       let visitId = visits.find((v: any) => {
-        const vDate = v.visitDate instanceof Date ? v.visitDate.toISOString() : String(v.visitDate ?? '');
-        return vDate.split('T')[0] === today;
+        const vDate =
+          v.visitDate instanceof Date
+            ? v.visitDate.toISOString()
+            : String(v.visitDate ?? "");
+        return vDate.split("T")[0] === today;
       })?.id;
 
       if (!visitId) {
@@ -6317,7 +8346,7 @@ export const medicalRouter = router({
         const newVisit = await db.createVisit({
           patientId: input.patientId,
           visitDate: new Date().toISOString(),
-          notes: 'Created from refraction save'
+          notes: "Created from refraction save",
         });
         visitId = (newVisit as any).id ?? (newVisit as any).insertId;
       }
@@ -6386,17 +8415,29 @@ export const medicalRouter = router({
     }),
 
   saveExaminationForm: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      visitDate: z.string(),
-      visitType: z.string(),
-      appointmentId: z.number().optional(),
-      data: z.record(z.string(), z.any()),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitDate: z.string(),
+        visitType: z.string(),
+        appointmentId: z.number().optional(),
+        data: z.record(z.string(), z.any()),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["reception", "nurse", "technician", "doctor", "admin", "manager"];
+      const allowedRoles = [
+        "reception",
+        "nurse",
+        "technician",
+        "doctor",
+        "admin",
+        "manager",
+      ];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions for examination form" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions for examination form",
+        });
       }
 
       // Guard: reject saves when input.data carries no real clinical values
@@ -6406,7 +8447,10 @@ export const medicalRouter = router({
         if (typeof val === "number") return true;
         if (typeof val === "boolean") return val;
         if (Array.isArray(val)) return val.length > 0;
-        if (typeof val === "object") return Object.values(val as Record<string, unknown>).some(_hasRealData);
+        if (typeof val === "object")
+          return Object.values(val as Record<string, unknown>).some(
+            _hasRealData,
+          );
         return false;
       };
       if (!_hasRealData(input.data)) {
@@ -6414,15 +8458,22 @@ export const medicalRouter = router({
       }
 
       // Parse visitDate to avoid timezone issues
-      const [year, month, day] = input.visitDate.split('-');
-      const visitDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      const visitDateStr = visitDate.toISOString().split('T')[0];
+      const [year, month, day] = input.visitDate.split("-");
+      const visitDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+      );
+      const visitDateStr = visitDate.toISOString().split("T")[0];
 
       // Find existing visit for this patient on this date
       const existingVisits = await db.getVisitsByPatient(input.patientId);
       let visitId = existingVisits.find((v: any) => {
-        const vDate = v.visitDate instanceof Date ? v.visitDate.toISOString() : String(v.visitDate ?? '');
-        return vDate.split('T')[0] === visitDateStr;
+        const vDate =
+          v.visitDate instanceof Date
+            ? v.visitDate.toISOString()
+            : String(v.visitDate ?? "");
+        return vDate.split("T")[0] === visitDateStr;
       })?.id;
 
       // If no visit exists for today, create one
@@ -6438,7 +8489,7 @@ export const medicalRouter = router({
         if (!visitId) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create visit - no ID returned from database"
+            message: "Failed to create visit - no ID returned from database",
           });
         }
       }
@@ -6460,63 +8511,68 @@ export const medicalRouter = router({
 
       // Extract autoref data from payload
       const autorefractionPayload =
-        input.data["autorefraction"] && typeof input.data["autorefraction"] === "object"
+        input.data["autorefraction"] &&
+        typeof input.data["autorefraction"] === "object"
           ? (input.data["autorefraction"] as Record<string, any>)
           : null;
       const autorefractionOd =
         (input.data["autoref-od"] as Record<string, any> | undefined) ??
-        ((input.data["autoref"] as any)?.od as Record<string, any> | undefined) ??
+        ((input.data["autoref"] as any)?.od as
+          | Record<string, any>
+          | undefined) ??
         (autorefractionPayload?.od as Record<string, any> | undefined);
       const autorefractionOs =
         (input.data["autoref-os"] as Record<string, any> | undefined) ??
-        ((input.data["autoref"] as any)?.os as Record<string, any> | undefined) ??
+        ((input.data["autoref"] as any)?.os as
+          | Record<string, any>
+          | undefined) ??
         (autorefractionPayload?.os as Record<string, any> | undefined);
 
       const sphereOD = pickNonEmptyString(
         autorefractionOd?.s,
         autorefractionOd?.s1,
         autorefractionOd?.s2,
-        autorefractionOd?.s3
+        autorefractionOd?.s3,
       );
       const cylinderOD = pickNonEmptyString(
         autorefractionOd?.c,
         autorefractionOd?.c1,
         autorefractionOd?.c2,
-        autorefractionOd?.c3
+        autorefractionOd?.c3,
       );
       const axisOD = pickNonEmptyString(
         autorefractionOd?.axis,
         autorefractionOd?.a1,
         autorefractionOd?.a2,
-        autorefractionOd?.a3
+        autorefractionOd?.a3,
       );
       const sphereOS = pickNonEmptyString(
         autorefractionOs?.s,
         autorefractionOs?.s1,
         autorefractionOs?.s2,
-        autorefractionOs?.s3
+        autorefractionOs?.s3,
       );
       const cylinderOS = pickNonEmptyString(
         autorefractionOs?.c,
         autorefractionOs?.c1,
         autorefractionOs?.c2,
-        autorefractionOs?.c3
+        autorefractionOs?.c3,
       );
       const axisOS = pickNonEmptyString(
         autorefractionOs?.axis,
         autorefractionOs?.a1,
         autorefractionOs?.a2,
-        autorefractionOs?.a3
+        autorefractionOs?.a3,
       );
       const airPuffOD = pickNonEmptyString(
         autorefractionOd?.airPuff1,
         autorefractionOd?.airPuff2,
-        autorefractionOd?.airPuff3
+        autorefractionOd?.airPuff3,
       );
       const airPuffOS = pickNonEmptyString(
         autorefractionOs?.airPuff1,
         autorefractionOs?.airPuff2,
-        autorefractionOs?.airPuff3
+        autorefractionOs?.airPuff3,
       );
 
       // Extract glasses data for dedicated table save
@@ -6538,7 +8594,10 @@ export const medicalRouter = router({
       }
 
       // Save autorefraction to separate table
-      if (examinationId && (_hasRealData(autorefractionOd) || _hasRealData(autorefractionOs))) {
+      if (
+        examinationId &&
+        (_hasRealData(autorefractionOd) || _hasRealData(autorefractionOs))
+      ) {
         await db.saveAutorefractometryData({
           examinationId,
           patientId: input.patientId,
@@ -6561,42 +8620,48 @@ export const medicalRouter = router({
 
       // Save AFTER refraction to dedicated table when present.
       const afterRefractionPayload =
-        input.data["afterRefraction"] && typeof input.data["afterRefraction"] === "object"
+        input.data["afterRefraction"] &&
+        typeof input.data["afterRefraction"] === "object"
           ? (input.data["afterRefraction"] as Record<string, any>)
           : null;
       const afterSphereOD = pickNonEmptyString(
         autorefractionOd?.afterS,
         afterRefractionPayload?.od?.s,
-        afterRefractionPayload?.od?.sphere
+        afterRefractionPayload?.od?.sphere,
       );
       const afterCylinderOD = pickNonEmptyString(
         autorefractionOd?.afterC,
         afterRefractionPayload?.od?.c,
-        afterRefractionPayload?.od?.cylinder
+        afterRefractionPayload?.od?.cylinder,
       );
       const afterAxisOD = pickNonEmptyString(
         autorefractionOd?.afterA,
         afterRefractionPayload?.od?.axis,
-        afterRefractionPayload?.od?.a
+        afterRefractionPayload?.od?.a,
       );
       const afterSphereOS = pickNonEmptyString(
         autorefractionOs?.afterS,
         afterRefractionPayload?.os?.s,
-        afterRefractionPayload?.os?.sphere
+        afterRefractionPayload?.os?.sphere,
       );
       const afterCylinderOS = pickNonEmptyString(
         autorefractionOs?.afterC,
         afterRefractionPayload?.os?.c,
-        afterRefractionPayload?.os?.cylinder
+        afterRefractionPayload?.os?.cylinder,
       );
       const afterAxisOS = pickNonEmptyString(
         autorefractionOs?.afterA,
         afterRefractionPayload?.os?.axis,
-        afterRefractionPayload?.os?.a
+        afterRefractionPayload?.os?.a,
       );
       if (
         examinationId &&
-        (afterSphereOD || afterCylinderOD || afterAxisOD || afterSphereOS || afterCylinderOS || afterAxisOS)
+        (afterSphereOD ||
+          afterCylinderOD ||
+          afterAxisOD ||
+          afterSphereOS ||
+          afterCylinderOS ||
+          afterAxisOS)
       ) {
         await db.saveAfterRefractionData({
           examinationId,
@@ -6611,7 +8676,12 @@ export const medicalRouter = router({
       }
 
       // Save glasses to separate table
-      if (examinationId && glassesPayload && typeof glassesPayload === 'object' && (_hasRealData(glassesPayload.od) || _hasRealData(glassesPayload.os))) {
+      if (
+        examinationId &&
+        glassesPayload &&
+        typeof glassesPayload === "object" &&
+        (_hasRealData(glassesPayload.od) || _hasRealData(glassesPayload.os))
+      ) {
         await db.saveGlassesRecord({
           examinationId,
           patientId: input.patientId,
@@ -6632,7 +8702,11 @@ export const medicalRouter = router({
 
       // Extract pentacam data if present
       const pentacamPayload = input.data["pentacam"];
-      if (pentacamPayload && typeof pentacamPayload === 'object' && (_hasRealData(pentacamPayload.od) || _hasRealData(pentacamPayload.os))) {
+      if (
+        pentacamPayload &&
+        typeof pentacamPayload === "object" &&
+        (_hasRealData(pentacamPayload.od) || _hasRealData(pentacamPayload.os))
+      ) {
         const odData = pentacamPayload.od || {};
         const osData = pentacamPayload.os || {};
 
@@ -6685,9 +8759,22 @@ export const medicalRouter = router({
         return [];
       };
 
-      const diagnosisText = readString("diagnosis", "doctor-diagnosis", "medical-diagnosis");
-      const treatmentText = readString("treatment", "recommended-treatment", "doctor-treatment", "prescription");
-      const recommendationsText = readString("recommendations", "report", "doctor-report");
+      const diagnosisText = readString(
+        "diagnosis",
+        "doctor-diagnosis",
+        "medical-diagnosis",
+      );
+      const treatmentText = readString(
+        "treatment",
+        "recommended-treatment",
+        "doctor-treatment",
+        "prescription",
+      );
+      const recommendationsText = readString(
+        "recommendations",
+        "report",
+        "doctor-report",
+      );
       const additionalNotesText = readString("additional-notes", "notes");
       const diseasesArray = parseAnyArray(input.data["diseases"]);
 
@@ -6701,11 +8788,17 @@ export const medicalRouter = router({
         treatment: treatmentText,
         recommendations: recommendationsText,
         additionalNotes: additionalNotesText,
-        diseases: diseasesArray.length > 0 ? JSON.stringify(diseasesArray) : null,
+        diseases:
+          diseasesArray.length > 0 ? JSON.stringify(diseasesArray) : null,
         clinicalOpinion: additionalNotesText || null,
       };
 
-      const _hasReportData = diagnosisText || treatmentText || recommendationsText || additionalNotesText || diseasesArray.length > 0;
+      const _hasReportData =
+        diagnosisText ||
+        treatmentText ||
+        recommendationsText ||
+        additionalNotesText ||
+        diseasesArray.length > 0;
       if (_hasReportData) {
         if ((existingReports ?? []).length > 0) {
           await db.updateDoctorReport(existingReports[0].id, doctorReportData);
@@ -6719,8 +8812,8 @@ export const medicalRouter = router({
         new Set(
           parseAnyArray(input.data["tests"])
             .map((v: any) => Number(v?.testId ?? v?.id ?? v))
-            .filter((id: number) => Number.isFinite(id) && id > 0)
-        )
+            .filter((id: number) => Number.isFinite(id) && id > 0),
+        ),
       );
       const existingRequests = await db.getTestRequestsByVisit(visitId);
       if ((existingRequests ?? []).length === 0) {
@@ -6731,14 +8824,16 @@ export const medicalRouter = router({
           status: "pending",
           notes: "Created from examination form",
         });
-        const testRequestId = Number(createdRequest?.insertId ?? createdRequest?.[0]?.insertId ?? 0);
+        const testRequestId = Number(
+          createdRequest?.insertId ?? createdRequest?.[0]?.insertId ?? 0,
+        );
         if (testRequestId > 0 && requestedTestIds.length > 0) {
           await db.createTestRequestItems(
             requestedTestIds.map((testId) => ({
               testRequestId,
               testId,
               result: null,
-            }))
+            })),
           );
         }
       }
@@ -6748,14 +8843,17 @@ export const medicalRouter = router({
         new Set(
           parseAnyArray(input.data["treatment"])
             .map((v: any) => Number(v?.medicationId ?? v?.id ?? v))
-            .filter((id: number) => Number.isFinite(id) && id > 0)
-        )
+            .filter((id: number) => Number.isFinite(id) && id > 0),
+        ),
       );
-      const existingPrescriptions = await db.getPrescriptionsWithItemsByVisit(visitId);
+      const existingPrescriptions =
+        await db.getPrescriptionsWithItemsByVisit(visitId);
       if ((existingPrescriptions ?? []).length === 0) {
         if (requestedMedicationIds.length > 0) {
           const meds = await db.getAllMedications();
-          const medById = new Map((meds ?? []).map((m: any) => [Number(m.id), String(m.name ?? "")]));
+          const medById = new Map(
+            (meds ?? []).map((m: any) => [Number(m.id), String(m.name ?? "")]),
+          );
           await db.createPrescriptionWithItems({
             patientId: input.patientId,
             visitId,
@@ -6763,7 +8861,8 @@ export const medicalRouter = router({
             notes: "Created from examination form",
             items: requestedMedicationIds.map((medicationId) => ({
               medicationId,
-              medicationName: medById.get(medicationId) || `Medication ${medicationId}`,
+              medicationName:
+                medById.get(medicationId) || `Medication ${medicationId}`,
             })),
           });
         } else {
@@ -6777,13 +8876,22 @@ export const medicalRouter = router({
         }
       }
 
-      await db.logAuditEvent(ctx.user.id, "CREATE_EXAMINATION_FORM", "examination", input.patientId, { message: "Saved examination form" });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_EXAMINATION_FORM",
+        "examination",
+        input.patientId,
+        { message: "Saved examination form" },
+      );
 
       // Clear examination cache so next open fetches fresh medical data
       try {
         await db.invalidatePatientPageStateCache([input.patientId]);
       } catch (error) {
-        console.warn(`[Exam Save] Cache invalidation failed for patient ${input.patientId}:`, error);
+        console.warn(
+          `[Exam Save] Cache invalidation failed for patient ${input.patientId}:`,
+          error,
+        );
         // Non-blocking: exam already saved successfully
       }
 
@@ -6792,99 +8900,203 @@ export const medicalRouter = router({
 
   // Save medical visit data from dashboard patient medical file
   saveMedicalVisit: protectedProcedure
-    .input(z.object({
-      patientId: z.number(),
-      visitDate: z.string().optional(),
-      isFollowup: z.boolean().optional(),
-      appointmentId: z.number().optional(),
-      // Medical measurements
-      symptoms: z.string().optional(),
-      autoref: z.object({
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), ucva: z.string().optional(), bcva: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), ucva: z.string().optional(), bcva: z.string().optional() }).optional(),
-      }).optional(),
-      iop: z.object({
-        od: z.string().optional(),
-        os: z.string().optional(),
-      }).optional(),
-      after: z.object({
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional() }).optional(),
-      }).optional(),
-      glasses: z.object({
-        od: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional(), bcva: z.string().optional() }).optional(),
-        os: z.object({ s: z.string().optional(), c: z.string().optional(), axis: z.string().optional(), pd: z.string().optional(), bcva: z.string().optional() }).optional(),
-      }).optional(),
-      fundus: z.object({
-        od: z.object({ discStatus: z.string().optional(), cupDiscRatio: z.string().optional(), macuaStatus: z.string().optional(), vesselStatus: z.string().optional(), otherFindings: z.string().optional() }).optional(),
-        os: z.object({ discStatus: z.string().optional(), cupDiscRatio: z.string().optional(), macuaStatus: z.string().optional(), vesselStatus: z.string().optional(), otherFindings: z.string().optional() }).optional(),
-      }).optional(),
-      pentacam: z.object({
-        od: z.object({
-          k1: z.string().optional(),
-          k2: z.string().optional(),
-          ax1: z.string().optional(),
-          ax2: z.string().optional(),
-          axis: z.string().optional(),
-          thinnest: z.string().optional(),
-          apex: z.string().optional(),
-          residual: z.string().optional(),
-          ttt: z.string().optional(),
-          ablation: z.string().optional(),
-        }).optional(),
-        os: z.object({
-          k1: z.string().optional(),
-          k2: z.string().optional(),
-          ax1: z.string().optional(),
-          ax2: z.string().optional(),
-          axis: z.string().optional(),
-          thinnest: z.string().optional(),
-          apex: z.string().optional(),
-          residual: z.string().optional(),
-          ttt: z.string().optional(),
-          ablation: z.string().optional(),
-        }).optional(),
-      }).optional(),
-      radiologyLabs: z.string().optional(),
-      // Tests and treatment from dashboard
-      tests: z.string().optional(),
-      // Doctor notes
-      diagnosis: z.string().optional(),
-      treatment: z.string().optional(),
-      report: z.string().optional(),
-      diseases: z.string().optional(),
-      recommendations: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitDate: z.string().optional(),
+        isFollowup: z.boolean().optional(),
+        appointmentId: z.number().optional(),
+        // Medical measurements
+        symptoms: z.string().optional(),
+        autoref: z
+          .object({
+            od: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                ucva: z.string().optional(),
+                bcva: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                ucva: z.string().optional(),
+                bcva: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        iop: z
+          .object({
+            od: z.string().optional(),
+            os: z.string().optional(),
+          })
+          .optional(),
+        after: z
+          .object({
+            od: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        glasses: z
+          .object({
+            od: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                pd: z.string().optional(),
+                bcva: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                s: z.string().optional(),
+                c: z.string().optional(),
+                axis: z.string().optional(),
+                pd: z.string().optional(),
+                bcva: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        fundus: z
+          .object({
+            od: z
+              .object({
+                discStatus: z.string().optional(),
+                cupDiscRatio: z.string().optional(),
+                macuaStatus: z.string().optional(),
+                vesselStatus: z.string().optional(),
+                otherFindings: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                discStatus: z.string().optional(),
+                cupDiscRatio: z.string().optional(),
+                macuaStatus: z.string().optional(),
+                vesselStatus: z.string().optional(),
+                otherFindings: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        pentacam: z
+          .object({
+            od: z
+              .object({
+                k1: z.string().optional(),
+                k2: z.string().optional(),
+                ax1: z.string().optional(),
+                ax2: z.string().optional(),
+                axis: z.string().optional(),
+                thinnest: z.string().optional(),
+                apex: z.string().optional(),
+                residual: z.string().optional(),
+                ttt: z.string().optional(),
+                ablation: z.string().optional(),
+              })
+              .optional(),
+            os: z
+              .object({
+                k1: z.string().optional(),
+                k2: z.string().optional(),
+                ax1: z.string().optional(),
+                ax2: z.string().optional(),
+                axis: z.string().optional(),
+                thinnest: z.string().optional(),
+                apex: z.string().optional(),
+                residual: z.string().optional(),
+                ttt: z.string().optional(),
+                ablation: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+        radiologyLabs: z.string().optional(),
+        // Tests and treatment from dashboard
+        tests: z.string().optional(),
+        // Doctor notes
+        diagnosis: z.string().optional(),
+        treatment: z.string().optional(),
+        report: z.string().optional(),
+        diseases: z.string().optional(),
+        recommendations: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const allowedRoles = ["doctor", "nurse", "admin", "manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to save medical visit" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions to save medical visit",
+        });
       }
 
       // Validate patient exists
       const patient = await db.getPatientById(input.patientId);
       if (!patient) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
       }
 
       // Guard: reject saves with no real clinical data to prevent empty visit/exam rows
-      const _hasVal = (v: string | undefined): boolean => Boolean(v && String(v).trim().length > 0);
-      const _hasObjData = (obj: Record<string, string | undefined> | undefined): boolean =>
-        Boolean(obj && Object.values(obj).some((v) => _hasVal(v as string | undefined)));
+      const _hasVal = (v: string | undefined): boolean =>
+        Boolean(v && String(v).trim().length > 0);
+      const _hasObjData = (
+        obj: Record<string, string | undefined> | undefined,
+      ): boolean =>
+        Boolean(
+          obj &&
+          Object.values(obj).some((v) => _hasVal(v as string | undefined)),
+        );
       const _hasMeasurements =
-        _hasObjData(input.autoref?.od) || _hasObjData(input.autoref?.os) ||
-        _hasVal(input.iop?.od) || _hasVal(input.iop?.os) ||
-        _hasObjData(input.after?.od) || _hasObjData(input.after?.os) ||
-        _hasObjData(input.glasses?.od) || _hasObjData(input.glasses?.os) ||
-        _hasObjData(input.fundus?.od as any) || _hasObjData(input.fundus?.os as any) ||
-        _hasObjData(input.pentacam?.od as any) || _hasObjData(input.pentacam?.os as any);
+        _hasObjData(input.autoref?.od) ||
+        _hasObjData(input.autoref?.os) ||
+        _hasVal(input.iop?.od) ||
+        _hasVal(input.iop?.os) ||
+        _hasObjData(input.after?.od) ||
+        _hasObjData(input.after?.os) ||
+        _hasObjData(input.glasses?.od) ||
+        _hasObjData(input.glasses?.os) ||
+        _hasObjData(input.fundus?.od as any) ||
+        _hasObjData(input.fundus?.os as any) ||
+        _hasObjData(input.pentacam?.od as any) ||
+        _hasObjData(input.pentacam?.os as any);
       const _hasClinicalText =
-        _hasVal(input.symptoms) || _hasVal(input.diagnosis) || _hasVal(input.treatment) ||
-        _hasVal(input.report) || _hasVal(input.diseases) || _hasVal(input.recommendations) ||
+        _hasVal(input.symptoms) ||
+        _hasVal(input.diagnosis) ||
+        _hasVal(input.treatment) ||
+        _hasVal(input.report) ||
+        _hasVal(input.diseases) ||
+        _hasVal(input.recommendations) ||
         _hasVal(input.radiologyLabs);
       const _hasTests = (() => {
-        try { const t = JSON.parse(input.tests ?? "[]"); return Array.isArray(t) && t.length > 0; }
-        catch { return false; }
+        try {
+          const t = JSON.parse(input.tests ?? "[]");
+          return Array.isArray(t) && t.length > 0;
+        } catch {
+          return false;
+        }
       })();
       if (!_hasMeasurements && !_hasClinicalText && !_hasTests) {
         return { success: true, examinationId: null, visitId: null };
@@ -6893,8 +9105,12 @@ export const medicalRouter = router({
       // Parse visitDate to avoid timezone issues
       let visitDate: Date;
       if (input.visitDate) {
-        const [year, month, day] = input.visitDate.split('-');
-        visitDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const [year, month, day] = input.visitDate.split("-");
+        visitDate = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+        );
       } else {
         visitDate = new Date();
       }
@@ -6913,7 +9129,7 @@ export const medicalRouter = router({
       if (!visitId) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create visit - no ID returned from database"
+          message: "Failed to create visit - no ID returned from database",
         });
       }
 
@@ -6955,10 +9171,10 @@ export const medicalRouter = router({
       // Map fundus data (store as JSON in posteriorSegment fields for now)
       if (input.fundus?.od || input.fundus?.os) {
         // Store fundus findings as JSON in posteriorSegment fields
-        if (input.fundus.od && Object.values(input.fundus.od).some(v => v)) {
+        if (input.fundus.od && Object.values(input.fundus.od).some((v) => v)) {
           examinationData.posteriorSegmentOD = JSON.stringify(input.fundus.od);
         }
-        if (input.fundus.os && Object.values(input.fundus.os).some(v => v)) {
+        if (input.fundus.os && Object.values(input.fundus.os).some((v) => v)) {
           examinationData.posteriorSegmentOS = JSON.stringify(input.fundus.os);
         }
       }
@@ -6993,7 +9209,8 @@ export const medicalRouter = router({
 
       // Always create examination row
       const examResult = await db.createExamination(examinationData);
-      const examinationId: number = (examResult as any)?.insertId || (examResult as any)?.id;
+      const examinationId: number =
+        (examResult as any)?.insertId || (examResult as any)?.id;
 
       // Save autoref only when at least one eye has real data
       if (_hasObjData(input.autoref?.od) || _hasObjData(input.autoref?.os)) {
@@ -7057,9 +9274,13 @@ export const medicalRouter = router({
 
       // Save doctor report only when at least one clinical field has real data
       if (
-        _hasVal(input.diagnosis) || _hasVal(input.treatment) ||
-        _hasVal(input.recommendations) || _hasVal(input.report) ||
-        _hasVal(input.symptoms) || _hasVal(input.diseases) || _hasVal(input.radiologyLabs)
+        _hasVal(input.diagnosis) ||
+        _hasVal(input.treatment) ||
+        _hasVal(input.recommendations) ||
+        _hasVal(input.report) ||
+        _hasVal(input.symptoms) ||
+        _hasVal(input.diseases) ||
+        _hasVal(input.radiologyLabs)
       ) {
         await db.createDoctorReport({
           visitId: visitId,
@@ -7075,12 +9296,18 @@ export const medicalRouter = router({
       }
 
       // Log audit event
-      await db.logAuditEvent(ctx.user.id, "SAVE_MEDICAL_VISIT", "visit", input.patientId, {
-        visitId: visitId,
-        isFollowup: input.isFollowup,
-        hasDiagnosis: !!input.diagnosis,
-        hasTreatment: !!input.treatment,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SAVE_MEDICAL_VISIT",
+        "visit",
+        input.patientId,
+        {
+          visitId: visitId,
+          isFollowup: input.isFollowup,
+          hasDiagnosis: !!input.diagnosis,
+          hasTreatment: !!input.treatment,
+        },
+      );
 
       return { success: true, visitId: visitId };
     }),
@@ -7100,16 +9327,30 @@ export const medicalRouter = router({
   })),
 
   createUser: adminProcedure
-    .input(z.object({
-      username: z.string().min(3),
-      password: z.string().min(6),
-      name: z.string().optional(),
-      email: z.string().email().optional(),
-      role: z.enum(["admin", "doctor", "nurse", "technician", "reception", "manager", "accountant", "worker", "supervisor"]).optional(),
-      branch: z.enum(["examinations", "surgery", "both"]).optional(),
-      shift: z.union([z.literal(1), z.literal(2)]).optional(),
-      writeToMssql: z.boolean().optional(),
-    }))
+    .input(
+      z.object({
+        username: z.string().min(3),
+        password: z.string().min(6),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        role: z
+          .enum([
+            "admin",
+            "doctor",
+            "nurse",
+            "technician",
+            "reception",
+            "manager",
+            "accountant",
+            "worker",
+            "supervisor",
+          ])
+          .optional(),
+        branch: z.enum(["examinations", "surgery", "both"]).optional(),
+        shift: z.union([z.literal(1), z.literal(2)]).optional(),
+        writeToMssql: z.boolean().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const hashedPassword = await authService.hashPassword(input.password);
       const user = await db.createUser({
@@ -7125,24 +9366,30 @@ export const medicalRouter = router({
       if (!createdUserId) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create user - no ID returned from database"
+          message: "Failed to create user - no ID returned from database",
         });
       }
       const extras = input.writeToMssql ? ["/ops/mssql-add"] : [];
       await db.setUserPermissions(
         createdUserId,
         extras,
-        extras.length > 0 ? { emptyMode: "inherit", nonEmptyMode: "inherit_extras" } : { emptyMode: "inherit" },
+        extras.length > 0
+          ? { emptyMode: "inherit", nonEmptyMode: "inherit_extras" }
+          : { emptyMode: "inherit" },
       );
-      await db.logAuditEvent(ctx.user.id, "CREATE_USER", "user", 0, { username: input.username });
+      await db.logAuditEvent(ctx.user.id, "CREATE_USER", "user", 0, {
+        username: input.username,
+      });
       return { success: true, userId: createdUserId };
     }),
 
   updateUser: adminProcedure
-    .input(z.object({
-      userId: z.number(),
-      updates: z.record(z.string(), z.any()),
-    }))
+    .input(
+      z.object({
+        userId: z.number(),
+        updates: z.record(z.string(), z.any()),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const updates = { ...input.updates };
       if (typeof updates.password === "string" && updates.password.length > 0) {
@@ -7152,7 +9399,9 @@ export const medicalRouter = router({
       if (typeof updates.role === "string" && updates.role.trim().length > 0) {
         await db.setUserPermissions(input.userId, [], { emptyMode: "inherit" });
       }
-      await db.logAuditEvent(ctx.user.id, "UPDATE_USER", "user", input.userId, { updates: Object.keys(input.updates) });
+      await db.logAuditEvent(ctx.user.id, "UPDATE_USER", "user", input.userId, {
+        updates: Object.keys(input.updates),
+      });
       return { success: true };
     }),
 
@@ -7177,8 +9426,14 @@ export const medicalRouter = router({
     }),
 
   getMyPermissions: protectedProcedure.query(async ({ ctx }) => {
-    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
-    if (ctx.user.role === "reception" && !permissions.includes("/examination")) {
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role,
+    );
+    if (
+      ctx.user.role === "reception" &&
+      !permissions.includes("/examination")
+    ) {
       permissions.push("/examination");
     }
     return permissions;
@@ -7189,33 +9444,49 @@ export const medicalRouter = router({
   }),
 
   setTeamPermissions: adminProcedure
-    .input(z.object({
-      admin: z.array(z.string()),
-      manager: z.array(z.string()),
-      accountant: z.array(z.string()),
-      reception: z.array(z.string()),
-      nurse: z.array(z.string()),
-      technician: z.array(z.string()),
-      doctor: z.array(z.string()),
-    }))
+    .input(
+      z.object({
+        admin: z.array(z.string()),
+        manager: z.array(z.string()),
+        accountant: z.array(z.string()),
+        reception: z.array(z.string()),
+        nurse: z.array(z.string()),
+        technician: z.array(z.string()),
+        doctor: z.array(z.string()),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const previousPermissions = await db.getTeamPermissions();
       await db.setTeamPermissions(input);
       const nextPermissions = await db.getTeamPermissions();
       const users = await db.getAllUsers();
       for (const user of users) {
-        const role = String(user.role ?? "").trim().toLowerCase() as keyof typeof input;
+        const role = String(user.role ?? "")
+          .trim()
+          .toLowerCase() as keyof typeof input;
         const previousRolePermissions = previousPermissions[role] ?? [];
         const nextRolePermissions = nextPermissions[role] ?? [];
-        const previousRoleBases = db.normalizePermissionPathsForTeamMirror(previousRolePermissions);
-        const nextRoleBases = db.normalizePermissionPathsForTeamMirror(nextRolePermissions);
-        const newlyAddedRoleBases = nextRoleBases.filter((pageId) => !previousRoleBases.includes(pageId));
+        const previousRoleBases = db.normalizePermissionPathsForTeamMirror(
+          previousRolePermissions,
+        );
+        const nextRoleBases =
+          db.normalizePermissionPathsForTeamMirror(nextRolePermissions);
+        const newlyAddedRoleBases = nextRoleBases.filter(
+          (pageId) => !previousRoleBases.includes(pageId),
+        );
         const currentUserPermissions = await db.getUserPermissionState(user.id);
         if (currentUserPermissions.hasExplicitEmptyOverride) continue;
         if (!currentUserPermissions.hasOverride) continue;
         if (currentUserPermissions.hasInheritExtrasMarker) continue;
-        if (db.userPermissionsMirrorTeamSnapshot(currentUserPermissions.pageIds, previousRolePermissions)) {
-          await db.setUserPermissions(user.id, nextRolePermissions, { emptyMode: "inherit" });
+        if (
+          db.userPermissionsMirrorTeamSnapshot(
+            currentUserPermissions.pageIds,
+            previousRolePermissions,
+          )
+        ) {
+          await db.setUserPermissions(user.id, nextRolePermissions, {
+            emptyMode: "inherit",
+          });
           continue;
         }
 
@@ -7232,21 +9503,29 @@ export const medicalRouter = router({
           });
         }
       }
-      await db.logAuditEvent(ctx.user.id, "SET_TEAM_PERMISSIONS", "systemSetting", 0, {
-        roles: Object.keys(input),
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SET_TEAM_PERMISSIONS",
+        "systemSetting",
+        0,
+        {
+          roles: Object.keys(input),
+        },
+      );
       return { success: true };
     }),
 
   setUserPermissions: adminProcedure
-    .input(z.object({
-      userId: z.number(),
-      pageIds: z.array(z.string()),
-      /** Empty list: inherit live role (clear overrides) vs explicit deny-all */
-      whenEmpty: z.enum(["inherit", "explicit_deny"]).optional(),
-      /** Non-empty: full replace vs extras merged with live role */
-      nonEmptyStorage: z.enum(["replace", "inherit_extras"]).optional(),
-    }))
+    .input(
+      z.object({
+        userId: z.number(),
+        pageIds: z.array(z.string()),
+        /** Empty list: inherit live role (clear overrides) vs explicit deny-all */
+        whenEmpty: z.enum(["inherit", "explicit_deny"]).optional(),
+        /** Non-empty: full replace vs extras merged with live role */
+        nonEmptyStorage: z.enum(["replace", "inherit_extras"]).optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const normalized = db.normalizePermissionList(input.pageIds);
 
@@ -7261,41 +9540,61 @@ export const medicalRouter = router({
           nonEmptyMode: input.nonEmptyStorage ?? "replace",
         });
       }
-      await db.logAuditEvent(ctx.user.id, "SET_USER_PERMISSIONS", "user", input.userId, { count: normalized.length });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "SET_USER_PERMISSIONS",
+        "user",
+        input.userId,
+        { count: normalized.length },
+      );
       return { success: true };
     }),
 
   // Populate missing patient names from sheet data
-  populatePatientNamesFromSheets: adminProcedure
-    .mutation(async ({ ctx }) => {
-      const result = await db.populatePatientNamesFromSheets();
-      await db.logAuditEvent(ctx.user.id, "POPULATE_PATIENT_NAMES", "system", 0, { updated: result.updated });
-      return result;
-    }),
+  populatePatientNamesFromSheets: adminProcedure.mutation(async ({ ctx }) => {
+    const result = await db.populatePatientNamesFromSheets();
+    await db.logAuditEvent(ctx.user.id, "POPULATE_PATIENT_NAMES", "system", 0, {
+      updated: result.updated,
+    });
+    return result;
+  }),
 
   // Debug: Check what's in the database for today's patients
-  debugTodayPatients: adminProcedure
-    .query(async () => {
-      const result = await db.getTodayPatientsBySheet("2026-04-03");
-      const totalWithoutName = result.groups.reduce((sum, g) => sum + g.patients.filter(p => !p.fullName || !String(p.fullName).trim()).length, 0);
-      const totalWithName = result.groups.reduce((sum, g) => sum + g.patients.filter(p => p.fullName && String(p.fullName).trim()).length, 0);
+  debugTodayPatients: adminProcedure.query(async () => {
+    const result = await db.getTodayPatientsBySheet("2026-04-03");
+    const totalWithoutName = result.groups.reduce(
+      (sum, g) =>
+        sum +
+        g.patients.filter((p) => !p.fullName || !String(p.fullName).trim())
+          .length,
+      0,
+    );
+    const totalWithName = result.groups.reduce(
+      (sum, g) =>
+        sum +
+        g.patients.filter((p) => p.fullName && String(p.fullName).trim())
+          .length,
+      0,
+    );
 
-      return {
-        total: result.total,
-        totalWithName,
-        totalWithoutName,
-        samplePatients: result.groups[0]?.patients?.slice(0, 3) || [],
-      };
-    }),
+    return {
+      total: result.total,
+      totalWithName,
+      totalWithoutName,
+      samplePatients: result.groups[0]?.patients?.slice(0, 3) || [],
+    };
+  }),
 
   // ============ PATIENT QUEUE MANAGEMENT ============
 
   // Get today's patients filtered by queue status
   getTodayPatientsByQueueStatus: protectedProcedure
-    .input(z.object({
-      date: z.string().optional(),
-      queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
-    }))
+    .input(
+      z.object({
+        date: z.string().optional(),
+        queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+      }),
+    )
     .query(async ({ input }) => {
       try {
         const dateIso = input.date || new Date().toISOString().split("T")[0];
@@ -7306,7 +9605,10 @@ export const medicalRouter = router({
         // Auto-advance patients through queue
         await db.autoAdvanceQueuePatients(dateIso);
 
-        const visits = await db.getTodayVisitsByQueueStatus(dateIso, input.queueStatus);
+        const visits = await db.getTodayVisitsByQueueStatus(
+          dateIso,
+          input.queueStatus,
+        );
 
         // Reshape flattened data back to structured format
         const patientMap = new Map();
@@ -7335,14 +9637,19 @@ export const medicalRouter = router({
           }
         }
 
-
-        return Array.from(patientMap.values()).sort(
-          (a, b) => {
-            const aTime = a.checkedInAt ? new Date(a.checkedInAt).getTime() : (a.visitDate ? new Date(a.visitDate).getTime() : 0);
-            const bTime = b.checkedInAt ? new Date(b.checkedInAt).getTime() : (b.visitDate ? new Date(b.visitDate).getTime() : 0);
-            return aTime - bTime;
-          }
-        );
+        return Array.from(patientMap.values()).sort((a, b) => {
+          const aTime = a.checkedInAt
+            ? new Date(a.checkedInAt).getTime()
+            : a.visitDate
+              ? new Date(a.visitDate).getTime()
+              : 0;
+          const bTime = b.checkedInAt
+            ? new Date(b.checkedInAt).getTime()
+            : b.visitDate
+              ? new Date(b.visitDate).getTime()
+              : 0;
+          return aTime - bTime;
+        });
       } catch (error) {
         console.error("getTodayPatientsByQueueStatus error:", error);
         throw error;
@@ -7351,20 +9658,36 @@ export const medicalRouter = router({
 
   // Update visit queue status
   updateVisitQueueStatus: protectedProcedure
-    .input(z.object({
-      visitId: z.number(),
-      queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
-      patientId: z.number().optional(),
-      date: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        visitId: z.number(),
+        queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+        patientId: z.number().optional(),
+        date: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       // Same practical access as today-queue reads: طاقم طبي + استقبال + إدارة (وليس فقط doctor/nurse أو مسار /patients).
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role,
+      );
       const role = String(ctx.user.role ?? "").toLowerCase();
-      const staffRoles = ["doctor", "nurse", "technician", "reception", "manager", "admin"];
-      const canUpdateQueue = permissions.includes("/patients") || staffRoles.includes(role);
+      const staffRoles = [
+        "doctor",
+        "nurse",
+        "technician",
+        "reception",
+        "manager",
+        "admin",
+      ];
+      const canUpdateQueue =
+        permissions.includes("/patients") || staffRoles.includes(role);
       if (!canUpdateQueue) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to update patient queue status." });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to update patient queue status.",
+        });
       }
 
       await db.updateVisitQueueStatus(input.visitId, input.queueStatus);
@@ -7372,63 +9695,130 @@ export const medicalRouter = router({
       // If marked as treated, advance the non-external queue one-by-one.
       if (input.queueStatus === "treated") {
         const normalizedInputDate =
-          typeof input.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.date.trim())
+          typeof input.date === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(input.date.trim())
             ? input.date.trim()
             : null;
-        const visitDateIso = normalizedInputDate || (await db.getVisitDateIsoById(input.visitId));
+        const visitDateIso =
+          normalizedInputDate || (await db.getVisitDateIsoById(input.visitId));
         if (visitDateIso) {
           await db.cascadeQueueStatus(visitDateIso);
           await db.autoAdvanceQueuePatients(visitDateIso);
         }
       }
 
-      await db.logAuditEvent(ctx.user.id, "UPDATE_QUEUE_STATUS", "visit", input.visitId, {
-        newStatus: input.queueStatus,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_QUEUE_STATUS",
+        "visit",
+        input.visitId,
+        {
+          newStatus: input.queueStatus,
+        },
+      );
 
       return { success: true };
     }),
 
   // Sync registration catalog (services + doctors) from MSSQL to MySQL
-  syncRegistrationCatalogFromMssql: managerProcedure.mutation(async ({ ctx }) => {
-    const stageStats: Record<string, unknown> = {};
-    try {
-      // Discover column names via INFORMATION_SCHEMA
-      const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`, {},
-      );
-      const mdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MDTEAM'`, {},
-      );
-      const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`, {},
-      );
-      const srvCols = new Set(srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
-      const mdCols = new Set(mdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
-      const lstdCols = new Set(lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
+  syncRegistrationCatalogFromMssql: managerProcedure.mutation(
+    async ({ ctx }) => {
+      const stageStats: Record<string, unknown> = {};
+      try {
+        // Discover column names via INFORMATION_SCHEMA
+        const srvColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVCMF'`,
+          {},
+        );
+        const mdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MDTEAM'`,
+          {},
+        );
+        const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
+          `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
+          {},
+        );
+        const srvCols = new Set(
+          srvColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()),
+        );
+        const mdCols = new Set(
+          mdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()),
+        );
+        const lstdCols = new Set(
+          lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()),
+        );
 
-      const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
-        candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
+        const pickCol = (
+          cols: Set<string>,
+          candidates: string[],
+        ): string | null =>
+          candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
 
-      const srvCodeCol = pickCol(srvCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
-      const srvNameCol = pickCol(srvCols, ["SRV_NM_AR", "SRV_NM_EN", "SRV_NM", "SRV_NAME", "SRVNAME", "NAME", "NM"]);
-      const drsCodeCol = pickCol(mdCols, ["CODE", "DRS_CD", "DRSCOD", "DRS_CODE"]);
-      const drsNameCol = pickCol(mdCols, ["PHNM_AR", "PHNM_EN", "DRS_NM", "DRS_NAME", "DRSNAME", "NAME", "NM"]);
-      const drsDeptNoCol = mdCols.has("DPT_NO") ? "DPT_NO" : null;
-      const lstdCodeCol = pickCol(lstdCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
-      const lstdPriceCol = pickCol(lstdCols, ["PR_VL", "PRC1", "PRC", "PRC_VL", "PRICE", "PRCVL", "DISC_VL", "SRVRAT"]);
+        const srvCodeCol = pickCol(srvCols, [
+          "SRV_CD",
+          "SRVCOD",
+          "SRV_CODE",
+          "CODE",
+        ]);
+        const srvNameCol = pickCol(srvCols, [
+          "SRV_NM_AR",
+          "SRV_NM_EN",
+          "SRV_NM",
+          "SRV_NAME",
+          "SRVNAME",
+          "NAME",
+          "NM",
+        ]);
+        const drsCodeCol = pickCol(mdCols, [
+          "CODE",
+          "DRS_CD",
+          "DRSCOD",
+          "DRS_CODE",
+        ]);
+        const drsNameCol = pickCol(mdCols, [
+          "PHNM_AR",
+          "PHNM_EN",
+          "DRS_NM",
+          "DRS_NAME",
+          "DRSNAME",
+          "NAME",
+          "NM",
+        ]);
+        const drsDeptNoCol = mdCols.has("DPT_NO") ? "DPT_NO" : null;
+        const lstdCodeCol = pickCol(lstdCols, [
+          "SRV_CD",
+          "SRVCOD",
+          "SRV_CODE",
+          "CODE",
+        ]);
+        const lstdPriceCol = pickCol(lstdCols, [
+          "PR_VL",
+          "PRC1",
+          "PRC",
+          "PRC_VL",
+          "PRICE",
+          "PRCVL",
+          "DISC_VL",
+          "SRVRAT",
+        ]);
 
-      if (!srvCodeCol || !srvNameCol) {
-        throw new Error(`Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`);
-      }
-      if (!drsCodeCol || !drsNameCol) {
-        throw new Error(`Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`);
-      }
-      if (!lstdCodeCol || !lstdPriceCol) {
-        throw new Error(`Cannot find code/price columns in SRVLSTD. Available: ${[...lstdCols].join(", ")}`);
-      }
+        if (!srvCodeCol || !srvNameCol) {
+          throw new Error(
+            `Cannot find service code/name columns in SRVCMF. Available: ${[...srvCols].join(", ")}`,
+          );
+        }
+        if (!drsCodeCol || !drsNameCol) {
+          throw new Error(
+            `Cannot find doctor code/name columns in MDTEAM. Available: ${[...mdCols].join(", ")}`,
+          );
+        }
+        if (!lstdCodeCol || !lstdPriceCol) {
+          throw new Error(
+            `Cannot find code/price columns in SRVLSTD. Available: ${[...lstdCols].join(", ")}`,
+          );
+        }
 
-      const servicesQuery = `
+        const servicesQuery = `
         SELECT
           l.${lstdCodeCol} AS code,
           MAX(s.${srvNameCol}) AS name,
@@ -7441,14 +9831,16 @@ export const medicalRouter = router({
         ORDER BY l.${lstdCodeCol}
       `;
 
-      const mssqlServices = await mssqlQuery(servicesQuery, {});
-      stageStats.servicesRows = mssqlServices.length;
+        const mssqlServices = await mssqlQuery(servicesQuery, {});
+        stageStats.servicesRows = mssqlServices.length;
 
-      if (!drsDeptNoCol) {
-        throw new Error(`DPT_NO column not found in MDTEAM. Available: ${[...mdCols].join(", ")}`);
-      }
+        if (!drsDeptNoCol) {
+          throw new Error(
+            `DPT_NO column not found in MDTEAM. Available: ${[...mdCols].join(", ")}`,
+          );
+        }
 
-      const doctorsQuery = `
+        const doctorsQuery = `
         SELECT DISTINCT
           ${drsCodeCol} AS code,
           ${drsNameCol} AS name
@@ -7457,72 +9849,97 @@ export const medicalRouter = router({
           AND ${drsDeptNoCol} = 15
         ORDER BY ${drsCodeCol}
       `;
-      const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
-      stageStats.doctorsRows = mssqlDoctors.length;
+        const mssqlDoctors = await mssqlQuery(doctorsQuery, {});
+        stageStats.doctorsRows = mssqlDoctors.length;
 
-      // Upsert to MySQL services and doctorsLookup tables
-      const result = await db.upsertRegistrationCatalogRows({
-        mssqlServices: mssqlServices.map((row: any) => ({
-          code: String(row.code ?? "").trim(),
-          name: String(row.name ?? "").trim(),
-          price: Number(row.price ?? 0),
-        })),
-        mssqlDoctors: mssqlDoctors.map((row: any) => ({
-          code: String(row.code ?? "").trim(),
-          name: String(row.name ?? "").trim(),
-        })),
-      });
-      stageStats.servicesUpserted = result.servicesUpserted;
-      stageStats.doctorsUpserted = result.doctorsUpserted;
+        // Upsert to MySQL services and doctorsLookup tables
+        const result = await db.upsertRegistrationCatalogRows({
+          mssqlServices: mssqlServices.map((row: any) => ({
+            code: String(row.code ?? "").trim(),
+            name: String(row.name ?? "").trim(),
+            price: Number(row.price ?? 0),
+          })),
+          mssqlDoctors: mssqlDoctors.map((row: any) => ({
+            code: String(row.code ?? "").trim(),
+            name: String(row.name ?? "").trim(),
+          })),
+        });
+        stageStats.servicesUpserted = result.servicesUpserted;
+        stageStats.doctorsUpserted = result.doctorsUpserted;
 
-      await db.logAuditEvent(ctx.user.id, "SYNC_REGISTRATION_CATALOG", "system", 0, {
-        servicesUpserted: result.servicesUpserted,
-        doctorsUpserted: result.doctorsUpserted,
-      });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "SYNC_REGISTRATION_CATALOG",
+          "system",
+          0,
+          {
+            servicesUpserted: result.servicesUpserted,
+            doctorsUpserted: result.doctorsUpserted,
+          },
+        );
 
-      return {
-        success: true,
-        servicesUpserted: result.servicesUpserted,
-        doctorsUpserted: result.doctorsUpserted,
-        mssqlServicesRows: mssqlServices.length,
-        mssqlDoctorsRows: mssqlDoctors.length,
-      };
-    } catch (error) {
-      const err = error as any;
-      console.error("syncRegistrationCatalogFromMssql error:", {
-        stageStats,
-        message: err?.message ?? String(err),
-        code: err?.code,
-        name: err?.name,
-        state: err?.state,
-        number: err?.number,
-        originalError: err?.originalError?.message ?? null,
-        precedingErrors: Array.isArray(err?.precedingErrors)
-          ? err.precedingErrors.map((e: any) => e?.message ?? String(e))
-          : null,
-      });
-      const errMsg = err?.message ?? String(err);
-      const originalMsg = err?.originalError?.message ?? null;
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: `Failed to sync registration catalog from MSSQL: ${originalMsg ?? errMsg} (stage: ${JSON.stringify(stageStats)})`,
-      });
-    }
-  }),
-
-
+        return {
+          success: true,
+          servicesUpserted: result.servicesUpserted,
+          doctorsUpserted: result.doctorsUpserted,
+          mssqlServicesRows: mssqlServices.length,
+          mssqlDoctorsRows: mssqlDoctors.length,
+        };
+      } catch (error) {
+        const err = error as any;
+        console.error("syncRegistrationCatalogFromMssql error:", {
+          stageStats,
+          message: err?.message ?? String(err),
+          code: err?.code,
+          name: err?.name,
+          state: err?.state,
+          number: err?.number,
+          originalError: err?.originalError?.message ?? null,
+          precedingErrors: Array.isArray(err?.precedingErrors)
+            ? err.precedingErrors.map((e: any) => e?.message ?? String(e))
+            : null,
+        });
+        const errMsg = err?.message ?? String(err);
+        const originalMsg = err?.originalError?.message ?? null;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to sync registration catalog from MSSQL: ${originalMsg ?? errMsg} (stage: ${JSON.stringify(stageStats)})`,
+        });
+      }
+    },
+  ),
 
   updateServicePriceInMssql: managerProcedure
     .input(z.object({ code: z.string().min(1), price: z.number().min(0) }))
     .mutation(async ({ input }) => {
       const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`, {},
+        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
+        {},
       );
-      const lstdCols = new Set(lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()));
-      const pickCol = (cols: Set<string>, candidates: string[]): string | null =>
+      const lstdCols = new Set(
+        lstdColsRaw.map((r) => r.COLUMN_NAME.toUpperCase()),
+      );
+      const pickCol = (
+        cols: Set<string>,
+        candidates: string[],
+      ): string | null =>
         candidates.find((c) => cols.has(c.toUpperCase())) ?? null;
-      const lstdCodeCol = pickCol(lstdCols, ["SRV_CD", "SRVCOD", "SRV_CODE", "CODE"]);
-      const lstdPriceCol = pickCol(lstdCols, ["PR_VL", "PRC1", "PRC", "PRC_VL", "PRICE", "PRCVL", "DISC_VL", "SRVRAT"]);
+      const lstdCodeCol = pickCol(lstdCols, [
+        "SRV_CD",
+        "SRVCOD",
+        "SRV_CODE",
+        "CODE",
+      ]);
+      const lstdPriceCol = pickCol(lstdCols, [
+        "PR_VL",
+        "PRC1",
+        "PRC",
+        "PRC_VL",
+        "PRICE",
+        "PRCVL",
+        "DISC_VL",
+        "SRVRAT",
+      ]);
       if (!lstdCodeCol || !lstdPriceCol) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -7537,15 +9954,17 @@ export const medicalRouter = router({
     }),
 
   addServiceInDb: managerProcedure
-    .input(z.object({
-      id: z.string().min(1),
-      code: z.string().min(1),
-      name: z.string().min(1),
-      category: z.string(),
-      serviceType: z.string(),
-      srvTyp: z.string(),
-      defaultSheet: z.string(),
-    }))
+    .input(
+      z.object({
+        id: z.string().min(1),
+        code: z.string().min(1),
+        name: z.string().min(1),
+        category: z.string(),
+        serviceType: z.string(),
+        srvTyp: z.string(),
+        defaultSheet: z.string(),
+      }),
+    )
     .mutation(async ({ input }) => {
       await db.addServiceInDb(input);
       return { success: true };
@@ -7556,17 +9975,19 @@ export const medicalRouter = router({
   }),
 
   updateServiceInDb: managerProcedure
-    .input(z.object({
-      id: z.string().min(1),
-      name: z.string().optional(),
-      category: z.string().nullable().optional(),
-      serviceType: z.string().optional(),
-      srvTyp: z.string().nullable().optional(),
-      defaultSheet: z.string().optional(),
-      locationType: z.string().optional(),
-      price: z.string().optional(),
-      isActive: z.boolean().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().optional(),
+        category: z.string().nullable().optional(),
+        serviceType: z.string().optional(),
+        srvTyp: z.string().nullable().optional(),
+        defaultSheet: z.string().optional(),
+        locationType: z.string().optional(),
+        price: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { id, ...updates } = input;
       await db.updateServiceInDb(id, updates);
@@ -7627,10 +10048,12 @@ export const medicalRouter = router({
           checklistNormalized = {
             generalDiseases: row.generalDiseases ?? null,
             pregnancyOrLactation: row.pregnancyOrLactation ?? null,
-            usesAllergySupplementsSteroidsOrPressureMeds: row.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
+            usesAllergySupplementsSteroidsOrPressureMeds:
+              row.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
             acneTreatment: row.acneTreatment ?? null,
             familyKeratoconus: row.familyKeratoconus ?? null,
-            usesTearSubstituteOrExcessTearsOrSandySensation: row.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
+            usesTearSubstituteOrExcessTearsOrSandySensation:
+              row.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
             symptomsWorseWithAirOrAC: row.symptomsWorseWithAirOrAC ?? null,
             glaucomaTreatment: row.glaucomaTreatment ?? null,
           };
@@ -7644,21 +10067,29 @@ export const medicalRouter = router({
         .where(
           and(
             eq(patientPageStates.patientId, patientId),
-            eq(patientPageStates.page, "examination")
-          )
+            eq(patientPageStates.page, "examination"),
+          ),
         )
         .orderBy(desc(patientPageStates.updatedAt))
         .limit(1);
-      const pageStateData = (pageStateRows[0]?.data ?? null) as Record<string, unknown> | null;
+      const pageStateData = (pageStateRows[0]?.data ?? null) as Record<
+        string,
+        unknown
+      > | null;
       const checklistInPageState = pageStateData
         ? {
             generalDiseases: pageStateData.generalDiseases ?? null,
             pregnancyOrLactation: pageStateData.pregnancyOrLactation ?? null,
-            usesAllergySupplementsSteroidsOrPressureMeds: pageStateData.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
+            usesAllergySupplementsSteroidsOrPressureMeds:
+              pageStateData.usesAllergySupplementsSteroidsOrPressureMeds ??
+              null,
             acneTreatment: pageStateData.acneTreatment ?? null,
             familyKeratoconus: pageStateData.familyKeratoconus ?? null,
-            usesTearSubstituteOrExcessTearsOrSandySensation: pageStateData.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
-            symptomsWorseWithAirOrAC: pageStateData.symptomsWorseWithAirOrAC ?? null,
+            usesTearSubstituteOrExcessTearsOrSandySensation:
+              pageStateData.usesTearSubstituteOrExcessTearsOrSandySensation ??
+              null,
+            symptomsWorseWithAirOrAC:
+              pageStateData.symptomsWorseWithAirOrAC ?? null,
             glaucomaTreatment: pageStateData.glaucomaTreatment ?? null,
           }
         : null;
@@ -7807,33 +10238,101 @@ export const medicalRouter = router({
     }),
 
   getPatientMedicalStatusBatch: protectedProcedure
-    .input(z.object({ patientIds: z.array(z.number().int().positive()).max(500) }))
+    .input(
+      z.object({ patientIds: z.array(z.number().int().positive()).max(500) }),
+    )
     .query(async ({ input }) => {
       const ids = input.patientIds;
-      if (ids.length === 0) return {} as Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }>;
+      if (ids.length === 0)
+        return {} as Record<
+          number,
+          {
+            autoref: boolean;
+            afterRef: boolean;
+            glasses: boolean;
+            pentacam: boolean;
+            prescription: boolean;
+            tests: boolean;
+            reports: boolean;
+          }
+        >;
 
       const dbInstance = await db.getDb();
-      if (!dbInstance) return {} as Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }>;
+      if (!dbInstance)
+        return {} as Record<
+          number,
+          {
+            autoref: boolean;
+            afterRef: boolean;
+            glasses: boolean;
+            pentacam: boolean;
+            prescription: boolean;
+            tests: boolean;
+            reports: boolean;
+          }
+        >;
 
-      const [autorefRows, afterRefRows, glassesRows, pentacamRows, prescriptionRows, testRows, reportRows] = await Promise.all([
-        dbInstance.selectDistinct({ patientId: autorefractometryData.patientId }).from(autorefractometryData).where(inArray(autorefractometryData.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: afterRefractionData.patientId }).from(afterRefractionData).where(inArray(afterRefractionData.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: glassesRecords.patientId }).from(glassesRecords).where(inArray(glassesRecords.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: pentacamResults.patientId }).from(pentacamResults).where(inArray(pentacamResults.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: prescriptions.patientId }).from(prescriptions).where(inArray(prescriptions.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: testRequests.patientId }).from(testRequests).where(inArray(testRequests.patientId, ids)),
-        dbInstance.selectDistinct({ patientId: doctorReports.patientId }).from(doctorReports).where(inArray(doctorReports.patientId, ids)),
+      const [
+        autorefRows,
+        afterRefRows,
+        glassesRows,
+        pentacamRows,
+        prescriptionRows,
+        testRows,
+        reportRows,
+      ] = await Promise.all([
+        dbInstance
+          .selectDistinct({ patientId: autorefractometryData.patientId })
+          .from(autorefractometryData)
+          .where(inArray(autorefractometryData.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: afterRefractionData.patientId })
+          .from(afterRefractionData)
+          .where(inArray(afterRefractionData.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: glassesRecords.patientId })
+          .from(glassesRecords)
+          .where(inArray(glassesRecords.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: pentacamResults.patientId })
+          .from(pentacamResults)
+          .where(inArray(pentacamResults.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: prescriptions.patientId })
+          .from(prescriptions)
+          .where(inArray(prescriptions.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: testRequests.patientId })
+          .from(testRequests)
+          .where(inArray(testRequests.patientId, ids)),
+        dbInstance
+          .selectDistinct({ patientId: doctorReports.patientId })
+          .from(doctorReports)
+          .where(inArray(doctorReports.patientId, ids)),
       ]);
 
       const withAutoref = new Set(autorefRows.map((r) => r.patientId));
       const withAfterRef = new Set(afterRefRows.map((r) => r.patientId));
       const withGlasses = new Set(glassesRows.map((r) => r.patientId));
       const withPentacam = new Set(pentacamRows.map((r) => r.patientId));
-      const withPrescription = new Set(prescriptionRows.map((r) => r.patientId));
+      const withPrescription = new Set(
+        prescriptionRows.map((r) => r.patientId),
+      );
       const withTests = new Set(testRows.map((r) => r.patientId));
       const withReports = new Set(reportRows.map((r) => r.patientId));
 
-      const result: Record<number, { autoref: boolean; afterRef: boolean; glasses: boolean; pentacam: boolean; prescription: boolean; tests: boolean; reports: boolean }> = {};
+      const result: Record<
+        number,
+        {
+          autoref: boolean;
+          afterRef: boolean;
+          glasses: boolean;
+          pentacam: boolean;
+          prescription: boolean;
+          tests: boolean;
+          reports: boolean;
+        }
+      > = {};
       for (const id of ids) {
         result[id] = {
           autoref: withAutoref.has(id),
@@ -7847,20 +10346,21 @@ export const medicalRouter = router({
       }
       return result;
     }),
-
 });
-
-
-
 
 async function assertReadyTemplateImportPermission(
   ctx: { user: { id: number; role?: string | null } },
-  scope: "prescription" | "tests"
+  scope: "prescription" | "tests",
 ) {
-  const role = String(ctx.user?.role ?? "").trim().toLowerCase();
+  const role = String(ctx.user?.role ?? "")
+    .trim()
+    .toLowerCase();
   if (role === "admin") return;
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: scope === "prescription" ? "Prescription import is admin only" : "Tests import is admin only",
+    message:
+      scope === "prescription"
+        ? "Prescription import is admin only"
+        : "Tests import is admin only",
   });
 }

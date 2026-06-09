@@ -13,7 +13,11 @@ const ACCOUNTING_LINKS = [
   { label: "الرئيسية", href: "/accounting", icon: Home },
   { label: "القيود", href: "/accounting/ledger", icon: BookOpen },
   { label: "اليومي", href: "/accounting/daily-revenue", icon: Banknote },
-  { label: "إيراد الخدمات", href: "/accounting/service-revenue", icon: TrendingUp },
+  {
+    label: "إيراد الخدمات",
+    href: "/accounting/service-revenue",
+    icon: TrendingUp,
+  },
   { label: "الإيصالات", href: "/accounting/receipts", icon: ReceiptText },
 ] as const;
 

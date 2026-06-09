@@ -28,9 +28,7 @@ self.addEventListener("push", (event) => {
     options.body = event.data.text();
   }
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -48,7 +46,7 @@ self.addEventListener("notificationclick", (event) => {
         if (clients.openWindow) {
           return clients.openWindow(path);
         }
-      })
+      }),
     );
   }
 });

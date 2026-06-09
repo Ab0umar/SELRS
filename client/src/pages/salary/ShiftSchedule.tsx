@@ -50,7 +50,10 @@ function daysInMonth(y: number, m: number) {
 }
 
 function monthDates(y: number, m: number) {
-  return Array.from({ length: daysInMonth(y, m) }, (_, i) => `${y}-${pad(m)}-${pad(i + 1)}`);
+  return Array.from(
+    { length: daysInMonth(y, m) },
+    (_, i) => `${y}-${pad(m)}-${pad(i + 1)}`,
+  );
 }
 
 function weekDates(anchor: string, y: number, m: number) {
@@ -64,7 +67,9 @@ function weekDates(anchor: string, y: number, m: number) {
     return c;
   })
     .filter((c) => c.getFullYear() === y && c.getMonth() + 1 === m)
-    .map((c) => `${c.getFullYear()}-${pad(c.getMonth() + 1)}-${pad(c.getDate())}`);
+    .map(
+      (c) => `${c.getFullYear()}-${pad(c.getMonth() + 1)}-${pad(c.getDate())}`,
+    );
 }
 
 function fmtDate(ds: string) {
@@ -96,7 +101,12 @@ interface AddForm {
   anchorDate: string;
 }
 
-const EMPTY_ADD: AddForm = { staffId: "", shiftName: "", period: "day", anchorDate: "" };
+const EMPTY_ADD: AddForm = {
+  staffId: "",
+  shiftName: "",
+  period: "day",
+  anchorDate: "",
+};
 
 interface HolidayForm {
   date: string;
@@ -105,7 +115,10 @@ interface HolidayForm {
 
 const EMPTY_HOLIDAY: HolidayForm = { date: "", name: "" };
 
-const SHIFT_META: Record<ShiftName, { label: string; short: string; tone: string; printClass: string }> = {
+const SHIFT_META: Record<
+  ShiftName,
+  { label: string; short: string; tone: string; printClass: string }
+> = {
   Morning: {
     label: "صباح",
     short: "ص",
@@ -153,9 +166,12 @@ export default function ShiftSchedule() {
     { year, month },
     { enabled: isManager },
   );
-  const myStaffIdQ = (trpc as any).salary.getMyShiftStaffId.useQuery(undefined, {
-    enabled: !isManager,
-  });
+  const myStaffIdQ = (trpc as any).salary.getMyShiftStaffId.useQuery(
+    undefined,
+    {
+      enabled: !isManager,
+    },
+  );
   const myStaffId: number | null = isManager ? null : (myStaffIdQ.data ?? null);
 
   const staff: any[] = schedQ.data?.staff ?? [];
@@ -214,7 +230,11 @@ export default function ShiftSchedule() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
   function handleClearRoster() {
-    if (!window.confirm(`هل أنت متأكد من مسح كل ورديات شهر ${MONTHS_AR[month - 1]} ${year}؟\nهذه العملية لا يمكن التراجع عنها.`))
+    if (
+      !window.confirm(
+        `هل أنت متأكد من مسح كل ورديات شهر ${MONTHS_AR[month - 1]} ${year}؟\nهذه العملية لا يمكن التراجع عنها.`,
+      )
+    )
       return;
     clearRosterMut.mutate({ year, month });
   }
@@ -241,7 +261,9 @@ export default function ShiftSchedule() {
   for (const h of holidays) {
     holidayByDate.set(String(h.date).slice(0, 10), h);
   }
-  const holidayDates = new Set<string>(holidays.map((h: any) => String(h.date).slice(0, 10)));
+  const holidayDates = new Set<string>(
+    holidays.map((h: any) => String(h.date).slice(0, 10)),
+  );
 
   const attendMap = new Map<string, any[]>();
   for (const row of attendance) {
@@ -259,10 +281,17 @@ export default function ShiftSchedule() {
   const totalEntries = attendance.length;
   const totalPresent = attendance.filter((row: any) => row.present).length;
   const totalAbsent = totalEntries - totalPresent;
-  const scheduledStaff = new Set(attendance.map((row: any) => row.staffId)).size;
-  const coveredDays = new Set(attendance.map((row: any) => toDateKey(row.workDate))).size;
-  const myEntries = myStaffId ? attendance.filter((row: any) => row.staffId === myStaffId) : [];
-  const myScheduledDays = new Set(myEntries.map((row: any) => toDateKey(row.workDate))).size;
+  const scheduledStaff = new Set(attendance.map((row: any) => row.staffId))
+    .size;
+  const coveredDays = new Set(
+    attendance.map((row: any) => toDateKey(row.workDate)),
+  ).size;
+  const myEntries = myStaffId
+    ? attendance.filter((row: any) => row.staffId === myStaffId)
+    : [];
+  const myScheduledDays = new Set(
+    myEntries.map((row: any) => toDateKey(row.workDate)),
+  ).size;
 
   function submitAdd() {
     if (!addForm.staffId || !addForm.shiftName) {
@@ -283,7 +312,11 @@ export default function ShiftSchedule() {
       toast.error("لا يوجد أيام في هذه الفترة");
       return;
     }
-    bulkMut.mutate({ staffId: parseInt(addForm.staffId), shiftName: addForm.shiftName, dates });
+    bulkMut.mutate({
+      staffId: parseInt(addForm.staffId),
+      shiftName: addForm.shiftName,
+      dates,
+    });
   }
 
   function handlePrint() {
@@ -296,7 +329,9 @@ export default function ShiftSchedule() {
           const dow = new Date(`${ds}T00:00:00`).getDay();
           const holiday = holidayByDate.get(ds);
           const holStyle = holiday ? ' style="background:#fffbeb;"' : "";
-          const holLabel = holiday ? '<div style="font-size:7px;color:#b45309;">عطلة</div>' : "";
+          const holLabel = holiday
+            ? '<div style="font-size:7px;color:#b45309;">عطلة</div>'
+            : "";
           return `<th${holStyle}><div style="font-weight:700">${DAYS_AR[dow]}</div><div style="color:#555">${fmtDate(ds)}</div>${holLabel}</th>`;
         })
         .join("");
@@ -309,10 +344,15 @@ export default function ShiftSchedule() {
               const text =
                 entries
                   .map((e: any) => {
-                    const meta = SHIFT_META[e.shiftName as ShiftName] ?? SHIFT_META.Morning;
+                    const meta =
+                      SHIFT_META[e.shiftName as ShiftName] ??
+                      SHIFT_META.Morning;
                     return `<span class="${meta.printClass}">${e.present ? meta.short : `(${meta.short})`}</span>`;
                   })
-                  .join("") || (holiday ? '<span style="color:#b45309;font-size:7px;">عطلة</span>' : "");
+                  .join("") ||
+                (holiday
+                  ? '<span style="color:#b45309;font-size:7px;">عطلة</span>'
+                  : "");
               return `<td${holiday ? ' style="background:#fffbeb;"' : ""}>${text}</td>`;
             })
             .join("");
@@ -340,7 +380,8 @@ export default function ShiftSchedule() {
     </body></html>`;
 
     const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    iframe.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument!;
     doc.open();
@@ -386,7 +427,8 @@ export default function ShiftSchedule() {
                     روستر شهر {MONTHS_AR[month - 1]} {year}
                   </h1>
                   <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                    جدول عملي للشهر، يبيّن الورديات والعطلات والحضور في قراءة واحدة، مع تحكم مباشر للمدير وواجهة خفيفة للموظف.
+                    جدول عملي للشهر، يبيّن الورديات والعطلات والحضور في قراءة
+                    واحدة، مع تحكم مباشر للمدير وواجهة خفيفة للموظف.
                   </p>
                 </div>
               </div>
@@ -408,7 +450,11 @@ export default function ShiftSchedule() {
                   onChange={(e) => setYear(parseInt(e.target.value))}
                   className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                 >
-                  {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
+                  {[
+                    now.getFullYear() - 1,
+                    now.getFullYear(),
+                    now.getFullYear() + 1,
+                  ].map((y) => (
                     <option key={y} value={y}>
                       {y}
                     </option>
@@ -423,7 +469,10 @@ export default function ShiftSchedule() {
                       disabled={generateMut.isPending}
                       className="gap-1.5"
                     >
-                      <RefreshCw size={14} className={generateMut.isPending ? "animate-spin" : ""} />
+                      <RefreshCw
+                        size={14}
+                        className={generateMut.isPending ? "animate-spin" : ""}
+                      />
                       توليد من الدورات
                     </Button>
                     <Button
@@ -448,7 +497,9 @@ export default function ShiftSchedule() {
                       size="sm"
                       variant="outline"
                       onClick={handleClearRoster}
-                      disabled={clearRosterMut.isPending || attendance.length === 0}
+                      disabled={
+                        clearRosterMut.isPending || attendance.length === 0
+                      }
                       className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 size={14} />
@@ -456,7 +507,12 @@ export default function ShiftSchedule() {
                     </Button>
                   </>
                 )}
-                <Button size="sm" variant="default" onClick={handlePrint} className="gap-1.5">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handlePrint}
+                  className="gap-1.5"
+                >
                   <Printer size={14} />
                   طباعة
                 </Button>
@@ -470,7 +526,9 @@ export default function ShiftSchedule() {
                   حالة العرض
                 </div>
                 <div className="mt-2 text-base font-semibold text-foreground">
-                  {isManager ? "إدارة الشهر من لوحة واحدة" : "عرض الموظف مع صلاحية التعديل على الخانة الخاصة"}
+                  {isManager
+                    ? "إدارة الشهر من لوحة واحدة"
+                    : "عرض الموظف مع صلاحية التعديل على الخانة الخاصة"}
                 </div>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   {isManager
@@ -480,21 +538,39 @@ export default function ShiftSchedule() {
               </div>
 
               <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">الموظفون المجدولون</div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{scheduledStaff}</div>
-                <div className="mt-1 text-xs text-muted-foreground">من أصل {displayStaff.length} ظاهرين في الجدول</div>
+                <div className="text-xs font-semibold text-muted-foreground">
+                  الموظفون المجدولون
+                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
+                  {scheduledStaff}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  من أصل {displayStaff.length} ظاهرين في الجدول
+                </div>
               </div>
 
               <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">الخانات المؤكدة</div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-success">{totalPresent}</div>
-                <div className="mt-1 text-xs text-muted-foreground">مقابل {totalAbsent} غير مؤكدة أو محذوفة</div>
+                <div className="text-xs font-semibold text-muted-foreground">
+                  الخانات المؤكدة
+                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums text-success">
+                  {totalPresent}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  مقابل {totalAbsent} غير مؤكدة أو محذوفة
+                </div>
               </div>
 
               <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">العطلات</div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-warning">{holidays.length}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{coveredDays} يوم فيه ورديات خلال الشهر</div>
+                <div className="text-xs font-semibold text-muted-foreground">
+                  العطلات
+                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums text-warning">
+                  {holidays.length}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {coveredDays} يوم فيه ورديات خلال الشهر
+                </div>
               </div>
             </div>
           </div>
@@ -516,11 +592,17 @@ export default function ShiftSchedule() {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">لوحة الشهر</p>
-              <h3 className="text-lg font-semibold text-foreground">الجدول العملي</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                لوحة الشهر
+              </p>
+              <h3 className="text-lg font-semibold text-foreground">
+                الجدول العملي
+              </h3>
             </div>
             <div className="text-xs text-muted-foreground">
-              {attendance.length > 0 ? `${attendance.length} خانة وردية` : "لا توجد ورديات بعد"}
+              {attendance.length > 0
+                ? `${attendance.length} خانة وردية`
+                : "لا توجد ورديات بعد"}
             </div>
           </div>
 
@@ -538,7 +620,9 @@ export default function ShiftSchedule() {
             <>
               {attendance.length === 0 && (
                 <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                  لا توجد ورديات لهذا الشهر. استخدم <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> للبدء.
+                  لا توجد ورديات لهذا الشهر. استخدم{" "}
+                  <strong>توليد من الدورات</strong> أو{" "}
+                  <strong>إضافة ورديات</strong> للبدء.
                 </div>
               )}
 
@@ -548,15 +632,24 @@ export default function ShiftSchedule() {
                     <colgroup>
                       <col style={{ width: 140 }} />
                       {allDates.map((ds) => (
-                        <col key={ds} style={{ width: `${100 / Math.max(allDates.length, 1)}%` }} />
+                        <col
+                          key={ds}
+                          style={{
+                            width: `${100 / Math.max(allDates.length, 1)}%`,
+                          }}
+                        />
                       ))}
                     </colgroup>
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
                         <th className="sticky right-0 top-0 z-30 border-l border-border bg-muted/60 px-3 py-3 text-right">
                           <div className="space-y-1">
-                            <div className="text-[11px] font-semibold text-muted-foreground">الاسم</div>
-                            <div className="text-[10px] text-muted-foreground">التاريخ / الخانة</div>
+                            <div className="text-[11px] font-semibold text-muted-foreground">
+                              الاسم
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              التاريخ / الخانة
+                            </div>
                           </div>
                         </th>
                         {allDates.map((ds) => {
@@ -569,10 +662,14 @@ export default function ShiftSchedule() {
                               title={holiday?.name || undefined}
                             >
                               <div className="flex h-full min-h-14 flex-col justify-center px-1.5 py-1.5">
-                                <div className={`text-[10px] font-semibold leading-tight ${holiday ? "text-amber-700" : "text-foreground"}`}>
+                                <div
+                                  className={`text-[10px] font-semibold leading-tight ${holiday ? "text-amber-700" : "text-foreground"}`}
+                                >
                                   {DAYS_AR[dow]}
                                 </div>
-                                <div className={`text-[10px] tabular-nums ${holiday ? "text-amber-600" : "text-muted-foreground"}`}>
+                                <div
+                                  className={`text-[10px] tabular-nums ${holiday ? "text-amber-600" : "text-muted-foreground"}`}
+                                >
                                   {fmtDate(ds)}
                                 </div>
                                 {holiday && (
@@ -588,11 +685,16 @@ export default function ShiftSchedule() {
                     </thead>
                     <tbody>
                       {displayStaff.map((s: any, idx: number) => (
-                        <tr key={s.id} className={`border-b border-border/60 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                        <tr
+                          key={s.id}
+                          className={`border-b border-border/60 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}
+                        >
                           <td className="sticky right-0 z-20 border-l border-border bg-inherit px-3 py-3 align-top">
                             <div className="flex items-center gap-2">
                               <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold text-foreground">{s.name}</div>
+                                <div className="truncate text-sm font-semibold text-foreground">
+                                  {s.name}
+                                </div>
                                 <div className="text-[11px] text-muted-foreground">
                                   {s.type === "doctor" ? "طبيب" : "فني"}
                                 </div>
@@ -600,29 +702,50 @@ export default function ShiftSchedule() {
                             </div>
                           </td>
                           {allDates.map((ds) => {
-                            const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                            const entries =
+                              attendMap.get(`${s.id}_${ds}`) ?? [];
                             const isMyRow = !isManager && myStaffId === s.id;
                             const canEdit = isManager || isMyRow;
                             const isHoliday = holidayDates.has(ds);
-                            const rowClasses = isHoliday ? "bg-amber-50/40" : "";
+                            const rowClasses = isHoliday
+                              ? "bg-amber-50/40"
+                              : "";
 
                             return (
-                              <td key={ds} className={`border-l border-border/60 px-1.5 py-2 align-top ${rowClasses}`}>
+                              <td
+                                key={ds}
+                                className={`border-l border-border/60 px-1.5 py-2 align-top ${rowClasses}`}
+                              >
                                 <div className="flex min-h-10 flex-col items-center gap-1">
                                   {entries.map((e: any) => {
-                                    const meta = SHIFT_META[e.shiftName as ShiftName] ?? SHIFT_META.Morning;
+                                    const meta =
+                                      SHIFT_META[e.shiftName as ShiftName] ??
+                                      SHIFT_META.Morning;
                                     return (
-                                      <div key={e.id} className="relative w-full">
+                                      <div
+                                        key={e.id}
+                                        className="relative w-full"
+                                      >
                                         <button
                                           type="button"
                                           onClick={() =>
                                             canEdit
                                               ? isManager
-                                                ? toggleMut.mutate({ id: e.id, present: !e.present })
-                                                : toggleMyMut.mutate({ id: e.id, present: !e.present })
+                                                ? toggleMut.mutate({
+                                                    id: e.id,
+                                                    present: !e.present,
+                                                  })
+                                                : toggleMyMut.mutate({
+                                                    id: e.id,
+                                                    present: !e.present,
+                                                  })
                                               : undefined
                                           }
-                                          disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
+                                          disabled={
+                                            !canEdit ||
+                                            toggleMut.isPending ||
+                                            toggleMyMut.isPending
+                                          }
                                           title={
                                             canEdit
                                               ? e.present
@@ -631,7 +754,9 @@ export default function ShiftSchedule() {
                                               : undefined
                                           }
                                           className={`inline-flex min-h-8 w-full items-center justify-center rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors ${
-                                            e.present ? meta.tone : "bg-muted text-muted-foreground line-through"
+                                            e.present
+                                              ? meta.tone
+                                              : "bg-muted text-muted-foreground line-through"
                                           } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
                                         >
                                           {meta.short}
@@ -639,7 +764,11 @@ export default function ShiftSchedule() {
                                         {isManager && (
                                           <button
                                             type="button"
-                                            onClick={() => deleteEntryMut.mutate({ id: e.id })}
+                                            onClick={() =>
+                                              deleteEntryMut.mutate({
+                                                id: e.id,
+                                              })
+                                            }
                                             disabled={deleteEntryMut.isPending}
                                             title="حذف الوردية"
                                             className="absolute -top-2 -left-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90"
@@ -652,32 +781,38 @@ export default function ShiftSchedule() {
                                   })}
 
                                   {isHoliday && entries.length === 0 && (
-                                    <span className="text-[9px] font-semibold text-amber-700">عطلة</span>
+                                    <span className="text-[9px] font-semibold text-amber-700">
+                                      عطلة
+                                    </span>
                                   )}
 
-                                  {isMyRow && entries.length === 0 && !isHoliday && (
-                                    <div className="flex w-full gap-1">
-                                      {(["Morning", "Night"] as ShiftName[]).map((shiftName) => (
-                                        <button
-                                          key={shiftName}
-                                          type="button"
-                                          onClick={() =>
-                                            addMyShiftMut.mutate({
-                                              year,
-                                              month,
-                                              workDate: ds,
-                                              shiftName,
-                                            })
-                                          }
-                                          disabled={addMyShiftMut.isPending}
-                                          className="inline-flex min-h-8 flex-1 items-center justify-center rounded-md bg-muted px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                                          title={SHIFT_META[shiftName].label}
-                                        >
-                                          +{SHIFT_META[shiftName].short}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
+                                  {isMyRow &&
+                                    entries.length === 0 &&
+                                    !isHoliday && (
+                                      <div className="flex w-full gap-1">
+                                        {(
+                                          ["Morning", "Night"] as ShiftName[]
+                                        ).map((shiftName) => (
+                                          <button
+                                            key={shiftName}
+                                            type="button"
+                                            onClick={() =>
+                                              addMyShiftMut.mutate({
+                                                year,
+                                                month,
+                                                workDate: ds,
+                                                shiftName,
+                                              })
+                                            }
+                                            disabled={addMyShiftMut.isPending}
+                                            className="inline-flex min-h-8 flex-1 items-center justify-center rounded-md bg-muted px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                            title={SHIFT_META[shiftName].label}
+                                          >
+                                            +{SHIFT_META[shiftName].short}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                 </div>
                               </td>
                             );
@@ -697,11 +832,15 @@ export default function ShiftSchedule() {
             <>
               {showAdd && (
                 <div className="rounded-2xl border border-border bg-background p-4">
-                  <h3 className="text-sm font-semibold text-foreground">إضافة ورديات</h3>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    إضافة ورديات
+                  </h3>
                   <div className="mt-3 space-y-3">
                     <select
                       value={addForm.staffId}
-                      onChange={(e) => setAddForm((f) => ({ ...f, staffId: e.target.value }))}
+                      onChange={(e) =>
+                        setAddForm((f) => ({ ...f, staffId: e.target.value }))
+                      }
                       className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                     >
                       <option value="">-- اختر الموظف --</option>
@@ -713,7 +852,9 @@ export default function ShiftSchedule() {
                     </select>
                     <select
                       value={addForm.shiftName}
-                      onChange={(e) => setAddForm((f) => ({ ...f, shiftName: e.target.value }))}
+                      onChange={(e) =>
+                        setAddForm((f) => ({ ...f, shiftName: e.target.value }))
+                      }
                       className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                     >
                       <option value="">-- الوردية --</option>
@@ -731,7 +872,9 @@ export default function ShiftSchedule() {
                         <button
                           key={p}
                           type="button"
-                          onClick={() => setAddForm((f) => ({ ...f, period: p }))}
+                          onClick={() =>
+                            setAddForm((f) => ({ ...f, period: p }))
+                          }
                           className={`flex-1 px-3 py-2 transition-colors ${
                             addForm.period === p
                               ? "bg-primary text-primary-foreground"
@@ -748,7 +891,12 @@ export default function ShiftSchedule() {
                         value={addForm.anchorDate}
                         min={monthMin}
                         max={monthMax}
-                        onChange={(e) => setAddForm((f) => ({ ...f, anchorDate: e.target.value }))}
+                        onChange={(e) =>
+                          setAddForm((f) => ({
+                            ...f,
+                            anchorDate: e.target.value,
+                          }))
+                        }
                         className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                       />
                     )}
@@ -793,7 +941,9 @@ export default function ShiftSchedule() {
                           {h.name && <span>· {h.name}</span>}
                           <button
                             type="button"
-                            onClick={() => deleteHolidayMut.mutate({ id: h.id })}
+                            onClick={() =>
+                              deleteHolidayMut.mutate({ id: h.id })
+                            }
                             className="inline-flex items-center justify-center text-amber-700 hover:text-destructive"
                             title="حذف"
                           >
@@ -803,7 +953,9 @@ export default function ShiftSchedule() {
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-3 text-xs text-muted-foreground">لا توجد عطلات رسمية لهذا الشهر.</p>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      لا توجد عطلات رسمية لهذا الشهر.
+                    </p>
                   )}
                   <div className="mt-3 border-t border-border pt-3">
                     <div className="flex flex-col gap-3">
@@ -812,14 +964,24 @@ export default function ShiftSchedule() {
                         value={holidayForm.date}
                         min={monthMin}
                         max={monthMax}
-                        onChange={(e) => setHolidayForm((f) => ({ ...f, date: e.target.value }))}
+                        onChange={(e) =>
+                          setHolidayForm((f) => ({
+                            ...f,
+                            date: e.target.value,
+                          }))
+                        }
                         className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                       />
                       <input
                         type="text"
                         placeholder="الاسم (اختياري)"
                         value={holidayForm.name}
-                        onChange={(e) => setHolidayForm((f) => ({ ...f, name: e.target.value }))}
+                        onChange={(e) =>
+                          setHolidayForm((f) => ({
+                            ...f,
+                            name: e.target.value,
+                          }))
+                        }
                         className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                       />
                       <Button
@@ -847,11 +1009,15 @@ export default function ShiftSchedule() {
             </>
           ) : (
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">ماذا تستطيع هنا</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                ماذا تستطيع هنا
+              </h3>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>• قراءة شهر الروستر بالكامل.</li>
                 <li>• إضافة وردياتك فقط في خانتك عندما تكون فارغة.</li>
-                <li>• الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك مسموحاً.</li>
+                <li>
+                  • الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك مسموحاً.
+                </li>
               </ul>
               {myStaffId !== null && (
                 <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-3 py-3 text-sm text-foreground">

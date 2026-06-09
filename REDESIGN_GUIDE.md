@@ -7,6 +7,7 @@ This document outlines the comprehensive redesign of the **Salary** and **Attend
 ### Problem Statement
 
 **Current Issues:**
+
 - **Crowded Navigation:** Multiple levels of navigation pills and nested links create cognitive overload
 - **Dense Screens:** Mixing multiple concerns (stats, actions, navigation) on single pages
 - **Inconsistent Patterns:** Different navigation styles across modules
@@ -15,6 +16,7 @@ This document outlines the comprehensive redesign of the **Salary** and **Attend
 ### Solution Approach
 
 The redesign introduces:
+
 1. **Sidebar Navigation** - Clear, hierarchical navigation with descriptive labels
 2. **Focused Screens** - Separate concerns into dedicated pages
 3. **Professional Layout** - Consistent card-based design with better spacing
@@ -28,6 +30,7 @@ The redesign introduces:
 ### 1. Navigation Architecture
 
 #### Before (Crowded)
+
 ```
 Top navigation pills (5 items)
 ├── Each pill has nested routes
@@ -36,6 +39,7 @@ Top navigation pills (5 items)
 ```
 
 #### After (Clean)
+
 ```
 Sidebar Navigation (organized by workflow)
 ├── Section 1: Monitoring/Dashboard
@@ -53,6 +57,7 @@ Sidebar Navigation (organized by workflow)
 ### 2. Layout Pattern
 
 #### Desktop (≥1024px)
+
 ```
 ┌─────────────────────────────────────┐
 │         Header with Metrics          │
@@ -65,6 +70,7 @@ Sidebar Navigation (organized by workflow)
 ```
 
 #### Tablet/Mobile (<1024px)
+
 ```
 ┌─────────────────────────┐
 │   Header with Metrics   │
@@ -79,6 +85,7 @@ Sidebar Navigation (organized by workflow)
 ### 3. Navigation Item Design
 
 Each navigation item now includes:
+
 - **Icon** - Visual identifier for the section
 - **Label** - Clear, descriptive title
 - **Description** - Brief explanation of purpose
@@ -100,10 +107,12 @@ Each navigation item now includes:
 ### 4. Metrics Dashboard
 
 Moved from scattered locations to prominent header position:
+
 - **Salary Module:** Total Pay, Staff Count, Penalties, Commissions
 - **Attendance Module:** Present Today, Late Today, Inside Now, Device Status
 
 Benefits:
+
 - Always visible without scrolling
 - Consistent across all pages
 - Real-time updates via tRPC queries
@@ -132,18 +141,21 @@ Benefits:
 To apply the redesign, follow these steps:
 
 #### Step 1: Backup Original Files
+
 ```bash
 cp client/src/pages/salary/SalaryLayout.tsx client/src/pages/salary/SalaryLayout.backup.tsx
 cp client/src/pages/attendance/AttendanceLayout.tsx client/src/pages/attendance/AttendanceLayout.backup.tsx
 ```
 
 #### Step 2: Replace with Redesigned Versions
+
 ```bash
 cp client/src/pages/salary/SalaryLayout.redesigned.tsx client/src/pages/salary/SalaryLayout.tsx
 cp client/src/pages/attendance/AttendanceLayout.redesigned.tsx client/src/pages/attendance/AttendanceLayout.tsx
 ```
 
 #### Step 3: Verify No Breaking Changes
+
 ```bash
 pnpm check
 pnpm dev
@@ -154,6 +166,7 @@ pnpm dev
 ## Salary Module - Navigation Structure
 
 ### Section 1: التحضير (Preparation)
+
 **Purpose:** Prepare basic salary data before monthly processing
 
 - **الرواتب الأساسية** (Basic Salaries)
@@ -162,6 +175,7 @@ pnpm dev
   - Current file: `SalaryBasics.tsx`
 
 ### Section 2: المتغيرات الشهرية (Monthly Variables)
+
 **Purpose:** Enter monthly variable data (commissions, deductions, absences)
 
 - **العمولات الشهرية** (Monthly Commissions)
@@ -180,6 +194,7 @@ pnpm dev
   - Current file: `AbsentReport.tsx`
 
 ### Section 3: كشف الشهر (Payroll Report)
+
 **Purpose:** Generate and finalize monthly payroll
 
 - **كشف الشهر** (Payroll Sheet)
@@ -188,6 +203,7 @@ pnpm dev
   - Current file: `PayrollReport.tsx`
 
 ### Section 4: الشفتات (Shifts)
+
 **Purpose:** Manage shift staff and payroll
 
 - **طاقم الشفتات** (Shift Staff)
@@ -201,6 +217,7 @@ pnpm dev
   - Current file: `ShiftPayroll.tsx`
 
 ### Section 5: الإعدادات (Settings)
+
 **Purpose:** Configure salary calculation rules
 
 - **إعدادات الرواتب** (Salary Settings)
@@ -213,6 +230,7 @@ pnpm dev
 ## Attendance Module - Navigation Structure
 
 ### Section 1: المراقبة اليومية (Daily Monitoring)
+
 **Purpose:** Monitor daily attendance and live status
 
 - **لوحة التحكم** (Dashboard)
@@ -226,6 +244,7 @@ pnpm dev
   - Current file: `LivePunches.tsx`
 
 ### Section 2: الموظفون والطلبات (Employees & Requests)
+
 **Purpose:** Manage employees, leaves, and permissions
 
 - **قائمة الموظفين** (Employee List)
@@ -239,6 +258,7 @@ pnpm dev
   - Current file: `ShiftSchedule.tsx`
 
 ### Section 3: التقارير (Reports)
+
 **Purpose:** View attendance reports and analytics
 
 - **التقارير** (Reports)
@@ -247,6 +267,7 @@ pnpm dev
   - Current file: `ReportsHub.tsx`
 
 ### Section 4: الإعدادات والمزامنة (Settings & Sync)
+
 **Purpose:** Configure devices and synchronization
 
 - **الإعدادات** (Settings)
@@ -261,11 +282,13 @@ pnpm dev
 ### Colors
 
 **Salary Module (Primary Colors)**
+
 - Active: `text-primary`, `bg-primary/10`, `border-primary/20`
 - Inactive: `text-muted-foreground`, `bg-card`
 - Hover: `hover:bg-muted/50`, `hover:text-foreground`
 
 **Attendance Module (Secondary Colors)**
+
 - Active: `text-secondary`, `bg-secondary/10`, `border-secondary/20`
 - Inactive: `text-muted-foreground`, `bg-card`
 - Hover: `hover:bg-muted/50`, `hover:text-foreground`
@@ -296,18 +319,21 @@ pnpm dev
 ## Responsive Behavior
 
 ### Desktop (≥1024px)
+
 - Sidebar visible on left side
 - Two-column layout
 - Full navigation always visible
 - Metrics in header
 
 ### Tablet (768px - 1023px)
+
 - Sidebar full width below header
 - Single column layout
 - All navigation visible
 - Metrics in header
 
 ### Mobile (<768px)
+
 - Sidebar full width below header
 - Single column layout
 - Condensed spacing
@@ -335,6 +361,7 @@ pnpm dev
 ## Benefits of This Redesign
 
 ### For Users
+
 1. **Clearer Navigation** - Organized by workflow, not by page name
 2. **Less Cognitive Load** - Fewer choices visible at once
 3. **Better Mobile Experience** - Responsive sidebar adapts to screen size
@@ -342,6 +369,7 @@ pnpm dev
 5. **Professional Appearance** - Consistent, modern design
 
 ### For Developers
+
 1. **Easier to Maintain** - Clear structure and patterns
 2. **Scalable** - Easy to add new sections or items
 3. **Consistent** - Same pattern used for both modules
@@ -366,6 +394,7 @@ pnpm dev
 ## Support & Questions
 
 For questions about this redesign:
+
 1. Review the navigation structure in this document
 2. Check the redesigned component files
 3. Test in development environment

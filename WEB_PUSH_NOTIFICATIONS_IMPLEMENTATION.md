@@ -3,12 +3,14 @@
 ## Status
 
 ✅ **Android App** - FULLY WORKING
+
 - Firebase Cloud Messaging (FCM) via Capacitor
 - Real-time push notifications
 - Device token registration with fingerprinting
 - Permission handling for Android 13+
 
 ✅ **Web App** - NOW IMPLEMENTED
+
 - Browser Push API + Service Workers
 - Real-time push notifications
 - Automatic registration on login
@@ -19,6 +21,7 @@
 ### 1. **Client: Web Push Implementation**
 
 #### `client/src/lib/pushNotifications.ts` (REWRITTEN)
+
 - Replaced Capacitor imports with browser Push API
 - Added `registerWebPush()` - Service worker registration + permission handling
 - Added `unregisterWebPush()` - Cleanup on logout
@@ -26,6 +29,7 @@
 - Uses `VITE_VAPID_PUBLIC_KEY` for push service authentication
 
 #### `client/public/sw.js` (NEW)
+
 - Service worker for handling push events
 - Listens for incoming push notifications
 - Shows browser notifications via `showNotification()`
@@ -33,6 +37,7 @@
 - Properly closes notifications after interaction
 
 #### `client/src/components/WebAppEnhancements.tsx` (UPDATED)
+
 - Added `WebPushNotificationBridge` component
 - Automatically registers for push when user authenticates
 - Stores subscription in `localStorage` for recovery
@@ -41,6 +46,7 @@
 - Works alongside existing app notification feed polling
 
 #### `client/src/App.tsx` (CLEANED UP)
+
 - Removed unused `initPushNotifications()` import
 - Removed unused useEffect hook (now handled in components)
 - Push registration now delegated to enhancement components
@@ -48,11 +54,13 @@
 ### 2. **Server: Web Push Support**
 
 #### `server/_core/env.ts` (UPDATED)
+
 - Added `VAPID_PUBLIC_KEY` env variable
 - Added `VAPID_PRIVATE_KEY` env variable
 - Exposed in ENV object for use throughout server
 
 #### `server/_core/webPush.ts` (NEW)
+
 - Implements `sendWebPushNotifications()` function
 - Fetches web device registrations from database
 - Sends push messages to browser subscription endpoints
@@ -60,6 +68,7 @@
 - Includes VAPID token generation for authentication
 
 #### `server/db.ts` (UPDATED)
+
 - Added `getPushDeviceRegistrations(filter)` function
 - Filters push registrations by platform (android, ios, web)
 - Returns only active (non-disabled) registrations
@@ -114,6 +123,7 @@ This generates a public and private key pair for web push authentication. The pu
 ## Database Schema
 
 Existing table `push_device_registrations` now supports:
+
 - `platform` enum: 'android', 'ios', 'web'
 - `token`: For web, contains full subscription JSON as string
 - `deviceId`: For web, typically `web-{hostname}`
@@ -124,7 +134,7 @@ Existing table `push_device_registrations` now supports:
 ### Server-side (Node.js)
 
 ```typescript
-import { sendWebPushNotifications } from './server/_core/webPush';
+import { sendWebPushNotifications } from "./server/_core/webPush";
 
 const result = await sendWebPushNotifications({
   notificationId: "test-123",
@@ -155,6 +165,7 @@ console.log(`Sent: ${result.sent}, Skipped: ${result.skipped}`);
 - **Mobile browsers**: Varies by browser
 
 Requirements:
+
 - HTTPS (required for production, localhost works for dev)
 - Service Worker support
 - Push API support

@@ -16,12 +16,17 @@ import { trpc } from "@/lib/trpc";
 const STAFF_BOOKING_TYPES = [
   { value: "consultant" as const, label: "كشف استشاري" },
   { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik"      as const, label: "فحوصات الليزك" },
-  { value: "external"   as const, label: "أشعة خارجي" },
-  { value: "followup"   as const, label: "متابعة" },
+  { value: "lasik" as const, label: "فحوصات الليزك" },
+  { value: "external" as const, label: "أشعة خارجي" },
+  { value: "followup" as const, label: "متابعة" },
 ];
 
-type BookingType = "consultant" | "specialist" | "lasik" | "external" | "followup";
+type BookingType =
+  | "consultant"
+  | "specialist"
+  | "lasik"
+  | "external"
+  | "followup";
 
 export function AddPortalBookingDialog({
   open,
@@ -100,7 +105,6 @@ export function AddPortalBookingDialog({
         {/* Body */}
         <div className="p-4 bg-background space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-
             {/* Patient search */}
             <div className="relative space-y-1.5" ref={searchRef}>
               <label className="text-xs font-medium text-muted-foreground">
@@ -110,15 +114,22 @@ export function AddPortalBookingDialog({
                 <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2.5">
                   <button
                     type="button"
-                    onClick={() => { setSelectedPatient(null); setSearch(""); }}
+                    onClick={() => {
+                      setSelectedPatient(null);
+                      setSearch("");
+                    }}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                     aria-label="إزالة المريض المختار"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{selectedPatient.name}</p>
-                    <p className="text-xs text-muted-foreground">{selectedPatient.code}</p>
+                    <p className="text-sm font-semibold">
+                      {selectedPatient.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedPatient.code}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -127,31 +138,44 @@ export function AddPortalBookingDialog({
                     <Search className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={search}
-                      onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setShowDropdown(true);
+                      }}
                       onFocus={() => setShowDropdown(true)}
                       placeholder="اسم المريض أو الكود أو الموبايل..."
                       className="h-10 rounded-xl pr-9 text-sm"
                     />
                   </div>
-                  {showDropdown && searchResults && searchResults.length > 0 && (
-                    <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
-                      {(searchResults as any[]).slice(0, 8).map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
-                          onClick={() => {
-                            setSelectedPatient({ id: p.id, name: p.fullName, code: p.patientCode ?? "" });
-                            setSearch("");
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <span className="text-xs text-muted-foreground">{p.patientCode}</span>
-                          <span className="text-sm font-medium">{p.fullName}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {showDropdown &&
+                    searchResults &&
+                    searchResults.length > 0 && (
+                      <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
+                        {(searchResults as any[]).slice(0, 8).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
+                            onClick={() => {
+                              setSelectedPatient({
+                                id: p.id,
+                                name: p.fullName,
+                                code: p.patientCode ?? "",
+                              });
+                              setSearch("");
+                              setShowDropdown(false);
+                            }}
+                          >
+                            <span className="text-xs text-muted-foreground">
+                              {p.patientCode}
+                            </span>
+                            <span className="text-sm font-medium">
+                              {p.fullName}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                 </>
               )}
             </div>

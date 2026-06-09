@@ -18,11 +18,13 @@ The Accounting module, for Phase 1, **MUST** be strictly read-only. This means:
 ## Consequences
 
 **Positive:**
+
 - **Safety:** The risk of accidental data corruption, deletion, or modification of the legacy accounting system is eliminated. This is the most significant benefit, as the MSSQL database is the source of truth for financial records.
 - **Simplicity:** A read-only system is significantly simpler to design, build, and test. There are no transactional complexities, validation rules for writes, or complex state management for forms.
 - **Performance:** Read-only queries are generally easier to optimize and cache.
 
 **Negative:**
+
 - **Limited Functionality:** Users cannot make corrections or create new entries directly through the web interface. All accounting data entry must continue through the legacy system. This is an accepted limitation for Phase 1.
 - **Future Work Required:** If write capabilities are needed in the future, a significant development effort and a formal amendment to the project Constitution will be required.
 

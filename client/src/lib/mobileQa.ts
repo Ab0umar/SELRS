@@ -42,7 +42,9 @@ export function markOverflowInSheets(): number {
   return markedCount;
 }
 
-export function startMobileQaWatcher(onUpdate?: (count: number) => void): () => void {
+export function startMobileQaWatcher(
+  onUpdate?: (count: number) => void,
+): () => void {
   if (typeof window === "undefined") return () => undefined;
 
   let rafId = 0;

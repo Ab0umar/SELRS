@@ -1,7 +1,13 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Upload } from "lucide-react";
 import { highlightSearchMatch } from "@/lib/patientsHelpers";
 
@@ -72,9 +78,9 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                 if (event.key === "ArrowDown") {
                   event.preventDefault();
                   setIsSearchFocused(true);
-                      setActiveSuggestionIndex((prev) =>
-                        prev >= flatSearchSuggestions.length - 1 ? 0 : prev + 1
-                      );
+                  setActiveSuggestionIndex((prev) =>
+                    prev >= flatSearchSuggestions.length - 1 ? 0 : prev + 1,
+                  );
 
                   return;
                 }
@@ -82,13 +88,14 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                   event.preventDefault();
                   setIsSearchFocused(true);
                   setActiveSuggestionIndex((prev) =>
-                    prev <= 0 ? flatSearchSuggestions.length - 1 : prev - 1
+                    prev <= 0 ? flatSearchSuggestions.length - 1 : prev - 1,
                   );
                   return;
                 }
                 if (event.key === "Enter" && activeSuggestionIndex >= 0) {
                   event.preventDefault();
-                  const suggestion = flatSearchSuggestions[activeSuggestionIndex];
+                  const suggestion =
+                    flatSearchSuggestions[activeSuggestionIndex];
                   if (!suggestion) return;
                   setSearchTerm(suggestion.fullName || suggestion.patientCode);
                   setIsSearchFocused(false);
@@ -101,15 +108,25 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                 }
               }}
               role="combobox"
-              aria-expanded={isSearchFocused && groupedSearchSuggestions.length > 0}
+              aria-expanded={
+                isSearchFocused && groupedSearchSuggestions.length > 0
+              }
               aria-autocomplete="list"
               aria-controls="patient-search-listbox"
-              aria-activedescendant={activeSuggestionIndex >= 0 ? `suggestion-${activeSuggestionIndex}` : undefined}
+              aria-activedescendant={
+                activeSuggestionIndex >= 0
+                  ? `suggestion-${activeSuggestionIndex}`
+                  : undefined
+              }
               className="h-11 rounded-xl border-border bg-background pr-10 text-right"
               dir="rtl"
             />
             {isSearchFocused && groupedSearchSuggestions.length > 0 ? (
-              <div id="patient-search-listbox" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border bg-popover shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+              <div
+                id="patient-search-listbox"
+                role="listbox"
+                className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border bg-popover shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+              >
                 <div className="border-b border-border px-4 py-2 text-right text-xs font-semibold text-muted-foreground">
                   اقتراحات سريعة
                 </div>
@@ -123,7 +140,8 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                         </div>
                         {group.items.map((suggestion: any) => {
                           runningIndex += 1;
-                          const isActive = activeSuggestionIndex === runningIndex;
+                          const isActive =
+                            activeSuggestionIndex === runningIndex;
                           return (
                             <div
                               key={`${group.key}-${suggestion.id}`}
@@ -133,26 +151,60 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                               className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-4 py-3 text-right transition last:border-b-0 cursor-pointer ${
                                 isActive ? "bg-primary/10" : "hover:bg-accent"
                               }`}
-                              onMouseEnter={() => setActiveSuggestionIndex(runningIndex)}
-                                   onClick={() => {
-                                     setSearchTerm(suggestion.fullName || suggestion.patientCode);
-                                     setIsSearchFocused(false);
-                                     setActiveSuggestionIndex(-1);
-                                     onSuggestionSelect(suggestion.id);
-                                   }}
+                              onMouseEnter={() =>
+                                setActiveSuggestionIndex(runningIndex)
+                              }
+                              onClick={() => {
+                                setSearchTerm(
+                                  suggestion.fullName || suggestion.patientCode,
+                                );
+                                setIsSearchFocused(false);
+                                setActiveSuggestionIndex(-1);
+                                onSuggestionSelect(suggestion.id);
+                              }}
                             >
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-bold text-foreground">
-                                  {highlightSearchMatch(suggestion.fullName || "بدون اسم", searchTerm)}
+                                  {highlightSearchMatch(
+                                    suggestion.fullName || "بدون اسم",
+                                    searchTerm,
+                                  )}
                                 </div>
                                 <div className="mt-1 truncate text-xs text-muted-foreground">
-                                  {highlightSearchMatch(suggestion.treatingDoctor || "بدون دكتور", searchTerm)}
-                                  {suggestion.serviceLabel ? <> - {highlightSearchMatch(suggestion.serviceLabel, searchTerm)}</> : ""}
+                                  {highlightSearchMatch(
+                                    suggestion.treatingDoctor || "بدون دكتور",
+                                    searchTerm,
+                                  )}
+                                  {suggestion.serviceLabel ? (
+                                    <>
+                                      {" "}
+                                      -{" "}
+                                      {highlightSearchMatch(
+                                        suggestion.serviceLabel,
+                                        searchTerm,
+                                      )}
+                                    </>
+                                  ) : (
+                                    ""
+                                  )}
                                 </div>
                               </div>
-                              <div className="shrink-0 text-left text-xs text-muted-foreground" dir="ltr">
-                                <div>{highlightSearchMatch(suggestion.patientCode || "-", searchTerm)}</div>
-                                <div>{highlightSearchMatch(suggestion.phone || "-", searchTerm)}</div>
+                              <div
+                                className="shrink-0 text-left text-xs text-muted-foreground"
+                                dir="ltr"
+                              >
+                                <div>
+                                  {highlightSearchMatch(
+                                    suggestion.patientCode || "-",
+                                    searchTerm,
+                                  )}
+                                </div>
+                                <div>
+                                  {highlightSearchMatch(
+                                    suggestion.phone || "-",
+                                    searchTerm,
+                                  )}
+                                </div>
                               </div>
                             </div>
                           );
@@ -185,7 +237,10 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
               placeholder="DD/MM/YYYY"
               dir="ltr"
             />
-            <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
+            <Select
+              value={locationTypeFilter}
+              onValueChange={(v) => setLocationTypeFilter(v as any)}
+            >
               <SelectTrigger className="w-full rounded-xl border-border bg-background sm:w-auto">
                 <SelectValue placeholder="مكان الخدمة" />
               </SelectTrigger>
@@ -205,7 +260,10 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                 className="hidden"
                 onChange={handleImportPatients}
               />
-              <Select value={importDateFormat} onValueChange={(v) => setImportDateFormat(v as any)}>
+              <Select
+                value={importDateFormat}
+                onValueChange={(v) => setImportDateFormat(v as any)}
+              >
                 <SelectTrigger className="w-full rounded-xl border-border bg-background sm:w-[210px]">
                   <SelectValue placeholder="Excel Date Format" />
                 </SelectTrigger>

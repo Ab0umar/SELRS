@@ -4,7 +4,7 @@
  * Idempotent: safe to call multiple times
  */
 
-import { getDb } from '../../db';
+import { getDb } from "../../db";
 import {
   attendanceDaily,
   attendanceShifts,
@@ -16,8 +16,8 @@ import {
   attendanceLeaves,
   attendanceHolidays,
   attendancePermissions,
-} from '../../../drizzle/schema';
-import { eq, and, lte, gte, isNull, or } from 'drizzle-orm';
+} from "../../../drizzle/schema";
+import { eq, and, lte, gte, isNull, or } from "drizzle-orm";
 import {
   computeDay,
   DayContext,
@@ -27,8 +27,8 @@ import {
   CycleAssignment,
   Shift,
   ymd,
-} from './rulesEngine';
-import { PunchesService } from './punches.service';
+} from "./rulesEngine";
+import { PunchesService } from "./punches.service";
 
 export class DailyMaterializer {
   /**
@@ -38,10 +38,10 @@ export class DailyMaterializer {
   static async recomputeRange(
     from: Date,
     to: Date,
-    scope?: { empCd?: string }
+    scope?: { empCd?: string },
   ): Promise<number> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const fromDate = new Date(from);
     fromDate.setHours(0, 0, 0, 0);
@@ -54,7 +54,11 @@ export class DailyMaterializer {
     const shiftsById = new Map(shifts.map((s) => [s.id, s]));
 
     const assignments = await this.loadAssignments(db, fromDate, toDate);
-    const cycleAssignments = await this.loadCycleAssignments(db, fromDate, toDate);
+    const cycleAssignments = await this.loadCycleAssignments(
+      db,
+      fromDate,
+      toDate,
+    );
     const cyclesById = await this.loadCycles(db);
     const employees = await this.loadEmployees(db, scope?.empCd);
     const leaves = await this.loadLeaves(db, fromDate, toDate);
@@ -63,7 +67,9 @@ export class DailyMaterializer {
     const permissions = await this.loadPermissions(db, fromDate, toDate);
 
     // Collect all employees to process
-    const empCodes = scope?.empCd ? [scope.empCd] : employees.map((e) => e.empCd);
+    const empCodes = scope?.empCd
+      ? [scope.empCd]
+      : employees.map((e) => e.empCd);
 
     let rowsWritten = 0;
     const now = new Date();
@@ -71,10 +77,15 @@ export class DailyMaterializer {
     // For each employee, for each day in range
     for (const empCd of empCodes) {
       const empAssignments = assignments.filter((a) => a.empCd === empCd);
-      const defaultShift = employees.find((e) => e.empCd === empCd)?.defaultShiftId ?? null;
+      const defaultShift =
+        employees.find((e) => e.empCd === empCd)?.defaultShiftId ?? null;
       const empLeaves = leaves.filter((l) => l.empCd === empCd);
 
-      for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+      for (
+        let d = new Date(fromDate);
+        d <= toDate;
+        d.setDate(d.getDate() + 1)
+      ) {
         const workDate = new Date(d);
         workDate.setHours(0, 0, 0, 0);
         const workDateStr = this.dateKey(workDate);
@@ -96,21 +107,44 @@ export class DailyMaterializer {
           if (ca.empCd !== empCd) return false;
           const fromStr = this.dateKey(ca.effectiveFrom);
           const toStr = ca.effectiveTo ? this.dateKey(ca.effectiveTo) : null;
-          return fromStr <= workDateStr && (toStr === null || toStr >= workDateStr);
+          return (
+            fromStr <= workDateStr && (toStr === null || toStr >= workDateStr)
+          );
         });
         const shift =
-          resolveShift(empCd, workDate, empAssignments, hasActiveCycle ? null : defaultShift, shiftsById) ??
-          resolveCycleShift(empCd, workDate, cycleAssignments, cyclesById, shiftsById);
+          resolveShift(
+            empCd,
+            workDate,
+            empAssignments,
+            hasActiveCycle ? null : defaultShift,
+            shiftsById,
+          ) ??
+          resolveCycleShift(
+            empCd,
+            workDate,
+            cycleAssignments,
+            cyclesById,
+            shiftsById,
+          );
 
         // Get punches for this day and empCd
-        const punches = await PunchesService.getPunchesByRange(workDate, workDate, empCd);
+        const punches = await PunchesService.getPunchesByRange(
+          workDate,
+          workDate,
+          empCd,
+        );
 
         // Skip days with no shift assignment AND no punches — not a working day
         // Also delete any stale row (e.g. from a previous run that used defaultShift on a cycle rest day)
         if (!shift && punches.length === 0) {
           await db
             .delete(attendanceDaily)
-            .where(and(eq(attendanceDaily.empCd, empCd), eq(attendanceDaily.workDate, workDateStr as any)));
+            .where(
+              and(
+                eq(attendanceDaily.empCd, empCd),
+                eq(attendanceDaily.workDate, workDateStr as any),
+              ),
+            );
           continue;
         }
 
@@ -138,17 +172,30 @@ export class DailyMaterializer {
 
         // Apply approved permissions — reduce lateMinutes / earlyLeaveMin
         const dayPerms = permissions.filter(
-          (p) => p.empCd === empCd && p.approved && this.dateKey(new Date(p.date)) === workDateStr
+          (p) =>
+            p.empCd === empCd &&
+            p.approved &&
+            this.dateKey(new Date(p.date)) === workDateStr,
         );
         for (const perm of dayPerms) {
-          if (perm.type === 'in') {
-            result.lateMinutes = Math.max(0, (result.lateMinutes || 0) - perm.durationMinutes);
-          } else if (perm.type === 'out') {
-            result.earlyLeaveMin = Math.max(0, (result.earlyLeaveMin || 0) - perm.durationMinutes);
+          if (perm.type === "in") {
+            result.lateMinutes = Math.max(
+              0,
+              (result.lateMinutes || 0) - perm.durationMinutes,
+            );
+          } else if (perm.type === "out") {
+            result.earlyLeaveMin = Math.max(
+              0,
+              (result.earlyLeaveMin || 0) - perm.durationMinutes,
+            );
           }
         }
-        if (result.status === 'partial' && result.lateMinutes === 0 && result.earlyLeaveMin === 0) {
-          result.status = 'present';
+        if (
+          result.status === "partial" &&
+          result.lateMinutes === 0 &&
+          result.earlyLeaveMin === 0
+        ) {
+          result.status = "present";
         }
 
         // UPSERT to attendance_daily
@@ -193,10 +240,17 @@ export class DailyMaterializer {
   // ============ Loaders ============
 
   private static async loadShifts(db: any): Promise<any[]> {
-    return await db.select().from(attendanceShifts).where(eq(attendanceShifts.active, true));
+    return await db
+      .select()
+      .from(attendanceShifts)
+      .where(eq(attendanceShifts.active, true));
   }
 
-  private static async loadAssignments(db: any, from: Date, to: Date): Promise<any[]> {
+  private static async loadAssignments(
+    db: any,
+    from: Date,
+    to: Date,
+  ): Promise<any[]> {
     return await db
       .select()
       .from(attendanceShiftAssignments)
@@ -205,9 +259,9 @@ export class DailyMaterializer {
           lte(attendanceShiftAssignments.effectiveFrom, to),
           or(
             isNull(attendanceShiftAssignments.effectiveTo),
-            gte(attendanceShiftAssignments.effectiveTo, from)
-          )
-        )
+            gte(attendanceShiftAssignments.effectiveTo, from),
+          ),
+        ),
       );
   }
 
@@ -224,7 +278,11 @@ export class DailyMaterializer {
       .where(eq(attendanceEmployees.active, true));
   }
 
-  private static async loadCycleAssignments(db: any, from: Date, to: Date): Promise<CycleAssignment[]> {
+  private static async loadCycleAssignments(
+    db: any,
+    from: Date,
+    to: Date,
+  ): Promise<CycleAssignment[]> {
     const rows = await db
       .select()
       .from(attendanceShiftCycleAssignments)
@@ -233,9 +291,9 @@ export class DailyMaterializer {
           lte(attendanceShiftCycleAssignments.effectiveFrom, to),
           or(
             isNull(attendanceShiftCycleAssignments.effectiveTo),
-            gte(attendanceShiftCycleAssignments.effectiveTo, from)
-          )
-        )
+            gte(attendanceShiftCycleAssignments.effectiveTo, from),
+          ),
+        ),
       );
     return rows.map((r: any) => ({
       empCd: r.empCd,
@@ -263,46 +321,58 @@ export class DailyMaterializer {
     return map;
   }
 
-  private static async loadPermissions(db: any, from: Date, to: Date): Promise<any[]> {
+  private static async loadPermissions(
+    db: any,
+    from: Date,
+    to: Date,
+  ): Promise<any[]> {
     return await db
       .select()
       .from(attendancePermissions)
       .where(
         and(
           gte(attendancePermissions.date, from),
-          lte(attendancePermissions.date, to)
-        )
+          lte(attendancePermissions.date, to),
+        ),
       );
   }
 
-  private static async loadLeaves(db: any, from: Date, to: Date): Promise<any[]> {
+  private static async loadLeaves(
+    db: any,
+    from: Date,
+    to: Date,
+  ): Promise<any[]> {
     return await db
       .select()
       .from(attendanceLeaves)
       .where(
         and(
           lte(attendanceLeaves.dateFrom, to),
-          gte(attendanceLeaves.dateTo, from)
-        )
+          gte(attendanceLeaves.dateTo, from),
+        ),
       );
   }
 
-  private static async loadHolidays(db: any, from: Date, to: Date): Promise<any[]> {
+  private static async loadHolidays(
+    db: any,
+    from: Date,
+    to: Date,
+  ): Promise<any[]> {
     return await db
       .select()
       .from(attendanceHolidays)
       .where(
         and(
           gte(attendanceHolidays.date, from),
-          lte(attendanceHolidays.date, to)
-        )
+          lte(attendanceHolidays.date, to),
+        ),
       );
   }
 
   // ============ Helpers ============
 
   private static dateKey(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 }
 

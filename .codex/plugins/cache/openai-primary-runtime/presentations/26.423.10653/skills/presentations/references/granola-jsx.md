@@ -30,9 +30,8 @@ const {
   fr,
   auto,
 } = await import("@oai/artifact-tool");
-const { Fragment, paint, stroke, textStyle } = await import(
-  "@oai/artifact-tool/presentation-jsx"
-);
+const { Fragment, paint, stroke, textStyle } =
+  await import("@oai/artifact-tool/presentation-jsx");
 
 const presentation = Presentation.create({
   slideSize: { width: 1920, height: 1080 },
@@ -40,24 +39,26 @@ const presentation = Presentation.create({
 
 const slide = presentation.slides.add();
 slide.compose(
-  column(
-    { name: "root", width: fill, height: fill, padding: 72, gap: 28 },
-    [
-      text("Quarterly readiness", {
-        name: "headline",
-        width: fill,
-        height: hug,
-        style: { fontSize: 64, bold: true, color: "#0F172A" },
-      }),
-      rule({ name: "headline-rule", width: fixed(220), stroke: "#2563EB", weight: 4 }),
-      text("A composed title stack reserves space before body content.", {
-        name: "subtitle",
-        width: wrap(940),
-        height: hug,
-        style: { fontSize: 30, color: "#475569" },
-      }),
-    ],
-  ),
+  column({ name: "root", width: fill, height: fill, padding: 72, gap: 28 }, [
+    text("Quarterly readiness", {
+      name: "headline",
+      width: fill,
+      height: hug,
+      style: { fontSize: 64, bold: true, color: "#0F172A" },
+    }),
+    rule({
+      name: "headline-rule",
+      width: fixed(220),
+      stroke: "#2563EB",
+      weight: 4,
+    }),
+    text("A composed title stack reserves space before body content.", {
+      name: "subtitle",
+      width: wrap(940),
+      height: hug,
+      style: { fontSize: 30, color: "#475569" },
+    }),
+  ]),
   {
     frame: { left: 0, top: 0, width: 1920, height: 1080 },
     baseUnit: 8,
@@ -99,20 +100,32 @@ slide.compose(
     },
     [
       column(
-        { name: "title-stack", width: fill, height: hug, gap: 16, columnSpan: 2 },
+        {
+          name: "title-stack",
+          width: fill,
+          height: hug,
+          gap: 16,
+          columnSpan: 2,
+        },
         [
-          text("ServiceNow's AI posture is control, not point-solution sprawl", {
-            name: "slide-title",
-            width: fill,
-            height: hug,
-            style: { fontSize: 58, bold: true, color: "#EAF7F1" },
-          }),
-          text("The platform story works when governance, workflow execution, and AI surfaces are composed together.", {
-            name: "slide-subtitle",
-            width: wrap(1280),
-            height: hug,
-            style: { fontSize: 25, color: "#B9D7CC" },
-          }),
+          text(
+            "ServiceNow's AI posture is control, not point-solution sprawl",
+            {
+              name: "slide-title",
+              width: fill,
+              height: hug,
+              style: { fontSize: 58, bold: true, color: "#EAF7F1" },
+            },
+          ),
+          text(
+            "The platform story works when governance, workflow execution, and AI surfaces are composed together.",
+            {
+              name: "slide-subtitle",
+              width: wrap(1280),
+              height: hug,
+              style: { fontSize: 25, color: "#B9D7CC" },
+            },
+          ),
         ],
       ),
       text("What sets the platform apart", {
@@ -121,15 +134,32 @@ slide.compose(
         height: hug,
         style: { fontSize: 64, bold: true, color: "#FFFFFF" },
       }),
-      column(
-        { name: "proof-list", width: fill, height: fill, gap: 20 },
-        [
-          panel({ name: "proof-1", padding: { x: 28, y: 22 }, borderRadius: "rounded-full" },
-            text("AI in the flow of work, not in another tool", { width: fill, height: hug, style: { fontSize: 25, bold: true } })),
-          panel({ name: "proof-2", padding: { x: 28, y: 22 }, borderRadius: "rounded-full" },
-            text("Enterprise AI, not application AI", { width: fill, height: hug, style: { fontSize: 25, bold: true } })),
-        ],
-      ),
+      column({ name: "proof-list", width: fill, height: fill, gap: 20 }, [
+        panel(
+          {
+            name: "proof-1",
+            padding: { x: 28, y: 22 },
+            borderRadius: "rounded-full",
+          },
+          text("AI in the flow of work, not in another tool", {
+            width: fill,
+            height: hug,
+            style: { fontSize: 25, bold: true },
+          }),
+        ),
+        panel(
+          {
+            name: "proof-2",
+            padding: { x: 28, y: 22 },
+            borderRadius: "rounded-full",
+          },
+          text("Enterprise AI, not application AI", {
+            width: fill,
+            height: hug,
+            style: { fontSize: 25, bold: true },
+          }),
+        ),
+      ]),
       text("Source: company materials.", {
         name: "source",
         columnSpan: 2,
@@ -167,7 +197,10 @@ text(
   [
     [
       { run: "Revenue", textStyle: { bold: true } },
-      { run: " improved while margin expanded", textStyle: { color: "#475569" } },
+      {
+        run: " improved while margin expanded",
+        textStyle: { color: "#475569" },
+      },
     ],
   ],
   { name: "rich-callout", width: fill, height: hug, style: { fontSize: 30 } },

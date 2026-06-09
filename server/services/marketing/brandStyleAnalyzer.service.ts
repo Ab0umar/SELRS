@@ -63,7 +63,11 @@ Return ONLY a valid JSON object with these exact keys:
 
 // ─── Retry helper ────────────────────────────────────────────────────────────
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, baseDelayMs = 3000): Promise<T> {
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  baseDelayMs = 3000,
+): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -82,7 +86,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, baseDelayMs = 300
 
 export async function analyzeDesignImage(
   filePath: string,
-  mimeType: string
+  mimeType: string,
 ): Promise<StyleAttributes | null> {
   if (!ENV.geminiApiKey) {
     console.warn("[brand-analyzer] GEMINI_API_KEY not set — skipping analysis");
@@ -118,7 +122,7 @@ export async function analyzeDesignImage(
             data: imageData,
           },
         },
-      ])
+      ]),
     );
 
     const text = result.response.text();
@@ -162,7 +166,7 @@ Return ONLY a valid JSON object:
 
 export async function buildBrandProfile(
   analyses: StyleAttributes[],
-  designCount: number
+  designCount: number,
 ): Promise<BrandProfile | null> {
   if (analyses.length === 0) return null;
 
@@ -223,7 +227,10 @@ export async function buildBrandProfile(
       .replace(/```\s*$/i, "")
       .trim();
 
-    const agg = JSON.parse(cleaned) as Omit<BrandProfile, "designCount" | "rawProfile">;
+    const agg = JSON.parse(cleaned) as Omit<
+      BrandProfile,
+      "designCount" | "rawProfile"
+    >;
     return {
       ...agg,
       designCount,
@@ -250,7 +257,7 @@ export type PartialBrandProfile = {
 
 export function buildBrandAwareImagePrompt(
   topic: string,
-  brandProfile: PartialBrandProfile | null | undefined
+  brandProfile: PartialBrandProfile | null | undefined,
 ): string {
   if (!brandProfile) {
     return `Professional ophthalmology clinic marketing image for topic: "${topic}". Clean medical aesthetic, blue and white tones, arabic medical center branding.`;

@@ -12,7 +12,12 @@ import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
-import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesignerConfig, saveSheetDesignerConfig } from "@/lib/sheetDesigner";
+import {
+  coerceSheetDesignerConfig,
+  DEFAULT_SHEET_DESIGNER_CONFIG,
+  loadSheetDesignerConfig,
+  saveSheetDesignerConfig,
+} from "@/lib/sheetDesigner";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
@@ -27,7 +32,11 @@ export default function ExternalOperationSheet() {
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
 
   const [operationType, setOperationType] = useState("زيارة خارجية");
-  const [operationEyes, setOperationEyes] = useState({ right: true, left: false, both: false });
+  const [operationEyes, setOperationEyes] = useState({
+    right: true,
+    left: false,
+    both: false,
+  });
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -48,8 +57,28 @@ export default function ExternalOperationSheet() {
     iopOS: "",
   });
   const [pentacamData, setPentacamData] = useState({
-    od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
-    os: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
+    od: {
+      k1: "",
+      k2: "",
+      ax1: "",
+      ax2: "",
+      thinnest: "",
+      apex: "",
+      residual: "",
+      ttt: "",
+      ablation: "",
+    },
+    os: {
+      k1: "",
+      k2: "",
+      ax1: "",
+      ax2: "",
+      thinnest: "",
+      apex: "",
+      residual: "",
+      ttt: "",
+      ablation: "",
+    },
   });
   const [signatures, setSignatures] = useState({
     reception: "",
@@ -61,14 +90,16 @@ export default function ExternalOperationSheet() {
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
   const [printScale, setPrintScale] = useState(1);
   const [customSheetCss, setCustomSheetCss] = useState("");
-  const [sheetTemplate, setSheetTemplate] = useState(DEFAULT_SHEET_DESIGNER_CONFIG.templates.external);
+  const [sheetTemplate, setSheetTemplate] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.templates.external,
+  );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
   const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "mobile_sheet_mode_v1" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
 
   useEffect(() => {
@@ -103,52 +134,52 @@ export default function ExternalOperationSheet() {
   const mobileSheetModeEnabled = Boolean(
     mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
       ? mobileSheetModeRaw.enabled
-      : mobileSheetModeRaw
+      : mobileSheetModeRaw,
   );
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    initialPatientId ?? 0,
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
+    enabled: Boolean(initialPatientId),
+    refetchOnWindowFocus: false,
+  });
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId: initialPatientId ?? 0, sheetType: "external" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   useEffect(() => {
     if (!initialPatientId) return;
@@ -170,7 +201,19 @@ export default function ExternalOperationSheet() {
       },
     });
     return () => socket?.close();
-  }, [initialPatientId, sheetQuery, patientQuery, examinationsQuery, visitsQuery, reportsQuery, prescriptionsQuery, surgeriesQuery, followupsQuery, pentacamQuery, testRequestsQuery]);
+  }, [
+    initialPatientId,
+    sheetQuery,
+    patientQuery,
+    examinationsQuery,
+    visitsQuery,
+    reportsQuery,
+    prescriptionsQuery,
+    surgeriesQuery,
+    followupsQuery,
+    pentacamQuery,
+    testRequestsQuery,
+  ]);
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({
     onSuccess: () => {
       toast.success("تم الحفظ");
@@ -281,7 +324,11 @@ export default function ExternalOperationSheet() {
         const right = Boolean(parsedEyes.right);
         const left = Boolean(parsedEyes.left);
         const both = Boolean(parsedEyes.both) || (right && left);
-        setOperationEyes({ right: both ? true : right, left: both ? true : left, both });
+        setOperationEyes({
+          right: both ? true : right,
+          left: both ? true : left,
+          both,
+        });
       }
     } catch {
       // ignore malformed data
@@ -341,7 +388,7 @@ export default function ExternalOperationSheet() {
       reception: role === "reception" ? fullName : prev.reception,
       nurse: role === "nurse" ? fullName : prev.nurse,
       technician: role === "technician" ? fullName : prev.technician,
-      doctor: role === "doctor" ? (prev.doctor || fullName) : prev.doctor,
+      doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
     }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
@@ -358,31 +405,74 @@ export default function ExternalOperationSheet() {
           return {};
         }
       })();
-      const pickValue = (next: string, prev?: string) => (next && next.trim() ? next : prev);
+      const pickValue = (next: string, prev?: string) =>
+        next && next.trim() ? next : prev;
       const mergedExamData = {
         autorefraction: {
           od: {
             ...(existing.examData?.autorefraction?.od ?? {}),
-            ucva: pickValue(formData.ucvaOD, existing.examData?.autorefraction?.od?.ucva),
-            bcva: pickValue(formData.bcvaOD, existing.examData?.autorefraction?.od?.bcva),
-            s: pickValue(formData.refractionOD?.s, existing.examData?.autorefraction?.od?.s),
-            c: pickValue(formData.refractionOD?.c, existing.examData?.autorefraction?.od?.c),
-            axis: pickValue(formData.refractionOD?.a, existing.examData?.autorefraction?.od?.axis),
-            iop: pickValue(formData.iopOD, existing.examData?.autorefraction?.od?.iop),
+            ucva: pickValue(
+              formData.ucvaOD,
+              existing.examData?.autorefraction?.od?.ucva,
+            ),
+            bcva: pickValue(
+              formData.bcvaOD,
+              existing.examData?.autorefraction?.od?.bcva,
+            ),
+            s: pickValue(
+              formData.refractionOD?.s,
+              existing.examData?.autorefraction?.od?.s,
+            ),
+            c: pickValue(
+              formData.refractionOD?.c,
+              existing.examData?.autorefraction?.od?.c,
+            ),
+            axis: pickValue(
+              formData.refractionOD?.a,
+              existing.examData?.autorefraction?.od?.axis,
+            ),
+            iop: pickValue(
+              formData.iopOD,
+              existing.examData?.autorefraction?.od?.iop,
+            ),
           },
           os: {
             ...(existing.examData?.autorefraction?.os ?? {}),
-            ucva: pickValue(formData.ucvaOS, existing.examData?.autorefraction?.os?.ucva),
-            bcva: pickValue(formData.bcvaOS, existing.examData?.autorefraction?.os?.bcva),
-            s: pickValue(formData.refractionOS?.s, existing.examData?.autorefraction?.os?.s),
-            c: pickValue(formData.refractionOS?.c, existing.examData?.autorefraction?.os?.c),
-            axis: pickValue(formData.refractionOS?.a, existing.examData?.autorefraction?.os?.axis),
-            iop: pickValue(formData.iopOS, existing.examData?.autorefraction?.os?.iop),
+            ucva: pickValue(
+              formData.ucvaOS,
+              existing.examData?.autorefraction?.os?.ucva,
+            ),
+            bcva: pickValue(
+              formData.bcvaOS,
+              existing.examData?.autorefraction?.os?.bcva,
+            ),
+            s: pickValue(
+              formData.refractionOS?.s,
+              existing.examData?.autorefraction?.os?.s,
+            ),
+            c: pickValue(
+              formData.refractionOS?.c,
+              existing.examData?.autorefraction?.os?.c,
+            ),
+            axis: pickValue(
+              formData.refractionOS?.a,
+              existing.examData?.autorefraction?.os?.axis,
+            ),
+            iop: pickValue(
+              formData.iopOS,
+              existing.examData?.autorefraction?.os?.iop,
+            ),
           },
         },
         pentacam: {
-          od: { ...(existing.examData?.pentacam?.od ?? {}), ...pentacamData.od },
-          os: { ...(existing.examData?.pentacam?.os ?? {}), ...pentacamData.os },
+          od: {
+            ...(existing.examData?.pentacam?.od ?? {}),
+            ...pentacamData.od,
+          },
+          os: {
+            ...(existing.examData?.pentacam?.os ?? {}),
+            ...pentacamData.os,
+          },
         },
       };
       await saveSheetMutation.mutateAsync({
@@ -413,12 +503,16 @@ export default function ExternalOperationSheet() {
 
   const handlePrint = () => {
     void printOrExportPdf(
-      `${String(formData.patientName || formData.patientCode || initialPatientId || "external-sheet").trim()}.pdf`
+      `${String(formData.patientName || formData.patientCode || initialPatientId || "external-sheet").trim()}.pdf`,
     );
   };
 
   return (
-    <div className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`} dir="rtl" style={{ direction: "rtl", textAlign: "right" }}>
+    <div
+      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      dir="rtl"
+      style={{ direction: "rtl", textAlign: "right" }}
+    >
       <style>{`
         ${customSheetCss}
         .refraction-table-center th,
@@ -441,20 +535,39 @@ export default function ExternalOperationSheet() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
             <div className="flex items-center gap-3 whitespace-nowrap">
-              <h1 className="text-xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
-              <span className="text-sm text-muted-foreground">{formData.patientName}</span>
+              <h1 className="text-xl font-bold text-foreground">
+                {sheetTemplate.sheetTitle}
+              </h1>
+              <span className="text-sm text-muted-foreground">
+                {formData.patientName}
+              </span>
             </div>
             <div className="flex gap-1 items-center whitespace-nowrap print:hidden sheet-header-actions">
-              <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => goBack()}
+              >
                 رجوع
               </Button>
             </div>
             <div className="flex flex-nowrap gap-1 sheet-header-actions">
-              <Button variant="outline" size="sm" onClick={handlePrint} type="button">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                type="button"
+              >
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSaveSheet} type="button">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveSheet}
+                type="button"
+              >
                 حفظ
               </Button>
             </div>
@@ -462,7 +575,10 @@ export default function ExternalOperationSheet() {
         </div>
       </header>
 
-      <main data-mobile-pdf-root className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}>
+      <main
+        data-mobile-pdf-root
+        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
+      >
         {printMode.printView ? (
           <PrintPreviewBanner
             title="شيت الخارجي"
@@ -470,11 +586,18 @@ export default function ExternalOperationSheet() {
             onPrint={handlePrint}
           />
         ) : null}
-        <div className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
+        <div
+          className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        >
+          <PatientPicker
+            initialPatientId={initialPatientId}
+            onSelect={handleSelectPatient}
+          />
         </div>
         <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
-          <div className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+          <div
+            className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
+          >
             <Button
               variant="outline"
               size="sm"
@@ -484,8 +607,15 @@ export default function ExternalOperationSheet() {
               الصفحة الرئيسية
             </Button>
           </div>
-          <div className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8" style={{ textAlign: "center" }}>
-            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: "right" }}>
+          <div
+            className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8"
+            style={{ textAlign: "center" }}
+          >
+            <h2
+              className="text-lg font-bold"
+              dir="rtl"
+              style={{ textAlign: "right" }}
+            >
               {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
             </h2>
             <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
@@ -493,14 +623,22 @@ export default function ExternalOperationSheet() {
             </p>
           </div>
 
-          <div className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center" dir="rtl">
+          <div
+            className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center"
+            dir="rtl"
+          >
             <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">{sheetTemplate.examinationDateLabel}</span>
+              <span className="font-bold">
+                {sheetTemplate.examinationDateLabel}
+              </span>
               <Input
                 type="date"
                 value={formData.examinationDate}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, examinationDate: event.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    examinationDate: event.target.value,
+                  }))
                 }
                 className="text-xs text-right w-[120px] sm:w-[160px] min-w-0"
                 dir="rtl"
@@ -571,60 +709,122 @@ export default function ExternalOperationSheet() {
             </div>
           </div>
 
-          <p className="font-bold text-sm mb-1">{sheetTemplate.patientInfoTitle}</p>
-          <div className="sheet-section-card flex flex-col gap-1 mb-2 text-xs" dir="rtl" style={{ whiteSpace: "nowrap" }}>
+          <p className="font-bold text-sm mb-1">
+            {sheetTemplate.patientInfoTitle}
+          </p>
+          <div
+            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
+            dir="rtl"
+            style={{ whiteSpace: "nowrap" }}
+          >
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">الاسم</label>
-                <Input value={formData.patientName} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.patientName}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">تاريخ الميلاد</label>
-                <Input value={formData.dateOfBirth} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.dateOfBirth}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">السن</label>
-                <Input value={formData.age} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.age}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input value={signatures.doctor} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={signatures.doctor}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">العنوان</label>
-                <Input value={formData.address} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.address}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الموبايل</label>
-                <Input value={formData.phone} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.phone}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">كود العميل</label>
-                <Input value={formData.patientCode} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.patientCode}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الوظيفة</label>
-                <Input value={formData.job} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.job}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
           </div>
 
           <div className="mb-4 border sheet-section-card">
-            <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+            <table
+              className="w-full text-xs text-center lasik-table refraction-table-center"
+              dir="ltr"
+              style={{
+                direction: "ltr",
+                unicodeBidi: "bidi-override",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
-                  <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
+                  <th className="border-r p-0.5 text-center" colSpan={4}>
+                    Dominant eye _____________
+                  </th>
+                  <th className="p-0.5 text-center" colSpan={6}>
+                    Refraction
+                  </th>
                 </tr>
                 <tr className="border-b bg-muted">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>
                   <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>OD</th>
-                  <th className="p-0.5" colSpan={3}>OS</th>
+                  <th className="border-r p-0.5" colSpan={3}>
+                    OD
+                  </th>
+                  <th className="p-0.5" colSpan={3}>
+                    OS
+                  </th>
                 </tr>
                 <tr className="border-b">
                   <th className="border-r p-0.5"></th>
@@ -642,31 +842,201 @@ export default function ExternalOperationSheet() {
               <tbody>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.ucvaOD} onChange={(e) => setFormData((prev) => ({ ...prev, ucvaOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.bcvaOD} onChange={(e) => setFormData((prev) => ({ ...prev, bcvaOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.iopOD} onChange={(e) => setFormData((prev) => ({ ...prev, iopOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.s} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, s: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.c} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, c: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.a} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, a: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.s} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, s: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.c} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, c: e.target.value } }))} /></td>
-                  <td className="p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.a} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, a: e.target.value } }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.ucvaOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          ucvaOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.bcvaOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bcvaOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.iopOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          iopOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.s}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            s: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.c}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            c: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.a}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            a: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.s}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            s: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.c}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            c: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.a}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            a: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.ucvaOS} onChange={(e) => setFormData((prev) => ({ ...prev, ucvaOS: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.bcvaOS} onChange={(e) => setFormData((prev) => ({ ...prev, bcvaOS: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.iopOS} onChange={(e) => setFormData((prev) => ({ ...prev, iopOS: e.target.value }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.ucvaOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          ucvaOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.bcvaOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bcvaOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.iopOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          iopOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}><Input placeholder="" className="text-xs" /></td>
+                  <td className="p-0.5" colSpan={9}>
+                    <Input placeholder="" className="text-xs" />
+                  </td>
                 </tr>
                 <tr>
                   <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>BUT</td>
-                  <td className="border-r p-0.5" colSpan={3}>Schirmer T</td>
-                  <td className="p-0.5" colSpan={3}>Lid Margin</td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    BUT
+                  </td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    Schirmer T
+                  </td>
+                  <td className="p-0.5" colSpan={3}>
+                    Lid Margin
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -674,8 +1044,18 @@ export default function ExternalOperationSheet() {
 
           <div className="grid grid-cols-2 gap-2 mb-4 sheet-section-card">
             <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">RT فحص القرنية</div>
-              <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
+                RT فحص القرنية
+              </div>
+              <table
+                className="w-full text-xs text-center lasik-table"
+                dir="ltr"
+                style={{
+                  direction: "ltr",
+                  unicodeBidi: "bidi-override",
+                  textAlign: "center",
+                }}
+              >
                 <tbody>
                   <tr className="border-b">
                     <td className="border-r p-0.5 font-bold text-center">K1</td>
@@ -686,11 +1066,19 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.k1}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, k1: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, k1: e.target.value },
+                          }))
                         }
                       />
                     </td>
-                    <td className="border-r p-0.5 font-bold text-center" rowSpan={2}>AX</td>
+                    <td
+                      className="border-r p-0.5 font-bold text-center"
+                      rowSpan={2}
+                    >
+                      AX
+                    </td>
                     <td className="p-0.5">
                       <Input
                         placeholder=""
@@ -698,7 +1086,10 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.ax1}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, ax1: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, ax1: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -712,7 +1103,10 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.k2}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, k2: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, k2: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -723,13 +1117,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.ax2}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, ax2: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, ax2: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Thinnest Point</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Thinnest Point
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -737,13 +1136,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.thinnest}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, thinnest: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, thinnest: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Corneal Apex</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Corneal Apex
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -751,13 +1155,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.apex}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, apex: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, apex: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Residual Stroma</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Residual Stroma
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -765,13 +1174,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.residual}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, residual: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, residual: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Planned TTT</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Planned TTT
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -779,13 +1193,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.ttt}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, ttt: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, ttt: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">Ablation</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Ablation
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -793,7 +1212,10 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.od.ablation}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, od: { ...prev.od, ablation: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, ablation: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -803,8 +1225,18 @@ export default function ExternalOperationSheet() {
             </div>
 
             <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">LT فحص القرنية</div>
-              <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
+                LT فحص القرنية
+              </div>
+              <table
+                className="w-full text-xs text-center lasik-table"
+                dir="ltr"
+                style={{
+                  direction: "ltr",
+                  unicodeBidi: "bidi-override",
+                  textAlign: "center",
+                }}
+              >
                 <tbody>
                   <tr className="border-b">
                     <td className="border-r p-0.5 font-bold text-center">K1</td>
@@ -815,11 +1247,19 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.os.k1}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, k1: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, k1: e.target.value },
+                          }))
                         }
                       />
                     </td>
-                    <td className="border-r p-0.5 font-bold text-center" rowSpan={2}>AX</td>
+                    <td
+                      className="border-r p-0.5 font-bold text-center"
+                      rowSpan={2}
+                    >
+                      AX
+                    </td>
                     <td className="p-0.5">
                       <Input
                         placeholder=""
@@ -827,7 +1267,10 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.os.ax1}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, ax1: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, ax1: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -841,7 +1284,10 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.os.k2}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, k2: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, k2: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -852,13 +1298,18 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.os.ax2}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, ax2: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, ax2: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Thinnest Point</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Thinnest Point
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -866,59 +1317,82 @@ export default function ExternalOperationSheet() {
                         dir="ltr"
                         value={pentacamData.os.thinnest}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, thinnest: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, thinnest: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Corneal Apex</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Corneal Apex
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
                         className="text-xs"
                         value={pentacamData.os.apex}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, apex: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, apex: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Residual Stroma</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Residual Stroma
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
                         className="text-xs"
                         value={pentacamData.os.residual}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, residual: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, residual: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Planned TTT</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Planned TTT
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
                         className="text-xs"
                         value={pentacamData.os.ttt}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, ttt: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, ttt: e.target.value },
+                          }))
                         }
                       />
                     </td>
                   </tr>
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">Ablation</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Ablation
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
                         className="text-xs"
                         value={pentacamData.os.ablation}
                         onChange={(e) =>
-                          setPentacamData((prev) => ({ ...prev, os: { ...prev.os, ablation: e.target.value } }))
+                          setPentacamData((prev) => ({
+                            ...prev,
+                            os: { ...prev.os, ablation: e.target.value },
+                          }))
                         }
                       />
                     </td>
@@ -929,15 +1403,29 @@ export default function ExternalOperationSheet() {
           </div>
 
           <div className="mb-4 border sheet-section-card">
-            <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+            <table
+              className="w-full text-xs text-center lasik-table"
+              dir="ltr"
+              style={{
+                direction: "ltr",
+                unicodeBidi: "bidi-override",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center">Target refraction</th>
+                  <th className="border-r p-0.5 text-center">
+                    Target refraction
+                  </th>
                   <th className="border-r p-0.5 text-center">OD / OS</th>
                   <th className="border-r p-0.5 text-center">Before Flap</th>
                   <th className="border-r p-0.5 text-center">After Flap</th>
-                  <th className="border-r p-0.5 text-center">After Treatment</th>
-                  <th className="border-r p-0.5 text-center">After Flap Reposition</th>
+                  <th className="border-r p-0.5 text-center">
+                    After Treatment
+                  </th>
+                  <th className="border-r p-0.5 text-center">
+                    After Flap Reposition
+                  </th>
                   <th className="border-r p-0.5 text-center">Ciclo 3 مرات</th>
                   <th className="p-0.5 text-center">Note</th>
                 </tr>
@@ -980,62 +1468,100 @@ export default function ExternalOperationSheet() {
                 className="text-xs w-full max-w-none"
                 rows={3}
                 dir="ltr"
-                style={{ maxWidth: "none", width: "100%", marginInlineStart: "0", marginInlineEnd: "0", boxSizing: "border-box", textAlign: "left" }}
+                style={{
+                  maxWidth: "none",
+                  width: "100%",
+                  marginInlineStart: "0",
+                  marginInlineEnd: "0",
+                  boxSizing: "border-box",
+                  textAlign: "left",
+                }}
               />
             </div>
-            <div className="notes-col" style={{ flex: "0 0 32%", paddingInlineStart: "0", marginInlineStart: "0" }}>
+            <div
+              className="notes-col"
+              style={{
+                flex: "0 0 32%",
+                paddingInlineStart: "0",
+                marginInlineStart: "0",
+              }}
+            >
               <Textarea
                 placeholder={sheetTemplate.notesLabel}
                 className="text-xs w-full max-w-none"
                 rows={3}
                 dir="ltr"
-                style={{ maxWidth: "none", width: "100%", boxSizing: "border-box", textAlign: "left" }}
+                style={{
+                  maxWidth: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  textAlign: "left",
+                }}
               />
             </div>
           </div>
 
           <div className="mb-1 w-full">
-            <Textarea placeholder="Final:" className="text-xs w-full max-w-none" rows={3} dir="ltr" style={{ maxWidth: "none", width: "100%", textAlign: "left" }} />
+            <Textarea
+              placeholder="Final:"
+              className="text-xs w-full max-w-none"
+              rows={3}
+              dir="ltr"
+              style={{ maxWidth: "none", width: "100%", textAlign: "left" }}
+            />
           </div>
 
           <div className="border-t pt-3 mt-4">
             <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? <span className="text-center">{signatures.doctor}</span> : null}
+                  {signatures.doctor ? (
+                    <span className="text-center">{signatures.doctor}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">طبيب</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? <span className="text-center">{signatures.technician}</span> : null}
+                  {signatures.technician ? (
+                    <span className="text-center">{signatures.technician}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">فني</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? <span className="text-center">{signatures.nurse}</span> : null}
+                  {signatures.nurse ? (
+                    <span className="text-center">{signatures.nurse}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">تمريض</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? <span className="text-center">{signatures.reception}</span> : null}
+                  {signatures.reception ? (
+                    <span className="text-center">{signatures.reception}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">استقبال</span>
               </div>
             </div>
           </div>
         </div>
-        <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <Button type="button" variant="outline" onClick={() => goBack()}>رجوع</Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>طباعة</Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>حفظ</Button>
+        <div
+          className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
+        >
+          <Button type="button" variant="outline" onClick={() => goBack()}>
+            رجوع
+          </Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>
+            طباعة
+          </Button>
+          <Button type="button" variant="default" onClick={handleSaveSheet}>
+            حفظ
+          </Button>
         </div>
       </main>
     </div>
   );
 }
-
-
-

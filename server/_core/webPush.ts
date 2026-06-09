@@ -14,7 +14,11 @@ export type WebPushPayload = {
 
 function configureWebPush() {
   if (!ENV.vapidPublicKey || !ENV.vapidPrivateKey) return false;
-  webpush.setVapidDetails("mailto:support@selrs.cc", ENV.vapidPublicKey, ENV.vapidPrivateKey);
+  webpush.setVapidDetails(
+    "mailto:support@selrs.cc",
+    ENV.vapidPublicKey,
+    ENV.vapidPrivateKey,
+  );
   return true;
 }
 
@@ -24,7 +28,9 @@ export async function sendWebPushToSubscription(
 ): Promise<"sent" | "expired" | "failed"> {
   if (!configureWebPush()) return "failed";
   try {
-    const subscription = JSON.parse(subscriptionJson) as webpush.PushSubscription;
+    const subscription = JSON.parse(
+      subscriptionJson,
+    ) as webpush.PushSubscription;
     const message = JSON.stringify({
       notification: { title: payload.title, body: payload.body },
       data: {
@@ -55,8 +61,11 @@ export async function sendWebPushNotifications(
     return { sent: 0, skipped: 0, configured: false };
   }
 
-  const registrations = await db.getPushDeviceRegistrations({ platform: "web" });
-  if (registrations.length === 0) return { sent: 0, skipped: 0, configured: true };
+  const registrations = await db.getPushDeviceRegistrations({
+    platform: "web",
+  });
+  if (registrations.length === 0)
+    return { sent: 0, skipped: 0, configured: true };
 
   let sent = 0;
   let skipped = 0;
@@ -66,7 +75,8 @@ export async function sendWebPushNotifications(
     if (result === "sent") {
       sent += 1;
     } else {
-      if (result === "expired") await db.disablePushDeviceToken(reg.token).catch(() => {});
+      if (result === "expired")
+        await db.disablePushDeviceToken(reg.token).catch(() => {});
       skipped += 1;
     }
   }

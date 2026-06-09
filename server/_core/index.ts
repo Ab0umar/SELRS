@@ -3,7 +3,17 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import path from "node:path";
-import { readdir, stat, mkdir, readFile, rename, access, writeFile, mkdtemp, rm } from "node:fs/promises";
+import {
+  readdir,
+  stat,
+  mkdir,
+  readFile,
+  rename,
+  access,
+  writeFile,
+  mkdtemp,
+  rm,
+} from "node:fs/promises";
 import os from "node:os";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
@@ -21,7 +31,12 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
-import { uploadToS3, downloadFromS3, listObjectsInS3, getPresignedUrlFromS3 } from "./s3";
+import {
+  uploadToS3,
+  downloadFromS3,
+  listObjectsInS3,
+  getPresignedUrlFromS3,
+} from "./s3";
 import * as db from "../db";
 const execFile = promisify(execFileCb);
 
@@ -87,19 +102,28 @@ function getAllowedCorsOrigins(): Set<string> {
   return new Set([...DEFAULT_ALLOWED_CORS_ORIGINS, ...configuredOrigins]);
 }
 
-function isAllowedCorsOrigin(origin: string | undefined, allowedOrigins: Set<string>): origin is string {
+function isAllowedCorsOrigin(
+  origin: string | undefined,
+  allowedOrigins: Set<string>,
+): origin is string {
   if (!origin) return false;
   if (allowedOrigins.has(origin)) return true;
 
   try {
     const parsed = new URL(origin);
-    return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname === "localhost";
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.hostname === "localhost"
+    );
   } catch {
     return false;
   }
 }
 
-function parseBooleanEnv(rawValue: string | undefined, fallback: boolean): boolean {
+function parseBooleanEnv(
+  rawValue: string | undefined,
+  fallback: boolean,
+): boolean {
   if (rawValue == null) return fallback;
   const value = String(rawValue).trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;
@@ -109,16 +133,33 @@ function parseBooleanEnv(rawValue: string | undefined, fallback: boolean): boole
 
 function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
   const defaultSourceDir = path.resolve(process.cwd(), "Pentacam");
-  const sourceDir = String(process.env.BLACKICE_IMPORT_SOURCE_DIR || defaultSourceDir).trim();
-  const pollIntervalMs = Math.max(2_000, Number(process.env.BLACKICE_IMPORT_POLL_MS || 10_000));
-  const minFileAgeMs = Math.max(1_000, Number(process.env.BLACKICE_IMPORT_MIN_FILE_AGE_MS || 5_000));
-  const maxFilesPerCycle = Math.max(1, Number(process.env.BLACKICE_IMPORT_MAX_FILES_PER_CYCLE || 9999));
-  const sourcePrinter = String(process.env.BLACKICE_IMPORT_SOURCE_PRINTER || "Pentacam").trim() || "Pentacam";
+  const sourceDir = String(
+    process.env.BLACKICE_IMPORT_SOURCE_DIR || defaultSourceDir,
+  ).trim();
+  const pollIntervalMs = Math.max(
+    2_000,
+    Number(process.env.BLACKICE_IMPORT_POLL_MS || 10_000),
+  );
+  const minFileAgeMs = Math.max(
+    1_000,
+    Number(process.env.BLACKICE_IMPORT_MIN_FILE_AGE_MS || 5_000),
+  );
+  const maxFilesPerCycle = Math.max(
+    1,
+    Number(process.env.BLACKICE_IMPORT_MAX_FILES_PER_CYCLE || 9999),
+  );
+  const sourcePrinter =
+    String(process.env.BLACKICE_IMPORT_SOURCE_PRINTER || "Pentacam").trim() ||
+    "Pentacam";
 
   const enabled = parseBooleanEnv(process.env.BLACKICE_IMPORT_ENABLED, true);
   // Default flow: incoming source folder -> Pentacam root for web visibility.
-  const processedDir = String(process.env.BLACKICE_IMPORT_PROCESSED_DIR || defaultSourceDir).trim();
-  const failedDir = String(process.env.BLACKICE_IMPORT_FAILED_DIR || sourceDir).trim();
+  const processedDir = String(
+    process.env.BLACKICE_IMPORT_PROCESSED_DIR || defaultSourceDir,
+  ).trim();
+  const failedDir = String(
+    process.env.BLACKICE_IMPORT_FAILED_DIR || sourceDir,
+  ).trim();
 
   return {
     enabled,
@@ -135,9 +176,17 @@ function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
 function getBlackIceOcrLinkOptions(): BlackIceOcrLinkOptions {
   return {
     enabled: parseBooleanEnv(process.env.BLACKICE_OCR_ENABLED, false),
-    pollIntervalMs: Math.max(3_000, Number(process.env.BLACKICE_OCR_POLL_MS || 20_000)),
-    batchSize: Math.max(1, Math.min(100, Number(process.env.BLACKICE_OCR_BATCH_SIZE || 10))),
-    tesseractPath: String(process.env.BLACKICE_OCR_TESSERACT_PATH || "tesseract").trim() || "tesseract",
+    pollIntervalMs: Math.max(
+      3_000,
+      Number(process.env.BLACKICE_OCR_POLL_MS || 20_000),
+    ),
+    batchSize: Math.max(
+      1,
+      Math.min(100, Number(process.env.BLACKICE_OCR_BATCH_SIZE || 10)),
+    ),
+    tesseractPath:
+      String(process.env.BLACKICE_OCR_TESSERACT_PATH || "tesseract").trim() ||
+      "tesseract",
     lang: String(process.env.BLACKICE_OCR_LANG || "eng").trim() || "eng",
     psm: Math.max(3, Math.min(13, Number(process.env.BLACKICE_OCR_PSM || 6))),
   };
@@ -162,7 +211,10 @@ async function exists(targetPath: string): Promise<boolean> {
   }
 }
 
-async function moveToDirAvoidingOverwrite(filePath: string, targetDir: string): Promise<string> {
+async function moveToDirAvoidingOverwrite(
+  filePath: string,
+  targetDir: string,
+): Promise<string> {
   const parsed = path.parse(filePath);
   let candidate = path.join(targetDir, `${parsed.name}${parsed.ext}`);
   let i = 1;
@@ -174,13 +226,19 @@ async function moveToDirAvoidingOverwrite(filePath: string, targetDir: string): 
   return candidate;
 }
 
-async function renameWithPrefix(filePath: string, prefix: string): Promise<string> {
+async function renameWithPrefix(
+  filePath: string,
+  prefix: string,
+): Promise<string> {
   const parsed = path.parse(filePath);
   if (parsed.base.startsWith(`${prefix}_`)) return filePath;
   let candidate = path.join(parsed.dir, `${prefix}_${parsed.base}`);
   let i = 1;
   while (await exists(candidate)) {
-    candidate = path.join(parsed.dir, `${prefix}_${parsed.name}_${i}${parsed.ext}`);
+    candidate = path.join(
+      parsed.dir,
+      `${prefix}_${parsed.name}_${i}${parsed.ext}`,
+    );
     i += 1;
   }
   await rename(filePath, candidate);
@@ -190,7 +248,9 @@ async function renameWithPrefix(filePath: string, prefix: string): Promise<strin
 function extractIdCandidatesFromText(input: string): string[] {
   const text = String(input ?? "");
   const matches = text.match(/\b\d{3,12}\b/g) ?? [];
-  return Array.from(new Set(matches.map((value) => value.trim()).filter(Boolean)));
+  return Array.from(
+    new Set(matches.map((value) => value.trim()).filter(Boolean)),
+  );
 }
 
 function extractLabeledIdCandidatesFromText(input: string): string[] {
@@ -259,8 +319,11 @@ function extractPatientNameFromOcrText(input: string): string {
       .slice(0, 4)
       .join(" ");
   };
-  const lastRaw = clean.match(/(?:last\s*name|surname)\s*[:\-]?\s*([^\n\r]+)/i)?.[1] ?? "";
-  const firstRaw = clean.match(/(?:first\s*name|given\s*name)\s*[:\-]?\s*([^\n\r]+)/i)?.[1] ?? "";
+  const lastRaw =
+    clean.match(/(?:last\s*name|surname)\s*[:\-]?\s*([^\n\r]+)/i)?.[1] ?? "";
+  const firstRaw =
+    clean.match(/(?:first\s*name|given\s*name)\s*[:\-]?\s*([^\n\r]+)/i)?.[1] ??
+    "";
   const last = normalizeNameLine(lastRaw);
   const first = normalizeNameLine(firstRaw);
   const full = `${first} ${last}`.trim();
@@ -270,7 +333,9 @@ function extractPatientNameFromOcrText(input: string): string {
 function extractEyeFromOcrText(input: string): string {
   const text = String(input ?? "");
   if (!text) return "";
-  const m = text.match(/(?:\b|[^A-Za-z])(?:eye|jeye)\s*[:\-]?\s*\[?\s*(right|left|od|os|ou)\b/i);
+  const m = text.match(
+    /(?:\b|[^A-Za-z])(?:eye|jeye)\s*[:\-]?\s*\[?\s*(right|left|od|os|ou)\b/i,
+  );
   const raw = String(m?.[1] ?? "").toUpperCase();
   if (raw === "RIGHT") return "OD";
   if (raw === "LEFT") return "OS";
@@ -280,11 +345,31 @@ function extractEyeFromOcrText(input: string): string {
 
 function isWeakParsedPatientName(input: string): boolean {
   const scoreParsedPatientName = (value: string): number => {
-    const v = String(value ?? "").trim().replace(/_/g, " ").toLowerCase();
+    const v = String(value ?? "")
+      .trim()
+      .replace(/_/g, " ")
+      .toLowerCase();
     const tokens = v.split(/\s+/).filter(Boolean);
     let score = 0;
     score += Math.max(0, 5 - Math.abs(tokens.length - 3));
-    if (tokens.some((t) => ["id", "name", "patient", "unknown", "exam", "date", "time", "eye", "right", "left", "od", "os"].includes(t))) {
+    if (
+      tokens.some((t) =>
+        [
+          "id",
+          "name",
+          "patient",
+          "unknown",
+          "exam",
+          "date",
+          "time",
+          "eye",
+          "right",
+          "left",
+          "od",
+          "os",
+        ].includes(t),
+      )
+    ) {
       score -= 8;
     }
     if (
@@ -305,7 +390,7 @@ function isWeakParsedPatientName(input: string): boolean {
           "pachy",
           "oculus",
           "pentacam",
-        ].includes(t)
+        ].includes(t),
       )
     ) {
       score -= 10;
@@ -313,7 +398,9 @@ function isWeakParsedPatientName(input: string): boolean {
     if (!/[a-z]/i.test(v)) score -= 5;
     return score;
   };
-  const v = String(input ?? "").trim().toLowerCase();
+  const v = String(input ?? "")
+    .trim()
+    .toLowerCase();
   if (!v) return true;
   if (["id", "name", "patient", "unknown"].includes(v)) return true;
   if (!/[a-z]/i.test(v)) return true;
@@ -339,9 +426,15 @@ function extractAnyIdFromFileName(fileName: string): string {
   return normalizeIdCode(String(m?.[1] ?? ""));
 }
 
-function extractPatientNameAndEyeFromFileName(fileName: string): { name: string; eye: string } {
+function extractPatientNameAndEyeFromFileName(fileName: string): {
+  name: string;
+  eye: string;
+} {
   const stem = path.parse(String(fileName ?? "")).name;
-  const rawTokens = stem.split("_").map((t) => String(t ?? "").trim()).filter(Boolean);
+  const rawTokens = stem
+    .split("_")
+    .map((t) => String(t ?? "").trim())
+    .filter(Boolean);
   if (rawTokens.length === 0) return { name: "patient", eye: "" };
 
   const tokens = rawTokens;
@@ -349,16 +442,28 @@ function extractPatientNameAndEyeFromFileName(fileName: string): { name: string;
 
   const eyeIdx = tokens.findIndex((t) => /^(OD|OS|OU)$/i.test(t));
   const eye = eyeIdx >= 0 ? String(tokens[eyeIdx] ?? "").toUpperCase() : "";
-  const dateIdx = tokens.findIndex((t, i) => /^\d{8}$/.test(t) && /^\d{6}$/.test(tokens[i + 1] ?? ""));
+  const dateIdx = tokens.findIndex(
+    (t, i) => /^\d{8}$/.test(t) && /^\d{6}$/.test(tokens[i + 1] ?? ""),
+  );
   const baseNameTokens =
-    eyeIdx > 0 ? tokens.slice(0, eyeIdx) : dateIdx > 0 ? tokens.slice(0, dateIdx) : tokens;
+    eyeIdx > 0
+      ? tokens.slice(0, eyeIdx)
+      : dateIdx > 0
+        ? tokens.slice(0, dateIdx)
+        : tokens;
   const cleaned = baseNameTokens.filter((t) => {
     const upper = t.toUpperCase();
-    if (["IMPORTED", "FAILED", "TEST", "TRYNOW", "REALTRY", "REALFMT"].includes(upper)) return false;
+    if (
+      ["IMPORTED", "FAILED", "TEST", "TRYNOW", "REALTRY", "REALFMT"].includes(
+        upper,
+      )
+    )
+      return false;
     if (/^\d+$/.test(t)) return false;
     return true;
   });
-  const name = sanitizeFilePart(cleaned.join(" ")).replace(/\s+/g, "_") || "patient";
+  const name =
+    sanitizeFilePart(cleaned.join(" ")).replace(/\s+/g, "_") || "patient";
   return { name, eye };
 }
 
@@ -366,18 +471,27 @@ async function renameToPatientIdentity(
   filePath: string,
   preferredIdCode?: string,
   preferredName?: string,
-  preferredEye?: string
+  preferredEye?: string,
 ): Promise<string> {
   const parsed = path.parse(filePath);
   const parts = extractPatientNameAndEyeFromFileName(parsed.base);
-  const cleanPreferredName = sanitizeFilePart(String(preferredName ?? "").trim()).replace(/\s+/g, "_");
+  const cleanPreferredName = sanitizeFilePart(
+    String(preferredName ?? "").trim(),
+  ).replace(/\s+/g, "_");
   const namePart = cleanPreferredName || parts.name;
-  const eyePart = String(preferredEye ?? "").trim().toUpperCase() || parts.eye;
+  const eyePart =
+    String(preferredEye ?? "")
+      .trim()
+      .toUpperCase() || parts.eye;
   const idPart = normalizeIdCode(String(preferredIdCode ?? ""));
-  const parsedStem = path.parse(parsed.base).name.replace(/[_\s]+/g, " ").trim();
-  const looksGenericOnly = /^(?:\d+\s+)?(?:maps?\s+refr(?:active)?|topometric|enhanced\s+ectasia|large\s+map)(?:\s*\(\d+\))?$/i.test(
-    parsedStem
-  );
+  const parsedStem = path
+    .parse(parsed.base)
+    .name.replace(/[_\s]+/g, " ")
+    .trim();
+  const looksGenericOnly =
+    /^(?:\d+\s+)?(?:maps?\s+refr(?:active)?|topometric|enhanced\s+ectasia|large\s+map)(?:\s*\(\d+\))?$/i.test(
+      parsedStem,
+    );
   if (!idPart && !cleanPreferredName && looksGenericOnly) {
     return filePath;
   }
@@ -408,7 +522,7 @@ function isLockWaitError(error: any): boolean {
 async function prefixProcessedFileWithCode(
   processedDir: string,
   fileName: string | null | undefined,
-  idCode: string
+  idCode: string,
 ): Promise<string | null> {
   const baseFileName = String(fileName ?? "").trim();
   const normalizedCode = normalizeIdCode(idCode);
@@ -431,7 +545,10 @@ async function prefixProcessedFileWithCode(
   return path.basename(targetPath);
 }
 
-async function resolvePatientByIds(conn: mysql.Connection, candidates: string[]): Promise<number | null> {
+async function resolvePatientByIds(
+  conn: mysql.Connection,
+  candidates: string[],
+): Promise<number | null> {
   const expanded = candidates.flatMap((candidate) => {
     const raw = String(candidate ?? "").trim();
     const normalized = normalizeIdCode(raw);
@@ -439,7 +556,10 @@ async function resolvePatientByIds(conn: mysql.Connection, candidates: string[])
   });
   const unique = Array.from(new Set(expanded));
   for (const candidate of unique) {
-    const [rows] = await conn.query("SELECT id FROM patients WHERE patientCode = ? LIMIT 2", [candidate]);
+    const [rows] = await conn.query(
+      "SELECT id FROM patients WHERE patientCode = ? LIMIT 2",
+      [candidate],
+    );
     const result = rows as Array<{ id: number }>;
     if (result.length === 1) return result[0].id;
   }
@@ -447,7 +567,10 @@ async function resolvePatientByIds(conn: mysql.Connection, candidates: string[])
     if (!/^\d+$/.test(candidate)) continue;
     const patientId = Number(candidate);
     if (!Number.isFinite(patientId) || patientId <= 0) continue;
-    const [rows] = await conn.query("SELECT id FROM patients WHERE id = ? LIMIT 2", [patientId]);
+    const [rows] = await conn.query(
+      "SELECT id FROM patients WHERE id = ? LIMIT 2",
+      [patientId],
+    );
     const result = rows as Array<{ id: number }>;
     if (result.length === 1) return result[0].id;
   }
@@ -458,7 +581,7 @@ async function runOcrFromBuffer(
   image: Buffer,
   fileName: string,
   cfg: BlackIceOcrLinkOptions,
-  psmOverride?: number
+  psmOverride?: number,
 ): Promise<string> {
   const tmpBase = await mkdtemp(path.join(os.tmpdir(), "blackice-ocr-"));
   const inputPath = path.join(tmpBase, getSafeTempImageName(fileName));
@@ -483,8 +606,18 @@ async function runOcrFromBuffer(
 }
 
 function getSafeTempImageName(fileName: string): string {
-  const extRaw = String(path.extname(String(fileName ?? "")).toLowerCase() || "");
-  const allowed = new Set([".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"]);
+  const extRaw = String(
+    path.extname(String(fileName ?? "")).toLowerCase() || "",
+  );
+  const allowed = new Set([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".webp",
+  ]);
   const ext = allowed.has(extRaw) ? extRaw : ".jpg";
   return `input${ext}`;
 }
@@ -495,18 +628,27 @@ function looksCorruptedBinaryImage(data: Buffer): boolean {
   return false;
 }
 
-async function loadImageFromImportFolders(fileName: string): Promise<Buffer | null> {
+async function loadImageFromImportFolders(
+  fileName: string,
+): Promise<Buffer | null> {
   const importCfg = getBlackIceFolderImportOptions();
   const raw = String(fileName ?? "").trim();
   if (!raw) return null;
   const candidates = [raw, `FAILED_${raw}`, `IMPORTED_${raw}`];
-  const dirs = Array.from(new Set([importCfg.sourceDir, importCfg.processedDir, importCfg.failedDir].filter(Boolean)));
+  const dirs = Array.from(
+    new Set(
+      [importCfg.sourceDir, importCfg.processedDir, importCfg.failedDir].filter(
+        Boolean,
+      ),
+    ),
+  );
   for (const dir of dirs) {
     for (const name of candidates) {
       const full = path.join(dir, name);
       try {
         const buf = await readFile(full);
-        if (buf && buf.length > 0 && !looksCorruptedBinaryImage(buf)) return buf;
+        if (buf && buf.length > 0 && !looksCorruptedBinaryImage(buf))
+          return buf;
       } catch {
         // ignore missing path
       }
@@ -555,11 +697,16 @@ function extractStrictHeaderIdFromTsv(rows: OcrTsvRow[]): string {
       const lineText = lineRows.map((r) => r.text).join(" ");
       if (!/\b(id|ld|i\s*d)\b/i.test(lineText)) continue;
 
-      const direct = lineText.match(/(?:\bID\b|\bLD\b|\bI\s*D\b)\s*[:\-]?\s*(\d{6})\b/i)?.[1] ?? "";
+      const direct =
+        lineText.match(
+          /(?:\bID\b|\bLD\b|\bI\s*D\b)\s*[:\-]?\s*(\d{6})\b/i,
+        )?.[1] ?? "";
       const normalizedDirect = normalizeIdCode(direct);
       if (normalizedDirect) return normalizedDirect;
 
-      const idTokenIndex = lineRows.findIndex((r) => /^(id|ld|i\s*d)$/i.test(r.text));
+      const idTokenIndex = lineRows.findIndex((r) =>
+        /^(id|ld|i\s*d)$/i.test(r.text),
+      );
       if (idTokenIndex >= 0) {
         for (let i = idTokenIndex + 1; i < lineRows.length; i++) {
           const candidate = lineRows[i].text.match(/\b\d{6}\b/)?.[0] ?? "";
@@ -590,11 +737,16 @@ function extractStrictHeaderIdFromTsv(rows: OcrTsvRow[]): string {
       /\bkc[-\s]*staging\b/i.test(text) ||
       /\b4\s*maps\b/i.test(text)
     ) {
-      anchorTop = Math.min(anchorTop, lineRows[0]?.top ?? Number.POSITIVE_INFINITY);
+      anchorTop = Math.min(
+        anchorTop,
+        lineRows[0]?.top ?? Number.POSITIVE_INFINITY,
+      );
     }
   }
   if (Number.isFinite(anchorTop)) {
-    const oculusScope = topBand.filter((r) => r.top >= anchorTop && r.top <= anchorTop + 240);
+    const oculusScope = topBand.filter(
+      (r) => r.top >= anchorTop && r.top <= anchorTop + 240,
+    );
     const anchored = scanForId(oculusScope);
     if (anchored) return anchored;
     // Fallback 1: in many layouts, ID row is between "First Name" and "Date of Birth".
@@ -608,12 +760,18 @@ function extractStrictHeaderIdFromTsv(rows: OcrTsvRow[]): string {
       .map((lineRowsRaw) => [...lineRowsRaw].sort((a, b) => a.left - b.left))
       .sort((a, b) => (a[0]?.top ?? 0) - (b[0]?.top ?? 0));
     const firstNameTop = orderedLines.find((lineRows) =>
-      /\bfirst\s*name\b/i.test(lineRows.map((r) => r.text).join(" "))
+      /\bfirst\s*name\b/i.test(lineRows.map((r) => r.text).join(" ")),
     )?.[0]?.top;
     const birthTop = orderedLines.find((lineRows) =>
-      /\b(date\s*of\s*birth|birth|dob)\b/i.test(lineRows.map((r) => r.text).join(" "))
+      /\b(date\s*of\s*birth|birth|dob)\b/i.test(
+        lineRows.map((r) => r.text).join(" "),
+      ),
     )?.[0]?.top;
-    if (Number.isFinite(firstNameTop) && Number.isFinite(birthTop) && Number(birthTop) > Number(firstNameTop)) {
+    if (
+      Number.isFinite(firstNameTop) &&
+      Number.isFinite(birthTop) &&
+      Number(birthTop) > Number(firstNameTop)
+    ) {
       for (const lineRows of orderedLines) {
         const y = lineRows[0]?.top ?? 0;
         if (y <= Number(firstNameTop) || y >= Number(birthTop)) continue;
@@ -648,7 +806,7 @@ async function runOcrTsvFromBuffer(
   image: Buffer,
   fileName: string,
   cfg: BlackIceOcrLinkOptions,
-  psmOverride?: number
+  psmOverride?: number,
 ): Promise<OcrTsvRow[]> {
   const tmpBase = await mkdtemp(path.join(os.tmpdir(), "blackice-ocr-tsv-"));
   const inputPath = path.join(tmpBase, getSafeTempImageName(fileName));
@@ -658,7 +816,15 @@ async function runOcrTsvFromBuffer(
   try {
     await writeFile(inputPath, image);
     const psm = Math.max(3, Math.min(13, Number(psmOverride ?? cfg.psm)));
-    const args = [inputFileName, "ocr", "-l", cfg.lang, "--psm", String(psm), "tsv"];
+    const args = [
+      inputFileName,
+      "ocr",
+      "-l",
+      cfg.lang,
+      "--psm",
+      String(psm),
+      "tsv",
+    ];
     await execFile(cfg.tesseractPath, args, {
       cwd: tmpBase,
       windowsHide: true,
@@ -674,7 +840,7 @@ async function runOcrTsvFromBuffer(
 
 async function renameFileWithExtractedId(
   filePath: string,
-  ocrText: string
+  ocrText: string,
 ): Promise<string | null> {
   const labeled = extractLabeledIdCandidatesFromText(ocrText);
   const idCode = normalizeIdCode(labeled[0] ?? "");
@@ -685,7 +851,10 @@ async function renameFileWithExtractedId(
   let candidate = path.join(parsed.dir, `${idCode}_${parsed.base}`);
   let i = 1;
   while (await exists(candidate)) {
-    candidate = path.join(parsed.dir, `${idCode}_${parsed.name}_${i}${parsed.ext}`);
+    candidate = path.join(
+      parsed.dir,
+      `${idCode}_${parsed.name}_${i}${parsed.ext}`,
+    );
     i += 1;
   }
   await rename(filePath, candidate);
@@ -693,7 +862,7 @@ async function renameFileWithExtractedId(
 }
 
 function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const server = net.createServer();
     server.listen(port, () => {
       server.close(() => resolve(true));
@@ -702,7 +871,9 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
-async function findAvailablePort(startPort: number = parseInt(process.env.PORT || "4000")): Promise<number> {
+async function findAvailablePort(
+  startPort: number = parseInt(process.env.PORT || "4000"),
+): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
     if (await isPortAvailable(port)) {
       return port;
@@ -723,17 +894,24 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use((req, res, next) => {
-    const origin = typeof req.headers.origin === "string" ? req.headers.origin : undefined;
+    const origin =
+      typeof req.headers.origin === "string" ? req.headers.origin : undefined;
     if (isAllowedCorsOrigin(origin, allowedCorsOrigins)) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Authorization, Content-Type, X-Requested-With, trpc-accept"
+        "Authorization, Content-Type, X-Requested-With, trpc-accept",
       );
-      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-      res.setHeader("Access-Control-Expose-Headers", "Content-Type, Content-Length");
+      res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+      );
+      res.setHeader(
+        "Access-Control-Expose-Headers",
+        "Content-Type, Content-Length",
+      );
     }
 
     if (req.method === "OPTIONS") {
@@ -743,33 +921,48 @@ async function startServer() {
 
     next();
   });
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (err instanceof SyntaxError && (err as any)?.status === 400 && "body" in err) {
-      res.status(400).json({ error: "Invalid JSON body" });
-      return;
-    }
-    if (
-      err?.type === "request.aborted" ||
-      err?.code === "ECONNABORTED" ||
-      /request aborted/i.test(String(err?.message ?? ""))
-    ) {
-      console.warn(`[api] request aborted ${req.method} ${req.originalUrl}`);
-      if (!res.headersSent) {
-        res.status(499).end();
+  app.use(
+    (
+      err: any,
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      if (
+        err instanceof SyntaxError &&
+        (err as any)?.status === 400 &&
+        "body" in err
+      ) {
+        res.status(400).json({ error: "Invalid JSON body" });
+        return;
       }
-      return;
-    }
-    next(err);
-  });
+      if (
+        err?.type === "request.aborted" ||
+        err?.code === "ECONNABORTED" ||
+        /request aborted/i.test(String(err?.message ?? ""))
+      ) {
+        console.warn(`[api] request aborted ${req.method} ${req.originalUrl}`);
+        if (!res.headersSent) {
+          res.status(499).end();
+        }
+        return;
+      }
+      next(err);
+    },
+  );
   app.use((req, res, next) => {
     const start = Date.now();
     res.on("finish", () => {
       if (!req.path.startsWith("/api/")) return;
       const ms = Date.now() - start;
       if (ms >= 500) {
-        console.warn(`[slow-api] ${req.method} ${req.path} -> ${res.statusCode} in ${ms}ms`);
+        console.warn(
+          `[slow-api] ${req.method} ${req.path} -> ${res.statusCode} in ${ms}ms`,
+        );
       } else if (process.env.NODE_ENV !== "production") {
-        console.log(`[api] ${req.method} ${req.path} -> ${res.statusCode} in ${ms}ms`);
+        console.log(
+          `[api] ${req.method} ${req.path} -> ${res.statusCode} in ${ms}ms`,
+        );
       }
     });
     next();
@@ -795,7 +988,9 @@ async function startServer() {
       return;
     }
     if (!cfg.sourceDir) {
-      console.warn("[blackice-import] Disabled: BLACKICE_IMPORT_SOURCE_DIR is missing");
+      console.warn(
+        "[blackice-import] Disabled: BLACKICE_IMPORT_SOURCE_DIR is missing",
+      );
       return;
     }
 
@@ -803,7 +998,7 @@ async function startServer() {
     await mkdir(cfg.processedDir, { recursive: true });
 
     console.log(
-      `[blackice-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`
+      `[blackice-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
     );
 
     let busy = false;
@@ -817,7 +1012,8 @@ async function startServer() {
         const entries = await readdir(cfg.sourceDir, { withFileTypes: true });
         const fileNames = entries
           .filter((entry) => {
-            if (!entry.isFile() || !IMPORTABLE_IMAGE_EXT.test(entry.name)) return false;
+            if (!entry.isFile() || !IMPORTABLE_IMAGE_EXT.test(entry.name))
+              return false;
             const n = entry.name;
             if (n.startsWith("IMPORTED_")) return false;
             if (n.startsWith("FAILED_")) return false;
@@ -827,7 +1023,9 @@ async function startServer() {
           .sort((a, b) => a.localeCompare(b))
           .slice(0, cfg.maxFilesPerCycle);
         if (fileNames.length > 0) {
-          console.log(`[blackice-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`);
+          console.log(
+            `[blackice-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`,
+          );
         }
 
         for (const fileName of fileNames) {
@@ -850,7 +1048,7 @@ async function startServer() {
             const [existing] = await withDb(async (conn) => {
               return conn.query(
                 `SELECT id FROM blackice_uploads WHERE document_id = ? AND file_name = ? LIMIT 1`,
-                [documentId, dbFileName]
+                [documentId, dbFileName],
               );
             });
 
@@ -864,9 +1062,13 @@ async function startServer() {
               const candidateKey = `blackice-imports/${Date.now()}-${dbFileName}`;
               await uploadToS3(candidateKey, fileData, mimeType);
               s3Key = candidateKey;
-              console.log(`[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`);
+              console.log(
+                `[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`,
+              );
             } catch (error: any) {
-              console.warn(`[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`);
+              console.warn(
+                `[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`,
+              );
             }
 
             const uploadId = await withDb(async (conn) => {
@@ -874,7 +1076,14 @@ async function startServer() {
                 `INSERT INTO blackice_uploads
                  (document_id, file_name, mime_type, file_data, s3_key, source_printer)
                  VALUES (?, ?, ?, ?, ?, ?)`,
-                [documentId, dbFileName, mimeType, fileData, s3Key, cfg.sourcePrinter]
+                [
+                  documentId,
+                  dbFileName,
+                  mimeType,
+                  fileData,
+                  s3Key,
+                  cfg.sourcePrinter,
+                ],
               );
               return Number((insertResult as any)?.insertId ?? 0);
             });
@@ -885,7 +1094,12 @@ async function startServer() {
               try {
                 const psmCandidates = Array.from(new Set([4, ocrCfg.psm]));
                 for (const psm of psmCandidates) {
-                  const tsvRows = await runOcrTsvFromBuffer(fileData, fileName, ocrCfg, psm);
+                  const tsvRows = await runOcrTsvFromBuffer(
+                    fileData,
+                    fileName,
+                    ocrCfg,
+                    psm,
+                  );
                   const renameCode = extractStrictHeaderIdFromTsv(tsvRows);
                   if (renameCode) {
                     importCode = renameCode;
@@ -898,20 +1112,33 @@ async function startServer() {
             }
 
             // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
-            const effectiveCode = importCode || extractLeadingIdFromFileName(fileName);
-            const renamedPath = await renameToPatientIdentity(fullPath, effectiveCode, undefined, undefined);
+            const effectiveCode =
+              importCode || extractLeadingIdFromFileName(fileName);
+            const renamedPath = await renameToPatientIdentity(
+              fullPath,
+              effectiveCode,
+              undefined,
+              undefined,
+            );
             const movedPath =
-              path.resolve(path.dirname(renamedPath)) === path.resolve(cfg.processedDir)
+              path.resolve(path.dirname(renamedPath)) ===
+              path.resolve(cfg.processedDir)
                 ? renamedPath
-                : await moveToDirAvoidingOverwrite(renamedPath, cfg.processedDir);
+                : await moveToDirAvoidingOverwrite(
+                    renamedPath,
+                    cfg.processedDir,
+                  );
             const movedFileName = path.basename(movedPath).slice(0, 255);
             if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
               await withDb((conn) =>
-                conn.query("UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?", [
-                  movedFileName,
-                  path.parse(movedFileName).name.slice(0, 255),
-                  uploadId,
-                ])
+                conn.query(
+                  "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                  [
+                    movedFileName,
+                    path.parse(movedFileName).name.slice(0, 255),
+                    uploadId,
+                  ],
+                ),
               );
             }
             console.log(`[blackice-import] Imported ${fileName}`);
@@ -921,18 +1148,32 @@ async function startServer() {
               try {
                 const ocrCfg = getBlackIceOcrLinkOptions();
                 if (ocrCfg.enabled && fileData && fileData.length > 0) {
-                  const tsvRows = await runOcrTsvFromBuffer(fileData, fileName, ocrCfg, 4);
+                  const tsvRows = await runOcrTsvFromBuffer(
+                    fileData,
+                    fileName,
+                    ocrCfg,
+                    4,
+                  );
                   const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
                   if (strictCode) {
-                    const renamedPath = await renameToPatientIdentity(fullPath, strictCode, undefined, undefined);
+                    const renamedPath = await renameToPatientIdentity(
+                      fullPath,
+                      strictCode,
+                      undefined,
+                      undefined,
+                    );
                     const renamed = path.basename(renamedPath);
-                    console.log(`[blackice-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`);
+                    console.log(
+                      `[blackice-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
+                    );
                   }
                 }
               } catch {
                 // Keep import loop resilient; rename fallback is best-effort only.
               }
-              console.warn(`[blackice-import] Lock timeout on ${fileName}; will retry next cycle.`);
+              console.warn(
+                `[blackice-import] Lock timeout on ${fileName}; will retry next cycle.`,
+              );
               continue;
             }
             console.error(`[blackice-import] Failed ${fileName}: ${reason}`);
@@ -940,7 +1181,10 @@ async function startServer() {
           }
         }
       } catch (error: any) {
-        console.error("[blackice-import] Cycle error:", String(error?.message ?? error));
+        console.error(
+          "[blackice-import] Cycle error:",
+          String(error?.message ?? error),
+        );
       } finally {
         blackIceDbCycleBusy = false;
         busy = false;
@@ -961,15 +1205,18 @@ async function startServer() {
       return;
     }
     try {
-      await execFile(cfg.tesseractPath, ["--version"], { windowsHide: true, timeout: 15_000 });
+      await execFile(cfg.tesseractPath, ["--version"], {
+        windowsHide: true,
+        timeout: 15_000,
+      });
     } catch (error: any) {
       console.error(
-        `[blackice-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`
+        `[blackice-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`,
       );
       return;
     }
     console.log(
-      `[blackice-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`
+      `[blackice-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`,
     );
 
     let busy = false;
@@ -986,7 +1233,7 @@ async function startServer() {
              WHERE patient_id IS NULL
              ORDER BY id DESC
              LIMIT ?`,
-            [cfg.batchSize]
+            [cfg.batchSize],
           );
           const uploads = rows as Array<{
             id: number;
@@ -1005,7 +1252,9 @@ async function startServer() {
                 try {
                   imageData = await downloadFromS3(row.s3_key);
                 } catch (error: any) {
-                  console.warn(`[blackice-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`);
+                  console.warn(
+                    `[blackice-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+                  );
                   if (row.file_data && row.file_data.length > 0) {
                     imageData = row.file_data;
                   }
@@ -1016,23 +1265,40 @@ async function startServer() {
 
               let ocrText = String(row.ocr_text ?? "").trim();
               if (imageData && imageData.length > 0 && !ocrText) {
-                imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
+                imageData = Buffer.isBuffer(imageData)
+                  ? imageData
+                  : Buffer.from(imageData as any);
                 if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-                  const diskFallback = await loadImageFromImportFolders(row.file_name);
+                  const diskFallback = await loadImageFromImportFolders(
+                    row.file_name,
+                  );
                   if (diskFallback) imageData = diskFallback;
                 }
                 try {
-                  ocrText = await runOcrFromBuffer(imageData, row.file_name || `${row.id}.jpg`, cfg);
+                  ocrText = await runOcrFromBuffer(
+                    imageData,
+                    row.file_name || `${row.id}.jpg`,
+                    cfg,
+                  );
                   if (ocrText) {
-                    await conn.query("UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?", [ocrText, row.id]);
+                    await conn.query(
+                      "UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?",
+                      [ocrText, row.id],
+                    );
                   }
                 } catch (error: any) {
-                  console.warn(`[blackice-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`);
+                  console.warn(
+                    `[blackice-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+                  );
                 }
               }
 
-              const labeledOcrCandidates = extractLabeledIdCandidatesFromText(ocrText);
-              const ocrCandidates = labeledOcrCandidates.length > 0 ? labeledOcrCandidates : extractIdCandidatesFromText(ocrText);
+              const labeledOcrCandidates =
+                extractLabeledIdCandidatesFromText(ocrText);
+              const ocrCandidates =
+                labeledOcrCandidates.length > 0
+                  ? labeledOcrCandidates
+                  : extractIdCandidatesFromText(ocrText);
               const candidates = Array.from(
                 new Set([
                   ...labeledOcrCandidates,
@@ -1040,33 +1306,44 @@ async function startServer() {
                   ...extractIdCandidatesFromText(row.file_name ?? ""),
                   ...ocrCandidates,
                   ...extractIdCandidatesFromText(row.plain_text ?? ""),
-                ])
+                ]),
               );
               if (candidates.length === 0) continue;
 
               const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
               if (renameCode && row.file_name) {
-                const renamedFile = await prefixProcessedFileWithCode(importCfg.processedDir, row.file_name, renameCode);
+                const renamedFile = await prefixProcessedFileWithCode(
+                  importCfg.processedDir,
+                  row.file_name,
+                  renameCode,
+                );
                 if (renamedFile && renamedFile !== row.file_name) {
-                  await conn.query("UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?", [
-                    renamedFile,
-                    path.parse(renamedFile).name.slice(0, 255),
-                    row.id,
-                  ]);
+                  await conn.query(
+                    "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                    [
+                      renamedFile,
+                      path.parse(renamedFile).name.slice(0, 255),
+                      row.id,
+                    ],
+                  );
                 }
               }
 
               const patientId = await resolvePatientByIds(conn, candidates);
               if (!patientId) continue;
 
-              await conn.query("UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL", [
-                patientId,
-                row.id,
-              ]);
-              console.log(`[blackice-ocr] Linked upload ${row.id} -> patient_id=${patientId}`);
+              await conn.query(
+                "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+                [patientId, row.id],
+              );
+              console.log(
+                `[blackice-ocr] Linked upload ${row.id} -> patient_id=${patientId}`,
+              );
             } catch (error: any) {
               if (isLockWaitError(error)) {
-                console.warn(`[blackice-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`);
+                console.warn(
+                  `[blackice-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`,
+                );
                 continue;
               }
               throw error;
@@ -1074,7 +1351,10 @@ async function startServer() {
           }
         });
       } catch (error: any) {
-        console.error("[blackice-ocr] Cycle error:", String(error?.message ?? error));
+        console.error(
+          "[blackice-ocr] Cycle error:",
+          String(error?.message ?? error),
+        );
       } finally {
         blackIceDbCycleBusy = false;
         busy = false;
@@ -1091,10 +1371,15 @@ async function startServer() {
   app.get("/api/blackice/uploads", async (req, res) => {
     try {
       const limitRaw = Number(req.query.limit ?? 100);
-      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(1000, limitRaw)) : 100;
+      const limit = Number.isFinite(limitRaw)
+        ? Math.max(1, Math.min(1000, limitRaw))
+        : 100;
       const search = String(req.query.search ?? "").trim();
       const patientIdRaw = Number(req.query.patientId ?? 0);
-      const patientId = Number.isFinite(patientIdRaw) && patientIdRaw > 0 ? Math.trunc(patientIdRaw) : 0;
+      const patientId =
+        Number.isFinite(patientIdRaw) && patientIdRaw > 0
+          ? Math.trunc(patientIdRaw)
+          : 0;
 
       const rows = await withDb(async (conn) => {
         if (patientId > 0) {
@@ -1106,7 +1391,7 @@ async function startServer() {
              WHERE b.patient_id = ?
              ORDER BY b.id DESC
              LIMIT ?`,
-            [patientId, limit]
+            [patientId, limit],
           );
           return result as BlackIceUploadRow[];
         }
@@ -1135,7 +1420,15 @@ async function startServer() {
                   Number(search),
                   limit,
                 ]
-              : [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, limit]
+              : [
+                  `%${search}%`,
+                  `%${search}%`,
+                  `%${search}%`,
+                  `%${search}%`,
+                  `%${search}%`,
+                  `%${search}%`,
+                  limit,
+                ],
           );
           return result as BlackIceUploadRow[];
         }
@@ -1147,7 +1440,7 @@ async function startServer() {
            LEFT JOIN patients p ON p.id = b.patient_id
            ORDER BY b.id DESC
            LIMIT ?`,
-          [limit]
+          [limit],
         );
         return result as BlackIceUploadRow[];
       });
@@ -1156,7 +1449,9 @@ async function startServer() {
         ok: true,
         count: rows.length,
         rows: rows.map((row) => ({
-          ocrIdCandidates: Array.from(new Set(String(row.ocr_text ?? "").match(/\b\d{4,12}\b/g) ?? [])).slice(0, 10),
+          ocrIdCandidates: Array.from(
+            new Set(String(row.ocr_text ?? "").match(/\b\d{4,12}\b/g) ?? []),
+          ).slice(0, 10),
           id: row.id,
           documentId: row.document_id,
           fileName: row.file_name,
@@ -1198,7 +1493,7 @@ async function startServer() {
            FROM blackice_uploads
            WHERE id = ?
            LIMIT 1`,
-          [id]
+          [id],
         );
         return (result as any[])[0] as
           | {
@@ -1224,23 +1519,33 @@ async function startServer() {
           res.redirect(302, signedUrl);
           return;
         } catch (error: any) {
-          console.warn(`[blackice-api] Failed to generate presigned URL for ${row.s3_key}, falling back to proxy`, error);
+          console.warn(
+            `[blackice-api] Failed to generate presigned URL for ${row.s3_key}, falling back to proxy`,
+            error,
+          );
         }
       }
 
       // No S3 key (or presign failed) — fetch BLOB from DB and stream it
       const blobRow = await withDb(async (conn) => {
-        const [r] = await conn.query(`SELECT file_data FROM blackice_uploads WHERE id = ? LIMIT 1`, [id]);
+        const [r] = await conn.query(
+          `SELECT file_data FROM blackice_uploads WHERE id = ? LIMIT 1`,
+          [id],
+        );
         return (r as any[])[0] as { file_data: Buffer | null } | undefined;
       });
-      const fileBuffer = blobRow?.file_data && blobRow.file_data.length > 0 ? blobRow.file_data : null;
+      const fileBuffer =
+        blobRow?.file_data && blobRow.file_data.length > 0
+          ? blobRow.file_data
+          : null;
 
       if (!fileBuffer) {
         res.status(404).json({ ok: false, error: "Upload has no binary data" });
         return;
       }
 
-      const mimeType = String(row.mime_type ?? "").trim() || "application/octet-stream";
+      const mimeType =
+        String(row.mime_type ?? "").trim() || "application/octet-stream";
       const fileName =
         String(row.file_name ?? "").trim() ||
         `${String(row.document_id || "document").replace(/[^\w.-]+/g, "_")}.bin`;
@@ -1251,7 +1556,7 @@ async function startServer() {
       res.setHeader("Cache-Control", "private, max-age=3600");
       res.setHeader(
         "Content-Disposition",
-        `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`
+        `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`,
       );
       res.status(200).send(fileBuffer);
     } catch (error: any) {
@@ -1265,7 +1570,12 @@ async function startServer() {
   app.post("/api/blackice/uploads/ocr-link/run", async (_req, res) => {
     try {
       if (blackIceDbCycleBusy) {
-        res.status(409).json({ ok: false, error: "Black Ice worker is busy, retry shortly" });
+        res
+          .status(409)
+          .json({
+            ok: false,
+            error: "Black Ice worker is busy, retry shortly",
+          });
         return;
       }
       blackIceDbCycleBusy = true;
@@ -1273,7 +1583,9 @@ async function startServer() {
       const importCfg = getBlackIceFolderImportOptions();
       if (!cfg.enabled) {
         blackIceDbCycleBusy = false;
-        res.status(400).json({ ok: false, error: "BLACKICE_OCR_ENABLED is false" });
+        res
+          .status(400)
+          .json({ ok: false, error: "BLACKICE_OCR_ENABLED is false" });
         return;
       }
       let linked = 0;
@@ -1285,7 +1597,7 @@ async function startServer() {
            WHERE patient_id IS NULL
            ORDER BY id DESC
            LIMIT ?`,
-          [cfg.batchSize]
+          [cfg.batchSize],
         );
         const uploads = rows as Array<{
           id: number;
@@ -1303,7 +1615,9 @@ async function startServer() {
             try {
               imageData = await downloadFromS3(row.s3_key);
             } catch (error: any) {
-              console.warn(`[blackice-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`);
+              console.warn(
+                `[blackice-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+              );
               if (row.file_data && row.file_data.length > 0) {
                 imageData = row.file_data;
               }
@@ -1315,22 +1629,39 @@ async function startServer() {
           processed += 1;
           let ocrText = String(row.ocr_text ?? "").trim();
           if (imageData && imageData.length > 0 && !ocrText) {
-            imageData = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData as any);
+            imageData = Buffer.isBuffer(imageData)
+              ? imageData
+              : Buffer.from(imageData as any);
             if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-              const diskFallback = await loadImageFromImportFolders(row.file_name);
+              const diskFallback = await loadImageFromImportFolders(
+                row.file_name,
+              );
               if (diskFallback) imageData = diskFallback;
             }
             try {
-              ocrText = await runOcrFromBuffer(imageData, row.file_name || `${row.id}.jpg`, cfg);
+              ocrText = await runOcrFromBuffer(
+                imageData,
+                row.file_name || `${row.id}.jpg`,
+                cfg,
+              );
               if (ocrText) {
-                await conn.query("UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?", [ocrText, row.id]);
+                await conn.query(
+                  "UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?",
+                  [ocrText, row.id],
+                );
               }
             } catch (error: any) {
-              console.warn(`[blackice-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`);
+              console.warn(
+                `[blackice-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+              );
             }
           }
-          const labeledOcrCandidates = extractLabeledIdCandidatesFromText(ocrText);
-          const ocrCandidates = labeledOcrCandidates.length > 0 ? labeledOcrCandidates : extractIdCandidatesFromText(ocrText);
+          const labeledOcrCandidates =
+            extractLabeledIdCandidatesFromText(ocrText);
+          const ocrCandidates =
+            labeledOcrCandidates.length > 0
+              ? labeledOcrCandidates
+              : extractIdCandidatesFromText(ocrText);
           const candidates = Array.from(
             new Set([
               ...labeledOcrCandidates,
@@ -1338,34 +1669,43 @@ async function startServer() {
               ...extractIdCandidatesFromText(row.file_name ?? ""),
               ...ocrCandidates,
               ...extractIdCandidatesFromText(row.plain_text ?? ""),
-            ])
+            ]),
           );
           if (candidates.length === 0) continue;
 
           const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
           if (renameCode && row.file_name) {
-            const renamedFile = await prefixProcessedFileWithCode(importCfg.processedDir, row.file_name, renameCode);
+            const renamedFile = await prefixProcessedFileWithCode(
+              importCfg.processedDir,
+              row.file_name,
+              renameCode,
+            );
             if (renamedFile && renamedFile !== row.file_name) {
-              await conn.query("UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?", [
-                renamedFile,
-                path.parse(renamedFile).name.slice(0, 255),
-                row.id,
-              ]);
+              await conn.query(
+                "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                [
+                  renamedFile,
+                  path.parse(renamedFile).name.slice(0, 255),
+                  row.id,
+                ],
+              );
             }
           }
 
           const patientId = await resolvePatientByIds(conn, candidates);
           if (!patientId) continue;
-          await conn.query("UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL", [
-            patientId,
-            row.id,
-          ]);
+          await conn.query(
+            "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+            [patientId, row.id],
+          );
           linked += 1;
         }
       });
       res.status(200).json({ ok: true, processed, linked });
     } catch (error: any) {
-      res.status(500).json({ ok: false, error: String(error?.message ?? error) });
+      res
+        .status(500)
+        .json({ ok: false, error: String(error?.message ?? error) });
     } finally {
       blackIceDbCycleBusy = false;
     }
@@ -1386,25 +1726,31 @@ async function startServer() {
              WHERE patient_id IS NULL
              ORDER BY id ASC
              LIMIT ? OFFSET ?`,
-            [BATCH, offset]
+            [BATCH, offset],
           );
-          return result as Array<{ id: number; document_id: string; file_name: string | null }>;
+          return result as Array<{
+            id: number;
+            document_id: string;
+            file_name: string | null;
+          }>;
         });
         if (!rows || rows.length === 0) break;
         offset += rows.length;
         await withDb(async (conn) => {
           for (const row of rows) {
             processed += 1;
-            const candidates = Array.from(new Set([
-              ...extractIdCandidatesFromText(row.document_id),
-              ...extractIdCandidatesFromText(row.file_name ?? ""),
-            ]));
+            const candidates = Array.from(
+              new Set([
+                ...extractIdCandidatesFromText(row.document_id),
+                ...extractIdCandidatesFromText(row.file_name ?? ""),
+              ]),
+            );
             if (candidates.length === 0) continue;
             const patientId = await resolvePatientByIds(conn, candidates);
             if (!patientId) continue;
             await conn.query(
               "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
-              [patientId, row.id]
+              [patientId, row.id],
             );
             linked += 1;
           }
@@ -1413,36 +1759,48 @@ async function startServer() {
       }
       res.status(200).json({ ok: true, processed, linked });
     } catch (error: any) {
-      res.status(500).json({ ok: false, error: String(error?.message ?? error) });
+      res
+        .status(500)
+        .json({ ok: false, error: String(error?.message ?? error) });
     }
   });
 
   app.post("/api/blackice/uploads/fix-duplicates", async (_req, res) => {
     try {
-      const [r1] = await withDb(async (conn) => conn.query(
-        `UPDATE blackice_uploads b
+      const [r1] = await withDb(async (conn) =>
+        conn.query(
+          `UPDATE blackice_uploads b
          INNER JOIN patients p ON p.patientCode = REGEXP_SUBSTR(b.file_name, '^[0-9]+')
          SET b.patient_id = p.id
-         WHERE b.patient_id IS NULL`
-      ));
-      const [r2] = await withDb(async (conn) => conn.query(
-        `UPDATE blackice_uploads u1
+         WHERE b.patient_id IS NULL`,
+        ),
+      );
+      const [r2] = await withDb(async (conn) =>
+        conn.query(
+          `UPDATE blackice_uploads u1
          INNER JOIN blackice_uploads u2 ON u1.file_name = u2.file_name
          SET u1.patient_id = u2.patient_id
-         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`
-      ));
+         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`,
+        ),
+      );
       res.status(200).json({
         ok: true,
         linkedByCode: Number((r1 as any)?.affectedRows ?? 0),
         linkedByDuplicate: Number((r2 as any)?.affectedRows ?? 0),
       });
     } catch (error: any) {
-      res.status(500).json({ ok: false, error: String(error?.message ?? error) });
+      res
+        .status(500)
+        .json({ ok: false, error: String(error?.message ?? error) });
     }
   });
 
   app.get("/healthz", async (_req, res) => {
-    const build = await getBuildInfo().catch(() => ({ version: "unknown", buildTime: "unknown", commit: "unknown" }));
+    const build = await getBuildInfo().catch(() => ({
+      version: "unknown",
+      buildTime: "unknown",
+      commit: "unknown",
+    }));
     const payload: {
       ok: boolean;
       env: string;
@@ -1470,12 +1828,15 @@ async function startServer() {
     try {
       conn = await mysql.createConnection(databaseUrl);
       const [rows] = await conn.query("SELECT COUNT(*) AS c FROM patients");
-      const first = Array.isArray(rows) && rows.length > 0 ? (rows[0] as any) : null;
+      const first =
+        Array.isArray(rows) && rows.length > 0 ? (rows[0] as any) : null;
       payload.dbConnected = true;
       payload.patientsCount = Number(first?.c ?? 0);
     } catch (error: any) {
       payload.dbConnected = false;
-      payload.dbError = String(error?.code || error?.message || "DB ping failed");
+      payload.dbError = String(
+        error?.code || error?.message || "DB ping failed",
+      );
     } finally {
       if (conn) await conn.end();
     }
@@ -1485,7 +1846,9 @@ async function startServer() {
   registerAuthRoutes(app);
 
   function resolvePentacamObjectCandidates(rawName: string) {
-    const normalized = String(rawName ?? "").trim().replace(/^\/+/, "");
+    const normalized = String(rawName ?? "")
+      .trim()
+      .replace(/^\/+/, "");
     const base = path.posix.basename(normalized);
     const stem = path.posix.parse(base).name || base;
     const hasExt = Boolean(path.posix.extname(base));
@@ -1504,14 +1867,26 @@ async function startServer() {
           `${stem}.png`,
           `${stem}.webp`,
         ];
-    for (const candidate of [normalized, ...variants.flatMap((value) => [value, `pentacam-exports/${value}`, `Pentacam/${value}`, `pentacam/${value}`])]) {
-      const value = String(candidate ?? "").trim().replace(/^\/+/, "");
+    for (const candidate of [
+      normalized,
+      ...variants.flatMap((value) => [
+        value,
+        `pentacam-exports/${value}`,
+        `Pentacam/${value}`,
+        `pentacam/${value}`,
+      ]),
+    ]) {
+      const value = String(candidate ?? "")
+        .trim()
+        .replace(/^\/+/, "");
       if (value) values.add(value);
     }
     return Array.from(values);
   }
 
-  async function readPentacamObjectBuffer(name: string): Promise<Buffer | null> {
+  async function readPentacamObjectBuffer(
+    name: string,
+  ): Promise<Buffer | null> {
     const candidates = resolvePentacamObjectCandidates(name);
     for (const key of candidates) {
       try {
@@ -1527,7 +1902,12 @@ async function startServer() {
   app.get("/api/pentacam/s3-debug", async (_req, res) => {
     try {
       const objects = await listObjectsInS3("");
-      res.status(200).json({ count: objects.length, keys: objects.slice(0, 200).map((o) => o.key) });
+      res
+        .status(200)
+        .json({
+          count: objects.length,
+          keys: objects.slice(0, 200).map((o) => o.key),
+        });
     } catch (err: any) {
       res.status(500).json({ error: String(err?.message ?? err) });
     }
@@ -1535,8 +1915,15 @@ async function startServer() {
   app.get("/api/pentacam/exports", async (req, res) => {
     try {
       const limitRaw = Number(req.query.limit ?? 10000);
-      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(100000, limitRaw)) : 10000;
-      const files: Array<{ name: string; size: number; mtime: string; url: string }> = [];
+      const limit = Number.isFinite(limitRaw)
+        ? Math.max(1, Math.min(100000, limitRaw))
+        : 10000;
+      const files: Array<{
+        name: string;
+        size: number;
+        mtime: string;
+        url: string;
+      }> = [];
       const seen = new Set<string>();
 
       // Source 1: pentacamResults notes (legacy, may be empty)
@@ -1545,8 +1932,14 @@ async function startServer() {
         const notes = String((row as any)?.notes ?? "");
         if (!notes) continue;
         let parsed: any = null;
-        try { parsed = JSON.parse(notes); } catch { continue; }
-        const name = String(parsed?.originalFileName ?? parsed?.sourceFileName ?? "").trim();
+        try {
+          parsed = JSON.parse(notes);
+        } catch {
+          continue;
+        }
+        const name = String(
+          parsed?.originalFileName ?? parsed?.sourceFileName ?? "",
+        ).trim();
         if (!name) continue;
         const normalized = name.toLowerCase();
         if (seen.has(normalized)) continue;
@@ -1590,7 +1983,11 @@ async function startServer() {
   app.get("/api/pentacam/exports/file/:name", async (req, res) => {
     try {
       let rawName = String(req.params.name ?? "").trim();
-      try { rawName = decodeURIComponent(rawName); } catch { /* keep as-is */ }
+      try {
+        rawName = decodeURIComponent(rawName);
+      } catch {
+        /* keep as-is */
+      }
       if (!rawName) {
         res.status(400).json({ ok: false, error: "Invalid file name" });
         return;
@@ -1601,37 +1998,71 @@ async function startServer() {
         return;
       }
       const name = path.posix.basename(rawName.replace(/\\/g, "/"));
-      const mimeType =
-        name.toLowerCase().endsWith(".png") ? "image/png" :
-        name.toLowerCase().endsWith(".webp") ? "image/webp" :
-        "image/jpeg";
+      const mimeType = name.toLowerCase().endsWith(".png")
+        ? "image/png"
+        : name.toLowerCase().endsWith(".webp")
+          ? "image/webp"
+          : "image/jpeg";
       res.setHeader("Content-Type", mimeType);
       res.setHeader("Content-Length", String(fileBuffer.length));
       res.setHeader("Cache-Control", "private, max-age=60");
-      res.setHeader("Content-Disposition", `inline; filename="${name.replace(/"/g, "")}"`);
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${name.replace(/"/g, "")}"`,
+      );
       res.status(200).send(fileBuffer);
     } catch (error: any) {
-      res.status(500).json({ ok: false, error: String(error?.message ?? "Failed to read Pentacam image") });
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error: String(error?.message ?? "Failed to read Pentacam image"),
+        });
     }
   });
-  const marketingImageDir = path.resolve(process.env.MARKETING_IMAGE_DIR || path.join(process.cwd(), "uploads", "marketing"));
-  app.use("/uploads/marketing", express.static(marketingImageDir, { maxAge: "1d", fallthrough: true }));
-  app.use("/uploads/marketing/reference-designs", express.static(path.join(marketingImageDir, "reference-designs"), { maxAge: "1d", fallthrough: true }));
-  app.use("/pentacam-exports", express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }));
+  const marketingImageDir = path.resolve(
+    process.env.MARKETING_IMAGE_DIR ||
+      path.join(process.cwd(), "uploads", "marketing"),
+  );
+  app.use(
+    "/uploads/marketing",
+    express.static(marketingImageDir, { maxAge: "1d", fallthrough: true }),
+  );
+  app.use(
+    "/uploads/marketing/reference-designs",
+    express.static(path.join(marketingImageDir, "reference-designs"), {
+      maxAge: "1d",
+      fallthrough: true,
+    }),
+  );
+  app.use(
+    "/pentacam-exports",
+    express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }),
+  );
   app.use(
     "/pentacam-failed",
-    express.static(path.join(pentacamExportsDir, "_failed"), { maxAge: "5m", fallthrough: true })
+    express.static(path.join(pentacamExportsDir, "_failed"), {
+      maxAge: "5m",
+      fallthrough: true,
+    }),
   );
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
   app.get("/api/marketing/facebook/callback", async (req, res) => {
-    const { code, state, error: fbError } = req.query as Record<string, string | undefined>;
+    const {
+      code,
+      state,
+      error: fbError,
+    } = req.query as Record<string, string | undefined>;
 
-    const appOrigin = process.env.FB_APP_ORIGIN || `${req.protocol}://${req.get("host")}`;
+    const appOrigin =
+      process.env.FB_APP_ORIGIN || `${req.protocol}://${req.get("host")}`;
     const settingsUrl = `${appOrigin}/marketing/settings`;
 
     if (fbError) {
-      return res.redirect(`${settingsUrl}?fb=error&reason=${encodeURIComponent(fbError)}`);
+      return res.redirect(
+        `${settingsUrl}?fb=error&reason=${encodeURIComponent(fbError)}`,
+      );
     }
     if (!code || !state) {
       return res.redirect(`${settingsUrl}?fb=error&reason=missing_params`);
@@ -1649,15 +2080,28 @@ async function startServer() {
       } = await import("../services/marketing/facebookOAuth.service");
 
       const db = await getDb();
-      if (!db) return res.redirect(`${settingsUrl}?fb=error&reason=db_unavailable`);
+      if (!db)
+        return res.redirect(`${settingsUrl}?fb=error&reason=db_unavailable`);
 
       // Verify CSRF state
-      const [settings] = await db.select({ id: marketingSettings.id, fbOauthState: marketingSettings.fbOauthState }).from(marketingSettings).limit(1);
-      if (!settings || !settings.fbOauthState || settings.fbOauthState !== state) {
+      const [settings] = await db
+        .select({
+          id: marketingSettings.id,
+          fbOauthState: marketingSettings.fbOauthState,
+        })
+        .from(marketingSettings)
+        .limit(1);
+      if (
+        !settings ||
+        !settings.fbOauthState ||
+        settings.fbOauthState !== state
+      ) {
         return res.redirect(`${settingsUrl}?fb=error&reason=invalid_state`);
       }
 
-      const redirectUri = process.env.FB_REDIRECT_URI || `${appOrigin}/api/marketing/facebook/callback`;
+      const redirectUri =
+        process.env.FB_REDIRECT_URI ||
+        `${appOrigin}/api/marketing/facebook/callback`;
 
       const shortToken = await exchangeCodeForToken(code, redirectUri);
       const longToken = await exchangeForLongLivedToken(shortToken);
@@ -1665,18 +2109,31 @@ async function startServer() {
 
       // Clear oauth state regardless of outcome
       if (pages.length === 0) {
-        await db.update(marketingSettings).set({ fbOauthState: null }).where(eq(marketingSettings.id, settings.id));
+        await db
+          .update(marketingSettings)
+          .set({ fbOauthState: null })
+          .where(eq(marketingSettings.id, settings.id));
         return res.redirect(`${settingsUrl}?fb=error&reason=no_pages`);
       }
 
       // Always show page selection so admin can confirm which page to connect
       const pendingEncoded = Buffer.from(
-        JSON.stringify(pages.map(p => ({ id: p.id, name: p.name, category: p.category, token: p.accessToken })))
+        JSON.stringify(
+          pages.map((p) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            token: p.accessToken,
+          })),
+        ),
       ).toString("base64");
-      await db.update(marketingSettings).set({
-        fbOauthState: null,
-        fbPendingPages: pendingEncoded,
-      }).where(eq(marketingSettings.id, settings.id));
+      await db
+        .update(marketingSettings)
+        .set({
+          fbOauthState: null,
+          fbPendingPages: pendingEncoded,
+        })
+        .where(eq(marketingSettings.id, settings.id));
 
       return res.redirect(`${settingsUrl}?fb=select`);
     } catch (err) {
@@ -1693,7 +2150,7 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
-    })
+    }),
   );
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
@@ -1709,7 +2166,9 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`[${branchName}] Port ${preferredPort} is busy, using port ${port} instead`);
+    console.log(
+      `[${branchName}] Port ${preferredPort} is busy, using port ${port} instead`,
+    );
   }
 
   server.listen(port, host, () => {

@@ -33,7 +33,12 @@ import {
 import { AppShellFooter } from "@/components/layout/AppShellFooter";
 import PatientHubHome from "./PatientHubHome";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 const HUB_PATIENT_PATH_RE =
   /\/patient-hub\/(?:file|summary|reports|doctor|brief|examination|prescription|request-tests|visits|followups|pentacam-dashboard|sheets\/consultant)\/(\d+)/;
@@ -77,7 +82,11 @@ function visitDateKey(visit: { visitDate?: unknown }): string {
   }
 }
 
-function formatVisitDisplay(visit: { visitDate?: unknown; visitType?: string | null; id: number }): string {
+function formatVisitDisplay(visit: {
+  visitDate?: unknown;
+  visitType?: string | null;
+  id: number;
+}): string {
   const day = visitDateKey(visit);
   const dateStr = day
     ? (() => {
@@ -96,12 +105,17 @@ function formatVisitDisplay(visit: { visitDate?: unknown; visitType?: string | n
   return t ? `${dateStr} · ${t}` : dateStr;
 }
 
-function computeAge(data: { age?: number | null; dateOfBirth?: unknown }): number | null {
+function computeAge(data: {
+  age?: number | null;
+  dateOfBirth?: unknown;
+}): number | null {
   if (data.age != null && data.age > 0) return data.age;
   if (!data.dateOfBirth) return null;
   try {
     const dob = new Date(data.dateOfBirth as string);
-    const years = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
+    const years = Math.floor(
+      (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000),
+    );
     return years >= 0 && years < 150 ? years : null;
   } catch {
     return null;
@@ -127,7 +141,10 @@ function PatientHubFileToExaminationRedirect() {
 
 function HubNeedPatientSearch({ visitDate }: { visitDate: string }) {
   return (
-    <div className="flex min-h-[38vh] flex-col items-center justify-center gap-4 p-8 text-center" dir="rtl">
+    <div
+      className="flex min-h-[38vh] flex-col items-center justify-center gap-4 p-8 text-center"
+      dir="rtl"
+    >
       <p className="max-w-sm text-sm text-muted-foreground">
         لم يُحدَّد مريض. استخدم بحث مركز المريض ثم اختر المريض لفتح هذا القسم.
       </p>
@@ -207,7 +224,9 @@ export default function PatientHubShell() {
   const pathOnly = useMemo(() => location.split("?")[0] ?? "", [location]);
 
   const [visitDate, setVisitDate] = useState(readVisitDateFromLocation);
-  const [visitId, setVisitId] = useState<number | null>(readVisitIdFromLocation);
+  const [visitId, setVisitId] = useState<number | null>(
+    readVisitIdFromLocation,
+  );
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
@@ -276,7 +295,9 @@ export default function PatientHubShell() {
       }
 
       const visitById =
-        Number.isFinite(urlId) && urlId > 0 ? visits.find((v) => v.id === urlId) : undefined;
+        Number.isFinite(urlId) && urlId > 0
+          ? visits.find((v) => v.id === urlId)
+          : undefined;
 
       if (visitById) {
         const key = visitDateKey(visitById);
@@ -304,7 +325,15 @@ export default function PatientHubShell() {
     } catch {
       /* ignore */
     }
-  }, [patientId, visitsQuery.isSuccess, visits, pathOnly, location, applyVisitSelection, navigate]);
+  }, [
+    patientId,
+    visitsQuery.isSuccess,
+    visits,
+    pathOnly,
+    location,
+    applyVisitSelection,
+    navigate,
+  ]);
 
   const withVisit = useCallback(
     (href: string) => {
@@ -330,42 +359,56 @@ export default function PatientHubShell() {
       {
         key: "brief",
         label: "الموجز",
-        href: patientId ? withVisit(`/patient-hub/brief/${patientId}`) : "/patient-hub/brief",
+        href: patientId
+          ? withVisit(`/patient-hub/brief/${patientId}`)
+          : "/patient-hub/brief",
         icon: LayoutGrid,
-        match: (p) => p.startsWith("/patient-hub/brief") || p.startsWith("/patient-hub/summary"),
+        match: (p) =>
+          p.startsWith("/patient-hub/brief") ||
+          p.startsWith("/patient-hub/summary"),
       },
       {
         key: "exams",
         label: "الفحوصات",
-        href: patientId ? withVisit(`/patient-hub/examination/${patientId}`) : "/patient-hub/examination",
+        href: patientId
+          ? withVisit(`/patient-hub/examination/${patientId}`)
+          : "/patient-hub/examination",
         icon: Activity,
         match: (p) => p.startsWith("/patient-hub/examination"),
       },
       {
         key: "rx",
         label: "الروشتة",
-        href: patientId ? withVisit(`/patient-hub/prescription/${patientId}`) : "/patient-hub/prescription",
+        href: patientId
+          ? withVisit(`/patient-hub/prescription/${patientId}`)
+          : "/patient-hub/prescription",
         icon: Pill,
         match: (p) => p.startsWith("/patient-hub/prescription"),
       },
       {
         key: "labs",
         label: "تحاليل وأشعة",
-        href: patientId ? withVisit(`/patient-hub/request-tests/${patientId}`) : "/patient-hub/request-tests",
+        href: patientId
+          ? withVisit(`/patient-hub/request-tests/${patientId}`)
+          : "/patient-hub/request-tests",
         icon: FlaskConical,
         match: (p) => p.startsWith("/patient-hub/request-tests"),
       },
       {
         key: "visits",
         label: "الزيارات",
-        href: patientId ? withVisit(`/patient-hub/visits/${patientId}`) : "/patient-hub/visits",
+        href: patientId
+          ? withVisit(`/patient-hub/visits/${patientId}`)
+          : "/patient-hub/visits",
         icon: CalendarCheck,
         match: (p) => p.startsWith("/patient-hub/visits"),
       },
       {
         key: "followups",
         label: "المتابعات",
-        href: patientId ? withVisit(`/patient-hub/followups/${patientId}`) : "/patient-hub/followups",
+        href: patientId
+          ? withVisit(`/patient-hub/followups/${patientId}`)
+          : "/patient-hub/followups",
         icon: Repeat,
         match: (p) => p.startsWith("/patient-hub/followups"),
       },
@@ -381,14 +424,18 @@ export default function PatientHubShell() {
       {
         key: "sheets",
         label: "الشيتات",
-        href: patientId ? withVisit(`/patient-hub/sheets/consultant/${patientId}`) : "/patient-hub/sheets/consultant",
+        href: patientId
+          ? withVisit(`/patient-hub/sheets/consultant/${patientId}`)
+          : "/patient-hub/sheets/consultant",
         icon: ClipboardList,
         match: (p) => p.startsWith("/patient-hub/sheets"),
       },
       {
         key: "reports",
         label: "تقارير",
-        href: patientId ? withVisit(`/patient-hub/reports/${patientId}`) : "/patient-hub/reports",
+        href: patientId
+          ? withVisit(`/patient-hub/reports/${patientId}`)
+          : "/patient-hub/reports",
         icon: FileText,
         match: (p) => p.startsWith("/patient-hub/reports"),
       },
@@ -396,7 +443,11 @@ export default function PatientHubShell() {
     [patientId, withVisit],
   );
 
-  const age = patientQuery.data ? computeAge(patientQuery.data as { age?: number | null; dateOfBirth?: unknown }) : null;
+  const age = patientQuery.data
+    ? computeAge(
+        patientQuery.data as { age?: number | null; dateOfBirth?: unknown },
+      )
+    : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background" dir="rtl">
@@ -419,18 +470,28 @@ export default function PatientHubShell() {
                   {patientQuery.data?.fullName ?? "جاري التحميل..."}
                 </span>
                 {age != null && (
-                  <span className="shrink-0 text-xs text-muted-foreground">{age} سنة</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {age} سنة
+                  </span>
                 )}
-                <span dir="ltr" className="shrink-0 font-mono text-xs text-muted-foreground">
+                <span
+                  dir="ltr"
+                  className="shrink-0 font-mono text-xs text-muted-foreground"
+                >
                   #{patientId}
                 </span>
               </div>
 
               <div className="flex shrink-0 items-center gap-1.5">
                 {visitsQuery.isLoading ? (
-                  <div className="h-7 w-28 animate-pulse rounded-md bg-muted" aria-hidden />
+                  <div
+                    className="h-7 w-28 animate-pulse rounded-md bg-muted"
+                    aria-hidden
+                  />
                 ) : visits.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">لا توجد زيارات</span>
+                  <span className="text-xs text-muted-foreground">
+                    لا توجد زيارات
+                  </span>
                 ) : (
                   <div className="flex items-center gap-0.5" dir="ltr">
                     <button
@@ -447,11 +508,23 @@ export default function PatientHubShell() {
                     </button>
                     <div className="min-w-0 px-1 text-center" dir="rtl">
                       <p className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
-                        {formatVisitDisplay(visits[currentVisitIdx >= 0 ? currentVisitIdx : 0] as { id: number; visitDate?: unknown; visitType?: string | null })}
+                        {formatVisitDisplay(
+                          visits[
+                            currentVisitIdx >= 0 ? currentVisitIdx : 0
+                          ] as {
+                            id: number;
+                            visitDate?: unknown;
+                            visitType?: string | null;
+                          },
+                        )}
                       </p>
                       {visits.length > 1 && (
-                        <p className="mt-0.5 text-[10px] leading-none text-muted-foreground" dir="ltr">
-                          {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} / {visits.length}
+                        <p
+                          className="mt-0.5 text-[10px] leading-none text-muted-foreground"
+                          dir="ltr"
+                        >
+                          {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} /{" "}
+                          {visits.length}
                         </p>
                       )}
                     </div>
@@ -476,7 +549,9 @@ export default function PatientHubShell() {
                   className="shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
                   asChild
                 >
-                  <Link href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}>
+                  <Link
+                    href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}
+                  >
                     <Search className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">تغيير</span>
                   </Link>
@@ -534,196 +609,208 @@ export default function PatientHubShell() {
           patientId ? "pb-14 md:pb-0" : "",
         )}
       >
-          <Switch>
-            <Route
-              path="/patient-hub/examination/:id"
-              component={() => (
-                <PatientHubExaminationInner
-                  visitDate={visitDate}
-                  visitId={visitId}
-                  visits={visits}
-                  applyVisitSelection={applyVisitSelection}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/examination"
-              component={() => (
-                <div className="flex min-h-[30vh] items-center justify-center p-6 text-sm text-muted-foreground">
-                  اختر مريضاً لفتح ملف الفحص داخل المركز.
-                </div>
-              )}
-            />
-
-            <Route
-              path="/patient-hub/prescription/:id"
-              component={() => (
-                <WritePrescription
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  embeddedInPatientHub
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/prescription"
-              component={() => (
-                <WritePrescription
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  embeddedInPatientHub
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-
-            <Route
-              path="/patient-hub/request-tests/:id"
-              component={() => (
-                <RequestTests
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  embeddedInPatientHub
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/request-tests"
-              component={() => (
-                <RequestTests
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  embeddedInPatientHub
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-
-            <Route
-              path="/patient-hub/visits/:id"
-              component={() => (
-                <Visits
-                  hidePageChrome
-                  hubVisitDateFilter={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/visits"
-              component={() => (
-                <Visits
-                  hidePageChrome
-                  hubVisitDateFilter={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-
-            <Route
-              path="/patient-hub/followups/:id"
-              component={() => (
-                <Followups
-                  embeddedPatientId={patientId ? Number(patientId) : undefined}
-                  hidePageChrome
-                  hubVisitDateFilter={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/followups"
-              component={() => (
-                <Followups
-                  hidePageChrome
-                  hubVisitDateFilter={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-
-            <Route path="/patient-hub/sheets/consultant/:id" component={ConsultantSheet} />
-
-            <Route
-              path="/patient-hub/pentacam-dashboard/:id"
-              component={() => (
-                <PentacamResultsDashboard
-                  embeddedPatientId={patientId ? Number(patientId) : undefined}
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-            <Route
-              path="/patient-hub/pentacam-dashboard"
-              component={() => (
-                <PentacamResultsDashboard
-                  hidePageChrome
-                  hubVisitDate={visitDate}
-                  patientHubReadOnly
-                  patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
-                />
-              )}
-            />
-
-            <Route path="/patient-hub/brief/:id" component={PatientSummary} />
-            <Route path="/patient-hub/file/:id" component={PatientHubFileToExaminationRedirect} />
-            <Route
-              path="/patient-hub/file"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route
-              path="/patient-hub/brief"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route path="/patient-hub/summary/:id" component={PatientSummary} />
-            <Route
-              path="/patient-hub/summary"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route path="/patient-hub/reports/:id" component={MedicalReports} />
-            <Route path="/patient-hub/doctor/:id" component={PatientHubDoctorToBriefRedirect} />
-            <Route
-              path="/patient-hub/reports"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route
-              path="/patient-hub/doctor"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route
-              path="/patient-hub/sheets/consultant"
-              component={() => <HubNeedPatientSearch visitDate={visitDate} />}
-            />
-            <Route path={/^\/patient-hub$/} component={() => <PatientHubHome visitDate={visitDate} />} />
-            <Route path="/patients/:id" component={PatientDetails} />
-            <Route path="/patient-file/:id" component={PatientDetails} />
-            <Route path="/patient-file" component={PatientDetails} />
-            <Route path="/patient-summary/:id" component={PatientSummary} />
-            <Route path="/patient-summary" component={PatientSummary} />
-            <Route path="/medical-reports/:id" component={MedicalReports} />
-            <Route path="/medical-reports" component={MedicalReports} />
-            <Route>
-              <div className="flex min-h-[40vh] flex-col items-center justify-center px-4 py-16 text-center">
-                <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                  محتوى مركز المريض — يتم تحميل الصفحة المحددة
-                </p>
+        <Switch>
+          <Route
+            path="/patient-hub/examination/:id"
+            component={() => (
+              <PatientHubExaminationInner
+                visitDate={visitDate}
+                visitId={visitId}
+                visits={visits}
+                applyVisitSelection={applyVisitSelection}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/examination"
+            component={() => (
+              <div className="flex min-h-[30vh] items-center justify-center p-6 text-sm text-muted-foreground">
+                اختر مريضاً لفتح ملف الفحص داخل المركز.
               </div>
-            </Route>
-          </Switch>
-        </main>
+            )}
+          />
+
+          <Route
+            path="/patient-hub/prescription/:id"
+            component={() => (
+              <WritePrescription
+                hidePageChrome
+                hubVisitDate={visitDate}
+                embeddedInPatientHub
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/prescription"
+            component={() => (
+              <WritePrescription
+                hidePageChrome
+                hubVisitDate={visitDate}
+                embeddedInPatientHub
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+
+          <Route
+            path="/patient-hub/request-tests/:id"
+            component={() => (
+              <RequestTests
+                hidePageChrome
+                hubVisitDate={visitDate}
+                embeddedInPatientHub
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/request-tests"
+            component={() => (
+              <RequestTests
+                hidePageChrome
+                hubVisitDate={visitDate}
+                embeddedInPatientHub
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+
+          <Route
+            path="/patient-hub/visits/:id"
+            component={() => (
+              <Visits
+                hidePageChrome
+                hubVisitDateFilter={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/visits"
+            component={() => (
+              <Visits
+                hidePageChrome
+                hubVisitDateFilter={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+
+          <Route
+            path="/patient-hub/followups/:id"
+            component={() => (
+              <Followups
+                embeddedPatientId={patientId ? Number(patientId) : undefined}
+                hidePageChrome
+                hubVisitDateFilter={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/followups"
+            component={() => (
+              <Followups
+                hidePageChrome
+                hubVisitDateFilter={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+
+          <Route
+            path="/patient-hub/sheets/consultant/:id"
+            component={ConsultantSheet}
+          />
+
+          <Route
+            path="/patient-hub/pentacam-dashboard/:id"
+            component={() => (
+              <PentacamResultsDashboard
+                embeddedPatientId={patientId ? Number(patientId) : undefined}
+                hidePageChrome
+                hubVisitDate={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+          <Route
+            path="/patient-hub/pentacam-dashboard"
+            component={() => (
+              <PentacamResultsDashboard
+                hidePageChrome
+                hubVisitDate={visitDate}
+                patientHubReadOnly
+                patientHubViewOnlyHint={PATIENT_HUB_VIEW_ONLY_HINT}
+              />
+            )}
+          />
+
+          <Route path="/patient-hub/brief/:id" component={PatientSummary} />
+          <Route
+            path="/patient-hub/file/:id"
+            component={PatientHubFileToExaminationRedirect}
+          />
+          <Route
+            path="/patient-hub/file"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route
+            path="/patient-hub/brief"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route path="/patient-hub/summary/:id" component={PatientSummary} />
+          <Route
+            path="/patient-hub/summary"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route path="/patient-hub/reports/:id" component={MedicalReports} />
+          <Route
+            path="/patient-hub/doctor/:id"
+            component={PatientHubDoctorToBriefRedirect}
+          />
+          <Route
+            path="/patient-hub/reports"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route
+            path="/patient-hub/doctor"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route
+            path="/patient-hub/sheets/consultant"
+            component={() => <HubNeedPatientSearch visitDate={visitDate} />}
+          />
+          <Route
+            path={/^\/patient-hub$/}
+            component={() => <PatientHubHome visitDate={visitDate} />}
+          />
+          <Route path="/patients/:id" component={PatientDetails} />
+          <Route path="/patient-file/:id" component={PatientDetails} />
+          <Route path="/patient-file" component={PatientDetails} />
+          <Route path="/patient-summary/:id" component={PatientSummary} />
+          <Route path="/patient-summary" component={PatientSummary} />
+          <Route path="/medical-reports/:id" component={MedicalReports} />
+          <Route path="/medical-reports" component={MedicalReports} />
+          <Route>
+            <div className="flex min-h-[40vh] flex-col items-center justify-center px-4 py-16 text-center">
+              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                محتوى مركز المريض — يتم تحميل الصفحة المحددة
+              </p>
+            </div>
+          </Route>
+        </Switch>
+      </main>
 
       {/* Mobile bottom nav — 4 primary tabs + المزيد */}
       {patientId ? (
@@ -742,17 +829,25 @@ export default function PatientHubShell() {
                 className="relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors"
               >
                 {active && (
-                  <span className="absolute inset-x-2 top-0 h-0.5 rounded-b-full bg-primary" aria-hidden />
+                  <span
+                    className="absolute inset-x-2 top-0 h-0.5 rounded-b-full bg-primary"
+                    aria-hidden
+                  />
                 )}
                 <Icon
-                  className={cn("h-[20px] w-[20px] shrink-0", active ? "text-primary" : "text-muted-foreground/70")}
+                  className={cn(
+                    "h-[20px] w-[20px] shrink-0",
+                    active ? "text-primary" : "text-muted-foreground/70",
+                  )}
                   strokeWidth={active ? 2.2 : 1.8}
                   aria-hidden
                 />
                 <span
                   className={cn(
                     "whitespace-nowrap text-[9px] leading-none",
-                    active ? "font-semibold text-primary" : "font-medium text-muted-foreground/70",
+                    active
+                      ? "font-semibold text-primary"
+                      : "font-medium text-muted-foreground/70",
                   )}
                 >
                   {item.label}
@@ -766,19 +861,33 @@ export default function PatientHubShell() {
             onClick={() => setMoreOpen(true)}
             aria-label="المزيد"
           >
-            <MoreHorizontal className="h-[20px] w-[20px] shrink-0 text-muted-foreground/70" aria-hidden />
-            <span className="whitespace-nowrap text-[9px] font-medium leading-none text-muted-foreground/70">المزيد</span>
+            <MoreHorizontal
+              className="h-[20px] w-[20px] shrink-0 text-muted-foreground/70"
+              aria-hidden
+            />
+            <span className="whitespace-nowrap text-[9px] font-medium leading-none text-muted-foreground/70">
+              المزيد
+            </span>
           </button>
         </nav>
       ) : null}
 
       {/* More bottom sheet (mobile) */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-0 pb-0" dir="rtl">
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl px-0 pb-0"
+          dir="rtl"
+        >
           <SheetHeader className="px-6 pb-3 pt-4">
-            <SheetTitle className="text-right text-base font-semibold">أقسام أخرى</SheetTitle>
+            <SheetTitle className="text-right text-base font-semibold">
+              أقسام أخرى
+            </SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <nav
+            className="flex flex-col"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
             {navItems.slice(4).map((item) => {
               const Icon = item.icon;
               const active = item.match(pathOnly);
@@ -795,7 +904,10 @@ export default function PatientHubShell() {
                   )}
                 >
                   <Icon
-                    className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")}
+                    className={cn(
+                      "h-5 w-5 shrink-0",
+                      active ? "text-primary" : "text-muted-foreground",
+                    )}
                     aria-hidden
                   />
                   <span className="font-medium">{item.label}</span>

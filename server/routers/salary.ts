@@ -1,6 +1,10 @@
-import { z } from 'zod';
-import { router, attendanceManagerProcedure as managerProcedure, protectedProcedure } from '../_core/procedures';
-import { getDb } from '../db';
+import { z } from "zod";
+import {
+  router,
+  attendanceManagerProcedure as managerProcedure,
+  protectedProcedure,
+} from "../_core/procedures";
+import { getDb } from "../db";
 import {
   salaryBasics,
   salaryPenalties,
@@ -16,9 +20,12 @@ import {
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
-} from '../../drizzle/schema';
-import { eq, and, gte, lte, isNull, or, desc, inArray, sql } from 'drizzle-orm';
-import { PayrollComputeService, calcPentacamPool } from '../services/salary/payrollCompute.service';
+} from "../../drizzle/schema";
+import { eq, and, gte, lte, isNull, or, desc, inArray, sql } from "drizzle-orm";
+import {
+  PayrollComputeService,
+  calcPentacamPool,
+} from "../services/salary/payrollCompute.service";
 
 const allowanceInput = z.object({
   basicAmount: z.number().min(0),
@@ -35,7 +42,7 @@ export const salaryRouter = router({
   // ── Basics ──────────────────────────────────────────────
   listBasics: managerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('DB unavailable');
+    if (!db) throw new Error("DB unavailable");
     const rows = await db
       .select({
         id: salaryBasics.id,
@@ -55,7 +62,10 @@ export const salaryRouter = router({
         department: attendanceEmployees.department,
       })
       .from(salaryBasics)
-      .leftJoin(attendanceEmployees, eq(salaryBasics.empCd, attendanceEmployees.empCd))
+      .leftJoin(
+        attendanceEmployees,
+        eq(salaryBasics.empCd, attendanceEmployees.empCd),
+      )
       .orderBy(desc(salaryBasics.effectiveFrom));
     return rows;
   }),
@@ -67,11 +77,11 @@ export const salaryRouter = router({
         effectiveFrom: z.string(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const result = await db.insert(salaryBasics).values({
         empCd: input.empCd,
         basicAmount: String(input.basicAmount) as any,
@@ -104,25 +114,38 @@ export const salaryRouter = router({
         effectiveFrom: z.string().optional(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const upd: any = {};
-      if (input.basicAmount !== undefined) upd.basicAmount = String(input.basicAmount);
-      if (input.socialAllowance !== undefined) upd.socialAllowance = String(input.socialAllowance);
-      if (input.costOfLivingAllowance !== undefined) upd.costOfLivingAllowance = String(input.costOfLivingAllowance);
-      if (input.transportAllowance !== undefined) upd.transportAllowance = String(input.transportAllowance);
-      if (input.workNatureAllowance !== undefined) upd.workNatureAllowance = String(input.workNatureAllowance);
-      if (input.receptionAllowance !== undefined) upd.receptionAllowance = String(input.receptionAllowance);
-      if (input.yearlyRaise !== undefined) upd.yearlyRaise = String(input.yearlyRaise);
-      if (input.insuranceDeduction !== undefined) upd.insuranceDeduction = String(input.insuranceDeduction);
-      if (input.effectiveFrom !== undefined) upd.effectiveFrom = input.effectiveFrom;
-      if (input.effectiveTo !== undefined) upd.effectiveTo = input.effectiveTo ?? null;
+      if (input.basicAmount !== undefined)
+        upd.basicAmount = String(input.basicAmount);
+      if (input.socialAllowance !== undefined)
+        upd.socialAllowance = String(input.socialAllowance);
+      if (input.costOfLivingAllowance !== undefined)
+        upd.costOfLivingAllowance = String(input.costOfLivingAllowance);
+      if (input.transportAllowance !== undefined)
+        upd.transportAllowance = String(input.transportAllowance);
+      if (input.workNatureAllowance !== undefined)
+        upd.workNatureAllowance = String(input.workNatureAllowance);
+      if (input.receptionAllowance !== undefined)
+        upd.receptionAllowance = String(input.receptionAllowance);
+      if (input.yearlyRaise !== undefined)
+        upd.yearlyRaise = String(input.yearlyRaise);
+      if (input.insuranceDeduction !== undefined)
+        upd.insuranceDeduction = String(input.insuranceDeduction);
+      if (input.effectiveFrom !== undefined)
+        upd.effectiveFrom = input.effectiveFrom;
+      if (input.effectiveTo !== undefined)
+        upd.effectiveTo = input.effectiveTo ?? null;
       if (input.notes !== undefined) upd.notes = input.notes;
       if (Object.keys(upd).length)
-        await db.update(salaryBasics).set(upd).where(eq(salaryBasics.id, input.id));
+        await db
+          .update(salaryBasics)
+          .set(upd)
+          .where(eq(salaryBasics.id, input.id));
       return { success: true };
     }),
 
@@ -130,7 +153,7 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db.delete(salaryBasics).where(eq(salaryBasics.id, input.id));
       return { success: true };
     }),
@@ -140,7 +163,7 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const rows = await db
         .select({
           id: salaryPenalties.id,
@@ -154,9 +177,15 @@ export const salaryRouter = router({
           department: attendanceEmployees.department,
         })
         .from(salaryPenalties)
-        .leftJoin(attendanceEmployees, eq(salaryPenalties.empCd, attendanceEmployees.empCd))
+        .leftJoin(
+          attendanceEmployees,
+          eq(salaryPenalties.empCd, attendanceEmployees.empCd),
+        )
         .where(
-          and(eq(salaryPenalties.year, input.year), eq(salaryPenalties.month, input.month))
+          and(
+            eq(salaryPenalties.year, input.year),
+            eq(salaryPenalties.month, input.month),
+          ),
         )
         .orderBy(desc(salaryPenalties.createdAt));
       return rows;
@@ -170,11 +199,11 @@ export const salaryRouter = router({
         month: z.number().int(),
         amount: z.number().positive(),
         reason: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const result = await db.insert(salaryPenalties).values({
         empCd: input.empCd,
         year: input.year,
@@ -189,7 +218,7 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db.delete(salaryPenalties).where(eq(salaryPenalties.id, input.id));
       return { success: true };
     }),
@@ -199,22 +228,31 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      return db.select().from(salaryAdvances)
-        .where(and(eq(salaryAdvances.year, input.year), eq(salaryAdvances.month, input.month)));
+      if (!db) throw new Error("DB unavailable");
+      return db
+        .select()
+        .from(salaryAdvances)
+        .where(
+          and(
+            eq(salaryAdvances.year, input.year),
+            eq(salaryAdvances.month, input.month),
+          ),
+        );
     }),
 
   addAdvance: managerProcedure
-    .input(z.object({
-      empCd: z.string().min(1),
-      year: z.number().int(),
-      month: z.number().int(),
-      amount: z.number().positive(),
-      reason: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        year: z.number().int(),
+        month: z.number().int(),
+        amount: z.number().positive(),
+        reason: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const result = await db.insert(salaryAdvances).values({
         empCd: input.empCd,
         year: input.year,
@@ -229,22 +267,32 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db.delete(salaryAdvances).where(eq(salaryAdvances.id, input.id));
       return { success: true };
     }),
 
   // ── Commission Pools ─────────────────────────────────────
   getCommissionPool: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.string().default("مركز"),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const rows = await db
         .select()
         .from(salaryCommissionPools)
         .where(
-          and(eq(salaryCommissionPools.year, input.year), eq(salaryCommissionPools.month, input.month), eq(salaryCommissionPools.section, input.section))
+          and(
+            eq(salaryCommissionPools.year, input.year),
+            eq(salaryCommissionPools.month, input.month),
+            eq(salaryCommissionPools.section, input.section),
+          ),
         )
         .limit(1);
       return rows[0] ?? null;
@@ -255,7 +303,7 @@ export const salaryRouter = router({
       z.object({
         year: z.number().int(),
         month: z.number().int(),
-        section: z.string().default('مركز'),
+        section: z.string().default("مركز"),
         examCount: z.number().int().min(0).default(0),
         examPoolOverride: z.number().min(0).optional(), // مركز fallback total
         examCountConsultant: z.number().int().min(0).optional(),
@@ -271,32 +319,52 @@ export const salaryRouter = router({
         cases350: z.number().int().min(0).default(0),
         cases250: z.number().int().min(0).default(0),
         notes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const r2 = (n: number) => Math.round(n * 100) / 100;
       const consultantPool = r2(input.examPoolConsultant ?? 0);
       const specialistPool = r2(input.examPoolSpecialist ?? 0);
       const examPool = String(
-        input.examPoolConsultant !== undefined || input.examPoolSpecialist !== undefined
+        input.examPoolConsultant !== undefined ||
+          input.examPoolSpecialist !== undefined
           ? consultantPool + specialistPool
           : input.examPoolOverride !== undefined
             ? r2(input.examPoolOverride)
-            : r2(input.examCount * 50 * 0.40)
+            : r2(input.examCount * 50 * 0.4),
       ) as any;
-      const pentacamPool = String(calcPentacamPool(input.cases450, input.cases400, input.cases350, input.cases250)) as any;
-      const examPoolConsultantVal = input.examPoolConsultant !== undefined ? String(consultantPool) as any : null;
-      const examPoolSpecialistVal = input.examPoolSpecialist !== undefined ? String(specialistPool) as any : null;
+      const pentacamPool = String(
+        calcPentacamPool(
+          input.cases450,
+          input.cases400,
+          input.cases350,
+          input.cases250,
+        ),
+      ) as any;
+      const examPoolConsultantVal =
+        input.examPoolConsultant !== undefined
+          ? (String(consultantPool) as any)
+          : null;
+      const examPoolSpecialistVal =
+        input.examPoolSpecialist !== undefined
+          ? (String(specialistPool) as any)
+          : null;
       const examCountConsultantVal = input.examCountConsultant ?? null;
       const examCountSpecialistVal = input.examCountSpecialist ?? null;
-      const costOfLivingAllowanceAmount = r2(input.costOfLivingAllowanceAmount ?? 0);
+      const costOfLivingAllowanceAmount = r2(
+        input.costOfLivingAllowanceAmount ?? 0,
+      );
       const costOfLivingAllowanceCount = input.costOfLivingAllowanceCount ?? 0;
-      const costOfLivingAllowanceTotal = r2(costOfLivingAllowanceAmount * costOfLivingAllowanceCount);
+      const costOfLivingAllowanceTotal = r2(
+        costOfLivingAllowanceAmount * costOfLivingAllowanceCount,
+      );
       const transportAllowanceAmount = r2(input.transportAllowanceAmount ?? 0);
       const transportAllowanceCount = input.transportAllowanceCount ?? 0;
-      const transportAllowanceTotal = r2(transportAllowanceAmount * transportAllowanceCount);
+      const transportAllowanceTotal = r2(
+        transportAllowanceAmount * transportAllowanceCount,
+      );
       await db
         .insert(salaryCommissionPools)
         .values({
@@ -310,7 +378,9 @@ export const salaryRouter = router({
           examPoolConsultant: examPoolConsultantVal,
           examPoolSpecialist: examPoolSpecialistVal,
           pentacamPool,
-          costOfLivingAllowanceAmount: String(costOfLivingAllowanceAmount) as any,
+          costOfLivingAllowanceAmount: String(
+            costOfLivingAllowanceAmount,
+          ) as any,
           costOfLivingAllowanceCount,
           costOfLivingAllowanceTotal: String(costOfLivingAllowanceTotal) as any,
           transportAllowanceAmount: String(transportAllowanceAmount) as any,
@@ -331,9 +401,13 @@ export const salaryRouter = router({
             examPoolConsultant: examPoolConsultantVal,
             examPoolSpecialist: examPoolSpecialistVal,
             pentacamPool,
-            costOfLivingAllowanceAmount: String(costOfLivingAllowanceAmount) as any,
+            costOfLivingAllowanceAmount: String(
+              costOfLivingAllowanceAmount,
+            ) as any,
             costOfLivingAllowanceCount,
-            costOfLivingAllowanceTotal: String(costOfLivingAllowanceTotal) as any,
+            costOfLivingAllowanceTotal: String(
+              costOfLivingAllowanceTotal,
+            ) as any,
             transportAllowanceAmount: String(transportAllowanceAmount) as any,
             transportAllowanceCount,
             transportAllowanceTotal: String(transportAllowanceTotal) as any,
@@ -349,18 +423,34 @@ export const salaryRouter = router({
 
   // ── Payroll ──────────────────────────────────────────────
   computePayroll: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.string().default("مركز"),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const rows = await PayrollComputeService.compute(input.year, input.month, input.section);
+      const rows = await PayrollComputeService.compute(
+        input.year,
+        input.month,
+        input.section,
+      );
       const saved = await PayrollComputeService.savePayroll(rows);
       return { saved, rows };
     }),
 
   getPayroll: managerProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default('مركز') }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.string().default("مركز"),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const rows = await db
         .select({
           id: salaryPayroll.id,
@@ -400,29 +490,50 @@ export const salaryRouter = router({
           salaryType: attendanceEmployees.salaryType,
         })
         .from(salaryPayroll)
-        .leftJoin(attendanceEmployees, eq(salaryPayroll.empCd, attendanceEmployees.empCd))
+        .leftJoin(
+          attendanceEmployees,
+          eq(salaryPayroll.empCd, attendanceEmployees.empCd),
+        )
         .where(
-          and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month), eq(salaryPayroll.section, input.section))
+          and(
+            eq(salaryPayroll.year, input.year),
+            eq(salaryPayroll.month, input.month),
+            eq(salaryPayroll.section, input.section),
+          ),
         )
         .orderBy(attendanceEmployees.fullName);
 
       // Resolve names for shift staff rows (empCd = 'shift_<id>')
       const shiftIds = rows
-        .filter(r => r.empCd.startsWith('shift_'))
-        .map(r => parseInt(r.empCd.slice(6), 10))
-        .filter(id => !isNaN(id));
+        .filter((r) => r.empCd.startsWith("shift_"))
+        .map((r) => parseInt(r.empCd.slice(6), 10))
+        .filter((id) => !isNaN(id));
 
       const shiftNameMap = new Map<number, string>();
       if (shiftIds.length > 0) {
-        const staffRows = await db.select({ id: shiftStaff.id, name: shiftStaff.name, type: shiftStaff.type })
-          .from(shiftStaff).where(inArray(shiftStaff.id, shiftIds));
-        for (const s of staffRows) shiftNameMap.set(s.id, `${s.name} (${s.type === 'doctor' ? 'د' : 'ف'})`);
+        const staffRows = await db
+          .select({
+            id: shiftStaff.id,
+            name: shiftStaff.name,
+            type: shiftStaff.type,
+          })
+          .from(shiftStaff)
+          .where(inArray(shiftStaff.id, shiftIds));
+        for (const s of staffRows)
+          shiftNameMap.set(
+            s.id,
+            `${s.name} (${s.type === "doctor" ? "د" : "ف"})`,
+          );
       }
 
-      return rows.map(r => {
-        if (!r.empCd.startsWith('shift_')) return r;
+      return rows.map((r) => {
+        if (!r.empCd.startsWith("shift_")) return r;
         const id = parseInt(r.empCd.slice(6), 10);
-        return { ...r, fullName: shiftNameMap.get(id) ?? r.empCd, department: 'مناوبة' };
+        return {
+          ...r,
+          fullName: shiftNameMap.get(id) ?? r.empCd,
+          department: "مناوبة",
+        };
       });
     }),
 
@@ -430,35 +541,47 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      return db.select({
-        empCd: salaryPayroll.empCd,
-        absentDeduction: salaryPayroll.absentDeduction,
-        lateDeduction: salaryPayroll.lateDeduction,
-        earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
-        penaltyDeduction: salaryPayroll.penaltyDeduction,
-        advancesDeduction: salaryPayroll.advancesDeduction,
-        insuranceDeduction: salaryPayroll.insuranceDeduction,
-        totalDeductions: salaryPayroll.totalDeductions,
-        fullName: attendanceEmployees.fullName,
-        department: attendanceEmployees.department,
-      })
-      .from(salaryPayroll)
-      .leftJoin(attendanceEmployees, eq(salaryPayroll.empCd, attendanceEmployees.empCd))
-      .where(and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month)))
-      .orderBy(attendanceEmployees.fullName);
+      if (!db) throw new Error("DB unavailable");
+      return db
+        .select({
+          empCd: salaryPayroll.empCd,
+          absentDeduction: salaryPayroll.absentDeduction,
+          lateDeduction: salaryPayroll.lateDeduction,
+          earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
+          penaltyDeduction: salaryPayroll.penaltyDeduction,
+          advancesDeduction: salaryPayroll.advancesDeduction,
+          insuranceDeduction: salaryPayroll.insuranceDeduction,
+          totalDeductions: salaryPayroll.totalDeductions,
+          fullName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+        })
+        .from(salaryPayroll)
+        .leftJoin(
+          attendanceEmployees,
+          eq(salaryPayroll.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            eq(salaryPayroll.year, input.year),
+            eq(salaryPayroll.month, input.month),
+          ),
+        )
+        .orderBy(attendanceEmployees.fullName);
     }),
 
   finalizePayroll: managerProcedure
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db
         .update(salaryPayroll)
-        .set({ payrollStatus: 'final' })
+        .set({ payrollStatus: "final" })
         .where(
-          and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month))
+          and(
+            eq(salaryPayroll.year, input.year),
+            eq(salaryPayroll.month, input.month),
+          ),
         );
       return { success: true };
     }),
@@ -468,7 +591,7 @@ export const salaryRouter = router({
     .input(z.object({ empCd: z.string().min(1) }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       return await db
         .select()
         .from(salaryRaiseHistory)
@@ -477,18 +600,31 @@ export const salaryRouter = router({
     }),
 
   setRaise: managerProcedure
-    .input(z.object({
-      empCd: z.string().min(1),
-      year: z.number().int(),
-      raiseAmount: z.number().min(0),
-      notes: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        year: z.number().int(),
+        raiseAmount: z.number().min(0),
+        notes: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.insert(salaryRaiseHistory)
-        .values({ empCd: input.empCd, year: input.year, raiseAmount: String(input.raiseAmount) as any, notes: input.notes })
-        .onDuplicateKeyUpdate({ set: { raiseAmount: String(input.raiseAmount) as any, notes: input.notes } });
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .insert(salaryRaiseHistory)
+        .values({
+          empCd: input.empCd,
+          year: input.year,
+          raiseAmount: String(input.raiseAmount) as any,
+          notes: input.notes,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            raiseAmount: String(input.raiseAmount) as any,
+            notes: input.notes,
+          },
+        });
       return { success: true };
     }),
 
@@ -496,56 +632,77 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.delete(salaryRaiseHistory).where(eq(salaryRaiseHistory.id, input.id));
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salaryRaiseHistory)
+        .where(eq(salaryRaiseHistory.id, input.id));
       return { success: true };
     }),
 
   // ── Salary Config ────────────────────────────────────────
   getAttendanceRates: managerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('DB unavailable');
-    const rows = await db.select().from(salaryConfig)
-      .where(eq(salaryConfig.key, 'attendance_rate_3')
-        || eq(salaryConfig.key, 'attendance_rate_5')
-        || eq(salaryConfig.key, 'attendance_rate_7')
-        || eq(salaryConfig.key, 'attendance_rate_10') as any);
-    const map = Object.fromEntries(rows.map(r => [r.key, Number(r.value)]));
+    if (!db) throw new Error("DB unavailable");
+    const rows = await db
+      .select()
+      .from(salaryConfig)
+      .where(
+        eq(salaryConfig.key, "attendance_rate_3") ||
+          eq(salaryConfig.key, "attendance_rate_5") ||
+          eq(salaryConfig.key, "attendance_rate_7") ||
+          (eq(salaryConfig.key, "attendance_rate_10") as any),
+      );
+    const map = Object.fromEntries(rows.map((r) => [r.key, Number(r.value)]));
     return {
-      rate3:  map['attendance_rate_3']  ?? 0.25,
-      rate5:  map['attendance_rate_5']  ?? 0.15,
-      rate7:  map['attendance_rate_7']  ?? 0.10,
-      rate10: map['attendance_rate_10'] ?? 0.05,
+      rate3: map["attendance_rate_3"] ?? 0.25,
+      rate5: map["attendance_rate_5"] ?? 0.15,
+      rate7: map["attendance_rate_7"] ?? 0.1,
+      rate10: map["attendance_rate_10"] ?? 0.05,
     };
   }),
 
   setAttendanceRates: managerProcedure
-    .input(z.object({
-      rate3:  z.number().min(0).max(1),
-      rate5:  z.number().min(0).max(1),
-      rate7:  z.number().min(0).max(1),
-      rate10: z.number().min(0).max(1),
-    }))
+    .input(
+      z.object({
+        rate3: z.number().min(0).max(1),
+        rate5: z.number().min(0).max(1),
+        rate7: z.number().min(0).max(1),
+        rate10: z.number().min(0).max(1),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const entries = [
-        { key: 'attendance_rate_3',  value: String(input.rate3)  },
-        { key: 'attendance_rate_5',  value: String(input.rate5)  },
-        { key: 'attendance_rate_7',  value: String(input.rate7)  },
-        { key: 'attendance_rate_10', value: String(input.rate10) },
+        { key: "attendance_rate_3", value: String(input.rate3) },
+        { key: "attendance_rate_5", value: String(input.rate5) },
+        { key: "attendance_rate_7", value: String(input.rate7) },
+        { key: "attendance_rate_10", value: String(input.rate10) },
       ];
       for (const e of entries) {
-        await db.insert(salaryConfig).values(e).onDuplicateKeyUpdate({ set: { value: e.value } });
+        await db
+          .insert(salaryConfig)
+          .values(e)
+          .onDuplicateKeyUpdate({ set: { value: e.value } });
       }
       return { success: true };
     }),
 
   listEmployees: managerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('DB unavailable');
+    if (!db) throw new Error("DB unavailable");
     return await db
-      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department, salaryType: attendanceEmployees.salaryType, attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate, commAttendance: attendanceEmployees.commAttendance, commExam: attendanceEmployees.commExam, commPentacam: attendanceEmployees.commPentacam })
+      .select({
+        empCd: attendanceEmployees.empCd,
+        fullName: attendanceEmployees.fullName,
+        department: attendanceEmployees.department,
+        salaryType: attendanceEmployees.salaryType,
+        attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate,
+        commAttendance: attendanceEmployees.commAttendance,
+        commExam: attendanceEmployees.commExam,
+        commPentacam: attendanceEmployees.commPentacam,
+        commDay10: attendanceEmployees.commDay10,
+      })
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
   }),
@@ -554,7 +711,7 @@ export const salaryRouter = router({
     .input(z.object({ from: z.string(), to: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const rows = await db
         .select({
           empCd: attendanceDaily.empCd,
@@ -563,34 +720,49 @@ export const salaryRouter = router({
           status: attendanceDaily.status,
         })
         .from(attendanceDaily)
-        .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
-        .where(and(
-          gte(attendanceDaily.workDate, input.from as any),
-          lte(attendanceDaily.workDate, input.to as any),
-          eq(attendanceDaily.status, 'absent'),
-        ))
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            gte(attendanceDaily.workDate, input.from as any),
+            lte(attendanceDaily.workDate, input.to as any),
+            eq(attendanceDaily.status, "absent"),
+          ),
+        )
         .orderBy(attendanceDaily.workDate, attendanceEmployees.fullName);
       return rows.map((r) => {
         const d = r.workDate as any;
-        const workDate = (d instanceof Date)
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          : String(d).slice(0, 10);
+        const workDate =
+          d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+            : String(d).slice(0, 10);
         return { ...r, workDate };
       });
     }),
 
   setCommissionFlags: managerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      commAttendance: z.boolean(),
-      commExam: z.boolean(),
-      commPentacam: z.boolean(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        commAttendance: z.boolean(),
+        commExam: z.boolean(),
+        commPentacam: z.boolean(),
+        commDay10: z.boolean(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.update(attendanceEmployees)
-        .set({ commAttendance: input.commAttendance, commExam: input.commExam, commPentacam: input.commPentacam })
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(attendanceEmployees)
+        .set({
+          commAttendance: input.commAttendance,
+          commExam: input.commExam,
+          commPentacam: input.commPentacam,
+          commDay10: input.commDay10,
+        })
         .where(eq(attendanceEmployees.empCd, input.empCd));
       return { success: true };
     }),
@@ -598,25 +770,62 @@ export const salaryRouter = router({
   // ── Shift Staff ──────────────────────────────────────────
   listShiftStaff: managerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('DB unavailable');
-    return db.select().from(shiftStaff).orderBy(shiftStaff.type, shiftStaff.name);
+    if (!db) throw new Error("DB unavailable");
+    return db
+      .select()
+      .from(shiftStaff)
+      .orderBy(shiftStaff.type, shiftStaff.name);
   }),
 
   addShiftStaff: managerProcedure
-    .input(z.object({ name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), empCd: z.string().optional() }))
+    .input(
+      z.object({
+        name: z.string().min(1),
+        type: z.enum(["doctor", "tech"]),
+        ratePerShift: z.number().min(0),
+        empCd: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      const result = await db.insert(shiftStaff).values({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, empCd: input.empCd ?? null });
+      if (!db) throw new Error("DB unavailable");
+      const result = await db
+        .insert(shiftStaff)
+        .values({
+          name: input.name,
+          type: input.type,
+          ratePerShift: String(input.ratePerShift) as any,
+          empCd: input.empCd ?? null,
+        });
       return { id: (result as any).insertId };
     }),
 
   updateShiftStaff: managerProcedure
-    .input(z.object({ id: z.number(), name: z.string().min(1), type: z.enum(['doctor', 'tech']), ratePerShift: z.number().min(0), active: z.boolean(), empCd: z.string().optional(), userId: z.number().int().nullable().optional() }))
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1),
+        type: z.enum(["doctor", "tech"]),
+        ratePerShift: z.number().min(0),
+        active: z.boolean(),
+        empCd: z.string().optional(),
+        userId: z.number().int().nullable().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.update(shiftStaff).set({ name: input.name, type: input.type, ratePerShift: String(input.ratePerShift) as any, active: input.active, empCd: input.empCd ?? null, userId: input.userId ?? null } as any).where(eq(shiftStaff.id, input.id));
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(shiftStaff)
+        .set({
+          name: input.name,
+          type: input.type,
+          ratePerShift: String(input.ratePerShift) as any,
+          active: input.active,
+          empCd: input.empCd ?? null,
+          userId: input.userId ?? null,
+        } as any)
+        .where(eq(shiftStaff.id, input.id));
       return { success: true };
     }),
 
@@ -624,8 +833,10 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.delete(shiftStaffCycle).where(eq(shiftStaffCycle.staffId, input.id));
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(shiftStaffCycle)
+        .where(eq(shiftStaffCycle.staffId, input.id));
       await db.delete(shiftStaff).where(eq(shiftStaff.id, input.id));
       return { success: true };
     }),
@@ -634,10 +845,22 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const [staff, attendance] = await Promise.all([
-        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)).orderBy(shiftStaff.type, shiftStaff.name),
-        db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
+        db
+          .select()
+          .from(shiftStaff)
+          .where(eq(shiftStaff.active, true))
+          .orderBy(shiftStaff.type, shiftStaff.name),
+        db
+          .select()
+          .from(shiftAttendance)
+          .where(
+            and(
+              eq(shiftAttendance.year, input.year),
+              eq(shiftAttendance.month, input.month),
+            ),
+          ),
       ]);
       return { staff, attendance };
     }),
@@ -647,36 +870,69 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const [staff, attendance] = await Promise.all([
-        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)).orderBy(shiftStaff.type, shiftStaff.name),
-        db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
+        db
+          .select()
+          .from(shiftStaff)
+          .where(eq(shiftStaff.active, true))
+          .orderBy(shiftStaff.type, shiftStaff.name),
+        db
+          .select()
+          .from(shiftAttendance)
+          .where(
+            and(
+              eq(shiftAttendance.year, input.year),
+              eq(shiftAttendance.month, input.month),
+            ),
+          ),
       ]);
       return { staff, attendance };
     }),
 
-  getMyShiftStaffId: protectedProcedure
-    .query(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      const userId = (ctx.user as any).id;
-      const rows = await db.select({ id: shiftStaff.id }).from(shiftStaff)
-        .where(eq(shiftStaff.userId as any, userId)).limit(1);
-      return rows[0]?.id ?? null;
-    }),
+  getMyShiftStaffId: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const userId = (ctx.user as any).id;
+    const rows = await db
+      .select({ id: shiftStaff.id })
+      .from(shiftStaff)
+      .where(eq(shiftStaff.userId as any, userId))
+      .limit(1);
+    return rows[0]?.id ?? null;
+  }),
 
   addMyShiftEntry: protectedProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int(), workDate: z.string(), shiftName: z.string().min(1) }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        workDate: z.string(),
+        shiftName: z.string().min(1),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const userId = (ctx.user as any).id;
-      const rows = await db.select({ id: shiftStaff.id }).from(shiftStaff)
-        .where(eq(shiftStaff.userId as any, userId)).limit(1);
-      if (!rows[0]) throw new Error('No shift staff record linked to your account');
+      const rows = await db
+        .select({ id: shiftStaff.id })
+        .from(shiftStaff)
+        .where(eq(shiftStaff.userId as any, userId))
+        .limit(1);
+      if (!rows[0])
+        throw new Error("No shift staff record linked to your account");
       const staffId = rows[0].id;
-      await db.insert(shiftAttendance)
-        .values({ staffId, year: input.year, month: input.month, workDate: input.workDate as any, shiftName: input.shiftName, present: true })
+      await db
+        .insert(shiftAttendance)
+        .values({
+          staffId,
+          year: input.year,
+          month: input.month,
+          workDate: input.workDate as any,
+          shiftName: input.shiftName,
+          present: true,
+        })
         .onDuplicateKeyUpdate({ set: { present: true } });
       return { success: true };
     }),
@@ -685,64 +941,116 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int(), present: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const userId = (ctx.user as any).id;
       // verify ownership
-      const [entry] = await db.select({ staffId: shiftAttendance.staffId }).from(shiftAttendance)
-        .where(eq(shiftAttendance.id, input.id)).limit(1);
-      if (!entry) throw new Error('Entry not found');
-      const [staff] = await db.select({ userId: shiftStaff.userId }).from(shiftStaff)
-        .where(eq(shiftStaff.id, entry.staffId)).limit(1);
-      if ((staff as any)?.userId !== userId) throw new Error('Not authorized to modify this entry');
-      await db.update(shiftAttendance).set({ present: input.present }).where(eq(shiftAttendance.id, input.id));
+      const [entry] = await db
+        .select({ staffId: shiftAttendance.staffId })
+        .from(shiftAttendance)
+        .where(eq(shiftAttendance.id, input.id))
+        .limit(1);
+      if (!entry) throw new Error("Entry not found");
+      const [staff] = await db
+        .select({ userId: shiftStaff.userId })
+        .from(shiftStaff)
+        .where(eq(shiftStaff.id, entry.staffId))
+        .limit(1);
+      if ((staff as any)?.userId !== userId)
+        throw new Error("Not authorized to modify this entry");
+      await db
+        .update(shiftAttendance)
+        .set({ present: input.present })
+        .where(eq(shiftAttendance.id, input.id));
       return { success: true };
     }),
 
-  listUsersForShiftLink: managerProcedure
-    .query(async () => {
-      const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      const { users } = await import('../../drizzle/schema');
-      return db.select({ id: users.id, username: users.username, name: users.name, role: users.role })
-        .from(users).where(eq(users.isActive, true)).orderBy(users.name);
-    }),
+  listUsersForShiftLink: managerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const { users } = await import("../../drizzle/schema");
+    return db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.isActive, true))
+      .orderBy(users.name);
+  }),
 
   linkUserToShiftStaff: managerProcedure
-    .input(z.object({ staffId: z.number().int(), userId: z.number().int().nullable() }))
+    .input(
+      z.object({
+        staffId: z.number().int(),
+        userId: z.number().int().nullable(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.update(shiftStaff).set({ userId: input.userId } as any).where(eq(shiftStaff.id, input.staffId));
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(shiftStaff)
+        .set({ userId: input.userId } as any)
+        .where(eq(shiftStaff.id, input.staffId));
       return { success: true };
     }),
 
   addShiftEntry: managerProcedure
-    .input(z.object({ staffId: z.number(), year: z.number(), month: z.number(), workDate: z.string(), shiftName: z.string().min(1), present: z.boolean().default(true) }))
+    .input(
+      z.object({
+        staffId: z.number(),
+        year: z.number(),
+        month: z.number(),
+        workDate: z.string(),
+        shiftName: z.string().min(1),
+        present: z.boolean().default(true),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.insert(shiftAttendance)
-        .values({ staffId: input.staffId, year: input.year, month: input.month, workDate: input.workDate as any, shiftName: input.shiftName, present: input.present })
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .insert(shiftAttendance)
+        .values({
+          staffId: input.staffId,
+          year: input.year,
+          month: input.month,
+          workDate: input.workDate as any,
+          shiftName: input.shiftName,
+          present: input.present,
+        })
         .onDuplicateKeyUpdate({ set: { present: input.present } });
       return { success: true };
     }),
 
   addShiftsBulk: managerProcedure
-    .input(z.object({
-      staffId: z.number(),
-      shiftName: z.string().min(1),
-      dates: z.array(z.string()).min(1),
-    }))
+    .input(
+      z.object({
+        staffId: z.number(),
+        shiftName: z.string().min(1),
+        dates: z.array(z.string()).min(1),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       let inserted = 0;
       for (const workDate of input.dates) {
         const d = new Date(workDate);
         const year = d.getFullYear();
         const month = d.getMonth() + 1;
-        await db.insert(shiftAttendance)
-          .values({ staffId: input.staffId, year, month, workDate: workDate as any, shiftName: input.shiftName, present: true })
+        await db
+          .insert(shiftAttendance)
+          .values({
+            staffId: input.staffId,
+            year,
+            month,
+            workDate: workDate as any,
+            shiftName: input.shiftName,
+            present: true,
+          })
           .onDuplicateKeyUpdate({ set: { present: true } });
         inserted++;
       }
@@ -753,8 +1061,11 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number(), present: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.update(shiftAttendance).set({ present: input.present }).where(eq(shiftAttendance.id, input.id));
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(shiftAttendance)
+        .set({ present: input.present })
+        .where(eq(shiftAttendance.id, input.id));
       return { success: true };
     }),
 
@@ -762,7 +1073,7 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db.delete(shiftAttendance).where(eq(shiftAttendance.id, input.id));
       return { success: true };
     }),
@@ -771,10 +1082,15 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.delete(shiftAttendance).where(
-        and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))
-      );
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(shiftAttendance)
+        .where(
+          and(
+            eq(shiftAttendance.year, input.year),
+            eq(shiftAttendance.month, input.month),
+          ),
+        );
       return { success: true };
     }),
 
@@ -784,17 +1100,38 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      return db.select().from(salaryHolidays)
-        .where(and(eq(salaryHolidays.year, input.year), eq(salaryHolidays.month, input.month)));
+      if (!db) throw new Error("DB unavailable");
+      return db
+        .select()
+        .from(salaryHolidays)
+        .where(
+          and(
+            eq(salaryHolidays.year, input.year),
+            eq(salaryHolidays.month, input.month),
+          ),
+        );
     }),
 
   addHoliday: managerProcedure
-    .input(z.object({ date: z.string(), name: z.string().default(''), year: z.number().int(), month: z.number().int() }))
+    .input(
+      z.object({
+        date: z.string(),
+        name: z.string().default(""),
+        year: z.number().int(),
+        month: z.number().int(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
-      await db.insert(salaryHolidays).values({ date: input.date as any, name: input.name, year: input.year, month: input.month })
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .insert(salaryHolidays)
+        .values({
+          date: input.date as any,
+          name: input.name,
+          year: input.year,
+          month: input.month,
+        })
         .onDuplicateKeyUpdate({ set: { name: input.name } });
       return { success: true };
     }),
@@ -803,7 +1140,7 @@ export const salaryRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       await db.delete(salaryHolidays).where(eq(salaryHolidays.id, input.id));
       return { success: true };
     }),
@@ -812,66 +1149,121 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const [staff, attendance, monthlyReports, basics] = await Promise.all([
         db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
-        db.select().from(shiftAttendance).where(and(eq(shiftAttendance.year, input.year), eq(shiftAttendance.month, input.month))),
-        db.select().from(attendanceMonthlyReport).where(and(eq(attendanceMonthlyReport.year, input.year), eq(attendanceMonthlyReport.month, input.month))),
-        db.select().from(salaryBasics).where(and(
-          lte(salaryBasics.effectiveFrom, `${input.year}-${String(input.month).padStart(2, '0')}-${String(new Date(input.year, input.month, 0).getDate()).padStart(2, '0')}` as any),
-          or(isNull(salaryBasics.effectiveTo), gte(salaryBasics.effectiveTo, `${input.year}-${String(input.month).padStart(2, '0')}-01` as any))
-        )),
+        db
+          .select()
+          .from(shiftAttendance)
+          .where(
+            and(
+              eq(shiftAttendance.year, input.year),
+              eq(shiftAttendance.month, input.month),
+            ),
+          ),
+        db
+          .select()
+          .from(attendanceMonthlyReport)
+          .where(
+            and(
+              eq(attendanceMonthlyReport.year, input.year),
+              eq(attendanceMonthlyReport.month, input.month),
+            ),
+          ),
+        db
+          .select()
+          .from(salaryBasics)
+          .where(
+            and(
+              lte(
+                salaryBasics.effectiveFrom,
+                `${input.year}-${String(input.month).padStart(2, "0")}-${String(new Date(input.year, input.month, 0).getDate()).padStart(2, "0")}` as any,
+              ),
+              or(
+                isNull(salaryBasics.effectiveTo),
+                gte(
+                  salaryBasics.effectiveTo,
+                  `${input.year}-${String(input.month).padStart(2, "0")}-01` as any,
+                ),
+              ),
+            ),
+          ),
       ]);
 
       // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
-      const linkedEmpCds = staff.filter(s => s.empCd).map(s => s.empCd!);
+      const linkedEmpCds = staff.filter((s) => s.empCd).map((s) => s.empCd!);
       const presentDatesMap = new Map<string, Set<string>>();
       const deductionMap = new Map<string, number>();
       if (linkedEmpCds.length > 0) {
-        const mm = String(input.month).padStart(2, '0');
+        const mm = String(input.month).padStart(2, "0");
         const lastDay = new Date(input.year, input.month, 0).getDate();
         const dailyRows = await db
-          .select({ empCd: attendanceDaily.empCd, workDate: attendanceDaily.workDate, status: attendanceDaily.status })
+          .select({
+            empCd: attendanceDaily.empCd,
+            workDate: attendanceDaily.workDate,
+            status: attendanceDaily.status,
+          })
           .from(attendanceDaily)
-          .where(and(
-            inArray(attendanceDaily.empCd, linkedEmpCds),
-            gte(attendanceDaily.workDate, `${input.year}-${mm}-01` as any),
-            lte(attendanceDaily.workDate, `${input.year}-${mm}-${String(lastDay).padStart(2, '0')}` as any),
-          ));
+          .where(
+            and(
+              inArray(attendanceDaily.empCd, linkedEmpCds),
+              gte(attendanceDaily.workDate, `${input.year}-${mm}-01` as any),
+              lte(
+                attendanceDaily.workDate,
+                `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}` as any,
+              ),
+            ),
+          );
         for (const row of dailyRows) {
-          if (row.status !== 'present' && row.status !== 'partial' && row.status !== 'missing_checkout') continue;
+          if (
+            row.status !== "present" &&
+            row.status !== "partial" &&
+            row.status !== "missing_checkout"
+          )
+            continue;
           const d = row.workDate as any;
-          const ds = d instanceof Date
-            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-            : String(d).slice(0, 10);
-          if (!presentDatesMap.has(row.empCd)) presentDatesMap.set(row.empCd, new Set());
+          const ds =
+            d instanceof Date
+              ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+              : String(d).slice(0, 10);
+          if (!presentDatesMap.has(row.empCd))
+            presentDatesMap.set(row.empCd, new Set());
           presentDatesMap.get(row.empCd)!.add(ds);
         }
 
         // Calculate deductions for linked employees
         for (const empCd of linkedEmpCds) {
-          const report = monthlyReports.find(r => r.empCd === empCd);
+          const report = monthlyReports.find((r) => r.empCd === empCd);
           const basicRow = basics
-            .filter(b => b.empCd === empCd)
-            .sort((a, b) => String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)))[0];
+            .filter((b) => b.empCd === empCd)
+            .sort((a, b) =>
+              String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)),
+            )[0];
           if (report && basicRow) {
-            const basic = Number(basicRow.basicAmount)
-              + Number((basicRow as any).socialAllowance ?? 0)
-              + Number((basicRow as any).costOfLivingAllowance ?? 0)
-              + Number((basicRow as any).transportAllowance ?? 0)
-              + Number((basicRow as any).workNatureAllowance ?? 0)
-              + Number((basicRow as any).receptionAllowance ?? 0)
-              + Number((basicRow as any).yearlyRaise ?? 0);
+            const basic =
+              Number(basicRow.basicAmount) +
+              Number((basicRow as any).socialAllowance ?? 0) +
+              Number((basicRow as any).costOfLivingAllowance ?? 0) +
+              Number((basicRow as any).transportAllowance ?? 0) +
+              Number((basicRow as any).workNatureAllowance ?? 0) +
+              Number((basicRow as any).receptionAllowance ?? 0) +
+              Number((basicRow as any).yearlyRaise ?? 0);
             const lateMinutes = report.totalLateMins ?? 0;
             const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
-            const workingDays = dailyRows.filter(d => d.empCd === empCd && d.status !== 'holiday').length || 1;
+            const workingDays =
+              dailyRows.filter(
+                (d) => d.empCd === empCd && d.status !== "holiday",
+              ).length || 1;
             const dailyRate = basic / workingDays;
             const minuteRate = dailyRate / 360;
             const MAX_LATE_EARLY_MINS = 200;
             const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
             const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
-            const capRatio = rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
-            const totalDeduction = lateMinutes * capRatio * minuteRate + earlyLeaveMinutes * capRatio * minuteRate;
+            const capRatio =
+              rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
+            const totalDeduction =
+              lateMinutes * capRatio * minuteRate +
+              earlyLeaveMinutes * capRatio * minuteRate;
             deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
           }
         }
@@ -879,28 +1271,35 @@ export const salaryRouter = router({
 
       function fmtDate(d: any): string {
         return d instanceof Date
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
           : String(d).slice(0, 10);
       }
 
-      function resolvePresent(s: (typeof staff)[number], a: (typeof attendance)[number]): boolean {
+      function resolvePresent(
+        s: (typeof staff)[number],
+        a: (typeof attendance)[number],
+      ): boolean {
         if (!s.empCd) return a.present;
         const presentDates = presentDatesMap.get(s.empCd);
         if (!presentDates) return false;
         return presentDates.has(fmtDate(a.workDate));
       }
 
-      return staff.map(s => {
-        const rows = attendance.filter(a => a.staffId === s.id);
+      return staff.map((s) => {
+        const rows = attendance.filter((a) => a.staffId === s.id);
         const rate = Number(s.ratePerShift);
-        const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
+        const byShift: Record<
+          string,
+          { scheduled: number; attended: number; rate: number }
+        > = {};
         let attended = 0;
 
         // Rules 1 & 2: scheduled shifts vs punches
         for (const a of rows) {
           const present = resolvePresent(s, a);
           if (present) attended++;
-          if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
+          if (!byShift[a.shiftName])
+            byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
         }
@@ -910,7 +1309,9 @@ export const salaryRouter = router({
         if (s.empCd) {
           const presentDates = presentDatesMap.get(s.empCd);
           if (presentDates) {
-            const scheduledDates = new Set(rows.map(a => fmtDate(a.workDate)));
+            const scheduledDates = new Set(
+              rows.map((a) => fmtDate(a.workDate)),
+            );
             for (const d of presentDates) {
               if (!scheduledDates.has(d)) extraAttended++;
             }
@@ -919,7 +1320,7 @@ export const salaryRouter = router({
 
         const totalAttended = attended + extraAttended;
         if (extraAttended > 0) {
-          byShift['إضافي'] = { scheduled: 0, attended: extraAttended, rate };
+          byShift["إضافي"] = { scheduled: 0, attended: extraAttended, rate };
         }
 
         // Calculate pay: basic (all scheduled) - absent deduction - punch deduction
@@ -927,13 +1328,21 @@ export const salaryRouter = router({
         const absent = scheduled - attended;
         const basicSalary = Math.round(scheduled * rate * 100) / 100;
         const absentDeduction = Math.round(absent * rate * 100) / 100;
-        const punchDeductionPct = s.empCd ? (deductionMap.get(s.empCd) ?? 0) : 0;
-        const punchDeduction = Math.round(basicSalary * punchDeductionPct * 100) / 100;
-        const netPay = Math.round((basicSalary - absentDeduction - punchDeduction) * 100) / 100;
+        const punchDeductionPct = s.empCd
+          ? (deductionMap.get(s.empCd) ?? 0)
+          : 0;
+        const punchDeduction =
+          Math.round(basicSalary * punchDeductionPct * 100) / 100;
+        const netPay =
+          Math.round((basicSalary - absentDeduction - punchDeduction) * 100) /
+          100;
         const totalPay = netPay;
 
         return {
-          id: s.id, name: s.name, type: s.type, empCd: s.empCd ?? null,
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          empCd: s.empCd ?? null,
           ratePerShift: rate,
           scheduled,
           attended: totalAttended,
@@ -950,25 +1359,40 @@ export const salaryRouter = router({
   // ── Shift Cycles ─────────────────────────────────────────
   getStaffCycles: managerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('DB unavailable');
+    if (!db) throw new Error("DB unavailable");
     return db.select().from(shiftStaffCycle);
   }),
 
   setStaffCycle: managerProcedure
-    .input(z.object({
-      staffId: z.number(),
-      // array of {dayOfWeek: 0-6, shiftName: "Morning"|"Night"}
-      cycle: z.array(z.object({ dayOfWeek: z.number().min(0).max(6), shiftName: z.string().min(1) })),
-    }))
+    .input(
+      z.object({
+        staffId: z.number(),
+        // array of {dayOfWeek: 0-6, shiftName: "Morning"|"Night"}
+        cycle: z.array(
+          z.object({
+            dayOfWeek: z.number().min(0).max(6),
+            shiftName: z.string().min(1),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       // Replace all cycle entries for this staff member
-      await db.delete(shiftStaffCycle).where(eq(shiftStaffCycle.staffId, input.staffId));
+      await db
+        .delete(shiftStaffCycle)
+        .where(eq(shiftStaffCycle.staffId, input.staffId));
       if (input.cycle.length > 0) {
-        await db.insert(shiftStaffCycle).values(
-          input.cycle.map(c => ({ staffId: input.staffId, dayOfWeek: c.dayOfWeek, shiftName: c.shiftName }))
-        );
+        await db
+          .insert(shiftStaffCycle)
+          .values(
+            input.cycle.map((c) => ({
+              staffId: input.staffId,
+              dayOfWeek: c.dayOfWeek,
+              shiftName: c.shiftName,
+            })),
+          );
       }
       return { success: true };
     }),
@@ -977,7 +1401,7 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number(), month: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
 
       const [cycles, staff] = await Promise.all([
         db.select().from(shiftStaffCycle),
@@ -988,22 +1412,30 @@ export const salaryRouter = router({
       let inserted = 0;
 
       for (const s of staff) {
-        const staffCycles = cycles.filter(c => c.staffId === s.id);
+        const staffCycles = cycles.filter((c) => c.staffId === s.id);
         if (staffCycles.length === 0) continue;
 
         for (let day = 1; day <= daysInMonth; day++) {
           const d = new Date(input.year, input.month - 1, day);
           const dow = d.getDay(); // 0=Sun
-          const cycleEntries = staffCycles.filter(c => c.dayOfWeek === dow);
+          const cycleEntries = staffCycles.filter((c) => c.dayOfWeek === dow);
           if (cycleEntries.length === 0) continue;
 
-          const mm = String(input.month).padStart(2, '0');
-          const dd = String(day).padStart(2, '0');
+          const mm = String(input.month).padStart(2, "0");
+          const dd = String(day).padStart(2, "0");
           const workDate = `${input.year}-${mm}-${dd}`;
 
           for (const cycleEntry of cycleEntries) {
-            await db.insert(shiftAttendance)
-              .values({ staffId: s.id, year: input.year, month: input.month, workDate: workDate as any, shiftName: cycleEntry.shiftName, present: true })
+            await db
+              .insert(shiftAttendance)
+              .values({
+                staffId: s.id,
+                year: input.year,
+                month: input.month,
+                workDate: workDate as any,
+                shiftName: cycleEntry.shiftName,
+                present: true,
+              })
               .onDuplicateKeyUpdate({ set: { present: true } });
             inserted++;
           }
@@ -1017,7 +1449,7 @@ export const salaryRouter = router({
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('DB unavailable');
+      if (!db) throw new Error("DB unavailable");
       const [payAgg] = await db
         .select({
           totalPay: sql<string>`COALESCE(SUM(${salaryPayroll.totalPay}), 0)`,
@@ -1025,11 +1457,23 @@ export const salaryRouter = router({
           staffCount: sql<number>`COUNT(*)`,
         })
         .from(salaryPayroll)
-        .where(and(eq(salaryPayroll.year, input.year), eq(salaryPayroll.month, input.month)));
+        .where(
+          and(
+            eq(salaryPayroll.year, input.year),
+            eq(salaryPayroll.month, input.month),
+          ),
+        );
       const [penAgg] = await db
-        .select({ total: sql<string>`COALESCE(SUM(${salaryPenalties.amount}), 0)` })
+        .select({
+          total: sql<string>`COALESCE(SUM(${salaryPenalties.amount}), 0)`,
+        })
         .from(salaryPenalties)
-        .where(and(eq(salaryPenalties.year, input.year), eq(salaryPenalties.month, input.month)));
+        .where(
+          and(
+            eq(salaryPenalties.year, input.year),
+            eq(salaryPenalties.month, input.month),
+          ),
+        );
       return {
         totalPay: Number(payAgg?.totalPay ?? 0),
         totalCommissions: Number(payAgg?.totalCommission ?? 0),

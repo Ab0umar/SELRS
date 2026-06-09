@@ -93,7 +93,9 @@ function meaningfulValueCondition(column: any) {
 }
 
 function anyMeaningfulValueCondition(columns: any[]) {
-  return or(...columns.map((column) => meaningfulValueCondition(column)) as any);
+  return or(
+    ...(columns.map((column) => meaningfulValueCondition(column)) as any),
+  );
 }
 
 function overviewSearchClause(search: string, columns: any[]) {
@@ -101,17 +103,24 @@ function overviewSearchClause(search: string, columns: any[]) {
   if (!normalizedSearch) return undefined;
   const term = `%${normalizedSearch}%`;
   const legacyTerm = `%${encodeForLegacySearch(normalizedSearch)}%`;
-  const searchClauses = columns.flatMap((column) => [like(column, term), like(column, legacyTerm)]);
-  return or(...searchClauses as any);
+  const searchClauses = columns.flatMap((column) => [
+    like(column, term),
+    like(column, legacyTerm),
+  ]);
+  return or(...(searchClauses as any));
 }
 
 function normalizeOverviewPage(page: number | undefined) {
-  const safePage = Number.isFinite(Number(page)) ? Math.max(1, Math.floor(Number(page))) : 1;
+  const safePage = Number.isFinite(Number(page))
+    ? Math.max(1, Math.floor(Number(page)))
+    : 1;
   return safePage;
 }
 
 function normalizeOverviewPageSize(pageSize: number | undefined) {
-  const safePageSize = Number.isFinite(Number(pageSize)) ? Math.max(1, Math.min(200, Math.floor(Number(pageSize)))) : OVERVIEW_PAGE_SIZE;
+  const safePageSize = Number.isFinite(Number(pageSize))
+    ? Math.max(1, Math.min(200, Math.floor(Number(pageSize))))
+    : OVERVIEW_PAGE_SIZE;
   return safePageSize;
 }
 
@@ -164,7 +173,10 @@ function pentacamEligibilityExpr() {
       AND LOWER(TRIM(pse.serviceCode)) IN (${PENTACAM_ALLOWED_SRV_CODE_SQL})
   )`;
 
-  return and(allowedLocationExpr as any, or(directCodeExpr as any, entryCodeExpr as any) as any);
+  return and(
+    allowedLocationExpr as any,
+    or(directCodeExpr as any, entryCodeExpr as any) as any,
+  );
 }
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -235,7 +247,10 @@ export async function updateServiceInDb(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(services).set({ ...updates, updatedAt: new Date() }).where(eq(services.id, id));
+  await db
+    .update(services)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(services.id, id));
 }
 
 export async function getRegistrationCatalogFromDb(): Promise<{
@@ -311,13 +326,16 @@ export async function upsertRegistrationCatalogRows(params: {
     .filter((r): r is NonNullable<typeof r> => r !== null);
 
   if (serviceRows.length > 0) {
-    await db.insert(services).values(serviceRows).onDuplicateKeyUpdate({
-      set: {
-        // Strictly preserve local edits for existing services.
-        // Keep duplicate-key branch as a no-op so sync only inserts missing services.
-        id: sql`id`,
-      },
-    });
+    await db
+      .insert(services)
+      .values(serviceRows)
+      .onDuplicateKeyUpdate({
+        set: {
+          // Strictly preserve local edits for existing services.
+          // Keep duplicate-key branch as a no-op so sync only inserts missing services.
+          id: sql`id`,
+        },
+      });
   }
   const servicesUpserted = serviceRows.length;
 
@@ -325,7 +343,10 @@ export async function upsertRegistrationCatalogRows(params: {
   // - INSERT missing codes
   // - UPDATE names for existing codes
   const doctorRows = params.mssqlDoctors
-    .map((row) => ({ code: String(row.code ?? "").trim(), name: String(row.name ?? "").trim() || String(row.code ?? "").trim() }))
+    .map((row) => ({
+      code: String(row.code ?? "").trim(),
+      name: String(row.name ?? "").trim() || String(row.code ?? "").trim(),
+    }))
     .filter((r) => r.code);
 
   let doctorsUpserted = 0;
@@ -335,7 +356,9 @@ export async function upsertRegistrationCatalogRows(params: {
       .select({ code: doctorsLookup.code })
       .from(doctorsLookup)
       .where(inArray(doctorsLookup.code, doctorCodes));
-    const existingCodes = new Set(existingRows.map((row) => String(row.code ?? "").trim()));
+    const existingCodes = new Set(
+      existingRows.map((row) => String(row.code ?? "").trim()),
+    );
 
     const toInsert = doctorRows
       .filter((row) => !existingCodes.has(row.code))
@@ -366,7 +389,9 @@ export async function upsertRegistrationCatalogRows(params: {
       const result = await db.execute(
         sql`UPDATE doctors SET name = CASE code ${caseWhen} ELSE name END, isActive = 1, updatedAt = ${now} WHERE code IN (${codeList})`,
       );
-      updatedCount = Number((result as any)?.[0]?.affectedRows ?? toUpdate.length);
+      updatedCount = Number(
+        (result as any)?.[0]?.affectedRows ?? toUpdate.length,
+      );
     }
 
     doctorsUpserted = toInsert.length + updatedCount;
@@ -426,7 +451,11 @@ export async function getUserById(userId: number) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -440,7 +469,10 @@ export async function updateUserLastSignedIn(userId: number) {
     return;
   }
 
-  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
 }
 
 /**
@@ -456,16 +488,27 @@ export async function createUser(userData: InsertUser) {
   try {
     const result = await db.insert(users).values(userData);
     // Drizzle mysql2: result is [OkPacket, FieldPacket[]] or OkPacket depending on version
-    const insertId = (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+    const insertId =
+      (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
     if (insertId) return { insertId: Number(insertId) };
   } catch (err: any) {
-    console.error("[createUser] MySQL error:", err?.code, err?.sqlMessage ?? err?.message, "| username:", userData.username);
+    console.error(
+      "[createUser] MySQL error:",
+      err?.code,
+      err?.sqlMessage ?? err?.message,
+      "| username:",
+      userData.username,
+    );
     // INSERT may have committed despite Drizzle throwing (e.g. trigger warning, result parse error).
     // Fall through to check if the row actually landed.
   }
 
   // Attempt recovery: find user by username
-  const found = await db.select({ insertId: users.id }).from(users).where(eq(users.username, userData.username)).limit(1);
+  const found = await db
+    .select({ insertId: users.id })
+    .from(users)
+    .where(eq(users.username, userData.username))
+    .limit(1);
   if (found.length > 0) return { insertId: found[0].insertId };
 
   return undefined;
@@ -561,7 +604,14 @@ type StagePatientImportRowInput = {
   phone?: string | null;
   address?: string | null;
   branch?: "examinations" | "surgery" | "" | null;
-  serviceType?: "consultant" | "specialist" | "lasik" | "surgery" | "external" | "" | null;
+  serviceType?:
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | ""
+    | null;
   locationType?: "center" | "external" | "" | null;
   doctorCode?: string | null;
   doctorName?: string | null;
@@ -574,17 +624,21 @@ type StageBatchSummary = {
   invalid: number;
 };
 
-const IMPORT_ALLOWED_SERVICE_TYPES = new Set(["consultant", "specialist", "lasik", "surgery", "external"]);
+const IMPORT_ALLOWED_SERVICE_TYPES = new Set([
+  "consultant",
+  "specialist",
+  "lasik",
+  "surgery",
+  "external",
+]);
 const IMPORT_ALLOWED_LOCATION_TYPES = new Set(["center", "external"]);
 const IMPORT_ALLOWED_BRANCHES = new Set(["examinations", "surgery"]);
 
-let doctorDirectoryCache:
-  | {
-      at: number;
-      byCode: Map<string, { name: string; locationType: "center" | "external" }>;
-      byName: Map<string, { code: string; locationType: "center" | "external" }>;
-    }
-  | null = null;
+let doctorDirectoryCache: {
+  at: number;
+  byCode: Map<string, { name: string; locationType: "center" | "external" }>;
+  byName: Map<string, { code: string; locationType: "center" | "external" }>;
+} | null = null;
 
 async function getDoctorDirectoryCached() {
   const now = Date.now();
@@ -593,8 +647,14 @@ async function getDoctorDirectoryCached() {
   }
 
   const row = await getSystemSetting("doctor_directory");
-  const byCode = new Map<string, { name: string; locationType: "center" | "external" }>();
-  const byName = new Map<string, { code: string; locationType: "center" | "external" }>();
+  const byCode = new Map<
+    string,
+    { name: string; locationType: "center" | "external" }
+  >();
+  const byName = new Map<
+    string,
+    { code: string; locationType: "center" | "external" }
+  >();
   if (row?.value) {
     try {
       const parsed = JSON.parse(row.value) as Array<any>;
@@ -602,7 +662,12 @@ async function getDoctorDirectoryCached() {
         const code = String(item?.code ?? "").trim();
         const name = String(item?.name ?? "").trim();
         if (!code || !name) continue;
-        const locationType = String(item?.locationType ?? "center").trim().toLowerCase() === "external" ? "external" : "center";
+        const locationType =
+          String(item?.locationType ?? "center")
+            .trim()
+            .toLowerCase() === "external"
+            ? "external"
+            : "center";
         byCode.set(code.toLowerCase(), { name, locationType });
         byName.set(name.toLowerCase(), { code, locationType });
       }
@@ -635,14 +700,19 @@ function safeParseJsonArray(input: unknown): string[] {
   }
 }
 
-export async function stagePatientImportRows(batchId: string, rows: StagePatientImportRowInput[]): Promise<StageBatchSummary> {
+export async function stagePatientImportRows(
+  batchId: string,
+  rows: StagePatientImportRowInput[],
+): Promise<StageBatchSummary> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const normalizedBatchId = String(batchId ?? "").trim();
   if (!normalizedBatchId) throw new Error("batchId is required");
 
-  await db.delete(patientImportStaging).where(eq(patientImportStaging.batchId, normalizedBatchId));
+  await db
+    .delete(patientImportStaging)
+    .where(eq(patientImportStaging.batchId, normalizedBatchId));
 
   const codeCounts = new Map<string, number>();
   for (const row of rows) {
@@ -655,7 +725,9 @@ export async function stagePatientImportRows(batchId: string, rows: StagePatient
   const doctorUsers = await getDoctors();
   const doctorIdByName = new Map<string, number>();
   for (const d of doctorUsers) {
-    const key = String(d.name ?? "").trim().toLowerCase();
+    const key = String(d.name ?? "")
+      .trim()
+      .toLowerCase();
     if (key) doctorIdByName.set(key, Number(d.id));
   }
 
@@ -667,24 +739,46 @@ export async function stagePatientImportRows(batchId: string, rows: StagePatient
     const fullName = String(row.fullName ?? "").trim();
     const dateOfBirthRaw = String(row.dateOfBirth ?? "").trim();
     const dateOfBirth = normalizeIsoDate(dateOfBirthRaw);
-    const serviceType = String(row.serviceType ?? "").trim().toLowerCase();
-    const branch = String(row.branch ?? "examinations").trim().toLowerCase();
-    const explicitLocation = String(row.locationType ?? "").trim().toLowerCase();
+    const serviceType = String(row.serviceType ?? "")
+      .trim()
+      .toLowerCase();
+    const branch = String(row.branch ?? "examinations")
+      .trim()
+      .toLowerCase();
+    const explicitLocation = String(row.locationType ?? "")
+      .trim()
+      .toLowerCase();
     const doctorCode = String(row.doctorCode ?? "").trim();
     const doctorName = String(row.doctorName ?? "").trim();
-    const genderRaw = String(row.gender ?? "").trim().toLowerCase();
+    const genderRaw = String(row.gender ?? "")
+      .trim()
+      .toLowerCase();
 
     const errors: string[] = [];
     if (!patientCode) errors.push("Missing patient code");
     if (!fullName) errors.push("Missing full name");
-    if (patientCode && (codeCounts.get(patientCode) ?? 0) > 1) errors.push("Duplicate patient code in same file");
-    if (dateOfBirthRaw && !dateOfBirth) errors.push("Invalid dateOfBirth format (must be YYYY-MM-DD)");
-    if (serviceType && !IMPORT_ALLOWED_SERVICE_TYPES.has(serviceType)) errors.push("Invalid serviceType");
-    if (branch && !IMPORT_ALLOWED_BRANCHES.has(branch)) errors.push("Invalid branch");
-    if (explicitLocation && !IMPORT_ALLOWED_LOCATION_TYPES.has(explicitLocation)) errors.push("Invalid locationType");
+    if (patientCode && (codeCounts.get(patientCode) ?? 0) > 1)
+      errors.push("Duplicate patient code in same file");
+    if (dateOfBirthRaw && !dateOfBirth)
+      errors.push("Invalid dateOfBirth format (must be YYYY-MM-DD)");
+    if (serviceType && !IMPORT_ALLOWED_SERVICE_TYPES.has(serviceType))
+      errors.push("Invalid serviceType");
+    if (branch && !IMPORT_ALLOWED_BRANCHES.has(branch))
+      errors.push("Invalid branch");
+    if (
+      explicitLocation &&
+      !IMPORT_ALLOWED_LOCATION_TYPES.has(explicitLocation)
+    )
+      errors.push("Invalid locationType");
 
-    const locationType = serviceType === "external" ? "external" : (IMPORT_ALLOWED_LOCATION_TYPES.has(explicitLocation) ? explicitLocation : "center");
-    const gender = genderRaw === "male" || genderRaw === "female" ? genderRaw : null;
+    const locationType =
+      serviceType === "external"
+        ? "external"
+        : IMPORT_ALLOWED_LOCATION_TYPES.has(explicitLocation)
+          ? explicitLocation
+          : "center";
+    const gender =
+      genderRaw === "male" || genderRaw === "female" ? genderRaw : null;
 
     let resolvedDoctorId: number | null = null;
     if (doctorName) {
@@ -692,7 +786,8 @@ export async function stagePatientImportRows(batchId: string, rows: StagePatient
     } else if (doctorCode) {
       const byCode = directory.byCode.get(doctorCode.toLowerCase());
       if (byCode) {
-        resolvedDoctorId = doctorIdByName.get(byCode.name.toLowerCase()) ?? null;
+        resolvedDoctorId =
+          doctorIdByName.get(byCode.name.toLowerCase()) ?? null;
       }
     }
     if ((doctorName || doctorCode) && !resolvedDoctorId) {
@@ -713,8 +808,12 @@ export async function stagePatientImportRows(batchId: string, rows: StagePatient
       gender: gender as any,
       phone: String(row.phone ?? "").trim() || null,
       address: String(row.address ?? "").trim() || null,
-      branch: (IMPORT_ALLOWED_BRANCHES.has(branch) ? branch : "examinations") as any,
-      serviceType: (IMPORT_ALLOWED_SERVICE_TYPES.has(serviceType) ? serviceType : "consultant") as any,
+      branch: (IMPORT_ALLOWED_BRANCHES.has(branch)
+        ? branch
+        : "examinations") as any,
+      serviceType: (IMPORT_ALLOWED_SERVICE_TYPES.has(serviceType)
+        ? serviceType
+        : "consultant") as any,
       locationType: locationType as any,
       doctorCode: doctorCode || null,
       doctorId: resolvedDoctorId,
@@ -741,7 +840,12 @@ export async function getPatientImportErrors(batchId: string) {
   const rows = await db
     .select()
     .from(patientImportStaging)
-    .where(and(eq(patientImportStaging.batchId, normalizedBatchId), eq(patientImportStaging.status, "invalid" as any)))
+    .where(
+      and(
+        eq(patientImportStaging.batchId, normalizedBatchId),
+        eq(patientImportStaging.status, "invalid" as any),
+      ),
+    )
     .orderBy(patientImportStaging.rowNumber);
   return rows.map((row) => ({
     rowNumber: Number(row.rowNumber ?? 0),
@@ -783,7 +887,12 @@ export async function applyPatientImportBatch(batchId: string) {
   const rows = await db
     .select()
     .from(patientImportStaging)
-    .where(and(eq(patientImportStaging.batchId, normalizedBatchId), eq(patientImportStaging.status, "valid" as any)))
+    .where(
+      and(
+        eq(patientImportStaging.batchId, normalizedBatchId),
+        eq(patientImportStaging.status, "valid" as any),
+      ),
+    )
     .orderBy(patientImportStaging.rowNumber);
 
   const directory = await getDoctorDirectoryCached();
@@ -800,7 +909,11 @@ export async function applyPatientImportBatch(batchId: string) {
         failed += 1;
         await db
           .update(patientImportStaging)
-          .set({ status: "invalid" as any, errors: JSON.stringify(["Missing patientCode/fullName"]), updatedAt: new Date() })
+          .set({
+            status: "invalid" as any,
+            errors: JSON.stringify(["Missing patientCode/fullName"]),
+            updatedAt: new Date(),
+          })
           .where(eq(patientImportStaging.id, row.id));
         continue;
       }
@@ -814,7 +927,9 @@ export async function applyPatientImportBatch(batchId: string) {
         address: row.address ?? "",
         branch: row.branch ?? "examinations",
         serviceType: row.serviceType ?? "consultant",
-        locationType: row.locationType ?? (row.serviceType === "external" ? "external" : "center"),
+        locationType:
+          row.locationType ??
+          (row.serviceType === "external" ? "external" : "center"),
         lastVisit: row.dateOfBirth ?? new Date(),
         doctorId: row.doctorId ?? null,
         status: "new",
@@ -822,12 +937,19 @@ export async function applyPatientImportBatch(batchId: string) {
 
       const existing = await getPatientByCode(patientCode);
       if (existing) {
-        await db.update(patients).set(payload).where(eq(patients.id, Number(existing.id)));
+        await db
+          .update(patients)
+          .set(payload)
+          .where(eq(patients.id, Number(existing.id)));
         updated += 1;
       } else {
         await db.insert(patients).values(payload);
         inserted += 1;
-        if (!firstInserted) firstInserted = { fullName, serviceType: String(row.serviceType ?? "consultant") };
+        if (!firstInserted)
+          firstInserted = {
+            fullName,
+            serviceType: String(row.serviceType ?? "consultant"),
+          };
       }
 
       const doctorCode = String(row.doctorCode ?? "").trim();
@@ -849,7 +971,9 @@ export async function applyPatientImportBatch(batchId: string) {
         .update(patientImportStaging)
         .set({
           status: "invalid" as any,
-          errors: JSON.stringify([String(error?.message ?? error ?? "Unknown import apply error")]),
+          errors: JSON.stringify([
+            String(error?.message ?? error ?? "Unknown import apply error"),
+          ]),
           updatedAt: new Date(),
         })
         .where(eq(patientImportStaging.id, row.id));
@@ -862,7 +986,10 @@ export async function applyPatientImportBatch(batchId: string) {
     inserted,
     updated,
     failed,
-    firstInserted: firstInserted as { fullName: string; serviceType: string } | null,
+    firstInserted: firstInserted as {
+      fullName: string;
+      serviceType: string;
+    } | null,
   };
 }
 
@@ -895,13 +1022,13 @@ export async function getOpsHealthStatus() {
   let web4000 = false;
   try {
     const { stdout } = await exec(
-      'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 3000 -State Listen | Select-Object -First 1 | ForEach-Object { $_.LocalPort }"'
+      'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 3000 -State Listen | Select-Object -First 1 | ForEach-Object { $_.LocalPort }"',
     );
     api3000 = String(stdout).trim() === "3000";
   } catch {}
   try {
     const { stdout } = await exec(
-      'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 4000 -State Listen | Select-Object -First 1 | ForEach-Object { $_.LocalPort }"'
+      'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 4000 -State Listen | Select-Object -First 1 | ForEach-Object { $_.LocalPort }"',
     );
     web4000 = String(stdout).trim() === "4000";
   } catch {}
@@ -917,7 +1044,7 @@ export async function getOpsHealthStatus() {
         const full = path.join(backupsDir, name);
         const stat = await fs.stat(full);
         return { name, full, mtime: stat.mtime };
-      })
+      }),
     );
     withStat.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
     const latest = withStat[0];
@@ -963,7 +1090,11 @@ export async function getPatientById(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.select().from(patients).where(eq(patients.id, patientId)).limit(1);
+  const result = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.id, patientId))
+    .limit(1);
   return result.length > 0 ? decodePatientRow(result[0] as any) : null;
 }
 
@@ -971,14 +1102,18 @@ export async function getPatientByCode(patientCode: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.select().from(patients).where(eq(patients.patientCode, patientCode)).limit(1);
+  const result = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.patientCode, patientCode))
+    .limit(1);
   return result.length > 0 ? decodePatientRow(result[0] as any) : null;
 }
 
 export async function searchPatients(
   searchTerm: string,
   sheetType?: "consultant" | "specialist" | "lasik" | "external" | "pentacam",
-  locationType?: "center" | "external"
+  locationType?: "center" | "external",
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -996,7 +1131,7 @@ export async function searchPatients(
       like(patients.fullName, lt),
       like(patients.patientCode, t),
       like(patients.phone, t),
-      like(patients.alternatePhone, t)
+      like(patients.alternatePhone, t),
     );
   };
   const phraseClause = or(
@@ -1004,15 +1139,15 @@ export async function searchPatients(
     like(patients.fullName, legacyTerm),
     like(patients.patientCode, term),
     like(patients.phone, term),
-    like(patients.alternatePhone, term)
+    like(patients.alternatePhone, term),
   );
   const tokenClauses = tokens.map(buildTokenClause);
   const textMatch =
     tokenClauses.length > 1
       ? and(...tokenClauses)
       : tokenClauses.length === 1
-      ? tokenClauses[0]
-      : phraseClause;
+        ? tokenClauses[0]
+        : phraseClause;
 
   let whereClause = textMatch as any;
   if (sheetType) {
@@ -1024,15 +1159,25 @@ export async function searchPatients(
         .from(sheetEntries)
         .where(eq(sheetEntries.sheetType, sheetType as any))
         .groupBy(sheetEntries.patientId);
-      const patientIds = rows.map((row) => Number(row.patientId)).filter((id) => Number.isFinite(id));
+      const patientIds = rows
+        .map((row) => Number(row.patientId))
+        .filter((id) => Number.isFinite(id));
       if (patientIds.length === 0) return [];
       whereClause = and(textMatch, inArray(patients.id, patientIds));
     }
   }
 
-  const normalizedLocationType = String(locationType ?? "").trim().toLowerCase();
-  if (normalizedLocationType === "center" || normalizedLocationType === "external") {
-    whereClause = and(whereClause, eq(patients.locationType, normalizedLocationType as any));
+  const normalizedLocationType = String(locationType ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    normalizedLocationType === "center" ||
+    normalizedLocationType === "external"
+  ) {
+    whereClause = and(
+      whereClause,
+      eq(patients.locationType, normalizedLocationType as any),
+    );
   }
 
   const result = await db.select().from(patients).where(whereClause).limit(50);
@@ -1040,16 +1185,24 @@ export async function searchPatients(
   return enriched.map((row) => decodePatientRow(row as any));
 }
 
-export async function invalidatePatientPageStateCache(patientIds: number[]): Promise<void> {
+export async function invalidatePatientPageStateCache(
+  patientIds: number[],
+): Promise<void> {
   if (patientIds.length === 0) return;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(patientPageStates).where(
-    and(
-      inArray(patientPageStates.patientId, patientIds),
-      inArray(patientPageStates.page, ["examination", "quick-entry", "medical-file"])
-    )
-  );
+  await db
+    .delete(patientPageStates)
+    .where(
+      and(
+        inArray(patientPageStates.patientId, patientIds),
+        inArray(patientPageStates.page, [
+          "examination",
+          "quick-entry",
+          "medical-file",
+        ]),
+      ),
+    );
 }
 
 export async function resetMssqlSyncCodes(): Promise<number> {
@@ -1132,7 +1285,7 @@ export async function updatePatient(patientId: number, updates: any) {
 
   // Convert empty strings to null for optional fields
   for (const [key, value] of Object.entries(nextUpdates)) {
-    if (typeof value === 'string' && value.trim() === '') {
+    if (typeof value === "string" && value.trim() === "") {
       nextUpdates[key] = null;
     }
   }
@@ -1141,7 +1294,8 @@ export async function updatePatient(patientId: number, updates: any) {
     const rawDob = nextUpdates.dateOfBirth;
     const parseLooseDate = (value: unknown): string | null => {
       if (value == null) return null;
-      if (value instanceof Date && !Number.isNaN(value.valueOf())) return value.toISOString().slice(0, 10);
+      if (value instanceof Date && !Number.isNaN(value.valueOf()))
+        return value.toISOString().slice(0, 10);
 
       const raw = String(value).trim();
       if (!raw) return null;
@@ -1167,7 +1321,8 @@ export async function updatePatient(patientId: number, updates: any) {
         .replace(/\s+\([^)]+\)\s*$/, "")
         .trim();
       const parsed = new Date(sanitized);
-      if (!Number.isNaN(parsed.valueOf())) return parsed.toISOString().slice(0, 10);
+      if (!Number.isNaN(parsed.valueOf()))
+        return parsed.toISOString().slice(0, 10);
 
       return null;
     };
@@ -1196,18 +1351,28 @@ export async function updatePatient(patientId: number, updates: any) {
   }
 
   try {
-    await db.update(patients).set(nextUpdates).where(eq(patients.id, patientId));
+    await db
+      .update(patients)
+      .set(nextUpdates)
+      .where(eq(patients.id, patientId));
   } catch (error: any) {
-    const hasDoctorId = Object.prototype.hasOwnProperty.call(nextUpdates, "doctorId");
+    const hasDoctorId = Object.prototype.hasOwnProperty.call(
+      nextUpdates,
+      "doctorId",
+    );
     const doctorIdRaw = String((nextUpdates as any).doctorId ?? "").trim();
-    const doctorIdLooksLegacyString = !!doctorIdRaw && !/^\d+$/.test(doctorIdRaw);
+    const doctorIdLooksLegacyString =
+      !!doctorIdRaw && !/^\d+$/.test(doctorIdRaw);
 
     // Backward-compat fallback for DBs where patients.doctorId is still numeric.
     // Retry update without doctorId whenever payload carries non-numeric doctorId.
     if (hasDoctorId && doctorIdLooksLegacyString) {
       const retryUpdates = { ...nextUpdates };
       delete (retryUpdates as any).doctorId;
-      await db.update(patients).set(retryUpdates).where(eq(patients.id, patientId));
+      await db
+        .update(patients)
+        .set(retryUpdates)
+        .where(eq(patients.id, patientId));
       return;
     }
 
@@ -1265,44 +1430,84 @@ export async function deletePatientWithAllData(patientId: number) {
   if (!db) throw new Error("Database not available");
 
   // Get all visits for this patient to delete related data
-  const patientVisits = await db.select({ id: visits.id }).from(visits).where(eq(visits.patientId, patientId));
-  const visitIds = patientVisits.map(v => v.id);
+  const patientVisits = await db
+    .select({ id: visits.id })
+    .from(visits)
+    .where(eq(visits.patientId, patientId));
+  const visitIds = patientVisits.map((v) => v.id);
 
   if (visitIds.length > 0) {
     // Delete data related to visits
-    await db.delete(testRequestItems).where(inArray(testRequestItems.testRequestId,
-      db.select({ id: testRequests.id }).from(testRequests).where(inArray(testRequests.visitId, visitIds)) as any
-    )).catch(() => {}); // Ignore errors if no related items
-    await db.delete(examinations).where(inArray(examinations.visitId, visitIds));
-    await db.delete(pentacamResults).where(inArray(pentacamResults.visitId, visitIds));
-    await db.delete(doctorReports).where(inArray(doctorReports.visitId, visitIds));
+    await db
+      .delete(testRequestItems)
+      .where(
+        inArray(
+          testRequestItems.testRequestId,
+          db
+            .select({ id: testRequests.id })
+            .from(testRequests)
+            .where(inArray(testRequests.visitId, visitIds)) as any,
+        ),
+      )
+      .catch(() => {}); // Ignore errors if no related items
+    await db
+      .delete(examinations)
+      .where(inArray(examinations.visitId, visitIds));
+    await db
+      .delete(pentacamResults)
+      .where(inArray(pentacamResults.visitId, visitIds));
+    await db
+      .delete(doctorReports)
+      .where(inArray(doctorReports.visitId, visitIds));
   }
 
   // Delete test requests and their items (handle both visit-based and patient-based)
   // First delete testRequestItems for all testRequests belonging to this patient
-  await db.delete(testRequestItems).where(inArray(testRequestItems.testRequestId,
-    db.select({ id: testRequests.id }).from(testRequests).where(eq(testRequests.patientId, patientId)) as any
-  )).catch(() => {});
+  await db
+    .delete(testRequestItems)
+    .where(
+      inArray(
+        testRequestItems.testRequestId,
+        db
+          .select({ id: testRequests.id })
+          .from(testRequests)
+          .where(eq(testRequests.patientId, patientId)) as any,
+      ),
+    )
+    .catch(() => {});
   // Then delete all testRequests for this patient (both with and without visitId)
   await db.delete(testRequests).where(eq(testRequests.patientId, patientId));
 
   // Delete prescription items before prescriptions
-  await db.delete(prescriptionItems).where(
-    inArray(prescriptionItems.prescriptionId,
-      db.select({ id: prescriptions.id }).from(prescriptions).where(eq(prescriptions.patientId, patientId)) as any
+  await db
+    .delete(prescriptionItems)
+    .where(
+      inArray(
+        prescriptionItems.prescriptionId,
+        db
+          .select({ id: prescriptions.id })
+          .from(prescriptions)
+          .where(eq(prescriptions.patientId, patientId)) as any,
+      ),
     )
-  ).catch(() => {});
+    .catch(() => {});
   await db.delete(prescriptions).where(eq(prescriptions.patientId, patientId));
 
   // Delete surgeries first (before postOpFollowups since it references surgeryId)
   await db.delete(surgeries).where(eq(surgeries.patientId, patientId));
 
   // Delete post-op followups and consent forms
-  await db.delete(postOpFollowups).where(eq(postOpFollowups.patientId, patientId));
+  await db
+    .delete(postOpFollowups)
+    .where(eq(postOpFollowups.patientId, patientId));
   await db.delete(consentForms).where(eq(consentForms.patientId, patientId));
-  await db.delete(medicalHistoryChecklist).where(eq(medicalHistoryChecklist.patientId, patientId));
+  await db
+    .delete(medicalHistoryChecklist)
+    .where(eq(medicalHistoryChecklist.patientId, patientId));
   await db.delete(sheetEntries).where(eq(sheetEntries.patientId, patientId));
-  await db.delete(patientServiceEntries).where(eq(patientServiceEntries.patientId, patientId));
+  await db
+    .delete(patientServiceEntries)
+    .where(eq(patientServiceEntries.patientId, patientId));
 
   // Delete visits (but NOT the patient record itself)
   await db.delete(visits).where(eq(visits.patientId, patientId));
@@ -1319,28 +1524,44 @@ export async function deleteVisitWithAllData(visitId: number) {
 
   // CRITICAL: Prevent deletion of visits with invalid IDs (0 or negative)
   if (!visitId || visitId <= 0) {
-    throw new Error(`CRITICAL: Attempted to delete visit with invalid ID: ${visitId}. This would delete all visits with visitId=0 or less!`);
+    throw new Error(
+      `CRITICAL: Attempted to delete visit with invalid ID: ${visitId}. This would delete all visits with visitId=0 or less!`,
+    );
   }
 
   // SAFETY CHECK: Verify the visit exists before deleting
-  const visitToDelete = await db.select({ id: visits.id }).from(visits).where(eq(visits.id, visitId)).limit(1);
+  const visitToDelete = await db
+    .select({ id: visits.id })
+    .from(visits)
+    .where(eq(visits.id, visitId))
+    .limit(1);
   if (visitToDelete.length === 0) {
-    throw new Error(`CRITICAL: Visit with ID ${visitId} does not exist. Deletion aborted to prevent accidental deletion of other visits.`);
+    throw new Error(
+      `CRITICAL: Visit with ID ${visitId} does not exist. Deletion aborted to prevent accidental deletion of other visits.`,
+    );
   }
 
   console.log(`[DELETE] Starting deletion of visit ${visitId}`);
 
   // Get prescriptions for this visit
-  const visitPrescriptions = await db.select({ id: prescriptions.id }).from(prescriptions).where(eq(prescriptions.visitId, visitId));
-  const prescriptionIds = visitPrescriptions.map(p => p.id);
+  const visitPrescriptions = await db
+    .select({ id: prescriptions.id })
+    .from(prescriptions)
+    .where(eq(prescriptions.visitId, visitId));
+  const prescriptionIds = visitPrescriptions.map((p) => p.id);
 
   // Get test requests for this visit
-  const visitTestRequests = await db.select({ id: testRequests.id }).from(testRequests).where(eq(testRequests.visitId, visitId));
-  const testRequestIds = visitTestRequests.map(t => t.id);
+  const visitTestRequests = await db
+    .select({ id: testRequests.id })
+    .from(testRequests)
+    .where(eq(testRequests.visitId, visitId));
+  const testRequestIds = visitTestRequests.map((t) => t.id);
 
   // Delete prescription items
   if (prescriptionIds.length > 0) {
-    await db.delete(prescriptionItems).where(inArray(prescriptionItems.prescriptionId, prescriptionIds));
+    await db
+      .delete(prescriptionItems)
+      .where(inArray(prescriptionItems.prescriptionId, prescriptionIds));
   }
 
   // Delete prescriptions
@@ -1348,7 +1569,9 @@ export async function deleteVisitWithAllData(visitId: number) {
 
   // Delete test request items
   if (testRequestIds.length > 0) {
-    await db.delete(testRequestItems).where(inArray(testRequestItems.testRequestId, testRequestIds));
+    await db
+      .delete(testRequestItems)
+      .where(inArray(testRequestItems.testRequestId, testRequestIds));
   }
 
   // Delete test requests
@@ -1370,13 +1593,19 @@ export async function deleteExaminationDirect(examinationId: number) {
   if (!db) throw new Error("Database not available");
 
   // Delete related data for this examination
-  const examination = await db.select().from(examinations).where(eq(examinations.id, examinationId)).limit(1);
+  const examination = await db
+    .select()
+    .from(examinations)
+    .where(eq(examinations.id, examinationId))
+    .limit(1);
 
   if (examination.length > 0) {
     const visitId = examination[0].visitId;
 
     // Delete pentacam results for this visit
-    await db.delete(pentacamResults).where(eq(pentacamResults.visitId, visitId));
+    await db
+      .delete(pentacamResults)
+      .where(eq(pentacamResults.visitId, visitId));
 
     // Delete doctor reports for this visit
     await db.delete(doctorReports).where(eq(doctorReports.visitId, visitId));
@@ -1392,15 +1621,20 @@ export async function fixOrphanedExaminations() {
   if (!db) throw new Error("Database not available");
 
   // Find all examinations with invalid visitIds (0 or null)
-  const orphanedExams = await db.select().from(examinations).where(
-    or(eq(examinations.visitId, 0), eq(examinations.visitId, null as any))
-  );
+  const orphanedExams = await db
+    .select()
+    .from(examinations)
+    .where(
+      or(eq(examinations.visitId, 0), eq(examinations.visitId, null as any)),
+    );
 
   let fixedCount = 0;
 
   for (const exam of orphanedExams) {
     // Find visits for this patient, sorted by visitDate
-    const patientVisits = await db.select().from(visits)
+    const patientVisits = await db
+      .select()
+      .from(visits)
       .where(eq(visits.patientId, exam.patientId))
       .orderBy(desc(visits.visitDate));
 
@@ -1416,7 +1650,10 @@ export async function fixOrphanedExaminations() {
       });
 
       if (newVisitResult[0]) {
-        linkedVisitId = (newVisitResult[0] as any).insertId ?? (newVisitResult[0] as any).id ?? newVisitResult[0];
+        linkedVisitId =
+          (newVisitResult[0] as any).insertId ??
+          (newVisitResult[0] as any).id ??
+          newVisitResult[0];
       }
     } else {
       // Link to the most recent visit for this patient
@@ -1425,7 +1662,10 @@ export async function fixOrphanedExaminations() {
 
     // Update the examination with the valid visitId
     if (linkedVisitId) {
-      await db.update(examinations).set({ visitId: linkedVisitId }).where(eq(examinations.id, exam.id));
+      await db
+        .update(examinations)
+        .set({ visitId: linkedVisitId })
+        .where(eq(examinations.id, exam.id));
       fixedCount++;
     }
   }
@@ -1480,21 +1720,26 @@ export async function checkInvalidVisitIds() {
   if (!db) throw new Error("Database not available");
 
   // Find all visits with visitId = 0 or null (in visits table)
-  const visitsWithId0 = await db.select().from(visits).where(
-    eq(visits.id, 0)
-  );
+  const visitsWithId0 = await db.select().from(visits).where(eq(visits.id, 0));
 
   // Find all exams with visitId = 0 or null
-  const examsWithId0 = await db.select().from(examinations).where(
-    or(eq(examinations.visitId, 0), eq(examinations.visitId, null as any))
-  );
+  const examsWithId0 = await db
+    .select()
+    .from(examinations)
+    .where(
+      or(eq(examinations.visitId, 0), eq(examinations.visitId, null as any)),
+    );
 
   // Find all exams with visitId that doesn't exist in visits table
-  const allExams = await db.select({ visitId: examinations.visitId }).from(examinations);
+  const allExams = await db
+    .select({ visitId: examinations.visitId })
+    .from(examinations);
   const allVisitIds = await db.select({ id: visits.id }).from(visits);
-  const validVisitIds = new Set(allVisitIds.map(v => v.id));
+  const validVisitIds = new Set(allVisitIds.map((v) => v.id));
 
-  const orphanedExams = allExams.filter(e => e.visitId && !validVisitIds.has(e.visitId));
+  const orphanedExams = allExams.filter(
+    (e) => e.visitId && !validVisitIds.has(e.visitId),
+  );
 
   return {
     visitsWithId0: visitsWithId0.length,
@@ -1503,8 +1748,8 @@ export async function checkInvalidVisitIds() {
     details: {
       visitsWithId0,
       examsWithInvalidVisitId: examsWithId0.slice(0, 10), // First 10
-      orphanedExamsCount: orphanedExams.length
-    }
+      orphanedExamsCount: orphanedExams.length,
+    },
   };
 }
 
@@ -1515,9 +1760,10 @@ export async function fixExamsWithVisitId0() {
   if (!db) throw new Error("Database not available");
 
   // Count exams with visitId = 0 before fixing
-  const examsWithId0 = await db.select({ count: sql`COUNT(*) as count` }).from(examinations).where(
-    eq(examinations.visitId, 0)
-  );
+  const examsWithId0 = await db
+    .select({ count: sql`COUNT(*) as count` })
+    .from(examinations)
+    .where(eq(examinations.visitId, 0));
 
   const totalBefore = (examsWithId0[0] as any)?.count ?? 0;
   if (totalBefore === 0) {
@@ -1526,13 +1772,15 @@ export async function fixExamsWithVisitId0() {
 
   // Strategy: Link all exams with visitId=0 to the most recent visit for each patient
   // This is faster than creating individual visits
-  const examsData = await db.select({
-    id: examinations.id,
-    patientId: examinations.patientId,
-    createdAt: examinations.createdAt,
-  }).from(examinations).where(
-    eq(examinations.visitId, 0)
-  ).limit(1000); // Process in batches
+  const examsData = await db
+    .select({
+      id: examinations.id,
+      patientId: examinations.patientId,
+      createdAt: examinations.createdAt,
+    })
+    .from(examinations)
+    .where(eq(examinations.visitId, 0))
+    .limit(1000); // Process in batches
 
   let fixedCount = 0;
 
@@ -1558,7 +1806,8 @@ export async function fixExamsWithVisitId0() {
 
     if (visitId) {
       // Update this exam
-      await db.update(examinations)
+      await db
+        .update(examinations)
         .set({ visitId })
         .where(eq(examinations.id, exam.id));
       fixedCount++;
@@ -1566,34 +1815,40 @@ export async function fixExamsWithVisitId0() {
   }
 
   // Update pentacam results with visitId = 0
-  const pentacamData = await db.select({
-    id: pentacamResults.id,
-    patientId: pentacamResults.patientId,
-  }).from(pentacamResults).where(
-    eq(pentacamResults.visitId, 0)
-  ).limit(1000);
+  const pentacamData = await db
+    .select({
+      id: pentacamResults.id,
+      patientId: pentacamResults.patientId,
+    })
+    .from(pentacamResults)
+    .where(eq(pentacamResults.visitId, 0))
+    .limit(1000);
 
   for (const pentacam of pentacamData) {
     const visitId = patientVisits.get(pentacam.patientId);
     if (visitId) {
-      await db.update(pentacamResults)
+      await db
+        .update(pentacamResults)
         .set({ visitId })
         .where(eq(pentacamResults.id, pentacam.id));
     }
   }
 
   // Update doctor reports with visitId = 0
-  const reportData = await db.select({
-    id: doctorReports.id,
-    patientId: doctorReports.patientId,
-  }).from(doctorReports).where(
-    eq(doctorReports.visitId, 0)
-  ).limit(1000);
+  const reportData = await db
+    .select({
+      id: doctorReports.id,
+      patientId: doctorReports.patientId,
+    })
+    .from(doctorReports)
+    .where(eq(doctorReports.visitId, 0))
+    .limit(1000);
 
   for (const report of reportData) {
     const visitId = patientVisits.get(report.patientId);
     if (visitId) {
-      await db.update(doctorReports)
+      await db
+        .update(doctorReports)
         .set({ visitId })
         .where(eq(doctorReports.id, report.id));
     }
@@ -1602,7 +1857,7 @@ export async function fixExamsWithVisitId0() {
   return {
     fixed: fixedCount,
     total: totalBefore,
-    message: `Fixed ${fixedCount} exams with visitId = 0 by linking to patient visits.`
+    message: `Fixed ${fixedCount} exams with visitId = 0 by linking to patient visits.`,
   };
 }
 
@@ -1613,13 +1868,15 @@ export async function fixVisitsWithoutAppointmentId() {
   if (!db) throw new Error("Database not available");
 
   // Get visits without appointmentId (limit to avoid timeout)
-  const visitsWithoutAppointment = await db.select({
-    id: visits.id,
-    patientId: visits.patientId,
-    visitDate: visits.visitDate,
-  }).from(visits).where(
-    isNull(visits.appointmentId)
-  ).limit(500); // Process in batches
+  const visitsWithoutAppointment = await db
+    .select({
+      id: visits.id,
+      patientId: visits.patientId,
+      visitDate: visits.visitDate,
+    })
+    .from(visits)
+    .where(isNull(visits.appointmentId))
+    .limit(500); // Process in batches
 
   const totalCount = visitsWithoutAppointment.length;
   let fixedCount = 0;
@@ -1637,11 +1894,13 @@ export async function fixVisitsWithoutAppointmentId() {
 
   // Link visits to appointments
   for (const visit of visitsWithoutAppointment) {
-    const patientAppointments = appointmentsByPatient.get(visit.patientId) || [];
+    const patientAppointments =
+      appointmentsByPatient.get(visit.patientId) || [];
     if (patientAppointments.length > 0) {
       // Use the first (or most recent) appointment
       const appointmentId = patientAppointments[0].id;
-      await db.update(visits)
+      await db
+        .update(visits)
         .set({ appointmentId })
         .where(eq(visits.id, visit.id));
       fixedCount++;
@@ -1657,18 +1916,21 @@ export async function checkVisitsWithoutAppointments() {
   if (!db) throw new Error("Database not available");
 
   // Get all visits without appointmentId
-  const visitsWithoutAppointment = await db.select({
-    id: visits.id,
-    patientId: visits.patientId,
-    visitDate: visits.visitDate,
-  }).from(visits).where(
-    isNull(visits.appointmentId)
-  );
+  const visitsWithoutAppointment = await db
+    .select({
+      id: visits.id,
+      patientId: visits.patientId,
+      visitDate: visits.visitDate,
+    })
+    .from(visits)
+    .where(isNull(visits.appointmentId));
 
   // For each visit, check if there's an appointment available for that patient
   const results = [];
   for (const visit of visitsWithoutAppointment) {
-    const patientAppointments = await db.select().from(appointments)
+    const patientAppointments = await db
+      .select()
+      .from(appointments)
       .where(eq(appointments.patientId, visit.patientId));
 
     results.push({
@@ -1680,8 +1942,8 @@ export async function checkVisitsWithoutAppointments() {
     });
   }
 
-  const canBeLinked = results.filter(r => r.canBeLinked).length;
-  const cannotBeLinked = results.filter(r => !r.canBeLinked).length;
+  const canBeLinked = results.filter((r) => r.canBeLinked).length;
+  const cannotBeLinked = results.filter((r) => !r.canBeLinked).length;
 
   return {
     total: visitsWithoutAppointment.length,
@@ -1708,20 +1970,24 @@ function buildPatientFilterClauses(filters?: {
   const normalizedSearch = String(filters?.searchTerm ?? "").trim();
   if (normalizedSearch) {
     const searchTokens = normalizedSearch.split(/\s+/).filter(Boolean);
-    const effectiveSearchTokens = searchTokens.length > 0 ? searchTokens : [normalizedSearch];
+    const effectiveSearchTokens =
+      searchTokens.length > 0 ? searchTokens : [normalizedSearch];
     for (const token of effectiveSearchTokens) {
       const tokenTerm = `%${token}%`;
       const legacyTokenTerm = `%${encodeForLegacySearch(token)}%`;
       const simpleSearchConditions = or(
         or(
-          or(like(patients.fullName, tokenTerm), like(patients.fullName, legacyTokenTerm)),
+          or(
+            like(patients.fullName, tokenTerm),
+            like(patients.fullName, legacyTokenTerm),
+          ),
           or(
             like(patients.patientCode, tokenTerm),
             or(
               like(patients.phone, tokenTerm),
-              like(patients.alternatePhone, tokenTerm)
-            )
-          )
+              like(patients.alternatePhone, tokenTerm),
+            ),
+          ),
         ),
         or(
           sql`EXISTS (
@@ -1744,8 +2010,8 @@ function buildPatientFilterClauses(filters?: {
                 pse.serviceCode LIKE ${tokenTerm}
                 OR pse.serviceName LIKE ${tokenTerm}
               )
-          )` as any
-        )
+          )` as any,
+        ),
       );
       whereClauses.push(simpleSearchConditions as any);
     }
@@ -1770,7 +2036,12 @@ function buildPatientFilterClauses(filters?: {
       serviceTypeVariants.push("pentacam_center", "pentacam_c");
     } else if (normalizedServiceType === "external") {
       // External should also match pentacam_external and surgery_external
-      serviceTypeVariants.push("pentacam_external", "pentacam_ex", "pentacam_ex_c", "surgery_external");
+      serviceTypeVariants.push(
+        "pentacam_external",
+        "pentacam_ex",
+        "pentacam_ex_c",
+        "surgery_external",
+      );
     }
 
     // For lasik, also filter by service codes 1501, 1502 (in addition to serviceType)
@@ -1784,10 +2055,12 @@ function buildPatientFilterClauses(filters?: {
             WHERE pse.patientId = ${patients.id}
               AND LOWER(TRIM(pse.serviceCode)) IN ('1501', '1502')
           )
-        )`
+        )`,
       );
     } else {
-      whereClauses.push(inArray(patients.serviceType, serviceTypeVariants as any[]));
+      whereClauses.push(
+        inArray(patients.serviceType, serviceTypeVariants as any[]),
+      );
     }
   }
   const normalizedLocationType = String(filters?.locationType ?? "").trim();
@@ -1797,7 +2070,8 @@ function buildPatientFilterClauses(filters?: {
   const normalizedDoctor = String(filters?.doctorName ?? "").trim();
   if (normalizedDoctor) {
     const doctorTokens = normalizedDoctor.split(/\s+/).filter(Boolean);
-    const effectiveDoctorTokens = doctorTokens.length > 0 ? doctorTokens : [normalizedDoctor];
+    const effectiveDoctorTokens =
+      doctorTokens.length > 0 ? doctorTokens : [normalizedDoctor];
     for (const token of effectiveDoctorTokens) {
       const doctorTokenTerm = `%${token}%`;
       whereClauses.push(sql`
@@ -1819,11 +2093,19 @@ function buildPatientFilterClauses(filters?: {
   return whereClauses;
 }
 
-export async function getAllPatientsForMatching(): Promise<Array<{ id: number; patientCode: string; fullName: string; lastVisit: string | null; createdAt: string | null }>> {
+export async function getAllPatientsForMatching(): Promise<
+  Array<{
+    id: number;
+    patientCode: string;
+    fullName: string;
+    lastVisit: string | null;
+    createdAt: string | null;
+  }>
+> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
-    sql`SELECT id, patientCode, fullName, lastVisit, createdAt FROM patients`
+    sql`SELECT id, patientCode, fullName, lastVisit, createdAt FROM patients`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []).map((r: any) => ({
@@ -1873,7 +2155,7 @@ export async function getAllPatients(options?: {
           AND ${patients.patientCode} = ${String(cursor.patientCode ?? "")}
           AND ${patients.id} > ${Number(cursor.id)}
         )
-      )`
+      )`,
     );
   }
   const whereExpr = whereClauses.length > 0 ? and(...whereClauses) : undefined;
@@ -1881,7 +2163,9 @@ export async function getAllPatients(options?: {
   let query = db
     .select()
     .from(patients)
-    .orderBy(sql`CAST(${patients.patientCode} AS UNSIGNED) ASC, ${patients.patientCode} ASC`)
+    .orderBy(
+      sql`CAST(${patients.patientCode} AS UNSIGNED) ASC, ${patients.patientCode} ASC`,
+    )
     .limit(limitValue + 1);
 
   if (whereExpr) {
@@ -1915,27 +2199,51 @@ export async function getPatientStats(
   filters?: {
     searchTerm?: string;
     doctorName?: string;
-    serviceType?: "consultant" | "specialist" | "lasik" | "surgery" | "external";
+    serviceType?:
+      | "consultant"
+      | "specialist"
+      | "lasik"
+      | "surgery"
+      | "external";
     locationType?: "center" | "external";
     dateFrom?: string;
     dateTo?: string;
-  }
+  },
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const safeYear = Number.isFinite(year) ? Math.trunc(year) : 0;
-  const safeMonth = Number.isFinite(month as number) ? Math.trunc(month as number) : undefined;
+  const safeMonth = Number.isFinite(month as number)
+    ? Math.trunc(month as number)
+    : undefined;
   if (safeYear < 1900 || safeYear > 3000) {
-    return { total: 0, center: 0, external: 0, lasik: 0, surgery_c: 0, surgery_ex: 0 };
+    return {
+      total: 0,
+      center: 0,
+      external: 0,
+      lasik: 0,
+      surgery_c: 0,
+      surgery_ex: 0,
+    };
   }
 
   const normalizeServiceType = (value: unknown) => {
-    const raw = String(value ?? "").trim().toLowerCase();
-    if (raw === "specialist" || raw === "اخصائي" || raw === "أخصائي") return "specialist";
-    if (raw === "external" || raw === "خارجي" || raw === "outside" || raw === "out") return "external";
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (raw === "specialist" || raw === "اخصائي" || raw === "أخصائي")
+      return "specialist";
+    if (
+      raw === "external" ||
+      raw === "خارجي" ||
+      raw === "outside" ||
+      raw === "out"
+    )
+      return "external";
     if (raw === "lasik" || raw === "ليزك") return "lasik";
-    if (raw === "surgery" || raw === "عمليات" || raw === "عملية") return "surgery";
+    if (raw === "surgery" || raw === "عمليات" || raw === "عملية")
+      return "surgery";
     return "consultant";
   };
 
@@ -2003,17 +2311,23 @@ export async function getPatientStats(
   };
   const serviceCodesByType = new Map<string, Set<string>>();
   Object.entries(defaultCodesByType).forEach(([type, codes]) => {
-    serviceCodesByType.set(type, new Set(codes.map((code) => code.toLowerCase())));
+    serviceCodesByType.set(
+      type,
+      new Set(codes.map((code) => code.toLowerCase())),
+    );
   });
   const serviceDirectoryRow = await getSystemSetting("service_directory");
   if (serviceDirectoryRow?.value) {
     try {
       const parsed = JSON.parse(serviceDirectoryRow.value) as Array<any>;
       for (const entry of parsed ?? []) {
-        const code = String(entry?.code ?? "").trim().toLowerCase();
+        const code = String(entry?.code ?? "")
+          .trim()
+          .toLowerCase();
         const mappedType = normalizeServiceType(entry?.serviceType);
         if (!code) continue;
-        if (!serviceCodesByType.has(mappedType)) serviceCodesByType.set(mappedType, new Set<string>());
+        if (!serviceCodesByType.has(mappedType))
+          serviceCodesByType.set(mappedType, new Set<string>());
         serviceCodesByType.get(mappedType)!.add(code);
       }
     } catch {
@@ -2055,12 +2369,17 @@ export async function getPatientStats(
   const buildServiceCodeMatchExpr = (serviceType: string) => {
     const codes = Array.from(serviceCodesByType.get(serviceType) ?? []);
     if (!codes.length) return sql`0 = 1`;
-    return sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN (${sql.join(codes.map((code) => sql`${code}`), sql`, `)})`;
+    return sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN (${sql.join(
+      codes.map((code) => sql`${code}`),
+      sql`, `,
+    )})`;
   };
 
   const surgeryExpr = sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1503', '1504', '1509', '1510', '1511', '1512', '1514', '1515', '1516', '1517', '1518', '1519', '1567', '1568', '1578', '1579', '1580', '1581', '1585', '1587', '1593', '1599', '1607')`;
   const effectiveServiceDate = sql`COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))`;
-  const whereClauses: any[] = [sql`YEAR(${effectiveServiceDate}) = ${safeYear}`];
+  const whereClauses: any[] = [
+    sql`YEAR(${effectiveServiceDate}) = ${safeYear}`,
+  ];
   if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
     whereClauses.push(sql`MONTH(${effectiveServiceDate}) = ${safeMonth}`);
   }
@@ -2074,7 +2393,9 @@ export async function getPatientStats(
     whereClauses.push(sql`${effectiveServiceDate} <= ${normalizedDateTo}`);
   }
 
-  const normalizedServiceType = String(filters?.serviceType ?? "").trim().toLowerCase();
+  const normalizedServiceType = String(filters?.serviceType ?? "")
+    .trim()
+    .toLowerCase();
   if (normalizedServiceType) {
     const matchExpr =
       normalizedServiceType === "lasik"
@@ -2089,7 +2410,7 @@ export async function getPatientStats(
       serviceType: undefined,
       dateFrom: undefined,
       dateTo: undefined,
-    })
+    }),
   );
 
   // When a serviceType filter is active, we must join patientServiceEntries to filter by code.
@@ -2110,7 +2431,14 @@ export async function getPatientStats(
       .from(patientServiceEntries)
       .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
       .where(whereClause);
-    const row = rows[0] ?? { total: 0, center: 0, external: 0, lasik: 0, surgery_c: 0, surgery_ex: 0 };
+    const row = rows[0] ?? {
+      total: 0,
+      center: 0,
+      external: 0,
+      lasik: 0,
+      surgery_c: 0,
+      surgery_ex: 0,
+    };
     return {
       total: Number(row.total ?? 0),
       center: Number(row.center ?? 0),
@@ -2128,18 +2456,26 @@ export async function getPatientStats(
   const effectivePatientDate = sql`COALESCE(${patients.lastVisit}, DATE(${patients.createdAt}))`;
   const patientWhereClauses: any[] = [];
   const hasDateFilter = Boolean(
-    (safeMonth && safeMonth >= 1 && safeMonth <= 12) || normalizedDateFrom || normalizedDateTo
+    (safeMonth && safeMonth >= 1 && safeMonth <= 12) ||
+    normalizedDateFrom ||
+    normalizedDateTo,
   );
   if (hasDateFilter) {
     patientWhereClauses.push(sql`YEAR(${effectivePatientDate}) = ${safeYear}`);
     if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
-      patientWhereClauses.push(sql`MONTH(${effectivePatientDate}) = ${safeMonth}`);
+      patientWhereClauses.push(
+        sql`MONTH(${effectivePatientDate}) = ${safeMonth}`,
+      );
     }
     if (normalizedDateFrom) {
-      patientWhereClauses.push(sql`${effectivePatientDate} >= ${normalizedDateFrom}`);
+      patientWhereClauses.push(
+        sql`${effectivePatientDate} >= ${normalizedDateFrom}`,
+      );
     }
     if (normalizedDateTo) {
-      patientWhereClauses.push(sql`${effectivePatientDate} <= ${normalizedDateTo}`);
+      patientWhereClauses.push(
+        sql`${effectivePatientDate} <= ${normalizedDateTo}`,
+      );
     }
   }
   // Apply patient-level filters (search, doctor, locationType) if present.
@@ -2149,19 +2485,22 @@ export async function getPatientStats(
       serviceType: undefined,
       dateFrom: undefined,
       dateTo: undefined,
-    })
+    }),
   );
-  const patientWhereClause = patientWhereClauses.length > 0 ? and(...patientWhereClauses) : undefined;
+  const patientWhereClause =
+    patientWhereClauses.length > 0 ? and(...patientWhereClauses) : undefined;
 
-  const rawCount = await db.execute(sql`
+  const rawCount = (await db.execute(sql`
     SELECT
       COUNT(*) AS total,
       SUM(locationType = 'center') AS center,
       SUM(locationType = 'external') AS external
     FROM patients
     ${patientWhereClause ? sql`WHERE ${patientWhereClause}` : sql``}
-  `) as any;
-  const rawRow = Array.isArray(rawCount) ? rawCount[0]?.[0] : rawCount?.rows?.[0];
+  `)) as any;
+  const rawRow = Array.isArray(rawCount)
+    ? rawCount[0]?.[0]
+    : rawCount?.rows?.[0];
 
   const statsRows = await db
     .select({
@@ -2174,8 +2513,8 @@ export async function getPatientStats(
     .where(
       and(
         sql`YEAR(COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))) = ${safeYear}`,
-        ...(patientWhereClause ? [patientWhereClause] : [])
-      )
+        ...(patientWhereClause ? [patientWhereClause] : []),
+      ),
     );
 
   const patientRows = [rawRow ?? { total: 0, center: 0, external: 0 }];
@@ -2199,7 +2538,9 @@ export async function populatePatientNamesFromSheets() {
   // Get all sheet entries that have patientId and content
   const sheets = await db.select().from(sheetEntries).limit(5000);
 
-  console.log(`[populatePatientNamesFromSheets] Found ${sheets.length} sheet entries`);
+  console.log(
+    `[populatePatientNamesFromSheets] Found ${sheets.length} sheet entries`,
+  );
 
   let updated = 0;
   let skipped = 0;
@@ -2213,7 +2554,10 @@ export async function populatePatientNamesFromSheets() {
         continue;
       }
 
-      const patient = await db.select().from(patients).where(eq(patients.id, sheet.patientId));
+      const patient = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, sheet.patientId));
       if (!patient.length) {
         skipped++;
         continue;
@@ -2247,13 +2591,19 @@ export async function populatePatientNamesFromSheets() {
         String((content as any).formData?.patientName ?? "").trim();
 
       if (patientName && patientName.length > 2) {
-        await db.update(patients).set({ fullName: patientName }).where(eq(patients.id, sheet.patientId));
+        await db
+          .update(patients)
+          .set({ fullName: patientName })
+          .where(eq(patients.id, sheet.patientId));
         updated += 1;
       } else {
         skipped++;
       }
     } catch (e) {
-      console.error(`[populatePatientNamesFromSheets] Error processing sheet ${sheet.id}:`, e);
+      console.error(
+        `[populatePatientNamesFromSheets] Error processing sheet ${sheet.id}:`,
+        e,
+      );
       skipped++;
     }
   }
@@ -2292,11 +2642,20 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
           WHERE ${visits.patientId} = ${patients.id}
             AND DATE(${visits.visitDate}) = ${target}
         )
-      )`
+      )`,
     )
-    .orderBy(sql`CAST(${patients.patientCode} AS UNSIGNED) ASC, ${patients.patientCode} ASC`);
+    .orderBy(
+      sql`CAST(${patients.patientCode} AS UNSIGNED) ASC, ${patients.patientCode} ASC`,
+    );
 
-  const groups: Record<string, { serviceType: string; total: number; patients: Array<{ id: number; patientCode: string; fullName: string }> }> = {
+  const groups: Record<
+    string,
+    {
+      serviceType: string;
+      total: number;
+      patients: Array<{ id: number; patientCode: string; fullName: string }>;
+    }
+  > = {
     consultant: { serviceType: "consultant", total: 0, patients: [] },
     specialist: { serviceType: "specialist", total: 0, patients: [] },
     lasik: { serviceType: "lasik", total: 0, patients: [] },
@@ -2319,21 +2678,37 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
   const result = {
     date: target,
     total: rows.length,
-    groups: [groups.consultant, groups.specialist, groups.lasik, groups.external, groups.surgery],
+    groups: [
+      groups.consultant,
+      groups.specialist,
+      groups.lasik,
+      groups.external,
+      groups.surgery,
+    ],
   };
 
   // Debug logging
-  const withNames = rows.filter(r => r.fullName && String(r.fullName).trim());
-  const withoutNames = rows.filter(r => !r.fullName || !String(r.fullName).trim());
-  console.log(`[getTodayPatientsBySheet] Date: ${target}, Total: ${rows.length}, With fullName: ${withNames.length}, Without fullName: ${withoutNames.length}`);
+  const withNames = rows.filter((r) => r.fullName && String(r.fullName).trim());
+  const withoutNames = rows.filter(
+    (r) => !r.fullName || !String(r.fullName).trim(),
+  );
+  console.log(
+    `[getTodayPatientsBySheet] Date: ${target}, Total: ${rows.length}, With fullName: ${withNames.length}, Without fullName: ${withoutNames.length}`,
+  );
   if (rows.length > 0) {
-    console.log(`[getTodayPatientsBySheet] Sample WITH name:`, JSON.stringify(withNames[0], null, 2));
-    console.log(`[getTodayPatientsBySheet] Sample WITHOUT name:`, JSON.stringify(withoutNames[0], null, 2));
+    console.log(
+      `[getTodayPatientsBySheet] Sample WITH name:`,
+      JSON.stringify(withNames[0], null, 2),
+    );
+    console.log(
+      `[getTodayPatientsBySheet] Sample WITHOUT name:`,
+      JSON.stringify(withoutNames[0], null, 2),
+    );
   }
   try {
-    const fs = require('fs');
-    const logMsg = `[${new Date().toISOString()}] Total: ${rows.length}, With: ${withNames.length}, Without: ${withoutNames.length}, Sample: ${JSON.stringify({id: rows[0]?.id, code: rows[0]?.patientCode, name: rows[0]?.fullName})}\n`;
-    fs.appendFileSync('/tmp/today_patients_debug.log', logMsg, 'utf-8');
+    const fs = require("fs");
+    const logMsg = `[${new Date().toISOString()}] Total: ${rows.length}, With: ${withNames.length}, Without: ${withoutNames.length}, Sample: ${JSON.stringify({ id: rows[0]?.id, code: rows[0]?.patientCode, name: rows[0]?.fullName })}\n`;
+    fs.appendFileSync("/tmp/today_patients_debug.log", logMsg, "utf-8");
   } catch (e) {}
 
   return result;
@@ -2350,7 +2725,9 @@ async function attachTreatingDoctor(patientRows: any[]) {
     return raw.replace(/\s*\/\s*\d{3,}\s*$/g, "").trim();
   };
 
-  const patientIds = patientRows.map((p) => p.id).filter((id) => typeof id === "number");
+  const patientIds = patientRows
+    .map((p) => p.id)
+    .filter((id) => typeof id === "number");
   if (!patientIds.length) return patientRows;
 
   const stateRows = await db
@@ -2360,14 +2737,22 @@ async function attachTreatingDoctor(patientRows: any[]) {
       updatedAt: patientPageStates.updatedAt,
     })
     .from(patientPageStates)
-    .where(and(eq(patientPageStates.page, "examination"), inArray(patientPageStates.patientId, patientIds)))
+    .where(
+      and(
+        eq(patientPageStates.page, "examination"),
+        inArray(patientPageStates.patientId, patientIds),
+      ),
+    )
     .orderBy(desc(patientPageStates.updatedAt));
 
   const latestExamDoctorByPatient = new Map<number, string>();
   const latestExamDoctorsByPatient = new Map<number, string[]>();
   const latestExamServiceCodeByPatient = new Map<number, string>();
   const latestExamServiceCodesByPatient = new Map<number, string[]>();
-  const latestSheetTypeByServiceCodeByPatient = new Map<number, Record<string, string>>();
+  const latestSheetTypeByServiceCodeByPatient = new Map<
+    number,
+    Record<string, string>
+  >();
   const latestSyncLockManualByPatient = new Map<number, boolean>();
   const latestManualEditedAtByPatient = new Map<number, string>();
   for (const row of stateRows) {
@@ -2392,38 +2777,65 @@ async function attachTreatingDoctor(patientRows: any[]) {
     if (!payload || typeof payload !== "object") continue;
 
     const directDoctor = normalizeDoctorDisplay((payload as any).doctorName);
-    const signatureDoctor = normalizeDoctorDisplay((payload as any).signatures?.doctor);
+    const signatureDoctor = normalizeDoctorDisplay(
+      (payload as any).signatures?.doctor,
+    );
     const doctorNames = Array.isArray((payload as any).doctorNames)
-      ? (payload as any).doctorNames.map((v: unknown) => normalizeDoctorDisplay(v)).filter(Boolean)
+      ? (payload as any).doctorNames
+          .map((v: unknown) => normalizeDoctorDisplay(v))
+          .filter(Boolean)
       : [];
-    const mergedDoctors = Array.from(new Set([directDoctor, signatureDoctor, ...doctorNames].filter(Boolean)));
-    if (mergedDoctors.length > 0 && !latestExamDoctorsByPatient.has(row.patientId)) {
+    const mergedDoctors = Array.from(
+      new Set([directDoctor, signatureDoctor, ...doctorNames].filter(Boolean)),
+    );
+    if (
+      mergedDoctors.length > 0 &&
+      !latestExamDoctorsByPatient.has(row.patientId)
+    ) {
       latestExamDoctorsByPatient.set(row.patientId, mergedDoctors);
     }
     const serviceCode = String(
       (payload as any).serviceCode ??
-      (payload as any).srvCode ??
-      (payload as any).srv_cd ??
-      ""
+        (payload as any).srvCode ??
+        (payload as any).srv_cd ??
+        "",
     ).trim();
     const serviceCodes = Array.isArray((payload as any).serviceCodes)
-      ? (payload as any).serviceCodes.map((v: unknown) => String(v ?? "").trim()).filter(Boolean)
+      ? (payload as any).serviceCodes
+          .map((v: unknown) => String(v ?? "").trim())
+          .filter(Boolean)
       : [];
-    const mergedServiceCodes = Array.from(new Set([serviceCode, ...serviceCodes].filter(Boolean)));
-    if (mergedServiceCodes.length > 0 && !latestExamServiceCodesByPatient.has(row.patientId)) {
+    const mergedServiceCodes = Array.from(
+      new Set([serviceCode, ...serviceCodes].filter(Boolean)),
+    );
+    if (
+      mergedServiceCodes.length > 0 &&
+      !latestExamServiceCodesByPatient.has(row.patientId)
+    ) {
       latestExamServiceCodesByPatient.set(row.patientId, mergedServiceCodes);
     }
     if (serviceCode && !latestExamServiceCodeByPatient.has(row.patientId)) {
       latestExamServiceCodeByPatient.set(row.patientId, serviceCode);
-    } else if (mergedServiceCodes.length > 0 && !latestExamServiceCodeByPatient.has(row.patientId)) {
+    } else if (
+      mergedServiceCodes.length > 0 &&
+      !latestExamServiceCodeByPatient.has(row.patientId)
+    ) {
       latestExamServiceCodeByPatient.set(row.patientId, mergedServiceCodes[0]);
     }
     const rawSheetMap = (payload as any).serviceSheetTypeByCode;
-    if (rawSheetMap && typeof rawSheetMap === "object" && !latestSheetTypeByServiceCodeByPatient.has(row.patientId)) {
+    if (
+      rawSheetMap &&
+      typeof rawSheetMap === "object" &&
+      !latestSheetTypeByServiceCodeByPatient.has(row.patientId)
+    ) {
       const normalized: Record<string, string> = {};
-      for (const [k, v] of Object.entries(rawSheetMap as Record<string, unknown>)) {
+      for (const [k, v] of Object.entries(
+        rawSheetMap as Record<string, unknown>,
+      )) {
         const key = String(k ?? "").trim();
-        const value = String(v ?? "").trim().toLowerCase();
+        const value = String(v ?? "")
+          .trim()
+          .toLowerCase();
         if (!key || !value) continue;
         normalized[key] = value;
       }
@@ -2432,10 +2844,16 @@ async function attachTreatingDoctor(patientRows: any[]) {
       }
     }
     if (!latestSyncLockManualByPatient.has(row.patientId)) {
-      latestSyncLockManualByPatient.set(row.patientId, Boolean((payload as any).syncLockManual));
+      latestSyncLockManualByPatient.set(
+        row.patientId,
+        Boolean((payload as any).syncLockManual),
+      );
     }
     if (!latestManualEditedAtByPatient.has(row.patientId)) {
-      latestManualEditedAtByPatient.set(row.patientId, String((payload as any).manualEditedAt ?? "").trim());
+      latestManualEditedAtByPatient.set(
+        row.patientId,
+        String((payload as any).manualEditedAt ?? "").trim(),
+      );
     }
     const doctorName = directDoctor || signatureDoctor;
     if (!doctorName) continue;
@@ -2443,7 +2861,10 @@ async function attachTreatingDoctor(patientRows: any[]) {
   }
 
   // Build serviceCode → (serviceType, locationType) map from service_directory
-  const serviceCodeMetaMap = new Map<string, { serviceType: string; locationType: string }>();
+  const serviceCodeMetaMap = new Map<
+    string,
+    { serviceType: string; locationType: string }
+  >();
   try {
     const svcDir = await getSystemSetting("service_directory");
     if (svcDir?.value) {
@@ -2459,11 +2880,17 @@ async function attachTreatingDoctor(patientRows: any[]) {
         }
       }
     }
-  } catch { /* fall back silently */ }
+  } catch {
+    /* fall back silently */
+  }
 
   // Build doctor name map from the `doctors` table via patients.doctorCode
   const doctorCodes = patientRows
-    .map((p) => String((p as any).doctorCode ?? "").trim().toLowerCase())
+    .map((p) =>
+      String((p as any).doctorCode ?? "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
   const doctorNameByCode = new Map<string, string>();
   if (doctorCodes.length > 0) {
@@ -2474,7 +2901,9 @@ async function attachTreatingDoctor(patientRows: any[]) {
         .from(doctorsLookup)
         .where(inArray(doctorsLookup.code, uniqueCodes));
       for (const dr of drRows) {
-        const code = String(dr.code ?? "").trim().toLowerCase();
+        const code = String(dr.code ?? "")
+          .trim()
+          .toLowerCase();
         const name = decodeMojibake(String(dr.name ?? "").trim());
         if (code && name) doctorNameByCode.set(code, name);
       }
@@ -2483,13 +2912,17 @@ async function attachTreatingDoctor(patientRows: any[]) {
     }
   }
 
-  const serviceEntryRows = await getPatientServiceEntriesByPatients(patientIds).catch(() => []);
+  const serviceEntryRows = await getPatientServiceEntriesByPatients(
+    patientIds,
+  ).catch(() => []);
   const serviceCodesByPatient = new Map<number, string[]>();
   const mssqlServiceCodesByPatient = new Map<number, string[]>();
   for (const row of serviceEntryRows as any[]) {
     const pid = Number((row as any).patientId ?? 0);
     const code = String((row as any).serviceCode ?? "").trim();
-    const source = String((row as any).source ?? "").trim().toLowerCase();
+    const source = String((row as any).source ?? "")
+      .trim()
+      .toLowerCase();
     if (!pid || !code) continue;
     const existing = serviceCodesByPatient.get(pid) ?? [];
     if (!existing.includes(code)) existing.push(code);
@@ -2516,7 +2949,9 @@ async function attachTreatingDoctor(patientRows: any[]) {
   const latestDoctorByPatient = new Map<number, string>();
   for (const row of reportRows) {
     if (latestDoctorByPatient.has(row.patientId)) continue;
-    const doctorName = normalizeDoctorDisplay(row.doctorName || row.doctorUsername || "");
+    const doctorName = normalizeDoctorDisplay(
+      row.doctorName || row.doctorUsername || "",
+    );
     if (!doctorName) continue;
     latestDoctorByPatient.set(row.patientId, doctorName);
   }
@@ -2524,35 +2959,51 @@ async function attachTreatingDoctor(patientRows: any[]) {
   const result = patientRows.map((patient) => ({
     ...patient,
     treatingDoctor: (() => {
-      const fromDoctorCode = doctorNameByCode.get(String((patient as any).doctorCode ?? "").trim().toLowerCase());
+      const fromDoctorCode = doctorNameByCode.get(
+        String((patient as any).doctorCode ?? "")
+          .trim()
+          .toLowerCase(),
+      );
       const fromStored = String((patient as any).treatingDoctor ?? "").trim();
       return normalizeDoctorDisplay(fromDoctorCode || fromStored) || "";
     })(),
     treatingDoctors: latestExamDoctorsByPatient.get(patient.id) ?? [],
     serviceCode: (() => {
       const dbSynced = String((patient as any).serviceCode ?? "").trim();
-      const fromEntries = mssqlServiceCodesByPatient.get(patient.id)?.[0] ?? serviceCodesByPatient.get(patient.id)?.[0];
+      const fromEntries =
+        mssqlServiceCodesByPatient.get(patient.id)?.[0] ??
+        serviceCodesByPatient.get(patient.id)?.[0];
       return fromEntries || dbSynced || "";
     })(),
     serviceType: (() => {
-      const fromEntries = mssqlServiceCodesByPatient.get(patient.id) ?? serviceCodesByPatient.get(patient.id) ?? [];
+      const fromEntries =
+        mssqlServiceCodesByPatient.get(patient.id) ??
+        serviceCodesByPatient.get(patient.id) ??
+        [];
       const dbSynced = String((patient as any).serviceCode ?? "").trim();
       const resolvedCode = String(fromEntries[0] ?? dbSynced).trim();
       return serviceCodeMetaMap.get(resolvedCode)?.serviceType ?? "";
     })(),
     locationType: (() => {
-      const fromEntries = mssqlServiceCodesByPatient.get(patient.id) ?? serviceCodesByPatient.get(patient.id) ?? [];
+      const fromEntries =
+        mssqlServiceCodesByPatient.get(patient.id) ??
+        serviceCodesByPatient.get(patient.id) ??
+        [];
       const dbSynced = String((patient as any).serviceCode ?? "").trim();
       const resolvedCode = String(fromEntries[0] ?? dbSynced).trim();
       return serviceCodeMetaMap.get(resolvedCode)?.locationType ?? "";
     })(),
     serviceCodes: (() => {
-      const fromEntries = mssqlServiceCodesByPatient.get(patient.id) ?? serviceCodesByPatient.get(patient.id) ?? [];
+      const fromEntries =
+        mssqlServiceCodesByPatient.get(patient.id) ??
+        serviceCodesByPatient.get(patient.id) ??
+        [];
       if (fromEntries.length > 0) return fromEntries;
       const dbSynced = String((patient as any).serviceCode ?? "").trim();
       return dbSynced ? [dbSynced] : [];
     })(),
-    serviceSheetTypeByCode: latestSheetTypeByServiceCodeByPatient.get(patient.id) ?? {},
+    serviceSheetTypeByCode:
+      latestSheetTypeByServiceCodeByPatient.get(patient.id) ?? {},
     syncLockManual: latestSyncLockManualByPatient.get(patient.id) ?? false,
     manualEditedAt: latestManualEditedAtByPatient.get(patient.id) ?? "",
   }));
@@ -2566,7 +3017,9 @@ export async function createAppointment(appointmentData: any) {
   if (!db) throw new Error("Database not available");
 
   const result: any = await db.insert(appointments).values(appointmentData);
-  let insertId = Number(result?.insertId ?? result?.[0]?.insertId ?? result?.id ?? 0);
+  let insertId = Number(
+    result?.insertId ?? result?.[0]?.insertId ?? result?.id ?? 0,
+  );
 
   // Some mysql2/drizzle paths don't surface insertId consistently.
   if (!Number.isFinite(insertId) || insertId <= 0) {
@@ -2576,10 +3029,16 @@ export async function createAppointment(appointmentData: any) {
       .where(
         and(
           eq(appointments.patientId, Number(appointmentData?.patientId ?? 0)),
-          eq(appointments.appointmentDate, appointmentData?.appointmentDate as any),
-          eq(appointments.appointmentType, String(appointmentData?.appointmentType ?? "") as any),
-          eq(appointments.branch, String(appointmentData?.branch ?? "") as any)
-        )
+          eq(
+            appointments.appointmentDate,
+            appointmentData?.appointmentDate as any,
+          ),
+          eq(
+            appointments.appointmentType,
+            String(appointmentData?.appointmentType ?? "") as any,
+          ),
+          eq(appointments.branch, String(appointmentData?.branch ?? "") as any),
+        ),
       )
       .orderBy(desc(appointments.id))
       .limit(1);
@@ -2597,7 +3056,10 @@ export async function getAppointmentsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(appointments).where(eq(appointments.patientId, patientId));
+  return await db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.patientId, patientId));
 }
 
 export async function getAllAppointments(branch?: string) {
@@ -2634,13 +3096,13 @@ export async function getAllAppointments(branch?: string) {
 
   const withPatientInfo = result.filter((r: any) => r.patientName !== null);
   const withoutPatientInfo = result.filter((r: any) => r.patientName === null);
-  const logMsg = `[getAllAppointments] Total: ${result.length}, With patient info: ${withPatientInfo.length}, Without patient info: ${withoutPatientInfo.length}\nSample: ${JSON.stringify((withPatientInfo[0] || result[0]), null, 2)}`;
+  const logMsg = `[getAllAppointments] Total: ${result.length}, With patient info: ${withPatientInfo.length}, Without patient info: ${withoutPatientInfo.length}\nSample: ${JSON.stringify(withPatientInfo[0] || result[0], null, 2)}`;
   console.log(logMsg);
 
   // Also write to file for debugging
   try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/appointments_debug.log', logMsg + '\n\n', 'utf-8');
+    const fs = require("fs");
+    fs.appendFileSync("/tmp/appointments_debug.log", logMsg + "\n\n", "utf-8");
   } catch (e) {}
 
   return result;
@@ -2653,11 +3115,17 @@ export async function deleteAppointment(appointmentId: number) {
   await db.delete(appointments).where(eq(appointments.id, appointmentId));
 }
 
-export async function updateAppointment(appointmentId: number, updates: Partial<InsertAppointment>) {
+export async function updateAppointment(
+  appointmentId: number,
+  updates: Partial<InsertAppointment>,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(appointments).set(updates).where(eq(appointments.id, appointmentId));
+  await db
+    .update(appointments)
+    .set(updates)
+    .where(eq(appointments.id, appointmentId));
 }
 
 export async function getAppointmentsByDate(date: Date, branch?: string) {
@@ -2670,12 +3138,15 @@ export async function getAppointmentsByDate(date: Date, branch?: string) {
   endOfDay.setHours(23, 59, 59, 999);
 
   if (branch) {
-    return await db.select().from(appointments).where(
-      and(
-        eq(appointments.branch, branch as any),
-        // Add date range filter here
-      )
-    );
+    return await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.branch, branch as any),
+          // Add date range filter here
+        ),
+      );
   }
   return await db.select().from(appointments);
 }
@@ -2695,8 +3166,8 @@ export async function createVisit(visitData: any) {
     .where(
       and(
         eq(visits.patientId, visitData.patientId),
-        eq(visits.visitDate, visitData.visitDate)
-      )
+        eq(visits.visitDate, visitData.visitDate),
+      ),
     )
     .orderBy(desc(visits.id))
     .limit(1);
@@ -2712,7 +3183,11 @@ export async function getVisitsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(visits).where(eq(visits.patientId, patientId)).orderBy(desc(visits.visitDate));
+  return await db
+    .select()
+    .from(visits)
+    .where(eq(visits.patientId, patientId))
+    .orderBy(desc(visits.visitDate));
 }
 
 export async function getAllVisits() {
@@ -2763,12 +3238,13 @@ export async function getFollowupVisitsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(visits).where(
-    and(
-      eq(visits.patientId, patientId),
-      eq(visits.visitType, "followup")
+  return await db
+    .select()
+    .from(visits)
+    .where(
+      and(eq(visits.patientId, patientId), eq(visits.visitType, "followup")),
     )
-  ).orderBy(desc(visits.visitDate));
+    .orderBy(desc(visits.visitDate));
 }
 
 export async function updateVisit(visitId: number, updates: any) {
@@ -2788,25 +3264,42 @@ export async function createFollowupSheet(data: any) {
   return result;
 }
 
-export async function getFollowupSheetsByPatient(patientId: number, sheetType?: string) {
+export async function getFollowupSheetsByPatient(
+  patientId: number,
+  sheetType?: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const condition = sheetType
-    ? and(eq(followupSheets.patientId, patientId), eq(followupSheets.sheetType, sheetType as any))
+    ? and(
+        eq(followupSheets.patientId, patientId),
+        eq(followupSheets.sheetType, sheetType as any),
+      )
     : eq(followupSheets.patientId, patientId);
-  return db.select().from(followupSheets).where(condition).orderBy(desc(followupSheets.version));
+  return db
+    .select()
+    .from(followupSheets)
+    .where(condition)
+    .orderBy(desc(followupSheets.version));
 }
 
-export async function getLatestFollowupSheet(patientId: number, sheetType: string) {
+export async function getLatestFollowupSheet(
+  patientId: number,
+  sheetType: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.select().from(followupSheets)
-    .where(and(
-      eq(followupSheets.patientId, patientId),
-      eq(followupSheets.sheetType, sheetType as any)
-    ))
+  const result = await db
+    .select()
+    .from(followupSheets)
+    .where(
+      and(
+        eq(followupSheets.patientId, patientId),
+        eq(followupSheets.sheetType, sheetType as any),
+      ),
+    )
     .orderBy(desc(followupSheets.version))
     .limit(1);
 
@@ -2825,7 +3318,9 @@ export async function getFollowupItemsBySheet(followupSheetId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(followupItems)
+  return await db
+    .select()
+    .from(followupItems)
     .where(eq(followupItems.followupSheetId, followupSheetId))
     .orderBy(sql`tableIndex ASC`);
 }
@@ -2834,7 +3329,10 @@ export async function updateFollowupItem(itemId: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(followupItems).set(updates).where(eq(followupItems.id, itemId));
+  await db
+    .update(followupItems)
+    .set(updates)
+    .where(eq(followupItems.id, itemId));
 }
 
 export async function deleteFollowupSheet(sheetId: number) {
@@ -2842,7 +3340,9 @@ export async function deleteFollowupSheet(sheetId: number) {
   if (!db) throw new Error("Database not available");
 
   // Delete items first
-  await db.delete(followupItems).where(eq(followupItems.followupSheetId, sheetId));
+  await db
+    .delete(followupItems)
+    .where(eq(followupItems.followupSheetId, sheetId));
   // Then delete sheet
   await db.delete(followupSheets).where(eq(followupSheets.id, sheetId));
 }
@@ -2854,7 +3354,9 @@ export async function createExamination(examinationData: any) {
   if (!db) throw new Error("Database not available");
 
   const result: any = await db.insert(examinations).values(examinationData);
-  let insertId = Number(result?.insertId ?? result?.[0]?.insertId ?? result?.id ?? 0);
+  let insertId = Number(
+    result?.insertId ?? result?.[0]?.insertId ?? result?.id ?? 0,
+  );
 
   // Some mysql2/drizzle paths don't surface insertId consistently.
   if (!Number.isFinite(insertId) || insertId <= 0) {
@@ -2864,8 +3366,8 @@ export async function createExamination(examinationData: any) {
       .where(
         and(
           eq(examinations.patientId, Number(examinationData?.patientId ?? 0)),
-          eq(examinations.visitId, Number(examinationData?.visitId ?? 0))
-        )
+          eq(examinations.visitId, Number(examinationData?.visitId ?? 0)),
+        ),
       )
       .orderBy(desc(examinations.id))
       .limit(1);
@@ -2882,7 +3384,11 @@ export async function createExamination(examinationData: any) {
 export async function getExaminationById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [row] = await db.select().from(examinations).where(eq(examinations.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(examinations)
+    .where(eq(examinations.id, id))
+    .limit(1);
   return row ?? null;
 }
 
@@ -2890,14 +3396,21 @@ export async function getExaminationsByVisit(visitId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(examinations).where(eq(examinations.visitId, visitId));
+  return await db
+    .select()
+    .from(examinations)
+    .where(eq(examinations.visitId, visitId));
 }
 
 export async function getExaminationsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(examinations).where(eq(examinations.patientId, patientId)).orderBy(desc(examinations.createdAt));
+  return await db
+    .select()
+    .from(examinations)
+    .where(eq(examinations.patientId, patientId))
+    .orderBy(desc(examinations.createdAt));
 }
 
 export async function getAllExaminations() {
@@ -2930,7 +3443,9 @@ export async function getRefractionsOverviewRows(input: {
   const pageSize = normalizeOverviewPageSize(input.pageSize);
   const offset = (page - 1) * pageSize;
   const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
-  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const normalizedLocationType = String(input.locationType ?? "")
+    .trim()
+    .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
       ? eq(patients.locationType, normalizedLocationType as any)
@@ -2971,15 +3486,26 @@ export async function getRefractionsOverviewRows(input: {
     examinations.airPuffOS,
   ]);
   const completeWhere = and(rightHas as any, leftHas as any);
-  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const status = String(input.statusFilter ?? "all")
+    .trim()
+    .toLowerCase();
   const statusWhere =
-    status === "complete" ? completeWhere : status === "partial" ? not(completeWhere as any) : undefined;
+    status === "complete"
+      ? completeWhere
+      : status === "partial"
+        ? not(completeWhere as any)
+        : undefined;
   const searchWhere = overviewSearchClause(String(input.search ?? ""), [
     patients.fullName,
     patients.patientCode,
     doctorsLookup.name,
   ]);
-  const whereExpr = combineWhereClauses(locationWhere, dataWhere, searchWhere, statusWhere);
+  const whereExpr = combineWhereClauses(
+    locationWhere,
+    dataWhere,
+    searchWhere,
+    statusWhere,
+  );
 
   const totalRows = await db
     .select({
@@ -3024,7 +3550,9 @@ export async function getRefractionsOverviewRows(input: {
     .innerJoin(patients, eq(examinations.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
     .where(whereExpr as any)
-    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${examinations.createdAt})`))
+    .orderBy(
+      desc(sql`COALESCE(${visits.visitDate}, ${examinations.createdAt})`),
+    )
     .limit(cap)
     .offset(offset);
 
@@ -3044,11 +3572,13 @@ export async function updateExamination(examinationId: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(examinations).set(updates).where(eq(examinations.id, examinationId));
+  await db
+    .update(examinations)
+    .set(updates)
+    .where(eq(examinations.id, examinationId));
 }
 
 // ============ AUTOREFRACTOMETRY OPERATIONS ============
-
 
 export async function getAutorefractometryByPatient(patientId: number) {
   const db = await getDb();
@@ -3060,7 +3590,10 @@ export async function getAutorefractometryByPatient(patientId: number) {
       visitDate: visits.visitDate,
     })
     .from(autorefractometryData)
-    .leftJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+    .leftJoin(
+      examinations,
+      eq(autorefractometryData.examinationId, examinations.id),
+    )
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .where(eq(autorefractometryData.patientId, patientId))
     .orderBy(desc(visits.visitDate ?? autorefractometryData.createdAt));
@@ -3080,7 +3613,9 @@ export async function getAutorefractometryOverviewRows(input: {
   const pageSize = normalizeOverviewPageSize(input.pageSize);
   const offset = (page - 1) * pageSize;
   const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
-  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const normalizedLocationType = String(input.locationType ?? "")
+    .trim()
+    .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
       ? eq(patients.locationType, normalizedLocationType as any)
@@ -3116,22 +3651,36 @@ export async function getAutorefractometryOverviewRows(input: {
     autorefractometryData.iopOS,
   ]);
   const completeWhere = and(rightHas as any, leftHas as any);
-  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const status = String(input.statusFilter ?? "all")
+    .trim()
+    .toLowerCase();
   const statusWhere =
-    status === "complete" ? completeWhere : status === "partial" ? not(completeWhere as any) : undefined;
+    status === "complete"
+      ? completeWhere
+      : status === "partial"
+        ? not(completeWhere as any)
+        : undefined;
   const searchWhere = overviewSearchClause(String(input.search ?? ""), [
     patients.fullName,
     patients.patientCode,
     doctorsLookup.name,
   ]);
-  const whereExpr = combineWhereClauses(locationWhere, dataWhere, searchWhere, statusWhere);
+  const whereExpr = combineWhereClauses(
+    locationWhere,
+    dataWhere,
+    searchWhere,
+    statusWhere,
+  );
 
   const totalRows = await db
     .select({
       total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
     })
     .from(autorefractometryData)
-    .leftJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+    .leftJoin(
+      examinations,
+      eq(autorefractometryData.examinationId, examinations.id),
+    )
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .innerJoin(patients, eq(autorefractometryData.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
@@ -3163,12 +3712,19 @@ export async function getAutorefractometryOverviewRows(input: {
       updatedAt: autorefractometryData.updatedAt,
     })
     .from(autorefractometryData)
-    .leftJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+    .leftJoin(
+      examinations,
+      eq(autorefractometryData.examinationId, examinations.id),
+    )
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .innerJoin(patients, eq(autorefractometryData.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
     .where(whereExpr as any)
-    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${autorefractometryData.createdAt})`))
+    .orderBy(
+      desc(
+        sql`COALESCE(${visits.visitDate}, ${autorefractometryData.createdAt})`,
+      ),
+    )
     .limit(cap)
     .offset(offset);
 
@@ -3210,7 +3766,10 @@ export async function getAfterRefractionByPatient(patientId: number) {
         visitDate: visits.visitDate,
       })
       .from(afterRefractionData)
-      .leftJoin(examinations, eq(afterRefractionData.examinationId, examinations.id))
+      .leftJoin(
+        examinations,
+        eq(afterRefractionData.examinationId, examinations.id),
+      )
       .leftJoin(visits, eq(examinations.visitId, visits.id))
       .where(eq(afterRefractionData.patientId, patientId))
       .orderBy(desc(visits.visitDate ?? afterRefractionData.createdAt));
@@ -3259,21 +3818,27 @@ export async function createPentacamResult(pentacamData: any) {
   return result;
 }
 
-export async function updatePentacamResult(resultId: number, pentacamData: any) {
+export async function updatePentacamResult(
+  resultId: number,
+  pentacamData: any,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   // Map input parameters to database columns
   const dbRecord: any = {};
 
-  if (pentacamData.pachymetryOD) dbRecord.pachymetryOD = pentacamData.pachymetryOD;
-  if (pentacamData.pachymetryOS) dbRecord.pachymetryOS = pentacamData.pachymetryOS;
+  if (pentacamData.pachymetryOD)
+    dbRecord.pachymetryOD = pentacamData.pachymetryOD;
+  if (pentacamData.pachymetryOS)
+    dbRecord.pachymetryOS = pentacamData.pachymetryOS;
 
   // Right eye (OD) data
   if (pentacamData.k1OD) dbRecord.k1OD = pentacamData.k1OD;
   if (pentacamData.k2OD) dbRecord.k2OD = pentacamData.k2OD;
   if (pentacamData.axisOD) dbRecord.axisOD = pentacamData.axisOD;
-  if (pentacamData.thinnestPointOD) dbRecord.thinnestPointOD = pentacamData.thinnestPointOD;
+  if (pentacamData.thinnestPointOD)
+    dbRecord.thinnestPointOD = pentacamData.thinnestPointOD;
   if (pentacamData.apexOD) dbRecord.apexOD = pentacamData.apexOD;
   if (pentacamData.residualOD) dbRecord.residualOD = pentacamData.residualOD;
   if (pentacamData.tttOD) dbRecord.tttOD = pentacamData.tttOD;
@@ -3283,23 +3848,31 @@ export async function updatePentacamResult(resultId: number, pentacamData: any) 
   if (pentacamData.k1OS) dbRecord.k1OS = pentacamData.k1OS;
   if (pentacamData.k2OS) dbRecord.k2OS = pentacamData.k2OS;
   if (pentacamData.axisOS) dbRecord.axisOS = pentacamData.axisOS;
-  if (pentacamData.thinnestPointOS) dbRecord.thinnestPointOS = pentacamData.thinnestPointOS;
+  if (pentacamData.thinnestPointOS)
+    dbRecord.thinnestPointOS = pentacamData.thinnestPointOS;
   if (pentacamData.apexOS) dbRecord.apexOS = pentacamData.apexOS;
   if (pentacamData.residualOS) dbRecord.residualOS = pentacamData.residualOS;
   if (pentacamData.tttOS) dbRecord.tttOS = pentacamData.tttOS;
   if (pentacamData.ablationOS) dbRecord.ablationOS = pentacamData.ablationOS;
 
-  if (pentacamData.techniciansNotes) dbRecord.notes = pentacamData.techniciansNotes;
+  if (pentacamData.techniciansNotes)
+    dbRecord.notes = pentacamData.techniciansNotes;
   if (pentacamData.recordedBy) dbRecord.recordedBy = pentacamData.recordedBy;
 
-  await db.update(pentacamResults).set(dbRecord).where(eq(pentacamResults.id, resultId));
+  await db
+    .update(pentacamResults)
+    .set(dbRecord)
+    .where(eq(pentacamResults.id, resultId));
 }
 
 export async function getPentacamResultsByVisit(visitId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(pentacamResults).where(eq(pentacamResults.visitId, visitId));
+  return await db
+    .select()
+    .from(pentacamResults)
+    .where(eq(pentacamResults.visitId, visitId));
 }
 
 /**
@@ -3320,7 +3893,9 @@ export async function saveAutorefractometryData(dataInput: any) {
   }
 
   // Check if record already exists
-  const existing = await db.select().from(autorefractometryData)
+  const existing = await db
+    .select()
+    .from(autorefractometryData)
     .where(eq(autorefractometryData.examinationId, examinationId))
     .limit(1);
 
@@ -3374,13 +3949,16 @@ export async function saveAutorefractometryData(dataInput: any) {
   else if (dataInput.os?.airPuff3) dbRecord.iopOS = dataInput.os.airPuff3;
 
   if (existing.length > 0) {
-    await db.update(autorefractometryData)
+    await db
+      .update(autorefractometryData)
       .set(dbRecord)
       .where(eq(autorefractometryData.examinationId, examinationId));
     return existing[0];
   } else {
     await db.insert(autorefractometryData).values(dbRecord);
-    const [newRecord] = await db.select().from(autorefractometryData)
+    const [newRecord] = await db
+      .select()
+      .from(autorefractometryData)
       .where(eq(autorefractometryData.examinationId, examinationId));
     return newRecord;
   }
@@ -3398,7 +3976,9 @@ export async function saveGlassesRecord(dataInput: any) {
   const patientId = dataInput.patientId;
 
   // Check if record already exists
-  const existing = await db.select().from(glassesRecords)
+  const existing = await db
+    .select()
+    .from(glassesRecords)
     .where(eq(glassesRecords.examinationId, examinationId))
     .limit(1);
 
@@ -3445,13 +4025,16 @@ export async function saveGlassesRecord(dataInput: any) {
   else if (dataInput.os?.bcva) dbRecord.bcvaOS = dataInput.os.bcva;
 
   if (existing.length > 0) {
-    await db.update(glassesRecords)
+    await db
+      .update(glassesRecords)
       .set(dbRecord)
       .where(eq(glassesRecords.examinationId, examinationId));
     return existing[0];
   } else {
     await db.insert(glassesRecords).values(dbRecord);
-    const [newRecord] = await db.select().from(glassesRecords)
+    const [newRecord] = await db
+      .select()
+      .from(glassesRecords)
       .where(eq(glassesRecords.examinationId, examinationId));
     return newRecord;
   }
@@ -3522,12 +4105,21 @@ export async function saveAfterRefractionData(dataInput: any) {
   }
 }
 
-export async function getPentacamResultsByPatient(patientId: number, limit = 100) {
+export async function getPentacamResultsByPatient(
+  patientId: number,
+  limit = 100,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(500, Number(limit))) : 100;
-  const patientRow = await db.select().from(patients).where(eq(patients.id, patientId)).limit(1);
+  const safeLimit = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(500, Number(limit)))
+    : 100;
+  const patientRow = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.id, patientId))
+    .limit(1);
   if (patientRow.length === 0) return [];
   const patient = decodePatientRow(patientRow[0] as any);
 
@@ -3558,24 +4150,39 @@ export type PentacamDashboardFilters = {
 /**
  * Pentacam list rows with patient + visit + doctor (lookup) for dashboard UI.
  */
-export async function getPentacamResultsForDashboard(filters: PentacamDashboardFilters) {
+export async function getPentacamResultsForDashboard(
+  filters: PentacamDashboardFilters,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const safeLimit = Number.isFinite(Number(filters.limit))
     ? Math.max(1, Math.min(500, Number(filters.limit)))
     : 150;
-  const safeOffset = Number.isFinite(Number(filters.offset)) ? Math.max(0, Number(filters.offset)) : 0;
+  const safeOffset = Number.isFinite(Number(filters.offset))
+    ? Math.max(0, Number(filters.offset))
+    : 0;
 
   const clauses: any[] = [];
 
-  if (filters.resultId !== undefined && Number.isFinite(Number(filters.resultId)) && Number(filters.resultId) > 0) {
+  if (
+    filters.resultId !== undefined &&
+    Number.isFinite(Number(filters.resultId)) &&
+    Number(filters.resultId) > 0
+  ) {
     clauses.push(eq(pentacamResults.id, Number(filters.resultId)));
   }
-  if (filters.visitId !== undefined && Number.isFinite(Number(filters.visitId))) {
+  if (
+    filters.visitId !== undefined &&
+    Number.isFinite(Number(filters.visitId))
+  ) {
     clauses.push(eq(pentacamResults.visitId, Number(filters.visitId)));
   }
-  if (filters.patientId !== undefined && Number.isFinite(Number(filters.patientId)) && Number(filters.patientId) > 0) {
+  if (
+    filters.patientId !== undefined &&
+    Number.isFinite(Number(filters.patientId)) &&
+    Number(filters.patientId) > 0
+  ) {
     clauses.push(eq(pentacamResults.patientId, Number(filters.patientId)));
   }
   clauses.push(pentacamEligibilityExpr() as any);
@@ -3588,7 +4195,9 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
     clauses.push(
       sql`DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) >= ${fromBound}`,
     );
-    clauses.push(sql`DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) <= ${toBound}`);
+    clauses.push(
+      sql`DATE(COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})) <= ${toBound}`,
+    );
   }
 
   const normalizedSearch = String(filters.search ?? "").trim();
@@ -3605,8 +4214,13 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
     );
   }
 
-  const normalizedLocationType = String(filters.locationType ?? "").trim().toLowerCase();
-  if (normalizedLocationType === "center" || normalizedLocationType === "external") {
+  const normalizedLocationType = String(filters.locationType ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    normalizedLocationType === "center" ||
+    normalizedLocationType === "external"
+  ) {
     clauses.push(eq(patients.locationType, normalizedLocationType as any));
   }
 
@@ -3624,7 +4238,9 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
     .innerJoin(patients, eq(pentacamResults.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
     .where(whereExpr)
-    .orderBy(desc(sql`COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})`))
+    .orderBy(
+      desc(sql`COALESCE(${visits.visitDate}, ${pentacamResults.createdAt})`),
+    )
     .limit(safeLimit)
     .offset(safeOffset);
 
@@ -3635,11 +4251,15 @@ export async function getPentacamResultsForDashboard(filters: PentacamDashboardF
   }));
 }
 
-export async function getPentacamDashboardDayStats(locationType?: "center" | "external") {
+export async function getPentacamDashboardDayStats(
+  locationType?: "center" | "external",
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const normalizedLocationType = String(locationType ?? "").trim().toLowerCase();
+  const normalizedLocationType = String(locationType ?? "")
+    .trim()
+    .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
       ? eq(patients.locationType, normalizedLocationType as any)
@@ -3653,7 +4273,11 @@ export async function getPentacamDashboardDayStats(locationType?: "center" | "ex
     .from(pentacamResults)
     .leftJoin(visits, eq(pentacamResults.visitId, visits.id))
     .innerJoin(patients, eq(pentacamResults.patientId, patients.id))
-    .where(locationWhere ? and(pentacamEligibilityExpr() as any, locationWhere as any) : (pentacamEligibilityExpr() as any));
+    .where(
+      locationWhere
+        ? and(pentacamEligibilityExpr() as any, locationWhere as any)
+        : (pentacamEligibilityExpr() as any),
+    );
 
   const r = rows[0];
   return {
@@ -3666,7 +4290,9 @@ export async function getRecentPentacamResultNotes(limit = 50000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100000, Number(limit))) : 50000;
+  const safeLimit = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(100000, Number(limit)))
+    : 50000;
   const rows = await db
     .select({ notes: pentacamResults.notes })
     .from(pentacamResults)
@@ -3679,7 +4305,9 @@ export async function getRecentPentacamLocalResults(limit = 50000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100000, Number(limit))) : 50000;
+  const safeLimit = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(100000, Number(limit)))
+    : 50000;
   return await db
     .select({
       id: pentacamResults.id,
@@ -3693,7 +4321,10 @@ export async function getRecentPentacamLocalResults(limit = 50000) {
     .limit(safeLimit);
 }
 
-export async function reassignPentacamResultPatient(resultId: number, patientId: number) {
+export async function reassignPentacamResultPatient(
+  resultId: number,
+  patientId: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -3711,11 +4342,13 @@ export async function deletePentacamResultsByIds(ids: number[]) {
     new Set(
       (ids ?? [])
         .map((value) => Number(value))
-        .filter((value) => Number.isFinite(value) && value > 0)
-    )
+        .filter((value) => Number.isFinite(value) && value > 0),
+    ),
   );
   if (normalized.length === 0) return 0;
-  await db.delete(pentacamResults).where(inArray(pentacamResults.id, normalized));
+  await db
+    .delete(pentacamResults)
+    .where(inArray(pentacamResults.id, normalized));
   return normalized.length;
 }
 
@@ -3728,13 +4361,15 @@ export async function getLinkedBlackiceUploadsWithPatient(limit = 80000) {
         FROM blackice_uploads bu
         JOIN patients p ON bu.patient_id = p.id
         WHERE bu.patient_id IS NOT NULL AND bu.file_name IS NOT NULL
-        LIMIT ${safeLimit}`
+        LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return Array.isArray(rows) ? rows : [];
 }
 
-export async function unlinkBlackiceUploadsByIds(ids: number[]): Promise<number> {
+export async function unlinkBlackiceUploadsByIds(
+  ids: number[],
+): Promise<number> {
   if (!ids.length) return 0;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
@@ -3744,7 +4379,7 @@ export async function unlinkBlackiceUploadsByIds(ids: number[]): Promise<number>
     const placeholders = ids.map(() => "?").join(",");
     const [result] = await conn.query(
       `UPDATE blackice_uploads SET patient_id = NULL WHERE id IN (${placeholders})`,
-      ids
+      ids,
     );
     return Number((result as any)?.affectedRows ?? 0);
   } finally {
@@ -3752,15 +4387,21 @@ export async function unlinkBlackiceUploadsByIds(ids: number[]): Promise<number>
   }
 }
 
-export async function reassignBlackiceUploadPatient(uploadId: number, patientId: number): Promise<void> {
+export async function reassignBlackiceUploadPatient(
+  uploadId: number,
+  patientId: number,
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.execute(
-    sql`UPDATE blackice_uploads SET patient_id = ${patientId} WHERE id = ${uploadId}`
+    sql`UPDATE blackice_uploads SET patient_id = ${patientId} WHERE id = ${uploadId}`,
   );
 }
 
-export async function getBlackiceUploadsByPatient(patientId: number, limit = 100) {
+export async function getBlackiceUploadsByPatient(
+  patientId: number,
+  limit = 100,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const safeLimit = Math.min(Math.max(1, Number(limit)), 500);
@@ -3769,7 +4410,7 @@ export async function getBlackiceUploadsByPatient(patientId: number, limit = 100
         FROM blackice_uploads
         WHERE patient_id = ${patientId}
         ORDER BY created_at DESC
-        LIMIT ${safeLimit}`
+        LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []) as Array<{
@@ -3781,7 +4422,10 @@ export async function getBlackiceUploadsByPatient(patientId: number, limit = 100
   }>;
 }
 
-export async function linkBlackiceUploadToPatient(baseName: string, patientId: number): Promise<number> {
+export async function linkBlackiceUploadToPatient(
+  baseName: string,
+  patientId: number,
+): Promise<number> {
   return linkBlackiceUploadsBatch([{ fileName: baseName, patientId }]);
 }
 
@@ -3790,14 +4434,21 @@ export async function linkBlackiceUploadToPatient(baseName: string, patientId: n
  * Uses mysql2/promise directly — avoids the Drizzle $client ambiguity that caused
  * either "not iterable" crashes or indefinite hangs on sequential per-file calls.
  */
-export async function getPatientIdsByCodes(codes: string[]): Promise<Map<string, number>> {
+export async function getPatientIdsByCodes(
+  codes: string[],
+): Promise<Map<string, number>> {
   if (!codes.length) return new Map();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const unique = Array.from(new Set(codes.map((c) => String(c ?? "").trim()).filter(Boolean)));
+  const unique = Array.from(
+    new Set(codes.map((c) => String(c ?? "").trim()).filter(Boolean)),
+  );
   if (!unique.length) return new Map();
   const result = await db.execute(
-    sql`SELECT id, patientCode FROM patients WHERE patientCode IN (${sql.join(unique.map((c) => sql`${c}`), sql`, `)})`
+    sql`SELECT id, patientCode FROM patients WHERE patientCode IN (${sql.join(
+      unique.map((c) => sql`${c}`),
+      sql`, `,
+    )})`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   const map = new Map<string, number>();
@@ -3810,7 +4461,7 @@ export async function getPatientIdsByCodes(codes: string[]): Promise<Map<string,
 }
 
 export async function linkBlackiceUploadsBatch(
-  pairs: Array<{ fileName: string; patientId: number }>
+  pairs: Array<{ fileName: string; patientId: number }>,
 ): Promise<number> {
   if (!pairs.length) return 0;
   const url = process.env.DATABASE_URL;
@@ -3832,7 +4483,7 @@ export async function linkBlackiceUploadsBatch(
     }
     const [result] = await conn.query(
       `UPDATE blackice_uploads SET patient_id = CASE file_name ${caseWhenClauses} END WHERE file_name IN (${inPlaceholders}) AND patient_id IS NULL`,
-      params
+      params,
     );
     return Number((result as any)?.affectedRows ?? 0);
   } finally {
@@ -3850,7 +4501,7 @@ export async function getUnlinkedBlackiceUploads(limit = 10000) {
         WHERE patient_id IS NULL
           AND file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
         ORDER BY created_at DESC
-        LIMIT ${safeLimit}`
+        LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []) as Array<{
@@ -3864,7 +4515,7 @@ export async function getAllBlackiceUploadFileNames(): Promise<string[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
-    sql`SELECT file_name FROM blackice_uploads WHERE file_name IS NOT NULL`
+    sql`SELECT file_name FROM blackice_uploads WHERE file_name IS NOT NULL`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : [])
@@ -3881,7 +4532,7 @@ export async function getAllBlackiceUploads(limit = 100000) {
         FROM blackice_uploads
         WHERE file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
         ORDER BY created_at DESC
-        LIMIT ${safeLimit}`
+        LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []) as Array<{
@@ -3906,21 +4557,30 @@ export async function updateDoctorReport(reportId: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(doctorReports).set(updates).where(eq(doctorReports.id, reportId));
+  await db
+    .update(doctorReports)
+    .set(updates)
+    .where(eq(doctorReports.id, reportId));
 }
 
 export async function getDoctorReportsByVisit(visitId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(doctorReports).where(eq(doctorReports.visitId, visitId));
+  return await db
+    .select()
+    .from(doctorReports)
+    .where(eq(doctorReports.visitId, visitId));
 }
 
 export async function getAllDoctorReports() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(doctorReports).orderBy(desc(doctorReports.createdAt));
+  return await db
+    .select()
+    .from(doctorReports)
+    .orderBy(desc(doctorReports.createdAt));
 }
 
 /** Joined rows for التقارير الطبية hub (جدول + إحصائيات). */
@@ -3962,7 +4622,11 @@ export async function getDoctorReportsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(doctorReports).where(eq(doctorReports.patientId, patientId)).orderBy(desc(doctorReports.createdAt));
+  return await db
+    .select()
+    .from(doctorReports)
+    .where(eq(doctorReports.patientId, patientId))
+    .orderBy(desc(doctorReports.createdAt));
 }
 
 export async function deleteDoctorReport(reportId: number) {
@@ -3978,14 +4642,8 @@ export async function createPrescription(prescriptionData: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const {
-    medicationName,
-    dosage,
-    frequency,
-    duration,
-    instructions,
-    ...base
-  } = prescriptionData ?? {};
+  const { medicationName, dosage, frequency, duration, instructions, ...base } =
+    prescriptionData ?? {};
 
   const result = await db.insert(prescriptions).values({
     ...base,
@@ -3993,7 +4651,11 @@ export async function createPrescription(prescriptionData: any) {
   });
 
   if (medicationName) {
-    const existing = await db.select().from(medications).where(eq(medications.name, medicationName)).limit(1);
+    const existing = await db
+      .select()
+      .from(medications)
+      .where(eq(medications.name, medicationName))
+      .limit(1);
     let medicationId: number | undefined;
     if (existing.length > 0) {
       medicationId = existing[0].id;
@@ -4022,14 +4684,21 @@ export async function getPrescriptionsByVisit(visitId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(prescriptions).where(eq(prescriptions.visitId, visitId));
+  return await db
+    .select()
+    .from(prescriptions)
+    .where(eq(prescriptions.visitId, visitId));
 }
 
 export async function getPrescriptionsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(prescriptions).where(eq(prescriptions.patientId, patientId)).orderBy(desc(prescriptions.prescriptionDate));
+  return await db
+    .select()
+    .from(prescriptions)
+    .where(eq(prescriptions.patientId, patientId))
+    .orderBy(desc(prescriptions.prescriptionDate));
 }
 
 export async function getPrescriptionsWithItemsByVisit(visitId: number) {
@@ -4050,7 +4719,10 @@ export async function getPrescriptionsWithItemsByVisit(visitId: number) {
       instructions: prescriptionItems.instructions,
     })
     .from(prescriptions)
-    .leftJoin(prescriptionItems, eq(prescriptions.id, prescriptionItems.prescriptionId))
+    .leftJoin(
+      prescriptionItems,
+      eq(prescriptions.id, prescriptionItems.prescriptionId),
+    )
     .leftJoin(medications, eq(prescriptionItems.medicationId, medications.id))
     .where(eq(prescriptions.visitId, visitId))
     .orderBy(desc(prescriptions.prescriptionDate));
@@ -4098,7 +4770,10 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
       instructions: prescriptionItems.instructions,
     })
     .from(prescriptions)
-    .leftJoin(prescriptionItems, eq(prescriptions.id, prescriptionItems.prescriptionId))
+    .leftJoin(
+      prescriptionItems,
+      eq(prescriptions.id, prescriptionItems.prescriptionId),
+    )
     .leftJoin(medications, eq(prescriptionItems.medicationId, medications.id))
     .where(eq(prescriptions.patientId, patientId))
     .orderBy(desc(prescriptions.prescriptionDate));
@@ -4143,7 +4818,9 @@ export async function getPrescriptionsOverviewRows(input: {
   const pageSize = normalizeOverviewPageSize(input.pageSize);
   const offset = (page - 1) * pageSize;
   const cap = Math.min(pageSize, OVERVIEW_ROW_LIMIT);
-  const normalizedLocationType = String(input.locationType ?? "").trim().toLowerCase();
+  const normalizedLocationType = String(input.locationType ?? "")
+    .trim()
+    .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
       ? eq(patients.locationType, normalizedLocationType as any)
@@ -4155,7 +4832,9 @@ export async function getPrescriptionsOverviewRows(input: {
     prescriptions.notes,
   ]);
   const dateExpr = sql<number>`DATEDIFF(CURDATE(), DATE(COALESCE(${prescriptions.prescriptionDate}, ${prescriptions.createdAt})))`;
-  const status = String(input.statusFilter ?? "all").trim().toLowerCase();
+  const status = String(input.statusFilter ?? "all")
+    .trim()
+    .toLowerCase();
   const statusWhere =
     status === "active"
       ? sql`${dateExpr} <= ${ACTIVE_DAYS}`
@@ -4165,7 +4844,12 @@ export async function getPrescriptionsOverviewRows(input: {
           ? sql`${dateExpr} > ${ACTIVE_DAYS} AND ${dateExpr} <= ${EXPIRED_AFTER_DAYS}`
           : undefined;
   const hasItemsWhere = sql`EXISTS (SELECT 1 FROM ${prescriptionItems} pi WHERE pi.prescriptionId = ${prescriptions.id})`;
-  const whereExpr = combineWhereClauses(locationWhere, searchWhere, statusWhere, hasItemsWhere);
+  const whereExpr = combineWhereClauses(
+    locationWhere,
+    searchWhere,
+    statusWhere,
+    hasItemsWhere,
+  );
 
   const baseQuery = dbConn
     .select({
@@ -4199,7 +4883,12 @@ export async function getPrescriptionsOverviewRows(input: {
     .offset(offset);
 
   if (base.length === 0) {
-    return { rows: [], total: Number(totalRows[0]?.total ?? 0), page, pageSize };
+    return {
+      rows: [],
+      total: Number(totalRows[0]?.total ?? 0),
+      page,
+      pageSize,
+    };
   }
 
   const ids = base.map((r) => r.id);
@@ -4246,7 +4935,8 @@ export async function createPrescriptionWithItems(data: {
   if (!db) throw new Error("Database not available");
 
   const validItems = data.items.filter((item) => {
-    const hasId = typeof item.medicationId === "number" && item.medicationId > 0;
+    const hasId =
+      typeof item.medicationId === "number" && item.medicationId > 0;
     const hasName = Boolean(item.medicationName && item.medicationName.trim());
     return hasId || hasName;
   });
@@ -4270,23 +4960,33 @@ export async function createPrescriptionWithItems(data: {
   let prescriptionId = (prescription as any).insertId as number | undefined;
   if (!prescriptionId) {
     const lastIdResult = await db.execute(sql`select last_insert_id() as id`);
-    const rows = (lastIdResult as any)?.[0] ?? (lastIdResult as any)?.rows ?? lastIdResult;
+    const rows =
+      (lastIdResult as any)?.[0] ?? (lastIdResult as any)?.rows ?? lastIdResult;
     const resolvedId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
     prescriptionId = resolvedId ? Number(resolvedId) : undefined;
   }
   if (!prescriptionId) return prescription;
 
   for (const item of validItems) {
-    const providedId = typeof item.medicationId === "number" && item.medicationId > 0 ? item.medicationId : undefined;
+    const providedId =
+      typeof item.medicationId === "number" && item.medicationId > 0
+        ? item.medicationId
+        : undefined;
     let medicationId: number | undefined = providedId;
     if (!medicationId) {
       const name = item.medicationName?.trim();
       if (!name) continue;
-      const existing = await db.select().from(medications).where(eq(medications.name, name)).limit(1);
+      const existing = await db
+        .select()
+        .from(medications)
+        .where(eq(medications.name, name))
+        .limit(1);
       if (existing.length > 0) {
         medicationId = existing[0].id;
       } else {
-        const inserted = await db.insert(medications).values({ name, type: "other" });
+        const inserted = await db
+          .insert(medications)
+          .values({ name, type: "other" });
         medicationId = (inserted as any).insertId as number;
       }
     }
@@ -4308,7 +5008,9 @@ export async function deletePrescription(prescriptionId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(prescriptionItems).where(eq(prescriptionItems.prescriptionId, prescriptionId));
+  await db
+    .delete(prescriptionItems)
+    .where(eq(prescriptionItems.prescriptionId, prescriptionId));
   await db.delete(prescriptions).where(eq(prescriptions.id, prescriptionId));
 }
 
@@ -4326,7 +5028,11 @@ export async function getSurgeriesByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(surgeries).where(eq(surgeries.patientId, patientId)).orderBy(desc(surgeries.surgeryDate));
+  return await db
+    .select()
+    .from(surgeries)
+    .where(eq(surgeries.patientId, patientId))
+    .orderBy(desc(surgeries.surgeryDate));
 }
 
 export async function deleteSurgery(surgeryId: number) {
@@ -4357,14 +5063,22 @@ export async function getPostOpFollowupsBySurgery(surgeryId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(postOpFollowups).where(eq(postOpFollowups.surgeryId, surgeryId)).orderBy(desc(postOpFollowups.followupDate));
+  return await db
+    .select()
+    .from(postOpFollowups)
+    .where(eq(postOpFollowups.surgeryId, surgeryId))
+    .orderBy(desc(postOpFollowups.followupDate));
 }
 
 export async function getPostOpFollowupsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(postOpFollowups).where(eq(postOpFollowups.patientId, patientId)).orderBy(desc(postOpFollowups.followupDate));
+  return await db
+    .select()
+    .from(postOpFollowups)
+    .where(eq(postOpFollowups.patientId, patientId))
+    .orderBy(desc(postOpFollowups.followupDate));
 }
 
 // ============ CONSENT FORM OPERATIONS ============
@@ -4381,7 +5095,10 @@ export async function getConsentFormsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(consentForms).where(eq(consentForms.patientId, patientId));
+  return await db
+    .select()
+    .from(consentForms)
+    .where(eq(consentForms.patientId, patientId));
 }
 
 // ============ MEDICAL HISTORY OPERATIONS ============
@@ -4398,10 +5115,15 @@ export async function getMedicalHistoryByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(medicalHistoryChecklist).where(eq(medicalHistoryChecklist.patientId, patientId));
+  return await db
+    .select()
+    .from(medicalHistoryChecklist)
+    .where(eq(medicalHistoryChecklist.patientId, patientId));
 }
 
-export async function getExaminationChecklistByExaminationId(examinationId: number) {
+export async function getExaminationChecklistByExaminationId(
+  examinationId: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const rows = await db
@@ -4429,7 +5151,9 @@ export async function upsertExaminationChecklist(input: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const existing = await getExaminationChecklistByExaminationId(input.examinationId);
+  const existing = await getExaminationChecklistByExaminationId(
+    input.examinationId,
+  );
   if (existing?.id) {
     await db
       .update(examinationChecklistItems)
@@ -4463,7 +5187,11 @@ export async function getAuditLogs(limit: number = 100) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  return await db
+    .select()
+    .from(auditLogs)
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
 }
 
 // ============ MEDICATION OPERATIONS ============
@@ -4487,7 +5215,10 @@ export async function updateMedication(medicationId: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(medications).set(updates).where(eq(medications.id, medicationId));
+  await db
+    .update(medications)
+    .set(updates)
+    .where(eq(medications.id, medicationId));
 }
 
 export async function deleteMedication(medicationId: number) {
@@ -4532,7 +5263,10 @@ export async function getTestFavoritesByUser(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(testFavorites).where(eq(testFavorites.userId, userId));
+  return await db
+    .select()
+    .from(testFavorites)
+    .where(eq(testFavorites.userId, userId));
 }
 
 export async function toggleTestFavorite(userId: number, testId: number) {
@@ -4542,13 +5276,17 @@ export async function toggleTestFavorite(userId: number, testId: number) {
   const existing = await db
     .select()
     .from(testFavorites)
-    .where(and(eq(testFavorites.userId, userId), eq(testFavorites.testId, testId)))
+    .where(
+      and(eq(testFavorites.userId, userId), eq(testFavorites.testId, testId)),
+    )
     .limit(1);
 
   if (existing.length > 0) {
     await db
       .delete(testFavorites)
-      .where(and(eq(testFavorites.userId, userId), eq(testFavorites.testId, testId)));
+      .where(
+        and(eq(testFavorites.userId, userId), eq(testFavorites.testId, testId)),
+      );
     return { favorite: false };
   }
 
@@ -4582,7 +5320,10 @@ export async function getTestRequestsByVisit(visitId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const requestData = await db.select().from(testRequests).where(eq(testRequests.visitId, visitId));
+  const requestData = await db
+    .select()
+    .from(testRequests)
+    .where(eq(testRequests.visitId, visitId));
 
   // Get items for each request with test names
   const withItems = await Promise.all(
@@ -4598,7 +5339,7 @@ export async function getTestRequestsByVisit(visitId: number) {
         .innerJoin(tests, eq(testRequestItems.testId, tests.id))
         .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
-    })
+    }),
   );
   return withItems;
 }
@@ -4607,7 +5348,10 @@ export async function getTestRequestsByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const requestData = await db.select().from(testRequests).where(eq(testRequests.patientId, patientId));
+  const requestData = await db
+    .select()
+    .from(testRequests)
+    .where(eq(testRequests.patientId, patientId));
 
   // Get items for each request with test names
   const withItems = await Promise.all(
@@ -4623,7 +5367,7 @@ export async function getTestRequestsByPatient(patientId: number) {
         .innerJoin(tests, eq(testRequestItems.testId, tests.id))
         .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
-    })
+    }),
   );
   return withItems;
 }
@@ -4641,7 +5385,11 @@ export async function getSystemSetting(key: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const rows = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+  const rows = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.key, key))
+    .limit(1);
   const row = rows[0] ?? null;
   if (!row) return null;
 
@@ -4655,7 +5403,11 @@ export async function getSystemSetting(key: string) {
   const parts: string[] = [];
   for (let i = 0; i < partCount; i += 1) {
     const partKey = `${key}__chunk_${i}`;
-    const partRows = await db.select().from(systemSettings).where(eq(systemSettings.key, partKey)).limit(1);
+    const partRows = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, partKey))
+      .limit(1);
     parts.push(String(partRows[0]?.value ?? ""));
   }
 
@@ -4676,14 +5428,20 @@ export async function updateSystemSettings(key: string, value: any) {
   const payloadBytes = Buffer.byteLength(serialized, "utf8");
 
   const upsertRaw = async (settingKey: string, settingValue: string) => {
-    const existing = await db.select().from(systemSettings).where(eq(systemSettings.key, settingKey)).limit(1);
+    const existing = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, settingKey))
+      .limit(1);
     if (existing.length > 0) {
       await db
         .update(systemSettings)
         .set({ value: settingValue, updatedAt: new Date() })
         .where(eq(systemSettings.key, settingKey));
     } else {
-      await db.insert(systemSettings).values({ key: settingKey, value: settingValue });
+      await db
+        .insert(systemSettings)
+        .values({ key: settingKey, value: settingValue });
     }
   };
 
@@ -4693,9 +5451,12 @@ export async function updateSystemSettings(key: string, value: any) {
       .from(systemSettings)
       .where(like(systemSettings.key, `${key}__chunk_%`));
     if (chunkRows.length > 0) {
-      await db
-        .delete(systemSettings)
-        .where(inArray(systemSettings.key, chunkRows.map((row) => String(row.key))));
+      await db.delete(systemSettings).where(
+        inArray(
+          systemSettings.key,
+          chunkRows.map((row) => String(row.key)),
+        ),
+      );
     }
   };
 
@@ -4709,11 +5470,17 @@ export async function updateSystemSettings(key: string, value: any) {
   let cursor = 0;
   while (cursor < serialized.length) {
     let end = cursor + Math.min(12_000, serialized.length - cursor);
-    while (end < serialized.length && Buffer.byteLength(serialized.slice(cursor, end), "utf8") < chunkBytes) {
+    while (
+      end < serialized.length &&
+      Buffer.byteLength(serialized.slice(cursor, end), "utf8") < chunkBytes
+    ) {
       end += 1;
     }
     if (end > serialized.length) end = serialized.length;
-    while (end > cursor && Buffer.byteLength(serialized.slice(cursor, end), "utf8") > chunkBytes) {
+    while (
+      end > cursor &&
+      Buffer.byteLength(serialized.slice(cursor, end), "utf8") > chunkBytes
+    ) {
       end -= 1;
     }
     if (end <= cursor) end = Math.min(serialized.length, cursor + 1);
@@ -4731,7 +5498,9 @@ export async function updateSystemSettings(key: string, value: any) {
     .from(systemSettings)
     .where(like(systemSettings.key, `${key}__chunk_%`));
   const keep = new Set(chunks.map((_, i) => `${key}__chunk_${i}`));
-  const stale = staleChunkRows.map((row) => String(row.key)).filter((chunkKey) => !keep.has(chunkKey));
+  const stale = staleChunkRows
+    .map((row) => String(row.key))
+    .filter((chunkKey) => !keep.has(chunkKey));
   if (stale.length > 0) {
     await db.delete(systemSettings).where(inArray(systemSettings.key, stale));
   }
@@ -4739,7 +5508,14 @@ export async function updateSystemSettings(key: string, value: any) {
 
 // ============ USER PERMISSIONS ============
 
-type TeamRole = "admin" | "manager" | "accountant" | "doctor" | "nurse" | "technician" | "reception";
+type TeamRole =
+  | "admin"
+  | "manager"
+  | "accountant"
+  | "doctor"
+  | "nurse"
+  | "technician"
+  | "reception";
 type TeamPermissionsMap = Record<TeamRole, string[]>;
 type UserPermissionSetOptions = {
   emptyMode?: "inherit" | "explicit";
@@ -4747,7 +5523,15 @@ type UserPermissionSetOptions = {
   nonEmptyMode?: "replace" | "inherit_extras";
 };
 
-const TEAM_PERMISSION_ROLES: TeamRole[] = ["admin", "manager", "accountant", "doctor", "nurse", "technician", "reception"];
+const TEAM_PERMISSION_ROLES: TeamRole[] = [
+  "admin",
+  "manager",
+  "accountant",
+  "doctor",
+  "nurse",
+  "technician",
+  "reception",
+];
 const TEAM_PERMISSIONS_SETTING_KEY = "team_permissions_v1";
 const EMPTY_PERMISSION_OVERRIDE = "__EMPTY_PERMISSION_OVERRIDE__";
 /** When present with optional paths, effective permissions = live role defaults ∪ stored paths (extras only). */
@@ -4758,27 +5542,41 @@ export function normalizePermissionList(value: Iterable<unknown>) {
     new Set(
       Array.from(value)
         .map((entry) => String(entry ?? "").trim())
-        .filter((entry) => entry.length > 0)
-    )
+        .filter((entry) => entry.length > 0),
+    ),
   ).sort();
 }
 
-export function arePermissionListsEqual(left: Iterable<unknown>, right: Iterable<unknown>) {
+export function arePermissionListsEqual(
+  left: Iterable<unknown>,
+  right: Iterable<unknown>,
+) {
   const leftNormalized = normalizePermissionList(left);
   const rightNormalized = normalizePermissionList(right);
   if (leftNormalized.length !== rightNormalized.length) return false;
-  return leftNormalized.every((entry, index) => entry === rightNormalized[index]);
+  return leftNormalized.every(
+    (entry, index) => entry === rightNormalized[index],
+  );
 }
 
 /** Strip :r / :rw suffixes so team defaults (from Admin Permissions) match user rows saved as bare paths (from Admin Users). */
-export function normalizePermissionPathsForTeamMirror(paths: Iterable<unknown>): string[] {
+export function normalizePermissionPathsForTeamMirror(
+  paths: Iterable<unknown>,
+): string[] {
   return normalizePermissionList(
-    Array.from(paths, (p) => String(p ?? "").trim().replace(/:r[w]?$/i, "")),
+    Array.from(paths, (p) =>
+      String(p ?? "")
+        .trim()
+        .replace(/:r[w]?$/i, ""),
+    ),
   );
 }
 
 /** True when this user's stored permissions are the same access set as the previous team snapshot for their role (sync target). */
-export function userPermissionsMirrorTeamSnapshot(userPages: string[], teamPages: string[]): boolean {
+export function userPermissionsMirrorTeamSnapshot(
+  userPages: string[],
+  teamPages: string[],
+): boolean {
   return arePermissionListsEqual(
     normalizePermissionPathsForTeamMirror(userPages),
     normalizePermissionPathsForTeamMirror(teamPages),
@@ -4789,14 +5587,23 @@ export async function getUserPermissionState(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const rows = await db.select().from(userPermissions).where(eq(userPermissions.userId, userId));
+  const rows = await db
+    .select()
+    .from(userPermissions)
+    .where(eq(userPermissions.userId, userId));
   const rawPageIds = rows
     .map((row) => String(row.pageId ?? "").trim())
     .filter((pageId) => pageId.length > 0);
-  const hasExplicitEmptyOverride = rawPageIds.includes(EMPTY_PERMISSION_OVERRIDE);
-  const hasInheritExtrasMarker = rawPageIds.includes(INHERIT_WITH_EXTRAS_MARKER);
+  const hasExplicitEmptyOverride = rawPageIds.includes(
+    EMPTY_PERMISSION_OVERRIDE,
+  );
+  const hasInheritExtrasMarker = rawPageIds.includes(
+    INHERIT_WITH_EXTRAS_MARKER,
+  );
   const pageIds = rawPageIds.filter(
-    (pageId) => pageId !== EMPTY_PERMISSION_OVERRIDE && pageId !== INHERIT_WITH_EXTRAS_MARKER,
+    (pageId) =>
+      pageId !== EMPTY_PERMISSION_OVERRIDE &&
+      pageId !== INHERIT_WITH_EXTRAS_MARKER,
   );
   return {
     hasOverride: rawPageIds.length > 0,
@@ -4846,14 +5653,18 @@ export async function getTeamPermissions(): Promise<TeamPermissionsMap> {
   }
 }
 
-export async function setTeamPermissions(input: Partial<Record<TeamRole, string[]>>) {
+export async function setTeamPermissions(
+  input: Partial<Record<TeamRole, string[]>>,
+) {
   const current = await getTeamPermissions();
   const merged = normalizeTeamPermissions({ ...current, ...input });
   await updateSystemSettings(TEAM_PERMISSIONS_SETTING_KEY, merged);
 }
 
 export async function getRoleDefaultPermissions(role?: string) {
-  const userRole = String(role ?? "").trim().toLowerCase() as TeamRole | "";
+  const userRole = String(role ?? "")
+    .trim()
+    .toLowerCase() as TeamRole | "";
   if (!TEAM_PERMISSION_ROLES.includes(userRole as TeamRole)) {
     return [] as string[];
   }
@@ -4862,7 +5673,10 @@ export async function getRoleDefaultPermissions(role?: string) {
   return teamPermissions[roleKey] ?? [];
 }
 
-export async function getEffectiveUserPermissions(userId: number, role?: string) {
+export async function getEffectiveUserPermissions(
+  userId: number,
+  role?: string,
+) {
   const directPermissions = await getUserPermissionState(userId);
   const inherited = await getRoleDefaultPermissions(role);
   if (directPermissions.hasExplicitEmptyOverride) {
@@ -4872,12 +5686,19 @@ export async function getEffectiveUserPermissions(userId: number, role?: string)
     return normalizePermissionList(inherited);
   }
   if (directPermissions.hasInheritExtrasMarker) {
-    return normalizePermissionList([...inherited, ...directPermissions.pageIds]);
+    return normalizePermissionList([
+      ...inherited,
+      ...directPermissions.pageIds,
+    ]);
   }
   return normalizePermissionList(directPermissions.pageIds);
 }
 
-export async function setUserPermissions(userId: number, pageIds: string[], options: UserPermissionSetOptions = {}) {
+export async function setUserPermissions(
+  userId: number,
+  pageIds: string[],
+  options: UserPermissionSetOptions = {},
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -4917,7 +5738,12 @@ export async function getSheetEntry(patientId: number, sheetType: string) {
   const rows = await db
     .select()
     .from(sheetEntries)
-    .where(and(eq(sheetEntries.patientId, patientId), eq(sheetEntries.sheetType, sheetType as any)))
+    .where(
+      and(
+        eq(sheetEntries.patientId, patientId),
+        eq(sheetEntries.sheetType, sheetType as any),
+      ),
+    )
     .orderBy(desc(sheetEntries.updatedAt))
     .limit(1);
 
@@ -4937,14 +5763,23 @@ export async function getSheet_Entries(patientId: number) {
   return rows;
 }
 
-export async function upsertSheetEntry(params: { patientId: number; sheetType: string; content: string }) {
+export async function upsertSheetEntry(params: {
+  patientId: number;
+  sheetType: string;
+  content: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const existing = await db
     .select()
     .from(sheetEntries)
-    .where(and(eq(sheetEntries.patientId, params.patientId), eq(sheetEntries.sheetType, params.sheetType as any)))
+    .where(
+      and(
+        eq(sheetEntries.patientId, params.patientId),
+        eq(sheetEntries.sheetType, params.sheetType as any),
+      ),
+    )
     .limit(1);
 
   if (existing.length > 0) {
@@ -4995,7 +5830,7 @@ function normalizeOperationTypeKey(value?: string | null) {
 export async function getOperationList(
   doctorTab: string,
   listDate: string | Date,
-  operationType?: string | null
+  operationType?: string | null,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -5014,15 +5849,22 @@ export async function getOperationList(
         eq(operationLists.listDate, dateValue as any),
         operationTypeKey === null
           ? isNull(operationLists.operationType)
-          : eq(operationLists.operationType, operationTypeKey)
-      )
+          : eq(operationLists.operationType, operationTypeKey),
+      ),
     )
     .limit(1);
 
   if (lists.length === 0) return { id: null, items: [] as any[] };
 
-  const rawItems = await db.select().from(operationListItems).where(eq(operationListItems.listId, lists[0].id)).orderBy(operationListItems.id);
-  const items = rawItems.map(item => ({ ...item, payment: item.payment != null ? String(item.payment) : null }));
+  const rawItems = await db
+    .select()
+    .from(operationListItems)
+    .where(eq(operationListItems.listId, lists[0].id))
+    .orderBy(operationListItems.id);
+  const items = rawItems.map((item) => ({
+    ...item,
+    payment: item.payment != null ? String(item.payment) : null,
+  }));
   return {
     id: lists[0].id,
     items,
@@ -5036,11 +5878,22 @@ export async function getOperationListById(listId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const lists = await db.select().from(operationLists).where(eq(operationLists.id, listId)).limit(1);
+  const lists = await db
+    .select()
+    .from(operationLists)
+    .where(eq(operationLists.id, listId))
+    .limit(1);
   if (lists.length === 0) return { id: null, items: [] as any[] };
 
-  const rawItemsById = await db.select().from(operationListItems).where(eq(operationListItems.listId, listId)).orderBy(operationListItems.id);
-  const items = rawItemsById.map(item => ({ ...item, payment: item.payment != null ? String(item.payment) : null }));
+  const rawItemsById = await db
+    .select()
+    .from(operationListItems)
+    .where(eq(operationListItems.listId, listId))
+    .orderBy(operationListItems.id);
+  const items = rawItemsById.map((item) => ({
+    ...item,
+    payment: item.payment != null ? String(item.payment) : null,
+  }));
   return {
     id: lists[0].id,
     items,
@@ -5079,16 +5932,22 @@ export async function saveOperationList(data: {
   const receiptNumbers = data.items
     .map((item) => String(item.number ?? "").trim())
     .filter((value) => value.length > 0);
-  const duplicateInPayload = receiptNumbers.find((value, idx) => receiptNumbers.indexOf(value) !== idx);
+  const duplicateInPayload = receiptNumbers.find(
+    (value, idx) => receiptNumbers.indexOf(value) !== idx,
+  );
   if (duplicateInPayload) {
     throw new Error(`Duplicate receipt number in list: ${duplicateInPayload}`);
   }
   const patientCodes = data.items
     .map((item) => String(item.code ?? "").trim())
     .filter((value) => value.length > 0);
-  const duplicateCodeInPayload = patientCodes.find((value, idx) => patientCodes.indexOf(value) !== idx);
+  const duplicateCodeInPayload = patientCodes.find(
+    (value, idx) => patientCodes.indexOf(value) !== idx,
+  );
   if (duplicateCodeInPayload) {
-    throw new Error(`Patient code cannot be repeated: ${duplicateCodeInPayload}`);
+    throw new Error(
+      `Patient code cannot be repeated: ${duplicateCodeInPayload}`,
+    );
   }
 
   const dateValue = normalizeListDate(data.listDate);
@@ -5111,8 +5970,8 @@ export async function saveOperationList(data: {
           eq(operationLists.listDate, dateValue as any),
           operationTypeKey === null
             ? isNull(operationLists.operationType)
-            : eq(operationLists.operationType, operationTypeKey)
-        )
+            : eq(operationLists.operationType, operationTypeKey),
+        ),
       )
       .limit(1);
     listId = existing.length > 0 ? existing[0].id : null;
@@ -5148,7 +6007,9 @@ export async function saveOperationList(data: {
       return Number(row.listId) !== Number(listId);
     });
     if (codeConflict?.code) {
-      throw new Error(`Patient code already exists in another record: ${codeConflict.code}`);
+      throw new Error(
+        `Patient code already exists in another record: ${codeConflict.code}`,
+      );
     }
   }
 
@@ -5171,8 +6032,8 @@ export async function saveOperationList(data: {
           eq(operationLists.listDate, dateValue as any),
           operationTypeKey === null
             ? isNull(operationLists.operationType)
-            : eq(operationLists.operationType, operationTypeKey)
-        )
+            : eq(operationLists.operationType, operationTypeKey),
+        ),
       )
       .limit(1);
 
@@ -5191,23 +6052,33 @@ export async function saveOperationList(data: {
           eq(operationLists.listDate, dateValue as any),
           operationTypeKey === null
             ? isNull(operationLists.operationType)
-            : eq(operationLists.operationType, operationTypeKey)
-        )
+            : eq(operationLists.operationType, operationTypeKey),
+        ),
       )
       .limit(1);
-    if (duplicateTarget.length > 0 && Number(duplicateTarget[0].id) !== Number(listId)) {
-      throw new Error("A different list already exists for this doctor/date/type");
+    if (
+      duplicateTarget.length > 0 &&
+      Number(duplicateTarget[0].id) !== Number(listId)
+    ) {
+      throw new Error(
+        "A different list already exists for this doctor/date/type",
+      );
     }
 
-    await db.update(operationLists).set({
-      doctorTab: data.doctorTab,
-      listDate: dateValue as any,
-      operationType: operationTypeKey,
-      doctorName: data.doctorName ?? null,
-      listTime: data.listTime ?? null,
-      updatedAt: new Date(),
-    }).where(eq(operationLists.id, listId));
-    await db.delete(operationListItems).where(eq(operationListItems.listId, listId));
+    await db
+      .update(operationLists)
+      .set({
+        doctorTab: data.doctorTab,
+        listDate: dateValue as any,
+        operationType: operationTypeKey,
+        doctorName: data.doctorName ?? null,
+        listTime: data.listTime ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(operationLists.id, listId));
+    await db
+      .delete(operationListItems)
+      .where(eq(operationListItems.listId, listId));
   }
 
   if (listId) {
@@ -5220,19 +6091,22 @@ export async function saveOperationList(data: {
         doctor: item.doctor ?? null,
         operation: item.operation ?? null,
         eye: item.eye ?? null,
-        center: !!(item.center),
+        center: !!item.center,
         payment: item.payment ?? null,
         hospital: item.hospital ?? null,
         code: item.code ?? null,
         notes: item.notes ?? null,
-      }))
+      })),
     );
   }
 
   return { id: listId };
 }
 
-export async function deleteOperationList(doctorTab: string, listDate: string | Date) {
+export async function deleteOperationList(
+  doctorTab: string,
+  listDate: string | Date,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -5241,12 +6115,19 @@ export async function deleteOperationList(doctorTab: string, listDate: string | 
   const existing = await db
     .select()
     .from(operationLists)
-    .where(and(eq(operationLists.doctorTab, doctorTab), eq(operationLists.listDate, dateValue as any)))
+    .where(
+      and(
+        eq(operationLists.doctorTab, doctorTab),
+        eq(operationLists.listDate, dateValue as any),
+      ),
+    )
     .limit(1);
 
   if (existing.length === 0) return;
 
-  await db.delete(operationListItems).where(eq(operationListItems.listId, existing[0].id));
+  await db
+    .delete(operationListItems)
+    .where(eq(operationListItems.listId, existing[0].id));
   await db.delete(operationLists).where(eq(operationLists.id, existing[0].id));
 }
 
@@ -5254,7 +6135,9 @@ export async function deleteOperationListById(listId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(operationListItems).where(eq(operationListItems.listId, listId));
+  await db
+    .delete(operationListItems)
+    .where(eq(operationListItems.listId, listId));
   await db.delete(operationLists).where(eq(operationLists.id, listId));
 }
 
@@ -5265,7 +6148,11 @@ export async function getOperationListsHistory() {
   return await db
     .select()
     .from(operationLists)
-    .orderBy(desc(operationLists.listDate), desc(operationLists.updatedAt), desc(operationLists.id));
+    .orderBy(
+      desc(operationLists.listDate),
+      desc(operationLists.updatedAt),
+      desc(operationLists.id),
+    );
 }
 
 export async function getOperationListsHistoryWithItems() {
@@ -5275,7 +6162,11 @@ export async function getOperationListsHistoryWithItems() {
   const lists = await db
     .select()
     .from(operationLists)
-    .orderBy(desc(operationLists.listDate), desc(operationLists.updatedAt), desc(operationLists.id));
+    .orderBy(
+      desc(operationLists.listDate),
+      desc(operationLists.updatedAt),
+      desc(operationLists.id),
+    );
 
   if (lists.length === 0) return [];
 
@@ -5284,19 +6175,22 @@ export async function getOperationListsHistoryWithItems() {
     .from(operationListItems)
     .orderBy(operationListItems.id);
 
-  const byList = new Map<number, Array<{
-    id: number;
-    number: string | null;
-    name: string | null;
-    phone: string | null;
-    doctor: string | null;
-    operation: string | null;
-    eye: string | null;
-    center: boolean;
-    payment: string | null;
-    hospital: string | null;
-    code: string | null;
-  }>>();
+  const byList = new Map<
+    number,
+    Array<{
+      id: number;
+      number: string | null;
+      name: string | null;
+      phone: string | null;
+      doctor: string | null;
+      operation: string | null;
+      eye: string | null;
+      center: boolean;
+      payment: string | null;
+      hospital: string | null;
+      code: string | null;
+    }>
+  >();
   items.forEach((item: any) => {
     if (!byList.has(item.listId)) byList.set(item.listId, []);
     byList.get(item.listId)!.push({
@@ -5337,19 +6231,22 @@ export async function getOperationListsByDate(dateString: string) {
     .from(operationListItems)
     .orderBy(operationListItems.id);
 
-  const byList = new Map<number, Array<{
-    id: number;
-    number: string | null;
-    name: string | null;
-    phone: string | null;
-    doctor: string | null;
-    operation: string | null;
-    eye: string | null;
-    center: boolean;
-    payment: string | null;
-    hospital: string | null;
-    code: string | null;
-  }>>();
+  const byList = new Map<
+    number,
+    Array<{
+      id: number;
+      number: string | null;
+      name: string | null;
+      phone: string | null;
+      doctor: string | null;
+      operation: string | null;
+      eye: string | null;
+      center: boolean;
+      payment: string | null;
+      hospital: string | null;
+      code: string | null;
+    }>
+  >();
   items.forEach((item: any) => {
     if (!byList.has(item.listId)) byList.set(item.listId, []);
     byList.get(item.listId)!.push({
@@ -5385,11 +6282,18 @@ export async function getOperationBookingsByDateRange(
   return await db
     .select()
     .from(operationBookings)
-    .where(and(gte(operationBookings.bookingDate, from as any), lte(operationBookings.bookingDate, to as any)))
+    .where(
+      and(
+        gte(operationBookings.bookingDate, from as any),
+        lte(operationBookings.bookingDate, to as any),
+      ),
+    )
     .orderBy(operationBookings.bookingDate, operationBookings.bookingTime);
 }
 
-export async function createOperationBooking(data: InsertOperationBooking): Promise<OperationBooking> {
+export async function createOperationBooking(
+  data: InsertOperationBooking,
+): Promise<OperationBooking> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const bookingDate = normalizeListDate(data.bookingDate as any);
@@ -5420,7 +6324,10 @@ export async function updateOperationBooking(
     if (!bookingDate) throw new Error("Invalid booking date");
     updates.bookingDate = bookingDate as any;
   }
-  await db.update(operationBookings).set(updates).where(eq(operationBookings.id, id));
+  await db
+    .update(operationBookings)
+    .set(updates)
+    .where(eq(operationBookings.id, id));
 }
 
 export async function deleteOperationBooking(id: number): Promise<void> {
@@ -5444,7 +6351,11 @@ export async function getTodayOperationBookingsGrouped(date: string) {
     })
     .from(operationBookings)
     .where(eq(operationBookings.bookingDate, dateValue as any))
-    .groupBy(operationBookings.doctorName, operationBookings.operationType, operationBookings.bookingDate);
+    .groupBy(
+      operationBookings.doctorName,
+      operationBookings.operationType,
+      operationBookings.bookingDate,
+    );
 
   return results;
 }
@@ -5452,7 +6363,10 @@ export async function getTodayOperationBookingsGrouped(date: string) {
 export async function getAutoOperationListsByDate(dateString: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const normalizeCode = (value: unknown) => String(value ?? "").trim().toLowerCase();
+  const normalizeCode = (value: unknown) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
 
   const dateValue = normalizeListDate(dateString);
   if (!dateValue) return [];
@@ -5465,9 +6379,15 @@ export async function getAutoOperationListsByDate(dateString: string) {
       for (const entry of parsed) {
         const code = normalizeCode((entry as any)?.code);
         const active = (entry as any)?.isActive !== false;
-        const serviceType = String((entry as any)?.serviceType ?? "").trim().toLowerCase();
-        const category = String((entry as any)?.category ?? "").trim().toLowerCase();
-        const defaultSheet = String((entry as any)?.defaultSheet ?? "").trim().toLowerCase();
+        const serviceType = String((entry as any)?.serviceType ?? "")
+          .trim()
+          .toLowerCase();
+        const category = String((entry as any)?.category ?? "")
+          .trim()
+          .toLowerCase();
+        const defaultSheet = String((entry as any)?.defaultSheet ?? "")
+          .trim()
+          .toLowerCase();
         const isSurgery =
           serviceType === "surgery" ||
           category === "operations" ||
@@ -5507,19 +6427,26 @@ export async function getAutoOperationListsByDate(dateString: string) {
           DATE(COALESCE(${patientServiceEntries.serviceDate}, ${patientServiceEntries.updatedAt})) = ${dateValue}
           OR DATE(DATE_ADD(COALESCE(${patientServiceEntries.serviceDate}, ${patientServiceEntries.updatedAt}), INTERVAL 2 HOUR)) = ${dateValue}
           OR DATE(DATE_ADD(COALESCE(${patientServiceEntries.serviceDate}, ${patientServiceEntries.updatedAt}), INTERVAL 3 HOUR)) = ${dateValue}
-        )`
-      )
+        )`,
+      ),
     )
-    .orderBy(desc(patientServiceEntries.updatedAt), desc(patientServiceEntries.id));
+    .orderBy(
+      desc(patientServiceEntries.updatedAt),
+      desc(patientServiceEntries.id),
+    );
 
-  const filtered = rows.filter((row: any) => surgeryCodes.has(normalizeCode((row as any).serviceCode)));
+  const filtered = rows.filter((row: any) =>
+    surgeryCodes.has(normalizeCode((row as any).serviceCode)),
+  );
   if (filtered.length === 0) return [];
 
   const byDoctor = new Map<string, any[]>();
   for (const row of filtered as any[]) {
     const doctor =
       String(row.doctorName ?? "").trim() ||
-      (String(row.doctorCode ?? "").trim() ? `د/${String(row.doctorCode ?? "").trim()}` : "عمليات (MSSQL)");
+      (String(row.doctorCode ?? "").trim()
+        ? `د/${String(row.doctorCode ?? "").trim()}`
+        : "عمليات (MSSQL)");
     if (!byDoctor.has(doctor)) byDoctor.set(doctor, []);
     byDoctor.get(doctor)!.push(row);
   }
@@ -5533,7 +6460,10 @@ export async function getAutoOperationListsByDate(dateString: string) {
       name: String(row.fullName ?? "").trim() || `Patient #${row.patientId}`,
       phone: null,
       doctor,
-      operation: String(row.serviceName ?? "").trim() || String(row.serviceCode ?? "").trim() || "Surgery Service",
+      operation:
+        String(row.serviceName ?? "").trim() ||
+        String(row.serviceCode ?? "").trim() ||
+        "Surgery Service",
       eye: null,
       center: true,
       payment: null,
@@ -5575,7 +6505,8 @@ export async function upsertPushDeviceRegistration(input: {
   if (!token) throw new Error("Push token is required");
 
   const userId = Number(input.userId);
-  if (!Number.isFinite(userId) || userId <= 0) throw new Error("Valid userId is required");
+  if (!Number.isFinite(userId) || userId <= 0)
+    throw new Error("Valid userId is required");
 
   const existingByToken = await db
     .select()
@@ -5610,7 +6541,12 @@ export async function upsertPushDeviceRegistration(input: {
     const existingByDevice = await db
       .select()
       .from(pushDeviceRegistrations)
-      .where(and(eq(pushDeviceRegistrations.userId, userId), eq(pushDeviceRegistrations.deviceId, payload.deviceId)))
+      .where(
+        and(
+          eq(pushDeviceRegistrations.userId, userId),
+          eq(pushDeviceRegistrations.deviceId, payload.deviceId),
+        ),
+      )
       .limit(1);
 
     if (existingByDevice.length > 0) {
@@ -5625,10 +6561,14 @@ export async function upsertPushDeviceRegistration(input: {
     }
   }
 
-  const result = await db.insert(pushDeviceRegistrations).values(payload as any);
+  const result = await db
+    .insert(pushDeviceRegistrations)
+    .values(payload as any);
   const registrationId = (result as any)?.insertId as number | undefined;
   if (!registrationId) {
-    throw new Error("Failed to register push device - no ID returned from database");
+    throw new Error(
+      "Failed to register push device - no ID returned from database",
+    );
   }
   return registrationId;
 }
@@ -5649,7 +6589,9 @@ export async function deletePushDeviceToken(token: string) {
   if (!db) throw new Error("Database not available");
   const normalized = String(token ?? "").trim();
   if (!normalized) return;
-  await db.delete(pushDeviceRegistrations).where(eq(pushDeviceRegistrations.token, normalized));
+  await db
+    .delete(pushDeviceRegistrations)
+    .where(eq(pushDeviceRegistrations.token, normalized));
 }
 
 export async function getActivePushDeviceRegistrations() {
@@ -5659,7 +6601,10 @@ export async function getActivePushDeviceRegistrations() {
     .select()
     .from(pushDeviceRegistrations)
     .where(sql`${pushDeviceRegistrations.disabledAt} IS NULL`)
-    .orderBy(desc(pushDeviceRegistrations.lastSeenAt), desc(pushDeviceRegistrations.id));
+    .orderBy(
+      desc(pushDeviceRegistrations.lastSeenAt),
+      desc(pushDeviceRegistrations.id),
+    );
 }
 
 export async function getPushDeviceRegistrations(filter: {
@@ -5677,7 +6622,10 @@ export async function getPushDeviceRegistrations(filter: {
     .select()
     .from(pushDeviceRegistrations)
     .where(and(...conditions))
-    .orderBy(desc(pushDeviceRegistrations.lastSeenAt), desc(pushDeviceRegistrations.id));
+    .orderBy(
+      desc(pushDeviceRegistrations.lastSeenAt),
+      desc(pushDeviceRegistrations.id),
+    );
 }
 
 export async function getActivePushDeviceRegistrationsByUser(userId: number) {
@@ -5686,8 +6634,16 @@ export async function getActivePushDeviceRegistrationsByUser(userId: number) {
   return await db
     .select()
     .from(pushDeviceRegistrations)
-    .where(and(eq(pushDeviceRegistrations.userId, userId), sql`${pushDeviceRegistrations.disabledAt} IS NULL`))
-    .orderBy(desc(pushDeviceRegistrations.lastSeenAt), desc(pushDeviceRegistrations.id));
+    .where(
+      and(
+        eq(pushDeviceRegistrations.userId, userId),
+        sql`${pushDeviceRegistrations.disabledAt} IS NULL`,
+      ),
+    )
+    .orderBy(
+      desc(pushDeviceRegistrations.lastSeenAt),
+      desc(pushDeviceRegistrations.id),
+    );
 }
 
 // ============ PAGE STATE (USER/PATIENT) ============
@@ -5698,24 +6654,35 @@ export async function getUserPageState(userId: number, page: string) {
   const rows = await db
     .select()
     .from(userPageStates)
-    .where(and(eq(userPageStates.userId, userId), eq(userPageStates.page, page)))
+    .where(
+      and(eq(userPageStates.userId, userId), eq(userPageStates.page, page)),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
 
-export async function upsertUserPageState(userId: number, page: string, data: unknown) {
+export async function upsertUserPageState(
+  userId: number,
+  page: string,
+  data: unknown,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const existing = await db
     .select()
     .from(userPageStates)
-    .where(and(eq(userPageStates.userId, userId), eq(userPageStates.page, page)))
+    .where(
+      and(eq(userPageStates.userId, userId), eq(userPageStates.page, page)),
+    )
     .limit(1);
   if (!existing.length) {
     await db.insert(userPageStates).values({ userId, page, data: data as any });
     return;
   }
-  await db.update(userPageStates).set({ data: data as any }).where(eq(userPageStates.id, existing[0].id));
+  await db
+    .update(userPageStates)
+    .set({ data: data as any })
+    .where(eq(userPageStates.id, existing[0].id));
 }
 
 const PASSWORD_CHANGE_STATE_PAGE = "__security_password_change__";
@@ -5723,7 +6690,11 @@ const PASSWORD_CHANGE_STATE_PAGE = "__security_password_change__";
 export async function isPasswordChangeRequired(userId: number) {
   const state = await getUserPageState(userId, PASSWORD_CHANGE_STATE_PAGE);
   const payload = state?.data as { changedAt?: string } | null | undefined;
-  return !(payload && typeof payload.changedAt === "string" && payload.changedAt.trim().length > 0);
+  return !(
+    payload &&
+    typeof payload.changedAt === "string" &&
+    payload.changedAt.trim().length > 0
+  );
 }
 
 export async function markPasswordChanged(userId: number) {
@@ -5738,23 +6709,39 @@ export async function getPatientPageState(patientId: number, page: string) {
   const rows = await db
     .select()
     .from(patientPageStates)
-    .where(and(eq(patientPageStates.patientId, patientId), eq(patientPageStates.page, page)))
+    .where(
+      and(
+        eq(patientPageStates.patientId, patientId),
+        eq(patientPageStates.page, page),
+      ),
+    )
     .orderBy(desc(patientPageStates.updatedAt), desc(patientPageStates.id))
     .limit(1);
   return rows[0] ?? null;
 }
 
-export async function upsertPatientPageState(patientId: number, page: string, data: unknown) {
+export async function upsertPatientPageState(
+  patientId: number,
+  page: string,
+  data: unknown,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const existingRows = await db
     .select()
     .from(patientPageStates)
-    .where(and(eq(patientPageStates.patientId, patientId), eq(patientPageStates.page, page)))
+    .where(
+      and(
+        eq(patientPageStates.patientId, patientId),
+        eq(patientPageStates.page, page),
+      ),
+    )
     .orderBy(desc(patientPageStates.updatedAt), desc(patientPageStates.id))
     .limit(1);
   if (!existingRows.length) {
-    await db.insert(patientPageStates).values({ patientId, page, data: data as any });
+    await db
+      .insert(patientPageStates)
+      .values({ patientId, page, data: data as any });
     return;
   }
   const target = existingRows[0];
@@ -5787,7 +6774,9 @@ export async function upsertPatientServiceEntry(input: {
     serviceName: input.serviceName ? String(input.serviceName).trim() : null,
     source: (input.source ?? "mssql") as any,
     sourceRef,
-    serviceDate: input.serviceDate ? String(input.serviceDate).slice(0, 10) : null,
+    serviceDate: input.serviceDate
+      ? String(input.serviceDate).slice(0, 10)
+      : null,
   };
   if (!payload.patientId || !payload.serviceCode) return;
   if (!existing.length) {
@@ -5810,7 +6799,9 @@ export async function upsertPatientServiceEntry(input: {
 export async function getPatientServiceEntriesByPatients(patientIds: number[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const ids = Array.from(new Set(patientIds.filter((id) => Number.isFinite(id))));
+  const ids = Array.from(
+    new Set(patientIds.filter((id) => Number.isFinite(id))),
+  );
   if (!ids.length) return [];
   return await db
     .select()
@@ -5821,7 +6812,9 @@ export async function getPatientServiceEntriesByPatients(patientIds: number[]) {
 
 export async function getPatientServiceEntriesByPatient(patientId: number) {
   const rows = await getPatientServiceEntriesByPatients([patientId]);
-  return rows.filter((row: any) => Number((row as any).patientId) === Number(patientId));
+  return rows.filter(
+    (row: any) => Number((row as any).patientId) === Number(patientId),
+  );
 }
 
 // ============ DISEASES ============
@@ -5832,16 +6825,30 @@ export async function getAllDiseases() {
   return await db.select().from(diseases).orderBy(desc(diseases.id));
 }
 
-export async function createDisease(name: string, branch?: string | null, abbrev?: string | null) {
+export async function createDisease(
+  name: string,
+  branch?: string | null,
+  abbrev?: string | null,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(diseases).values({ name, branch: branch || null, abbrev: abbrev || null });
+  await db
+    .insert(diseases)
+    .values({ name, branch: branch || null, abbrev: abbrev || null });
 }
 
-export async function updateDisease(diseaseId: number, name: string, branch?: string | null, abbrev?: string | null) {
+export async function updateDisease(
+  diseaseId: number,
+  name: string,
+  branch?: string | null,
+  abbrev?: string | null,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(diseases).set({ name, branch: branch || null, abbrev: abbrev || null }).where(eq(diseases.id, diseaseId));
+  await db
+    .update(diseases)
+    .set({ name, branch: branch || null, abbrev: abbrev || null })
+    .where(eq(diseases.id, diseaseId));
 }
 
 export async function deleteDisease(diseaseId: number) {
@@ -5873,11 +6880,11 @@ export async function getTodayPatients(dateIso: string) {
         SELECT 1 FROM ${visits}
         WHERE ${visits.patientId} = ${patients.id}
           AND DATE(${visits.visitDate}) = ${dateIso}
-      )`
+      )`,
     )
     .limit(500);
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     ...decodePatientRow(row as any),
     doctorName: null,
   }));
@@ -5886,7 +6893,10 @@ export async function getTodayPatients(dateIso: string) {
 /**
  * Get visits for a specific date with patient and doctor info
  */
-export async function getTodayVisitsByQueueStatus(dateIso: string, queueStatus?: string) {
+export async function getTodayVisitsByQueueStatus(
+  dateIso: string,
+  queueStatus?: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -5923,7 +6933,7 @@ export async function getTodayVisitsByQueueStatus(dateIso: string, queueStatus?:
     .orderBy(visits.id)
     .limit(500);
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     ...row,
     patientFullName: decodeMojibake(row.patientFullName),
     doctorName: row.doctorName ?? null,
@@ -5934,11 +6944,15 @@ export async function getMedicalTotals() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [patientsRows, autorefRows, refractionRows, pentacamRows, operationsRows] = await Promise.all([
+  const [
+    patientsRows,
+    autorefRows,
+    refractionRows,
+    pentacamRows,
+    operationsRows,
+  ] = await Promise.all([
     db.select({ c: sql<number>`COUNT(*)` }).from(patients),
-    db
-      .select({ c: sql<number>`COUNT(*)` })
-      .from(autorefractometryData)
+    db.select({ c: sql<number>`COUNT(*)` }).from(autorefractometryData)
       .where(sql`(
         NULLIF(TRIM(COALESCE(${autorefractometryData.sphereOD}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${autorefractometryData.cylinderOD}, '')), '') IS NOT NULL OR
@@ -5953,10 +6967,7 @@ export async function getMedicalTotals() {
         NULLIF(TRIM(COALESCE(${autorefractometryData.bcvaOS}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${autorefractometryData.iopOS}, '')), '') IS NOT NULL
       )`),
-    db
-      .select({ c: sql<number>`COUNT(*)` })
-      .from(glassesRecords)
-      .where(sql`(
+    db.select({ c: sql<number>`COUNT(*)` }).from(glassesRecords).where(sql`(
         NULLIF(TRIM(COALESCE(${glassesRecords.sOD}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${glassesRecords.cOD}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${glassesRecords.axisOD}, '')), '') IS NOT NULL OR
@@ -5968,10 +6979,7 @@ export async function getMedicalTotals() {
         NULLIF(TRIM(COALESCE(${glassesRecords.addOD}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${glassesRecords.addOS}, '')), '') IS NOT NULL
       )`),
-    db
-      .select({ c: sql<number>`COUNT(*)` })
-      .from(pentacamResults)
-      .where(sql`(
+    db.select({ c: sql<number>`COUNT(*)` }).from(pentacamResults).where(sql`(
         NULLIF(TRIM(COALESCE(${pentacamResults.pachymetryOD}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${pentacamResults.pachymetryOS}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${pentacamResults.k1OD}, '')), '') IS NOT NULL OR
@@ -6044,7 +7052,9 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
 
   const dayMatch = sql`DATE(${visits.visitDate}) = ${dateIso}`;
 
-  async function firstVisitId(status: "clinic" | "next" | "checkedIn"): Promise<number | undefined> {
+  async function firstVisitId(
+    status: "clinic" | "next" | "checkedIn",
+  ): Promise<number | undefined> {
     const rows = await conn
       .select({ id: visits.id })
       .from(visits)
@@ -6060,7 +7070,9 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
       .select({ id: visits.id })
       .from(visits)
       .innerJoin(patients, eq(visits.patientId, patients.id))
-      .where(and(dayMatch, nonExternalExpr, eq(visits.queueStatus, "checkedIn")))
+      .where(
+        and(dayMatch, nonExternalExpr, eq(visits.queueStatus, "checkedIn")),
+      )
       .orderBy(visits.id)
       .limit(limit);
     return rows.map((r) => r.id);
@@ -6117,15 +7129,22 @@ export async function deleteAllPatients() {
 /**
  * Update visit queue status and set the corresponding timestamp
  */
-export async function updateVisitQueueStatus(visitId: number, queueStatus: string) {
+export async function updateVisitQueueStatus(
+  visitId: number,
+  queueStatus: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const timestampCol: Record<string, any> = {};
-  if (queueStatus === "checkedIn")  timestampCol.checkedInAt     = sql`CURRENT_TIMESTAMP`;
-  if (queueStatus === "next")       timestampCol.movedToNextAt   = sql`CURRENT_TIMESTAMP`;
-  if (queueStatus === "clinic")     timestampCol.movedToClinicAt = sql`CURRENT_TIMESTAMP`;
-  if (queueStatus === "treated")    timestampCol.treatedAt       = sql`CURRENT_TIMESTAMP`;
+  if (queueStatus === "checkedIn")
+    timestampCol.checkedInAt = sql`CURRENT_TIMESTAMP`;
+  if (queueStatus === "next")
+    timestampCol.movedToNextAt = sql`CURRENT_TIMESTAMP`;
+  if (queueStatus === "clinic")
+    timestampCol.movedToClinicAt = sql`CURRENT_TIMESTAMP`;
+  if (queueStatus === "treated")
+    timestampCol.treatedAt = sql`CURRENT_TIMESTAMP`;
 
   await db
     .update(visits)
@@ -6133,11 +7152,15 @@ export async function updateVisitQueueStatus(visitId: number, queueStatus: strin
     .where(eq(visits.id, visitId));
 }
 
-export async function getVisitDateIsoById(visitId: number): Promise<string | null> {
+export async function getVisitDateIsoById(
+  visitId: number,
+): Promise<string | null> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const rows = await db
-    .select({ visitDateIso: sql<string>`DATE_FORMAT(${visits.visitDate}, '%Y-%m-%d')` })
+    .select({
+      visitDateIso: sql<string>`DATE_FORMAT(${visits.visitDate}, '%Y-%m-%d')`,
+    })
     .from(visits)
     .where(eq(visits.id, visitId))
     .limit(1);
@@ -6161,11 +7184,13 @@ export async function cascadeQueueStatus(dateIso: string) {
     .select({ id: visits.id })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      nonExternalExpr,
-      eq(visits.queueStatus, "next")
-    ))
+    .where(
+      and(
+        sql`DATE(${visits.visitDate}) = ${dateIso}`,
+        nonExternalExpr,
+        eq(visits.queueStatus, "next"),
+      ),
+    )
     .orderBy(visits.id)
     .limit(1);
 
@@ -6181,11 +7206,13 @@ export async function cascadeQueueStatus(dateIso: string) {
     .select({ id: visits.id })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      nonExternalExpr,
-      eq(visits.queueStatus, "checkedIn")
-    ))
+    .where(
+      and(
+        sql`DATE(${visits.visitDate}) = ${dateIso}`,
+        nonExternalExpr,
+        eq(visits.queueStatus, "checkedIn"),
+      ),
+    )
     .orderBy(visits.id)
     .limit(1);
 
@@ -6224,7 +7251,10 @@ export async function getVisitScheduleRequestsByDate(dateIso: string) {
     .select()
     .from(visitScheduleRequests)
     .where(eq(visitScheduleRequests.visitDate, dateIso as any))
-    .orderBy(asc(visitScheduleRequests.createdAt), asc(visitScheduleRequests.id));
+    .orderBy(
+      asc(visitScheduleRequests.createdAt),
+      asc(visitScheduleRequests.id),
+    );
 }
 
 export async function getVisitScheduleRequestById(id: number) {
@@ -6243,7 +7273,9 @@ export async function deleteVisitScheduleRequest(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(visitScheduleRequests).where(eq(visitScheduleRequests.id, id));
+  await db
+    .delete(visitScheduleRequests)
+    .where(eq(visitScheduleRequests.id, id));
 }
 
 /**
@@ -6254,7 +7286,7 @@ export async function logAuditEvent(
   action: string,
   entityType: string,
   entityId: number,
-  changes?: Record<string, any>
+  changes?: Record<string, any>,
 ) {
   const db = await getDb();
   if (!db) {
@@ -6279,7 +7311,7 @@ export async function logAuditEvent(
 export async function getStockItems(category?: string) {
   const db = await getDb();
   if (!db) return [];
-  
+
   let query = db.select().from(stockItems);
   if (category) {
     query = query.where(eq(stockItems.category, category)) as any;
@@ -6290,14 +7322,22 @@ export async function getStockItems(category?: string) {
 export async function getStockItemByCode(itemCode: string) {
   const db = await getDb();
   if (!db) return null;
-  const rows = await db.select().from(stockItems).where(eq(stockItems.itemCode, itemCode)).limit(1);
+  const rows = await db
+    .select()
+    .from(stockItems)
+    .where(eq(stockItems.itemCode, itemCode))
+    .limit(1);
   return rows[0] ?? null;
 }
 
 export async function getStockItemById(id: number) {
   const db = await getDb();
   if (!db) return null;
-  const rows = await db.select().from(stockItems).where(eq(stockItems.id, id)).limit(1);
+  const rows = await db
+    .select()
+    .from(stockItems)
+    .where(eq(stockItems.id, id))
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -6309,7 +7349,10 @@ export async function insertStockItem(data: InsertStockItem) {
   return { insertId };
 }
 
-export async function updateStockItem(id: number, updates: Partial<InsertStockItem>) {
+export async function updateStockItem(
+  id: number,
+  updates: Partial<InsertStockItem>,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(stockItems).set(updates).where(eq(stockItems.id, id));
@@ -6318,36 +7361,41 @@ export async function updateStockItem(id: number, updates: Partial<InsertStockIt
 export async function insertStockTransaction(data: InsertStockTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // Start a transaction to update quantity and log movement
   return await db.transaction(async (tx) => {
     // 1. Insert transaction log
     const result: any = await tx.insert(stockTransactions).values(data);
     const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
-    
+
     // 2. Get current item
-    const [item] = await tx.select().from(stockItems).where(eq(stockItems.id, data.itemId)).limit(1);
+    const [item] = await tx
+      .select()
+      .from(stockItems)
+      .where(eq(stockItems.id, data.itemId))
+      .limit(1);
     if (!item) throw new Error("Item not found");
-    
+
     // 3. Calculate new quantity
     let newQuantity = item.quantity;
-    if (data.type === 'add') {
+    if (data.type === "add") {
       newQuantity += data.quantity;
-    } else if (data.type === 'dispense') {
+    } else if (data.type === "dispense") {
       newQuantity -= data.quantity;
     }
-    
+
     if (newQuantity < 0) throw new Error("Insufficient stock quantity");
-    
+
     // 4. Update item quantity and status
     let status: "متوفر" | "كمية قليلة" | "نفذ المخزون" = "متوفر";
     if (newQuantity === 0) status = "نفذ المخزون";
     else if (newQuantity < 10) status = "كمية قليلة"; // Threshold can be item-specific in real app
-    
-    await tx.update(stockItems)
+
+    await tx
+      .update(stockItems)
       .set({ quantity: newQuantity, status, updatedAt: new Date() })
       .where(eq(stockItems.id, data.itemId));
-      
+
     return { txId, newQuantity };
   });
 }
@@ -6355,7 +7403,7 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
 export async function getStockTransactions(limit = 500) {
   const db = await getDb();
   if (!db) return [];
-  
+
   const rows = await db
     .select({
       id: stockTransactions.id,
@@ -6374,7 +7422,6 @@ export async function getStockTransactions(limit = 500) {
     .innerJoin(stockItems, eq(stockTransactions.itemId, stockItems.id))
     .orderBy(desc(stockTransactions.createdAt))
     .limit(limit);
-    
+
   return rows;
 }
-

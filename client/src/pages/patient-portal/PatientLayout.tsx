@@ -1,6 +1,17 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, BellOff, BellRing, CalendarDays, FileText, Glasses, LogOut, Pill, ScanLine, UserRound } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  BellRing,
+  CalendarDays,
+  FileText,
+  Glasses,
+  LogOut,
+  Pill,
+  ScanLine,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -19,39 +30,55 @@ const NAV = [
 ];
 
 const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-const PUSH_SUPPORTED = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+const PUSH_SUPPORTED =
+  typeof window !== "undefined" &&
+  "serviceWorker" in navigator &&
+  "PushManager" in window;
 
 async function subscribePush(): Promise<PushSubscription | null> {
   if (!PUSH_SUPPORTED || !VAPID_KEY) return null;
   const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   const existing = await reg.pushManager.getSubscription();
   if (existing) return existing;
-  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: VAPID_KEY });
+  return reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: VAPID_KEY,
+  });
 }
 
 export default function PatientLayout({ children }: { children: ReactNode }) {
   const { name, patientCode, logout } = usePatientAuth();
   const [location] = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [pushState, setPushState] = useState<"idle" | "requesting" | "granted" | "denied">(() => {
+  const [pushState, setPushState] = useState<
+    "idle" | "requesting" | "granted" | "denied"
+  >(() => {
     if (!PUSH_SUPPORTED) return "denied";
     const p = Notification.permission;
     return p === "granted" ? "granted" : p === "denied" ? "denied" : "idle";
   });
   const registerRef = useRef(false);
 
-  const registerPushToken = trpc.patientPortal.registerPatientPushToken.useMutation();
+  const registerPushToken =
+    trpc.patientPortal.registerPatientPushToken.useMutation();
 
   const handleEnablePush = async () => {
     if (!PUSH_SUPPORTED || !VAPID_KEY) return;
     setPushState("requesting");
     try {
-      const permission = Notification.permission === "default"
-        ? await Notification.requestPermission()
-        : Notification.permission;
-      if (permission !== "granted") { setPushState("denied"); return; }
+      const permission =
+        Notification.permission === "default"
+          ? await Notification.requestPermission()
+          : Notification.permission;
+      if (permission !== "granted") {
+        setPushState("denied");
+        return;
+      }
       const sub = await subscribePush();
-      if (sub) registerPushToken.mutate({ subscription: JSON.stringify(sub.toJSON()) });
+      if (sub)
+        registerPushToken.mutate({
+          subscription: JSON.stringify(sub.toJSON()),
+        });
       setPushState("granted");
     } catch {
       setPushState("idle");
@@ -61,43 +88,61 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
   // Silently re-register if already granted (no prompt)
   if (pushState === "granted" && VAPID_KEY && !registerRef.current) {
     registerRef.current = true;
-    subscribePush().then((sub) => {
-      if (sub) registerPushToken.mutate({ subscription: JSON.stringify(sub.toJSON()) });
-    }).catch(() => {});
+    subscribePush()
+      .then((sub) => {
+        if (sub)
+          registerPushToken.mutate({
+            subscription: JSON.stringify(sub.toJSON()),
+          });
+      })
+      .catch(() => {});
   }
 
-  const { data: notifications = [], isLoading } = trpc.patientPortal.getNotifications.useQuery(undefined, {
-    enabled: Boolean(patientCode),
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: notifications = [], isLoading } =
+    trpc.patientPortal.getNotifications.useQuery(undefined, {
+      enabled: Boolean(patientCode),
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: false,
+    });
 
   const notificationCount = notifications.length;
-  const recentNotifications = useMemo(() => notifications.slice(0, 4), [notifications]);
+  const recentNotifications = useMemo(
+    () => notifications.slice(0, 4),
+    [notifications],
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans" dir="rtl">
-      
+    <div
+      className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans"
+      dir="rtl"
+    >
       {/* Sticky top brand navigation bar */}
       <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          
           {/* Logo & Portal title */}
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl hidden sm:block">
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-primary leading-tight">مركز عيون الشروق</h1>
-              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">بوابة المرضى الإلكترونية</p>
+              <h1 className="text-base font-bold text-primary leading-tight">
+                مركز عيون الشروق
+              </h1>
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">
+                بوابة المرضى الإلكترونية
+              </p>
             </div>
           </div>
 
           {/* User profile & action tools */}
           <div className="flex items-center gap-2">
             <div className="hidden md:flex flex-col text-left pl-2 border-l border-border/60">
-              <span className="text-xs font-bold text-foreground text-right">{name}</span>
-              <span className="text-[10px] text-muted-foreground text-right">كود: {patientCode}</span>
+              <span className="text-xs font-bold text-foreground text-right">
+                {name}
+              </span>
+              <span className="text-[10px] text-muted-foreground text-right">
+                كود: {patientCode}
+              </span>
             </div>
 
             {/* Notification Bell */}
@@ -131,7 +176,6 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
 
       {/* Main layout frame */}
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
-        
         {/* Desktop sub-navigation tabs */}
         <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
           {NAV.map((item) => {
@@ -144,7 +188,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                     "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
                     active
                       ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-[#dbe7f4]"
+                      : "text-muted-foreground hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-[#dbe7f4]",
                   )}
                 >
                   <Icon className="size-4" />
@@ -160,10 +204,19 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
           <div className="rounded-2xl border border-[#dbe7f4] bg-white p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
               <div>
-                <h3 className="text-sm font-bold text-foreground">آخر التحديثات والإشعارات</h3>
-                <p className="text-[11px] text-muted-foreground">تحديثات حالة الحجوزات والملف</p>
+                <h3 className="text-sm font-bold text-foreground">
+                  آخر التحديثات والإشعارات
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  تحديثات حالة الحجوزات والملف
+                </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)} className="h-8 rounded-lg text-xs cursor-pointer">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotifications(false)}
+                className="h-8 rounded-lg text-xs cursor-pointer"
+              >
                 إغلاق
               </Button>
             </div>
@@ -178,15 +231,24 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                   )}
                   <div className="min-w-0 text-xs">
                     <p className="font-bold text-foreground">
-                      {pushState === "denied" ? "الإشعارات محظورة" : "تفعيل الإشعارات الفورية"}
+                      {pushState === "denied"
+                        ? "الإشعارات محظورة"
+                        : "تفعيل الإشعارات الفورية"}
                     </p>
                     <p className="text-[10px] text-muted-foreground truncate">
-                      {pushState === "denied" ? "يرجى السماح بالإشعارات من المتصفح" : "احصل على تنبيه فوري لتأكيد المواعيد"}
+                      {pushState === "denied"
+                        ? "يرجى السماح بالإشعارات من المتصفح"
+                        : "احصل على تنبيه فوري لتأكيد المواعيد"}
                     </p>
                   </div>
                 </div>
                 {pushState !== "denied" && (
-                  <Button size="sm" onClick={handleEnablePush} disabled={pushState === "requesting"} className="h-8 rounded-lg text-xs shrink-0 cursor-pointer">
+                  <Button
+                    size="sm"
+                    onClick={handleEnablePush}
+                    disabled={pushState === "requesting"}
+                    className="h-8 rounded-lg text-xs shrink-0 cursor-pointer"
+                  >
                     {pushState === "requesting" ? "جاري..." : "تفعيل"}
                   </Button>
                 )}
@@ -208,11 +270,16 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
             ) : recentNotifications.length > 0 ? (
               <div className="grid gap-2">
                 {recentNotifications.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-[#e1ebf6] bg-[#fbfdff] p-3 text-xs leading-5">
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-[#e1ebf6] bg-[#fbfdff] p-3 text-xs leading-5"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-bold text-foreground">{item.typeLabel}</p>
+                          <p className="font-bold text-foreground">
+                            {item.typeLabel}
+                          </p>
                           <PortalStatusBadge
                             status={item.status}
                             label={
@@ -237,7 +304,9 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                         </p>
                       </div>
                       <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {formatArabicDateTime(item.confirmedDate ?? item.requestedDate)}
+                        {formatArabicDateTime(
+                          item.confirmedDate ?? item.requestedDate,
+                        )}
                       </span>
                     </div>
                     {item.staffNotes && (
@@ -272,11 +341,18 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                   "flex flex-col items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl transition-all duration-150 cursor-pointer",
                   active
                     ? "text-primary font-bold scale-105"
-                    : "text-muted-foreground hover:text-primary"
+                    : "text-muted-foreground hover:text-primary",
                 )}
               >
-                <Icon className={cn("size-5", active ? "text-primary" : "text-muted-foreground")} />
-                <span className="text-[9px] tracking-tight">{item.label.split(" ")[0]}</span>
+                <Icon
+                  className={cn(
+                    "size-5",
+                    active ? "text-primary" : "text-muted-foreground",
+                  )}
+                />
+                <span className="text-[9px] tracking-tight">
+                  {item.label.split(" ")[0]}
+                </span>
               </span>
             </Link>
           );

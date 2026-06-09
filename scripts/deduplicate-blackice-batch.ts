@@ -18,7 +18,8 @@ async function deduplicateBatch() {
 
     while (true) {
       // Delete one batch of duplicates
-      const result = await conn.query(`
+      const result = await conn.query(
+        `
         DELETE FROM blackice_uploads
         WHERE id IN (
           SELECT id FROM (
@@ -36,12 +37,16 @@ async function deduplicateBatch() {
             LIMIT ?
           ) as batch
         )
-      `, [batchSize]);
+      `,
+        [batchSize],
+      );
 
       const deleted = (result as any)[0]?.affectedRows ?? 0;
       totalDeleted += deleted;
 
-      console.log(`[Dedup] Batch deleted: ${deleted} rows (total: ${totalDeleted})`);
+      console.log(
+        `[Dedup] Batch deleted: ${deleted} rows (total: ${totalDeleted})`,
+      );
 
       if (deleted < batchSize) {
         // No more duplicates to delete
@@ -51,7 +56,6 @@ async function deduplicateBatch() {
 
     console.log(`[Dedup] ✓ Complete! Deleted ${totalDeleted} duplicate rows`);
     console.log("[Dedup] Now run: pnpm s3:migrate-blackice");
-
   } catch (error: any) {
     console.error("[Dedup] Error:", error?.message ?? error);
     process.exit(1);

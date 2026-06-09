@@ -1,6 +1,13 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { BookImage, ChevronRight, FileText, LayoutDashboard, Settings, Share2 } from "lucide-react";
+import {
+  BookImage,
+  ChevronRight,
+  FileText,
+  LayoutDashboard,
+  Settings,
+  Share2,
+} from "lucide-react";
 
 interface MarketingLayoutProps {
   children: ReactNode;
@@ -45,14 +52,19 @@ const navItems = [
 ];
 
 function isActive(pathname: string, href: string, exact: boolean) {
-  return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return exact
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   const [location] = useLocation();
 
   return (
-    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
+    <div
+      className="page-layout min-h-screen bg-background text-foreground"
+      dir="rtl"
+    >
       {/* Header */}
       <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
@@ -93,7 +105,9 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {item.description}
+                    </div>
                   </div>
                   <ChevronRight
                     className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${active ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}

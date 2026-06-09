@@ -7,22 +7,27 @@
  * - RS_Emp: Employees (15 rows). Key columns: EmpNo, EmpName, DepartID, IsDimission
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { AttendanceSource, RawPunch, RawEmployee, RawPunchOrQuarantine } from './AttendanceSource';
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import {
+  AttendanceSource,
+  RawPunch,
+  RawEmployee,
+  RawPunchOrQuarantine,
+} from "./AttendanceSource";
 
 // Tararus table/column names (discovered from D:\Taurus.mdb inspection)
-const PUNCH_TABLE = 'KQ_KQData';          // Punch records table
-const PUNCH_TIME_COL = 'KQDateTime';      // ISO timestamp of punch
-const PUNCH_EMP_COL = 'EmpNo';            // Employee code (string)
-const PUNCH_ID_COL = 'GUID';              // Unique punch ID for dedup
-const PUNCH_DIRECTION_COL = 'IsSignIn';   // Boolean: true=in, false=out
+const PUNCH_TABLE = "KQ_KQData"; // Punch records table
+const PUNCH_TIME_COL = "KQDateTime"; // ISO timestamp of punch
+const PUNCH_EMP_COL = "EmpNo"; // Employee code (string)
+const PUNCH_ID_COL = "GUID"; // Unique punch ID for dedup
+const PUNCH_DIRECTION_COL = "IsSignIn"; // Boolean: true=in, false=out
 
-const EMPLOYEE_TABLE = 'RS_Emp';          // Employee roster table
-const EMPLOYEE_CODE_COL = 'EmpNo';        // Employee code (string)
-const EMPLOYEE_NAME_COL = 'EmpName';      // Employee full name
-const EMPLOYEE_DEPT_COL = 'DepartID';     // Department ID
+const EMPLOYEE_TABLE = "RS_Emp"; // Employee roster table
+const EMPLOYEE_CODE_COL = "EmpNo"; // Employee code (string)
+const EMPLOYEE_NAME_COL = "EmpName"; // Employee full name
+const EMPLOYEE_DEPT_COL = "DepartID"; // Department ID
 
 interface AccessDbAdapterConfig {
   accessPath: string;
@@ -31,7 +36,7 @@ interface AccessDbAdapterConfig {
 }
 
 export class AccessDbAdapter implements AttendanceSource {
-  readonly name = 'access' as const;
+  readonly name = "access" as const;
   private config: AccessDbAdapterConfig;
   private tempCopyPath: string | null = null;
   private db: any = null;
@@ -42,7 +47,7 @@ export class AccessDbAdapter implements AttendanceSource {
 
   async isReachable(): Promise<boolean> {
     try {
-      if (!this.config.accessPath || this.config.accessPath.trim() === '') {
+      if (!this.config.accessPath || this.config.accessPath.trim() === "") {
         return false;
       }
       // Try to access the file (check existence + readability)
@@ -53,7 +58,9 @@ export class AccessDbAdapter implements AttendanceSource {
     }
   }
 
-  async *fetchPunchesSince(sinceLocal: Date): AsyncIterable<RawPunchOrQuarantine> {
+  async *fetchPunchesSince(
+    sinceLocal: Date,
+  ): AsyncIterable<RawPunchOrQuarantine> {
     try {
       const db = await this.openDb();
       if (!db) {
@@ -63,9 +70,15 @@ export class AccessDbAdapter implements AttendanceSource {
       // Log available tables for debugging
       try {
         const allTables = db.getTableNames?.() || [];
-        console.log('[attendance:accessDbAdapter] Available tables:', allTables);
+        console.log(
+          "[attendance:accessDbAdapter] Available tables:",
+          allTables,
+        );
         const punchTableExists = allTables.includes(PUNCH_TABLE);
-        console.log(`[attendance:accessDbAdapter] Punch table "${PUNCH_TABLE}" exists:`, punchTableExists);
+        console.log(
+          `[attendance:accessDbAdapter] Punch table "${PUNCH_TABLE}" exists:`,
+          punchTableExists,
+        );
       } catch (e) {
         // Silent fail on debug logging
       }
@@ -75,10 +88,15 @@ export class AccessDbAdapter implements AttendanceSource {
       const rows = db.getTable(PUNCH_TABLE).getData();
 
       if (rows.length > 0) {
-        console.log(`[attendance:accessDbAdapter] ${PUNCH_TABLE} columns:`, Object.keys(rows[0]));
+        console.log(
+          `[attendance:accessDbAdapter] ${PUNCH_TABLE} columns:`,
+          Object.keys(rows[0]),
+        );
         console.log(`[attendance:accessDbAdapter] First punch row:`, rows[0]);
       } else {
-        console.log(`[attendance:accessDbAdapter] ${PUNCH_TABLE} is empty (0 rows)`);
+        console.log(
+          `[attendance:accessDbAdapter] ${PUNCH_TABLE} is empty (0 rows)`,
+        );
       }
 
       let processedCount = 0;
@@ -101,50 +119,53 @@ export class AccessDbAdapter implements AttendanceSource {
         if (punchAt.getTime() - now.getTime() > 24 * 60 * 60 * 1000) {
           quarantinedCount++;
           yield {
-            kind: 'quarantine',
-            reason: 'future-dated punch (>24h)',
-            rowRef: String(row[PUNCH_ID_COL] ?? 'unknown'),
+            kind: "quarantine",
+            reason: "future-dated punch (>24h)",
+            rowRef: String(row[PUNCH_ID_COL] ?? "unknown"),
           };
           continue;
         }
 
-        const empCd = String(row[PUNCH_EMP_COL] ?? '').trim();
+        const empCd = String(row[PUNCH_EMP_COL] ?? "").trim();
         if (!empCd) {
           quarantinedCount++;
           yield {
-            kind: 'quarantine',
-            reason: 'missing employee ID',
-            rowRef: String(row[PUNCH_ID_COL] ?? 'unknown'),
+            kind: "quarantine",
+            reason: "missing employee ID",
+            rowRef: String(row[PUNCH_ID_COL] ?? "unknown"),
           };
           continue;
         }
 
         // Parse direction from IsSignIn boolean: true=in, false=out
-        let direction: 'in' | 'out' | 'unknown' = 'unknown';
+        let direction: "in" | "out" | "unknown" = "unknown";
         const isSignIn = row[PUNCH_DIRECTION_COL];
-        if (isSignIn === true) direction = 'in';
-        else if (isSignIn === false) direction = 'out';
+        if (isSignIn === true) direction = "in";
+        else if (isSignIn === false) direction = "out";
 
         const punch: RawPunch = {
           empCd,
           punchAt,
           direction,
-          sourceRowId: String(row[PUNCH_ID_COL] ?? ''),
+          sourceRowId: String(row[PUNCH_ID_COL] ?? ""),
           deviceId: row.DeviceID ? String(row.DeviceID) : undefined,
         };
 
         yieldedCount++;
-        yield { kind: 'punch', row: punch };
+        yield { kind: "punch", row: punch };
       }
 
       console.log(
         `[attendance:accessDbAdapter] Summary: processed=${processedCount}, ` +
-        `skippedBeforeSince=${skippedBeforeSince}, quarantined=${quarantinedCount}, ` +
-        `yielded=${yieldedCount}`
+          `skippedBeforeSince=${skippedBeforeSince}, quarantined=${quarantinedCount}, ` +
+          `yielded=${yieldedCount}`,
       );
     } catch (err) {
       // Log error but do not throw; let sync engine handle it
-      console.error('[attendance:accessDbAdapter] fetchPunchesSince error:', err instanceof Error ? err.message : String(err));
+      console.error(
+        "[attendance:accessDbAdapter] fetchPunchesSince error:",
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
@@ -157,21 +178,26 @@ export class AccessDbAdapter implements AttendanceSource {
 
       const rows = db.getTable(EMPLOYEE_TABLE).getData();
       for (const row of rows) {
-        const empCd = String(row[EMPLOYEE_CODE_COL] ?? '').trim();
-        const fullName = String(row[EMPLOYEE_NAME_COL] ?? '').trim();
+        const empCd = String(row[EMPLOYEE_CODE_COL] ?? "").trim();
+        const fullName = String(row[EMPLOYEE_NAME_COL] ?? "").trim();
 
         if (!empCd) continue;
 
         const emp: RawEmployee = {
           empCd,
-          fullName: fullName || 'UNKNOWN',
-          department: row[EMPLOYEE_DEPT_COL] ? String(row[EMPLOYEE_DEPT_COL]).trim() : undefined,
+          fullName: fullName || "UNKNOWN",
+          department: row[EMPLOYEE_DEPT_COL]
+            ? String(row[EMPLOYEE_DEPT_COL]).trim()
+            : undefined,
         };
 
         yield emp;
       }
     } catch (err) {
-      console.error('[attendance:accessDbAdapter] fetchEmployees error:', err instanceof Error ? err.message : String(err));
+      console.error(
+        "[attendance:accessDbAdapter] fetchEmployees error:",
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
@@ -204,13 +230,13 @@ export class AccessDbAdapter implements AttendanceSource {
 
     const accessPath = this.config.accessPath?.trim();
     if (!accessPath) {
-      throw new Error('ATTENDANCE_ACCESS_PATH not configured');
+      throw new Error("ATTENDANCE_ACCESS_PATH not configured");
     }
 
     try {
       // Try direct open with mdb-reader: read file as buffer, pass to constructor
       const fileBuffer = await fs.promises.readFile(accessPath);
-      const mdbModule = await import('mdb-reader');
+      const mdbModule = await import("mdb-reader");
       const MDBReader = mdbModule.default;
       this.db = new MDBReader(fileBuffer);
       return this.db;
@@ -224,14 +250,14 @@ export class AccessDbAdapter implements AttendanceSource {
           this.tempCopyPath = tempFile;
 
           const fileBuffer = await fs.promises.readFile(tempFile);
-          const mdbModule = await import('mdb-reader');
+          const mdbModule = await import("mdb-reader");
           const MDBReader = mdbModule.default;
           this.db = new MDBReader(fileBuffer);
           return this.db;
         } catch (copyErr) {
           console.error(
-            '[attendance:accessDbAdapter] Copy-first failed:',
-            copyErr instanceof Error ? copyErr.message : String(copyErr)
+            "[attendance:accessDbAdapter] Copy-first failed:",
+            copyErr instanceof Error ? copyErr.message : String(copyErr),
           );
         }
       }
@@ -240,7 +266,7 @@ export class AccessDbAdapter implements AttendanceSource {
       if (this.config.useOdbc) {
         try {
           // @ts-ignore - odbc is optional, only installed if needed
-          const odbcModule = await import('odbc');
+          const odbcModule = await import("odbc");
           const odbc = odbcModule.default;
           // Connection string for Access DB
           const connStr = `Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=${accessPath}`;
@@ -248,8 +274,8 @@ export class AccessDbAdapter implements AttendanceSource {
           return this.db;
         } catch (odbcErr) {
           console.error(
-            '[attendance:accessDbAdapter] ODBC fallback failed:',
-            odbcErr instanceof Error ? odbcErr.message : String(odbcErr)
+            "[attendance:accessDbAdapter] ODBC fallback failed:",
+            odbcErr instanceof Error ? odbcErr.message : String(odbcErr),
           );
         }
       }
@@ -257,7 +283,7 @@ export class AccessDbAdapter implements AttendanceSource {
       // All strategies failed
       throw new Error(
         `[attendance:accessDbAdapter] Cannot open Access file. Path: (redacted). ` +
-        `Try copy-first (ATTENDANCE_ACCESS_COPY_FIRST=true) or ODBC fallback (ATTENDANCE_ACCESS_USE_ODBC=true).`
+          `Try copy-first (ATTENDANCE_ACCESS_COPY_FIRST=true) or ODBC fallback (ATTENDANCE_ACCESS_USE_ODBC=true).`,
       );
     }
   }
@@ -265,8 +291,8 @@ export class AccessDbAdapter implements AttendanceSource {
   private parseDate(raw: any): Date | null {
     if (!raw) return null;
     if (raw instanceof Date) return raw;
-    if (typeof raw === 'number') return new Date(raw);
-    if (typeof raw === 'string') {
+    if (typeof raw === "number") return new Date(raw);
+    if (typeof raw === "string") {
       const d = new Date(raw);
       if (isNaN(d.getTime())) return null;
       return d;

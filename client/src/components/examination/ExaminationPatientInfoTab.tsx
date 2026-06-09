@@ -7,7 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
@@ -17,7 +23,9 @@ interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
 }
 
-export default function ExaminationPatientInfoTab({ form }: ExaminationPatientInfoTabProps) {
+export default function ExaminationPatientInfoTab({
+  form,
+}: ExaminationPatientInfoTabProps) {
   const {
     handleSelectPatient,
     patientInfo,
@@ -46,9 +54,15 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
     servicesCatalogQuery,
   } = form;
 
-  const mysqlServices = useMemo(() => (servicesCatalogQuery?.data ?? []) as any[], [servicesCatalogQuery?.data]);
-  const mysqlDoctors = useMemo(() => (doctorsCatalogQuery?.data ?? []) as any[], [doctorsCatalogQuery?.data]);
-  
+  const mysqlServices = useMemo(
+    () => (servicesCatalogQuery?.data ?? []) as any[],
+    [servicesCatalogQuery?.data],
+  );
+  const mysqlDoctors = useMemo(
+    () => (doctorsCatalogQuery?.data ?? []) as any[],
+    [doctorsCatalogQuery?.data],
+  );
+
   const sortedServices = useMemo(() => {
     const items = [...mysqlServices];
     const codeNum = (value: unknown) => {
@@ -75,7 +89,7 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
         keywords: `${opt.code} ${opt.name}`,
       })),
     ],
-    [sortedServices]
+    [sortedServices],
   );
 
   return (
@@ -85,14 +99,22 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
           {/* Top Bar: Mode & Search & Timing combined */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 bg-muted/20 p-3 rounded-xl border border-dashed">
             <div className="flex items-center gap-3 shrink-0">
-              <Badge variant={!patientInfo.id ? "warning" : "default"} className="px-2 py-0.5 text-[10px] uppercase font-bold">
+              <Badge
+                variant={!patientInfo.id ? "warning" : "default"}
+                className="px-2 py-0.5 text-[10px] uppercase font-bold"
+              >
                 {!patientInfo.id ? "تسجيل جديد" : "ملف حالي"}
               </Badge>
-              <h2 className={cn("text-lg font-bold whitespace-nowrap", !patientInfo.id ? "text-secondary" : "text-primary")}>
+              <h2
+                className={cn(
+                  "text-lg font-bold whitespace-nowrap",
+                  !patientInfo.id ? "text-secondary" : "text-primary",
+                )}
+              >
                 {!patientInfo.id ? "مريض جديد" : patientInfo.name}
               </h2>
             </div>
-            
+
             <div className="flex-1 w-full flex flex-col sm:flex-row items-center gap-3">
               <div className="flex-1 w-full min-w-[200px]">
                 <PatientPicker onSelect={handleSelectPatient} />
@@ -107,11 +129,15 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                 <label className="flex items-center gap-2 cursor-pointer rounded-md border border-warning/50 bg-warning/10/30 px-3 py-1.5 h-8">
                   <Checkbox
                     checked={isFollowup}
-                    onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      setIsFollowup(Boolean(checked))
+                    }
                     id="followup-main"
                     className="h-4 w-4 border-warning data-[state=checked]:bg-warning"
                   />
-                  <span className="text-[11px] font-bold text-warning">متابعة</span>
+                  <span className="text-[11px] font-bold text-warning">
+                    متابعة
+                  </span>
                 </label>
               </div>
             </div>
@@ -122,20 +148,34 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
             <div className="space-y-4 order-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الاسم بالكامل</Label>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    الاسم بالكامل
+                  </Label>
                   <Input
                     value={patientInfo.name}
-                    onChange={(e) => setPatientInfo((prev) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setPatientInfo((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
                     readOnly={!canEditPatientData}
                     className="text-sm border h-9 px-3 font-medium bg-background"
                     placeholder="اسم المريض..."
                   />
                 </div>
                 <div>
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">رقم الموبايل</Label>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    رقم الموبايل
+                  </Label>
                   <Input
                     value={patientDetails.phone}
-                    onChange={(e) => setPatientDetails((prev) => ({ ...prev, phone: digitsOnly(e.target.value) }))}
+                    onChange={(e) =>
+                      setPatientDetails((prev) => ({
+                        ...prev,
+                        phone: digitsOnly(e.target.value),
+                      }))
+                    }
                     readOnly={!canEditPatientData}
                     className="text-sm border h-9 px-3 tracking-widest bg-background"
                     placeholder="01xxxxxxxxx"
@@ -144,22 +184,37 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">السن</Label>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      السن
+                    </Label>
                     <Input
                       value={patientDetails.age}
-                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, age: digitsOnly(e.target.value) }))}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          age: digitsOnly(e.target.value),
+                        }))
+                      }
                       readOnly={!canEditPatientData}
                       className="text-sm border h-9 px-2 text-center font-bold bg-background"
                     />
                   </div>
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الكود</Label>
-                    <Input value={patientInfo.code || "—"} readOnly className="text-sm border h-9 px-2 bg-muted/50 font-mono text-center" />
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      الكود
+                    </Label>
+                    <Input
+                      value={patientInfo.code || "—"}
+                      readOnly
+                      className="text-sm border h-9 px-2 bg-muted/50 font-mono text-center"
+                    />
                   </div>
                 </div>
                 <div className="sm:col-span-2 grid grid-cols-2 gap-3">
-                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">تاريخ الميلاد</Label>
+                  <div>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      تاريخ الميلاد
+                    </Label>
                     <Input
                       type="date"
                       value={(() => {
@@ -170,26 +225,45 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
                         if (isNaN(date.getTime())) return "";
                         return date.toISOString().split("T")[0];
                       })()}
-                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          dateOfBirth: e.target.value,
+                        }))
+                      }
                       readOnly={!canEditPatientData}
                       className="text-sm border h-9 px-2 bg-background"
                     />
                   </div>
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الوظيفة</Label>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      الوظيفة
+                    </Label>
                     <Input
                       value={patientDetails.job}
-                      onChange={(e) => setPatientDetails((prev) => ({ ...prev, job: e.target.value }))}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          job: e.target.value,
+                        }))
+                      }
                       readOnly={!canEditPatientData}
                       className="text-sm border h-9 px-3 bg-background"
                     />
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">العنوان</Label>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    العنوان
+                  </Label>
                   <Input
                     value={patientDetails.address}
-                    onChange={(e) => setPatientDetails((prev) => ({ ...prev, address: e.target.value }))}
+                    onChange={(e) =>
+                      setPatientDetails((prev) => ({
+                        ...prev,
+                        address: e.target.value,
+                      }))
+                    }
                     readOnly={!canEditPatientData}
                     className="text-sm border h-9 px-3 bg-background"
                   />
@@ -200,14 +274,23 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
             {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
             <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">الطبيب المعالج</Label>
-                <Select value={doctorName || ""} onValueChange={(name) => setDoctorName(name)}>
+                <Label className="font-bold text-[11px] text-primary">
+                  الطبيب المعالج
+                </Label>
+                <Select
+                  value={doctorName || ""}
+                  onValueChange={(name) => setDoctorName(name)}
+                >
                   <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
                     <SelectValue placeholder="اختر الطبيب" />
                   </SelectTrigger>
                   <SelectContent>
                     {mysqlDoctors.map((doc) => (
-                      <SelectItem key={`${(doc as any).id}`} value={String((doc as any)?.name ?? "")} className="text-xs">
+                      <SelectItem
+                        key={`${(doc as any).id}`}
+                        value={String((doc as any)?.name ?? "")}
+                        className="text-xs"
+                      >
                         {String((doc as any)?.name ?? "")}
                       </SelectItem>
                     ))}
@@ -217,38 +300,50 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
 
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 <div className="flex items-center justify-between sticky top-0 bg-primary/40 z-10 py-1">
-                   <Label className="font-bold text-[11px] text-primary">الخدمات المطلوبة</Label>
-                   <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
+                  <Label className="font-bold text-[11px] text-primary">
+                    الخدمات المطلوبة
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     className="h-6 text-[10px] text-card-foreground hover:text-primary hover:bg-primary/50"
                     onClick={addService}
-                   >
-                     + إضافة خدمة
-                   </Button>
+                  >
+                    + إضافة خدمة
+                  </Button>
                 </div>
 
                 <div className="space-y-2">
                   {services.map((srv, idx) => (
-                    <div key={idx} className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group">
+                    <div
+                      key={idx}
+                      className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group"
+                    >
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <SearchableCombobox
                             value={srv.code || ""}
                             onChange={(value) => {
                               if (value && value !== "none") {
-                                const svc = sortedServices.find((s) => s.code === value);
+                                const svc = sortedServices.find(
+                                  (s) => s.code === value,
+                                );
                                 if (svc) {
                                   updateService(idx, {
                                     code: value,
                                     price: Number(svc.price || 0),
                                     discount: 0,
-                                    qty: "1"
+                                    qty: "1",
                                   });
                                 }
                               } else {
-                                updateService(idx, { code: "", price: 0, discount: 0, qty: "" });
+                                updateService(idx, {
+                                  code: "",
+                                  price: 0,
+                                  discount: 0,
+                                  qty: "",
+                                });
                               }
                             }}
                             options={serviceOptions}
@@ -271,36 +366,53 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
 
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">الكمية</Label>
+                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                            الكمية
+                          </Label>
                           <Input
                             type="number"
                             value={srv.qty || "1"}
-                            onChange={(e) => updateService(idx, { qty: e.target.value })}
+                            onChange={(e) =>
+                              updateService(idx, { qty: e.target.value })
+                            }
                             className="h-7 border-primary/20 text-center font-bold text-[11px]"
                             min="1"
                           />
                         </div>
                         <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">السعر</Label>
+                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                            السعر
+                          </Label>
                           <Input
                             type="number"
                             min="0"
                             value={srv.price}
-                            onChange={(e) => updateService(idx, { price: Math.max(0, Number(e.target.value) || 0) })}
+                            onChange={(e) =>
+                              updateService(idx, {
+                                price: Math.max(0, Number(e.target.value) || 0),
+                              })
+                            }
                             className="h-7 border-primary/20 text-center font-bold text-[11px]"
                           />
                         </div>
                         <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">الخصم</Label>
+                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                            الخصم
+                          </Label>
                           <Input
                             type="number"
                             step="0.01"
                             min="0"
                             value={srv.discount}
                             onChange={(e) => {
-                              const value = Math.max(0, Number(e.target.value) || 0);
+                              const value = Math.max(
+                                0,
+                                Number(e.target.value) || 0,
+                              );
                               const total = srv.price * (Number(srv.qty) || 1);
-                              updateService(idx, { discount: Math.min(value, total) });
+                              updateService(idx, {
+                                discount: Math.min(value, total),
+                              });
                             }}
                             className="h-7 border-primary/20 text-center font-bold text-[11px] text-destructive"
                           />
@@ -313,14 +425,20 @@ export default function ExaminationPatientInfoTab({ form }: ExaminationPatientIn
 
               <div className="mt-auto pt-3 border-t border-primary/20 flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="font-bold text-[11px] text-foreground block">المطلوب تحصيله</Label>
+                  <Label className="font-bold text-[11px] text-foreground block">
+                    المطلوب تحصيله
+                  </Label>
                   <div className="text-2xl font-black text-success tabular-nums">
-                    <span className="text-[10px] font-normal opacity-60 ml-1">EGP</span>
+                    <span className="text-[10px] font-normal opacity-60 ml-1">
+                      EGP
+                    </span>
                     {patientShare.toFixed(2)}
                   </div>
                 </div>
                 <div className="text-left space-y-1">
-                  <Label className="font-bold text-[10px] text-muted-foreground block">توقيع الاستقبال</Label>
+                  <Label className="font-bold text-[10px] text-muted-foreground block">
+                    توقيع الاستقبال
+                  </Label>
                   <Input
                     value={receptionSignature}
                     onChange={(e) => setReceptionSignature(e.target.value)}

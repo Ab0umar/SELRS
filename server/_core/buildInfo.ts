@@ -17,7 +17,10 @@ export async function getBuildInfo(): Promise<BuildInfo> {
   let version = String(process.env.APP_VERSION ?? "").trim();
   if (!version) {
     try {
-      const pkgRaw = await fs.readFile(path.resolve(process.cwd(), "package.json"), "utf8");
+      const pkgRaw = await fs.readFile(
+        path.resolve(process.cwd(), "package.json"),
+        "utf8",
+      );
       const pkg = JSON.parse(pkgRaw) as { version?: string };
       version = String(pkg?.version ?? "").trim();
     } catch {
@@ -39,4 +42,3 @@ export async function getBuildInfo(): Promise<BuildInfo> {
   cacheAt = now;
   return cache;
 }
-

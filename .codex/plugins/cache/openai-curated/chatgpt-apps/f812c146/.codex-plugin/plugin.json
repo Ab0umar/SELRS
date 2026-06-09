@@ -23,11 +23,7 @@
     "longDescription": "A set of Codex skills for building ChatGPT Apps and preparing submission artifacts. Skills can scaffold or refactor Apps SDK projects, inspect local MCP servers, check tool hint annotations against implementation behavior, and generate chatgpt-app-submission.json for the onboard submission form.",
     "developerName": "OpenAI",
     "category": "Coding",
-    "capabilities": [
-      "Interactive",
-      "Read",
-      "Write"
-    ],
+    "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://developers.openai.com/apps-sdk/",
     "privacyPolicyURL": "https://openai.com/policies/row-privacy-policy/",
     "termsOfServiceURL": "https://openai.com/policies/row-terms-of-use/",

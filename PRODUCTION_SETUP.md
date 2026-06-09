@@ -9,6 +9,7 @@
 ## 1. Pre-Deployment Checklist
 
 ### Infrastructure Requirements
+
 - [ ] Server: Windows Server 2019+ or Windows 10 Pro+
 - [ ] RAM: Minimum 8GB (16GB recommended)
 - [ ] Disk: 50GB free space (for logs, backups, data)
@@ -17,6 +18,7 @@
 - [ ] Node.js: v18+ with npm/pnpm
 
 ### Device Configuration
+
 - [ ] Fingerprint device online and responsive
 - [ ] Device IP verified: 192.168.0.10
 - [ ] Device port confirmed: 5005
@@ -25,13 +27,15 @@
 - [ ] FK DLLs present in C:\Windows\SysWOW64\
 
 ### Database Setup
+
 - [ ] MySQL running on 3306
-- [ ] attendance_* tables created (from drizzle schema)
+- [ ] attendance\_\* tables created (from drizzle schema)
 - [ ] Backup schedule configured
 - [ ] Database user created with proper permissions
 - [ ] Database connection tested
 
 ### Application Setup
+
 - [ ] App downloaded/cloned to deployment directory
 - [ ] Dependencies installed (`pnpm install`)
 - [ ] Environment variables configured (.env.production)
@@ -92,16 +96,16 @@ HEALTH_CHECK_INTERVAL=300000
 mysql -u root -p
 
 -- Create database
-CREATE DATABASE srv100_attendance 
-CHARACTER SET utf8mb4 
+CREATE DATABASE srv100_attendance
+CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
 -- Create user
-CREATE USER 'srv100_attendance'@'localhost' 
+CREATE USER 'srv100_attendance'@'localhost'
 IDENTIFIED BY '<strong-password>';
 
 -- Grant permissions
-GRANT ALL PRIVILEGES ON srv100_attendance.* 
+GRANT ALL PRIVILEGES ON srv100_attendance.*
 TO 'srv100_attendance'@'localhost';
 
 FLUSH PRIVILEGES;
@@ -136,55 +140,55 @@ npx tsx scripts/init-attendance.ts
 Create `scripts/init-attendance.ts`:
 
 ```typescript
-import { getDb } from '../server/db';
+import { getDb } from "../server/db";
 
 async function init() {
   const db = await getDb();
-  
-  console.log('Initializing attendance module...');
-  
+
+  console.log("Initializing attendance module...");
+
   // Create device settings
   await db.insert(attendanceDeviceSettings).values({
     id: 1,
     enabled: true,
-    ip: '192.168.0.10',
+    ip: "192.168.0.10",
     port: 5005,
     protocol: 0,
     fallbackToAccess: false,
     realTimeSync: false,
   });
-  
-  console.log('✓ Device settings created');
-  
+
+  console.log("✓ Device settings created");
+
   // Create default shifts
   await db.insert(attendanceShifts).values({
-    name: 'Standard',
-    startTime: '09:00',
-    endTime: '17:00',
+    name: "Standard",
+    startTime: "09:00",
+    endTime: "17:00",
     breakMinutes: 60,
     isActive: true,
   });
-  
-  console.log('✓ Default shift created');
-  
+
+  console.log("✓ Default shift created");
+
   // Record first sync run
   await db.insert(attendanceSyncRuns).values({
     startedAt: new Date(),
     finishedAt: new Date(),
-    source: 'initialization',
-    trigger: 'manual',
-    status: 'ok',
+    source: "initialization",
+    trigger: "manual",
+    status: "ok",
     rowsSeen: 0,
     rowsInserted: 0,
     rowsSkipped: 0,
   });
-  
-  console.log('✓ Initialization complete');
+
+  console.log("✓ Initialization complete");
   process.exit(0);
 }
 
-init().catch(e => {
-  console.error('Initialization failed:', e);
+init().catch((e) => {
+  console.error("Initialization failed:", e);
   process.exit(1);
 });
 ```
@@ -288,23 +292,25 @@ Create `ecosystem.config.js`:
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'srv100-attendance',
-    script: './dist/index.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'production'
+  apps: [
+    {
+      name: "srv100-attendance",
+      script: "./dist/index.js",
+      instances: "max",
+      exec_mode: "cluster",
+      env: {
+        NODE_ENV: "production",
+      },
+      error_file: "./logs/error.log",
+      out_file: "./logs/out.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+      max_memory_restart: "1G",
+      watch: false,
+      ignore_watch: ["node_modules", "logs", "dist"],
+      max_restarts: 10,
+      min_uptime: "10s",
     },
-    error_file: './logs/error.log',
-    out_file: './logs/out.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-    max_memory_restart: '1G',
-    watch: false,
-    ignore_watch: ['node_modules', 'logs', 'dist'],
-    max_restarts: 10,
-    min_uptime: '10s',
-  }]
+  ],
 };
 ```
 
@@ -374,22 +380,22 @@ sudo systemctl status srv100-attendance
 Create `scripts/monitor.ts`:
 
 ```typescript
-import axios from 'axios';
+import axios from "axios";
 
 async function healthCheck() {
   try {
-    const response = await axios.get('http://localhost:3000/health');
+    const response = await axios.get("http://localhost:3000/health");
     const health = response.data;
-    
-    if (health.status === 'ok' && health.database === 'connected') {
-      console.log('✓ System healthy');
+
+    if (health.status === "ok" && health.database === "connected") {
+      console.log("✓ System healthy");
       process.exit(0);
     } else {
-      console.error('✗ Health check failed:', health);
+      console.error("✗ Health check failed:", health);
       process.exit(1);
     }
   } catch (error) {
-    console.error('✗ Health check error:', error.message);
+    console.error("✗ Health check error:", error.message);
     process.exit(1);
   }
 }
@@ -435,13 +441,13 @@ sudo journalctl -u srv100-attendance -f
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| Device unreachable | Check IP (ping 192.168.0.10), verify port 5005 open |
-| Database error | Check credentials in .env, verify MySQL running |
-| Port already in use | Change PORT in .env, or kill process: `lsof -i :3000` |
-| Permission denied | Run as correct user, check file ownership |
-| Out of memory | Increase heap: `NODE_OPTIONS="--max-old-space-size=2048"` |
+| Issue               | Solution                                                  |
+| ------------------- | --------------------------------------------------------- |
+| Device unreachable  | Check IP (ping 192.168.0.10), verify port 5005 open       |
+| Database error      | Check credentials in .env, verify MySQL running           |
+| Port already in use | Change PORT in .env, or kill process: `lsof -i :3000`     |
+| Permission denied   | Run as correct user, check file ownership                 |
+| Out of memory       | Increase heap: `NODE_OPTIONS="--max-old-space-size=2048"` |
 
 ---
 
@@ -508,7 +514,7 @@ sudo systemctl start srv100-attendance
 
 ```sql
 -- For large punch tables, add indexes
-ALTER TABLE attendance_punches 
+ALTER TABLE attendance_punches
   ADD INDEX idx_emp_date (empCd, punchAt),
   ADD INDEX idx_source_hash (sourceHash);
 
@@ -530,6 +536,7 @@ export NODE_OPTIONS="--max-old-space-size=2048"
 ### Database Connection Pooling
 
 Already configured in `server/db.ts`:
+
 - Max connections: 10
 - Min connections: 2
 - Connection timeout: 30s
@@ -539,7 +546,7 @@ Already configured in `server/db.ts`:
 ## 11. Security Checklist
 
 - [ ] SSL/TLS certificate installed (if accessible remotely)
-- [ ] Firewall rules: 
+- [ ] Firewall rules:
   - [ ] Port 3000 blocked from internet (use reverse proxy)
   - [ ] Port 5005 open to device only
   - [ ] Port 7005 open to device only (future)
@@ -570,6 +577,7 @@ Already configured in `server/db.ts`:
 ### Manual Sync
 
 **Via Web UI:**
+
 ```
 Attendance → Settings → Device
 Click: "Sync Now"
@@ -578,6 +586,7 @@ Check: Dashboard updates
 ```
 
 **Via API:**
+
 ```bash
 curl -X POST http://localhost:3000/api/attendance/syncFromFKDevice \
   -H "Authorization: Bearer <token>" \
@@ -630,18 +639,21 @@ After deployment, verify:
 ### On-Call Runbook
 
 **Issue: App won't start**
+
 1. Check logs: `tail -f logs/error.log`
 2. Verify database: `mysql -u srv100_attendance -p srv100_attendance -e "SELECT 1"`
 3. Restart service: `sudo systemctl restart srv100-attendance`
 4. Escalate if persists
 
 **Issue: Device unreachable**
+
 1. Ping device: `ping 192.168.0.10`
 2. Check network/firewall
 3. Restart device if needed
 4. Run diagnostic test
 
 **Issue: Sync failing**
+
 1. Check device connection
 2. Check database space: `df -h`
 3. Review sync logs
@@ -653,6 +665,7 @@ After deployment, verify:
 ## Summary
 
 **Deployment Timeline:**
+
 - Setup infrastructure: 1-2 hours
 - Configure environment: 30 minutes
 - Initialize database: 15 minutes

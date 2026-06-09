@@ -23,7 +23,6 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
       {/* Sticky top header */}
       <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
-
           {/* Logo + portal title */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:block p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl">
@@ -64,7 +63,6 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
 
       {/* Content frame */}
       <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 md:py-8 flex flex-col gap-6">
-
         {/* Desktop nav tabs */}
         <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
           {NAV.map((item) => {

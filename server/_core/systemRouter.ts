@@ -28,7 +28,9 @@ function splitSql(sql: string) {
 
 async function loadMigrationList(migrationsDir: string) {
   const journalPath = path.join(migrationsDir, "meta", "_journal.json");
-  const files = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
+  const files = (await readdir(migrationsDir))
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
   try {
     const raw = await readFile(journalPath, "utf8");
@@ -47,7 +49,7 @@ async function ensureMigrationsTable(conn: mysql.Connection) {
       id int AUTO_INCREMENT PRIMARY KEY,
       name varchar(255) NOT NULL UNIQUE,
       appliedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`
+    )`,
   );
 }
 
@@ -64,10 +66,15 @@ async function listDrizzleMigrations(): Promise<MigrationListResponse> {
   try {
     const database = await db.getDb();
     if (database) {
-      const rows = await database.execute("SELECT name, appliedAt FROM schema_migrations ORDER BY appliedAt ASC") as any;
+      const rows = (await database.execute(
+        "SELECT name, appliedAt FROM schema_migrations ORDER BY appliedAt ASC",
+      )) as any;
       const records = rows?.[0] ?? [];
       records.forEach((row: any) => {
-        applied.set(row.name, row.appliedAt ? new Date(row.appliedAt).toISOString() : null);
+        applied.set(
+          row.name,
+          row.appliedAt ? new Date(row.appliedAt).toISOString() : null,
+        );
       });
       dbOk = true;
       source = "schema";
@@ -79,9 +86,14 @@ async function listDrizzleMigrations(): Promise<MigrationListResponse> {
   if (!dbOk) {
     try {
       const raw = await readFile(metaPath, "utf8");
-      const json = JSON.parse(raw) as { entries?: Array<{ tag: string; when: number }> };
+      const json = JSON.parse(raw) as {
+        entries?: Array<{ tag: string; when: number }>;
+      };
       (json.entries ?? []).forEach((entry) => {
-        applied.set(`${entry.tag}.sql`, entry.when ? new Date(entry.when).toISOString() : null);
+        applied.set(
+          `${entry.tag}.sql`,
+          entry.when ? new Date(entry.when).toISOString() : null,
+        );
       });
       source = "journal";
     } catch {
@@ -105,7 +117,7 @@ export const systemRouter = router({
     .input(
       z.object({
         timestamp: z.number().min(0, "timestamp cannot be negative"),
-      })
+      }),
     )
     .query(async () => {
       const build = await getBuildInfo().catch(() => ({
@@ -124,7 +136,7 @@ export const systemRouter = router({
       z.object({
         title: z.string().min(1, "title is required"),
         content: z.string().min(1, "content is required"),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const delivered = await notifyOwner(input);
@@ -156,12 +168,17 @@ export const systemRouter = router({
         await ensureMigrationsTable(conn);
 
         const [rows] = await conn.query(
-          "SELECT name FROM schema_migrations ORDER BY appliedAt ASC"
+          "SELECT name FROM schema_migrations ORDER BY appliedAt ASC",
         );
-        const appliedRows = Array.isArray(rows) ? (rows as Array<{ name: string }>) : [];
+        const appliedRows = Array.isArray(rows)
+          ? (rows as Array<{ name: string }>)
+          : [];
         const applied = new Set(appliedRows.map((r) => r.name));
         const pending = migrationFiles.filter((file) => !applied.has(file));
-        const toApply = typeof input?.limit === "number" ? pending.slice(0, input.limit) : pending;
+        const toApply =
+          typeof input?.limit === "number"
+            ? pending.slice(0, input.limit)
+            : pending;
 
         let appliedCount = 0;
         for (const file of toApply) {
@@ -187,7 +204,9 @@ export const systemRouter = router({
             }
           }
 
-          await conn.query("INSERT INTO schema_migrations (name) VALUES (?)", [file]);
+          await conn.query("INSERT INTO schema_migrations (name) VALUES (?)", [
+            file,
+          ]);
           appliedCount += 1;
         }
 

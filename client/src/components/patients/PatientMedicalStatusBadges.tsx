@@ -19,7 +19,10 @@ function getBadges(
 ): Badge[] {
   const badges: Badge[] = [];
   if (canAccess("/examination") && status.autoref && status.afterRef)
-    badges.push({ color: "bg-success/100", title: "قياس الانكسار الآلي + ما بعد الانكسار" });
+    badges.push({
+      color: "bg-success/100",
+      title: "قياس الانكسار الآلي + ما بعد الانكسار",
+    });
   if (canAccess("/refraction") && status.glasses)
     badges.push({ color: "bg-primary/50", title: "مقاس النظارة / الانكسار" });
   if (canAccess("/sheets") && status.pentacam)
@@ -47,7 +50,9 @@ export function PatientMedicalStatusStrip({
   if (!status) return null;
   const badges = getBadges(status, canAccess);
   return (
-    <div className={cn("flex h-[3px] w-full overflow-hidden rounded-t", className)}>
+    <div
+      className={cn("flex h-[3px] w-full overflow-hidden rounded-t", className)}
+    >
       {badges.map((b) => (
         <div key={b.title} className={cn("flex-1", b.color)} title={b.title} />
       ))}

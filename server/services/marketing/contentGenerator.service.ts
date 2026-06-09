@@ -2,7 +2,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "../../_core/env";
 import type { PostDay } from "./topicRotation";
 import { DAY_CATEGORY_LABELS } from "./topicRotation";
-import { buildBrandAwareImagePrompt, type PartialBrandProfile } from "./brandStyleAnalyzer.service";
+import {
+  buildBrandAwareImagePrompt,
+  type PartialBrandProfile,
+} from "./brandStyleAnalyzer.service";
 
 export interface GeneratedContent {
   title: string;
@@ -50,7 +53,10 @@ const POST_STYLES = [
   },
 ] as const;
 
-function pickStyle(topic: string, postIndex: number): (typeof POST_STYLES)[number] {
+function pickStyle(
+  topic: string,
+  postIndex: number,
+): (typeof POST_STYLES)[number] {
   // Combine topic hash + postIndex for deterministic but varied selection
   let hash = postIndex;
   for (let i = 0; i < topic.length; i++) {
@@ -62,33 +68,60 @@ function pickStyle(topic: string, postIndex: number): (typeof POST_STYLES)[numbe
 // ─── Image prompt builder ─────────────────────────────────────────────────────
 
 const TOPIC_IMAGE_HINTS: Record<string, string> = {
-  "LASIK": "close-up of a human eye with a laser beam, modern laser surgery equipment in background, cool blue lighting",
-  "Femto LASIK": "advanced femtosecond laser device focused on an eye, clean surgical environment, blue-teal ambiance",
-  "PRK": "ophthalmologist with precision instruments examining an eye, bright clean clinical space",
-  "ICL لتصحيح الإبصار": "tiny transparent intraocular lens held with tweezers by a gloved hand, macro photography",
-  "الاستيغماتيزم (اللابؤرية)": "blurred city lights bokeh transitioning to sharp focus, representing vision correction",
-  "البنتاكام": "colorful topographic eye scan map displayed on screen, doctor reviewing results",
-  "رسم خريطة القرنية": "corneal topography map with vivid color gradients on a clinical screen",
-  "سماكة القرنية": "medical ultrasound pachymeter probe near an eye, close-up macro shot",
-  "الفحص قبل الليزك": "optometrist using slit lamp to examine patient eye, warm clinical lighting",
-  "تقنيات تصحيح الإبصار": "collage of modern eye surgery equipment and crystal clear vision, futuristic medical setting",
-  "المياه البيضاء (الكتاراكت)": "cross-section illustration of an eye with cloudy lens vs clear lens, clean medical infographic style",
-  "العدسات عالية الجودة": "premium intraocular lens in sterile packaging, pristine medical product photography",
-  "القرنية المخروطية (Keratoconus)": "3D rendering of a cone-shaped cornea vs normal cornea, medical illustration style",
-  "ربط ألياف القرنية (Cross Linking)": "UV light cross-linking procedure on eye, blue UV glow in dark clinical environment",
-  "أمراض القرنية": "detailed macro photograph of a human cornea, medical close-up, clinical lighting",
-  "زراعة القرنية": "surgeon's gloved hands performing delicate eye procedure under surgical microscope",
-  "جفاف العين": "single tear drop on an eyelash macro shot, blue tones, symbolizing eye moisture",
-  "الجلوكوما (المياه الزرقاء)": "optic nerve cross-section showing pressure damage, medical illustration, teal and blue tones",
-  "السكري وصحة العين": "retina photograph showing blood vessels, warm red tones, clinical diagnostic imagery",
-  "صحة الشبكية": "retinal scan fundus photography, detailed blood vessel pattern, dark background with orange-red tones",
-  "مشاكل الإبصار عند الأطفال": "child wearing eyeglasses reading a book happily, warm natural light, soft focus background",
-  "الفحص الدوري للعيون": "eye examination chart with ophthalmologist using equipment, professional clinic environment",
-  "إجهاد العيون من الشاشات": "person with tired eyes rubbing them near a computer screen, soft office lighting, relatable scene",
+  LASIK:
+    "close-up of a human eye with a laser beam, modern laser surgery equipment in background, cool blue lighting",
+  "Femto LASIK":
+    "advanced femtosecond laser device focused on an eye, clean surgical environment, blue-teal ambiance",
+  PRK: "ophthalmologist with precision instruments examining an eye, bright clean clinical space",
+  "ICL لتصحيح الإبصار":
+    "tiny transparent intraocular lens held with tweezers by a gloved hand, macro photography",
+  "الاستيغماتيزم (اللابؤرية)":
+    "blurred city lights bokeh transitioning to sharp focus, representing vision correction",
+  البنتاكام:
+    "colorful topographic eye scan map displayed on screen, doctor reviewing results",
+  "رسم خريطة القرنية":
+    "corneal topography map with vivid color gradients on a clinical screen",
+  "سماكة القرنية":
+    "medical ultrasound pachymeter probe near an eye, close-up macro shot",
+  "الفحص قبل الليزك":
+    "optometrist using slit lamp to examine patient eye, warm clinical lighting",
+  "تقنيات تصحيح الإبصار":
+    "collage of modern eye surgery equipment and crystal clear vision, futuristic medical setting",
+  "المياه البيضاء (الكتاراكت)":
+    "cross-section illustration of an eye with cloudy lens vs clear lens, clean medical infographic style",
+  "العدسات عالية الجودة":
+    "premium intraocular lens in sterile packaging, pristine medical product photography",
+  "القرنية المخروطية (Keratoconus)":
+    "3D rendering of a cone-shaped cornea vs normal cornea, medical illustration style",
+  "ربط ألياف القرنية (Cross Linking)":
+    "UV light cross-linking procedure on eye, blue UV glow in dark clinical environment",
+  "أمراض القرنية":
+    "detailed macro photograph of a human cornea, medical close-up, clinical lighting",
+  "زراعة القرنية":
+    "surgeon's gloved hands performing delicate eye procedure under surgical microscope",
+  "جفاف العين":
+    "single tear drop on an eyelash macro shot, blue tones, symbolizing eye moisture",
+  "الجلوكوما (المياه الزرقاء)":
+    "optic nerve cross-section showing pressure damage, medical illustration, teal and blue tones",
+  "السكري وصحة العين":
+    "retina photograph showing blood vessels, warm red tones, clinical diagnostic imagery",
+  "صحة الشبكية":
+    "retinal scan fundus photography, detailed blood vessel pattern, dark background with orange-red tones",
+  "مشاكل الإبصار عند الأطفال":
+    "child wearing eyeglasses reading a book happily, warm natural light, soft focus background",
+  "الفحص الدوري للعيون":
+    "eye examination chart with ophthalmologist using equipment, professional clinic environment",
+  "إجهاد العيون من الشاشات":
+    "person with tired eyes rubbing them near a computer screen, soft office lighting, relatable scene",
 };
 
-function buildImagePrompt(topic: string, brandProfile: PartialBrandProfile | null): string {
-  const hint = TOPIC_IMAGE_HINTS[topic] ?? `professional ophthalmology clinic setting related to "${topic}", medical photography`;
+function buildImagePrompt(
+  topic: string,
+  brandProfile: PartialBrandProfile | null,
+): string {
+  const hint =
+    TOPIC_IMAGE_HINTS[topic] ??
+    `professional ophthalmology clinic setting related to "${topic}", medical photography`;
 
   const brandPart = brandProfile
     ? `Brand colors: ${brandProfile.dominantColors ?? "professional blues and whites"}. Style: ${brandProfile.brandingStyle ?? "clean medical"}. Layout: ${brandProfile.imageComposition ?? "centered"}.`
@@ -104,7 +137,7 @@ function buildPrompt(
   day: PostDay,
   brandProfile: PartialBrandProfile | null,
   clinicName: string,
-  postIndex: number
+  postIndex: number,
 ): string {
   const category = DAY_CATEGORY_LABELS[day];
   const style = pickStyle(topic, postIndex);
@@ -172,7 +205,13 @@ const FALLBACK_CTSS = [
   "استشر دكتورنا المتخصص — الحجز متاح",
 ];
 
-function makeFallback(topic: string, day: PostDay, brandProfile: PartialBrandProfile | null, clinicName: string, postIndex: number): GeneratedContent {
+function makeFallback(
+  topic: string,
+  day: PostDay,
+  brandProfile: PartialBrandProfile | null,
+  clinicName: string,
+  postIndex: number,
+): GeneratedContent {
   const category = DAY_CATEGORY_LABELS[day];
   const tag = clinicName.replace(/\s+/g, "_");
   const cta = FALLBACK_CTSS[postIndex % FALLBACK_CTSS.length]!;
@@ -193,7 +232,7 @@ export async function generateMarketingContent(
   day: PostDay,
   brandProfile: PartialBrandProfile | null = null,
   clinicName: string = "مركزك لطب العيون",
-  postIndex: number = Math.floor(Math.random() * 1000)
+  postIndex: number = Math.floor(Math.random() * 1000),
 ): Promise<GeneratedContent> {
   const apiKey = ENV.geminiApiKey;
 
@@ -220,7 +259,10 @@ export async function generateMarketingContent(
     const parsed = parseSafeJson(text);
 
     if (!parsed || !parsed.title || !parsed.content) {
-      console.warn("[marketing] Gemini returned unexpected structure, using fallback", text.slice(0, 200));
+      console.warn(
+        "[marketing] Gemini returned unexpected structure, using fallback",
+        text.slice(0, 200),
+      );
       return makeFallback(topic, day, brandProfile, clinicName, postIndex);
     }
 

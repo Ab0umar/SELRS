@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronDown, KeyRound, LogOut, PanelLeft, Settings, UserCog } from "lucide-react";
+import {
+  ChevronDown,
+  KeyRound,
+  LogOut,
+  PanelLeft,
+  Settings,
+  UserCog,
+} from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import type { ReactNode } from "react";
@@ -37,7 +44,10 @@ function isNavGroup(item: NavGroup): item is NavGroupSection {
 }
 
 function canShowNavLeaf(item: NavLeaf, userRole: string): boolean {
-  return !item.roles || item.roles.map((role) => role.toLowerCase()).includes(userRole);
+  return (
+    !item.roles ||
+    item.roles.map((role) => role.toLowerCase()).includes(userRole)
+  );
 }
 
 /** Match current route to nav path (exact, or child path under same base; ignores query on location). */
@@ -110,21 +120,32 @@ export function AppSidebar({
       .filter((item): item is NavGroup => Boolean(item));
   }, [allowedRoots, isAdmin, permissionsQuery.isSuccess, userRole]);
 
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "1");
-  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSED_KEY) === "1",
+  );
+  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(
+    {},
+  );
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const navGroupExpanded = (navKey: string) => openNavGroups[navKey] ?? false;
   const toggleNavGroup = (navKey: string) => {
-    setOpenNavGroups((prev) => ({ ...prev, [navKey]: !(prev[navKey] ?? false) }));
+    setOpenNavGroups((prev) => ({
+      ...prev,
+      [navKey]: !(prev[navKey] ?? false),
+    }));
   };
 
   useEffect(() => {
     const locBase = location.split("?")[0];
     if (locBase.startsWith("/accounting")) {
-      setOpenNavGroups((prev) => (prev.accounting ? prev : { ...prev, accounting: true }));
+      setOpenNavGroups((prev) =>
+        prev.accounting ? prev : { ...prev, accounting: true },
+      );
     } else if (locBase === "/dashboard" || locBase === "/today") {
-      setOpenNavGroups((prev) => (prev.dashboard ? prev : { ...prev, dashboard: true }));
+      setOpenNavGroups((prev) =>
+        prev.dashboard ? prev : { ...prev, dashboard: true },
+      );
     }
   }, [location]);
 
@@ -132,7 +153,11 @@ export function AppSidebar({
     localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  const renderNavButton = (sub: NavLeaf, isActive: boolean, isMainItem?: boolean) => (
+  const renderNavButton = (
+    sub: NavLeaf,
+    isActive: boolean,
+    isMainItem?: boolean,
+  ) => (
     <button
       key={sub.path}
       type="button"
@@ -149,8 +174,12 @@ export function AppSidebar({
           : "font-medium text-muted-foreground hover:bg-muted text-muted-foreground",
       )}
     >
-      {(!collapsed || isMobile) && <span className="min-w-0 flex-1 truncate">{sub.label}</span>}
-      <sub.icon className={cn("shrink-0", isMainItem ? "h-6 w-6" : "h-[18px] w-[18px]")} />
+      {(!collapsed || isMobile) && (
+        <span className="min-w-0 flex-1 truncate">{sub.label}</span>
+      )}
+      <sub.icon
+        className={cn("shrink-0", isMainItem ? "h-6 w-6" : "h-[18px] w-[18px]")}
+      />
     </button>
   );
 
@@ -158,10 +187,19 @@ export function AppSidebar({
     <div
       dir="rtl"
       className="flex h-full min-h-0 flex-col overflow-hidden border-e border-border/80 bg-sidebar text-sidebar-foreground"
-      style={{ width: isMobile ? "max-content" : collapsed ? 56 : DEFAULT_WIDTH }}
+      style={{
+        width: isMobile ? "max-content" : collapsed ? 56 : DEFAULT_WIDTH,
+      }}
     >
       <div className="h-1 selrs-gradient-bar shrink-0" aria-hidden />
-      <div className={cn("flex h-14 shrink-0 items-center border-b border-border/80 bg-sidebar", collapsed && !isMobile ? "justify-center px-1" : "justify-between gap-1 px-3")}>
+      <div
+        className={cn(
+          "flex h-14 shrink-0 items-center border-b border-border/80 bg-sidebar",
+          collapsed && !isMobile
+            ? "justify-center px-1"
+            : "justify-between gap-1 px-3",
+        )}
+      >
         {/* Collapsed desktop: logo only */}
         {collapsed && !isMobile && (
           <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-background shadow-sm" />
@@ -172,8 +210,12 @@ export function AppSidebar({
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <BrandLogo className="h-9 w-9 shrink-0 rounded-xl border border-border/60 bg-background shadow-sm" />
               <div className="min-w-0">
-                <div className="truncate text-sm font-black text-foreground">{BRAND_NAME_AR}</div>
-                <div className="truncate text-[11px] text-muted-foreground">{BRAND_TAGLINE_AR}</div>
+                <div className="truncate text-sm font-black text-foreground">
+                  {BRAND_NAME_AR}
+                </div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {BRAND_TAGLINE_AR}
+                </div>
               </div>
             </div>
             <Button
@@ -183,9 +225,18 @@ export function AppSidebar({
               className="h-9 w-9 shrink-0"
               aria-label={isMobile ? "إغلاق القائمة" : "طي القائمة"}
               title={isMobile ? "إغلاق القائمة" : "طي القائمة"}
-              onClick={isMobile ? () => onMobileOpenChange(false) : () => setCollapsed((c) => !c)}
+              onClick={
+                isMobile
+                  ? () => onMobileOpenChange(false)
+                  : () => setCollapsed((c) => !c)
+              }
             >
-              <PanelLeft className={cn("h-4 w-4 transition-transform", isMobile && "rotate-180")} />
+              <PanelLeft
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  isMobile && "rotate-180",
+                )}
+              />
             </Button>
           </>
         )}
@@ -202,17 +253,23 @@ export function AppSidebar({
               const needsSeparator = !firstGroupSeen && !collapsed;
               firstGroupSeen = true;
               const navKey = item.navKey ?? `g-${idx}`;
-              const sectionOpen = collapsed && !isMobile ? true : navGroupExpanded(navKey);
+              const sectionOpen =
+                collapsed && !isMobile ? true : navGroupExpanded(navKey);
               const locBase = location.split("?")[0];
               const groupPathBase =
-                typeof item.groupPath === "string" ? item.groupPath.split("?")[0] : "";
-              const groupPathClean = groupPathBase ? normalizeNavPath(groupPathBase) : "";
+                typeof item.groupPath === "string"
+                  ? item.groupPath.split("?")[0]
+                  : "";
+              const groupPathClean = groupPathBase
+                ? normalizeNavPath(groupPathBase)
+                : "";
               const groupNavigateAllowed =
                 !item.groupPath ||
                 isAdmin ||
                 !permissionsQuery.isSuccess ||
                 pathGrantedByRoots(groupPathClean, allowedRoots);
-              const headerNavDisabled = Boolean(item.groupPath) && !groupNavigateAllowed;
+              const headerNavDisabled =
+                Boolean(item.groupPath) && !groupNavigateAllowed;
               const headerActive =
                 groupPathBase.length > 1 &&
                 locBase === groupPathBase &&
@@ -224,7 +281,7 @@ export function AppSidebar({
                     <div className="my-1.5 mx-1 border-t border-border/50" />
                   )}
                   <div className="mb-1">
-                    {(!collapsed || isMobile) ? (
+                    {!collapsed || isMobile ? (
                       <div
                         className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
                         role="group"
@@ -237,7 +294,10 @@ export function AppSidebar({
                             if (item.groupPath) {
                               if (!groupNavigateAllowed) return;
                               onNavigate(item.groupPath);
-                              setOpenNavGroups((prev) => ({ ...prev, [navKey]: true }));
+                              setOpenNavGroups((prev) => ({
+                                ...prev,
+                                [navKey]: true,
+                              }));
                               if (isMobile) onMobileOpenChange(false);
                             } else {
                               toggleNavGroup(navKey);
@@ -245,7 +305,8 @@ export function AppSidebar({
                           }}
                           className={cn(
                             "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-sm transition-colors hover:bg-muted/50",
-                            headerNavDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
+                            headerNavDisabled &&
+                              "cursor-not-allowed opacity-50 hover:bg-transparent",
                             headerActive
                               ? "bg-primary text-primary-foreground font-semibold"
                               : "font-medium text-muted-foreground",
@@ -319,12 +380,18 @@ export function AppSidebar({
               )}
             >
               <Avatar className="h-9 w-9 shrink-0 border border-border">
-                <AvatarFallback className="text-xs font-medium">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="text-xs font-medium">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               {(!collapsed || isMobile) && (
                 <div className="min-w-0 flex-1 text-right">
-                  <p className="truncate text-sm font-medium leading-none">{user?.name || "—"}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email || "—"}</p>
+                  <p className="truncate text-sm font-medium leading-none">
+                    {user?.name || "—"}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {user?.email || "—"}
+                  </p>
                 </div>
               )}
             </button>
@@ -352,16 +419,25 @@ export function AppSidebar({
                 <span>مركز الإدارة</span>
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem className="cursor-pointer" onClick={onOpenAccount}>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={onOpenAccount}
+            >
               <UserCog className="ms-2 h-4 w-4" />
               <span>Account Settings</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={onOpenPassword}>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={onOpenPassword}
+            >
               <KeyRound className="ms-2 h-4 w-4" />
               <span>تغيير كلمة المرور</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => void logout()}>
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={() => void logout()}
+            >
               <LogOut className="ms-2 h-4 w-4" />
               <span>Sign Out</span>
             </DropdownMenuItem>
@@ -399,7 +475,10 @@ export function AppSidebar({
   }
 
   return (
-    <div ref={sidebarRef} className="relative flex h-full shrink-0 print:hidden">
+    <div
+      ref={sidebarRef}
+      className="relative flex h-full shrink-0 print:hidden"
+    >
       {sidebarInner}
     </div>
   );

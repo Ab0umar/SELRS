@@ -50,9 +50,11 @@ function parseArgs(argv) {
       args.force = true;
       continue;
     }
-    if (!arg.startsWith("--")) throw new Error(`Unexpected positional argument: ${arg}`);
+    if (!arg.startsWith("--"))
+      throw new Error(`Unexpected positional argument: ${arg}`);
     const value = argv[i + 1];
-    if (!value || value.startsWith("--")) throw new Error(`Missing value for ${arg}`);
+    if (!value || value.startsWith("--"))
+      throw new Error(`Missing value for ${arg}`);
     i += 1;
     if (arg === "--deck-id") args.deckId = value;
     else if (arg === "--workspace") args.workspace = value;
@@ -106,8 +108,12 @@ function artifactToolPackageFromNodeModules(directory) {
 }
 
 function compareVersions(left, right) {
-  const a = String(left).split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const b = String(right).split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const a = String(left)
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const b = String(right)
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
   for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
     const delta = (a[i] || 0) - (b[i] || 0);
     if (delta !== 0) return delta;
@@ -116,7 +122,9 @@ function compareVersions(left, right) {
 }
 
 function resolveInstalledArtifactToolPackage() {
-  const packageInfo = artifactToolPackageFromNodeModules(defaultRuntimeNodeModules());
+  const packageInfo = artifactToolPackageFromNodeModules(
+    defaultRuntimeNodeModules(),
+  );
   if (!packageInfo) {
     throw new Error(
       [
@@ -125,7 +133,12 @@ function resolveInstalledArtifactToolPackage() {
       ].join("\n"),
     );
   }
-  if (compareVersions(packageInfo.packageJson.version, REQUIRED_ARTIFACT_TOOL_VERSION) < 0) {
+  if (
+    compareVersions(
+      packageInfo.packageJson.version,
+      REQUIRED_ARTIFACT_TOOL_VERSION,
+    ) < 0
+  ) {
     throw new Error(
       [
         `@oai/artifact-tool ${packageInfo.packageJson.version} is installed, but Presentations requires ${REQUIRED_ARTIFACT_TOOL_VERSION} or newer.`,
@@ -145,9 +158,16 @@ function installArtifactToolPackageLink(workspaceDir, artifactPackage) {
     fs.rmSync(target, { recursive: true, force: true });
   }
 
-  let symlinkTarget = path.relative(scopeDir, artifactPackage.packageDir).split(path.sep).join("/");
+  let symlinkTarget = path
+    .relative(scopeDir, artifactPackage.packageDir)
+    .split(path.sep)
+    .join("/");
   if (!symlinkTarget.startsWith(".")) symlinkTarget = `./${symlinkTarget}`;
-  fs.symlinkSync(symlinkTarget, target, process.platform === "win32" ? "junction" : "dir");
+  fs.symlinkSync(
+    symlinkTarget,
+    target,
+    process.platform === "win32" ? "junction" : "dir",
+  );
   return target;
 }
 
@@ -161,7 +181,11 @@ function ensurePackageJson(workspaceDir) {
     const existing = readJson(packageJsonPath);
     if (existing.type === "module") return packageJsonPath;
   }
-  fs.writeFileSync(packageJsonPath, `${JSON.stringify(desired, null, 2)}\n`, "utf8");
+  fs.writeFileSync(
+    packageJsonPath,
+    `${JSON.stringify(desired, null, 2)}\n`,
+    "utf8",
+  );
   return packageJsonPath;
 }
 
@@ -193,7 +217,9 @@ function verifyComposeExports(workspaceDir, nodePath) {
     throw new Error(
       [
         "Could not verify @oai/artifact-tool presentation JSX exports.",
-        result.stderr.trim() || result.stdout.trim() || `Node exited with status ${result.status}`,
+        result.stderr.trim() ||
+          result.stdout.trim() ||
+          `Node exited with status ${result.status}`,
       ].join("\n"),
     );
   }
@@ -221,7 +247,9 @@ function ensureCleanOutputDir(outputDir, force) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const deckId = cleanSlug(args.deckId);
-  const workspaceDir = path.resolve(args.workspace || path.join("tmp", "presentations", deckId));
+  const workspaceDir = path.resolve(
+    args.workspace || path.join("tmp", "presentations", deckId),
+  );
   const srcDir = path.join(workspaceDir, "src");
   const scratchDir = path.join(workspaceDir, "scratch");
   const outputDir = path.join(workspaceDir, "output");
@@ -231,12 +259,19 @@ function main() {
   ensureCleanOutputDir(outputDir, args.force);
 
   const artifactPackage = resolveInstalledArtifactToolPackage();
-  const runtimeNodePath = defaultRuntimeNodePath(artifactPackage.nodeModulesDir);
+  const runtimeNodePath = defaultRuntimeNodePath(
+    artifactPackage.nodeModulesDir,
+  );
   if (!fs.existsSync(runtimeNodePath)) {
-    throw new Error(`Could not find runtime Node executable: ${runtimeNodePath}`);
+    throw new Error(
+      `Could not find runtime Node executable: ${runtimeNodePath}`,
+    );
   }
 
-  const linkedPackage = installArtifactToolPackageLink(workspaceDir, artifactPackage);
+  const linkedPackage = installArtifactToolPackageLink(
+    workspaceDir,
+    artifactPackage,
+  );
   const packageJsonPath = ensurePackageJson(workspaceDir);
   verifyComposeExports(workspaceDir, runtimeNodePath);
 

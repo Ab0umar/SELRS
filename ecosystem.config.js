@@ -7,8 +7,8 @@ module.exports = {
       args: "SFC.py",
       interpreter: "none",
       env: {
-        PORT: "3000"
-      }
+        PORT: "3000",
+      },
     },
     {
       name: "SELRS.cc",
@@ -17,14 +17,14 @@ module.exports = {
       args: "/c pnpm start",
       interpreter: "none",
       env: {
-        PORT: "4000"
-      }
+        PORT: "4000",
+      },
     },
     {
       name: "CF-TUNNEL",
       script: "C:\\Program Files (x86)\\cloudflared\\cloudflared.exe",
       args: "tunnel run selrs-fresh",
-      interpreter: "none"
-    }
-  ]
+      interpreter: "none",
+    },
+  ],
 };

@@ -8,7 +8,10 @@ const StockroomReports = lazy(() => import("./StockroomReports"));
 
 export default function StockroomShell() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 px-4 py-4 sm:px-6 pb-10 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-4 px-4 py-4 sm:px-6 pb-10 text-right"
+      dir="rtl"
+    >
       <Suspense fallback={<AppShellSkeleton />}>
         <Switch>
           <Route path="/stockroom" component={StockroomDashboard} />

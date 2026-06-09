@@ -29,10 +29,16 @@ async function main() {
     branch: branch as any,
   });
 
-  console.log("Created user with id", result.insertId || result.insertId?.toString() || result["insertId"] || "unknown");
+  console.log(
+    "Created user with id",
+    result.insertId ||
+      result.insertId?.toString() ||
+      result["insertId"] ||
+      "unknown",
+  );
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

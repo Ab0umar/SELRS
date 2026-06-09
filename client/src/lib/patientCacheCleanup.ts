@@ -11,7 +11,11 @@
  */
 export async function deletePatientCachePages(
   patientId: number,
-  pages: ("examination" | "quick-entry" | "medical-file")[] = ["examination", "quick-entry", "medical-file"]
+  pages: ("examination" | "quick-entry" | "medical-file")[] = [
+    "examination",
+    "quick-entry",
+    "medical-file",
+  ],
 ): Promise<void> {
   if (!Number.isFinite(patientId) || patientId <= 0) return;
   if (typeof window === "undefined") return;
@@ -66,7 +70,7 @@ export function clearAllPatientCaches(): void {
  */
 export async function clearFormCache(
   patientId: number,
-  formPage: "examination" | "quick-entry" | "medical-file"
+  formPage: "examination" | "quick-entry" | "medical-file",
 ): Promise<void> {
   if (typeof window === "undefined") return;
   try {

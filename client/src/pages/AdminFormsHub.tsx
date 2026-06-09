@@ -30,7 +30,10 @@ const FORM_MODULES = [
 
 export default function AdminFormsHub() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right"
+      dir="rtl"
+    >
       <PageHeader
         title="مركز النماذج"
         subtitle="إدارة وتصميم وتخصيص جميع النماذج الطبية والشيتات في النظام."

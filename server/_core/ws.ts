@@ -3,7 +3,10 @@ import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { parse as parseCookieHeader } from "cookie";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./auth";
 
-type WsClient = WebSocket & { subscriptions?: Set<number>; attendanceSubscribed?: boolean };
+type WsClient = WebSocket & {
+  subscriptions?: Set<number>;
+  attendanceSubscribed?: boolean;
+};
 
 let wss: WebSocketServer | null = null;
 
@@ -34,7 +37,10 @@ export function registerWsServer(server: Server) {
     socket.on("message", (raw: RawData) => {
       try {
         const message = JSON.parse(raw.toString());
-        if (message?.type === "subscribe" && typeof message.patientId === "number") {
+        if (
+          message?.type === "subscribe" &&
+          typeof message.patientId === "number"
+        ) {
           socket.subscriptions?.add(message.patientId);
         } else if (message?.type === "subscribe-attendance") {
           (socket as any).attendanceSubscribed = true;
@@ -66,7 +72,12 @@ export function broadcastSheetUpdate(patientId: number, sheetType: string) {
   });
 }
 
-export function broadcastPunch(empCd: string, direction: string, timestamp: Date, deviceId: string) {
+export function broadcastPunch(
+  empCd: string,
+  direction: string,
+  timestamp: Date,
+  deviceId: string,
+) {
   if (!wss) return;
   const payload = JSON.stringify({
     type: "punch-received",

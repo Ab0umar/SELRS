@@ -17,7 +17,7 @@
 - Q: How should the dashboard stay fresh? → A: Polling — dashboard queries refetch on a 30-second interval; manual refresh button also present. No WebSocket dependency in Phase 1.
 - Q: What is the default Attendance access for the `accountant` role? → A: Off by default. Accountants receive no Attendance access unless an admin individually grants `attendance.view`.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 — HR/Admin sees today's attendance at a glance (Priority: P1)
 
@@ -131,7 +131,7 @@ A manager defines a basic shift (start time, end time, optional overnight flag, 
 - **Multiple punches close together**: Successive punches of the same direction within 30 seconds collapse into one effective event during pairing; raw rows are preserved untouched.
 - **Cross-module isolation breach**: An accidental attempt to use Medical or Accounting data in attendance computations must be visibly forbidden by the module boundary; this is enforced architecturally, not at runtime.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -217,7 +217,7 @@ A manager defines a basic shift (start time, end time, optional overnight flag, 
 - **Processed Daily Attendance** — One row per (employee, work date). Derived from raw punches, shifts, leaves, and holidays. Contains first-in, last-out, worked minutes, late minutes, early-leave minutes, overtime minutes, and status. Rebuildable.
 - **Manual Correction** — An audit-logged entry that adjusts attendance for a specific employee/date without modifying raw punches.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

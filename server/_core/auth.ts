@@ -19,8 +19,6 @@ export type SessionPayload = {
 };
 
 class LocalAuthService {
-
-
   /**
    * Hash password using bcryptjs
    */
@@ -41,9 +39,14 @@ class LocalAuthService {
   generateToken(user: User): string {
     const secret = ENV.JWT_SECRET || "your-secret-key";
     return jwt.sign(
-      { userId: user.id, username: user.username, role: user.role, branch: user.branch },
+      {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        branch: user.branch,
+      },
       secret,
-      { expiresIn: "24h" }
+      { expiresIn: "24h" },
     );
   }
 
@@ -67,22 +70,20 @@ class LocalAuthService {
     username: string,
     role: string,
     branch: string,
-    options: { expiresInMs?: number } = {}
+    options: { expiresInMs?: number } = {},
   ): Promise<string> {
     const secret = ENV.JWT_SECRET || "your-secret-key";
-    const expiresIn = options.expiresInMs ? Math.floor(options.expiresInMs / 1000) : 86400; // Default 24h in seconds
-    return jwt.sign(
-      { userId, username, role, branch },
-      secret,
-      { expiresIn }
-    );
+    const expiresIn = options.expiresInMs
+      ? Math.floor(options.expiresInMs / 1000)
+      : 86400; // Default 24h in seconds
+    return jwt.sign({ userId, username, role, branch }, secret, { expiresIn });
   }
 
   /**
    * Verify session token
    */
   async verifySession(
-    cookieValue: string | undefined | null
+    cookieValue: string | undefined | null,
   ): Promise<SessionPayload | null> {
     if (!cookieValue) {
       return null;
@@ -106,11 +107,12 @@ class LocalAuthService {
     const legacyCookie = cookies[LEGACY_AUTH_COOKIE_NAME];
     const authHeader = req.headers.authorization;
     const bearerToken =
-      typeof authHeader === "string" && authHeader.toLowerCase().startsWith("bearer ")
+      typeof authHeader === "string" &&
+      authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
         : null;
     const tokenCandidates = [primaryCookie, legacyCookie, bearerToken].filter(
-      (token): token is string => Boolean(token)
+      (token): token is string => Boolean(token),
     );
 
     let session: SessionPayload | null = null;
@@ -131,8 +133,6 @@ class LocalAuthService {
 
     return user;
   }
-
-
 }
 
 export const authService = new LocalAuthService();
@@ -162,7 +162,7 @@ export function registerAuthRoutes(app: Express) {
       // Compare password
       const isValidPassword = await authService.comparePassword(
         password,
-        user.password || ""
+        user.password || "",
       );
 
       if (!isValidPassword) {
@@ -176,7 +176,7 @@ export function registerAuthRoutes(app: Express) {
         user.username,
         user.role,
         user.branch || "examinations",
-        { expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000 }
+        { expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000 },
       );
 
       await db.updateUserLastSignedIn(user.id);
@@ -239,8 +239,18 @@ export function registerAuthRoutes(app: Express) {
         .includes("https");
 
     const clearVariants = [
-      { path: "/", httpOnly: true as const, sameSite: "lax" as const, secure: isHttps },
-      { path: "/", httpOnly: true as const, sameSite: "none" as const, secure: true },
+      {
+        path: "/",
+        httpOnly: true as const,
+        sameSite: "lax" as const,
+        secure: isHttps,
+      },
+      {
+        path: "/",
+        httpOnly: true as const,
+        sameSite: "none" as const,
+        secure: true,
+      },
       { path: "/", httpOnly: true as const, secure: isHttps },
       { path: "/", httpOnly: true as const, secure: false },
       { path: "/" },

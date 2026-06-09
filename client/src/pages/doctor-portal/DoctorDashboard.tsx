@@ -194,9 +194,7 @@ export default function DoctorDashboard() {
             className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbe7f4] bg-white text-muted-foreground shadow-xs transition-colors hover:bg-[#f4f9ff] hover:text-primary disabled:opacity-40"
             aria-label="تحديث القائمة"
           >
-            <RefreshCw
-              className={cn("size-4", refreshing && "animate-spin")}
-            />
+            <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
           </button>
         </div>
 
@@ -248,13 +246,17 @@ export default function DoctorDashboard() {
           />
         )}
 
-        {!isLoading && !error && data && data.length > 0 && filtered.length === 0 && (
-          <EmptyState
-            icon={<SearchX className="size-5" />}
-            title={`لا يوجد مريض يطابق «${search}»`}
-            description="جرّب كلمة بحث مختلفة أو جزءاً من الاسم."
-          />
-        )}
+        {!isLoading &&
+          !error &&
+          data &&
+          data.length > 0 &&
+          filtered.length === 0 && (
+            <EmptyState
+              icon={<SearchX className="size-5" />}
+              title={`لا يوجد مريض يطابق «${search}»`}
+              description="جرّب كلمة بحث مختلفة أو جزءاً من الاسم."
+            />
+          )}
 
         {!isLoading && !error && filtered.length > 0 && (
           <div className="space-y-2.5">

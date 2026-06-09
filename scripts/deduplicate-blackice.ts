@@ -13,7 +13,9 @@ async function deduplicateBlackIce() {
   const conn = await mysql.createConnection(databaseUrl);
 
   try {
-    console.log("[Dedup] Deleting duplicate rows (keeping first occurrence)...");
+    console.log(
+      "[Dedup] Deleting duplicate rows (keeping first occurrence)...",
+    );
 
     // Simple approach: delete rows where ID is not the minimum for that file_name
     const result = await conn.query(
@@ -31,14 +33,13 @@ async function deduplicateBlackIce() {
            WHERE file_name IS NOT NULL AND file_name != ''
            GROUP BY file_name
          ) as keep
-       )`
+       )`,
     );
 
     const deleted = (result as any)[0]?.affectedRows ?? 0;
     console.log(`[Dedup] ✓ Deleted ${deleted} duplicate rows`);
     console.log("[Dedup] ✓ Deduplication complete!");
     console.log("[Dedup] Now run: pnpm s3:migrate-blackice");
-
   } catch (error: any) {
     console.error("[Dedup] Error:", error?.message ?? error);
     process.exit(1);

@@ -9,7 +9,13 @@ import { StatCard } from "@/components/admin-patients/StatCard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAdminPatientsBulk } from "@/hooks/admin-patients/useAdminPatientsBulk";
 import { useAdminPatientsList } from "@/hooks/admin-patients/useAdminPatientsList";
 import { trpc } from "@/lib/trpc";
@@ -31,7 +37,9 @@ const MONTHS_AR = [
 
 export default function AdminPatients() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"reset-service-type" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "reset-service-type" | null
+  >(null);
 
   const list = useAdminPatientsList();
   const bulk = useAdminPatientsBulk({
@@ -42,17 +50,20 @@ export default function AdminPatients() {
     setManualLockOverrides: list.setManualLockOverrides,
   });
 
-  const syncRegistrationCatalogMutation = trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
-    onSuccess: (data) => {
-      toast.success(`تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب`);
-      list.utils.medical.getRegistrationCatalog.invalidate();
-    },
-    onError: (error) => {
-      toast.error("فشلت المزامنة: " + (error.message || "خطأ غير معروف"));
-    },
-  });
-  const resetPatientServiceTypesMutation = trpc.medical.resetPatientServiceTypesFromServiceCode.useMutation();
-
+  const syncRegistrationCatalogMutation =
+    trpc.medical.syncRegistrationCatalogFromMssql.useMutation({
+      onSuccess: (data) => {
+        toast.success(
+          `تم مزامنة: ${data.servicesUpserted} خدمة، ${data.doctorsUpserted} طبيب`,
+        );
+        list.utils.medical.getRegistrationCatalog.invalidate();
+      },
+      onError: (error) => {
+        toast.error("فشلت المزامنة: " + (error.message || "خطأ غير معروف"));
+      },
+    });
+  const resetPatientServiceTypesMutation =
+    trpc.medical.resetPatientServiceTypesFromServiceCode.useMutation();
 
   const handleApplyFilters = useCallback(async () => {
     await Promise.all([
@@ -62,7 +73,9 @@ export default function AdminPatients() {
     toast.success("تم تحديث القائمة والإحصائيات.");
   }, [list.utils]);
 
-  const monthLabelShort = MONTHS_AR[Math.max(0, Math.min(11, Number(list.statsMonth) - 1))] ?? list.statsMonth;
+  const monthLabelShort =
+    MONTHS_AR[Math.max(0, Math.min(11, Number(list.statsMonth) - 1))] ??
+    list.statsMonth;
   const monthTitleKey = `${String(list.statsMonth).padStart(2, "0")}/${list.statsYear}`;
   const monthlyBannerStats = [
     { label: "الليزك", value: list.monthStats.lasik },
@@ -82,7 +95,10 @@ export default function AdminPatients() {
   ];
 
   return (
-    <div className="w-full space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6" dir="rtl">
+    <div
+      className="w-full space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6"
+      dir="rtl"
+    >
       <Card dir="rtl" className="border-border bg-card text-right shadow-sm">
         <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
@@ -100,10 +116,15 @@ export default function AdminPatients() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
                   <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
-                  <span className="text-sm sm:text-base">إحصائيات شهرية ({monthTitleKey})</span>
+                  <span className="text-sm sm:text-base">
+                    إحصائيات شهرية ({monthTitleKey})
+                  </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Select value={list.statsMonth} onValueChange={list.setStatsMonth}>
+                  <Select
+                    value={list.statsMonth}
+                    onValueChange={list.setStatsMonth}
+                  >
                     <SelectTrigger className="h-9 w-24 rounded-lg text-sm">
                       <SelectValue>{monthLabelShort}</SelectValue>
                     </SelectTrigger>
@@ -118,7 +139,10 @@ export default function AdminPatients() {
                       })}
                     </SelectContent>
                   </Select>
-                  <Select value={list.statsYear} onValueChange={list.setStatsYear}>
+                  <Select
+                    value={list.statsYear}
+                    onValueChange={list.setStatsYear}
+                  >
                     <SelectTrigger className="h-9 w-20 rounded-lg text-sm">
                       <SelectValue placeholder="السنة" />
                     </SelectTrigger>
@@ -147,7 +171,9 @@ export default function AdminPatients() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
                   <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
-                  <span className="text-sm sm:text-base">إحصائيات سنوية ({list.statsYear})</span>
+                  <span className="text-sm sm:text-base">
+                    إحصائيات سنوية ({list.statsYear})
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -160,7 +186,9 @@ export default function AdminPatients() {
                     aria-label="مزامنة قائمة الخدمات والأطباء من MSSQL"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    {syncRegistrationCatalogMutation.isPending ? "جاري..." : "مزامنة"}
+                    {syncRegistrationCatalogMutation.isPending
+                      ? "جاري..."
+                      : "مزامنة"}
                   </Button>
                   <Button
                     type="button"
@@ -170,12 +198,17 @@ export default function AdminPatients() {
                     disabled={resetPatientServiceTypesMutation.isPending}
                     onClick={async () => {
                       try {
-                        const out = await resetPatientServiceTypesMutation.mutateAsync({
-                          dryRun: true,
-                        });
-                        toast.success(`فحص جاهز: سيتم تعديل ${out.updated} من أصل ${out.scanned}`);
+                        const out =
+                          await resetPatientServiceTypesMutation.mutateAsync({
+                            dryRun: true,
+                          });
+                        toast.success(
+                          `فحص جاهز: سيتم تعديل ${out.updated} من أصل ${out.scanned}`,
+                        );
                       } catch (error: any) {
-                        toast.error("فشل الفحص: " + (error?.message || "خطأ غير معروف"));
+                        toast.error(
+                          "فشل الفحص: " + (error?.message || "خطأ غير معروف"),
+                        );
                       }
                     }}
                     aria-label="فحص (بدون تعديل) لتحديث serviceType حسب آخر كود خدمة"
@@ -267,7 +300,9 @@ export default function AdminPatients() {
             allVisibleSelected={list.allVisibleSelected}
             currentPage={list.currentPage}
             deletePatientPending={list.deletePatientMutation.isPending}
-            deletePatientFromMssqlPending={list.deletePatientFromMssqlMutation.isPending}
+            deletePatientFromMssqlPending={
+              list.deletePatientFromMssqlMutation.isPending
+            }
             getDraft={list.getDraft}
             hasMore={list.hasMore}
             isExpanded={list.isExpanded}
@@ -286,7 +321,9 @@ export default function AdminPatients() {
             pageSize={list.pageSize}
             patientsLoading={list.patientsQuery.isLoading}
             rowSaveState={list.rowSaveState}
-            savePatientPageStatePending={list.savePatientPageStateMutation.isPending}
+            savePatientPageStatePending={
+              list.savePatientPageStateMutation.isPending
+            }
             selectedPatients={list.selectedPatients}
             serviceCodeToLabel={list.serviceCodeToLabel}
             serviceCodeToType={list.serviceCodeToType}

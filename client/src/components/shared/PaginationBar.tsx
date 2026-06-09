@@ -8,7 +8,13 @@ type PaginationBarProps = {
   onPageChange: (page: number) => void;
 };
 
-export function PaginationBar({ page, pageCount, total, pageSize, onPageChange }: PaginationBarProps) {
+export function PaginationBar({
+  page,
+  pageCount,
+  total,
+  pageSize,
+  onPageChange,
+}: PaginationBarProps) {
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
@@ -18,13 +24,25 @@ export function PaginationBar({ page, pageCount, total, pageSize, onPageChange }
         {total === 0 ? "لا توجد نتائج" : `عرض ${start}-${end} من ${total}`}
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+        >
           السابق
         </Button>
         <div className="min-w-24 rounded-md border border-border bg-background px-3 py-1.5 text-center text-sm font-medium">
           {page} / {pageCount}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={() => onPageChange(Math.min(pageCount, page + 1))} disabled={page >= pageCount}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+          disabled={page >= pageCount}
+        >
           التالي
         </Button>
       </div>

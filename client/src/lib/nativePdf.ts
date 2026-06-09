@@ -4,7 +4,10 @@ import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
 import { PDFDocument } from "pdf-lib";
 import { triggerBlobDownload } from "@/_core/utils/export";
-import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
+import {
+  canUseNativeAndroidPrint,
+  requestNativeAndroidPrint,
+} from "@/lib/nativePrint";
 
 const isNativeCapacitorPlatform = () => Capacitor.isNativePlatform();
 
@@ -14,7 +17,8 @@ function preferPdfOverBrowserPrint(): boolean {
   if (isNativeCapacitorPlatform()) return true;
   if (window.matchMedia("(max-width: 768px)").matches) return true;
   try {
-    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) return true;
+    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches)
+      return true;
   } catch {
     /* ignore */
   }
@@ -125,7 +129,7 @@ const SNAPSHOT_STYLE_PROPERTIES = [
 
 function setSafeBackgroundImage(
   style: CSSStyleDeclaration,
-  computedStyle: CSSStyleDeclaration
+  computedStyle: CSSStyleDeclaration,
 ) {
   const backgroundImage = computedStyle.backgroundImage;
   if (
@@ -143,7 +147,7 @@ function setSafeBackgroundImage(
 function applySnapshotSafeStyles(
   sourceElement: HTMLElement,
   cloneElement: HTMLElement,
-  sourceWindow: Window
+  sourceWindow: Window,
 ) {
   const computedStyle = sourceWindow.getComputedStyle(sourceElement);
   const style = cloneElement.style;
@@ -166,7 +170,10 @@ function applySnapshotSafeStyles(
 }
 
 function syncFormState(sourceElement: HTMLElement, cloneElement: HTMLElement) {
-  if (sourceElement instanceof HTMLInputElement && cloneElement instanceof HTMLInputElement) {
+  if (
+    sourceElement instanceof HTMLInputElement &&
+    cloneElement instanceof HTMLInputElement
+  ) {
     cloneElement.value = sourceElement.value;
     cloneElement.checked = sourceElement.checked;
     cloneElement.disabled = sourceElement.disabled;
@@ -182,13 +189,22 @@ function syncFormState(sourceElement: HTMLElement, cloneElement: HTMLElement) {
     return;
   }
 
-  if (sourceElement instanceof HTMLSelectElement && cloneElement instanceof HTMLSelectElement) {
+  if (
+    sourceElement instanceof HTMLSelectElement &&
+    cloneElement instanceof HTMLSelectElement
+  ) {
     cloneElement.value = sourceElement.value;
   }
 }
 
-function syncCanvasContent(sourceElement: HTMLElement, cloneElement: HTMLElement) {
-  if (!(sourceElement instanceof HTMLCanvasElement) || !(cloneElement instanceof HTMLCanvasElement)) {
+function syncCanvasContent(
+  sourceElement: HTMLElement,
+  cloneElement: HTMLElement,
+) {
+  if (
+    !(sourceElement instanceof HTMLCanvasElement) ||
+    !(cloneElement instanceof HTMLCanvasElement)
+  ) {
     return;
   }
 
@@ -202,11 +218,17 @@ function syncCanvasContent(sourceElement: HTMLElement, cloneElement: HTMLElement
 function sanitizeTreeIntoIsolatedDocument(
   sourceElement: HTMLElement,
   targetDocument: Document,
-  sourceWindow: Window
+  sourceWindow: Window,
 ): HTMLElement {
   const cloneRoot = sourceElement.cloneNode(true) as HTMLElement;
-  const sourceNodes = [sourceElement, ...Array.from(sourceElement.querySelectorAll<HTMLElement>("*"))];
-  const cloneNodes = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>("*"))];
+  const sourceNodes = [
+    sourceElement,
+    ...Array.from(sourceElement.querySelectorAll<HTMLElement>("*")),
+  ];
+  const cloneNodes = [
+    cloneRoot,
+    ...Array.from(cloneRoot.querySelectorAll<HTMLElement>("*")),
+  ];
 
   cloneNodes.forEach((cloneNode, index) => {
     const sourceNode = sourceNodes[index];
@@ -242,7 +264,9 @@ async function createIsolatedSnapshotTarget(sourceElement: HTMLElement) {
   }
 
   iframeDocument.open();
-  iframeDocument.write(`<!doctype html><html><head><meta charset="utf-8" /></head><body></body></html>`);
+  iframeDocument.write(
+    `<!doctype html><html><head><meta charset="utf-8" /></head><body></body></html>`,
+  );
   iframeDocument.close();
 
   const baseStyle = iframeDocument.createElement("style");
@@ -261,7 +285,11 @@ async function createIsolatedSnapshotTarget(sourceElement: HTMLElement) {
   `;
   iframeDocument.head.appendChild(baseStyle);
 
-  const cloneRoot = sanitizeTreeIntoIsolatedDocument(sourceElement, iframeDocument, window);
+  const cloneRoot = sanitizeTreeIntoIsolatedDocument(
+    sourceElement,
+    iframeDocument,
+    window,
+  );
 
   await new Promise<void>((resolve) => {
     iframeWindow.requestAnimationFrame(() => resolve());
@@ -277,8 +305,12 @@ async function createIsolatedSnapshotTarget(sourceElement: HTMLElement) {
 }
 
 async function savePdfToNativeFile(bytes: Uint8Array, fileName: string) {
-  const normalizedName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+  const normalizedName = fileName.endsWith(".pdf")
+    ? fileName
+    : `${fileName}.pdf`;
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join(
+    "",
+  );
   const base64Data = btoa(binary);
   const result = await Filesystem.writeFile({
     path: normalizedName,
@@ -294,8 +326,10 @@ export async function exportElementToPdf({
   selector = "[data-mobile-pdf-root]",
   element,
 }: ExportElementToPdfOptions) {
-  if (typeof window === "undefined" || typeof document === "undefined") return false;
-  const target = element ?? (document.querySelector(selector) as HTMLElement | null);
+  if (typeof window === "undefined" || typeof document === "undefined")
+    return false;
+  const target =
+    element ?? (document.querySelector(selector) as HTMLElement | null);
   if (!target) return false;
 
   const previousScrollTop = target.scrollTop;
@@ -321,11 +355,11 @@ export async function exportElementToPdf({
         scrollY: 0,
         windowWidth: Math.max(
           snapshot.iframeDocument.documentElement.clientWidth,
-          snapshot.cloneRoot.scrollWidth
+          snapshot.cloneRoot.scrollWidth,
         ),
         windowHeight: Math.max(
           snapshot.iframeDocument.documentElement.clientHeight,
-          snapshot.cloneRoot.scrollHeight
+          snapshot.cloneRoot.scrollHeight,
         ),
       });
 
@@ -335,9 +369,16 @@ export async function exportElementToPdf({
       const margin = 12;
       const usableWidth = pageWidth - margin * 2;
       const scale = usableWidth / canvas.width;
-      const sourcePageHeight = Math.max(1, Math.floor((pageHeight - margin * 2) / scale));
+      const sourcePageHeight = Math.max(
+        1,
+        Math.floor((pageHeight - margin * 2) / scale),
+      );
 
-      for (let sourceY = 0; sourceY < canvas.height; sourceY += sourcePageHeight) {
+      for (
+        let sourceY = 0;
+        sourceY < canvas.height;
+        sourceY += sourcePageHeight
+      ) {
         const sliceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
         const sliceCanvas = document.createElement("canvas");
         sliceCanvas.width = canvas.width;
@@ -355,7 +396,7 @@ export async function exportElementToPdf({
           0,
           0,
           canvas.width,
-          sliceHeight
+          sliceHeight,
         );
 
         const dataUrl = sliceCanvas.toDataURL("image/jpeg", 0.92);
@@ -371,10 +412,15 @@ export async function exportElementToPdf({
       }
 
       const bytes = await pdf.save();
-      const normalizedFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+      const normalizedFileName = fileName.endsWith(".pdf")
+        ? fileName
+        : `${fileName}.pdf`;
 
       if (isNativeCapacitorPlatform()) {
-        const fileUri = await savePdfToNativeFile(new Uint8Array(bytes), normalizedFileName);
+        const fileUri = await savePdfToNativeFile(
+          new Uint8Array(bytes),
+          normalizedFileName,
+        );
         await Share.share({
           title: normalizedFileName,
           text: normalizedFileName,
@@ -384,7 +430,9 @@ export async function exportElementToPdf({
         return true;
       }
 
-      const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
+      const blob = new Blob([new Uint8Array(bytes)], {
+        type: "application/pdf",
+      });
       await triggerBlobDownload(blob, normalizedFileName);
       return true;
     } finally {
@@ -400,8 +448,10 @@ export async function captureElementAsJpg({
   element,
   quality = 0.92,
 }: ExportElementToJpgOptions = {}) {
-  if (typeof window === "undefined" || typeof document === "undefined") return null;
-  const target = element ?? (document.querySelector(selector) as HTMLElement | null);
+  if (typeof window === "undefined" || typeof document === "undefined")
+    return null;
+  const target =
+    element ?? (document.querySelector(selector) as HTMLElement | null);
   if (!target) return null;
 
   const previousScrollTop = target.scrollTop;
@@ -427,11 +477,11 @@ export async function captureElementAsJpg({
         scrollY: 0,
         windowWidth: Math.max(
           snapshot.iframeDocument.documentElement.clientWidth,
-          snapshot.cloneRoot.scrollWidth
+          snapshot.cloneRoot.scrollWidth,
         ),
         windowHeight: Math.max(
           snapshot.iframeDocument.documentElement.clientHeight,
-          snapshot.cloneRoot.scrollHeight
+          snapshot.cloneRoot.scrollHeight,
         ),
       });
 
@@ -449,7 +499,9 @@ export async function captureElementAsJpg({
 
 export async function printOrExportPdf(
   fileName: string,
-  options?: Omit<ExportElementToPdfOptions, "fileName"> & { forceBrowserPrint?: boolean },
+  options?: Omit<ExportElementToPdfOptions, "fileName"> & {
+    forceBrowserPrint?: boolean;
+  },
 ) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return false;

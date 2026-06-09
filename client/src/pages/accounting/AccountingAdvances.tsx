@@ -244,221 +244,231 @@ export default function AccountingAdvances() {
               </div>
             </div>
 
-            <div ref={formRef} className="min-w-0 border-t border-border pt-4 xl:w-[480px] xl:border-t-0 xl:border-s xl:pt-0 xl:ps-5">
+            <div
+              ref={formRef}
+              className="min-w-0 border-t border-border pt-4 xl:w-[480px] xl:border-t-0 xl:border-s xl:pt-0 xl:ps-5"
+            >
               <div className="mb-3 flex items-center justify-between">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    {editingId ? "تعديل قيد" : "إضافة سلفة"}
-                  </div>
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="rounded-md px-2 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-muted text-muted-foreground"
-                    >
-                      إلغاء
-                    </button>
-                  )}
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {editingId ? "تعديل قيد" : "إضافة سلفة"}
+                </div>
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-md px-2 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-muted text-muted-foreground"
+                  >
+                    إلغاء
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="advances-date"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    التاريخ
+                  </label>
+                  <input
+                    id="advances-date"
+                    type="date"
+                    value={txDate}
+                    onChange={(e) => setTxDate(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="advances-date"
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      التاريخ
-                    </label>
+                <div className="relative flex flex-col gap-1.5 sm:col-span-1">
+                  <label
+                    htmlFor="advances-employee"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    الموظف{" "}
+                    <span aria-hidden="true" className="text-destructive">
+                      *
+                    </span>
+                  </label>
+                  <div className="relative">
                     <input
-                      id="advances-date"
-                      type="date"
-                      value={txDate}
-                      onChange={(e) => setTxDate(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    />
-                  </div>
-
-                  <div className="relative flex flex-col gap-1.5 sm:col-span-1">
-                    <label
-                      htmlFor="advances-employee"
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      الموظف <span aria-hidden="true" className="text-destructive">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="advances-employee"
-                        type="text"
-                        role="combobox"
-                        aria-expanded={empOpen}
-                        aria-haspopup="listbox"
-                        aria-autocomplete="list"
-                        aria-required="true"
-                        required
-                        value={employee}
-                        onChange={(e) => {
-                          setEmployee(e.target.value);
-                          setEmpOpen(true);
-                        }}
-                        onFocus={() => setEmpOpen(true)}
-                        onBlur={() => setTimeout(() => setEmpOpen(false), 150)}
-                        placeholder="اختر أو اكتب..."
-                        className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                      />
-                      <ChevronDown className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                      {empOpen && employees.length > 0 && (
-                        <div role="listbox" className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-background shadow-lg">
-                          {employees
-                            .filter(
-                              (e) => !employee || e.name.includes(employee),
-                            )
-                            .map((e) => (
-                              <button
-                                key={e.id}
-                                type="button"
-                                role="option"
-                                aria-selected={employee === e.name}
-                                onMouseDown={() => {
-                                  setEmployee(e.name);
-                                  setEmpOpen(false);
-                                }}
-                                className={cn(
-                                  "flex w-full items-center px-3 py-2 text-sm text-right hover:bg-muted",
-                                  employee === e.name &&
-                                    "bg-primary text-primary-foreground",
-                                )}
-                              >
-                                {e.name}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="advances-advance"
-                      className="text-xs font-medium text-warning"
-                    >
-                      سلفة
-                    </label>
-                    <input
-                      id="advances-advance"
-                      type="number"
-                      min="0"
-                      value={advance}
-                      onChange={(e) => setAdvance(e.target.value)}
-                      placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-warning outline-none placeholder:text-muted-foreground transition-colors focus:border-warning focus:ring-2 focus:ring-warning/20"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="advances-repayment"
-                      className="text-xs font-medium text-success"
-                    >
-                      سداد
-                    </label>
-                    <input
-                      id="advances-repayment"
-                      type="number"
-                      min="0"
-                      value={repayment}
-                      onChange={(e) => setRepayment(e.target.value)}
-                      placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success outline-none placeholder:text-muted-foreground transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label
-                      htmlFor="advances-notes"
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      ملاحظات
-                    </label>
-                    <input
-                      id="advances-notes"
+                      id="advances-employee"
                       type="text"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="ملاحظات..."
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      role="combobox"
+                      aria-expanded={empOpen}
+                      aria-haspopup="listbox"
+                      aria-autocomplete="list"
+                      aria-required="true"
+                      required
+                      value={employee}
+                      onChange={(e) => {
+                        setEmployee(e.target.value);
+                        setEmpOpen(true);
+                      }}
+                      onFocus={() => setEmpOpen(true)}
+                      onBlur={() => setTimeout(() => setEmpOpen(false), 150)}
+                      placeholder="اختر أو اكتب..."
+                      className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
+                    <ChevronDown
+                      className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden
+                    />
+                    {empOpen && employees.length > 0 && (
+                      <div
+                        role="listbox"
+                        className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-background shadow-lg"
+                      >
+                        {employees
+                          .filter((e) => !employee || e.name.includes(employee))
+                          .map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              role="option"
+                              aria-selected={employee === e.name}
+                              onMouseDown={() => {
+                                setEmployee(e.name);
+                                setEmpOpen(false);
+                              }}
+                              className={cn(
+                                "flex w-full items-center px-3 py-2 text-sm text-right hover:bg-muted",
+                                employee === e.name &&
+                                  "bg-primary text-primary-foreground",
+                              )}
+                            >
+                              {e.name}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {editingId ? (
-                    <>
-                      {delConfirm ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={handleDelete}
-                            disabled={busy}
-                            className="inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg bg-destructive text-destructive-foreground transition-opacity hover:bg-destructive/90 disabled:opacity-40 sm:w-auto"
-                          >
-                            {busy ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              "تأكيد الحذف"
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDelConfirm(false)}
-                            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted-foreground hover:bg-muted sm:w-auto"
-                          >
-                            إلغاء
-                          </button>
-                        </>
-                      ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="advances-advance"
+                    className="text-xs font-medium text-warning"
+                  >
+                    سلفة
+                  </label>
+                  <input
+                    id="advances-advance"
+                    type="number"
+                    min="0"
+                    value={advance}
+                    onChange={(e) => setAdvance(e.target.value)}
+                    placeholder="0"
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-warning outline-none placeholder:text-muted-foreground transition-colors focus:border-warning focus:ring-2 focus:ring-warning/20"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="advances-repayment"
+                    className="text-xs font-medium text-success"
+                  >
+                    سداد
+                  </label>
+                  <input
+                    id="advances-repayment"
+                    type="number"
+                    min="0"
+                    value={repayment}
+                    onChange={(e) => setRepayment(e.target.value)}
+                    placeholder="0"
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success outline-none placeholder:text-muted-foreground transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label
+                    htmlFor="advances-notes"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    ملاحظات
+                  </label>
+                  <input
+                    id="advances-notes"
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="ملاحظات..."
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {editingId ? (
+                  <>
+                    {delConfirm ? (
+                      <>
                         <button
                           type="button"
-                          aria-label="حذف القيد"
-                          onClick={() => setDelConfirm(true)}
+                          onClick={handleDelete}
                           disabled={busy}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-destructive-foreground bg-destructive text-destructive-foreground disabled:opacity-40"
+                          className="inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg bg-destructive text-destructive-foreground transition-opacity hover:bg-destructive/90 disabled:opacity-40 sm:w-auto"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {busy ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "تأكيد الحذف"
+                          )}
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => setDelConfirm(false)}
+                          className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted-foreground hover:bg-muted sm:w-auto"
+                        >
+                          إلغاء
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={handleSubmit}
-                        disabled={busy || !txDate || !employee.trim()}
-                        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
+                        aria-label="حذف القيد"
+                        onClick={() => setDelConfirm(true)}
+                        disabled={busy}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-destructive-foreground bg-destructive text-destructive-foreground disabled:opacity-40"
                       >
-                        {busy ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "تحديث"
-                        )}
+                        <Trash2 className="h-4 w-4" />
                       </button>
-                    </>
-                  ) : (
+                    )}
                     <button
                       type="button"
-                      aria-label="إضافة سلفة"
-                      disabled={busy || !txDate || !employee.trim()}
                       onClick={handleSubmit}
-                      className={cn(
-                        "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto",
-                        saved ? "bg-success/100" : "bg-primary",
-                      )}
+                      disabled={busy || !txDate || !employee.trim()}
+                      className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
                     >
                       {busy ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : saved ? (
-                        <Check className="h-4 w-4" />
                       ) : (
-                        <span className="text-base leading-none">+</span>
+                        "تحديث"
                       )}
-                      <span>إضافة</span>
                     </button>
-                  )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="إضافة سلفة"
+                    disabled={busy || !txDate || !employee.trim()}
+                    onClick={handleSubmit}
+                    className={cn(
+                      "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto",
+                      saved ? "bg-success/100" : "bg-primary",
+                    )}
+                  >
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : saved ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <span className="text-base leading-none">+</span>
+                    )}
+                    <span>إضافة</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -482,7 +492,9 @@ export default function AccountingAdvances() {
                 <svg
                   className={cn(
                     "h-3.5 w-3.5 transition-transform duration-200",
-                    tableOpen ? "text-card-foreground" : "text-muted-foreground -rotate-90",
+                    tableOpen
+                      ? "text-card-foreground"
+                      : "text-muted-foreground -rotate-90",
                   )}
                   viewBox="0 0 16 16"
                   fill="none"
@@ -508,8 +520,13 @@ export default function AccountingAdvances() {
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex h-10 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 sm:w-auto">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <label htmlFor="advances-search" className="sr-only">بحث في حركات السلف</label>
+                <Search
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                <label htmlFor="advances-search" className="sr-only">
+                  بحث في حركات السلف
+                </label>
                 <input
                   id="advances-search"
                   type="text"
@@ -600,7 +617,9 @@ export default function AccountingAdvances() {
                         <div
                           className={cn(
                             "mt-1 font-semibold tabular-nums",
-                            row.advance ? "text-warning" : "text-muted-foreground",
+                            row.advance
+                              ? "text-warning"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.advance ? fmt(row.advance) : "—"}

@@ -3,11 +3,11 @@
  * Maintains the attendance_employees mirror table
  */
 
-import * as crypto from 'crypto';
-import { getDb } from '../../db';
-import { attendanceEmployees } from '../../../drizzle/schema';
-import { eq, sql } from 'drizzle-orm';
-import { RawEmployee } from './sources/AttendanceSource';
+import * as crypto from "crypto";
+import { getDb } from "../../db";
+import { attendanceEmployees } from "../../../drizzle/schema";
+import { eq, sql } from "drizzle-orm";
+import { RawEmployee } from "./sources/AttendanceSource";
 
 export class EmployeesService {
   /**
@@ -16,9 +16,12 @@ export class EmployeesService {
    */
   static async upsertEmployee(emp: RawEmployee): Promise<void> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
-    const sourceHash = crypto.createHash('sha1').update(JSON.stringify(emp)).digest('hex');
+    const sourceHash = crypto
+      .createHash("sha1")
+      .update(JSON.stringify(emp))
+      .digest("hex");
     const now = new Date();
 
     await db
@@ -48,13 +51,13 @@ export class EmployeesService {
    */
   static async insertUnknownPlaceholder(): Promise<void> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const now = new Date();
     try {
       await db.execute(
         sql`INSERT IGNORE INTO ${attendanceEmployees} (emp_cd, full_name, active, created_at, updated_at)
-          VALUES ('UNKNOWN', 'UNKNOWN', 0, ${now}, ${now})`
+          VALUES ('UNKNOWN', 'UNKNOWN', 0, ${now}, ${now})`,
       );
     } catch {
       // Row may already exist, which is fine
@@ -66,7 +69,7 @@ export class EmployeesService {
    */
   static async getByCode(empCd: string): Promise<any | null> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const result = await db
       .select()

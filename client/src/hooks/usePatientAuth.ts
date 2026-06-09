@@ -11,7 +11,10 @@ export type PatientAuthState = {
   name: string | null;
   patientCode: string | null;
   isLoggedIn: boolean;
-  login: (token: string, patient: { name: string; patientCode: string }) => void;
+  login: (
+    token: string,
+    patient: { name: string; patientCode: string },
+  ) => void;
   logout: () => void;
 };
 
@@ -19,7 +22,9 @@ function decodeJwtPayload(token: string): any | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
     if (payload.exp && payload.exp * 1000 < Date.now()) return null;
     return payload;
   } catch {
@@ -29,13 +34,22 @@ function decodeJwtPayload(token: string): any | null {
 
 export function usePatientAuth(): PatientAuthState {
   const [token, setToken] = useState<string | null>(() => {
-    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
   });
-  const [patientMeta, setPatientMeta] = useState<{ name: string; patientCode: string } | null>(() => {
+  const [patientMeta, setPatientMeta] = useState<{
+    name: string;
+    patientCode: string;
+  } | null>(() => {
     try {
       const raw = localStorage.getItem(META_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   });
 
   const payload = token ? decodeJwtPayload(token) : null;
@@ -82,13 +96,16 @@ export function usePatientAuth(): PatientAuthState {
     }
   }, [token, isLoggedIn]);
 
-  const login = useCallback((newToken: string, patient: { name: string; patientCode: string }) => {
-    localStorage.setItem(STORAGE_KEY, newToken);
-    localStorage.setItem(META_KEY, JSON.stringify(patient));
-    setToken(newToken);
-    setPatientMeta(patient);
-    window.dispatchEvent(new Event(AUTH_EVENT));
-  }, []);
+  const login = useCallback(
+    (newToken: string, patient: { name: string; patientCode: string }) => {
+      localStorage.setItem(STORAGE_KEY, newToken);
+      localStorage.setItem(META_KEY, JSON.stringify(patient));
+      setToken(newToken);
+      setPatientMeta(patient);
+      window.dispatchEvent(new Event(AUTH_EVENT));
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);

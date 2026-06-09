@@ -7,11 +7,11 @@
 
 ## PASS / FAIL summary
 
-| Step | Command | Result |
-|------|---------|--------|
-| Typecheck | `pnpm check` | **PASS** (exit 0) |
-| Tests | `pnpm test` | **PASS** (exit 0) |
-| Production build | `pnpm build` | **PASS** (exit 0) |
+| Step             | Command      | Result                                                |
+| ---------------- | ------------ | ----------------------------------------------------- |
+| Typecheck        | `pnpm check` | **PASS** (exit 0)                                     |
+| Tests            | `pnpm test`  | **PASS** (exit 0)                                     |
+| Production build | `pnpm build` | **PASS** (exit 0)                                     |
 | Production serve | `pnpm start` | **PASS** when an available `PORT` is used (see below) |
 
 ---
@@ -91,14 +91,14 @@ Exit code: **0** (process ran until stopped manually).
 
 Base URL during verification: **`http://127.0.0.1:4010`** (first successful listener after build). Replace host/port with your deployment (`HOST` / `PORT` from `.env`; defaults `0.0.0.0` / `4000`).
 
-| Path | Expected |
-|------|----------|
-| `http://127.0.0.1:<PORT>/dashboard` | **200** — SPA shell (`index.html`, ~4185 bytes in this build) |
-| `http://127.0.0.1:<PORT>/patients` | **200** |
-| `http://127.0.0.1:<PORT>/accounting` | **200** |
-| `http://127.0.0.1:<PORT>/accounting/daily-revenue` | **200** |
-| `http://127.0.0.1:<PORT>/accounting/service-revenue` | **200** |
-| `http://127.0.0.1:<PORT>/accounting/receipts` | **200** |
+| Path                                                 | Expected                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------- |
+| `http://127.0.0.1:<PORT>/dashboard`                  | **200** — SPA shell (`index.html`, ~4185 bytes in this build) |
+| `http://127.0.0.1:<PORT>/patients`                   | **200**                                                       |
+| `http://127.0.0.1:<PORT>/accounting`                 | **200**                                                       |
+| `http://127.0.0.1:<PORT>/accounting/daily-revenue`   | **200**                                                       |
+| `http://127.0.0.1:<PORT>/accounting/service-revenue` | **200**                                                       |
+| `http://127.0.0.1:<PORT>/accounting/receipts`        | **200**                                                       |
 
 **Recorded probe (4010):** all six paths returned **200** with identical document length **4185** (client routing is client-side; success means the built app is served).
 

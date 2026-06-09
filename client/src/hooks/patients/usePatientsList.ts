@@ -1,8 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";
-import { normalizeSearchText, matchesServiceCodeOrNameTerm } from "@/lib/patientFiltering";
-import { normalizeServiceCode, normalizeSheetType } from "@/lib/patientsHelpers";
+import {
+  normalizeSearchText,
+  matchesServiceCodeOrNameTerm,
+} from "@/lib/patientFiltering";
+import {
+  normalizeServiceCode,
+  normalizeSheetType,
+} from "@/lib/patientsHelpers";
 
 export type PatientCursor = {
   codeNum: number;
@@ -12,11 +18,22 @@ export type PatientCursor = {
 
 const mapLegacyServiceTypeToModernTabs = (legacyType: string): string[] => {
   const normalized = normalizeSheetType(legacyType);
-  if (normalized === "pentacam_center" || normalized === "pentacam_c") return ["lasik"];
-  if (normalized === "pentacam_external" || normalized === "pentacam_ex" || normalized === "pentacam_ex_c") return ["external"];
+  if (normalized === "pentacam_center" || normalized === "pentacam_c")
+    return ["lasik"];
+  if (
+    normalized === "pentacam_external" ||
+    normalized === "pentacam_ex" ||
+    normalized === "pentacam_ex_c"
+  )
+    return ["external"];
   if (normalized === "surgery") return ["consultant"];
   if (normalized === "surgery_external") return ["external"];
-  if (normalized === "consultant" || normalized === "specialist" || normalized === "lasik" || normalized === "external") {
+  if (
+    normalized === "consultant" ||
+    normalized === "specialist" ||
+    normalized === "lasik" ||
+    normalized === "external"
+  ) {
     return [normalized];
   }
   return ["consultant"];
@@ -25,38 +42,57 @@ const mapLegacyServiceTypeToModernTabs = (legacyType: string): string[] => {
 export function usePatientsList(isAuthenticated: boolean) {
   const utils = trpc.useUtils();
   const searchString = useSearch();
-  const initialSearch = useMemo(() => new URLSearchParams(searchString).get("q") ?? "", []);
-  
+  const initialSearch = useMemo(
+    () => new URLSearchParams(searchString).get("q") ?? "",
+    [],
+  );
+
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [cursor, setCursor] = useState<PatientCursor | null>(null);
-  const [cursorHistory, setCursorHistory] = useState<Array<PatientCursor | null>>([]);
+  const [cursorHistory, setCursorHistory] = useState<
+    Array<PatientCursor | null>
+  >([]);
   const [pageSize, setPageSize] = useState(25);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
-  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const [locationTypeFilter, setLocationTypeFilter] = useState<
+    "all" | "center" | "external"
+  >("all");
 
   const userStateQuery = trpc.medical.getUserPageState.useQuery(
     { page: "patients" },
-    { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, refetchOnReconnect: false }
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+      refetchOnReconnect: false,
+    },
   );
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
 
-  const doctorDirectoryQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 60 * 60 * 1000,
-    refetchOnReconnect: false,
-  });
+  const doctorDirectoryQuery = trpc.medical.getDoctorDirectory.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 60 * 1000,
+      refetchOnReconnect: false,
+    },
+  );
 
-  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 60 * 60 * 1000,
-    refetchOnReconnect: false,
-  });
+  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 60 * 1000,
+      refetchOnReconnect: false,
+    },
+  );
 
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didHydrateUserStateRef = useRef(false);
@@ -75,8 +111,18 @@ export function usePatientsList(isAuthenticated: boolean) {
       const nextTab = String(data.activeTab ?? "consultant");
       const allowedTabs = new Set([
         "all",
-        "consultant", "specialist", "pentacam", "pentacam_center", "pentacam_external",
-        "pentacam_c", "pentacam_ex", "pentacam_ex_c", "lasik", "external", "surgery", "surgery_external",
+        "consultant",
+        "specialist",
+        "pentacam",
+        "pentacam_center",
+        "pentacam_external",
+        "pentacam_c",
+        "pentacam_ex",
+        "pentacam_ex_c",
+        "lasik",
+        "external",
+        "surgery",
+        "surgery_external",
       ]);
       setActiveTab(allowedTabs.has(nextTab) ? nextTab : "consultant");
     }
@@ -136,17 +182,34 @@ export function usePatientsList(isAuthenticated: boolean) {
     return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
   };
 
-  const hasActiveDateFilters = Boolean(toIsoDate(dateFrom) || toIsoDate(dateTo));
+  const hasActiveDateFilters = Boolean(
+    toIsoDate(dateFrom) || toIsoDate(dateTo),
+  );
   const liveSearchTerm = normalizeSearchText(searchTerm);
   const useClientFilterWindow = Boolean(liveSearchTerm || hasActiveDateFilters);
 
-  const backendServiceType = useMemo<"consultant" | "specialist" | "lasik" | "surgery" | "external" | undefined>(() => {
+  const backendServiceType = useMemo<
+    "consultant" | "specialist" | "lasik" | "surgery" | "external" | undefined
+  >(() => {
     if (activeTab === "all") return undefined;
-    if (activeTab === "consultant" || activeTab === "specialist" || activeTab === "lasik" || activeTab === "surgery" || activeTab === "external") {
+    if (
+      activeTab === "consultant" ||
+      activeTab === "specialist" ||
+      activeTab === "lasik" ||
+      activeTab === "surgery" ||
+      activeTab === "external"
+    ) {
       return activeTab;
     }
-    if (activeTab === "pentacam_center" || activeTab === "pentacam_c") return "lasik";
-    if (activeTab === "pentacam_external" || activeTab === "pentacam_ex" || activeTab === "pentacam_ex_c" || activeTab === "surgery_external") return "external";
+    if (activeTab === "pentacam_center" || activeTab === "pentacam_c")
+      return "lasik";
+    if (
+      activeTab === "pentacam_external" ||
+      activeTab === "pentacam_ex" ||
+      activeTab === "pentacam_ex_c" ||
+      activeTab === "surgery_external"
+    )
+      return "external";
     return undefined;
   }, [activeTab]);
 
@@ -157,9 +220,12 @@ export function usePatientsList(isAuthenticated: boolean) {
       dateFrom: toIsoDate(dateFrom) || undefined,
       dateTo: toIsoDate(dateTo) || undefined,
       serviceType: backendServiceType,
-      locationType: locationTypeFilter === "all" ? undefined : locationTypeFilter,
-      limit: useClientFilterWindow ? 500 : Math.min(500, Math.max(pageSize * 4, pageSize)),
-      cursor: useClientFilterWindow ? undefined : cursor ?? undefined,
+      locationType:
+        locationTypeFilter === "all" ? undefined : locationTypeFilter,
+      limit: useClientFilterWindow
+        ? 500
+        : Math.min(500, Math.max(pageSize * 4, pageSize)),
+      cursor: useClientFilterWindow ? undefined : (cursor ?? undefined),
     },
     {
       enabled: isAuthenticated,
@@ -167,17 +233,35 @@ export function usePatientsList(isAuthenticated: boolean) {
       staleTime: 30 * 1000,
       refetchOnReconnect: false,
       retry: 1,
-    }
+    },
   );
 
   useEffect(() => {
     setCursor(null);
     setCursorHistory([]);
-  }, [debouncedSearchTerm, activeTab, dateFrom, dateTo, pageSize, locationTypeFilter]);
+  }, [
+    debouncedSearchTerm,
+    activeTab,
+    dateFrom,
+    dateTo,
+    pageSize,
+    locationTypeFilter,
+  ]);
 
-  const availableDoctors = ((doctorDirectoryQuery.data ?? []) as Array<{ id: string; name: string; code: string; isActive?: boolean }>)
+  const availableDoctors = (
+    (doctorDirectoryQuery.data ?? []) as Array<{
+      id: string;
+      name: string;
+      code: string;
+      isActive?: boolean;
+    }>
+  )
     .filter((doctor) => doctor.isActive !== false)
-    .sort((a, b) => String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true }));
+    .sort((a, b) =>
+      String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", {
+        numeric: true,
+      }),
+    );
 
   const doctorsLoading = !!doctorDirectoryQuery?.isLoading;
 
@@ -185,19 +269,27 @@ export function usePatientsList(isAuthenticated: boolean) {
   const patientsPayload = (
     Array.isArray(rawPatientsData)
       ? { rows: rawPatientsData, hasMore: false, nextCursor: null }
-      : rawPatientsData ?? { rows: [], hasMore: false, nextCursor: null }
+      : (rawPatientsData ?? { rows: [], hasMore: false, nextCursor: null })
   ) as {
     rows: any[];
     hasMore: boolean;
     nextCursor: PatientCursor | null;
   };
-  const patientsFromDb = (Array.isArray(patientsPayload.rows) ? patientsPayload.rows : []) as any[];
-  const hasMore = useClientFilterWindow ? false : Boolean(patientsPayload.hasMore);
-  const nextCursor = useClientFilterWindow ? null : patientsPayload.nextCursor ?? null;
+  const patientsFromDb = (
+    Array.isArray(patientsPayload.rows) ? patientsPayload.rows : []
+  ) as any[];
+  const hasMore = useClientFilterWindow
+    ? false
+    : Boolean(patientsPayload.hasMore);
+  const nextCursor = useClientFilterWindow
+    ? null
+    : (patientsPayload.nextCursor ?? null);
   const currentPage = useClientFilterWindow ? 1 : cursorHistory.length + 1;
 
   const serviceCodeToLabel = useMemo(() => {
-    const list = Array.isArray(serviceDirectoryQuery.data) ? serviceDirectoryQuery.data : [];
+    const list = Array.isArray(serviceDirectoryQuery.data)
+      ? serviceDirectoryQuery.data
+      : [];
     const map = new Map<string, string>();
     for (const item of list) {
       const code = String(item?.code ?? "").trim();
@@ -209,11 +301,17 @@ export function usePatientsList(isAuthenticated: boolean) {
   }, [serviceDirectoryQuery.data]);
 
   const serviceCodeToType = useMemo(() => {
-    const list = Array.isArray(serviceDirectoryQuery.data) ? serviceDirectoryQuery.data : [];
+    const list = Array.isArray(serviceDirectoryQuery.data)
+      ? serviceDirectoryQuery.data
+      : [];
     const map = new Map<string, string>();
     for (const item of list) {
       const code = String(item?.code ?? "").trim();
-      const type = String((item as any)?.defaultSheet ?? item?.serviceType ?? "").trim().toLowerCase();
+      const type = String(
+        (item as any)?.defaultSheet ?? item?.serviceType ?? "",
+      )
+        .trim()
+        .toLowerCase();
       if (!code || !type) continue;
       map.set(normalizeServiceCode(code), type);
     }
@@ -222,11 +320,17 @@ export function usePatientsList(isAuthenticated: boolean) {
 
   const serviceTypeToDefaultName = useMemo(() => {
     const map = new Map<string, string>();
-    const list = Array.isArray(serviceDirectoryQuery.data) ? serviceDirectoryQuery.data : [];
+    const list = Array.isArray(serviceDirectoryQuery.data)
+      ? serviceDirectoryQuery.data
+      : [];
     for (const item of list) {
       const code = String(item?.code ?? "").trim();
       const name = String(item?.name ?? "").trim();
-      const type = String((item as any)?.defaultSheet ?? item?.serviceType ?? "").trim().toLowerCase();
+      const type = String(
+        (item as any)?.defaultSheet ?? item?.serviceType ?? "",
+      )
+        .trim()
+        .toLowerCase();
       if (!code || !name || !type) continue;
       const normalized = normalizeSheetType(type);
       if (normalized && !map.has(normalized)) {
@@ -239,23 +343,36 @@ export function usePatientsList(isAuthenticated: boolean) {
   const getPatientRowKey = (patient: any) =>
     String(
       (patient as any).__rowKey ??
-        `${patient.id}-${normalizeServiceCode((patient as any).__serviceCodeSingle || (patient as any).serviceCode || "base")}`
+        `${patient.id}-${normalizeServiceCode((patient as any).__serviceCodeSingle || (patient as any).serviceCode || "base")}`,
     );
 
   const resolveServiceTypes = (patient: any) => {
-    const singleCode = normalizeServiceCode((patient as any).__serviceCodeSingle);
+    const singleCode = normalizeServiceCode(
+      (patient as any).__serviceCodeSingle,
+    );
     if (singleCode) {
-      const rowMappedType = normalizeSheetType((patient as any).__serviceTypeSingle);
-      if (rowMappedType) return new Set<string>(mapLegacyServiceTypeToModernTabs(rowMappedType));
+      const rowMappedType = normalizeSheetType(
+        (patient as any).__serviceTypeSingle,
+      );
+      if (rowMappedType)
+        return new Set<string>(mapLegacyServiceTypeToModernTabs(rowMappedType));
       const mapped = normalizeSheetType(serviceCodeToType.get(singleCode));
       if (mapped) {
         return new Set<string>(mapLegacyServiceTypeToModernTabs(mapped));
       }
-      const singleType = normalizeSheetType((patient as any).__serviceTypeSingle ?? patient?.serviceType ?? "consultant");
-      return new Set<string>(mapLegacyServiceTypeToModernTabs(singleType || "consultant"));
+      const singleType = normalizeSheetType(
+        (patient as any).__serviceTypeSingle ??
+          patient?.serviceType ??
+          "consultant",
+      );
+      return new Set<string>(
+        mapLegacyServiceTypeToModernTabs(singleType || "consultant"),
+      );
     }
     const codes = [
-      ...((Array.isArray(patient?.serviceCodes) ? patient.serviceCodes : []) as unknown[]),
+      ...((Array.isArray(patient?.serviceCodes)
+        ? patient.serviceCodes
+        : []) as unknown[]),
       patient?.serviceCode,
     ]
       .map((v) => normalizeServiceCode(v))
@@ -328,16 +445,22 @@ export function usePatientsList(isAuthenticated: boolean) {
       const code = String(p.patientCode ?? "").toLowerCase();
       const phone = String(p.phone ?? "").toLowerCase();
       const nationalId = String(p.nationalId ?? "").toLowerCase();
-      const treatingDoctor = String((p as any).treatingDoctor ?? "").toLowerCase();
+      const treatingDoctor = String(
+        (p as any).treatingDoctor ?? "",
+      ).toLowerCase();
       const rawServiceCodes = [
-        ...((Array.isArray((p as any).serviceCodes) ? (p as any).serviceCodes : []) as unknown[]),
+        ...((Array.isArray((p as any).serviceCodes)
+          ? (p as any).serviceCodes
+          : []) as unknown[]),
         (p as any).serviceCode,
       ]
         .map((v) => String(v ?? "").trim())
         .filter(Boolean);
       const serviceCode = rawServiceCodes.join(" ").toLowerCase();
       const mappedServiceName = rawServiceCodes
-        .map((code) => String(serviceCodeToLabel.get(normalizeServiceCode(code)) ?? ""))
+        .map((code) =>
+          String(serviceCodeToLabel.get(normalizeServiceCode(code)) ?? ""),
+        )
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -348,7 +471,12 @@ export function usePatientsList(isAuthenticated: boolean) {
         if (serviceTypeRaw === "pentacam_c") return "Pentacam C";
         if (serviceTypeRaw === "pentacam_ex") return "Pentacam Ex";
         if (serviceTypeRaw === "pentacam_ex_c") return "Pentacam Ex.C";
-        if (serviceTypeRaw === "pentacam" || serviceTypeRaw === "pentacam_center" || serviceTypeRaw === "pentacam_external") return "بنتاكام";
+        if (
+          serviceTypeRaw === "pentacam" ||
+          serviceTypeRaw === "pentacam_center" ||
+          serviceTypeRaw === "pentacam_external"
+        )
+          return "بنتاكام";
         if (serviceTypeRaw === "lasik") return "فحوصات الليزك";
         if (serviceTypeRaw === "external") return "خارجي";
         if (serviceTypeRaw === "surgery") return "عمليات";
@@ -391,17 +519,29 @@ export function usePatientsList(isAuthenticated: boolean) {
       const codes = Array.from(
         new Set(
           [
-            ...((Array.isArray((patient as any)?.serviceCodes) ? (patient as any).serviceCodes : []) as unknown[]),
+            ...((Array.isArray((patient as any)?.serviceCodes)
+              ? (patient as any).serviceCodes
+              : []) as unknown[]),
             (patient as any)?.serviceCode,
           ]
             .map((v) => normalizeServiceCode(v))
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       if (codes.length === 0) {
-        const patientServiceType = normalizeSheetType(patient?.serviceType ?? "consultant");
-        const defaultName = serviceTypeToDefaultName.get(patientServiceType) || String(patient?.serviceType ?? "");
-        return [{ ...patient, __rowKey: `${patient.id}-no-service`, __defaultServiceName: defaultName }];
+        const patientServiceType = normalizeSheetType(
+          patient?.serviceType ?? "consultant",
+        );
+        const defaultName =
+          serviceTypeToDefaultName.get(patientServiceType) ||
+          String(patient?.serviceType ?? "");
+        return [
+          {
+            ...patient,
+            __rowKey: `${patient.id}-no-service`,
+            __defaultServiceName: defaultName,
+          },
+        ];
       }
       const rowCodes = (() => {
         if (!term) return codes;
@@ -409,7 +549,7 @@ export function usePatientsList(isAuthenticated: boolean) {
           return matchesServiceCodeOrNameTerm(
             term,
             String(srvCode ?? ""),
-            String(serviceCodeToLabel.get(srvCode) ?? "")
+            String(serviceCodeToLabel.get(srvCode) ?? ""),
           );
         });
         return matched.length > 0 ? matched : codes;
@@ -417,29 +557,34 @@ export function usePatientsList(isAuthenticated: boolean) {
       return rowCodes.map((srvCode, idx) => ({
         ...patient,
         __serviceCodeSingle: srvCode,
-        __serviceNameSingle: String(serviceCodeToLabel.get(srvCode) ?? "").trim(),
+        __serviceNameSingle: String(
+          serviceCodeToLabel.get(srvCode) ?? "",
+        ).trim(),
         __serviceTypeSingle: normalizeSheetType(
-          (patient as any)?.serviceSheetTypeByCode?.[srvCode] ?? serviceCodeToType.get(srvCode) ?? ""
+          (patient as any)?.serviceSheetTypeByCode?.[srvCode] ??
+            serviceCodeToType.get(srvCode) ??
+            "",
         ),
         __rowKey: `${patient.id}-${srvCode}-${idx}`,
       }));
     });
   }, [
-      patientsFromDb,
-      liveSearchTerm,
-      dateFrom,
-      dateTo,
-      serviceCodeToLabel,
-      serviceCodeToType,
-      serviceTypeToDefaultName,
-    ]);
+    patientsFromDb,
+    liveSearchTerm,
+    dateFrom,
+    dateTo,
+    serviceCodeToLabel,
+    serviceCodeToType,
+    serviceTypeToDefaultName,
+  ]);
 
-  const tabFilteredPatients = activeTab === "all"
-    ? currentPatients
-    : currentPatients.filter((patient) => {
-        const serviceTypes = resolveServiceTypes(patient);
-        return serviceTypes.has(activeTab);
-      });
+  const tabFilteredPatients =
+    activeTab === "all"
+      ? currentPatients
+      : currentPatients.filter((patient) => {
+          const serviceTypes = resolveServiceTypes(patient);
+          return serviceTypes.has(activeTab);
+        });
   const filteredPatients = tabFilteredPatients;
 
   const searchSuggestions = useMemo(() => {
@@ -462,9 +607,13 @@ export function usePatientsList(isAuthenticated: boolean) {
       const fullName = String(patient.fullName ?? "").trim();
       const patientCode = String(patient.patientCode ?? "").trim();
       const phone = String(patient.phone ?? "").trim();
-      const treatingDoctor = String((patient as any).treatingDoctor ?? "").trim();
+      const treatingDoctor = String(
+        (patient as any).treatingDoctor ?? "",
+      ).trim();
       const rawServiceCodes = [
-        ...((Array.isArray((patient as any).serviceCodes) ? (patient as any).serviceCodes : []) as unknown[]),
+        ...((Array.isArray((patient as any).serviceCodes)
+          ? (patient as any).serviceCodes
+          : []) as unknown[]),
         (patient as any).serviceCode,
         (patient as any).__serviceCodeSingle,
       ]
@@ -474,18 +623,25 @@ export function usePatientsList(isAuthenticated: boolean) {
         new Set(
           rawServiceCodes
             .map((code) => String(serviceCodeToLabel.get(code) ?? "").trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       ).join(" / ");
-      const blob = normalizeSearchText([fullName, patientCode, phone, treatingDoctor, serviceLabel].join(" "));
+      const blob = normalizeSearchText(
+        [fullName, patientCode, phone, treatingDoctor, serviceLabel].join(" "),
+      );
       if (!blob.includes(liveSearchTerm)) continue;
       const exactName = normalizeSearchText(fullName) === liveSearchTerm;
       const exactCode = normalizeSearchText(patientCode) === liveSearchTerm;
-      const startsWithName = normalizeSearchText(fullName).startsWith(liveSearchTerm);
-      const startsWithCode = normalizeSearchText(patientCode).startsWith(liveSearchTerm);
-      const doctorMatch = normalizeSearchText(treatingDoctor).includes(liveSearchTerm);
-      const serviceMatch = normalizeSearchText(serviceLabel).includes(liveSearchTerm);
-      const codeMatch = normalizeSearchText(patientCode).includes(liveSearchTerm);
+      const startsWithName =
+        normalizeSearchText(fullName).startsWith(liveSearchTerm);
+      const startsWithCode =
+        normalizeSearchText(patientCode).startsWith(liveSearchTerm);
+      const doctorMatch =
+        normalizeSearchText(treatingDoctor).includes(liveSearchTerm);
+      const serviceMatch =
+        normalizeSearchText(serviceLabel).includes(liveSearchTerm);
+      const codeMatch =
+        normalizeSearchText(patientCode).includes(liveSearchTerm);
       const score =
         (exactCode ? 400 : 0) +
         (exactName ? 300 : 0) +
@@ -504,10 +660,22 @@ export function usePatientsList(isAuthenticated: boolean) {
               : serviceMatch
                 ? "service"
                 : "patient";
-      ranked.push({ id, fullName, patientCode, phone, treatingDoctor, serviceLabel, score, matchKind });
+      ranked.push({
+        id,
+        fullName,
+        patientCode,
+        phone,
+        treatingDoctor,
+        serviceLabel,
+        score,
+        matchKind,
+      });
     }
     return ranked
-      .sort((a, b) => b.score - a.score || a.fullName.localeCompare(b.fullName, "ar"))
+      .sort(
+        (a, b) =>
+          b.score - a.score || a.fullName.localeCompare(b.fullName, "ar"),
+      )
       .slice(0, 8);
   }, [currentPatients, liveSearchTerm, serviceCodeToLabel]);
 
@@ -531,13 +699,16 @@ export function usePatientsList(isAuthenticated: boolean) {
 
   const flatSearchSuggestions = useMemo(
     () => groupedSearchSuggestions.flatMap((group) => group.items),
-    [groupedSearchSuggestions]
+    [groupedSearchSuggestions],
   );
 
   const filteredRowKeys = filteredPatients.map((p) => getPatientRowKey(p));
   const isAllSelected =
-    filteredRowKeys.length > 0 && filteredRowKeys.every((key) => selectedRowKeys.has(key));
-  const selectedCount = filteredPatients.filter((p) => selectedRowKeys.has(getPatientRowKey(p))).length;
+    filteredRowKeys.length > 0 &&
+    filteredRowKeys.every((key) => selectedRowKeys.has(key));
+  const selectedCount = filteredPatients.filter((p) =>
+    selectedRowKeys.has(getPatientRowKey(p)),
+  ).length;
 
   return {
     searchTerm,
@@ -556,7 +727,7 @@ export function usePatientsList(isAuthenticated: boolean) {
     dateFrom,
     setDateFrom,
     dateTo,
-setDateTo,
+    setDateTo,
     activeTab,
     setActiveTab,
     locationTypeFilter,

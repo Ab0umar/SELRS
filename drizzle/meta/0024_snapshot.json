@@ -94,12 +94,8 @@
           "name": "afterRefractionData_examinationId_examinations_id_fk",
           "tableFrom": "afterRefractionData",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -107,9 +103,7 @@
       "compositePrimaryKeys": {
         "afterRefractionData_id": {
           "name": "afterRefractionData_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -198,9 +192,7 @@
       "compositePrimaryKeys": {
         "appointments_id": {
           "name": "appointments_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -265,9 +257,7 @@
       "compositePrimaryKeys": {
         "auditLog_id": {
           "name": "auditLog_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -405,12 +395,8 @@
           "name": "autorefractometryData_examinationId_examinations_id_fk",
           "tableFrom": "autorefractometryData",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -418,9 +404,7 @@
       "compositePrimaryKeys": {
         "autorefractometryData_id": {
           "name": "autorefractometryData_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -478,9 +462,7 @@
       "compositePrimaryKeys": {
         "consentForms_id": {
           "name": "consentForms_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -540,9 +522,7 @@
       "compositePrimaryKeys": {
         "diseases_id": {
           "name": "diseases_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -665,9 +645,7 @@
       "compositePrimaryKeys": {
         "doctorReports_id": {
           "name": "doctorReports_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -703,9 +681,7 @@
       "compositePrimaryKeys": {
         "doctors_id": {
           "name": "doctors_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -898,9 +874,7 @@
       "compositePrimaryKeys": {
         "examinations_id": {
           "name": "examinations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1051,10 +1025,7 @@
       "indexes": {
         "idx_followup_sheet_table": {
           "name": "idx_followup_sheet_table",
-          "columns": [
-            "followupSheetId",
-            "tableIndex"
-          ],
+          "columns": ["followupSheetId", "tableIndex"],
           "isUnique": false
         }
       },
@@ -1062,9 +1033,7 @@
       "compositePrimaryKeys": {
         "followupItems_id": {
           "name": "followupItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1123,10 +1092,7 @@
       "indexes": {
         "idx_followup_patient_type": {
           "name": "idx_followup_patient_type",
-          "columns": [
-            "patientId",
-            "sheetType"
-          ],
+          "columns": ["patientId", "sheetType"],
           "isUnique": false
         }
       },
@@ -1134,9 +1100,7 @@
       "compositePrimaryKeys": {
         "followupSheets_id": {
           "name": "followupSheets_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1274,12 +1238,8 @@
           "name": "glassesRecords_examinationId_examinations_id_fk",
           "tableFrom": "glassesRecords",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1287,9 +1247,7 @@
       "compositePrimaryKeys": {
         "glassesRecords_id": {
           "name": "glassesRecords_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1396,9 +1354,7 @@
       "compositePrimaryKeys": {
         "medicalHistoryChecklist_id": {
           "name": "medicalHistoryChecklist_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1486,9 +1442,7 @@
       "compositePrimaryKeys": {
         "medications_id": {
           "name": "medications_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1594,10 +1548,7 @@
       "indexes": {
         "idx_operation_list_number": {
           "name": "idx_operation_list_number",
-          "columns": [
-            "listId",
-            "number"
-          ],
+          "columns": ["listId", "number"],
           "isUnique": false
         }
       },
@@ -1605,9 +1556,7 @@
       "compositePrimaryKeys": {
         "operationListItems_id": {
           "name": "operationListItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1681,9 +1630,7 @@
       "compositePrimaryKeys": {
         "operationLists_id": {
           "name": "operationLists_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1836,9 +1783,7 @@
       "compositePrimaryKeys": {
         "patient_import_staging_id": {
           "name": "patient_import_staging_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1896,11 +1841,7 @@
       "indexes": {
         "idx_patient_page_updated": {
           "name": "idx_patient_page_updated",
-          "columns": [
-            "patientId",
-            "page",
-            "updatedAt"
-          ],
+          "columns": ["patientId", "page", "updatedAt"],
           "isUnique": false
         }
       },
@@ -1908,9 +1849,7 @@
       "compositePrimaryKeys": {
         "patientPageStates_id": {
           "name": "patientPageStates_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1990,19 +1929,12 @@
       "indexes": {
         "idx_patient_service_date": {
           "name": "idx_patient_service_date",
-          "columns": [
-            "patientId",
-            "serviceCode",
-            "serviceDate"
-          ],
+          "columns": ["patientId", "serviceCode", "serviceDate"],
           "isUnique": false
         },
         "idx_service_source_updated": {
           "name": "idx_service_source_updated",
-          "columns": [
-            "source",
-            "updatedAt"
-          ],
+          "columns": ["source", "updatedAt"],
           "isUnique": false
         }
       },
@@ -2010,17 +1942,13 @@
       "compositePrimaryKeys": {
         "patientServiceEntries_id": {
           "name": "patientServiceEntries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "patientServiceEntries_sourceRef_unique": {
           "name": "patientServiceEntries_sourceRef_unique",
-          "columns": [
-            "sourceRef"
-          ]
+          "columns": ["sourceRef"]
         }
       },
       "checkConstraint": {}
@@ -2216,17 +2144,13 @@
       "compositePrimaryKeys": {
         "patients_id": {
           "name": "patients_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "patients_patientCode_unique": {
           "name": "patients_patientCode_unique",
-          "columns": [
-            "patientCode"
-          ]
+          "columns": ["patientCode"]
         }
       },
       "checkConstraint": {}
@@ -2432,9 +2356,7 @@
       "compositePrimaryKeys": {
         "pentacamResults_id": {
           "name": "pentacamResults_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2508,9 +2430,7 @@
       "compositePrimaryKeys": {
         "postOpFollowups_id": {
           "name": "postOpFollowups_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2582,9 +2502,7 @@
       "compositePrimaryKeys": {
         "prescriptionItems_id": {
           "name": "prescriptionItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2659,9 +2577,7 @@
       "compositePrimaryKeys": {
         "prescriptions_id": {
           "name": "prescriptions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2763,26 +2679,17 @@
       "indexes": {
         "ux_push_device_registrations_token": {
           "name": "ux_push_device_registrations_token",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "idx_push_device_user_device": {
           "name": "idx_push_device_user_device",
-          "columns": [
-            "userId",
-            "deviceId"
-          ],
+          "columns": ["userId", "deviceId"],
           "isUnique": false
         },
         "idx_push_device_active_user": {
           "name": "idx_push_device_active_user",
-          "columns": [
-            "userId",
-            "disabledAt",
-            "lastSeenAt"
-          ],
+          "columns": ["userId", "disabledAt", "lastSeenAt"],
           "isUnique": false
         }
       },
@@ -2790,9 +2697,7 @@
       "compositePrimaryKeys": {
         "push_device_registrations_id": {
           "name": "push_device_registrations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2852,9 +2757,7 @@
       "compositePrimaryKeys": {
         "sheet_entries_id": {
           "name": "sheet_entries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2944,9 +2847,7 @@
       "compositePrimaryKeys": {
         "surgeries_id": {
           "name": "surgeries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2999,17 +2900,13 @@
       "compositePrimaryKeys": {
         "systemSettings_id": {
           "name": "systemSettings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "systemSettings_key_unique": {
           "name": "systemSettings_key_unique",
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "checkConstraint": {}
@@ -3052,9 +2949,7 @@
       "compositePrimaryKeys": {
         "testFavorites_id": {
           "name": "testFavorites_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3105,9 +3000,7 @@
       "compositePrimaryKeys": {
         "testRequestItems_id": {
           "name": "testRequestItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3176,9 +3069,7 @@
       "compositePrimaryKeys": {
         "testRequests_id": {
           "name": "testRequests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3259,9 +3150,7 @@
       "compositePrimaryKeys": {
         "tests_id": {
           "name": "tests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3321,9 +3210,7 @@
       "compositePrimaryKeys": {
         "userPageStates_id": {
           "name": "userPageStates_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3360,10 +3247,7 @@
       "compositePrimaryKeys": {
         "user_permissions_userId_pageId_pk": {
           "name": "user_permissions_userId_pageId_pk",
-          "columns": [
-            "userId",
-            "pageId"
-          ]
+          "columns": ["userId", "pageId"]
         }
       },
       "uniqueConstraints": {},
@@ -3469,17 +3353,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "checkConstraint": {}
@@ -3603,9 +3483,7 @@
       "compositePrimaryKeys": {
         "visits_id": {
           "name": "visits_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

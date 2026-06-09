@@ -19,11 +19,13 @@ The Medical and Accounting modules **MUST** remain strictly separated at every l
 ## Consequences
 
 **Positive:**
+
 - **Reduced Risk:** Isolates changes within the Accounting module, minimizing the risk of introducing regressions or unintended side effects into the critical Medical module.
 - **Improved Maintainability:** Developers can work on one module with a clear understanding of its boundaries and dependencies, making the codebase easier to reason about.
 - **Clear Ownership:** The separation creates clear ownership boundaries for code, data, and functionality.
 
 **Negative:**
+
 - **Potential for Code Duplication:** Some common logic or data-shaping patterns might need to be duplicated or placed in a shared library if they are needed by both modules.
 - **No "Single View of the Patient":** It will not be possible to construct a single, real-time, mutable "patient" object that combines data from both Medical and Accounting systems within a single transaction. This is an explicit trade-off.
 

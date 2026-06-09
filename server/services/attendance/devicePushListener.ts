@@ -4,13 +4,13 @@
  * Device connects and sends punch data continuously to port 7005
  */
 
-import * as net from 'net';
-import { EventEmitter } from 'events';
+import * as net from "net";
+import { EventEmitter } from "events";
 
 export interface PunchPushEvent {
   empNo: string;
   timestamp: Date;
-  direction: 'in' | 'out';
+  direction: "in" | "out";
   rawBytes: Buffer;
   receivedAt: Date;
 }
@@ -36,11 +36,14 @@ export class DevicePushListener extends EventEmitter {
         this.activeConnections++;
         const clientId = `${socket.remoteAddress}:${socket.remotePort}`;
         console.log(`[DevicePush] Client connected: ${clientId}`);
-        this.emit('client-connected', { ip: socket.remoteAddress, port: socket.remotePort });
+        this.emit("client-connected", {
+          ip: socket.remoteAddress,
+          port: socket.remotePort,
+        });
 
         let buffer = Buffer.alloc(0);
 
-        socket.on('data', (data: any) => {
+        socket.on("data", (data: any) => {
           // Accumulate data
           buffer = Buffer.concat([buffer, data as Buffer]);
 
@@ -51,29 +54,34 @@ export class DevicePushListener extends EventEmitter {
           });
 
           // Send acknowledgement
-          socket.write('OK\r\n');
+          socket.write("OK\r\n");
         });
 
-        socket.on('error', (err) => {
+        socket.on("error", (err) => {
           console.error(`[DevicePush] Error from ${clientId}: ${err.message}`);
-          this.emit('client-error', { ip: socket.remoteAddress, error: err.message });
+          this.emit("client-error", {
+            ip: socket.remoteAddress,
+            error: err.message,
+          });
         });
 
-        socket.on('close', () => {
+        socket.on("close", () => {
           this.activeConnections--;
           console.log(`[DevicePush] Client disconnected: ${clientId}`);
-          this.emit('client-disconnected', { ip: socket.remoteAddress });
+          this.emit("client-disconnected", { ip: socket.remoteAddress });
         });
       });
 
-      this.server.listen(this.port, '0.0.0.0', () => {
+      this.server.listen(this.port, "0.0.0.0", () => {
         this.isListening = true;
-        console.log(`[DevicePush] Listening for device push on port ${this.port}`);
-        this.emit('listening', { port: this.port });
+        console.log(
+          `[DevicePush] Listening for device push on port ${this.port}`,
+        );
+        this.emit("listening", { port: this.port });
         resolve(true);
       });
 
-      this.server.on('error', (err) => {
+      this.server.on("error", (err) => {
         console.error(`[DevicePush] Server error: ${err.message}`);
         resolve(false);
       });
@@ -87,7 +95,7 @@ export class DevicePushListener extends EventEmitter {
   private processPunchData(
     buffer: Buffer,
     clientId: string,
-    onProcessed: (remaining: any) => void
+    onProcessed: (remaining: any) => void,
   ): void {
     // Try to detect and parse punch records
     // Common patterns:
@@ -103,7 +111,7 @@ export class DevicePushListener extends EventEmitter {
       const punch = this.parsePunchRecord(record);
 
       if (punch) {
-        this.emit('punch', punch);
+        this.emit("punch", punch);
         processed += 24;
       } else {
         break; // Couldn't parse, wait for more data
@@ -114,18 +122,18 @@ export class DevicePushListener extends EventEmitter {
     if (processed === 0) {
       const nlIndex = buffer.indexOf(0x0a); // \n
       if (nlIndex >= 0) {
-        const line = buffer.slice(0, nlIndex).toString('utf-8').trim();
+        const line = buffer.slice(0, nlIndex).toString("utf-8").trim();
         try {
           const data = JSON.parse(line);
           if (data.empNo && data.timestamp) {
             const punch: PunchPushEvent = {
               empNo: String(data.empNo),
               timestamp: new Date(data.timestamp),
-              direction: data.direction || 'in',
+              direction: data.direction || "in",
               rawBytes: buffer.slice(0, nlIndex),
               receivedAt: new Date(),
             };
-            this.emit('punch', punch);
+            this.emit("punch", punch);
             processed = nlIndex + 1;
           }
         } catch (e) {
@@ -141,18 +149,18 @@ export class DevicePushListener extends EventEmitter {
         const crIndex = buffer.indexOf(0x0d, commaIndex); // \r after comma
         if (crIndex > commaIndex) {
           // Possible CSV record
-          const record = buffer.slice(0, crIndex).toString('utf-8').trim();
-          const parts = record.split(',');
+          const record = buffer.slice(0, crIndex).toString("utf-8").trim();
+          const parts = record.split(",");
           if (parts.length >= 3) {
             try {
               const punch: PunchPushEvent = {
                 empNo: parts[0].trim(),
                 timestamp: new Date(parseInt(parts[1]) * 1000), // Unix timestamp
-                direction: parseInt(parts[2]) === 1 ? 'in' : 'out',
+                direction: parseInt(parts[2]) === 1 ? "in" : "out",
                 rawBytes: buffer.slice(0, crIndex),
                 receivedAt: new Date(),
               };
-              this.emit('punch', punch);
+              this.emit("punch", punch);
               processed = crIndex + 2; // \r\n
             } catch (e) {
               // Parse error
@@ -192,7 +200,7 @@ export class DevicePushListener extends EventEmitter {
       return {
         empNo: empNoStr,
         timestamp: punchDate,
-        direction: direction === 1 ? 'in' : 'out',
+        direction: direction === 1 ? "in" : "out",
         rawBytes: data,
         receivedAt: new Date(),
       };

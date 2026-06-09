@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { readPrintMode } from "@/lib/print";
-import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
+import {
+  canUseNativeAndroidPrint,
+  requestNativeAndroidPrint,
+} from "@/lib/nativePrint";
 
 type UsePrintModeOptions = {
   ready?: boolean;
@@ -13,7 +16,12 @@ export function usePrintMode(options: UsePrintModeOptions = {}) {
   const printMode = useMemo(() => readPrintMode(), []);
 
   useEffect(() => {
-    if (!ready || !printMode.autoPrint || autoPrintDoneRef.current || typeof window === "undefined") {
+    if (
+      !ready ||
+      !printMode.autoPrint ||
+      autoPrintDoneRef.current ||
+      typeof window === "undefined"
+    ) {
       return;
     }
     autoPrintDoneRef.current = true;
@@ -29,4 +37,3 @@ export function usePrintMode(options: UsePrintModeOptions = {}) {
 
   return printMode;
 }
-

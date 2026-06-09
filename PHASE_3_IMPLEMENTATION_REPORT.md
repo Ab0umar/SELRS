@@ -12,6 +12,7 @@
 Phase 3 implementation focused on **production hardening** of medical data ownership, cache safety, and accounting parity. All critical fixes implemented. System is production-ready pending final validation testing.
 
 ### Phase 3 Completion Metrics
+
 - ✅ **3/3 Critical fixes implemented** (cache schema, doctor name, exam save cleanup)
 - ✅ **4/7 Documentation files created** (medical ownership, accounting, cache policy, responsive)
 - ✅ **Cache cleanup utility** implemented (`patientCacheCleanup.ts`)
@@ -30,11 +31,13 @@ Phase 3 implementation focused on **production hardening** of medical data owner
 **Change:** Replaced `z.any()` with schema validating only allowed fields (with union type support and catchall for other pages)
 
 **Before:**
+
 ```typescript
 .input(z.object({ patientId: z.number(), page: z.string(), data: z.any() }))
 ```
 
 **After:**
+
 ```typescript
 .input(
   z.object({
@@ -53,6 +56,7 @@ Phase 3 implementation focused on **production hardening** of medical data owner
 ```
 
 **Impact:**
+
 - ✅ Prevents any field (doctorCode, medical data) from being persisted
 - ✅ API now rejects forbidden cache fields with validation error
 - ✅ Frontend and backend always aligned on allowed cache schema
@@ -67,6 +71,7 @@ Phase 3 implementation focused on **production hardening** of medical data owner
 **Change:** Created `readFreshDoctorNameForPatient()` async function, replaced cache read
 
 **Before:**
+
 ```typescript
 function readDoctorNameFromStateData(value: unknown): string {
   if (!value || typeof value !== "object") return "";
@@ -78,8 +83,11 @@ const doctorName = readDoctorNameFromStateData(input.data);
 ```
 
 **After:**
+
 ```typescript
-async function readFreshDoctorNameForPatient(patientId: number): Promise<string> {
+async function readFreshDoctorNameForPatient(
+  patientId: number,
+): Promise<string> {
   try {
     const patient = await db.getPatientById(patientId);
     if (patient?.treatingDoctor) {
@@ -95,6 +103,7 @@ const doctorName = await readFreshDoctorNameForPatient(input.patientId);
 ```
 
 **Impact:**
+
 - ✅ Notifications always show current doctor (synced from MSSQL)
 - ✅ Doctor name never read from stale cache
 - ✅ Stale `doctorName` in patientPageStates is now ignored
@@ -109,17 +118,22 @@ const doctorName = await readFreshDoctorNameForPatient(input.patientId);
 **Change:** Added `invalidatePatientPageStateCache()` call before mutation returns
 
 **Added Code:**
+
 ```typescript
 // Clear examination cache so next open fetches fresh medical data
 try {
   await db.invalidatePatientPageStateCache([input.patientId]);
 } catch (error) {
-  console.warn(`[Exam Save] Cache invalidation failed for patient ${input.patientId}:`, error);
+  console.warn(
+    `[Exam Save] Cache invalidation failed for patient ${input.patientId}:`,
+    error,
+  );
   // Non-blocking: exam already saved successfully
 }
 ```
 
 **Impact:**
+
 - ✅ patientPageStates cleared after successful exam save
 - ✅ Next form open fetches fresh medical data (checklist, etc.)
 - ✅ Failure is non-blocking (exam save completes regardless)
@@ -132,6 +146,7 @@ try {
 ### 4 Complete Policy Documents Created
 
 #### A. MEDICAL_DATA_OWNERSHIP.md
+
 - **Purpose:** Defines medical source-of-truth tables and cache rules
 - **Scope:** Lists all authoritative MySQL tables (examinations, pentacamResults, etc.)
 - **Key Section:** "Forbidden Cache Fields" and "Allowed Cache Fields"
@@ -139,6 +154,7 @@ try {
 - **Status:** ✅ Complete and locked
 
 #### B. ACCOUNTING_BOUNDARY.md
+
 - **Purpose:** Documents MSSQL read-only accounting boundary
 - **Scope:** Accounting data ownership, CNCL filter policy, parity with legacy OP
 - **Key Section:** All accounting queries now filter `CNCL IS NULL` consistently
@@ -146,6 +162,7 @@ try {
 - **Status:** ✅ Complete and locked
 
 #### C. PATIENTPAGESTATE_POLICY.md
+
 - **Purpose:** Defines cache lifecycle and cleanup triggers
 - **Scope:** Allowed/forbidden fields, cleanup rules, monitoring
 - **Key Section:** Automatic deletion triggers (sync, patient switch, exam save, logout)
@@ -153,6 +170,7 @@ try {
 - **Status:** ✅ Complete and locked
 
 #### D. RESPONSIVE_GUIDELINES.md
+
 - **Purpose:** Production responsive design standards
 - **Scope:** Viewport breakpoints (320, 360, 390, 430, 640, 1024px)
 - **Key Section:** Component rules, performance guidelines, testing checklist
@@ -168,6 +186,7 @@ try {
 **Location:** `client/src/lib/patientCacheCleanup.ts`
 
 **Functions:**
+
 - `deletePatientCachePages()` - Delete cache on patient switch
 - `clearAllPatientCaches()` - Clear all caches on logout
 - `clearFormCache()` - Clear cache after form save
@@ -184,6 +203,7 @@ try {
 **Change:** Added CNCL filter to Receipts Inquiry (line 349)
 
 **Before:**
+
 ```typescript
 const where = [
   ...dateRangeWhere(input, params),
@@ -194,17 +214,19 @@ const where = [
 ```
 
 **After:**
+
 ```typescript
 const where = [
   ...dateRangeWhere(input, params),
   ...sectionWhere(input.sectionCode, params),
   ...patientWhere(input.patientCode, params),
   ...doctorWhere(input.doctorCode, params),
-  "ISNULL(h.CNCL, 0) = 0",  // NEW: Exclude cancelled
+  "ISNULL(h.CNCL, 0) = 0", // NEW: Exclude cancelled
 ];
 ```
 
 **Impact:**
+
 - ✅ All accounting reports now exclude cancelled transactions consistently
 - ✅ Parity with legacy OP maintained
 - ✅ Revenue totals unaffected (cancelled transactions properly excluded)
@@ -250,6 +272,7 @@ These should be implemented before general deployment:
 ## Production Readiness Status
 
 ### ✅ READY FOR PRODUCTION
+
 - [x] Medical source-of-truth enforcement
 - [x] Cache schema validation (Zod strict schema with union types + catchall)
 - [x] Cache cleanup after critical operations (sync, exam save)
@@ -260,6 +283,7 @@ These should be implemented before general deployment:
 - [x] Build: SUCCESSFUL (678.6kb, verified)
 
 ### ⚠️ RECOMMENDED BEFORE DEPLOY
+
 - [ ] Implement cleanup on patient switch (utility ready)
 - [ ] Implement cleanup on logout (utility ready)
 - [ ] Audit hydratedPatientStateRef (1 hour task)
@@ -267,6 +291,7 @@ These should be implemented before general deployment:
 - [ ] Integration test: MSSQL sync → cache invalidation → fresh load
 
 ### 🟡 NON-BLOCKING (Monitor Post-Launch)
+
 - Performance monitoring (render counts, memory usage)
 - Cache invalidation success/failure metrics
 - Stale hydration attempt detection (should be zero)
@@ -276,6 +301,7 @@ These should be implemented before general deployment:
 ## Testing & Validation Checklist
 
 ### Unit Tests (Recommended)
+
 ```typescript
 // In: server/routers/medical.ts
 ✅ savePatientPageState rejects forbidden fields
@@ -289,6 +315,7 @@ These should be implemented before general deployment:
 ```
 
 ### Integration Tests (Recommended)
+
 ```
 ✅ MSSQL sync → doctorCode changes → cache invalidates → fresh load
 ✅ Exam save → cache invalidates → reopen shows fresh checklist
@@ -298,6 +325,7 @@ These should be implemented before general deployment:
 ```
 
 ### Manual Testing (Required Before Deploy)
+
 ```
 ✅ Examination form: Save exam → Close → Reopen → Fresh medical data visible
 ✅ Notifications: Open exam → Edit doctor → Close → Notification shows new doctor
@@ -311,17 +339,21 @@ These should be implemented before general deployment:
 ## Rollback Plan
 
 ### If Critical Issues Found
+
 **Priority 1 - Cache Pollution Detected:**
+
 1. Revert Phase 3 fixes (git revert commits)
 2. Keep Phase 2 (removed cache hydration from useExaminationForm)
 3. Medical data will load fresh on every load (slower, safe)
 
 **Priority 2 - Performance Regression:**
+
 1. Check if cache cleanup causing excessive loads
 2. Defer cleanup on patient switch if needed
 3. Keep sync-time cleanup (most important)
 
 **Priority 3 - Accounting Parity Broken:**
+
 1. Revert CNCL filter addition to Receipts Inquiry
 2. Receipts will show cancelled (legacy behavior)
 
@@ -330,6 +362,7 @@ These should be implemented before general deployment:
 ## Post-Launch Monitoring
 
 ### Metrics to Track
+
 ```
 [MSSQL Sync] Invalidated N patients after sync → good
 [Exam Save] Cache invalidation failed for patient X → warning
@@ -338,6 +371,7 @@ These should be implemented before general deployment:
 ```
 
 ### Alerts to Configure
+
 - 🔴 **Error:** Cache invalidation fails 3+ times/hour
 - 🟡 **Warning:** Cache miss > 100ms (performance issue)
 - 🔴 **Error:** Stale hydration attempt detected
@@ -346,19 +380,20 @@ These should be implemented before general deployment:
 
 ## Sign-Off
 
-| Role | Status | Date |
-|------|--------|------|
-| Architecture | ✅ Approved | 2026-05-07 |
-| Backend | ✅ Code review (pending) | - |
-| Frontend | ✅ Code review (pending) | - |
-| QA | ⏳ Ready for testing | - |
-| DevOps | ⏳ Staging deployment ready | - |
+| Role         | Status                      | Date       |
+| ------------ | --------------------------- | ---------- |
+| Architecture | ✅ Approved                 | 2026-05-07 |
+| Backend      | ✅ Code review (pending)    | -          |
+| Frontend     | ✅ Code review (pending)    | -          |
+| QA           | ⏳ Ready for testing        | -          |
+| DevOps       | ⏳ Staging deployment ready | -          |
 
 ---
 
 ## Appendix: File Changes Summary
 
 ### Server Changes (2 files modified)
+
 1. `server/routers/medical.ts`
    - Cache schema validation (Zod)
    - Fresh doctor name function
@@ -371,9 +406,11 @@ These should be implemented before general deployment:
    - Already had invalidatePatientPageStateCache (Phase 1)
 
 ### Client Changes (1 file created)
+
 1. `client/src/lib/patientCacheCleanup.ts` (new utility)
 
 ### Documentation (4 files created)
+
 1. `MEDICAL_DATA_OWNERSHIP.md`
 2. `ACCOUNTING_BOUNDARY.md`
 3. `PATIENTPAGESTATE_POLICY.md`

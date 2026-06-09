@@ -876,25 +876,40 @@ export default function ExaminationAutoAirTab({
                       <thead>
                         <tr>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           ></th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             S
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             C
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             A
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             P.D.
                           </th>
@@ -911,7 +926,10 @@ export default function ExaminationAutoAirTab({
                             DIST
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.od.s}
@@ -925,7 +943,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.od.c}
@@ -939,7 +960,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.od.a}
@@ -953,7 +977,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.od.pd}
@@ -976,10 +1003,18 @@ export default function ExaminationAutoAirTab({
                           >
                             NEAR
                           </td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
                         </tr>
                       </tbody>
                     </table>
@@ -999,25 +1034,40 @@ export default function ExaminationAutoAirTab({
                       <thead>
                         <tr>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           ></th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             S
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             C
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             A
                           </th>
                           <th
-                            style={{ border: "2px solid var(--primary)", padding: 6 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
                           >
                             P.D.
                           </th>
@@ -1034,7 +1084,10 @@ export default function ExaminationAutoAirTab({
                             DIST
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.os.s}
@@ -1048,7 +1101,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.os.c}
@@ -1062,7 +1118,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.os.a}
@@ -1076,7 +1135,10 @@ export default function ExaminationAutoAirTab({
                             />
                           </td>
                           <td
-                            style={{ border: "2px solid var(--primary)", padding: 4 }}
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
                           >
                             <Input
                               value={refractionTableData.os.pd}
@@ -1099,10 +1161,18 @@ export default function ExaminationAutoAirTab({
                           >
                             NEAR
                           </td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
-                          <td style={{ border: "2px solid var(--primary)" }}></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
                         </tr>
                       </tbody>
                     </table>

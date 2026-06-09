@@ -10,7 +10,9 @@ function getPrefix(name: string): number | null {
 
 async function main() {
   const drizzleDir = path.join(process.cwd(), "drizzle");
-  const files = (await fs.readdir(drizzleDir)).filter((f) => f.endsWith(".sql")).sort();
+  const files = (await fs.readdir(drizzleDir))
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
   const seen = new Set<string>();
   const duplicateNames: string[] = [];
   const nonPrefixed: string[] = [];

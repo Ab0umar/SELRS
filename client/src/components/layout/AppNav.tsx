@@ -50,7 +50,13 @@ import {
   DollarSign,
 } from "lucide-react";
 
-export type NavLeaf = { icon: LucideIcon; label: string; path: string; roles?: string[]; isMain?: boolean };
+export type NavLeaf = {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  roles?: string[];
+  isMain?: boolean;
+};
 
 /** Collapsible sidebar section (optional module home via groupPath). */
 export type NavGroupSection = {
@@ -71,11 +77,11 @@ export const attendanceNavGroup: NavGroupSection = {
   groupPath: "/attendance",
   navKey: "attendance",
   items: [
-    { icon: LayoutDashboard, label: "لوحة التحكم",  path: "/attendance" },
-    { icon: Activity,        label: "مباشر",         path: "/attendance/live" },
-    { icon: Users,           label: "الموظفون",      path: "/attendance/employees" },
-    { icon: BarChart3,       label: "التقارير",      path: "/attendance/reports" },
-    { icon: Settings,        label: "الإعدادات",     path: "/attendance/settings" },
+    { icon: LayoutDashboard, label: "لوحة التحكم", path: "/attendance" },
+    { icon: Activity, label: "مباشر", path: "/attendance/live" },
+    { icon: Users, label: "الموظفون", path: "/attendance/employees" },
+    { icon: BarChart3, label: "التقارير", path: "/attendance/reports" },
+    { icon: Settings, label: "الإعدادات", path: "/attendance/settings" },
   ],
 };
 
@@ -86,9 +92,9 @@ export const salaryNavGroup: NavGroupSection = {
   navKey: "salary",
   items: [
     { icon: DollarSign, label: "البيانات الأساسية", path: "/salary" },
-    { icon: DollarSign, label: "العمولات",          path: "/salary/pools" },
-    { icon: DollarSign, label: "الجزاءات",          path: "/salary/penalties" },
-    { icon: DollarSign, label: "كشف المرتبات",      path: "/salary/payroll" },
+    { icon: DollarSign, label: "العمولات", path: "/salary/pools" },
+    { icon: DollarSign, label: "الجزاءات", path: "/salary/penalties" },
+    { icon: DollarSign, label: "كشف المرتبات", path: "/salary/payroll" },
   ],
 };
 
@@ -173,7 +179,12 @@ export const accountingNavGroup: NavGroupSection = {
 
 /** لوحة الإدارة + العيادات + المرضى + مركز الخدمات + مركز الإدارة */
 export const adminNavGroups: NavGroup[] = [
-  { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin", isMain: true },
+  {
+    icon: Activity,
+    label: "لوحة التحكم",
+    path: "/dashboard?tab=admin",
+    isMain: true,
+  },
   attendanceNavGroup,
   salaryNavGroup,
   accountingNavGroup,
@@ -186,14 +197,38 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/clinics-hub",
     items: [
       { icon: Eye, label: "الفحوصات", path: "/examination" },
-      { icon: CircleDot, label: "نتائج البنتكام", path: "/sheets/pentacam/dashboard" },
-      { icon: Glasses, label: "لوحة الانكسارات", path: "/clinics-hub/refractions-dashboard" },
-      { icon: Activity, label: "لوحة Autoref", path: "/clinics-hub/autorefs-dashboard" },
-      { icon: Pill, label: "لوحة الروشتات", path: "/clinics-hub/prescriptions-dashboard" },
+      {
+        icon: CircleDot,
+        label: "نتائج البنتكام",
+        path: "/sheets/pentacam/dashboard",
+      },
+      {
+        icon: Glasses,
+        label: "لوحة الانكسارات",
+        path: "/clinics-hub/refractions-dashboard",
+      },
+      {
+        icon: Activity,
+        label: "لوحة Autoref",
+        path: "/clinics-hub/autorefs-dashboard",
+      },
+      {
+        icon: Pill,
+        label: "لوحة الروشتات",
+        path: "/clinics-hub/prescriptions-dashboard",
+      },
       { icon: Pill, label: "الروشتات", path: "/prescriptions" },
       { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
-      { icon: FileSpreadsheet, label: "تقرير المريض", path: "/patient-summary" },
-      { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+      {
+        icon: FileSpreadsheet,
+        label: "تقرير المريض",
+        path: "/patient-summary",
+      },
+      {
+        icon: ClipboardList,
+        label: "التقارير الطبية",
+        path: "/medical-reports",
+      },
     ],
   },
   {
@@ -214,9 +249,21 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/services-hub",
     items: [
       { icon: Pill, label: "الأدوية", path: "/medications" },
-      { icon: FlaskConical, label: "تحاليل وأشعة", path: "/examinations/catalog" },
-      { icon: Stethoscope, label: "أمراض", path: "/medications/registry?tab=diseases" },
-      { icon: ClipboardList, label: "أعراض", path: "/medications/registry?tab=symptoms" },
+      {
+        icon: FlaskConical,
+        label: "تحاليل وأشعة",
+        path: "/examinations/catalog",
+      },
+      {
+        icon: Stethoscope,
+        label: "أمراض",
+        path: "/medications/registry?tab=diseases",
+      },
+      {
+        icon: ClipboardList,
+        label: "أعراض",
+        path: "/medications/registry?tab=symptoms",
+      },
       { icon: Network, label: "TXHUB", path: "/txhub" },
     ],
   },
@@ -231,20 +278,64 @@ export const adminNavGroups: NavGroup[] = [
       { icon: Stethoscope, label: "الأطباء", path: "/admin-hub/doctors" },
       { icon: Users, label: "المستخدمين", path: "/admin-hub/users" },
       { icon: Terminal, label: "حالة النظام", path: "/admin-hub/status" },
-      { icon: Database, label: "ترحيل البيانات", path: "/admin-hub/migrations" },
-      { icon: HeartPulse, label: "الخدمات والأسعار", path: "/admin-hub/services" },
-      { icon: Wrench, label: "التشخيص والإصلاح", path: "/admin-hub/diagnostics" },
-      { icon: Settings, label: "الإعدادات العامة", path: "/admin-hub/settings" },
-      { icon: Settings, label: "تسعير المواعيد", path: "/admin-hub/settings/pricing-rules" },
+      {
+        icon: Database,
+        label: "ترحيل البيانات",
+        path: "/admin-hub/migrations",
+      },
+      {
+        icon: HeartPulse,
+        label: "الخدمات والأسعار",
+        path: "/admin-hub/services",
+      },
+      {
+        icon: Wrench,
+        label: "التشخيص والإصلاح",
+        path: "/admin-hub/diagnostics",
+      },
+      {
+        icon: Settings,
+        label: "الإعدادات العامة",
+        path: "/admin-hub/settings",
+      },
+      {
+        icon: Settings,
+        label: "تسعير المواعيد",
+        path: "/admin-hub/settings/pricing-rules",
+      },
       { icon: Webhook, label: "أدوات API", path: "/admin-hub/api-tools" },
-      { icon: FlaskConical, label: "التحاليل (إدارة)", path: "/admin-hub/tests" },
-      { icon: LayoutGrid, label: "ظهور الكروت", path: "/admin-hub/card-visibility" },
-      { icon: Bell, label: "إخطارات التطبيق", path: "/admin-hub/notifications" },
+      {
+        icon: FlaskConical,
+        label: "التحاليل (إدارة)",
+        path: "/admin-hub/tests",
+      },
+      {
+        icon: LayoutGrid,
+        label: "ظهور الكروت",
+        path: "/admin-hub/card-visibility",
+      },
+      {
+        icon: Bell,
+        label: "إخطارات التطبيق",
+        path: "/admin-hub/notifications",
+      },
       { icon: FileText, label: "النماذج", path: "/admin-hub/forms" },
-      { icon: FileSpreadsheet, label: "تثبيتات المرضى", path: "/admin-hub/sheets" },
-      { icon: Paintbrush, label: "مصمم النماذج", path: "/admin-hub/sheet-designer" },
+      {
+        icon: FileSpreadsheet,
+        label: "تثبيتات المرضى",
+        path: "/admin-hub/sheets",
+      },
+      {
+        icon: Paintbrush,
+        label: "مصمم النماذج",
+        path: "/admin-hub/sheet-designer",
+      },
       { icon: Copy, label: "نسخ النماذج", path: "/admin-hub/sheet-copies" },
-      { icon: AlertTriangle, label: "بنتكام الفاشل", path: "/admin-hub/pentacam-failed" },
+      {
+        icon: AlertTriangle,
+        label: "بنتكام الفاشل",
+        path: "/admin-hub/pentacam-failed",
+      },
     ],
   },
 ];
@@ -265,5 +356,11 @@ export const staffNavGroups: NavGroup[] = [
       : g,
   ),
   { icon: CalendarCheck, label: "حضوري", path: "/attendance/my", isMain: true },
-  { icon: CalendarDays, label: "الروستر", path: "/attendance/shift-schedule", roles: ["doctor", "technician"], isMain: true },
+  {
+    icon: CalendarDays,
+    label: "الروستر",
+    path: "/attendance/shift-schedule",
+    roles: ["doctor", "technician"],
+    isMain: true,
+  },
 ];

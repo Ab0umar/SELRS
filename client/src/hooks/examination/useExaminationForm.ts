@@ -39,10 +39,15 @@ const normalizeMappingCode = (value: unknown): string => {
   return compact;
 };
 
-export const normalizeDoctorTypeToSheet = (value: unknown): "consultant" | "specialist" | "external" | "" => {
-  const raw = String(value ?? "").trim().toLowerCase();
+export const normalizeDoctorTypeToSheet = (
+  value: unknown,
+): "consultant" | "specialist" | "external" | "" => {
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return "";
-  if (raw === "consultant" || raw === "consa" || raw === "cons") return "consultant";
+  if (raw === "consultant" || raw === "consa" || raw === "cons")
+    return "consultant";
   if (raw === "specialist" || raw === "spec") return "specialist";
   if (raw === "external" || raw.includes("خار")) return "external";
   if (raw.includes("consult")) return "consultant";
@@ -75,7 +80,9 @@ export function useExaminationForm(
   const [, routeParams] = useRoute("/examination/:id");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [visitDate, setVisitDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
   const [technicianSignature, setTechnicianSignature] = useState("");
@@ -94,7 +101,9 @@ export function useExaminationForm(
     phone: "",
     job: "",
   });
-  const [locationType, setLocationType] = useState<"center" | "external">("center");
+  const [locationType, setLocationType] = useState<"center" | "external">(
+    "center",
+  );
   const [services, setServices] = useState<ServiceEntry[]>([
     { code: "", qty: "1", price: 0, discount: 0 },
   ]);
@@ -112,27 +121,33 @@ export function useExaminationForm(
 
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientInfo.id ?? 0, page: "examination" },
-    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },
   );
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: patientInfo.id ?? 0 },
-    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },
   );
   const latestExaminationId = useMemo(() => {
-    const rows = Array.isArray(examinationsQuery.data) ? (examinationsQuery.data as Array<{ id?: number }>) : [];
+    const rows = Array.isArray(examinationsQuery.data)
+      ? (examinationsQuery.data as Array<{ id?: number }>)
+      : [];
     const firstId = Number(rows[0]?.id ?? 0);
     return Number.isFinite(firstId) && firstId > 0 ? firstId : null;
   }, [examinationsQuery.data]);
-  const examinationChecklistQuery = trpc.medical.getExaminationChecklist.useQuery(
-    { examinationId: latestExaminationId ?? 0 },
-    { enabled: Boolean(latestExaminationId), refetchOnWindowFocus: false }
+  const examinationChecklistQuery =
+    trpc.medical.getExaminationChecklist.useQuery(
+      { examinationId: latestExaminationId ?? 0 },
+      { enabled: Boolean(latestExaminationId), refetchOnWindowFocus: false },
+    );
+  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    },
   );
-  const serviceDirectoryQuery = trpc.medical.getServiceDirectory.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
   const doctorServiceMatchQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "doctor_service_sheet_match_v1" },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -141,44 +156,182 @@ export function useExaminationForm(
     refetchOnWindowFocus: false,
   });
   // MySQL catalog queries for patient registration
-  const doctorsCatalogQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-  const servicesCatalogQuery = trpc.medical.getServicesCatalog.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-  const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
-  const saveExaminationChecklistMutation = trpc.medical.saveExaminationChecklist.useMutation();
-  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const doctorsCatalogQuery = trpc.medical.getDoctorDirectory.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  );
+  const servicesCatalogQuery = trpc.medical.getServicesCatalog.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  );
+  const savePatientStateMutation =
+    trpc.medical.savePatientPageState.useMutation();
+  const saveExaminationChecklistMutation =
+    trpc.medical.saveExaminationChecklist.useMutation();
+  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hydratedPatientStateRef = useRef<number | null>(null);
 
   const [examData, setExamData] = useState<{
     autorefraction: {
-      od: { s: string; c: string; axis: string; s1: string; c1: string; a1: string; s2: string; c2: string; a2: string; s3: string; c3: string; a3: string; afterS: string; afterC: string; afterA: string; ucva: string; bcva: string; iop: string; airPuff1: string; airPuff2: string; airPuff3: string };
-      os: { s: string; c: string; axis: string; s1: string; c1: string; a1: string; s2: string; c2: string; a2: string; s3: string; c3: string; a3: string; afterS: string; afterC: string; afterA: string; ucva: string; bcva: string; iop: string; airPuff1: string; airPuff2: string; airPuff3: string };
+      od: {
+        s: string;
+        c: string;
+        axis: string;
+        s1: string;
+        c1: string;
+        a1: string;
+        s2: string;
+        c2: string;
+        a2: string;
+        s3: string;
+        c3: string;
+        a3: string;
+        afterS: string;
+        afterC: string;
+        afterA: string;
+        ucva: string;
+        bcva: string;
+        iop: string;
+        airPuff1: string;
+        airPuff2: string;
+        airPuff3: string;
+      };
+      os: {
+        s: string;
+        c: string;
+        axis: string;
+        s1: string;
+        c1: string;
+        a1: string;
+        s2: string;
+        c2: string;
+        a2: string;
+        s3: string;
+        c3: string;
+        a3: string;
+        afterS: string;
+        afterC: string;
+        afterA: string;
+        ucva: string;
+        bcva: string;
+        iop: string;
+        airPuff1: string;
+        airPuff2: string;
+        airPuff3: string;
+      };
     };
     glasses: {
       od: { s: string; c: string; axis: string; pd: string };
       os: { s: string; c: string; axis: string; pd: string };
     };
     pentacam: {
-      od: { k1: string; k2: string; ax1: string; ax2: string; thinnest: string; apex: string; residual: string; ttt: string; ablation: string };
-      os: { k1: string; k2: string; ax1: string; ax2: string; thinnest: string; apex: string; residual: string; ttt: string; ablation: string };
+      od: {
+        k1: string;
+        k2: string;
+        ax1: string;
+        ax2: string;
+        thinnest: string;
+        apex: string;
+        residual: string;
+        ttt: string;
+        ablation: string;
+      };
+      os: {
+        k1: string;
+        k2: string;
+        ax1: string;
+        ax2: string;
+        thinnest: string;
+        apex: string;
+        residual: string;
+        ttt: string;
+        ablation: string;
+      };
     };
   }>({
     autorefraction: {
-      od: { s: "", c: "", axis: "", s1: "", c1: "", a1: "", s2: "", c2: "", a2: "", s3: "", c3: "", a3: "", afterS: "", afterC: "", afterA: "", ucva: "", bcva: "", iop: "", airPuff1: "", airPuff2: "", airPuff3: "" },
-      os: { s: "", c: "", axis: "", s1: "", c1: "", a1: "", s2: "", c2: "", a2: "", s3: "", c3: "", a3: "", afterS: "", afterC: "", afterA: "", ucva: "", bcva: "", iop: "", airPuff1: "", airPuff2: "", airPuff3: "" },
+      od: {
+        s: "",
+        c: "",
+        axis: "",
+        s1: "",
+        c1: "",
+        a1: "",
+        s2: "",
+        c2: "",
+        a2: "",
+        s3: "",
+        c3: "",
+        a3: "",
+        afterS: "",
+        afterC: "",
+        afterA: "",
+        ucva: "",
+        bcva: "",
+        iop: "",
+        airPuff1: "",
+        airPuff2: "",
+        airPuff3: "",
+      },
+      os: {
+        s: "",
+        c: "",
+        axis: "",
+        s1: "",
+        c1: "",
+        a1: "",
+        s2: "",
+        c2: "",
+        a2: "",
+        s3: "",
+        c3: "",
+        a3: "",
+        afterS: "",
+        afterC: "",
+        afterA: "",
+        ucva: "",
+        bcva: "",
+        iop: "",
+        airPuff1: "",
+        airPuff2: "",
+        airPuff3: "",
+      },
     },
     glasses: {
       od: { s: "", c: "", axis: "", pd: "" },
       os: { s: "", c: "", axis: "", pd: "" },
     },
     pentacam: {
-      od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
-      os: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
+      od: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
+      os: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
     },
   });
 
@@ -188,37 +341,57 @@ export function useExaminationForm(
   });
 
   const saveExamMutation = trpc.medical.saveExaminationForm.useMutation();
-  const linkPatientServiceToMssqlMutation = trpc.medical.linkPatientServiceToMssql.useMutation();
-  const linkMultipleServicesToMssqlMutation = trpc.medical.linkMultipleServicesToMssql.useMutation();
-  const createPatientFromExamMutation = trpc.medical.createPatientFromExamination.useMutation({
-    onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "فشل إنشاء مريض جديد"));
-    },
-  });
+  const linkPatientServiceToMssqlMutation =
+    trpc.medical.linkPatientServiceToMssql.useMutation();
+  const linkMultipleServicesToMssqlMutation =
+    trpc.medical.linkMultipleServicesToMssql.useMutation();
+  const createPatientFromExamMutation =
+    trpc.medical.createPatientFromExamination.useMutation({
+      onError: (error: unknown) => {
+        toast.error(getTrpcErrorMessage(error, "فشل إنشاء مريض جديد"));
+      },
+    });
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const utils = trpc.useUtils();
   const lastSyncedRef = useRef<Record<string, string>>({});
 
   const hasPatient = Boolean(patientInfo.id);
-  const normalizedRole = String((user as User | null)?.role ?? "").toLowerCase();
+  const normalizedRole = String(
+    (user as User | null)?.role ?? "",
+  ).toLowerCase();
   const myPermissions = (permissionsQuery.data ?? []) as string[];
   const receptionHasPatientEditPermission =
     normalizedRole === "reception" &&
     myPermissions.includes(patientDataEditPermission);
-  const canEditPatientData = normalizedRole === "admin" || receptionHasPatientEditPermission || embedded;
+  const canEditPatientData =
+    normalizedRole === "admin" || receptionHasPatientEditPermission || embedded;
 
   if (embedded) {
-    console.log("[QuickEntry] Role:", normalizedRole, "Embedded:", embedded, "Can Edit:", canEditPatientData);
+    console.log(
+      "[QuickEntry] Role:",
+      normalizedRole,
+      "Embedded:",
+      embedded,
+      "Can Edit:",
+      canEditPatientData,
+    );
   }
 
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const currentUserDisplayName = String((user as User | null)?.name ?? (user as User | null)?.username ?? "").trim();
+  const currentUserDisplayName = String(
+    (user as User | null)?.name ?? (user as User | null)?.username ?? "",
+  ).trim();
   const mobileExamInputClass = "h-10 text-sm text-center border-input";
-  const desktopVisionSelectClass = "h-7 w-28 text-sm text-center tabular-nums border-input";
-  const desktopRefractionInputClass = "h-7 w-24 text-sm text-center tabular-nums border-input";
+  const desktopVisionSelectClass =
+    "h-7 w-28 text-sm text-center tabular-nums border-input";
+  const desktopRefractionInputClass =
+    "h-7 w-24 text-sm text-center tabular-nums border-input";
 
   const addService = () => {
-    setServices((prev) => [...prev, { code: "", qty: "1", price: 0, discount: 0 }]);
+    setServices((prev) => [
+      ...prev,
+      { code: "", qty: "1", price: 0, discount: 0 },
+    ]);
   };
 
   const removeService = (index: number) => {
@@ -231,7 +404,9 @@ export function useExaminationForm(
   };
 
   const updateService = (index: number, updates: Partial<ServiceEntry>) => {
-    setServices((prev) => prev.map((s, i) => (i === index ? { ...s, ...updates } : s)));
+    setServices((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, ...updates } : s)),
+    );
   };
 
   const { serviceTotalPrice, serviceTotal, patientShare } = useMemo(() => {
@@ -258,7 +433,9 @@ export function useExaminationForm(
     if (embedded) return;
     const routeId = Number((routeParams as any)?.id ?? 0);
     if (!Number.isFinite(routeId) || routeId <= 0) return;
-    setPatientInfo((prev) => (prev.id === routeId ? prev : { ...prev, id: routeId }));
+    setPatientInfo((prev) =>
+      prev.id === routeId ? prev : { ...prev, id: routeId },
+    );
   }, [routeParams, embedded]);
 
   // Mobile viewport detection
@@ -305,22 +482,32 @@ export function useExaminationForm(
 
   const doctors = (doctorsQuery.data ?? []) as DoctorOption[];
 
-  const availableDoctors = useMemo(
-    () => {
-      const selectedSheet = String(sheetSelection ?? "").trim().toLowerCase();
-      const targetDoctorType =
-        selectedSheet === "consultant" || selectedSheet === "specialist" || selectedSheet === "external"
-          ? selectedSheet
-          : "";
-      return doctors.filter((doctor) => {
-        if (doctor.isActive === false) return false;
-        if (doctor.locationType ? doctor.locationType !== locationType : locationType !== "center") return false;
-        if (!targetDoctorType) return true;
-        return String(doctor.doctorType ?? "").trim().toLowerCase() === targetDoctorType;
-      });
-    },
-    [doctors, locationType, sheetSelection]
-  );
+  const availableDoctors = useMemo(() => {
+    const selectedSheet = String(sheetSelection ?? "")
+      .trim()
+      .toLowerCase();
+    const targetDoctorType =
+      selectedSheet === "consultant" ||
+      selectedSheet === "specialist" ||
+      selectedSheet === "external"
+        ? selectedSheet
+        : "";
+    return doctors.filter((doctor) => {
+      if (doctor.isActive === false) return false;
+      if (
+        doctor.locationType
+          ? doctor.locationType !== locationType
+          : locationType !== "center"
+      )
+        return false;
+      if (!targetDoctorType) return true;
+      return (
+        String(doctor.doctorType ?? "")
+          .trim()
+          .toLowerCase() === targetDoctorType
+      );
+    });
+  }, [doctors, locationType, sheetSelection]);
 
   const doctorLookup = useMemo(() => {
     const map = new Map<string, string>();
@@ -337,14 +524,26 @@ export function useExaminationForm(
   }, [availableDoctors]);
 
   const selectedDoctorEntry = useMemo(() => {
-    const normalized = String(doctorName ?? "").trim().toLowerCase();
+    const normalized = String(doctorName ?? "")
+      .trim()
+      .toLowerCase();
     if (!normalized) return null;
     return (
       availableDoctors.find((doctor) => {
-        const name = String(doctor.name ?? "").trim().toLowerCase();
-        const code = String(doctor.code ?? "").trim().toLowerCase();
-        const username = String(doctor.username ?? "").trim().toLowerCase();
-        return normalized === name || normalized === code || (username && normalized === username);
+        const name = String(doctor.name ?? "")
+          .trim()
+          .toLowerCase();
+        const code = String(doctor.code ?? "")
+          .trim()
+          .toLowerCase();
+        const username = String(doctor.username ?? "")
+          .trim()
+          .toLowerCase();
+        return (
+          normalized === name ||
+          normalized === code ||
+          (username && normalized === username)
+        );
       }) ?? null
     );
   }, [availableDoctors, doctorName]);
@@ -352,22 +551,30 @@ export function useExaminationForm(
   // Auto-set sheet type from selected doctor
   useEffect(() => {
     if (!selectedDoctorEntry || sheetSelection) return;
-    const defaultSheet = normalizeDoctorTypeToSheet((selectedDoctorEntry as any)?.doctorType ?? "");
+    const defaultSheet = normalizeDoctorTypeToSheet(
+      (selectedDoctorEntry as any)?.doctorType ?? "",
+    );
     if (defaultSheet) setSheetSelection(defaultSheet);
   }, [selectedDoctorEntry, sheetSelection]);
 
   const serviceOptions = useMemo(() => {
-    const list = Array.isArray(serviceDirectoryQuery.data) ? (serviceDirectoryQuery.data as any[]) : [];
+    const list = Array.isArray(serviceDirectoryQuery.data)
+      ? (serviceDirectoryQuery.data as any[])
+      : [];
     const normalized = list
       .filter((item) => item && item.isActive !== false)
       .map((item) => ({
         code: String(item.code ?? "").trim(),
         normalizedCode: normalizeMappingCode(item.code),
         name: String(item.name ?? "").trim(),
-        serviceType: String(item.serviceType ?? "").trim().toLowerCase(),
+        serviceType: String(item.serviceType ?? "")
+          .trim()
+          .toLowerCase(),
       }))
       .filter((item) => item.code && item.name);
-    const selectedDoctorCode = normalizeMappingCode((selectedDoctorEntry as any)?.code ?? "");
+    const selectedDoctorCode = normalizeMappingCode(
+      (selectedDoctorEntry as any)?.code ?? "",
+    );
     if (!selectedDoctorCode) return normalized;
 
     const rawMatches = (doctorServiceMatchQuery.data as any)?.value;
@@ -381,20 +588,28 @@ export function useExaminationForm(
         }))
         .filter((row) => row.isActive !== false)
         .filter((row) => row.doctorCode === selectedDoctorCode)
-        .map((row) => row.serviceCode)
+        .map((row) => row.serviceCode),
     );
     if (allowedServiceCodes.size === 0) return [];
-    return normalized.filter((item) => allowedServiceCodes.has(item.normalizedCode));
-  }, [doctorServiceMatchQuery.data, serviceDirectoryQuery.data, selectedDoctorEntry]);
+    return normalized.filter((item) =>
+      allowedServiceCodes.has(item.normalizedCode),
+    );
+  }, [
+    doctorServiceMatchQuery.data,
+    serviceDirectoryQuery.data,
+    selectedDoctorEntry,
+  ]);
 
   const selectedServiceOption = useMemo(
     () => null, // No longer used as a single value
-    []
+    [],
   );
 
   const isPentacamService = useMemo(() => {
     return services.some((s) => {
-      const code = String(s.code ?? "").trim().toLowerCase();
+      const code = String(s.code ?? "")
+        .trim()
+        .toLowerCase();
       // We check by code or common patterns
       return code === "1501" || code.includes("pentacam");
     });
@@ -402,10 +617,10 @@ export function useExaminationForm(
 
   const digitsOnly = (value: string) => value.replace(/\D+/g, "");
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientInfo.id,
-    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(patientInfo.id, {
+    enabled: Boolean(patientInfo.id),
+    refetchOnWindowFocus: false,
+  });
 
   const handleSelectPatient = (patient: {
     id: number;
@@ -427,16 +642,80 @@ export function useExaminationForm(
     });
     setExamData({
       autorefraction: {
-        od: { s: "", c: "", axis: "", s1: "", c1: "", a1: "", s2: "", c2: "", a2: "", s3: "", c3: "", a3: "", afterS: "", afterC: "", afterA: "", ucva: "", bcva: "", iop: "", airPuff1: "", airPuff2: "", airPuff3: "" },
-        os: { s: "", c: "", axis: "", s1: "", c1: "", a1: "", s2: "", c2: "", a2: "", s3: "", c3: "", a3: "", afterS: "", afterC: "", afterA: "", ucva: "", bcva: "", iop: "", airPuff1: "", airPuff2: "", airPuff3: "" },
+        od: {
+          s: "",
+          c: "",
+          axis: "",
+          s1: "",
+          c1: "",
+          a1: "",
+          s2: "",
+          c2: "",
+          a2: "",
+          s3: "",
+          c3: "",
+          a3: "",
+          afterS: "",
+          afterC: "",
+          afterA: "",
+          ucva: "",
+          bcva: "",
+          iop: "",
+          airPuff1: "",
+          airPuff2: "",
+          airPuff3: "",
+        },
+        os: {
+          s: "",
+          c: "",
+          axis: "",
+          s1: "",
+          c1: "",
+          a1: "",
+          s2: "",
+          c2: "",
+          a2: "",
+          s3: "",
+          c3: "",
+          a3: "",
+          afterS: "",
+          afterC: "",
+          afterA: "",
+          ucva: "",
+          bcva: "",
+          iop: "",
+          airPuff1: "",
+          airPuff2: "",
+          airPuff3: "",
+        },
       },
       glasses: {
         od: { s: "", c: "", axis: "", pd: "" },
         os: { s: "", c: "", axis: "", pd: "" },
       },
       pentacam: {
-        od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
-        os: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
+        od: {
+          k1: "",
+          k2: "",
+          ax1: "",
+          ax2: "",
+          thinnest: "",
+          apex: "",
+          residual: "",
+          ttt: "",
+          ablation: "",
+        },
+        os: {
+          k1: "",
+          k2: "",
+          ax1: "",
+          ax2: "",
+          thinnest: "",
+          apex: "",
+          residual: "",
+          ttt: "",
+          ablation: "",
+        },
       },
     });
     lastSyncedRef.current = {};
@@ -543,7 +822,9 @@ export function useExaminationForm(
   // Load cached patient state from localStorage (workflow state only, not medical data)
   useEffect(() => {
     if (!patientInfo.id) return;
-    const raw = localStorage.getItem(`patient_state_examination_${patientInfo.id}`);
+    const raw = localStorage.getItem(
+      `patient_state_examination_${patientInfo.id}`,
+    );
     if (!raw) return;
     try {
       const data = JSON.parse(raw);
@@ -576,38 +857,59 @@ export function useExaminationForm(
   }, [patientStateQuery.data, patientInfo.id]);
 
   useEffect(() => {
-    const row = examinationChecklistQuery.data as Record<string, unknown> | null | undefined;
+    const row = examinationChecklistQuery.data as
+      | Record<string, unknown>
+      | null
+      | undefined;
     if (row) {
       setMedicalChecklist((prev) => ({
         ...prev,
         generalDiseases: Boolean(row.generalDiseases),
         pregnancyOrLactation: Boolean(row.pregnancyOrLactation),
-        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(row.usesAllergySupplementsSteroidsOrPressureMeds),
+        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(
+          row.usesAllergySupplementsSteroidsOrPressureMeds,
+        ),
         acneTreatment: Boolean(row.acneTreatment),
         familyKeratoconus: Boolean(row.familyKeratoconus),
-        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(row.usesTearSubstituteOrExcessTearsOrSandySensation),
+        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(
+          row.usesTearSubstituteOrExcessTearsOrSandySensation,
+        ),
         symptomsWorseWithAirOrAC: Boolean(row.symptomsWorseWithAirOrAC),
         glaucomaTreatment: Boolean(row.glaucomaTreatment),
       }));
       return;
     }
 
-    const pageState = (patientStateQuery.data as { data?: unknown } | null | undefined)?.data;
+    const pageState = (
+      patientStateQuery.data as { data?: unknown } | null | undefined
+    )?.data;
     const stateData =
       pageState && typeof pageState === "object"
         ? (pageState as Record<string, unknown>)
         : null;
-    if (stateData?.medicalChecklist && examinationChecklistQuery.data === null) {
-      const fallbackChecklist = stateData.medicalChecklist as Record<string, unknown>;
+    if (
+      stateData?.medicalChecklist &&
+      examinationChecklistQuery.data === null
+    ) {
+      const fallbackChecklist = stateData.medicalChecklist as Record<
+        string,
+        unknown
+      >;
       setMedicalChecklist((prev) => ({
         ...prev,
         generalDiseases: Boolean(fallbackChecklist.generalDiseases),
         pregnancyOrLactation: Boolean(fallbackChecklist.pregnancyOrLactation),
-        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(fallbackChecklist.usesAllergySupplementsSteroidsOrPressureMeds),
+        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(
+          fallbackChecklist.usesAllergySupplementsSteroidsOrPressureMeds,
+        ),
         acneTreatment: Boolean(fallbackChecklist.acneTreatment),
         familyKeratoconus: Boolean(fallbackChecklist.familyKeratoconus),
-        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(fallbackChecklist.usesTearSubstituteOrExcessTearsOrSandySensation),
-        symptomsWorseWithAirOrAC: Boolean(fallbackChecklist.symptomsWorseWithAirOrAC),
+        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(
+          fallbackChecklist.usesTearSubstituteOrExcessTearsOrSandySensation,
+        ),
+        symptomsWorseWithAirOrAC: Boolean(
+          fallbackChecklist.symptomsWorseWithAirOrAC,
+        ),
         glaucomaTreatment: Boolean(fallbackChecklist.glaucomaTreatment),
       }));
     }
@@ -617,20 +919,36 @@ export function useExaminationForm(
   useEffect(() => {
     if (!EXAM_AUTO_SAVE_ENABLED) return;
     if (!patientInfo.id) return;
-    if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+    if (patientStateTimerRef.current)
+      clearTimeout(patientStateTimerRef.current);
     const payload = {
       sheetSelection,
       visitDate,
       isFollowup,
     };
-    localStorage.setItem(`patient_state_examination_${patientInfo.id}`, JSON.stringify(payload));
+    localStorage.setItem(
+      `patient_state_examination_${patientInfo.id}`,
+      JSON.stringify(payload),
+    );
     patientStateTimerRef.current = setTimeout(() => {
-      savePatientStateMutation.mutate({ patientId: patientInfo.id, page: "examination", data: payload });
+      savePatientStateMutation.mutate({
+        patientId: patientInfo.id,
+        page: "examination",
+        data: payload,
+      });
     }, 800);
     return () => {
-      if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+      if (patientStateTimerRef.current)
+        clearTimeout(patientStateTimerRef.current);
     };
-  }, [EXAM_AUTO_SAVE_ENABLED, patientInfo.id, sheetSelection, visitDate, isFollowup, savePatientStateMutation]);
+  }, [
+    EXAM_AUTO_SAVE_ENABLED,
+    patientInfo.id,
+    sheetSelection,
+    visitDate,
+    isFollowup,
+    savePatientStateMutation,
+  ]);
 
   // Auto-save sheet entries (debounced)
   useEffect(() => {
@@ -656,12 +974,9 @@ export function useExaminationForm(
         doctor: doctorName,
       },
     });
-    const sheetTypes: Array<"consultant" | "specialist" | "lasik" | "external"> = [
-      "consultant",
-      "specialist",
-      "lasik",
-      "external",
-    ];
+    const sheetTypes: Array<
+      "consultant" | "specialist" | "lasik" | "external"
+    > = ["consultant", "specialist", "lasik", "external"];
 
     const timeout = setTimeout(async () => {
       try {
@@ -697,25 +1012,67 @@ export function useExaminationForm(
               examData,
               formData: {
                 ...(existing.formData ?? {}),
-                ucvaOD: pickValue(examData.autorefraction.od.ucva, existing.formData?.ucvaOD),
-                ucvaOS: pickValue(examData.autorefraction.os.ucva, existing.formData?.ucvaOS),
-                bcvaOD: pickValue(examData.autorefraction.od.bcva, existing.formData?.bcvaOD),
-                bcvaOS: pickValue(examData.autorefraction.os.bcva, existing.formData?.bcvaOS),
-                iopOD: pickValue(examData.autorefraction.od.iop, existing.formData?.iopOD),
-                iopOS: pickValue(examData.autorefraction.os.iop, existing.formData?.iopOS),
-                pdOD: pickValue(refractionTableData.od.pd, existing.formData?.pdOD),
-                pdOS: pickValue(refractionTableData.os.pd, existing.formData?.pdOS),
+                ucvaOD: pickValue(
+                  examData.autorefraction.od.ucva,
+                  existing.formData?.ucvaOD,
+                ),
+                ucvaOS: pickValue(
+                  examData.autorefraction.os.ucva,
+                  existing.formData?.ucvaOS,
+                ),
+                bcvaOD: pickValue(
+                  examData.autorefraction.od.bcva,
+                  existing.formData?.bcvaOD,
+                ),
+                bcvaOS: pickValue(
+                  examData.autorefraction.os.bcva,
+                  existing.formData?.bcvaOS,
+                ),
+                iopOD: pickValue(
+                  examData.autorefraction.od.iop,
+                  existing.formData?.iopOD,
+                ),
+                iopOS: pickValue(
+                  examData.autorefraction.os.iop,
+                  existing.formData?.iopOS,
+                ),
+                pdOD: pickValue(
+                  refractionTableData.od.pd,
+                  existing.formData?.pdOD,
+                ),
+                pdOS: pickValue(
+                  refractionTableData.os.pd,
+                  existing.formData?.pdOS,
+                ),
                 refractionOD: {
                   ...(existing.formData?.refractionOD ?? {}),
-                  s: pickValue(refractionTableData.od.s, existing.formData?.refractionOD?.s),
-                  c: pickValue(refractionTableData.od.c, existing.formData?.refractionOD?.c),
-                  a: pickValue(refractionTableData.od.a, existing.formData?.refractionOD?.a),
+                  s: pickValue(
+                    refractionTableData.od.s,
+                    existing.formData?.refractionOD?.s,
+                  ),
+                  c: pickValue(
+                    refractionTableData.od.c,
+                    existing.formData?.refractionOD?.c,
+                  ),
+                  a: pickValue(
+                    refractionTableData.od.a,
+                    existing.formData?.refractionOD?.a,
+                  ),
                 },
                 refractionOS: {
                   ...(existing.formData?.refractionOS ?? {}),
-                  s: pickValue(refractionTableData.os.s, existing.formData?.refractionOS?.s),
-                  c: pickValue(refractionTableData.os.c, existing.formData?.refractionOS?.c),
-                  a: pickValue(refractionTableData.os.a, existing.formData?.refractionOS?.a),
+                  s: pickValue(
+                    refractionTableData.os.s,
+                    existing.formData?.refractionOS?.s,
+                  ),
+                  c: pickValue(
+                    refractionTableData.os.c,
+                    existing.formData?.refractionOS?.c,
+                  ),
+                  a: pickValue(
+                    refractionTableData.os.a,
+                    existing.formData?.refractionOS?.a,
+                  ),
                 },
               },
               signatures: {
@@ -732,7 +1089,7 @@ export function useExaminationForm(
               content: JSON.stringify(updated),
             });
             lastSyncedRef.current[sheetType] = serialized;
-          })
+          }),
         );
       } catch {
         // ignore sync errors
@@ -763,14 +1120,17 @@ export function useExaminationForm(
 
   const syncSelectedSheets = async (
     patientId: number,
-    sheetTypes: Array<"consultant" | "specialist" | "lasik" | "external">
+    sheetTypes: Array<"consultant" | "specialist" | "lasik" | "external">,
   ) => {
     const pickValue = (next: string | undefined, prev?: string) =>
       next && String(next).trim() ? next : prev;
 
     await Promise.all(
       sheetTypes.map(async (sheetType) => {
-        const existingRaw = await utils.medical.getSheetEntry.fetch({ patientId, sheetType });
+        const existingRaw = await utils.medical.getSheetEntry.fetch({
+          patientId,
+          sheetType,
+        });
         let existing: any = {};
         try {
           existing = existingRaw ? JSON.parse(existingRaw) : {};
@@ -784,25 +1144,61 @@ export function useExaminationForm(
           examData,
           formData: {
             ...(existing.formData ?? {}),
-            ucvaOD: pickValue(examData.autorefraction.od.ucva, existing.formData?.ucvaOD),
-            ucvaOS: pickValue(examData.autorefraction.os.ucva, existing.formData?.ucvaOS),
-            bcvaOD: pickValue(examData.autorefraction.od.bcva, existing.formData?.bcvaOD),
-            bcvaOS: pickValue(examData.autorefraction.os.bcva, existing.formData?.bcvaOS),
-            iopOD: pickValue(examData.autorefraction.od.iop, existing.formData?.iopOD),
-            iopOS: pickValue(examData.autorefraction.os.iop, existing.formData?.iopOS),
+            ucvaOD: pickValue(
+              examData.autorefraction.od.ucva,
+              existing.formData?.ucvaOD,
+            ),
+            ucvaOS: pickValue(
+              examData.autorefraction.os.ucva,
+              existing.formData?.ucvaOS,
+            ),
+            bcvaOD: pickValue(
+              examData.autorefraction.od.bcva,
+              existing.formData?.bcvaOD,
+            ),
+            bcvaOS: pickValue(
+              examData.autorefraction.os.bcva,
+              existing.formData?.bcvaOS,
+            ),
+            iopOD: pickValue(
+              examData.autorefraction.od.iop,
+              existing.formData?.iopOD,
+            ),
+            iopOS: pickValue(
+              examData.autorefraction.os.iop,
+              existing.formData?.iopOS,
+            ),
             pdOD: pickValue(refractionTableData.od.pd, existing.formData?.pdOD),
             pdOS: pickValue(refractionTableData.os.pd, existing.formData?.pdOS),
             refractionOD: {
               ...(existing.formData?.refractionOD ?? {}),
-              s: pickValue(refractionTableData.od.s, existing.formData?.refractionOD?.s),
-              c: pickValue(refractionTableData.od.c, existing.formData?.refractionOD?.c),
-              a: pickValue(refractionTableData.od.a, existing.formData?.refractionOD?.a),
+              s: pickValue(
+                refractionTableData.od.s,
+                existing.formData?.refractionOD?.s,
+              ),
+              c: pickValue(
+                refractionTableData.od.c,
+                existing.formData?.refractionOD?.c,
+              ),
+              a: pickValue(
+                refractionTableData.od.a,
+                existing.formData?.refractionOD?.a,
+              ),
             },
             refractionOS: {
               ...(existing.formData?.refractionOS ?? {}),
-              s: pickValue(refractionTableData.os.s, existing.formData?.refractionOS?.s),
-              c: pickValue(refractionTableData.os.c, existing.formData?.refractionOS?.c),
-              a: pickValue(refractionTableData.os.a, existing.formData?.refractionOS?.a),
+              s: pickValue(
+                refractionTableData.os.s,
+                existing.formData?.refractionOS?.s,
+              ),
+              c: pickValue(
+                refractionTableData.os.c,
+                existing.formData?.refractionOS?.c,
+              ),
+              a: pickValue(
+                refractionTableData.os.a,
+                existing.formData?.refractionOS?.a,
+              ),
             },
           },
           signatures: {
@@ -818,16 +1214,22 @@ export function useExaminationForm(
           sheetType,
           content: JSON.stringify(updated),
         });
-      })
+      }),
     );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const hasAutoInput =
-      Object.values(examData.autorefraction.od).some((v) => String(v || "").trim()) ||
-      Object.values(examData.autorefraction.os).some((v) => String(v || "").trim()) ||
-      Object.values(refractionTableData.od).some((v) => String(v || "").trim()) ||
+      Object.values(examData.autorefraction.od).some((v) =>
+        String(v || "").trim(),
+      ) ||
+      Object.values(examData.autorefraction.os).some((v) =>
+        String(v || "").trim(),
+      ) ||
+      Object.values(refractionTableData.od).some((v) =>
+        String(v || "").trim(),
+      ) ||
       Object.values(refractionTableData.os).some((v) => String(v || "").trim());
     const hasPentacamInput =
       Object.values(examData.pentacam.od).some((v) => String(v || "").trim()) ||
@@ -837,7 +1239,11 @@ export function useExaminationForm(
       toast.error("يرجى إدخال توقيع التمريض");
       return;
     }
-    if (hasPentacamInput && !technicianSignature.trim() && !nurseSignature.trim()) {
+    if (
+      hasPentacamInput &&
+      !technicianSignature.trim() &&
+      !nurseSignature.trim()
+    ) {
       toast.error("يرجى إدخال توقيع الفني");
       return;
     }
@@ -853,12 +1259,16 @@ export function useExaminationForm(
           toast.error("يرجى إدخال اسم المريض");
           return;
         }
-        const doctorCode = selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "").trim() : "";
-        console.log(`[ExaminationForm] Creating patient with doctor code: "${doctorCode}"`);
+        const doctorCode = selectedDoctorEntry
+          ? String((selectedDoctorEntry as any)?.code ?? "").trim()
+          : "";
+        console.log(
+          `[ExaminationForm] Creating patient with doctor code: "${doctorCode}"`,
+        );
 
         const validServices = services
-          .filter(s => s.code.trim())
-          .map(s => ({
+          .filter((s) => s.code.trim())
+          .map((s) => ({
             code: s.code.trim(),
             qty: Number(s.qty) || 1,
             price: s.price ?? 0,
@@ -889,13 +1299,18 @@ export function useExaminationForm(
         for (const srv of services) {
           if (srv.code.trim()) {
             try {
-              const doctorCode = selectedDoctorEntry ? String((selectedDoctorEntry as any)?.code ?? "").trim() : "";
+              const doctorCode = selectedDoctorEntry
+                ? String((selectedDoctorEntry as any)?.code ?? "").trim()
+                : "";
               await linkPatientServiceToMssqlMutation.mutateAsync({
                 patientId: effectivePatientId,
                 serviceCode: srv.code,
                 quantity: Number(srv.qty) || 1,
                 doctorCode: doctorCode || undefined,
-                doctorName: String((selectedDoctorEntry as any)?.name ?? doctorName ?? "").trim() || undefined,
+                doctorName:
+                  String(
+                    (selectedDoctorEntry as any)?.name ?? doctorName ?? "",
+                  ).trim() || undefined,
               });
             } catch (err) {
               console.warn(`Failed to link service ${srv.code}:`, err);
@@ -910,14 +1325,30 @@ export function useExaminationForm(
       formData.forEach((value, key) => {
         payload[key] = String(value);
       });
-      payload["medical-general-diseases"] = medicalChecklist.generalDiseases ? "yes" : "";
-      payload["medical-pregnancy-lactation"] = medicalChecklist.pregnancyOrLactation ? "yes" : "";
-      payload["medical-allergy-supplements-steroids-pressure"] = medicalChecklist.usesAllergySupplementsSteroidsOrPressureMeds ? "yes" : "";
-      payload["medical-acne-treatment"] = medicalChecklist.acneTreatment ? "yes" : "";
-      payload["medical-family-keratoconus"] = medicalChecklist.familyKeratoconus ? "yes" : "";
-      payload["medical-tear-substitute-excess-tears-sandy"] = medicalChecklist.usesTearSubstituteOrExcessTearsOrSandySensation ? "yes" : "";
-      payload["medical-symptoms-air-ac"] = medicalChecklist.symptomsWorseWithAirOrAC ? "yes" : "";
-      payload["medical-glaucoma-treatment"] = medicalChecklist.glaucomaTreatment ? "yes" : "";
+      payload["medical-general-diseases"] = medicalChecklist.generalDiseases
+        ? "yes"
+        : "";
+      payload["medical-pregnancy-lactation"] =
+        medicalChecklist.pregnancyOrLactation ? "yes" : "";
+      payload["medical-allergy-supplements-steroids-pressure"] =
+        medicalChecklist.usesAllergySupplementsSteroidsOrPressureMeds
+          ? "yes"
+          : "";
+      payload["medical-acne-treatment"] = medicalChecklist.acneTreatment
+        ? "yes"
+        : "";
+      payload["medical-family-keratoconus"] = medicalChecklist.familyKeratoconus
+        ? "yes"
+        : "";
+      payload["medical-tear-substitute-excess-tears-sandy"] =
+        medicalChecklist.usesTearSubstituteOrExcessTearsOrSandySensation
+          ? "yes"
+          : "";
+      payload["medical-symptoms-air-ac"] =
+        medicalChecklist.symptomsWorseWithAirOrAC ? "yes" : "";
+      payload["medical-glaucoma-treatment"] = medicalChecklist.glaucomaTreatment
+        ? "yes"
+        : "";
 
       if (examData.autorefraction?.od) {
         payload["autoref-od"] = examData.autorefraction.od;
@@ -950,7 +1381,9 @@ export function useExaminationForm(
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
-      const savedExaminationId = Number((savedExam as { examinationId?: unknown } | null)?.examinationId ?? 0);
+      const savedExaminationId = Number(
+        (savedExam as { examinationId?: unknown } | null)?.examinationId ?? 0,
+      );
       if (savedExaminationId > 0) {
         try {
           await saveExaminationChecklistMutation.mutateAsync({
@@ -959,19 +1392,22 @@ export function useExaminationForm(
             checklist: medicalChecklist,
           });
         } catch (error) {
-          console.warn("[Examination] Checklist save failed after exam save", error);
-          toast.warning("تم حفظ الفحص لكن فشل حفظ قائمة المرض. يرجى إعادة المحاولة.");
+          console.warn(
+            "[Examination] Checklist save failed after exam save",
+            error,
+          );
+          toast.warning(
+            "تم حفظ الفحص لكن فشل حفظ قائمة المرض. يرجى إعادة المحاولة.",
+          );
         }
       }
 
-      const preferredType = (isFollowup
-        ? "consultant"
-        : (sheetSelection || "consultant")) as
-        | "consultant"
-        | "specialist"
-        | "lasik"
-        | "external";
-      const allSheetTypes: Array<"consultant" | "specialist" | "lasik" | "external"> = [
+      const preferredType = (
+        isFollowup ? "consultant" : sheetSelection || "consultant"
+      ) as "consultant" | "specialist" | "lasik" | "external";
+      const allSheetTypes: Array<
+        "consultant" | "specialist" | "lasik" | "external"
+      > = [
         preferredType,
         "consultant",
         "specialist",
@@ -985,7 +1421,13 @@ export function useExaminationForm(
       if (embedded) {
         // Clear the form for embedded mode (modal stays open)
         setPatientInfo({ id: 0, name: "", code: "" });
-        setPatientDetails({ dateOfBirth: "", age: "", address: "", phone: "", job: "" });
+        setPatientDetails({
+          dateOfBirth: "",
+          age: "",
+          address: "",
+          phone: "",
+          job: "",
+        });
         setServices([{ code: "", qty: "1", price: 0, discount: 0 }]);
         setDoctorName("");
         setSheetSelection("");

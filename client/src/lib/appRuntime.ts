@@ -72,12 +72,13 @@ type PersistedQueryEntry = {
   updatedAt: number;
 };
 
-const canUseBrowserStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
+const canUseBrowserStorage = () =>
+  typeof window !== "undefined" && Boolean(window.localStorage);
 const RELOAD_GUARD_WINDOW_MS = 4000;
 
 const getReloadGuardWindow = () => {
   if (typeof window === "undefined") return 0;
-  return (window as any).__selrsReloadAllowedAt as number | undefined ?? 0;
+  return ((window as any).__selrsReloadAllowedAt as number | undefined) ?? 0;
 };
 
 const setReloadGuardWindow = () => {
@@ -85,16 +86,23 @@ const setReloadGuardWindow = () => {
   (window as any).__selrsReloadAllowedAt = Date.now();
 };
 
-const recordReloadTrace = (reason: string, source: "reload" | "assign" | "replace") => {
+const recordReloadTrace = (
+  reason: string,
+  source: "reload" | "assign" | "replace",
+) => {
   if (typeof window === "undefined") return;
   const payload = {
     reason,
     source,
-    path: window.location.pathname + window.location.search + window.location.hash,
+    path:
+      window.location.pathname + window.location.search + window.location.hash,
     time: new Date().toISOString(),
   };
   try {
-    window.localStorage.setItem(RELOAD_TRACE_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(
+      RELOAD_TRACE_STORAGE_KEY,
+      JSON.stringify(payload),
+    );
   } catch {
     // Ignore storage failures.
   }
@@ -125,7 +133,9 @@ export const installReloadGuard = () => {
       console.warn("[SELRS] Blocked automatic reload");
       return;
     }
-    const reason = String((window as any).__selrsReloadReason ?? "location.reload");
+    const reason = String(
+      (window as any).__selrsReloadReason ?? "location.reload",
+    );
     recordReloadTrace(reason, "reload");
     (window as any).__selrsReloadAllowedAt = 0;
     originalReload();
@@ -149,25 +159,33 @@ export const installNavigationGuard = () => {
     const assignDescriptor =
       Object.getOwnPropertyDescriptor(loc, "assign") ??
       Object.getOwnPropertyDescriptor(Object.getPrototypeOf(loc), "assign");
-    if (assignDescriptor && !assignDescriptor.writable && !assignDescriptor.set) {
-      console.warn("[SELRS] Location.assign is read-only; skipping navigation guard");
+    if (
+      assignDescriptor &&
+      !assignDescriptor.writable &&
+      !assignDescriptor.set
+    ) {
+      console.warn(
+        "[SELRS] Location.assign is read-only; skipping navigation guard",
+      );
     } else {
-    const guardedAssign = (url: string | URL) => {
-      if (!isReloadAllowed()) {
-        console.warn("[SELRS] Blocked automatic navigation (assign)");
-        return;
+      const guardedAssign = (url: string | URL) => {
+        if (!isReloadAllowed()) {
+          console.warn("[SELRS] Blocked automatic navigation (assign)");
+          return;
+        }
+        const reason = String(
+          (window as any).__selrsReloadReason ?? "location.assign",
+        );
+        recordReloadTrace(reason, "assign");
+        (window as any).__selrsReloadAllowedAt = 0;
+        originalAssign(url as any);
+      };
+      (guardedAssign as any).__selrsGuarded = true;
+      try {
+        (loc as any).assign = guardedAssign;
+      } catch (error) {
+        console.warn("[SELRS] Unable to guard Location.assign", error);
       }
-      const reason = String((window as any).__selrsReloadReason ?? "location.assign");
-      recordReloadTrace(reason, "assign");
-      (window as any).__selrsReloadAllowedAt = 0;
-      originalAssign(url as any);
-    };
-    (guardedAssign as any).__selrsGuarded = true;
-    try {
-      (loc as any).assign = guardedAssign;
-    } catch (error) {
-      console.warn("[SELRS] Unable to guard Location.assign", error);
-    }
     }
   }
 
@@ -175,25 +193,33 @@ export const installNavigationGuard = () => {
     const replaceDescriptor =
       Object.getOwnPropertyDescriptor(loc, "replace") ??
       Object.getOwnPropertyDescriptor(Object.getPrototypeOf(loc), "replace");
-    if (replaceDescriptor && !replaceDescriptor.writable && !replaceDescriptor.set) {
-      console.warn("[SELRS] Location.replace is read-only; skipping navigation guard");
+    if (
+      replaceDescriptor &&
+      !replaceDescriptor.writable &&
+      !replaceDescriptor.set
+    ) {
+      console.warn(
+        "[SELRS] Location.replace is read-only; skipping navigation guard",
+      );
     } else {
-    const guardedReplace = (url: string | URL) => {
-      if (!isReloadAllowed()) {
-        console.warn("[SELRS] Blocked automatic navigation (replace)");
-        return;
+      const guardedReplace = (url: string | URL) => {
+        if (!isReloadAllowed()) {
+          console.warn("[SELRS] Blocked automatic navigation (replace)");
+          return;
+        }
+        const reason = String(
+          (window as any).__selrsReloadReason ?? "location.replace",
+        );
+        recordReloadTrace(reason, "replace");
+        (window as any).__selrsReloadAllowedAt = 0;
+        originalReplace(url as any);
+      };
+      (guardedReplace as any).__selrsGuarded = true;
+      try {
+        (loc as any).replace = guardedReplace;
+      } catch (error) {
+        console.warn("[SELRS] Unable to guard Location.replace", error);
       }
-      const reason = String((window as any).__selrsReloadReason ?? "location.replace");
-      recordReloadTrace(reason, "replace");
-      (window as any).__selrsReloadAllowedAt = 0;
-      originalReplace(url as any);
-    };
-    (guardedReplace as any).__selrsGuarded = true;
-    try {
-      (loc as any).replace = guardedReplace;
-    } catch (error) {
-      console.warn("[SELRS] Unable to guard Location.replace", error);
-    }
     }
   }
 };
@@ -258,7 +284,7 @@ export const requestAppReload = (reason?: string) => {
       window.dispatchEvent(
         new CustomEvent("selrs-soft-reload", {
           detail: { reason: reason || "unknown" },
-        })
+        }),
       );
     } catch {
       // If CustomEvent is unavailable for any reason, do nothing.
@@ -295,7 +321,7 @@ const getPersistedQueryEntries = (): PersistedQueryEntry[] => {
           (entry) =>
             Array.isArray(entry?.queryKey) &&
             typeof entry?.updatedAt === "number" &&
-            now - entry.updatedAt <= QUERY_CACHE_MAX_AGE_MS
+            now - entry.updatedAt <= QUERY_CACHE_MAX_AGE_MS,
         )
       : [];
   } catch {
@@ -307,7 +333,10 @@ const savePersistedQueryEntries = (entries: PersistedQueryEntry[]) => {
   if (!canUseBrowserStorage()) return;
 
   try {
-    window.localStorage.setItem(QUERY_CACHE_STORAGE_KEY, JSON.stringify(entries.slice(-120)));
+    window.localStorage.setItem(
+      QUERY_CACHE_STORAGE_KEY,
+      JSON.stringify(entries.slice(-120)),
+    );
   } catch {
     // Ignore storage quota/serialization failures.
   }
@@ -346,7 +375,8 @@ const shouldRetry = (failureCount: number, error: unknown) => {
   if (error instanceof TRPCClientError) {
     const code = error.data?.code ?? "";
     const status = error.data?.httpStatus ?? 0;
-    if (code === "UNAUTHORIZED" || status === 401 || status === 403) return false;
+    if (code === "UNAUTHORIZED" || status === 401 || status === 403)
+      return false;
     return failureCount < 2;
   }
   return failureCount < 2;
@@ -385,7 +415,9 @@ export const installOfflineQueryCachePersistence = () => {
     if (!isSafeOfflineQuery(event.query.queryKey)) return;
 
     const existing = getPersistedQueryEntries().filter(
-      (entry) => toQueryKeyString(entry.queryKey) !== toQueryKeyString(event.query.queryKey)
+      (entry) =>
+        toQueryKeyString(entry.queryKey) !==
+        toQueryKeyString(event.query.queryKey),
     );
 
     existing.push({
@@ -400,7 +432,10 @@ export const installOfflineQueryCachePersistence = () => {
 
 export const getOfflineCacheSummary = () => {
   const entries = getPersistedQueryEntries();
-  const latest = entries.reduce((max, entry) => Math.max(max, entry.updatedAt), 0);
+  const latest = entries.reduce(
+    (max, entry) => Math.max(max, entry.updatedAt),
+    0,
+  );
   return {
     count: entries.length,
     lastUpdatedAt: latest || null,
@@ -413,7 +448,8 @@ export const toApiIssue = (error: unknown): ApiIssue => {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     return {
       kind: "offline",
-      message: "No internet connection. Working with cached app data until the server is reachable again.",
+      message:
+        "No internet connection. Working with cached app data until the server is reachable again.",
       time: now,
     };
   }
@@ -424,7 +460,8 @@ export const toApiIssue = (error: unknown): ApiIssue => {
     if (status === 401 || error.data?.code === "UNAUTHORIZED") {
       return {
         kind: "auth",
-        message: "Your session is no longer valid. Sign in again to continue syncing data.",
+        message:
+          "Your session is no longer valid. Sign in again to continue syncing data.",
         path,
         status,
         time: now,
@@ -432,14 +469,20 @@ export const toApiIssue = (error: unknown): ApiIssue => {
     }
     return {
       kind: status >= 500 ? "server" : "unknown",
-      message: status >= 500 ? "The SELRS server returned an error. Retry when the server is stable." : error.message,
+      message:
+        status >= 500
+          ? "The SELRS server returned an error. Retry when the server is stable."
+          : error.message,
       path,
       status,
       time: now,
     };
   }
 
-  const message = error instanceof Error ? error.message : String(error ?? "Unknown API failure");
+  const message =
+    error instanceof Error
+      ? error.message
+      : String(error ?? "Unknown API failure");
   const pathMatch = message.match(/(?:URL|Path):\s*([^\n]+)/i);
   const statusMatch = message.match(/Status:\s*(\d+)/i);
   if (/timeout/i.test(message)) {
@@ -454,7 +497,8 @@ export const toApiIssue = (error: unknown): ApiIssue => {
   if (/failed to fetch|networkerror|network error/i.test(message)) {
     return {
       kind: "offline",
-      message: "The app could not reach the server. Cached data remains available where possible.",
+      message:
+        "The app could not reach the server. Cached data remains available where possible.",
       path: pathMatch?.[1]?.trim(),
       status: statusMatch ? Number(statusMatch[1]) : undefined,
       time: now,
@@ -463,7 +507,8 @@ export const toApiIssue = (error: unknown): ApiIssue => {
   if (/html instead of json/i.test(message)) {
     return {
       kind: "server",
-      message: "The app received an unexpected server response. Check the server or proxy configuration.",
+      message:
+        "The app received an unexpected server response. Check the server or proxy configuration.",
       path: pathMatch?.[1]?.trim(),
       status: statusMatch ? Number(statusMatch[1]) : undefined,
       time: now,
@@ -480,7 +525,9 @@ export const toApiIssue = (error: unknown): ApiIssue => {
 
 const shouldSuppressApiIssue = (issue: ApiIssue) => {
   const haystack = `${issue.path ?? ""}\n${issue.message}`.toLowerCase();
-  return SILENT_API_PATH_FRAGMENTS.some((fragment) => haystack.includes(fragment.toLowerCase()));
+  return SILENT_API_PATH_FRAGMENTS.some((fragment) =>
+    haystack.includes(fragment.toLowerCase()),
+  );
 };
 
 export const dispatchApiIssue = (error: unknown) => {
@@ -492,8 +539,14 @@ export const dispatchApiIssue = (error: unknown) => {
 
 export const formatBuildLabel = (build: BuildInfo | null) => {
   if (!build) return "Build unknown";
-  const commit = build.commit && build.commit !== "unknown" ? build.commit.slice(0, 7) : "local";
-  const time = build.buildTime && build.buildTime !== "unknown" ? build.buildTime : "untracked";
+  const commit =
+    build.commit && build.commit !== "unknown"
+      ? build.commit.slice(0, 7)
+      : "local";
+  const time =
+    build.buildTime && build.buildTime !== "unknown"
+      ? build.buildTime
+      : "untracked";
   return `v${build.version} · ${commit} · ${time}`;
 };
 
@@ -518,7 +571,10 @@ export const loadCachedNativeAppInfo = (): NativeAppInfo | null => {
 export const saveCachedNativeAppInfo = (value: NativeAppInfo) => {
   if (!canUseBrowserStorage()) return;
   try {
-    window.localStorage.setItem(NATIVE_APP_INFO_STORAGE_KEY, JSON.stringify(value));
+    window.localStorage.setItem(
+      NATIVE_APP_INFO_STORAGE_KEY,
+      JSON.stringify(value),
+    );
   } catch {
     // Ignore storage failures.
   }
@@ -549,7 +605,7 @@ export const getInitialOnlineState = () =>
   typeof navigator !== "undefined" ? navigator.onLine : true;
 
 export const subscribeNetworkStatus = (
-  onChange: (next: { connected: boolean; connectionType?: string }) => void
+  onChange: (next: { connected: boolean; connectionType?: string }) => void,
 ) => {
   let cleanup = () => {};
 
@@ -568,11 +624,19 @@ export const subscribeNetworkStatus = (
 
   if (Capacitor.isNativePlatform()) {
     void Network.getStatus()
-      .then((status) => onChange({ connected: status.connected, connectionType: status.connectionType }))
+      .then((status) =>
+        onChange({
+          connected: status.connected,
+          connectionType: status.connectionType,
+        }),
+      )
       .catch(() => {});
 
     void Network.addListener("networkStatusChange", (status) => {
-      onChange({ connected: status.connected, connectionType: status.connectionType });
+      onChange({
+        connected: status.connected,
+        connectionType: status.connectionType,
+      });
     }).then((listener) => {
       const prevCleanup = cleanup;
       cleanup = () => {

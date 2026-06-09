@@ -1,8 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { NATIVE_THEME_KEY, hydrateDurableValue, saveDurableValue, writeLocalStorageValue } from "@/lib/nativeStorage";
+import {
+  NATIVE_THEME_KEY,
+  hydrateDurableValue,
+  saveDurableValue,
+  writeLocalStorageValue,
+} from "@/lib/nativeStorage";
 
 function isNativeApp(): boolean {
-  try { return (window as any).Capacitor?.isNative === true; } catch { return false; }
+  try {
+    return (window as any).Capacitor?.isNative === true;
+  } catch {
+    return false;
+  }
 }
 
 export type ThemePref = "light" | "dark";
@@ -23,7 +32,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEME_STORAGE_KEY = "theme";
 
 function canUseStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 function loadStoredPref(): ThemePref {
@@ -44,7 +55,9 @@ function savePref(pref: ThemePref) {
 }
 
 function ensureThemeColorMeta(): HTMLMetaElement {
-  const existing = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const existing = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]',
+  );
   if (existing) return existing;
   const meta = document.createElement("meta");
   meta.name = "theme-color";
@@ -76,16 +89,18 @@ export function ThemeProvider({
   const switchable = switchableProp ?? isNativeApp();
 
   const [pref, setPrefState] = useState<ThemePref>(() =>
-    switchable ? loadStoredPref() : defaultTheme
+    switchable ? loadStoredPref() : defaultTheme,
   );
 
   useEffect(() => {
     if (!switchable) return;
-    void hydrateDurableValue(NATIVE_THEME_KEY, THEME_STORAGE_KEY).then((stored) => {
-      if (stored === "dark" || stored === "light") {
-        setPrefState(stored);
-      }
-    });
+    void hydrateDurableValue(NATIVE_THEME_KEY, THEME_STORAGE_KEY).then(
+      (stored) => {
+        if (stored === "dark" || stored === "light") {
+          setPrefState(stored);
+        }
+      },
+    );
   }, [switchable]);
 
   useEffect(() => {

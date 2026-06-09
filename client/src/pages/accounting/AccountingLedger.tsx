@@ -159,7 +159,9 @@ export default function AccountingLedger() {
                       ? "text-primary"
                       : "text-destructive",
                   bg:
-                    (s?.currentBalance ?? 0) >= 0 ? "bg-primary/5" : "bg-destructive/10",
+                    (s?.currentBalance ?? 0) >= 0
+                      ? "bg-primary/5"
+                      : "bg-destructive/10",
                   icon: Wallet,
                 },
               ] as const
@@ -464,8 +466,7 @@ export default function AccountingLedger() {
                     }}
                     className={cn(
                       "rounded-2xl border border-border bg-background p-3.5 shadow-sm transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      delConfirm === row.id &&
-                        "bg-muted ring-1 ring-border",
+                      delConfirm === row.id && "bg-muted ring-1 ring-border",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -497,7 +498,9 @@ export default function AccountingLedger() {
                         <span
                           className={cn(
                             "font-semibold tabular-nums",
-                            row.income ? "text-success" : "text-muted-foreground",
+                            row.income
+                              ? "text-success"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.income ? fmt(row.income) : "—"}
@@ -510,7 +513,9 @@ export default function AccountingLedger() {
                         <span
                           className={cn(
                             "font-semibold tabular-nums",
-                            row.expense ? "text-destructive" : "text-muted-foreground",
+                            row.expense
+                              ? "text-destructive"
+                              : "text-muted-foreground",
                           )}
                         >
                           {row.expense ? fmt(row.expense) : "—"}
@@ -542,7 +547,10 @@ export default function AccountingLedger() {
                           className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           التاريخ{" "}
-                          <span className="text-muted-foreground" aria-hidden="true">
+                          <span
+                            className="text-muted-foreground"
+                            aria-hidden="true"
+                          >
                             {sortDir === "desc" ? "↓" : "↑"}
                           </span>
                         </button>

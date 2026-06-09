@@ -21,7 +21,8 @@ type AcceptedMimeType = (typeof ACCEPTED_TYPES)[number];
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+    reader.onload = () =>
+      resolve((reader.result as string).split(",")[1] ?? "");
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -70,7 +71,9 @@ export default function BrandLibrary() {
     onSuccess: () => {
       rebuildStartedAt.current = Date.now();
       setRebuilding(true);
-      toast.info("جارٍ بناء ملف العلامة التجارية في الخلفية — قد يستغرق بضع دقائق");
+      toast.info(
+        "جارٍ بناء ملف العلامة التجارية في الخلفية — قد يستغرق بضع دقائق",
+      );
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -103,7 +106,9 @@ export default function BrandLibrary() {
     }
     setUploading(false);
     if (uploaded > 0) {
-      toast.success(`تم رفع ${uploaded} تصميم${uploaded > 1 ? "اً" : ""} — جارٍ التحليل في الخلفية`);
+      toast.success(
+        `تم رفع ${uploaded} تصميم${uploaded > 1 ? "اً" : ""} — جارٍ التحليل في الخلفية`,
+      );
     }
   }
 
@@ -114,7 +119,9 @@ export default function BrandLibrary() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-bold text-foreground">مكتبة العلامة التجارية</h1>
+          <h1 className="text-lg font-bold text-foreground">
+            مكتبة العلامة التجارية
+          </h1>
           <p className="text-sm text-muted-foreground">
             ارفع تصاميمك المرجعية حتى تتعلم الأداة أسلوب علامتك التجارية
           </p>
@@ -137,11 +144,23 @@ export default function BrandLibrary() {
         role="button"
         tabIndex={0}
         aria-label="رفع تصاميم مرجعية — اسحب أو انقر للاختيار"
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); void handleFiles(e.dataTransfer.files); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          void handleFiles(e.dataTransfer.files);
+        }}
         onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         className={`relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
           dragOver
             ? "border-primary bg-primary/10"
@@ -164,8 +183,12 @@ export default function BrandLibrary() {
         ) : (
           <>
             <Upload className="mb-3 h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm font-medium text-foreground">اسحب التصاميم هنا أو انقر للاختيار</p>
-            <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WEBP — حتى 10 ميجابايت لكل صورة</p>
+            <p className="text-sm font-medium text-foreground">
+              اسحب التصاميم هنا أو انقر للاختيار
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              JPEG, PNG, WEBP — حتى 10 ميجابايت لكل صورة
+            </p>
           </>
         )}
       </div>
@@ -175,28 +198,38 @@ export default function BrandLibrary() {
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <Palette className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">ملف العلامة التجارية</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              ملف العلامة التجارية
+            </h2>
             {profile ? (
               <Badge className="bg-success/15 text-success text-xs">
                 <CheckCircle2 className="mr-1 h-3 w-3" />
                 مُنشأ من {profile.designCount} تصميم
               </Badge>
             ) : (
-              <Badge className="bg-muted text-muted-foreground text-xs">لم يُنشأ بعد</Badge>
+              <Badge className="bg-muted text-muted-foreground text-xs">
+                لم يُنشأ بعد
+              </Badge>
             )}
           </div>
           <Button
             size="sm"
             variant="default"
             onClick={() => rebuildMutation.mutate()}
-            disabled={rebuildMutation.isPending || rebuilding || designs.length === 0}
+            disabled={
+              rebuildMutation.isPending || rebuilding || designs.length === 0
+            }
           >
             {rebuildMutation.isPending || rebuilding ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-1.5 h-4 w-4" />
             )}
-            {rebuilding ? "جارٍ البناء…" : profile ? "إعادة بناء الملف" : "بناء الملف"}
+            {rebuilding
+              ? "جارٍ البناء…"
+              : profile
+                ? "إعادة بناء الملف"
+                : "بناء الملف"}
           </Button>
         </div>
 
@@ -207,18 +240,37 @@ export default function BrandLibrary() {
           </div>
         ) : profile ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <ProfileField label="الألوان الأساسية" value={profile.dominantColors} />
+            <ProfileField
+              label="الألوان الأساسية"
+              value={profile.dominantColors}
+            />
             <ProfileField label="لوحة الألوان" value={profile.colorPalette} />
             <ProfileField label="أسلوب التخطيط" value={profile.layoutStyle} />
-            <ProfileField label="تكوين الصورة" value={profile.imageComposition} />
-            <ProfileField label="أسلوب العلامة التجارية" value={profile.brandingStyle} />
-            <ProfileField label="الأسلوب الطبي البصري" value={profile.medicalVisualStyle} />
+            <ProfileField
+              label="تكوين الصورة"
+              value={profile.imageComposition}
+            />
+            <ProfileField
+              label="أسلوب العلامة التجارية"
+              value={profile.brandingStyle}
+            />
+            <ProfileField
+              label="الأسلوب الطبي البصري"
+              value={profile.medicalVisualStyle}
+            />
             <ProfileField label="موضع CTA" value={profile.ctaPositioning} />
-            <ProfileField label="موضع الشعار" value={profile.logoPlacementStyle} />
+            <ProfileField
+              label="موضع الشعار"
+              value={profile.logoPlacementStyle}
+            />
             {profile.overallAesthetic && (
               <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-                <p className="text-xs font-semibold text-primary mb-1">الهوية البصرية الكاملة</p>
-                <p className="text-sm text-foreground leading-relaxed">{profile.overallAesthetic}</p>
+                <p className="text-xs font-semibold text-primary mb-1">
+                  الهوية البصرية الكاملة
+                </p>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {profile.overallAesthetic}
+                </p>
               </div>
             )}
           </div>
@@ -226,7 +278,8 @@ export default function BrandLibrary() {
           <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-center flex-col">
             <BookImage className="h-6 w-6 text-muted-foreground/40 mx-auto" />
             <p className="text-sm text-muted-foreground">
-              ارفع تصاميم مرجعية ثم اضغط "بناء الملف" لاستخراج هوية علامتك التجارية
+              ارفع تصاميم مرجعية ثم اضغط "بناء الملف" لاستخراج هوية علامتك
+              التجارية
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               بعد البناء، سيتم توليد صور مستقبلية تتوافق مع أسلوب مركزك
@@ -250,14 +303,19 @@ export default function BrandLibrary() {
         ) : designs.length === 0 ? (
           <div className="rounded-xl border border-border bg-card py-10 text-center">
             <BookImage className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">لا توجد تصاميم مرجعية بعد</p>
+            <p className="text-sm text-muted-foreground">
+              لا توجد تصاميم مرجعية بعد
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {designs.map((design) => {
               const analyzed = Boolean(design.styleAttributes);
               return (
-                <div key={design.id} className="group relative rounded-xl border border-border bg-card overflow-hidden">
+                <div
+                  key={design.id}
+                  className="group relative rounded-xl border border-border bg-card overflow-hidden"
+                >
                   {/* Image */}
                   <div className="relative h-36 bg-muted">
                     <img
@@ -265,7 +323,10 @@ export default function BrandLibrary() {
                       alt={design.originalName}
                       className="h-full w-full object-cover"
                       loading="lazy"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display =
+                          "none";
+                      }}
                     />
                     {/* Overlay on hover */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -284,7 +345,9 @@ export default function BrandLibrary() {
 
                   {/* Footer */}
                   <div className="px-2 py-2">
-                    <p className="truncate text-xs font-medium text-foreground">{design.originalName}</p>
+                    <p className="truncate text-xs font-medium text-foreground">
+                      {design.originalName}
+                    </p>
                     <div className="mt-1 flex items-center gap-1">
                       {analyzed ? (
                         <Badge className="bg-success/15 text-success text-[10px] px-1.5 py-0">
@@ -309,11 +372,19 @@ export default function BrandLibrary() {
   );
 }
 
-function ProfileField({ label, value }: { label: string; value: string | null | undefined }) {
+function ProfileField({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
   if (!value) return null;
   return (
     <div className="rounded-lg border border-border bg-background px-3 py-2">
-      <p className="text-xs font-semibold text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-xs font-semibold text-muted-foreground mb-0.5">
+        {label}
+      </p>
       <p className="text-sm text-foreground leading-snug">{value}</p>
     </div>
   );

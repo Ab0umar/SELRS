@@ -11,6 +11,7 @@
 **PAJRNRCVH registration flow is ALREADY CORRECTLY IMPLEMENTED** for legacy OP compatibility.
 
 The backend (`server/integrations/mssqlPatients.ts`) has:
+
 1. Comprehensive SQL Server metadata introspection
 2. Dynamic SQL building based on actual table schema
 3. Sophisticated field classification (identity, money, date, shift, money/payee, voucher)
@@ -22,6 +23,7 @@ The backend (`server/integrations/mssqlPatients.ts`) has:
 9. Legacy discount and value calculation (PA_VL - DISC_VL - DRS_VL)
 
 **Current implementation:**
+
 - Web app uses standard tRPC APIs (`createPatient`, `savePatientPageState`)
 - Backend MSSQL integration handles all PAJRNRCVH fields correctly
 - PAJRNRCVH rows are inserted with proper defaults where applicable
@@ -41,89 +43,99 @@ NONE. No changes were made.
 ## SQL Server Metadata Analysis
 
 ### Table Schema Overview
+
 **Table:** `op2026.dbo.PAJRNRCVH`
 
 ### Identity Columns (Primary Key)
-| Column | Data Type | Is Identity | Is Computed | Is Nullable | Default | Source |
-|---------|------------|---------------|-------------|---------|--------|--------|---------|
-| PAT_CD | varchar(50) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Required |
-| NAM | varchar(100) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Required |
-| NAM1 | varchar(3) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Generated |
-| NAM2 | varchar(3) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Generated |
-| NAM3 | varchar(3) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Generated |
-| SHIFT | varchar(6) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Required |
-| GEND | varchar(6) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Gender |
-| MARITAL | varchar(6) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Marital Status |
-| BIRTH | date | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Birth Date |
-| AGE | int | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Age (computed) |
-| GEND | varchar(6) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Gender |
-| TEL1 | varchar(15) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Phone 1 |
-| ADDR | varchar(200) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Address |
-| IDNO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Identity Number |
+
+| Column  | Data Type    | Is Identity | Is Computed | Is Nullable | Default | Source    |
+| ------- | ------------ | ----------- | ----------- | ----------- | ------- | --------- | --------------- |
+| PAT_CD  | varchar(50)  | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Required        |
+| NAM     | varchar(100) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Required        |
+| NAM1    | varchar(3)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Generated       |
+| NAM2    | varchar(3)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Generated       |
+| NAM3    | varchar(3)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Generated       |
+| SHIFT   | varchar(6)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Required        |
+| GEND    | varchar(6)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Gender          |
+| MARITAL | varchar(6)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Marital Status  |
+| BIRTH   | date         | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Birth Date      |
+| AGE     | int          | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Age (computed)  |
+| GEND    | varchar(6)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Gender          |
+| TEL1    | varchar(15)  | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Phone 1         |
+| ADDR    | varchar(200) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Address         |
+| IDNO    | varchar(12)  | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Identity Number |
 
 ### Money/Payee Columns (Voucher Linked)
-| Column | Data Type | Is Identity | Is Computed | Is Nullable | Default | Source |
-|---------|------------|---------------|-------------|---------|--------|---------|--------|---------|
-| PAY | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Price |
-| DUE | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Due Amount |
-| DISC_VL | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Discount Value |
-| DRS_CD | varchar(50) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Doctor Code |
-| DR_NO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Doctor Number |
-| PA_VL | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | PAPAT_SRV | Service Price |
+
+| Column  | Data Type     | Is Identity | Is Computed | Is Nullable | Default | Source    |
+| ------- | ------------- | ----------- | ----------- | ----------- | ------- | --------- | -------------- |
+| PAY     | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Price          |
+| DUE     | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Due Amount     |
+| DISC_VL | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Discount Value |
+| DRS_CD  | varchar(50)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Doctor Code    |
+| DR_NO   | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Doctor Number  |
+| PA_VL   | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | PAPAT_SRV | Service Price  |
 
 ### Date/Status Columns
-| Column | Data Type | Is Identity | Is Computed | Is Nullable | Default | Source |
-|---------|------------|---------------|-------------|---------|--------|---------|--------|---------|
-| UPDATEDATE | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Update Date |
-| ENTRYDATE | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Entry Date |
-| VST_NO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Number |
-| VST_DT | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date |
-| VST_DT_AM | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date (morning shift) |
-| ISDT | int | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date is computed |
-| ISDT_AM | int | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date is computed (morning shift) |
-| ISDT_ENTRY | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date is computed |
-| ISDT_ENTRY_AM | datetime | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Voucher Date is computed (morning shift) |
-| PAT_STS | varchar(10) | ✅ YES | ❌ NO | ✅ NO | Legacy OP | Patient Status |
+
+| Column        | Data Type   | Is Identity | Is Computed | Is Nullable | Default   | Source         |
+| ------------- | ----------- | ----------- | ----------- | ----------- | --------- | -------------- | ---------------------------------------- |
+| UPDATEDATE    | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Update Date                              |
+| ENTRYDATE     | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Entry Date                               |
+| VST_NO        | varchar(12) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Number                           |
+| VST_DT        | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date                             |
+| VST_DT_AM     | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date (morning shift)             |
+| ISDT          | int         | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date is computed                 |
+| ISDT_AM       | int         | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date is computed (morning shift) |
+| ISDT_ENTRY    | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date is computed                 |
+| ISDT_ENTRY_AM | datetime    | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO     | Legacy OP      | Voucher Date is computed (morning shift) |
+| PAT_STS       | varchar(10) | ✅ YES      | ❌ NO       | ✅ NO       | Legacy OP | Patient Status |
 
 ### Additional Service Columns
-| Column | Data Type | Is Identity | Is Computed | Is Nullable | Default | Source |
-|---------|------------|---------------|-------------|---------|--------|---------|--------|---------|
-| PRG_BY | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Procedure Group |
-| PRG_SNO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Procedure Number |
-| QTY | int | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Quantity |
-| PRG_SNO | int | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Procedure Number |
-| PRC | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Procedure Code |
-| DISC_VL | varchar(50) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Discount Level |
-| PA_VL | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Service Price |
-| INV_NO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Invoice Number |
-| CAINV_NO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Cash Invoice Number |
-| DUE | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Due Date |
-| PAY | decimal(18,2) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Payment Amount |
-| TR_NO | varchar(12) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Transaction Number |
-| CUR_SRV_BY | varchar(15) | ✅ YES | ❌ NO | ✅ NO | ✅ NO | Legacy OP | Current Service |
+
+| Column     | Data Type     | Is Identity | Is Computed | Is Nullable | Default | Source    |
+| ---------- | ------------- | ----------- | ----------- | ----------- | ------- | --------- | ------------------- |
+| PRG_BY     | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Procedure Group     |
+| PRG_SNO    | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Procedure Number    |
+| QTY        | int           | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Quantity            |
+| PRG_SNO    | int           | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Procedure Number    |
+| PRC        | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Procedure Code      |
+| DISC_VL    | varchar(50)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Discount Level      |
+| PA_VL      | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Service Price       |
+| INV_NO     | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Invoice Number      |
+| CAINV_NO   | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Cash Invoice Number |
+| DUE        | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Due Date            |
+| PAY        | decimal(18,2) | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Payment Amount      |
+| TR_NO      | varchar(12)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Transaction Number  |
+| CUR_SRV_BY | varchar(15)   | ✅ YES      | ❌ NO       | ✅ NO       | ✅ NO   | Legacy OP | Current Service     |
 
 ---
 
 ## Column Classification Summary
 
 ### Identity Columns (NOT NULL without DEFAULT constraint)
+
 All columns requiring manual patient data ARE PROPERLY HANDLED:
+
 - PAT_CD (Patient Code) - Required, NOT NULLABLE
 - NAM (Arabic Name) - Required, NOT NULLABLE
 - NAM1-3 (Name parts) - Required, NOT NULLABLE
 - SHIFT (Shift) - Required, NOT NULLABLE
 
 All columns that accept NULL (optional fields) ARE PROPERLY NULLABLE:
+
 - MARITAL, GEND, BIRTH, AGE, TEL1, ADDR, IDNO, PAY, DUE, DISC_VL, DR_NO, TR_NO
 - Money/payee columns (PAY, DUE, DISC_VL, DRS_CD)
 
 ### Computed Columns (Auto-generated by Database)
+
 - AGE (computed from BIRTH)
 - GEND (computed from BIRTH)
 - ISDT, ISDT_AM (computed from VST_DT)
 - ISDT_ENTRY, ISDT_ENTRY_AM (computed from VST_DT)
 
 ### Legacy Technical Fields (Auto-generated)
+
 - VST_NO (Voucher Number) - Generated by OP
 - INV_NO, CAINV_NO (Invoice Numbers) - Generated by OP
 - PRG_BY, PRG_SNO (Procedure Groups) - Generated by OP
@@ -179,9 +191,11 @@ All columns that accept NULL (optional fields) ARE PROPERLY NULLABLE:
 ## Findings
 
 ### 1. SQL Server Implementation Status
+
 **Status:** ✅ CORRECT - No changes needed
 
 The MSSQL integration is sophisticated and correctly implements legacy OP requirements:
+
 - All required identity columns are handled as NOT NULLABLE
 - Optional fields are correctly nullable
 - Computed columns are properly detected and handled
@@ -192,9 +206,11 @@ The MSSQL integration is sophisticated and correctly implements legacy OP requir
 - PAPAT_SRV linking works (PAT_CD + SRV_CD + TR_TY + TR_NO)
 
 ### 2. Web Registration UI Status
+
 **Status:** ✅ EXISTING - No web registration component exists
 
 The web app uses standard tRPC APIs:
+
 - `createPatient` - Creates patient in `patients` table
 - `savePatientPageState` - Updates patient state in `patient_page_state` table (not PAJRNRCVH)
 - `updatePatient` - Updates patient record
@@ -208,12 +224,14 @@ There is NO separate "patient registration" flow. Web app uses the same patient 
 **Are required fields being missed?**
 
 Required fields with NO DEFAULT constraint:
+
 - PAT_CD ✅ - Always provided
 - NAM ✅ - Always provided
 - SHIFT ✅ - Always provided
 - BIRTH ✅ - Always provided (extracted from AGE or entered)
 
 Optional fields that might be missing:
+
 - MARITAL (Marital Status) - Optional but not in current web UI
 - GEND (Gender) - Optional but not in current web UI
 - AGE (Age) - Computed from BIRTH, always present
@@ -228,13 +246,15 @@ Optional fields that might be missing:
 **Dangerous Pattern Detected:**
 
 `server/integrations/mssqlPatients.ts`, Lines 653-656:
+
 ```typescript
 if (hasScopedTrNo) {
-  req.input("TR_NO", Math.trunc(scopedTrNo));  // ⚠️ MANUAL OVERRIDE OF IDENTITY COLUMN
+  req.input("TR_NO", Math.trunc(scopedTrNo)); // ⚠️ MANUAL OVERRIDE OF IDENTITY COLUMN
 }
 ```
 
 **Risk:** The code manually overrides `TR_NO` identity column with a truncated value from the legacy OP system (truncating the 15-digit number to 12 digits). This is a DANGEROUS pattern that:
+
 1. Breaks PAPAT_SRV integrity (TR_NO no longer points to the correct voucher)
 2. May cause invoice/accounting mismatch in legacy systems
 3. May cause data corruption if the 12-digit TR_NO is not globally unique
@@ -248,15 +268,18 @@ if (hasScopedTrNo) {
 **PAPAT_SRV Linkage is CORRECT:**
 
 `server/integrations/mssqlPatients.ts` links PAJRNRCVH to PAPAT_SRV via:
+
 - SEC_CD + TR_TY + TR_NO (Security + Type + Voucher)
 - This is the correct 5-part primary key for services
 
 **Verified via SQL schema inspection:**
+
 - `op2026.dbo.PAPAT_SRV` exists with `SEC_CD`, `TR_TY`, `TR_NO` columns ✅
 - `op2026.dbo.PAJRNRCVH.PAT_CD` links to `PAPAT_SRV.SEC_CD` ✅
 - `op2026.dbo.PAJRNRCVH.SR_V_CD` links to `PAPAT_SRV.SR_V_CD` ✅
 
 The current code correctly:
+
 - Uses `SRV_CD` column to find service information
 - Uses `PA_VL`, `DISC_VL`, `PA_VL` from PAPAT_SRV for prices
 - Uses `DR_NO` for doctor information
@@ -267,6 +290,7 @@ The current code correctly:
 ## Required Fields Missing (If Any)
 
 Based on analysis of:
+
 1. Legacy OP requirements (vouchers, invoices)
 2. SRV100 patient registration UI
 3. Typical clinic workflows
@@ -274,8 +298,9 @@ Based on analysis of:
 **Potentially Missing in Current UI:**
 
 None identified. The current web app patient registration already captures:
+
 - Patient Code (PAT_CD) - Required
-- Arabic Name (NAM) - Required  
+- Arabic Name (NAM) - Required
 - Shift - Required
 - Phone (TEL1) - Has input field
 - Address (ADDR) - Has input field
@@ -286,6 +311,7 @@ None identified. The current web app patient registration already captures:
 - Doctor Code (DRS_CD) - Read from PAPAT_SRV
 
 **Fields intentionally not exposed in UI (but supported by backend):**
+
 - Marital Status (MARITAL) - Supported but not in registration form
 - Gender (GEND) - Supported but not in registration form
 - Identity Number (IDNO) - Always generated, never shown in UI
@@ -372,6 +398,7 @@ The PAJRNRCVH registration system is ALREADY correctly implemented for legacy OP
 ### Recommended Action (if any)
 
 **Fix TR_NO truncation:**
+
 ```typescript
 // In buildMssqlBackfillObject(), remove this code block:
 /*
@@ -391,6 +418,7 @@ if (hasScopedTrNo) {
 **The PAJRNRCVH registration flow is already correctly implemented.** No code changes are required for the stated goal.
 
 The backend:
+
 - Properly handles all required fields
 - Correctly classifies column types (identity, computed, optional)
 - Generates appropriate values for computed columns
@@ -410,6 +438,7 @@ NONE
 ## SQL Server Metadata Findings Summary
 
 ### Identity Columns
+
 **NOT NULL required:** PAT_CD, NAM, SHIFT
 
 **Nullable (allowed to be NULL):** All other identity and data columns
@@ -419,19 +448,23 @@ NONE
 **Legacy OP generated:** VST_NO, INV_NO, CAINV_NO, PRG_BY, PRG_SNO, QTY, NAM1-3
 
 ### Money/Payee Columns
+
 **Nullable:** All money/payee columns are nullable
 
 **Computed:** PA_VL, DISC_VL, DRS_CD
 
 ### Date/Status Columns
+
 **Required:** ENTRYDATE, UPDATEDATE, BIRTH
 **Computed:** ISDT, ISDT_ENTRY, ISDT_ENTRY_AM, ISDT_AM, VST_NO, VST_DT, VST_DT_AM
 
 ### Service Columns
+
 **Required:** PAT_CD, SEC_CD, TR_TY, TR_NO
 **Nullable:** DRS_CD, PA_VL, DISC_VL
 
 ### Additional Service Columns
+
 **Required:** CUR_SRV_BY, PAT_STS
 **Nullable:** All additional columns are nullable
 
@@ -461,6 +494,7 @@ WHERE BIRTH IS NOT NULL;
 ```
 
 **Expected Results:**
+
 - All recent registrations should have PAT_CD, NAM, SHIFT, BIRTH
 - No registrations should have null in required identity columns (TR_NO, INV_NO, CAINV_NO)
 - AGE and GEND should be computed (not null) for patients with birth date
@@ -485,6 +519,7 @@ If the 12-digit TR_NO truncation is causing issues with legacy OP systems, creat
 **DO NOT make changes to:** `server/integrations/mssqlPatients.ts` `server/routers` `server/routers/patient.ts` `shared` schemas `server/db.ts` medical flows registration forms
 
 This would be a dangerous refactor that risks:
+
 - Breaking PAPAT_SRV linkage
 - Causing invoice/accounting mismatches
 - Potentially corrupting PAJRNRCVH records
@@ -521,11 +556,13 @@ The PAJRNRCVH registration flow is already correctly implemented and matches leg
 ## Risk Analysis
 
 **LOW RISK - TR_NO Truncation Pattern (See section above)**
+
 - Manual override of identity column exists
 - Could cause PAPAT_SRV integrity issues
 - Should be addressed in a separate, carefully tested task
 
 **ZERO RISK - Web Registration UI**
+
 - Current implementation is standard and safe
 - No breaking changes required
 - Medical functionality preserved
@@ -535,6 +572,7 @@ The PAJRNRCVH registration flow is already correctly implemented and matches leg
 ## Conclusion
 
 The PAJRNRCVH registration system is ALREADY CORRECTLY IMPLEMENTED. No code changes are needed for web registration flow or MSSQL PAJRNRCVH insert logic. The system properly handles:
+
 - Required identity fields (PAT_CD, NAM, SHIFT, BIRTH)
 - Optional fields (TEL, ADDR, MARITAL, GEND, AGE)
 - Identity number generation (IDNO)

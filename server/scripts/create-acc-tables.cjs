@@ -20,4 +20,7 @@ const tables = [
   }
   await conn.end();
   console.log("Done");
-})().catch((e) => { console.error(e.message); process.exit(1); });
+})().catch((e) => {
+  console.error(e.message);
+  process.exit(1);
+});

@@ -1,31 +1,34 @@
-import { getDb } from '../../db';
-import { attendanceLeaves, attendanceEmployees } from '../../../drizzle/schema';
-import { eq, and, gte, lte, or } from 'drizzle-orm';
+import { getDb } from "../../db";
+import { attendanceLeaves, attendanceEmployees } from "../../../drizzle/schema";
+import { eq, and, gte, lte, or } from "drizzle-orm";
 
 function fmtDate(d: Date | string | null | undefined): string {
-  if (!d) return '';
-  if (typeof d === 'string') return d.slice(0, 10);
+  if (!d) return "";
+  if (typeof d === "string") return d.slice(0, 10);
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-export type LeaveType = 'annual' | 'sick' | 'unpaid' | 'other';
+export type LeaveType = "annual" | "sick" | "unpaid" | "other";
 
 export interface LeaveRequest {
   empCd: string;
   dateFrom: string; // YYYY-MM-DD
-  dateTo: string;   // YYYY-MM-DD
+  dateTo: string; // YYYY-MM-DD
   type: LeaveType;
   note?: string;
   approved?: boolean;
 }
 
 export class LeaveManagementService {
-  static async createLeave(req: LeaveRequest, createdBy?: number): Promise<any> {
+  static async createLeave(
+    req: LeaveRequest,
+    createdBy?: number,
+  ): Promise<any> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const result = await db.insert(attendanceLeaves).values({
       empCd: req.empCd,
@@ -39,9 +42,13 @@ export class LeaveManagementService {
     return result;
   }
 
-  static async getEmployeeLeaves(empCd: string, fromDate?: Date, toDate?: Date): Promise<any[]> {
+  static async getEmployeeLeaves(
+    empCd: string,
+    fromDate?: Date,
+    toDate?: Date,
+  ): Promise<any[]> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const conditions = [eq(attendanceLeaves.empCd, empCd)];
 
@@ -50,7 +57,9 @@ export class LeaveManagementService {
     }
 
     if (toDate) {
-      conditions.push(gte(attendanceLeaves.dateFrom, fromDate || new Date(2020, 0, 1)));
+      conditions.push(
+        gte(attendanceLeaves.dateFrom, fromDate || new Date(2020, 0, 1)),
+      );
     }
 
     const leaves = await db
@@ -73,7 +82,7 @@ export class LeaveManagementService {
 
   static async approveLeave(leaveId: number): Promise<any> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const result = await db
       .update(attendanceLeaves)
@@ -85,7 +94,7 @@ export class LeaveManagementService {
 
   static async deleteLeave(leaveId: number): Promise<any> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const result = await db
       .delete(attendanceLeaves)
@@ -96,7 +105,7 @@ export class LeaveManagementService {
 
   static async getPendingLeaves(): Promise<any[]> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const leaves = await db
       .select()
@@ -107,7 +116,7 @@ export class LeaveManagementService {
     return leaves.map((l) => ({
       id: l.id,
       empCd: l.empCd,
-      empName: 'TBD', // Will be enriched
+      empName: "TBD", // Will be enriched
       dateFrom: fmtDate(l.dateFrom as any),
       dateTo: fmtDate(l.dateTo as any),
       type: l.type,
@@ -123,7 +132,7 @@ export class LeaveManagementService {
 
   static async getLeaveBalance(empCd: string, year: number): Promise<any> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
@@ -134,11 +143,11 @@ export class LeaveManagementService {
       .where(
         and(
           eq(attendanceLeaves.empCd, empCd),
-          eq(attendanceLeaves.type, 'annual'),
+          eq(attendanceLeaves.type, "annual"),
           eq(attendanceLeaves.approved, true),
           gte(attendanceLeaves.dateFrom, yearStartStr as any),
-          lte(attendanceLeaves.dateTo, yearEndStr as any)
-        )
+          lte(attendanceLeaves.dateTo, yearEndStr as any),
+        ),
       );
 
     const usedDays = leaves.reduce((sum, l) => {

@@ -14,6 +14,7 @@ For additional stylistic best practices, follow: `style_guidelines.md`
 Read `charts.md` when creating or editing substantive charts, dashboards, or chart-ready summaries.
 
 # Tools + Contract
+
 - Use Codex workspace dependencies for spreadsheet artifact work: resolve them through the workspace dependency loader or runtime skill, then treat the returned Node/Python runtimes, package directory, and verification details as authoritative. Do not use system `node`, system `python`, global npm packages, or repo-local installs.
 - Use `@oai/artifact-tool` JS library, which exists in the default Codex workspace dependencies node_modules, for authoring, editing, inspecting, rendering, and exporting spreadsheet `.xlsx` workbooks.
 - Run builders from a writable conversation-specific temp or workspace directory, not from the managed dependency directory. Outputs and scratch files may live under the OS temp directory.
@@ -28,7 +29,9 @@ Read `charts.md` when creating or editing substantive charts, dashboards, or cha
 - For nontrivial work, use `update_plan`: build quickly, verify/render, repair meaningful issues, then finalize without long polish loops. Incrementally rendering your work and assessing overall aesthetics, formatting and correctness along the way is very important (rigorously inspect the output and be confident in quality), but do not get stuck in a long render-verify loop. As part of your plan, think about the best practices and conventions to follow for the specific type of spreadsheet you're creating and the best way to structure the workbook for readability and usability.
 
 # Domain Requirements
+
 Read these domain templates only when the request clearly relates to the domain:
+
 - Finance, accounting, valuation, forecasting, budgeting, investing, operations metrics, investment banking, DCF, multi-statement models, sensitivity/scenario models, or source-backed financial filing analysis: `templates/financial_models.md`
 - Healthcare, clinical, patient, medical, hospital, staffing, care delivery, or healthcare administration workbooks: `templates/healthcare.md`
 - Marketing, advertising, campaign, funnel, lead, CRM, growth, attribution, ROI, or web/ad performance workbooks: `templates/marketing_advertising.md`
@@ -39,12 +42,14 @@ Read all templates that clearly apply. Do not load domain templates for unrelate
 Only add Checks sheets for models where correctness depends on linked calculations, source reconciliation, or financial statement/model integrity.
 
 # General Rules
+
 - Start meaningful edits quickly; avoid long upfront API exploration.
 - Core APIs are listed in the API reference section below. Use them.
 - If these skill instructions are already loaded in context, do not spend a shell turn re-reading this `SKILL.md` from disk. Move directly to the prompt, attachments, and workbook build.
 - For workbook with multiple tabs/sheets, create/populate non-formula inputs/tables and sheets prior to populating cross-sheet formulas.
 
 ## Approach for quickly building a new spreadsheet
+
 1. Setup: import `@oai/artifact-tool`, create workbook/sheets for new files.
 2. Build quickly: bulk-write headers/data/formulas; then formatting/validation/conditional formatting; add charts/tables only when needed.
 3. Use additional focused calls if helpful for streamed progress.
@@ -52,17 +57,22 @@ Only add Checks sheets for models where correctness depends on linked calculatio
 5. Export `.xlsx`
 
 ## Making edits on a spreadsheet
+
 If a user asks to edit or add to an existing spreadsheet:
+
 - For visual fix requests, start with the smallest plausible local change rather than applying sheet-wide autofit, wrapping, or restyling.
 - When making edits, ensure existing formulas and patterns are consistent. For example, if asked to add another column or row to a table and there is conditional formatting applied to the whole table, it should extend to the new column or rows as well.
 - If specific cells/rows/columns are specified in prompt, limit edits to those ranges unless a broader change is clearly necessary. The exceptions are when other parts of the spreadsheet depend on them, e.g. if there's a dynamic chart that is based on the range of values in a table and a new row is added, the chart should include that new row. Another example is if conditional formatting was already set for a table from A1:C5, and you add a new column D, the conditional formatting should be updated (or deleted and re-created) to cover A1:D5.
 - For column resizing, avoid autofitting by default: instead, inspect only relevant data range, measure the longest text entry in that range, and set columnWidthPx to an estimated width based on text length (with a reasonable min/max cap). Use autofit only when the user explicitly asks for it.
 
 ## Handling queries and questions
+
 - The user may ask questions about the sheet instead of requesting an edit or a change. Simply answer those questions about the spreadsheet based on the context available rather than making an edit the user didn't intend for. You can use inspect to learn more or directly read values/formulas/tables etc via accessor methods.
 
 # Error Recovery
+
 On first error:
+
 1. Read error text.
 2. Run one targeted `workbook.help("<exact_api>")` query only if needed.
 3. Retry with minimal patch (not full rewrite).
@@ -71,6 +81,7 @@ On first error:
 Do not loop indefinitely on similar failures.
 
 # Quality Guidelines
+
 - Keep layout readable and bounded, contents visible:
   - avoid extreme width/height from unconstrained autofit
   - cap oversized widths/heights after `autofit` + `wrap_text`
@@ -85,16 +96,20 @@ Do not loop indefinitely on similar failures.
 - In rendered previews of dashboards and summary sheets, check financial values and row labels at normal zoom. Widen columns, adjust row heights, or move chart panels until important numbers and text are not clipped, awkwardly wrapped, or hidden.
 
 # Completion Criteria
+
 Complete only when:
+
 - Workbook content is populated and formulas compute.
 - No obvious formula errors in key scanned ranges (no bad refs/off-by-one/circular errors).
 - `.xlsx` saved to `outputs/<unique_thread_id>/`.
 - Layout is organized, legible, and aligned to request style (or default formatting baseline).
 
 # Verification Rules
+
 Before final response, verify values/formulas and visual quality.
 
 1. Inspect key ranges:
+
 ```js
 const check = await workbook.inspect({
   kind: "table",
@@ -107,9 +122,11 @@ console.log(check.ndjson);
 ```
 
 Inspect targeting:
+
 - Prefer sheet-qualified ranges (`"Sheet!A1:H20"`) or `sheetId`.
 
 2. Scan formula errors:
+
 ```js
 const errors = await workbook.inspect({
   kind: "match",
@@ -121,21 +138,30 @@ console.log(errors.ndjson);
 ```
 
 3. Render sheets/ranges to verify visual output (skip if already verified and no style changes):
+
 ```js
-const blob = await workbook.render({ sheetName: "Sheet1", range: "A1:H20", scale: 2 });
+const blob = await workbook.render({
+  sheetName: "Sheet1",
+  range: "A1:H20",
+  scale: 2,
+});
 ```
+
 Make sure you do at least one visual pass of all the sheets in the workbook before the final export.
 
 Visual requirements:
+
 - Fix severe defects before finalizing: blank/broken charts, clipped key headers or numbers, unreadable colors, obvious formula errors, default blank sheets, or content outside the visible working area.
 - Ensure logical labels or titles appear once, texts are all clearly visible, and merged ranges exist where labels or content intentionally span multiple columns.
 - Do one focused visual repair pass after the initial render. Do not spend additional passes on minor polish once the workbook is correct, legible, and exported; note any minor limitation briefly and finalize.
 
 4. Keep verification compact:
+
 - Inspect key ranges.
 - Avoid huge NDJSON dumps.
 
 5. Export:
+
 ```js
 await fs.mkdir(outputDir, { recursive: true });
 const output = await SpreadsheetFile.exportXlsx(workbook);
@@ -143,10 +169,12 @@ await output.save(`${outputDir}/output.xlsx`);
 ```
 
 6. Finalize immediately after successful export + compact verification.
+
 - Do not export extra `.xlsx` variants unless asked.
 - Do not keep iterating on alternate designs once requirements are met, unless asked.
 
 # Source, PDF, and Attachment Processing
+
 - Use bundled runtime libraries for source extraction. For PDF or 10-K/10-Q style inputs, read PDF via bundled Python `pypdf` when available, then use one small structured extraction script to collect all required facts into a dict/JSON object. Avoid many ad hoc `rg`/`sed` passes over the same text.
 - Keep source notes compact: record file name, section/table label, and enough context to audit the number. Do not paste large PDF excerpts into the workbook unless requested.
 - Bundled Python libraries available for extraction/analysis include `pandas`, `numpy`, `pypdf`, `python-docx`, and `reportlab`.
@@ -157,6 +185,7 @@ await output.save(`${outputDir}/output.xlsx`);
 ## Imports + Startup
 
 Import existing workbook only when needed:
+
 ```js
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 
@@ -165,6 +194,7 @@ const workbook = await SpreadsheetFile.importXlsx(input);
 ```
 
 Import CSV text directly when the source or intermediate data is CSV:
+
 ```js
 import fs from "node:fs/promises";
 import { Workbook } from "@oai/artifact-tool";
@@ -172,9 +202,11 @@ import { Workbook } from "@oai/artifact-tool";
 const csvText = await fs.readFile("path/to/input.csv", "utf8");
 const workbook = await Workbook.fromCSV(csvText, { sheetName: "Sheet1" });
 ```
+
 Prefer `Workbook.fromCSV(...)` over hand-parsing CSV rows; clean or analyze CSV with Python/Node first only when needed.
 
 Create new workbook:
+
 ```js
 import fs from "node:fs/promises";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
@@ -184,6 +216,7 @@ const sheet = workbook.worksheets.add("Inputs");
 ```
 
 Final export:
+
 ```js
 await fs.mkdir(outputDir, { recursive: true });
 const output = await SpreadsheetFile.exportXlsx(workbook);
@@ -191,6 +224,7 @@ await output.save(`${outputDir}/output.xlsx`);
 ```
 
 ## Build Patterns
+
 - Prefer block writes (`range.values`, `range.formulas`) over per-cell loops. Matrix shape must match the target range (for example `"D4:M4"` should be a 1x10 matrix, row x col).
 - Seed scalar formulas once, then `fillDown()` / `fillRight()`. For dynamic-array formulas (`SEQUENCE`, `UNIQUE`, `FILTER`, `SORT`, `VSTACK`, `HSTACK`), write only the anchor cell and let the result spill after.
 - Use `range.displayFormulas` plus `range.formulaInfos` when you need to understand a spill child or a data-table output cell.
@@ -206,12 +240,14 @@ await output.save(`${outputDir}/output.xlsx`);
 - For formula audits or tracing how a formula is calculated, use `workbook.trace("Sheet!A1")` on the key output/check cells. It takes only a cell reference and returns the full tree, so print a capped summary. Do not dump raw traces.
 
 ## Conventions
+
 - Use camelCase API names and option keys.
 - Cell/range addressing: A1 notation (`sheet.getRange("A1:C10")`).
 - Drawing anchors (`sheet.charts`, `sheet.shapes`, `sheet.images`): 0-based `{ row, col }`.
 - Drawing offsets/extents use pixels (`rowOffsetPx`, `colOffsetPx`, `widthPx`, `heightPx`).
 
 ## API Discovery
+
 - Use this quick API surface first.
 - Use `workbook.help(...)` only when blocked by uncertainty.
 - For help queries, start with exact feature/path lookups (`chart`, `worksheet.getRange`, `worksheet.freezePanes`, `range.dataValidation`, `chart.series.add`). If an exact path fails, one broader wildcard search is allowed.
@@ -220,12 +256,14 @@ await output.save(`${outputDir}/output.xlsx`);
 - `render` can be used to examine an existing workbook visually and for visual verifications.
 
 ## Efficient Formula Lookup
+
 - If you know the function name, use exact lookup first: `workbook.help("fx.PMT", { include: "index,examples,notes", maxChars: 3000 })`.
 - To browse a family, use `fx.*` with a category regex. Useful categories: `financial`, `math-trig`, `statistical`, `lookup-reference`, `logical`, `text`, `date-time`, `information`, `engineering`, `database`.
 - For intent-based lookup, use a short natural query plus a narrow `search` regex of likely functions.
 - Keep `maxChars` bounded; if results are noisy, narrow `search` rather than issuing many similar queries.
 
 Useful help calls:
+
 ```js
 console.log(workbook.help("shape.add", { include: "examples,notes" }).ndjson);
 console.log(
@@ -235,13 +273,34 @@ console.log(
     maxChars: 6000,
   }).ndjson,
 );
-console.log(workbook.help("fx.PMT", { include: "index,examples,notes" }).ndjson);
-console.log(workbook.help("fx.*", { search: "financial", include: "index,examples", maxChars: 4000 }).ndjson);
-console.log(workbook.help("fx.*", { search: "math-trig", include: "index,examples", maxChars: 4000 }).ndjson);
-console.log(workbook.help("lookup with fallback", { search: "XLOOKUP|INDEX|MATCH|IFERROR", include: "index,examples,notes", maxChars: 4000 }).ndjson);
+console.log(
+  workbook.help("fx.PMT", { include: "index,examples,notes" }).ndjson,
+);
+console.log(
+  workbook.help("fx.*", {
+    search: "financial",
+    include: "index,examples",
+    maxChars: 4000,
+  }).ndjson,
+);
+console.log(
+  workbook.help("fx.*", {
+    search: "math-trig",
+    include: "index,examples",
+    maxChars: 4000,
+  }).ndjson,
+);
+console.log(
+  workbook.help("lookup with fallback", {
+    search: "XLOOKUP|INDEX|MATCH|IFERROR",
+    include: "index,examples,notes",
+    maxChars: 4000,
+  }).ndjson,
+);
 ```
 
 ## Reading existing/imported workbooks
+
 - On existing/imported workbooks, get a compact summary via `inspect` to understand what already exists and where.
 - Prefer `inspect(...)` for workbook understanding and discovery across broad areas.
 - Prefer direct getters like `range.formulas` when you already know the target range and need the exact rectangular formula matrix.
@@ -250,7 +309,9 @@ console.log(workbook.help("lookup with fallback", { search: "XLOOKUP|INDEX|MATCH
 - For suspicious or high-impact outputs, use `workbook.trace("Sheet!A1")` to audit the dependency tree from final output/check cell back to source cells. Trace output can be large, so summarize by depth/node count before logging.
 
 ### Inspect for workbook understanding
+
 - Compact summary:
+
 ```js
 await wb.inspect({
   kind: "workbook,sheet,table",
@@ -260,11 +321,13 @@ await wb.inspect({
   tableMaxCellChars: 80,
 });
 ```
+
 - Quick overview of sheet ids and names: `await wb.inspect({ kind: "sheet", include: "id,name" })`
 - Formula discovery in a targeted area: `await wb.inspect({ kind: "formula", sheetId: firstSheetName, range: "A1:Z30", maxChars: 2500, options: {maxResults:50} })`
 - Checking existing styles in a targeted area: `await wb.inspect({ kind: "computedStyle", sheetId: firstSheetName, range: "A1:E10", maxChars: 2500 })`
 - Common `kind` tokens: `workbook`, `sheet`, `table`, `region`, `match`, `formula`, `thread`, `computedStyle`, `definedName`, `drawing`
 - Inspects can also be used to zoom in on specific areas, especially for target edits:
+
 ```js
 await wb.inspect({
   kind: "region",
@@ -273,6 +336,7 @@ await wb.inspect({
   maxChars: 2500,
 });
 ```
+
 - Inspect output may include JSON records with `"id"` values (for example `"ws/r5qsk5"`), which you can resolve back to workbook objects with `wb.resolve(...)`:
 - `wb.resolve("ws/...")` -> worksheet
 - `wb.resolve("th/...")` -> comment thread
@@ -280,10 +344,12 @@ await wb.inspect({
 ## Additional feature-specific notes
 
 ### Merging cells
+
 - Merging cells is useful for visual headers, title bands, note/source blocks, and labels that span columns.
 - `range.merge()` merges the target range into one cell; `range.merge(true)` merges across each row in the target range.
 - `range.unmerge()` reverses a merge.
-For example:
+  For example:
+
 ```js
 const range = sheet.getRange("I23:N24");
 range.merge();
@@ -291,6 +357,7 @@ range.values = [["Source note spanning the recommendation panel"]];
 ```
 
 ## Common API Pitfalls
+
 - Do not set undocumented attributes on remote objects.
 - `Workbook.create()` starts with no sheets; add one before calling `getActiveWorksheet()`.
 - Use matrix sizes that match target ranges unless you intentionally spill.
@@ -302,6 +369,7 @@ range.values = [["Source note spanning the recommendation panel"]];
 ## Quick API Surface (High-Value + Common)
 
 ### Core workbook/file APIs
+
 - `import { FileBlob, SpreadsheetFile, Workbook } from "@oai/artifact-tool"`
 - `const workbook = Workbook.create(); const sheet = workbook.worksheets.add("Sheet1")`
 - `const workbook = await SpreadsheetFile.importXlsx(arrayBufferOrFileBlob)`
@@ -311,14 +379,17 @@ range.values = [["Source note spanning the recommendation panel"]];
 - `const trace = workbook.trace("Checks!F2")` // summarize before logging
 - Preferred: `const blob = await workbook.render({ sheetName: "Sheet1", autoCrop: "all", scale: 1, format: "png" })`
 - To get the bytes and/or save the blob to file:
+
 ```js
 const previewBytes = new Uint8Array(await preview.arrayBuffer());
 await fs.writeFile(`${outputDir}/preview.png`, previewBytes);
 ```
+
 - `const workbook = await Workbook.fromCSV(csvText, { sheetName: "Sheet1" })`
 - `await workbook.fromCSV(csvText, { sheetName: "ImportedData" })`
 
 ### Worksheet selection/creation
+
 - `workbook.worksheets.add(name)`
 - `workbook.worksheets.getItem(name)`
 - `workbook.worksheets.getOrAdd(name, { renameFirstIfOnlyNewSpreadsheet: true })`
@@ -326,6 +397,7 @@ await fs.writeFile(`${outputDir}/preview.png`, previewBytes);
 - `workbook.worksheets.getActiveWorksheet()` (only after at least one sheet exists)
 
 ### Worksheet operations
+
 - `sheet.getRange("A1:C10")`, `sheet.getRangeByIndexes(startRow, startCol, rowCount, colCount)`, `sheet.getCell(row, col)`
 - `sheet.getUsedRange(valuesOnly?)`
 - `sheet.mergeCells("A1:C1")`, `sheet.unmergeCells("A1:C1")`
@@ -336,6 +408,7 @@ await fs.writeFile(`${outputDir}/preview.png`, previewBytes);
 - `sheet.deleteAllDrawings()` removes charts, shapes, and images before a dashboard rebuild.
 
 ### Range values/formulas
+
 - `const range = sheet.getRange("A1:C10")`
 - `range.values = [[...], ...]` (2D matrix of values)
 - `range.formulas = [["=..."], ...]`
@@ -354,21 +427,25 @@ await fs.writeFile(`${outputDir}/preview.png`, previewBytes);
 - `range.merge()`, `range.merge(true)` to merge across, `range.unmerge()`
 
 ### Formatting
+
 - `range.format` supports `fill`, `font`, `numberFormat`, `borders`, alignments, `wrapText`
 - `range.format.autofitColumns()`, `range.format.autofitRows()`
-- Excel unit sizing:  `range.format.columnWidth = 18`, `range.format.rowHeight = 24`
+- Excel unit sizing: `range.format.columnWidth = 18`, `range.format.rowHeight = 24`
 - Pixel sizing: `range.format.columnWidthPx = 120`, `range.format.rowHeightPx = 24`
 - `range.setNumberFormat("yyyy-mm-dd")`
 - `range.format.numberFormat = [["0"], ["0.00"], ["@"]]`
 
 ### Data Validation
+
 - `range.dataValidation = { rule: { type: "list", formula1: "Categories!$A$2:$A$4" } }`
 - `range.dataValidation = { rule: { type: "list", values: ["Not Started", "In Progress"] } }`
 - `sheet.dataValidations.add({ range: "B2:B100", rule: { type: "whole", operator: "between", formula1: 1, formula2: 10 } })`
 
 ### Conditional formatting
+
 - Use `range.conditionalFormats.add(ruleType, ConditionalFormatConfig);`.
 - Use `range.conditionalFormats.add(ruleType, {operator, formula, format});`. Choose ruleType, operator, color, and style strings from the inline types below.
+
 ```
 type ConditionalFormatRuleType =
   | "cellIs" | "CellValue" | "Custom" | "expression"
@@ -412,6 +489,7 @@ type CfvoInput =
   | `${number}%`
   | { type: "min" | "max" | "num" | "percent" | "percentile"; value?: string | number };
 ```
+
 - Rule types (`ConditionalFormatRuleType`): "cellIs" | "CellValue" | "Custom" | "expression"
   | "colorScale" | "dataBar" | "iconSet"
   | "containsText" | "notContainsText" | "beginsWith" | "endsWith"
@@ -433,6 +511,7 @@ grid.conditionalFormats.add("colorScale", {
 ```
 
 ### Tables
+
 - When adding new tables, set explicit unique names (`TasksTable`, `SummaryTable`).
 - You cannot have multiple tables over the same range. Before adding a table on an existing/imported workbook, confirm the target range does not already overlap an existing table. Prefer the initial compact `inspect` summary over a separate tables-only scan when available.
 - `const table = sheet.tables.add("A1:H200", true, "TasksTable")`
@@ -443,8 +522,10 @@ grid.conditionalFormats.add("colorScale", {
 - `table.delete()`
 
 ### Images
+
 - `sheet.images.add({dataUrl: "data:image/png;base64,...", anchor: {from: { row: 1, col: 2 }, extent: { widthPx: 160, heightPx: 120 }}})`
-```
+
+````
 
 ### Threaded Comments
 Follow this exact API when adding a note or comment:
@@ -470,7 +551,8 @@ chart.title = "Revenue and EBITDA Trend";
 chart.hasLegend = true;
 chart.xAxis = { axisType: "textAxis" };
 chart.yAxis = { numberFormatCode: "$#,##0" };
-```
+````
+
 - Fast chart path from range: `const chart = sheet.charts.add("line", sourceRange)` when the source range already has headers and text x-axis labels.
 - Advanced fallback only: avoid manual `chart.series.add(...)` and `chart.legend = {...}` on the first pass unless source-range chart creation does not work (for example, non-continuous data). Use a helper range chart first, then add optional chart styling only if the basic chart renders and exports cleanly.
 - If you want to set specific chart props after the helper-range path is not enough: `const chart = sheet.charts.add("bar", chartProps)`, then checkpoint export before adding optional styling.
@@ -481,6 +563,7 @@ chart.yAxis = { numberFormatCode: "$#,##0" };
 - Chart types: `"bar" | "line" | "area" | "pie" | "doughnut" | "scatter" | "bubble" | "radar" | "stock" | "treemap" | "sunburst" | "histogram" | "boxWhisker" | "waterfall" | "funnel" | "map"`.
 
 ### Sparklines
+
 ```
 const group = sheet.sparklineGroups.add({
   type,
@@ -496,8 +579,10 @@ const group = sheet.sparklineGroups.add({
   displayHidden,
 });
 ```
+
 - Sparkline type is a string. Empty-cell display mode and axis min/max modes are proto enum numbers on the current facade; inspect nearby tests before setting them directly.
 - Sparkline Inline Type:
+
 ```
 type SparklineConfig = {
   type: "line" | "column" | "stacked";
@@ -534,8 +619,10 @@ type SparklineAxisOptions = {
   rightToLeft?: boolean;
 };
 ```
+
 - Range Alias: `const group = targetRange.sparklines.add(type, sourceRange, sparklineConfig);`
 - Edit And Delete
+
 ```
 group.seriesColor = colorConfig;
 group.markers = markerConfig;
@@ -545,14 +632,15 @@ sheet.sparklineGroups.deleteAll();
 ```
 
 ### Help / Grep
+
 Use `workbook.help(...)` primarily for obscure/advanced surfaces (for example deep chart axis settings, unusual drawing configs, pivot APIs, or uncommon option schemas).
+
 - `workbook.help("enum.ShapeGeometry", { include: "index,notes" }).ndjson`
 - `workbook.help("enum.*", { search: "ShapeGeometry|LineStyle", include: "index" }).ndjson`
 - `workbook.help("shape.add", { include: "examples,notes" }).ndjson`
 - `workbook.help("fx.RATE", { include: "index,examples,notes" }).ndjson`
 - `workbook.help("cash flow return rate", { search: "IRR|XIRR|NPV|XNPV", include: "index,examples,notes", maxChars: 4000 }).ndjson`
 - `workbook.help("*", { search: "fill|borders|autofit", include: "index,examples,notes", maxChars: 6000 }).ndjson`
-
 
 ### JavaScript example snippet (runnable)
 
@@ -600,7 +688,10 @@ const preview = await workbook.render({
   scale: 1,
   format: "png",
 });
-await fs.writeFile(`${outputDir}/summary.png`, new Uint8Array(await preview.arrayBuffer()));
+await fs.writeFile(
+  `${outputDir}/summary.png`,
+  new Uint8Array(await preview.arrayBuffer()),
+);
 
 const xlsx = await SpreadsheetFile.exportXlsx(workbook);
 await xlsx.save(`${outputDir}/summary.xlsx`);

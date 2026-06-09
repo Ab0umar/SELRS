@@ -1,6 +1,7 @@
 # SELRS Project Architecture Overview
 
 ## Project Name
+
 **SELRS** - Healthcare Management & Clinic Operations System (Arabic: نظام إدارة العيادة الشاملة)
 
 **Version:** 1.0.30
@@ -38,6 +39,7 @@
 ## 📱 Frontend Applications
 
 ### 1. **Web Frontend** (`/client`)
+
 - **Framework:** React 19.2.4
 - **Build Tool:** Vite 8.0.1
 - **Styling:** Tailwind CSS 4.2.2 + Custom CSS
@@ -45,6 +47,7 @@
 - **Build Output:** `/dist/public`
 
 #### Key Pages & Features:
+
 - **Dashboard** - Overview and statistics
 - **Patients** - Patient management (search, filter, CRUD)
 - **Appointments** - Appointment scheduling and management
@@ -82,6 +85,7 @@
   - Force Password Change flow
 
 #### Key Technologies:
+
 - **State Management:** React Context + TanStack React Query
 - **API Client:** tRPC + React Query integration
 - **Forms:** React Hook Form + Zod validation
@@ -97,12 +101,14 @@
 ---
 
 ### 2. **Mobile App** (`/android` + Capacitor)
+
 - **Platform:** Android (with Capacitor for cross-platform)
 - **Framework:** React (shared codebase with web)
 - **Build Output:** APK (Android Kotlin/Java wrapper)
 - **Version:** 1.0.30
 
 #### Capacitor Plugins:
+
 - PushNotifications (Firebase Cloud Messaging)
 - App (lifecycle management)
 - Filesystem (local file access)
@@ -112,6 +118,7 @@
 - Local Notifications
 
 #### Android-Specific Files:
+
 - `/android/app/src/main/java/cc/selrs/app/MainActivity.java`
 - `/android/app/src/main/java/cc/selrs/app/NativePrintPlugin.java`
 - Uses Google Play Services for Firebase integration
@@ -119,11 +126,13 @@
 ---
 
 ### 3. **Desktop App** (`/desktop-electron`)
+
 - **Framework:** Electron (Node.js + Chromium)
 - **Package Version:** Defined in `/desktop-electron/package.json`
 - **Build System:** Inno Setup (Windows installer)
 
 #### Files:
+
 - `main.js` - Main Electron process
 - `preload.js` - Preload script for IPC
 - `SelrsElectronInstaller.iss` - Windows installer configuration
@@ -134,6 +143,7 @@
 ## 🔌 Backend API
 
 ### Server Technology Stack
+
 - **Runtime:** Node.js with Express.js 5.2.1
 - **RPC Framework:** tRPC 11.13.4
 - **Language:** TypeScript 5.9.3
@@ -144,6 +154,7 @@
 #### 1. **tRPC Routers** (Primary API)
 
 **Router Hierarchy:**
+
 ```
 appRouter
 ├── auth
@@ -165,6 +176,7 @@ appRouter
 #### 2. **Medical Router** (`/server/routers/medical.ts`)
 
 **Procedures by Role:**
+
 - `protectedProcedure` - All authenticated users
 - `doctorProcedure` - Doctors only
 - `nurseProcedure` - Nurses only
@@ -176,6 +188,7 @@ appRouter
 **Medical Endpoints (~80+ procedures):**
 
 **Patients Management:**
+
 - `createPatient` - Create new patient
 - `updatePatient` - Update patient info
 - `deletePatient` - Delete patient
@@ -190,6 +203,7 @@ appRouter
 - `deletePatientFromMssql` - Remove MSSQL sync
 
 **Examinations:**
+
 - `createExamination` - Create exam record
 - `getExamination` - Retrieve exam
 - `updateExamination` - Update exam
@@ -197,6 +211,7 @@ appRouter
 - `createPatientFromExamination` - Create patient from exam
 
 **Sheets & Medical Forms:**
+
 - `getSheets` - List patient's sheets
 - `createSheet` - Create medical form (consultant/specialist/lasik/surgery/etc)
 - `updateSheet` - Update medical form
@@ -211,6 +226,7 @@ appRouter
 - `autoImportLocalPentacamExports` - Import Pentacam from local folder
 
 **Appointments:**
+
 - `createAppointment` - Schedule appointment
 - `getAppointment` - Get appointment details
 - `updateAppointment` - Update appointment
@@ -221,6 +237,7 @@ appRouter
 - `checkAppointmentConflicts` - Check availability
 
 **Medical Records:**
+
 - `createMedicalReport` - Create medical report
 - `getMedicalReport` - Get report
 - `updateMedicalReport` - Update report
@@ -229,6 +246,7 @@ appRouter
 - `getMedicalReportsByPatient` - Get patient's reports
 
 **Prescriptions & Medications:**
+
 - `createPrescription` - Create prescription
 - `createPrescriptionWithItems` - Create with items
 - `updatePrescription` - Update prescription
@@ -240,6 +258,7 @@ appRouter
 - `deleteMedication` - Remove medication
 
 **Tests & Diagnostics:**
+
 - `createTest` - Create test
 - `updateTest` - Update test
 - `deleteTest` - Delete test
@@ -249,6 +268,7 @@ appRouter
 - `getTestFavorites` - Get favorite tests (user preference)
 
 **Surgeries:**
+
 - `createSurgery` - Create surgery record
 - `getSurgery` - Get surgery details
 - `updateSurgery` - Update surgery
@@ -260,6 +280,7 @@ appRouter
 - `createPostOpFollowup` - Create post-op followup
 
 **Diseases & Symptoms:**
+
 - `createDisease` - Add disease
 - `updateDisease` - Update disease
 - `deleteDisease` - Remove disease
@@ -270,6 +291,7 @@ appRouter
 - `getSymptoms` - List symptoms
 
 **Doctors:**
+
 - `createDoctor` - Add doctor
 - `updateDoctor` - Update doctor info
 - `deleteDoctor` - Remove doctor
@@ -277,6 +299,7 @@ appRouter
 - `getDoctorsByService` - Get doctors by service
 
 **Users & Permissions:**
+
 - `createUser` - Create user account
 - `updateUser` - Update user
 - `deleteUser` - Delete user
@@ -286,6 +309,7 @@ appRouter
 - `getUserRoles` - Get user roles
 
 **Services (Medical Services/Departments):**
+
 - `createService` - Add service
 - `updateService` - Update service
 - `deleteService` - Remove service
@@ -295,6 +319,7 @@ appRouter
 - `importServicesFromMssql` - Import from MSSQL
 
 **Directory & Lookup:**
+
 - `getDoctorsByCode` - Search doctors by code
 - `getServicesByCode` - Search services by code
 - `importDoctorDirectoryFromMssql` - Import doctor list
@@ -302,6 +327,7 @@ appRouter
 - `syncAllFromMssql` - Full sync from MSSQL
 
 **System Settings:**
+
 - `getSystemSetting` - Get system configuration
 - `updateSystemSetting` - Update configuration
 - `getMssqlSyncStatus` - Get MSSQL sync status
@@ -310,11 +336,13 @@ appRouter
 - `getAppNotifications` - Get notification feed
 
 **Active Ingredients & Medications:**
+
 - `getActiveIngredients` - List ingredients
 - `createActiveIngredient` - Add ingredient
 - `updateActiveIngredient` - Update ingredient
 
 **Doctor Reports:**
+
 - `createDoctorReport` - Create report
 - `updateDoctorReport` - Update report
 - `getDoctorReports` - List reports
@@ -322,6 +350,7 @@ appRouter
 ---
 
 ### 3. **WebSocket Server**
+
 - **Location:** `/server/_core/ws.ts`
 - **Library:** ws (WebSocket)
 - **Purpose:** Real-time updates for medical sheet changes
@@ -331,6 +360,7 @@ appRouter
 ---
 
 ### 4. **Authentication System**
+
 - **Location:** `/server/_core/auth.ts`
 - **Method:** JWT + Session Cookies
 - **JWT Library:** jsonwebtoken, jose
@@ -343,14 +373,17 @@ appRouter
 ## 💾 Database
 
 ### Primary Database: MySQL
+
 - **Connection:** `DATABASE_URL=mysql://user:password@host:3306/database`
 - **ORM:** Drizzle ORM
 - **Migration Tool:** Drizzle Kit
 
 ### Database Schema
+
 **Location:** `/drizzle/schema.ts`
 
 **Key Tables:**
+
 - `users` - User accounts
 - `patients` - Patient records
 - `appointments` - Appointment scheduling
@@ -382,6 +415,7 @@ appRouter
 ---
 
 ### Secondary Database: MSSQL (Optional)
+
 - **Purpose:** Patient synchronization from external accounting system
 - **Location:** `/server/integrations/mssqlPatients.ts`
 - **Configuration:** Environment variables
@@ -391,6 +425,7 @@ appRouter
   - `MSSQL_SYNC_LIMIT`, `MSSQL_SYNC_INTERVAL_MS`
 
 **Features:**
+
 - Auto-sync patients on interval
 - Incremental sync support
 - Preserve manual edits option
@@ -403,11 +438,13 @@ appRouter
 ## 📦 External Integrations
 
 ### 1. **AWS S3**
+
 - **SDK:** @aws-sdk/client-s3, @aws-sdk/s3-request-presigner
 - **Purpose:** File storage (likely for medical documents/images)
 - **Configuration:** Environment variables (likely `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 
 ### 2. **Firebase Cloud Messaging (FCM)**
+
 - **Location:** `/server/_core/fcmPush.ts`
 - **Purpose:** Push notifications for mobile app
 - **Configuration:**
@@ -417,6 +454,7 @@ appRouter
   - `FCM_SERVICE_ACCOUNT_JSON`
 
 ### 3. **Black Ice Capture (Pentacam)**
+
 - **Purpose:** Corneal topography imaging system integration
 - **Features:**
   - Auto-import from local folder
@@ -427,12 +465,14 @@ appRouter
     - `BLACKICE_OCR_ENABLED`, `BLACKICE_OCR_TESSERACT_PATH`
 
 ### 4. **Optional OAuth/OpenID Connect**
+
 - **Purpose:** External authentication
 - **Configuration:**
   - `OAUTH_SERVER_URL`
   - `OWNER_OPEN_ID`
 
 ### 5. **Optional API Integration**
+
 - **Name:** Built-in Forge API
 - **Configuration:**
   - `BUILT_IN_FORGE_API_URL`
@@ -443,6 +483,7 @@ appRouter
 ## 🔒 Security Features
 
 ### Authentication & Authorization:
+
 - JWT-based authentication
 - Role-Based Access Control (RBAC) with 6+ roles
 - Per-user permissions system
@@ -451,6 +492,7 @@ appRouter
 - Force password change capability
 
 ### CORS & Origin Validation:
+
 - Configurable allowed origins (env: `CORS_ALLOWED_ORIGINS`)
 - Default allowed:
   - `https://op.selrs.cc`
@@ -458,6 +500,7 @@ appRouter
   - `capacitor://localhost`, `ionic://localhost`
 
 ### API Security:
+
 - Protected procedures with role checks
 - Input validation with Zod
 - tRPC error handling
@@ -467,6 +510,7 @@ appRouter
 ## 🏗️ Build & Deployment
 
 ### Scripts
+
 ```json
 "dev"                    // Development server with watch
 "build"                  // Full production build
@@ -480,6 +524,7 @@ appRouter
 ```
 
 ### Build Configuration:
+
 - **Frontend Build:** Vite (React + TypeScript)
 - **Backend Build:** esbuild (ESM bundle, external packages)
 - **Output:** `/dist` directory
@@ -490,48 +535,52 @@ appRouter
 ## 📊 Tech Stack Summary
 
 ### Frontend
-| Component | Technology |
-|-----------|-----------|
-| Framework | React 19.2.4 |
-| Build Tool | Vite 8.0.1 |
-| Styling | Tailwind CSS 4.2.2 |
-| UI Components | Radix UI + shadcn/ui |
+
+| Component        | Technology            |
+| ---------------- | --------------------- |
+| Framework        | React 19.2.4          |
+| Build Tool       | Vite 8.0.1            |
+| Styling          | Tailwind CSS 4.2.2    |
+| UI Components    | Radix UI + shadcn/ui  |
 | State Management | React Query + Context |
-| API Client | tRPC |
-| Forms | React Hook Form + Zod |
-| Charts | Recharts |
-| Icons | Lucide React |
-| Routing | Wouter |
+| API Client       | tRPC                  |
+| Forms            | React Hook Form + Zod |
+| Charts           | Recharts              |
+| Icons            | Lucide React          |
+| Routing          | Wouter                |
 
 ### Backend
-| Component | Technology |
-|-----------|-----------|
-| Runtime | Node.js |
-| Server | Express.js 5.2.1 |
-| RPC | tRPC 11.13.4 |
-| Language | TypeScript 5.9.3 |
-| Database ORM | Drizzle ORM |
-| Validation | Zod |
-| Auth | JWT + bcryptjs |
-| WebSocket | ws |
+
+| Component    | Technology       |
+| ------------ | ---------------- |
+| Runtime      | Node.js          |
+| Server       | Express.js 5.2.1 |
+| RPC          | tRPC 11.13.4     |
+| Language     | TypeScript 5.9.3 |
+| Database ORM | Drizzle ORM      |
+| Validation   | Zod              |
+| Auth         | JWT + bcryptjs   |
+| WebSocket    | ws               |
 
 ### Mobile
-| Component | Technology |
-|-----------|-----------|
-| Framework | Capacitor 8.2.0 |
-| Android | Kotlin (generated) |
-| Build | Gradle |
+
+| Component     | Technology               |
+| ------------- | ------------------------ |
+| Framework     | Capacitor 8.2.0          |
+| Android       | Kotlin (generated)       |
+| Build         | Gradle                   |
 | Notifications | Firebase Cloud Messaging |
-| Storage | Native filesystem access |
+| Storage       | Native filesystem access |
 
 ### Infrastructure
-| Component | Service |
-|-----------|---------|
-| Primary DB | MySQL |
-| Secondary DB | MSSQL (optional) |
-| File Storage | AWS S3 |
+
+| Component          | Service                  |
+| ------------------ | ------------------------ |
+| Primary DB         | MySQL                    |
+| Secondary DB       | MSSQL (optional)         |
+| File Storage       | AWS S3                   |
 | Push Notifications | Firebase Cloud Messaging |
-| Image Analysis | Tesseract OCR (optional) |
+| Image Analysis     | Tesseract OCR (optional) |
 
 ---
 
@@ -596,6 +645,7 @@ SELRS.cc/
 ## 🚀 Running the Application
 
 ### Development:
+
 ```bash
 npm run dev              # Start server + watch
 npm run check           # Type check
@@ -603,6 +653,7 @@ npm run test            # Run tests
 ```
 
 ### Production:
+
 ```bash
 npm run build           # Build all
 npm run start           # Start server
@@ -611,6 +662,7 @@ npm run web:deploy              # Deploy web
 ```
 
 ### Database:
+
 ```bash
 npm run db:migrate      # Run migrations
 npm run db:push         # Generate + migrate
@@ -621,6 +673,7 @@ npm run db:push         # Generate + migrate
 ## 🔧 Configuration
 
 ### Environment Variables (`.env`):
+
 - `NODE_ENV`, `PORT`, `HOST`
 - `DATABASE_URL` - MySQL connection
 - `JWT_SECRET` - JWT signing key

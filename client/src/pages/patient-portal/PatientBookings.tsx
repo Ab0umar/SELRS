@@ -1,4 +1,12 @@
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, Sparkles, TicketCheck, ArrowLeft } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  TicketCheck,
+  ArrowLeft,
+} from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -11,7 +19,10 @@ import {
   formatArabicDate,
 } from "./portal-ui";
 
-const STATUS_META: Record<string, { label: string; tone: "pending" | "confirmed" | "cancelled" | "completed" }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; tone: "pending" | "confirmed" | "cancelled" | "completed" }
+> = {
   pending: { label: "قيد المراجعة", tone: "pending" },
   confirmed: { label: "مؤكد", tone: "confirmed" },
   cancelled: { label: "ملغي", tone: "cancelled" },
@@ -19,7 +30,8 @@ const STATUS_META: Record<string, { label: string; tone: "pending" | "confirmed"
 };
 
 export default function PatientBookings() {
-  const { data, isLoading, error, refetch } = trpc.patientPortal.getMyBookings.useQuery();
+  const { data, isLoading, error, refetch } =
+    trpc.patientPortal.getMyBookings.useQuery();
 
   const summary = useMemo(() => {
     const bookings = data ?? [];
@@ -38,12 +50,15 @@ export default function PatientBookings() {
   return (
     <PatientLayout>
       <div className="space-y-6">
-        
         {/* Title Header */}
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-primary">مواعيدي وحجوزاتي 🗓️</h2>
-            <p className="text-xs text-muted-foreground">تابع حالة طلبات الحجز الحالية وتاريخ زياراتك السابقة للمركز.</p>
+            <h2 className="text-xl font-bold text-primary">
+              مواعيدي وحجوزاتي 🗓️
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              تابع حالة طلبات الحجز الحالية وتاريخ زياراتك السابقة للمركز.
+            </p>
           </div>
           <Button
             variant="outline"
@@ -57,27 +72,39 @@ export default function PatientBookings() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
-          
           {/* Summary Column */}
           <div className="space-y-4">
-            
             {/* Quick Summary Card */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">ملخص حالة الحجوزات</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  ملخص حالة الحجوزات
+                </h3>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-blue-700 font-bold">الحجوزات المؤكدة</p>
-                  <p className="text-xl font-black text-blue-900 mt-1">{summary.confirmed}</p>
+                  <p className="text-[10px] text-blue-700 font-bold">
+                    الحجوزات المؤكدة
+                  </p>
+                  <p className="text-xl font-black text-blue-900 mt-1">
+                    {summary.confirmed}
+                  </p>
                 </div>
                 <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-orange-700 font-bold">قيد الانتظار</p>
-                  <p className="text-xl font-black text-orange-900 mt-1">{summary.pending}</p>
+                  <p className="text-[10px] text-orange-700 font-bold">
+                    قيد الانتظار
+                  </p>
+                  <p className="text-xl font-black text-orange-900 mt-1">
+                    {summary.pending}
+                  </p>
                 </div>
                 <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 text-center col-span-2">
-                  <p className="text-[10px] text-muted-foreground font-semibold">إجمالي الزيارات والطلبات</p>
-                  <p className="text-lg font-black text-foreground mt-0.5">{summary.total}</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold">
+                    إجمالي الزيارات والطلبات
+                  </p>
+                  <p className="text-lg font-black text-foreground mt-0.5">
+                    {summary.total}
+                  </p>
                 </div>
               </div>
             </div>
@@ -89,13 +116,19 @@ export default function PatientBookings() {
                   <Sparkles className="size-4.5" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-foreground">حجز موعد جديد</p>
+                  <p className="text-sm font-bold text-foreground">
+                    حجز موعد جديد
+                  </p>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    تصفح التواريخ المتاحة للأطباء والاستشاريين وارسل طلب حجز فوري.
+                    تصفح التواريخ المتاحة للأطباء والاستشاريين وارسل طلب حجز
+                    فوري.
                   </p>
                 </div>
               </div>
-              <Button asChild className="w-full h-11 text-sm font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2">
+              <Button
+                asChild
+                className="w-full h-11 text-sm font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2"
+              >
                 <Link href="/my/book">
                   <CalendarDays className="size-4.5" />
                   <span>البدء في طلب حجز موعد</span>
@@ -106,7 +139,6 @@ export default function PatientBookings() {
 
           {/* Bookings List Column */}
           <div className="space-y-4">
-            
             {isLoading && <PortalLoadingRows rows={4} />}
 
             {error && (
@@ -115,7 +147,10 @@ export default function PatientBookings() {
                 title="تعذر تحميل المواعيد"
                 description={error.message}
                 action={
-                  <Button onClick={() => void refetch()} className="gap-2 cursor-pointer">
+                  <Button
+                    onClick={() => void refetch()}
+                    className="gap-2 cursor-pointer"
+                  >
                     <RefreshCw className="size-4" />
                     إعادة المحاولة
                   </Button>
@@ -136,33 +171,54 @@ export default function PatientBookings() {
                 {data.map((item) => {
                   const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                   return (
-                    <div key={item.id} className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-                      
+                    <div
+                      key={item.id}
+                      className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4"
+                    >
                       {/* Top title & status badge */}
                       <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
                         <div className="space-y-0.5">
-                          <h4 className="text-sm font-bold text-foreground">{item.typeLabel}</h4>
-                          <p className="text-[10px] text-muted-foreground">طلب حجز رقم #{item.id}</p>
+                          <h4 className="text-sm font-bold text-foreground">
+                            {item.typeLabel}
+                          </h4>
+                          <p className="text-[10px] text-muted-foreground">
+                            طلب حجز رقم #{item.id}
+                          </p>
                         </div>
-                        <PortalStatusBadge status={item.status} label={meta.label} />
+                        <PortalStatusBadge
+                          status={item.status}
+                          label={meta.label}
+                        />
                       </div>
 
                       {/* Booking dates info grid */}
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 space-y-0.5">
-                          <p className="text-[10px] text-muted-foreground font-semibold">تاريخ الطلب المفضل</p>
-                          <p className="text-xs font-bold text-foreground">{formatArabicDate(item.requestedDate)}</p>
+                          <p className="text-[10px] text-muted-foreground font-semibold">
+                            تاريخ الطلب المفضل
+                          </p>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatArabicDate(item.requestedDate)}
+                          </p>
                         </div>
-                        
+
                         {item.confirmedDate ? (
                           <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-blue-700 font-bold">الموعد المؤكد النهائي</p>
-                            <p className="text-xs font-black text-blue-900">{formatArabicDate(item.confirmedDate)}</p>
+                            <p className="text-[10px] text-blue-700 font-bold">
+                              الموعد المؤكد النهائي
+                            </p>
+                            <p className="text-xs font-black text-blue-900">
+                              {formatArabicDate(item.confirmedDate)}
+                            </p>
                           </div>
                         ) : (
                           <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-orange-700 font-bold">تأكيد الموعد</p>
-                            <p className="text-xs font-bold text-orange-950 font-sans">بانتظار الاستقبال</p>
+                            <p className="text-[10px] text-orange-700 font-bold">
+                              تأكيد الموعد
+                            </p>
+                            <p className="text-xs font-bold text-orange-950 font-sans">
+                              بانتظار الاستقبال
+                            </p>
                           </div>
                         )}
                       </div>
@@ -171,8 +227,12 @@ export default function PatientBookings() {
                       <div className="space-y-2">
                         {item.notes && (
                           <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 text-xs leading-5">
-                            <p className="font-bold text-foreground mb-0.5">ملاحظتك للطلب:</p>
-                            <p className="text-muted-foreground">{item.notes}</p>
+                            <p className="font-bold text-foreground mb-0.5">
+                              ملاحظتك للطلب:
+                            </p>
+                            <p className="text-muted-foreground">
+                              {item.notes}
+                            </p>
                           </div>
                         )}
 
@@ -182,7 +242,9 @@ export default function PatientBookings() {
                               <ClipboardList className="size-4 shrink-0" />
                               <span>ملاحظة موظف الاستقبال:</span>
                             </div>
-                            <p className="text-[#995C00] pr-6">{item.staffNotes}</p>
+                            <p className="text-[#995C00] pr-6">
+                              {item.staffNotes}
+                            </p>
                           </div>
                         )}
                       </div>

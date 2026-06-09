@@ -4,7 +4,7 @@ Extracted from Lasik26.accdb
 
 ## VDI_MacInfo
 
-```sql
+````sql
 -- Name: VDI_MacInfo
 -- Schema: Views
 
@@ -492,3 +492,4 @@ FROM SY_Oprt;
 
 ```n
 
+````

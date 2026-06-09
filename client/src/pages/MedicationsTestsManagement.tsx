@@ -3,9 +3,30 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FlaskConical, Link2, Plus, Trash2, Edit2, Upload, Star, Save } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  FlaskConical,
+  Link2,
+  Plus,
+  Trash2,
+  Edit2,
+  Upload,
+  Star,
+  Save,
+} from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -14,7 +35,13 @@ import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { loadXlsx } from "@/lib/xlsx";
 
-type MedicationType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
+type MedicationType =
+  | "tablet"
+  | "drops"
+  | "ointment"
+  | "injection"
+  | "suspension"
+  | "other";
 type TestType = "examination" | "lab" | "imaging" | "other";
 
 function medicationTypeLabel(type: string | undefined | null): string {
@@ -71,8 +98,12 @@ export default function MedicationsTestsManagement() {
     category: "",
   });
 
-  const medsQuery = trpc.medical.getAllMedications.useQuery(undefined, { refetchOnWindowFocus: false });
-  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, { refetchOnWindowFocus: false });
+  const medsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const favoritesQuery = trpc.medical.getMyTestFavorites.useQuery(undefined, {
     refetchOnWindowFocus: false,
     retry: false,
@@ -85,21 +116,24 @@ export default function MedicationsTestsManagement() {
       toast.success("تم إضافة الدواء بنجاح");
       medsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في إضافة الدواء")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في إضافة الدواء")),
   });
   const updateMedicationMutation = trpc.medical.updateMedication.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الدواء بنجاح");
       medsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في تحديث الدواء")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في تحديث الدواء")),
   });
   const deleteMedicationMutation = trpc.medical.deleteMedication.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الدواء بنجاح");
       medsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في حذف الدواء")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في حذف الدواء")),
   });
 
   const createTestMutation = trpc.medical.createTest.useMutation({
@@ -107,21 +141,24 @@ export default function MedicationsTestsManagement() {
       toast.success("تم إضافة الفحص بنجاح");
       testsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في إضافة الفحص")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في إضافة الفحص")),
   });
   const updateTestMutation = trpc.medical.updateTest.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الفحص بنجاح");
       testsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في تحديث الفحص")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في تحديث الفحص")),
   });
   const deleteTestMutation = trpc.medical.deleteTest.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الفحص بنجاح");
       testsQuery.refetch();
     },
-    onError: (error: unknown) => toast.error(getTrpcErrorMessage(error, "فشل في حذف الفحص")),
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشل في حذف الفحص")),
   });
   const toggleFavoriteMutation = trpc.medical.toggleTestFavorite.useMutation({
     onSuccess: () => {
@@ -148,14 +185,18 @@ export default function MedicationsTestsManagement() {
   const medications = (medsQuery.data ?? []) as any[];
   const tests = (testsQuery.data ?? []) as any[];
   const canFavorite = ["doctor", "manager", "admin"].includes(user?.role || "");
-  const favoriteIds = new Set((favoritesQuery.data ?? []).map((f: any) => f.testId));
+  const favoriteIds = new Set(
+    (favoritesQuery.data ?? []).map((f: any) => f.testId),
+  );
   const favoriteTests = tests.filter((t) => favoriteIds.has(t.id));
 
   const filteredMedications = useMemo(() => {
     const q = medListSearch.trim().toLowerCase();
     if (!q) return medications;
     return medications.filter((med) =>
-      `${med.name ?? ""} ${med.strength ?? ""} ${med.type ?? ""}`.toLowerCase().includes(q),
+      `${med.name ?? ""} ${med.strength ?? ""} ${med.type ?? ""}`
+        .toLowerCase()
+        .includes(q),
     );
   }, [medications, medListSearch]);
 
@@ -163,7 +204,9 @@ export default function MedicationsTestsManagement() {
     const q = testListSearch.trim().toLowerCase();
     if (!q) return tests;
     return tests.filter((test) =>
-      `${test.name ?? ""} ${test.category ?? ""} ${test.type ?? ""}`.toLowerCase().includes(q),
+      `${test.name ?? ""} ${test.category ?? ""} ${test.type ?? ""}`
+        .toLowerCase()
+        .includes(q),
     );
   }, [tests, testListSearch]);
 
@@ -192,7 +235,10 @@ export default function MedicationsTestsManagement() {
     }
 
     if (editingMedId) {
-      await updateMedicationMutation.mutateAsync({ medicationId: editingMedId, updates: { ...newMedication } });
+      await updateMedicationMutation.mutateAsync({
+        medicationId: editingMedId,
+        updates: { ...newMedication },
+      });
       setEditingMedId(null);
     } else {
       await createMedicationMutation.mutateAsync({ ...newMedication });
@@ -213,7 +259,9 @@ export default function MedicationsTestsManagement() {
     await deleteMedicationMutation.mutateAsync({ medicationId: id });
   };
 
-  const handleImportMedications = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportMedications = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -240,15 +288,21 @@ export default function MedicationsTestsManagement() {
     }
   };
 
-  const handleImportTests = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportTests = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
       const normalizeTestType = (raw: any): TestType => {
-        const value = String(raw ?? "").trim().toLowerCase();
+        const value = String(raw ?? "")
+          .trim()
+          .toLowerCase();
         if (["lab", "تحاليل", "تحليل"].includes(value)) return "lab";
-        if (["imaging", "اشعة", "أشعة", "radiology", "xray"].includes(value)) return "imaging";
-        if (["exam", "examination", "فحص", "فحوصات"].includes(value)) return "examination";
+        if (["imaging", "اشعة", "أشعة", "radiology", "xray"].includes(value))
+          return "imaging";
+        if (["exam", "examination", "فحص", "فحوصات"].includes(value))
+          return "examination";
         return "examination";
       };
       const reader = new FileReader();
@@ -257,8 +311,12 @@ export default function MedicationsTestsManagement() {
         const XLSX = await loadXlsx();
         const workbook = XLSX.read(data, { type: "array" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-        const firstNonEmpty = rawRows.find((row) => row && row.some((cell) => String(cell ?? "").trim() !== ""));
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+        }) as any[][];
+        const firstNonEmpty = rawRows.find(
+          (row) => row && row.some((cell) => String(cell ?? "").trim() !== ""),
+        );
         if (!firstNonEmpty) {
           toast.error("ملف فارغ: لا توجد بيانات.");
           if (testsFileRef.current) testsFileRef.current.value = "";
@@ -301,7 +359,10 @@ export default function MedicationsTestsManagement() {
       return;
     }
     if (editingTestId) {
-      await updateTestMutation.mutateAsync({ testId: editingTestId, updates: { ...newTest } });
+      await updateTestMutation.mutateAsync({
+        testId: editingTestId,
+        updates: { ...newTest },
+      });
       setEditingTestId(null);
     } else {
       await createTestMutation.mutateAsync({ ...newTest });
@@ -340,16 +401,22 @@ export default function MedicationsTestsManagement() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Link2 className="h-4 w-4" />
               </div>
-              <CardTitle className="text-lg">{editingMedId ? "تعديل دواء" : "الأدوية"}</CardTitle>
+              <CardTitle className="text-lg">
+                {editingMedId ? "تعديل دواء" : "الأدوية"}
+              </CardTitle>
             </div>
-            <CardDescription>أضف أو حدّث بيانات الدواء قبل الحفظ</CardDescription>
+            <CardDescription>
+              أضف أو حدّث بيانات الدواء قبل الحفظ
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold">اسم الدواء</label>
               <Input
                 value={newMedication.name}
-                onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                onChange={(e) =>
+                  setNewMedication({ ...newMedication, name: e.target.value })
+                }
                 placeholder="مثال: توباماكس"
                 className="text-right"
               />
@@ -358,7 +425,12 @@ export default function MedicationsTestsManagement() {
               <label className="text-sm font-semibold">نوع الدواء</label>
               <Select
                 value={newMedication.type}
-                onValueChange={(value) => setNewMedication({ ...newMedication, type: value as MedicationType })}
+                onValueChange={(value) =>
+                  setNewMedication({
+                    ...newMedication,
+                    type: value as MedicationType,
+                  })
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="اختر النوع" />
@@ -377,7 +449,12 @@ export default function MedicationsTestsManagement() {
               <label className="text-sm font-semibold">التركيز / القوة</label>
               <Input
                 value={newMedication.strength}
-                onChange={(e) => setNewMedication({ ...newMedication, strength: e.target.value })}
+                onChange={(e) =>
+                  setNewMedication({
+                    ...newMedication,
+                    strength: e.target.value,
+                  })
+                }
                 placeholder="مثال: 0.25%"
                 className="text-right"
               />
@@ -391,8 +468,19 @@ export default function MedicationsTestsManagement() {
                 <Save className="h-4 w-4" />
                 حفظ
               </Button>
-              <input ref={medsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportMedications} className="hidden" />
-              <Button type="button" variant="outline" className="gap-2 border-dashed" onClick={() => medsFileRef.current?.click()}>
+              <input
+                ref={medsFileRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleImportMedications}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2 border-dashed"
+                onClick={() => medsFileRef.current?.click()}
+              >
                 <Upload className="h-4 w-4" />
                 رفع Excel
               </Button>
@@ -406,7 +494,9 @@ export default function MedicationsTestsManagement() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <FlaskConical className="h-4 w-4" />
               </div>
-              <CardTitle className="text-lg">{editingTestId ? "تعديل فحص" : "الفحوصات"}</CardTitle>
+              <CardTitle className="text-lg">
+                {editingTestId ? "تعديل فحص" : "الفحوصات"}
+              </CardTitle>
             </div>
             <CardDescription>أضف أو حدّث الفحص والتصنيف</CardDescription>
           </CardHeader>
@@ -415,14 +505,21 @@ export default function MedicationsTestsManagement() {
               <label className="text-sm font-semibold">اسم الفحص</label>
               <Input
                 value={newTest.name}
-                onChange={(e) => setNewTest({ ...newTest, name: e.target.value })}
+                onChange={(e) =>
+                  setNewTest({ ...newTest, name: e.target.value })
+                }
                 placeholder="مثال: فحص النظر"
                 className="text-right"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold">نوع الفحص</label>
-              <Select value={newTest.type} onValueChange={(value) => setNewTest({ ...newTest, type: value as TestType })}>
+              <Select
+                value={newTest.type}
+                onValueChange={(value) =>
+                  setNewTest({ ...newTest, type: value as TestType })
+                }
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="اختر النوع" />
                 </SelectTrigger>
@@ -438,7 +535,9 @@ export default function MedicationsTestsManagement() {
               <label className="text-sm font-semibold">التصنيف</label>
               <Input
                 value={newTest.category}
-                onChange={(e) => setNewTest({ ...newTest, category: e.target.value })}
+                onChange={(e) =>
+                  setNewTest({ ...newTest, category: e.target.value })
+                }
                 placeholder="مثال: بصريات"
                 className="text-right"
               />
@@ -452,8 +551,19 @@ export default function MedicationsTestsManagement() {
                 <Plus className="h-4 w-4" />
                 حفظ
               </Button>
-              <input ref={testsFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportTests} className="hidden" />
-              <Button type="button" variant="outline" className="gap-2 border-dashed" onClick={() => testsFileRef.current?.click()}>
+              <input
+                ref={testsFileRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleImportTests}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2 border-dashed"
+                onClick={() => testsFileRef.current?.click()}
+              >
                 <Upload className="h-4 w-4" />
                 رفع Excel
               </Button>
@@ -466,46 +576,86 @@ export default function MedicationsTestsManagement() {
           <CardHeader className="border-b border-border/80 py-4">
             <CardTitle className="text-base">قائمة الأدوية</CardTitle>
             <CardDescription>{medications.length} دواء مسجّل</CardDescription>
-            <SearchBar value={medListSearch} onChange={setMedListSearch} placeholder="بحث في الأدوية..." className="mt-3" />
+            <SearchBar
+              value={medListSearch}
+              onChange={setMedListSearch}
+              placeholder="بحث في الأدوية..."
+              className="mt-3"
+            />
           </CardHeader>
           <CardContent className="max-h-[420px] space-y-2 overflow-y-auto pt-4">
             {medsQuery.isLoading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                جاري التحميل…
+              </p>
             ) : filteredMedications.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                لا توجد نتائج.
+              </p>
             ) : (
               filteredMedications.map((med) => {
-                const sub = [medicationTypeLabel(med.type), String(med.strength ?? "").trim()].filter(Boolean).join(" ");
+                const sub = [
+                  medicationTypeLabel(med.type),
+                  String(med.strength ?? "").trim(),
+                ]
+                  .filter(Boolean)
+                  .join(" ");
                 return (
                   <div
                     key={med.id}
                     className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0 flex-1 text-right">
-                      <div className="font-semibold leading-snug">{med.name}</div>
-                      {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
+                      <div className="font-semibold leading-snug">
+                        {med.name}
+                      </div>
+                      {sub ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {sub}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" aria-label="تعديل الدواء" onClick={() => handleEditMedication(med)}>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        title="تعديل"
+                        aria-label="تعديل الدواء"
+                        onClick={() => handleEditMedication(med)}
+                      >
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       {delConfirmMed === med.id ? (
                         <div className="flex items-center gap-1">
-                          <button type="button" aria-label="تأكيد الحذف"
+                          <button
+                            type="button"
+                            aria-label="تأكيد الحذف"
                             className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                            onClick={() => { void handleDeleteMedication(med.id); setDelConfirmMed(null); }}>
+                            onClick={() => {
+                              void handleDeleteMedication(med.id);
+                              setDelConfirmMed(null);
+                            }}
+                          >
                             تأكيد
                           </button>
-                          <button type="button" aria-label="إلغاء الحذف"
+                          <button
+                            type="button"
+                            aria-label="إلغاء الحذف"
                             className="rounded bg-muted text-muted-foreground hover:bg-border"
-                            onClick={() => setDelConfirmMed(null)}>
+                            onClick={() => setDelConfirmMed(null)}
+                          >
                             ✕
                           </button>
                         </div>
                       ) : (
-                        <button type="button" aria-label="حذف الدواء"
+                        <button
+                          type="button"
+                          aria-label="حذف الدواء"
                           className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                          onClick={() => setDelConfirmMed(med.id)}>
+                          onClick={() => setDelConfirmMed(med.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -525,9 +675,13 @@ export default function MedicationsTestsManagement() {
               <span className="text-sm font-black">المفضلة</span>
             </div>
             {!canFavorite ? (
-              <p className="text-xs text-muted-foreground">المفضلة متاحة لطبيب / مدير / مسؤول فقط.</p>
+              <p className="text-xs text-muted-foreground">
+                المفضلة متاحة لطبيب / مدير / مسؤول فقط.
+              </p>
             ) : favoriteTests.length === 0 ? (
-              <p className="text-xs text-muted-foreground">لا توجد عناصر مفضلة — اضغط النجمة بجانب أي فحص لإضافته.</p>
+              <p className="text-xs text-muted-foreground">
+                لا توجد عناصر مفضلة — اضغط النجمة بجانب أي فحص لإضافته.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {favoriteTests.map((test) => (
@@ -536,7 +690,9 @@ export default function MedicationsTestsManagement() {
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold transition hover:bg-primary/[0.08]"
                     title="اضغط لإزالة من المفضلة"
-                    onClick={() => toggleFavoriteMutation.mutate({ testId: test.id })}
+                    onClick={() =>
+                      toggleFavoriteMutation.mutate({ testId: test.id })
+                    }
                   >
                     <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                     {test.name}
@@ -546,13 +702,21 @@ export default function MedicationsTestsManagement() {
             )}
             <CardTitle className="pt-2 text-base">كل الفحوصات</CardTitle>
             <CardDescription>{tests.length} فحص مسجّل</CardDescription>
-            <SearchBar value={testListSearch} onChange={setTestListSearch} placeholder="بحث في الفحوصات..." />
+            <SearchBar
+              value={testListSearch}
+              onChange={setTestListSearch}
+              placeholder="بحث في الفحوصات..."
+            />
           </CardHeader>
           <CardContent className="max-h-[340px] space-y-2 overflow-y-auto pt-4">
             {testsQuery.isLoading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                جاري التحميل…
+              </p>
             ) : filteredTests.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">لا توجد نتائج.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                لا توجد نتائج.
+              </p>
             ) : (
               filteredTests.map((test) => (
                 <div
@@ -560,22 +724,38 @@ export default function MedicationsTestsManagement() {
                   className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                 >
                   <div className="min-w-0 flex-1 text-right">
-                    <div className="font-semibold leading-snug">{test.name}</div>
+                    <div className="font-semibold leading-snug">
+                      {test.name}
+                    </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      {[test.category, testTypeLabel(test.type)].filter(Boolean).join(" · ") || "—"}
+                      {[test.category, testTypeLabel(test.type)]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <Button
                       type="button"
                       size="icon"
-                      variant={favoriteIds.has(test.id) ? "secondary" : "outline"}
+                      variant={
+                        favoriteIds.has(test.id) ? "secondary" : "outline"
+                      }
                       className="h-9 w-9"
-                      title={favoriteIds.has(test.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
-                      aria-label={favoriteIds.has(test.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+                      title={
+                        favoriteIds.has(test.id)
+                          ? "إزالة من المفضلة"
+                          : "إضافة للمفضلة"
+                      }
+                      aria-label={
+                        favoriteIds.has(test.id)
+                          ? "إزالة من المفضلة"
+                          : "إضافة للمفضلة"
+                      }
                       onClick={() => {
                         if (!canFavorite) {
-                          toast.error("المفضلة متاحة لطبيب / مدير / مسؤول فقط.");
+                          toast.error(
+                            "المفضلة متاحة لطبيب / مدير / مسؤول فقط.",
+                          );
                           return;
                         }
                         toggleFavoriteMutation.mutate({ testId: test.id });
@@ -585,26 +765,46 @@ export default function MedicationsTestsManagement() {
                         className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-warning text-warning" : "text-muted-foreground"}`}
                       />
                     </Button>
-                    <Button type="button" size="icon" variant="outline" className="h-9 w-9" title="تعديل" aria-label="تعديل الفحص" onClick={() => handleEditTest(test)}>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9"
+                      title="تعديل"
+                      aria-label="تعديل الفحص"
+                      onClick={() => handleEditTest(test)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {delConfirmTest === test.id ? (
                       <div className="flex items-center gap-1">
-                        <button type="button" aria-label="تأكيد الحذف"
+                        <button
+                          type="button"
+                          aria-label="تأكيد الحذف"
                           className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                          onClick={() => { void handleDeleteTest(test.id); setDelConfirmTest(null); }}>
+                          onClick={() => {
+                            void handleDeleteTest(test.id);
+                            setDelConfirmTest(null);
+                          }}
+                        >
                           تأكيد
                         </button>
-                        <button type="button" aria-label="إلغاء الحذف"
+                        <button
+                          type="button"
+                          aria-label="إلغاء الحذف"
                           className="rounded bg-muted text-muted-foreground hover:bg-border"
-                          onClick={() => setDelConfirmTest(null)}>
+                          onClick={() => setDelConfirmTest(null)}
+                        >
                           ✕
                         </button>
                       </div>
                     ) : (
-                      <button type="button" aria-label="حذف الفحص"
+                      <button
+                        type="button"
+                        aria-label="حذف الفحص"
                         className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                        onClick={() => setDelConfirmTest(test.id)}>
+                        onClick={() => setDelConfirmTest(test.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}

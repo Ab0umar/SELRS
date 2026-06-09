@@ -1,10 +1,15 @@
 function sanitizePdfFileName(fileName: string) {
   const stem = String(fileName ?? "").replace(/\.[^.]+$/, "");
-  const safe = stem.replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "_").trim() || "download";
+  const safe =
+    stem.replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "_").trim() || "download";
   return `${safe}.pdf`;
 }
 
-function buildSingleImagePdfBytes(jpegBytes: Uint8Array, width: number, height: number) {
+function buildSingleImagePdfBytes(
+  jpegBytes: Uint8Array,
+  width: number,
+  height: number,
+) {
   const pageWidth = Math.max(1, Math.round(width));
   const pageHeight = Math.max(1, Math.round(height));
   const contentStream = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ\n`;
@@ -13,7 +18,7 @@ function buildSingleImagePdfBytes(jpegBytes: Uint8Array, width: number, height: 
     `2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n`,
     `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`,
     new TextEncoder().encode(
-      `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${Math.round(width)} /Height ${Math.round(height)} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`
+      `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${Math.round(width)} /Height ${Math.round(height)} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`,
     ),
     jpegBytes,
     new TextEncoder().encode(`\nendstream\nendobj\n`),
@@ -28,7 +33,10 @@ function buildSingleImagePdfBytes(jpegBytes: Uint8Array, width: number, height: 
 
   for (let i = 0; i < objects.length; i += 1) {
     offsets.push(position);
-    const chunk = typeof objects[i] === "string" ? encoder.encode(objects[i] as string) : (objects[i] as Uint8Array);
+    const chunk =
+      typeof objects[i] === "string"
+        ? encoder.encode(objects[i] as string)
+        : (objects[i] as Uint8Array);
     parts.push(chunk);
     position += chunk.length;
   }
@@ -76,9 +84,14 @@ export async function downloadImageAsPdf(imageUrl: string, fileName: string) {
   const base64 = dataUrl.split(",")[1] || "";
   const binary = atob(base64);
   const jpegBytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) jpegBytes[i] = binary.charCodeAt(i);
+  for (let i = 0; i < binary.length; i += 1)
+    jpegBytes[i] = binary.charCodeAt(i);
 
-  const pdfBytes = buildSingleImagePdfBytes(jpegBytes, canvas.width, canvas.height);
+  const pdfBytes = buildSingleImagePdfBytes(
+    jpegBytes,
+    canvas.width,
+    canvas.height,
+  );
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
   const objectUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");

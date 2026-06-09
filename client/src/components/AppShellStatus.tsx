@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
 import type { ApiIssue } from "@/lib/appRuntime";
-import { AlertTriangle, CloudOff, RefreshCcw, Rocket, ShieldAlert, WifiOff } from "lucide-react";
+import {
+  AlertTriangle,
+  CloudOff,
+  RefreshCcw,
+  Rocket,
+  ShieldAlert,
+  WifiOff,
+} from "lucide-react";
 
 export type RuntimeIssue = {
   message: string;
@@ -48,8 +55,11 @@ export function AppShellStatus({
   onDismissRuntimeIssue,
   onCopyRuntimeIssue,
 }: Props) {
-  const showConnectivityBanner = !booting && (!online || serverReachable === false);
-  const connectivityTitle = !online ? "No internet connection" : "Cannot reach the server";
+  const showConnectivityBanner =
+    !booting && (!online || serverReachable === false);
+  const connectivityTitle = !online
+    ? "No internet connection"
+    : "Cannot reach the server";
   const connectivityBody = !online
     ? "Reconnect to continue syncing live data."
     : "The app shell is open, but live server requests are currently failing.";
@@ -72,23 +82,41 @@ export function AppShellStatus({
           <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-full bg-warning/20 p-2 text-warning/90">
-                {!online ? <WifiOff className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+                {!online ? (
+                  <WifiOff className="h-4 w-4" />
+                ) : (
+                  <CloudOff className="h-4 w-4" />
+                )}
               </div>
               <div>
-              <div className="font-semibold">{connectivityTitle}</div>
-              <div className="text-warning">{connectivityBody}</div>
-              {offlineCacheCount > 0 ? (
-                <div className="mt-1 text-xs text-warning/90">
-                  Cached setup data available{offlineCacheTimeLabel ? ` from ${offlineCacheTimeLabel}` : ""}.
-                </div>
-              ) : null}
+                <div className="font-semibold">{connectivityTitle}</div>
+                <div className="text-warning">{connectivityBody}</div>
+                {offlineCacheCount > 0 ? (
+                  <div className="mt-1 text-xs text-warning/90">
+                    Cached setup data available
+                    {offlineCacheTimeLabel
+                      ? ` from ${offlineCacheTimeLabel}`
+                      : ""}
+                    .
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRetry}
+              >
                 Retry
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={onReload}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onReload}
+              >
                 تحديث
               </Button>
             </div>
@@ -97,29 +125,45 @@ export function AppShellStatus({
       ) : null}
 
       {apiIssue ? (
-        <div className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}>
+        <div
+          className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}
+        >
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-primary text-primary-foreground">
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-foreground">Sync issue</div>
-          <div className="mt-1 text-sm text-foreground break-words">{apiIssue.message}</div>
-          {apiIssue.path ? (
-            <div className="mt-1 text-xs text-muted-foreground">Path: {apiIssue.path}</div>
-          ) : null}
-          {typeof apiIssue.status === "number" ? (
-            <div className="mt-1 text-xs text-muted-foreground">Status: {apiIssue.status}</div>
-          ) : null}
-          {offlineCacheCount > 0 ? (
-            <div className="mt-1 text-xs text-muted-foreground">
-              Safe reference data is cached locally{offlineCacheTimeLabel ? ` (${offlineCacheTimeLabel})` : ""}.
-            </div>
-          ) : null}
+              <div className="text-sm font-semibold text-foreground">
+                Sync issue
+              </div>
+              <div className="mt-1 text-sm text-foreground break-words">
+                {apiIssue.message}
+              </div>
+              {apiIssue.path ? (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Path: {apiIssue.path}
+                </div>
+              ) : null}
+              {typeof apiIssue.status === "number" ? (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Status: {apiIssue.status}
+                </div>
+              ) : null}
+              {offlineCacheCount > 0 ? (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Safe reference data is cached locally
+                  {offlineCacheTimeLabel ? ` (${offlineCacheTimeLabel})` : ""}.
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="mt-3 flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onRetrySync}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRetrySync}
+            >
               Retry sync
             </Button>
             <Button type="button" size="sm" onClick={onReload}>
@@ -130,19 +174,24 @@ export function AppShellStatus({
       ) : null}
 
       {updateAvailable ? (
-        <div className={`fixed bottom-3 left-1/2 z-[1100] w-[min(92vw,28rem)] -translate-x-1/2 border-secondary/40 ${cardClassName} print:hidden`}>
+        <div
+          className={`fixed bottom-3 left-1/2 z-[1100] w-[min(92vw,28rem)] -translate-x-1/2 border-secondary/40 ${cardClassName} print:hidden`}
+        >
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-secondary text-secondary-foreground">
               <Rocket className="h-4 w-4" />
             </div>
             <div>
-          <div className="text-sm font-semibold text-foreground">A newer app build is available</div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            Current: {buildInfo?.version ?? "unknown"} / {buildInfo?.buildTime ?? "unknown"}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            New: {updateAvailable.version} / {updateAvailable.buildTime}
-          </div>
+              <div className="text-sm font-semibold text-foreground">
+                A newer app build is available
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Current: {buildInfo?.version ?? "unknown"} /{" "}
+                {buildInfo?.buildTime ?? "unknown"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                New: {updateAvailable.version} / {updateAvailable.buildTime}
+              </div>
             </div>
           </div>
           <div className="mt-3 flex justify-end gap-2">
@@ -157,17 +206,24 @@ export function AppShellStatus({
       ) : null}
 
       {runtimeIssue ? (
-        <div className={`fixed bottom-3 right-3 z-[1100] w-[min(92vw,30rem)] border-destructive/40 ${cardClassName} print:hidden`}>
+        <div
+          className={`fixed bottom-3 right-3 z-[1100] w-[min(92vw,30rem)] border-destructive/40 ${cardClassName} print:hidden`}
+        >
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-destructive/10 p-2 text-destructive">
               <ShieldAlert className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-destructive">Runtime issue detected</div>
-          <div className="mt-1 text-sm text-foreground break-words">{runtimeIssue.message}</div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            {runtimeIssue.source} at {new Date(runtimeIssue.time).toLocaleString()}
-          </div>
+              <div className="text-sm font-semibold text-destructive">
+                Runtime issue detected
+              </div>
+              <div className="mt-1 text-sm text-foreground break-words">
+                {runtimeIssue.message}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {runtimeIssue.source} at{" "}
+                {new Date(runtimeIssue.time).toLocaleString()}
+              </div>
             </div>
           </div>
           {runtimeIssue.stack ? (
@@ -176,10 +232,20 @@ export function AppShellStatus({
             </pre>
           ) : null}
           <div className="mt-3 flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onDismissRuntimeIssue}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onDismissRuntimeIssue}
+            >
               Dismiss
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={onCopyRuntimeIssue}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onCopyRuntimeIssue}
+            >
               Copy details
             </Button>
             <Button type="button" size="sm" onClick={onReload}>

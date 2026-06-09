@@ -33,7 +33,7 @@ export default function AccountingCashbook() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const dateFrom = year !== "الكل" ? `${year}-01-01` : undefined;
-  const dateTo   = year !== "الكل" ? `${year}-12-31` : undefined;
+  const dateTo = year !== "الكل" ? `${year}-12-31` : undefined;
 
   const filters = useMemo(
     () => ({
@@ -166,7 +166,10 @@ export default function AccountingCashbook() {
                   <button
                     key={y}
                     type="button"
-                    onClick={() => { setYear(y); resetPage(); }}
+                    onClick={() => {
+                      setYear(y);
+                      resetPage();
+                    }}
                     className={cn(
                       "px-2 py-1.5 text-xs font-medium transition-colors",
                       year === y
@@ -180,18 +183,34 @@ export default function AccountingCashbook() {
               </fieldset>
 
               <div className="flex h-10 flex-1 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <label htmlFor="cb-notes" className="sr-only">بحث في الملاحظات</label>
+                <Search
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <label htmlFor="cb-notes" className="sr-only">
+                  بحث في الملاحظات
+                </label>
                 <input
                   id="cb-notes"
                   type="text"
                   value={notes}
-                  onChange={(e) => { setNotes(e.target.value); resetPage(); }}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    resetPage();
+                  }}
                   placeholder="بحث في الملاحظات والبيان..."
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
                 {notes && (
-                  <button type="button" aria-label="مسح البحث" onClick={() => { setNotes(""); resetPage(); }} className="p-1 text-muted-foreground">
+                  <button
+                    type="button"
+                    aria-label="مسح البحث"
+                    onClick={() => {
+                      setNotes("");
+                      resetPage();
+                    }}
+                    className="p-1 text-muted-foreground"
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 )}
@@ -202,7 +221,10 @@ export default function AccountingCashbook() {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => { setType(t); resetPage(); }}
+                    onClick={() => {
+                      setType(t);
+                      resetPage();
+                    }}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-medium transition-colors",
                       type === t
@@ -286,8 +308,7 @@ export default function AccountingCashbook() {
                   key={row.id}
                   className={cn(
                     "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors",
-                    delConfirm === row.id &&
-                      "bg-muted ring-1 ring-border",
+                    delConfirm === row.id && "bg-muted ring-1 ring-border",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -328,7 +349,9 @@ export default function AccountingCashbook() {
                       <div
                         className={cn(
                           "mt-1 font-semibold tabular-nums",
-                          row.expense ? "text-destructive" : "text-muted-foreground",
+                          row.expense
+                            ? "text-destructive"
+                            : "text-muted-foreground",
                         )}
                       >
                         {row.expense ? fmt(row.expense) : "—"}
@@ -401,7 +424,10 @@ export default function AccountingCashbook() {
                       className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       التاريخ{" "}
-                      <span className="text-muted-foreground" aria-hidden="true">
+                      <span
+                        className="text-muted-foreground"
+                        aria-hidden="true"
+                      >
                         {sortDir === "desc" ? "↓" : "↑"}
                       </span>
                     </button>

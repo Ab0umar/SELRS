@@ -21,8 +21,8 @@ export interface PunchRow {
   id: number;
   empCd: string;
   punchAt: string; // ISO string
-  direction: 'in' | 'out' | 'unknown';
-  source: 'access' | 'tcp' | 'manual';
+  direction: "in" | "out" | "unknown";
+  source: "access" | "tcp" | "manual";
   sourceRowId: string | null;
   note: string | null;
   importedAt: string; // ISO string
@@ -42,7 +42,13 @@ export interface DailyRow {
   lateMinutes: number;
   earlyLeaveMin: number;
   overtimeMinutes: number;
-  status: 'present' | 'absent' | 'leave' | 'holiday' | 'partial' | 'missing_checkout';
+  status:
+    | "present"
+    | "absent"
+    | "leave"
+    | "holiday"
+    | "partial"
+    | "missing_checkout";
   insideNow: boolean;
   computedAt: string; // ISO string
 }
@@ -54,10 +60,10 @@ export interface SyncRunRow {
   id: number;
   startedAt: string; // ISO string
   finishedAt: string | null; // ISO string or null
-  source: 'access' | 'tcp';
-  trigger: 'cron' | 'manual';
+  source: "access" | "tcp";
+  trigger: "cron" | "manual";
   triggeredBy: number | null; // user ID
-  status: 'running' | 'ok' | 'partial' | 'failed' | 'locked';
+  status: "running" | "ok" | "partial" | "failed" | "locked";
   rowsSeen: number;
   rowsInserted: number;
   rowsSkipped: number;

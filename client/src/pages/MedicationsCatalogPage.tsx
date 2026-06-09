@@ -10,14 +10,39 @@ import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import { CheckCircle2, Pencil, Pill, Plus, Trash2, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Pencil,
+  Pill,
+  Plus,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
-type MedType = "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
+type MedType =
+  | "tablet"
+  | "drops"
+  | "ointment"
+  | "injection"
+  | "suspension"
+  | "other";
 type InventoryStatus = "available" | "out_of_stock" | "reserved";
 
 const medFilters = [
@@ -41,7 +66,12 @@ function formLabel(type: string | undefined | null): string {
 
 function resolveInventoryStatus(row: Record<string, unknown>): InventoryStatus {
   const explicit = row.inventoryStatus;
-  if (explicit === "available" || explicit === "out_of_stock" || explicit === "reserved") return explicit;
+  if (
+    explicit === "available" ||
+    explicit === "out_of_stock" ||
+    explicit === "reserved"
+  )
+    return explicit;
   const stockRaw = row.stockPieces;
   if (stockRaw === null || stockRaw === undefined) return "available";
   return Number(stockRaw) > 0 ? "available" : "out_of_stock";
@@ -76,7 +106,9 @@ export default function MedicationsCatalogPage() {
     inventoryStatus: "available" as InventoryStatus,
   });
 
-  const medsQuery = trpc.medical.getAllMedications.useQuery(undefined, { refetchOnWindowFocus: false });
+  const medsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
   const createMutation = trpc.medical.createMedication.useMutation({
     onSuccess: () => {
@@ -85,7 +117,8 @@ export default function MedicationsCatalogPage() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في إضافة الدواء")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في إضافة الدواء")),
   });
 
   const updateMutation = trpc.medical.updateMedication.useMutation({
@@ -95,7 +128,8 @@ export default function MedicationsCatalogPage() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في تحديث الدواء")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في تحديث الدواء")),
   });
 
   const deleteMutation = trpc.medical.deleteMedication.useMutation({
@@ -103,14 +137,18 @@ export default function MedicationsCatalogPage() {
       toast.success("تم حذف الدواء بنجاح");
       medsQuery.refetch();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في حذف الدواء")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في حذف الدواء")),
   });
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
 
-  const rows = useMemo(() => ((medsQuery.data ?? []) as Record<string, unknown>[]).map((r) => r), [medsQuery.data]);
+  const rows = useMemo(
+    () => ((medsQuery.data ?? []) as Record<string, unknown>[]).map((r) => r),
+    [medsQuery.data],
+  );
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -211,7 +249,8 @@ export default function MedicationsCatalogPage() {
 
   if (!isAuthenticated) return null;
 
-  const doseLabel = (row: Record<string, unknown>) => String(row.dosage ?? "").trim() || String(row.strength ?? "").trim() || "—";
+  const doseLabel = (row: Record<string, unknown>) =>
+    String(row.dosage ?? "").trim() || String(row.strength ?? "").trim() || "—";
   const stockLabel = (row: Record<string, unknown>) => {
     const s = row.stockPieces;
     if (s === null || s === undefined) return "—";
@@ -220,13 +259,20 @@ export default function MedicationsCatalogPage() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto max-w-[1200px] px-3 sm:px-4 py-6 sm:py-8" dir="rtl">
+      <div
+        className="container mx-auto max-w-[1200px] px-3 sm:px-4 py-6 sm:py-8"
+        dir="rtl"
+      >
         <PageHeader
           title="الأدوية"
           description="إدارة قاعدة بيانات الأدوية"
           icon={<Pill className="h-5 w-5 text-primary" />}
           action={
-            <Button type="button" className="gap-1 font-semibold" onClick={openCreate}>
+            <Button
+              type="button"
+              className="gap-1 font-semibold"
+              onClick={openCreate}
+            >
               <Plus className="h-4 w-4" />
               إضافة دواء
             </Button>
@@ -235,7 +281,12 @@ export default function MedicationsCatalogPage() {
 
         <ServicesHubNav active="medications" className="mb-4" />
 
-        <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-5 gap-2 sm:grid sm:grid-cols-3 sm:gap-4")}>
+        <div
+          className={cn(
+            STAT_CARDS_MOBILE_ROW,
+            "mb-5 gap-2 sm:grid sm:grid-cols-3 sm:gap-4",
+          )}
+        >
           <StatCard
             title="إجمالي الأدوية"
             value={stats.total}
@@ -248,17 +299,35 @@ export default function MedicationsCatalogPage() {
             icon={CheckCircle2}
             iconColor="bg-success/100/10 text-success"
           />
-          <StatCard title="نفذت" value={stats.out} icon={XCircle} iconColor="bg-destructive text-destructive-foreground" />
+          <StatCard
+            title="نفذت"
+            value={stats.out}
+            icon={XCircle}
+            iconColor="bg-destructive text-destructive-foreground"
+          />
         </div>
 
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
-          <FilterBar filters={medFilters} selected={filter} onSelect={setFilter} className="md:order-2" />
-          <SearchBar value={search} onChange={setSearch} placeholder="بحث عن دواء..." className="md:flex-1 md:max-w-md md:order-1" />
+          <FilterBar
+            filters={medFilters}
+            selected={filter}
+            onSelect={setFilter}
+            className="md:order-2"
+          />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="بحث عن دواء..."
+            className="md:flex-1 md:max-w-md md:order-1"
+          />
         </div>
 
         <p className="text-[11px] text-muted-foreground mb-4">
           البيانات الكاملة (أمراض، أعراض، استيراد):{" "}
-          <Link href="/medications/registry" className="text-primary underline underline-offset-2 font-semibold">
+          <Link
+            href="/medications/registry"
+            className="text-primary underline underline-offset-2 font-semibold"
+          >
             صفحة السجل المتقدمة
           </Link>
         </p>
@@ -279,13 +348,19 @@ export default function MedicationsCatalogPage() {
               <tbody>
                 {medsQuery.isLoading ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground"
+                    >
                       جاري التحميل…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground"
+                    >
                       لا توجد أدواء مطابقة.
                     </td>
                   </tr>
@@ -294,38 +369,70 @@ export default function MedicationsCatalogPage() {
                     const id = Number(row.id);
                     const st = resolveInventoryStatus(row);
                     return (
-                      <tr key={id} className="border-b last:border-0 hover:bg-muted/20">
-                        <td className="p-3 font-semibold">{String(row.name ?? "")}</td>
-                        <td className="p-3 text-muted-foreground">{formLabel(row.type as string)}</td>
+                      <tr
+                        key={id}
+                        className="border-b last:border-0 hover:bg-muted/20"
+                      >
+                        <td className="p-3 font-semibold">
+                          {String(row.name ?? "")}
+                        </td>
+                        <td className="p-3 text-muted-foreground">
+                          {formLabel(row.type as string)}
+                        </td>
                         <td className="p-3 tabular-nums">{doseLabel(row)}</td>
                         <td className="p-3 tabular-nums">{stockLabel(row)}</td>
                         <td className="p-3">
-                          <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold", statusBadgeClasses(st))}>
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                              statusBadgeClasses(st),
+                            )}
+                          >
                             {statusLabel(st)}
                           </span>
                         </td>
                         <td className="p-3">
                           <div className="flex justify-center gap-1">
-                            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => openEdit(row)} title="تعديل" aria-label="تعديل الدواء">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-11 w-11"
+                              onClick={() => openEdit(row)}
+                              title="تعديل"
+                              aria-label="تعديل الدواء"
+                            >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {delConfirm === id ? (
                               <div className="flex items-center gap-1">
-                                <button type="button" aria-label="تأكيد الحذف"
+                                <button
+                                  type="button"
+                                  aria-label="تأكيد الحذف"
                                   className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                                  onClick={() => { void remove(id); setDelConfirm(null); }}>
+                                  onClick={() => {
+                                    void remove(id);
+                                    setDelConfirm(null);
+                                  }}
+                                >
                                   تأكيد
                                 </button>
-                                <button type="button" aria-label="إلغاء الحذف"
+                                <button
+                                  type="button"
+                                  aria-label="إلغاء الحذف"
                                   className="rounded bg-muted text-muted-foreground hover:bg-border"
-                                  onClick={() => setDelConfirm(null)}>
+                                  onClick={() => setDelConfirm(null)}
+                                >
                                   ✕
                                 </button>
                               </div>
                             ) : (
-                              <button type="button" aria-label="حذف الدواء"
+                              <button
+                                type="button"
+                                aria-label="حذف الدواء"
                                 className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                                onClick={() => setDelConfirm(id)}>
+                                onClick={() => setDelConfirm(id)}
+                              >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             )}
@@ -355,11 +462,18 @@ export default function MedicationsCatalogPage() {
           <div className="grid gap-3 py-2">
             <div className="space-y-1">
               <Label>اسم الدواء</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="اسم الدواء" />
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="اسم الدواء"
+              />
             </div>
             <div className="space-y-1">
               <Label>الشكل الصيدلي</Label>
-              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as MedType })}>
+              <Select
+                value={form.type}
+                onValueChange={(v) => setForm({ ...form, type: v as MedType })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -375,7 +489,11 @@ export default function MedicationsCatalogPage() {
             </div>
             <div className="space-y-1">
               <Label>الجرعة</Label>
-              <Input value={form.dosage} onChange={(e) => setForm({ ...form, dosage: e.target.value })} placeholder="مثال: 25 مجم، 5 مل" />
+              <Input
+                value={form.dosage}
+                onChange={(e) => setForm({ ...form, dosage: e.target.value })}
+                placeholder="مثال: 25 مجم، 5 مل"
+              />
             </div>
             <div className="space-y-1">
               <Label>المخزون (قطعة)</Label>
@@ -385,12 +503,19 @@ export default function MedicationsCatalogPage() {
                 dir="ltr"
                 className="text-left"
                 value={form.stockPieces}
-                onChange={(e) => setForm({ ...form, stockPieces: Number(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setForm({ ...form, stockPieces: Number(e.target.value) || 0 })
+                }
               />
             </div>
             <div className="space-y-1">
               <Label>الحالة</Label>
-              <Select value={form.inventoryStatus} onValueChange={(v) => setForm({ ...form, inventoryStatus: v as InventoryStatus })}>
+              <Select
+                value={form.inventoryStatus}
+                onValueChange={(v) =>
+                  setForm({ ...form, inventoryStatus: v as InventoryStatus })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -403,10 +528,18 @@ export default function MedicationsCatalogPage() {
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
               إلغاء
             </Button>
-            <Button type="button" onClick={() => void save()} disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button
+              type="button"
+              onClick={() => void save()}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
               حفظ
             </Button>
           </DialogFooter>

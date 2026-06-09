@@ -208,7 +208,7 @@ export default function Reports() {
     const cols = Object.keys(rows[0]);
     return (
       <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="min-w-[42rem] w-full text-sm" dir="rtl">
+        <table dir="rtl" className="min-w-[42rem] w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/50">
               {cols.map((c) => (

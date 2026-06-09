@@ -22,8 +22,15 @@ function escCell(v: unknown): string {
   return s;
 }
 
-function writeCsv(filePath: string, headers: string[], rows: Record<string, unknown>[]) {
-  const lines = [headers.join(";"), ...rows.map((r) => headers.map((h) => escCell(r[h])).join(";"))];
+function writeCsv(
+  filePath: string,
+  headers: string[],
+  rows: Record<string, unknown>[],
+) {
+  const lines = [
+    headers.join(";"),
+    ...rows.map((r) => headers.map((h) => escCell(r[h])).join(";")),
+  ];
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
@@ -34,7 +41,10 @@ async function main() {
   const sectionCode = 15;
 
   const sr = buildServiceRevenueSql({ fromDate, toDate, sectionCode });
-  const serviceRows = await mssqlQuery<Record<string, unknown>>(sr.sql, sr.params);
+  const serviceRows = await mssqlQuery<Record<string, unknown>>(
+    sr.sql,
+    sr.params,
+  );
   const srPath = path.join(FIXTURES_DIR, "service-revenue-2026-04.csv");
   const srHeaders = [
     "sectionCode",
@@ -56,7 +66,10 @@ async function main() {
   console.log(`Wrote ${serviceRows.length} rows → ${srPath}`);
 
   const ri = buildReceiptsInquirySql({ fromDate, toDate, sectionCode });
-  const receiptRows = await mssqlQuery<Record<string, unknown>>(ri.sql, ri.params);
+  const receiptRows = await mssqlQuery<Record<string, unknown>>(
+    ri.sql,
+    ri.params,
+  );
   const riPath = path.join(FIXTURES_DIR, "receipts-inquiry-2026-04.csv");
   const riHeaders = [
     "secCd",

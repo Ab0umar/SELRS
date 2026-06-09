@@ -14,17 +14,17 @@
 All procedures are `managerProcedure` (roles: `admin`, `manager`, `accountant`),
 `.query(...)` (read-only), zod-validated inputs, registered under `appRouter.accounting.*`.
 
-| # | Procedure | Allowed roles | Nature |
-|---|---|---|---|
-| 1 | `accounting.dashboardSummary` | admin, manager, accountant | Query |
-| 2 | `accounting.dailyRevenue` | admin, manager, accountant | Query |
-| 3 | `accounting.serviceRevenue` | admin, manager, accountant | Query |
-| 4 | `accounting.receiptsInquiry` | admin, manager, accountant | Query |
-| 5 | `accounting.receiptDetail` | admin, manager, accountant | Query |
-| 6 | `accounting.lasikReceipts` | admin, manager, accountant | Query |
-| 7 | `accounting.lasikServices` | admin, manager, accountant | Query |
-| 8 | `accounting.lasikRevenueSummary` | admin, manager, accountant | Query |
-| 9 | `accounting.patientLasikSummary` | admin, manager, accountant | Query |
+| #   | Procedure                        | Allowed roles              | Nature |
+| --- | -------------------------------- | -------------------------- | ------ |
+| 1   | `accounting.dashboardSummary`    | admin, manager, accountant | Query  |
+| 2   | `accounting.dailyRevenue`        | admin, manager, accountant | Query  |
+| 3   | `accounting.serviceRevenue`      | admin, manager, accountant | Query  |
+| 4   | `accounting.receiptsInquiry`     | admin, manager, accountant | Query  |
+| 5   | `accounting.receiptDetail`       | admin, manager, accountant | Query  |
+| 6   | `accounting.lasikReceipts`       | admin, manager, accountant | Query  |
+| 7   | `accounting.lasikServices`       | admin, manager, accountant | Query  |
+| 8   | `accounting.lasikRevenueSummary` | admin, manager, accountant | Query  |
+| 9   | `accounting.patientLasikSummary` | admin, manager, accountant | Query  |
 
 Source references: `specs/specify.md §2` (item 3) and `specs/plan.md §4.2`.
 
@@ -37,89 +37,89 @@ may be added to these inputs without a scope-change request.
 
 ### 2.1 `accounting.dashboardSummary`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `sectionCode` | `number` | No | `15` | Lasik section |
+| Field         | Type     | Required | Default | Notes         |
+| ------------- | -------- | -------- | ------- | ------------- |
+| `sectionCode` | `number` | No       | `15`    | Lasik section |
 
 ### 2.2 `accounting.dailyRevenue`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | **Yes** | — | |
-| `toDate` | ISO date string | **Yes** | — | |
-| `sectionCode` | `number` | No | `15` | |
-| `doctorCode` | `string` | No | — | |
+| Field         | Type            | Required | Default | Notes |
+| ------------- | --------------- | -------- | ------- | ----- |
+| `fromDate`    | ISO date string | **Yes**  | —       |       |
+| `toDate`      | ISO date string | **Yes**  | —       |       |
+| `sectionCode` | `number`        | No       | `15`    |       |
+| `doctorCode`  | `string`        | No       | —       |       |
 
 ### 2.3 `accounting.serviceRevenue`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | **Yes** | — | |
-| `toDate` | ISO date string | **Yes** | — | |
-| `sectionCode` | `number` | No | `15` | |
-| `doctorCode` | `string` | No | — | |
-| `serviceCode` | `string` | No | — | |
+| Field         | Type            | Required | Default | Notes |
+| ------------- | --------------- | -------- | ------- | ----- |
+| `fromDate`    | ISO date string | **Yes**  | —       |       |
+| `toDate`      | ISO date string | **Yes**  | —       |       |
+| `sectionCode` | `number`        | No       | `15`    |       |
+| `doctorCode`  | `string`        | No       | —       |       |
+| `serviceCode` | `string`        | No       | —       |       |
 
 ### 2.4 `accounting.receiptsInquiry`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | No | — | |
-| `toDate` | ISO date string | No | — | |
-| `patientCode` | `string` | No | — | zero-padded string, never number |
-| `doctorCode` | `string` | No | — | |
-| `sectionCode` | `number` | No | `15` | |
-| `trNo` | `string` | No | — | receipt number (string to preserve legacy zero-padding, e.g. "000123") |
-| `trTy` | `number` | No | — | receipt type (1=cash, 5=credit, 6=resident, 8=refund) |
-| `limit` | `number` | No | — | pagination |
+| Field         | Type            | Required | Default | Notes                                                                  |
+| ------------- | --------------- | -------- | ------- | ---------------------------------------------------------------------- |
+| `fromDate`    | ISO date string | No       | —       |                                                                        |
+| `toDate`      | ISO date string | No       | —       |                                                                        |
+| `patientCode` | `string`        | No       | —       | zero-padded string, never number                                       |
+| `doctorCode`  | `string`        | No       | —       |                                                                        |
+| `sectionCode` | `number`        | No       | `15`    |                                                                        |
+| `trNo`        | `string`        | No       | —       | receipt number (string to preserve legacy zero-padding, e.g. "000123") |
+| `trTy`        | `number`        | No       | —       | receipt type (1=cash, 5=credit, 6=resident, 8=refund)                  |
+| `limit`       | `number`        | No       | —       | pagination                                                             |
 
 ### 2.5 `accounting.receiptDetail`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `sectionCode` | `number` | **Yes** | — | |
-| `trTy` | `number` | **Yes** | — | |
-| `trNo` | `string` | **Yes** | — | (string to preserve legacy zero-padding, e.g. "000123") |
+| Field         | Type     | Required | Default | Notes                                                   |
+| ------------- | -------- | -------- | ------- | ------------------------------------------------------- |
+| `sectionCode` | `number` | **Yes**  | —       |                                                         |
+| `trTy`        | `number` | **Yes**  | —       |                                                         |
+| `trNo`        | `string` | **Yes**  | —       | (string to preserve legacy zero-padding, e.g. "000123") |
 
 ### 2.6 `accounting.lasikReceipts`
 
 Lasik-pinned alias over `receiptsInquiry` with `sectionCode` fixed to `15`.
 Accepts the same optional filters minus `sectionCode`.
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | No | — | |
-| `toDate` | ISO date string | No | — | |
-| `patientCode` | `string` | No | — | |
-| `doctorCode` | `string` | No | — | |
-| `trNo` | `string` | No | — | (string to preserve legacy zero-padding, e.g. "000123") |
-| `trTy` | `number` | No | — | |
-| `limit` | `number` | No | — | |
+| Field         | Type            | Required | Default | Notes                                                   |
+| ------------- | --------------- | -------- | ------- | ------------------------------------------------------- |
+| `fromDate`    | ISO date string | No       | —       |                                                         |
+| `toDate`      | ISO date string | No       | —       |                                                         |
+| `patientCode` | `string`        | No       | —       |                                                         |
+| `doctorCode`  | `string`        | No       | —       |                                                         |
+| `trNo`        | `string`        | No       | —       | (string to preserve legacy zero-padding, e.g. "000123") |
+| `trTy`        | `number`        | No       | —       |                                                         |
+| `limit`       | `number`        | No       | —       |                                                         |
 
 ### 2.7 `accounting.lasikServices`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | No | — | |
-| `toDate` | ISO date string | No | — | |
-| `patientCode` | `string` | No | — | |
-| `serviceCode` | `string` | No | — | |
-| `doctorCode` | `string` | No | — | |
-| `limit` | `number` | No | — | |
+| Field         | Type            | Required | Default | Notes |
+| ------------- | --------------- | -------- | ------- | ----- |
+| `fromDate`    | ISO date string | No       | —       |       |
+| `toDate`      | ISO date string | No       | —       |       |
+| `patientCode` | `string`        | No       | —       |       |
+| `serviceCode` | `string`        | No       | —       |       |
+| `doctorCode`  | `string`        | No       | —       |       |
+| `limit`       | `number`        | No       | —       |       |
 
 ### 2.8 `accounting.lasikRevenueSummary`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `fromDate` | ISO date string | No | — | |
-| `toDate` | ISO date string | No | — | |
-| `doctorCode` | `string` | No | — | |
+| Field        | Type            | Required | Default | Notes |
+| ------------ | --------------- | -------- | ------- | ----- |
+| `fromDate`   | ISO date string | No       | —       |       |
+| `toDate`     | ISO date string | No       | —       |       |
+| `doctorCode` | `string`        | No       | —       |       |
 
 ### 2.9 `accounting.patientLasikSummary`
 
-| Field | Type | Required | Default | Notes |
-|---|---|---|---|---|
-| `patientCode` | `string` | **Yes** | — | zero-padded string |
+| Field         | Type     | Required | Default | Notes              |
+| ------------- | -------- | -------- | ------- | ------------------ |
+| `patientCode` | `string` | **Yes**  | —       | zero-padded string |
 
 ---
 
@@ -128,17 +128,17 @@ Accepts the same optional filters minus `sectionCode`.
 All pages live under `client/src/pages/accounting/`. Each page is a lazy-loaded
 route registered in `client/src/App.tsx` and wrapped by `AccountingShell.tsx`.
 
-| # | File | Route | FR | tRPC procedure(s) used |
-|---|---|---|---|---|
-| 1 | `AccountingHome.tsx` | `/accounting` | FR-1 | `accounting.dashboardSummary` |
-| 2 | `DailyRevenue.tsx` | `/accounting/daily-revenue` | FR-2 | `accounting.dailyRevenue` |
-| 3 | `LasikRevenue.tsx` | `/accounting/service-revenue` | FR-3 | `accounting.serviceRevenue` |
-| 4 | `LasikReceipts.tsx` / `ReceiptsInquiry.tsx` | `/accounting/receipts` | FR-4 | `accounting.lasikReceipts` / `accounting.receiptsInquiry` |
-| 5 | `LasikServices.tsx` | `/accounting/services` | FR-5 | `accounting.lasikServices` |
-| 6 | `PatientsInquiry.tsx` | `/accounting/patients` | FR-4 (patients view) | `accounting.receiptsInquiry` |
-| 7 | `PatientAccount.tsx` | `/accounting/patient/:patientCode` | FR-6 | `accounting.patientLasikSummary` |
-| 8 | `DoctorAccount.tsx` | `/accounting/doctor/:doctorCode` | FR-7 | `accounting.serviceRevenue` |
-| 9 | `PrintPreview.tsx` | `/accounting/print` | FR-8 | (state-driven; no dedicated query) |
+| #   | File                                        | Route                              | FR                   | tRPC procedure(s) used                                    |
+| --- | ------------------------------------------- | ---------------------------------- | -------------------- | --------------------------------------------------------- |
+| 1   | `AccountingHome.tsx`                        | `/accounting`                      | FR-1                 | `accounting.dashboardSummary`                             |
+| 2   | `DailyRevenue.tsx`                          | `/accounting/daily-revenue`        | FR-2                 | `accounting.dailyRevenue`                                 |
+| 3   | `LasikRevenue.tsx`                          | `/accounting/service-revenue`      | FR-3                 | `accounting.serviceRevenue`                               |
+| 4   | `LasikReceipts.tsx` / `ReceiptsInquiry.tsx` | `/accounting/receipts`             | FR-4                 | `accounting.lasikReceipts` / `accounting.receiptsInquiry` |
+| 5   | `LasikServices.tsx`                         | `/accounting/services`             | FR-5                 | `accounting.lasikServices`                                |
+| 6   | `PatientsInquiry.tsx`                       | `/accounting/patients`             | FR-4 (patients view) | `accounting.receiptsInquiry`                              |
+| 7   | `PatientAccount.tsx`                        | `/accounting/patient/:patientCode` | FR-6                 | `accounting.patientLasikSummary`                          |
+| 8   | `DoctorAccount.tsx`                         | `/accounting/doctor/:doctorCode`   | FR-7                 | `accounting.serviceRevenue`                               |
+| 9   | `PrintPreview.tsx`                          | `/accounting/print`                | FR-8                 | (state-driven; no dedicated query)                        |
 
 Shell component (not a page, no standalone route):
 
@@ -154,18 +154,18 @@ Source references: `specs/specify.md §2` (item 5) and `specs/plan.md §6.1`.
 
 ## 4. Frozen Route Table
 
-| Route | Component | Guard |
-|---|---|---|
-| `/accounting` | `AccountingHome` inside `AccountingShell` | `ProtectedRoute allowedRoles=['admin','manager','accountant']` |
-| `/accounting/daily-revenue` | `DailyRevenue` | same |
-| `/accounting/service-revenue` | `LasikRevenue` | same |
-| `/accounting/receipts` | `ReceiptsInquiry` | same |
-| `/accounting/receipts/:secCd/:trTy/:trNo` | `PrintPreview` (receipt detail) | same |
-| `/accounting/services` | `LasikServices` | same |
-| `/accounting/patients` | `PatientsInquiry` | same |
-| `/accounting/patient/:patientCode` | `PatientAccount` | same |
-| `/accounting/doctor/:doctorCode` | `DoctorAccount` | same |
-| `/accounting/print` | `PrintPreview` | same |
+| Route                                     | Component                                 | Guard                                                          |
+| ----------------------------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| `/accounting`                             | `AccountingHome` inside `AccountingShell` | `ProtectedRoute allowedRoles=['admin','manager','accountant']` |
+| `/accounting/daily-revenue`               | `DailyRevenue`                            | same                                                           |
+| `/accounting/service-revenue`             | `LasikRevenue`                            | same                                                           |
+| `/accounting/receipts`                    | `ReceiptsInquiry`                         | same                                                           |
+| `/accounting/receipts/:secCd/:trTy/:trNo` | `PrintPreview` (receipt detail)           | same                                                           |
+| `/accounting/services`                    | `LasikServices`                           | same                                                           |
+| `/accounting/patients`                    | `PatientsInquiry`                         | same                                                           |
+| `/accounting/patient/:patientCode`        | `PatientAccount`                          | same                                                           |
+| `/accounting/doctor/:doctorCode`          | `DoctorAccount`                           | same                                                           |
+| `/accounting/print`                       | `PrintPreview`                            | same                                                           |
 
 No other routes under `/accounting/*` are in scope.
 

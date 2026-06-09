@@ -1,21 +1,44 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, RefreshCw, Users, ArrowLeftRight, CheckSquare, Clock } from "lucide-react";
+import {
+  Calendar,
+  RefreshCw,
+  Users,
+  ArrowLeftRight,
+  CheckSquare,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
-const DAYS_FULL = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const DAYS_FULL = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 
 export default function ScheduleSwap() {
   const [subTab, setSubTab] = useState<"change" | "swap">("change");
 
   // State for single employee change
   const [empCd, setEmpCd] = useState("");
-  const [changeType, setChangeType] = useState<"daily" | "weekly" | "monthly">("daily");
-  
+  const [changeType, setChangeType] = useState<"daily" | "weekly" | "monthly">(
+    "daily",
+  );
+
   // Daily parameters
   const todayStr = new Date().toISOString().split("T")[0];
   const [dailyFrom, setDailyFrom] = useState(todayStr);
@@ -25,7 +48,9 @@ export default function ScheduleSwap() {
   // Weekly parameters
   const [weeklyFrom, setWeeklyFrom] = useState(todayStr);
   const [weeklyShiftId, setWeeklyShiftId] = useState<number>(0);
-  const [weeklyDays, setWeeklyDays] = useState<Set<number>>(new Set([0, 1, 2, 3, 4])); // Sun-Thu default
+  const [weeklyDays, setWeeklyDays] = useState<Set<number>>(
+    new Set([0, 1, 2, 3, 4]),
+  ); // Sun-Thu default
 
   // Monthly parameters
   const [monthlyFrom, setMonthlyFrom] = useState(todayStr);
@@ -42,14 +67,18 @@ export default function ScheduleSwap() {
   const employeesQuery = (trpc as any).attendance.employeesList.useQuery();
   const shiftsQuery = (trpc as any).attendance.listShifts.useQuery();
   const cyclesQuery = (trpc as any).attendance.listShiftCycles.useQuery();
-  const assignmentsQuery = (trpc as any).attendance.listAssignments.useQuery({});
-  
-  const pendingRequestsQuery = (trpc as any).attendance.listShiftChangeRequests.useQuery(
-    { status: "pending" }
+  const assignmentsQuery = (trpc as any).attendance.listAssignments.useQuery(
+    {},
   );
 
+  const pendingRequestsQuery = (
+    trpc as any
+  ).attendance.listShiftChangeRequests.useQuery({ status: "pending" });
+
   // Mutations
-  const tempChangeMutation = (trpc as any).attendance.tempChangeShift.useMutation({
+  const tempChangeMutation = (
+    trpc as any
+  ).attendance.tempChangeShift.useMutation({
     onSuccess: () => {
       toast.success("تم تطبيق التغيير اليومي للوردية بنجاح");
       assignmentsQuery.refetch();
@@ -81,7 +110,9 @@ export default function ScheduleSwap() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  const approveRequestMut = (trpc as any).attendance.approveShiftChangeRequest.useMutation({
+  const approveRequestMut = (
+    trpc as any
+  ).attendance.approveShiftChangeRequest.useMutation({
     onSuccess: () => {
       toast.success("تم اعتماد الطلب وتطبيق التغييرات");
       pendingRequestsQuery.refetch();
@@ -90,7 +121,9 @@ export default function ScheduleSwap() {
     onError: (e: any) => toast.error("خطأ أثناء الاعتماد: " + e.message),
   });
 
-  const rejectRequestMut = (trpc as any).attendance.rejectShiftChangeRequest.useMutation({
+  const rejectRequestMut = (
+    trpc as any
+  ).attendance.rejectShiftChangeRequest.useMutation({
     onSuccess: () => {
       toast.success("تم رفض الطلب");
       pendingRequestsQuery.refetch();
@@ -121,7 +154,8 @@ export default function ScheduleSwap() {
   function handleDailySubmit() {
     if (!empCd) return toast.error("الرجاء اختيار الموظف");
     if (!dailyShiftId) return toast.error("الرجاء اختيار الوردية الجديدة");
-    if (dailyTo < dailyFrom) return toast.error("تاريخ النهاية يجب أن يكون بعد البداية");
+    if (dailyTo < dailyFrom)
+      return toast.error("تاريخ النهاية يجب أن يكون بعد البداية");
 
     tempChangeMutation.mutate({
       empCd,
@@ -134,7 +168,8 @@ export default function ScheduleSwap() {
   function handleWeeklySubmit() {
     if (!empCd) return toast.error("الرجاء اختيار الموظف");
     if (!weeklyShiftId) return toast.error("الرجاء اختيار الوردية");
-    if (weeklyDays.size === 0) return toast.error("الرجاء اختيار يوم عمل واحد على الأقل");
+    if (weeklyDays.size === 0)
+      return toast.error("الرجاء اختيار يوم عمل واحد على الأقل");
 
     assignShiftMutation.mutate({
       empCd,
@@ -157,9 +192,12 @@ export default function ScheduleSwap() {
   }
 
   function handleSwapSubmit() {
-    if (!swapEmpA || !swapEmpB) return toast.error("الرجاء اختيار الموظفين الاثنين");
-    if (swapEmpA === swapEmpB) return toast.error("لا يمكن اختيار نفس الموظف مرتين");
-    if (swapTo < swapFrom) return toast.error("تاريخ النهاية يجب أن يكون بعد البداية");
+    if (!swapEmpA || !swapEmpB)
+      return toast.error("الرجاء اختيار الموظفين الاثنين");
+    if (swapEmpA === swapEmpB)
+      return toast.error("لا يمكن اختيار نفس الموظف مرتين");
+    if (swapTo < swapFrom)
+      return toast.error("تاريخ النهاية يجب أن يكون بعد البداية");
 
     swapMutation.mutate({
       empCdA: swapEmpA,
@@ -181,7 +219,8 @@ export default function ScheduleSwap() {
             طلبات تغيير وتبديل المواعيد قيد الانتظار
           </CardTitle>
           <CardDescription>
-            طلبات تغيير مواعيد العمل أو تبادل الورديات المقدمة من الموظفين بانتظار الاعتماد.
+            طلبات تغيير مواعيد العمل أو تبادل الورديات المقدمة من الموظفين
+            بانتظار الاعتماد.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,52 +238,91 @@ export default function ScheduleSwap() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">الموظف</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">نوع الطلب</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">تاريخ البدء</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">تاريخ الانتهاء</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">التفاصيل</th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">ملاحظة</th>
-                    <th className="px-4 py-3 text-center font-semibold text-foreground">الإجراءات</th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      الموظف
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      نوع الطلب
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      تاريخ البدء
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      تاريخ الانتهاء
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      التفاصيل
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                      ملاحظة
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-foreground">
+                      الإجراءات
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingRequestsQuery.data.map((r: any) => {
-                    const typeAr = r.requestType === 'daily' ? 'يومي (مؤقت)' : r.requestType === 'weekly' ? 'أسبوعي' : r.requestType === 'monthly' ? 'شهري' : 'تبادل مع زميل';
-                    
-                    let details = '';
-                    if (r.requestType === 'daily' || r.requestType === 'weekly') {
-                      details = `الوردية: ${r.newShiftName || '—'}`;
-                      if (r.requestType === 'weekly' && r.weekdayMask) {
+                    const typeAr =
+                      r.requestType === "daily"
+                        ? "يومي (مؤقت)"
+                        : r.requestType === "weekly"
+                          ? "أسبوعي"
+                          : r.requestType === "monthly"
+                            ? "شهري"
+                            : "تبادل مع زميل";
+
+                    let details = "";
+                    if (
+                      r.requestType === "daily" ||
+                      r.requestType === "weekly"
+                    ) {
+                      details = `الوردية: ${r.newShiftName || "—"}`;
+                      if (r.requestType === "weekly" && r.weekdayMask) {
                         const days = [];
                         for (let i = 0; i < 7; i++) {
                           if (r.weekdayMask & (1 << i)) days.push(DAYS_FULL[i]);
                         }
-                        details += ` (${days.join('، ')})`;
+                        details += ` (${days.join("، ")})`;
                       }
-                    } else if (r.requestType === 'monthly') {
-                      details = `الدورة: ${r.cycleName || '—'}`;
-                    } else if (r.requestType === 'swap') {
-                      details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || '—'}`;
+                    } else if (r.requestType === "monthly") {
+                      details = `الدورة: ${r.cycleName || "—"}`;
+                    } else if (r.requestType === "swap") {
+                      details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "—"}`;
                     }
 
                     return (
-                      <tr key={r.id} className="border-b transition-colors hover:bg-muted/20">
+                      <tr
+                        key={r.id}
+                        className="border-b transition-colors hover:bg-muted/20"
+                      >
                         <td className="px-4 py-3 font-medium text-foreground">
-                          <span className="block font-mono text-xs text-muted-foreground">{r.empCd}</span>
-                          <span>{r.empName || '—'}</span>
+                          <span className="block font-mono text-xs text-muted-foreground">
+                            {r.empCd}
+                          </span>
+                          <span>{r.empName || "—"}</span>
                         </td>
                         <td className="px-4 py-3 text-foreground">{typeAr}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{r.dateFrom}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{r.dateTo || '—'}</td>
-                        <td className="px-4 py-3 text-foreground text-xs">{details}</td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{r.note || '—'}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {r.dateFrom}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {r.dateTo || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-foreground text-xs">
+                          {details}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {r.note || "—"}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-1.5">
                             <Button
                               size="sm"
                               className="h-8 px-3 text-xs bg-success hover:bg-success/90"
-                              onClick={() => approveRequestMut.mutate({ requestId: r.id })}
+                              onClick={() =>
+                                approveRequestMut.mutate({ requestId: r.id })
+                              }
                               disabled={approveRequestMut.isPending}
                             >
                               اعتماد
@@ -254,9 +332,12 @@ export default function ScheduleSwap() {
                               variant="destructive"
                               className="h-8 px-3 text-xs"
                               onClick={() => {
-                                const note = prompt('ملاحظة الرفض (اختياري):');
+                                const note = prompt("ملاحظة الرفض (اختياري):");
                                 if (note !== null) {
-                                  rejectRequestMut.mutate({ requestId: r.id, note });
+                                  rejectRequestMut.mutate({
+                                    requestId: r.id,
+                                    note,
+                                  });
                                 }
                               }}
                               disabled={rejectRequestMut.isPending}
@@ -307,14 +388,17 @@ export default function ScheduleSwap() {
           <CardHeader>
             <CardTitle className="text-lg font-bold">تغيير جدول موظف</CardTitle>
             <CardDescription>
-              تغيير أو جدولة مواعيد الموظف بنمط يومي (تبديل مؤقت لفترة)، أسبوعي (تعديل أيام العمل والوردية)، أو شهري (ربطه بدورة وردية كاملة).
+              تغيير أو جدولة مواعيد الموظف بنمط يومي (تبديل مؤقت لفترة)، أسبوعي
+              (تعديل أيام العمل والوردية)، أو شهري (ربطه بدورة وردية كاملة).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Employee selection */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">اختر الموظف</label>
+                <label className="text-sm font-semibold text-foreground">
+                  اختر الموظف
+                </label>
                 <select
                   value={empCd}
                   onChange={(e) => setEmpCd(e.target.value)}
@@ -329,14 +413,19 @@ export default function ScheduleSwap() {
                 </select>
                 {empCd && activeAssignment && (
                   <p className="text-xs text-muted-foreground">
-                    الجدول النشط حالياً: <span className="font-semibold text-foreground">{activeAssignment.shiftName}</span>
+                    الجدول النشط حالياً:{" "}
+                    <span className="font-semibold text-foreground">
+                      {activeAssignment.shiftName}
+                    </span>
                   </p>
                 )}
               </div>
 
               {/* Change Type */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">نوع التغيير</label>
+                <label className="text-sm font-semibold text-foreground">
+                  نوع التغيير
+                </label>
                 <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
                   {(["daily", "weekly", "monthly"] as const).map((type) => (
                     <button
@@ -349,7 +438,11 @@ export default function ScheduleSwap() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {type === "daily" ? "يومي (مؤقت)" : type === "weekly" ? "أسبوعي (أيام/وردية)" : "شهري (دورة)"}
+                      {type === "daily"
+                        ? "يومي (مؤقت)"
+                        : type === "weekly"
+                          ? "أسبوعي (أيام/وردية)"
+                          : "شهري (دورة)"}
                     </button>
                   ))}
                 </div>
@@ -364,24 +457,31 @@ export default function ScheduleSwap() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 border-b border-border pb-2">
                       <Calendar className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-bold">تغيير مؤقت (يومي) لفترة محددة</h3>
+                      <h3 className="text-sm font-bold">
+                        تغيير مؤقت (يومي) لفترة محددة
+                      </h3>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">من تاريخ</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          من تاريخ
+                        </label>
                         <input
                           type="date"
                           value={dailyFrom}
                           onChange={(e) => {
                             setDailyFrom(e.target.value);
-                            if (dailyTo < e.target.value) setDailyTo(e.target.value);
+                            if (dailyTo < e.target.value)
+                              setDailyTo(e.target.value);
                           }}
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">حتى تاريخ (شامل)</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          حتى تاريخ (شامل)
+                        </label>
                         <input
                           type="date"
                           value={dailyTo}
@@ -391,10 +491,16 @@ export default function ScheduleSwap() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">الوردية البديلة</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          الوردية البديلة
+                        </label>
                         <select
                           value={dailyShiftId || ""}
-                          onChange={(e) => setDailyShiftId(e.target.value ? parseInt(e.target.value) : 0)}
+                          onChange={(e) =>
+                            setDailyShiftId(
+                              e.target.value ? parseInt(e.target.value) : 0,
+                            )
+                          }
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         >
                           <option value="">— اختر الوردية البديلة —</option>
@@ -412,7 +518,9 @@ export default function ScheduleSwap() {
                       disabled={tempChangeMutation.isPending}
                       className="mt-2"
                     >
-                      {tempChangeMutation.isPending ? "جاري التطبيق..." : "حفظ التغيير اليومي"}
+                      {tempChangeMutation.isPending
+                        ? "جاري التطبيق..."
+                        : "حفظ التغيير اليومي"}
                     </Button>
                   </div>
                 )}
@@ -422,15 +530,23 @@ export default function ScheduleSwap() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 border-b border-border pb-2">
                       <CheckSquare className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-bold">تعديل جدول العمل الأسبوعي والوردية</h3>
+                      <h3 className="text-sm font-bold">
+                        تعديل جدول العمل الأسبوعي والوردية
+                      </h3>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">الوردية المعتمدة</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          الوردية المعتمدة
+                        </label>
                         <select
                           value={weeklyShiftId || ""}
-                          onChange={(e) => setWeeklyShiftId(e.target.value ? parseInt(e.target.value) : 0)}
+                          onChange={(e) =>
+                            setWeeklyShiftId(
+                              e.target.value ? parseInt(e.target.value) : 0,
+                            )
+                          }
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         >
                           <option value="">— اختر الوردية —</option>
@@ -442,7 +558,9 @@ export default function ScheduleSwap() {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">تاريخ بدء التطبيق</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          تاريخ بدء التطبيق
+                        </label>
                         <input
                           type="date"
                           value={weeklyFrom}
@@ -454,7 +572,9 @@ export default function ScheduleSwap() {
 
                     {/* Weekdays selection */}
                     <div className="space-y-2 pt-2">
-                      <label className="text-xs font-semibold text-muted-foreground block">أيام العمل الأسبوعية</label>
+                      <label className="text-xs font-semibold text-muted-foreground block">
+                        أيام العمل الأسبوعية
+                      </label>
                       <div className="flex flex-wrap gap-2">
                         {DAYS_FULL.map((name, index) => {
                           const active = weeklyDays.has(index);
@@ -481,7 +601,9 @@ export default function ScheduleSwap() {
                       disabled={assignShiftMutation.isPending}
                       className="mt-2"
                     >
-                      {assignShiftMutation.isPending ? "جاري التطبيق..." : "حفظ التغيير الأسبوعي"}
+                      {assignShiftMutation.isPending
+                        ? "جاري التطبيق..."
+                        : "حفظ التغيير الأسبوعي"}
                     </Button>
                   </div>
                 )}
@@ -491,27 +613,43 @@ export default function ScheduleSwap() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 border-b border-border pb-2">
                       <RefreshCw className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-bold">جدولة دورة وردية شهرية</h3>
+                      <h3 className="text-sm font-bold">
+                        جدولة دورة وردية شهرية
+                      </h3>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">اختر الدورة</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          اختر الدورة
+                        </label>
                         <select
                           value={monthlyCycleId || ""}
-                          onChange={(e) => setMonthlyCycleId(e.target.value ? parseInt(e.target.value) : 0)}
+                          onChange={(e) =>
+                            setMonthlyCycleId(
+                              e.target.value ? parseInt(e.target.value) : 0,
+                            )
+                          }
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         >
                           <option value="">— اختر الدورة —</option>
                           {cycles.map((c: any) => (
                             <option key={c.id} value={c.id}>
-                              {c.name} ({c.period === "week" ? "أسبوعية" : c.period === "month" ? "شهرية" : "يومية"})
+                              {c.name} (
+                              {c.period === "week"
+                                ? "أسبوعية"
+                                : c.period === "month"
+                                  ? "شهرية"
+                                  : "يومية"}
+                              )
                             </option>
                           ))}
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">تاريخ البدء</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          تاريخ البدء
+                        </label>
                         <input
                           type="date"
                           value={monthlyFrom}
@@ -520,7 +658,9 @@ export default function ScheduleSwap() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">تاريخ الانتهاء (اختياري)</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          تاريخ الانتهاء (اختياري)
+                        </label>
                         <input
                           type="date"
                           value={monthlyTo}
@@ -535,7 +675,9 @@ export default function ScheduleSwap() {
                       disabled={assignCycleMutation.isPending}
                       className="mt-2"
                     >
-                      {assignCycleMutation.isPending ? "جاري التطبيق..." : "حفظ التغيير الشهري"}
+                      {assignCycleMutation.isPending
+                        ? "جاري التطبيق..."
+                        : "حفظ التغيير الشهري"}
                     </Button>
                   </div>
                 )}
@@ -549,9 +691,12 @@ export default function ScheduleSwap() {
       {subTab === "swap" && (
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">تبادل وردية مؤقت بين موظفين</CardTitle>
+            <CardTitle className="text-lg font-bold">
+              تبادل وردية مؤقت بين موظفين
+            </CardTitle>
             <CardDescription>
-              تبديل كامل للورديات وأيام العمل بين موظفين اثنين لفترة زمنية محددة. بمجرد انتهاء الفترة، يعود كل موظف لورديته الأصلية تلقائياً.
+              تبديل كامل للورديات وأيام العمل بين موظفين اثنين لفترة زمنية
+              محددة. بمجرد انتهاء الفترة، يعود كل موظف لورديته الأصلية تلقائياً.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -570,7 +715,9 @@ export default function ScheduleSwap() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold">حتى تاريخ (شامل)</label>
+                <label className="block text-sm font-semibold">
+                  حتى تاريخ (شامل)
+                </label>
                 <input
                   type="date"
                   value={swapTo}
@@ -588,11 +735,18 @@ export default function ScheduleSwap() {
                 const label = side === "A" ? "الموظف الأول" : "الموظف الثاني";
                 const val = side === "A" ? swapEmpA : swapEmpB;
                 const setVal = side === "A" ? setSwapEmpA : setSwapEmpB;
-                const assignment = assignments.find((a: any) => a.empCd === val);
+                const assignment = assignments.find(
+                  (a: any) => a.empCd === val,
+                );
 
                 return (
-                  <div key={side} className="space-y-2 border border-border bg-muted/10 rounded-xl p-4">
-                    <label className="block text-sm font-semibold">{label}</label>
+                  <div
+                    key={side}
+                    className="space-y-2 border border-border bg-muted/10 rounded-xl p-4"
+                  >
+                    <label className="block text-sm font-semibold">
+                      {label}
+                    </label>
                     <select
                       value={val}
                       onChange={(e) => setVal(e.target.value)}
@@ -608,14 +762,22 @@ export default function ScheduleSwap() {
 
                     {val && assignment && (
                       <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-xs space-y-1 mt-2">
-                        <div className="font-semibold text-foreground">الوردية الحالية: {assignment.shiftName}</div>
+                        <div className="font-semibold text-foreground">
+                          الوردية الحالية: {assignment.shiftName}
+                        </div>
                         <div className="text-muted-foreground">
-                          أيام العمل: {DAYS_SH.filter((_, i) => (assignment.weekdayMask ?? 127) & (1 << i)).join(" ")}
+                          أيام العمل:{" "}
+                          {DAYS_SH.filter(
+                            (_, i) =>
+                              (assignment.weekdayMask ?? 127) & (1 << i),
+                          ).join(" ")}
                         </div>
                       </div>
                     )}
                     {val && !assignment && (
-                      <p className="text-xs text-destructive mt-2">⚠️ لا توجد وردية نشطة مسجلة لهذا الموظف</p>
+                      <p className="text-xs text-destructive mt-2">
+                        ⚠️ لا توجد وردية نشطة مسجلة لهذا الموظف
+                      </p>
                     )}
                   </div>
                 );
@@ -623,30 +785,59 @@ export default function ScheduleSwap() {
             </div>
 
             {/* Summary details */}
-            {swapEmpA && swapEmpB && swapEmpA !== swapEmpB && (() => {
-              const aAssign = assignments.find((a: any) => a.empCd === swapEmpA);
-              const bAssign = assignments.find((a: any) => a.empCd === swapEmpB);
-              if (!aAssign || !bAssign) return null;
-              const days = Math.round((new Date(swapTo).getTime() - new Date(swapFrom).getTime()) / 86400000) + 1;
-              return (
-                <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 p-4 text-sm space-y-2">
-                  <div className="font-bold text-amber-900 mb-1">ملخص عملية التبادل ({days} {days === 1 ? "يوم" : "أيام"}):</div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="font-semibold text-foreground">{aAssign.empName}</span>
-                    <ArrowLeftRight size={13} className="text-amber-600" />
-                    <span className="text-primary font-medium">{bAssign.shiftName}</span>
-                    <span className="text-xs">({swapFrom} ← {swapTo})</span>
+            {swapEmpA &&
+              swapEmpB &&
+              swapEmpA !== swapEmpB &&
+              (() => {
+                const aAssign = assignments.find(
+                  (a: any) => a.empCd === swapEmpA,
+                );
+                const bAssign = assignments.find(
+                  (a: any) => a.empCd === swapEmpB,
+                );
+                if (!aAssign || !bAssign) return null;
+                const days =
+                  Math.round(
+                    (new Date(swapTo).getTime() -
+                      new Date(swapFrom).getTime()) /
+                      86400000,
+                  ) + 1;
+                return (
+                  <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 p-4 text-sm space-y-2">
+                    <div className="font-bold text-amber-900 mb-1">
+                      ملخص عملية التبادل ({days} {days === 1 ? "يوم" : "أيام"}):
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="font-semibold text-foreground">
+                        {aAssign.empName}
+                      </span>
+                      <ArrowLeftRight size={13} className="text-amber-600" />
+                      <span className="text-primary font-medium">
+                        {bAssign.shiftName}
+                      </span>
+                      <span className="text-xs">
+                        ({swapFrom} ← {swapTo})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="font-semibold text-foreground">
+                        {bAssign.empName}
+                      </span>
+                      <ArrowLeftRight size={13} className="text-amber-600" />
+                      <span className="text-primary font-medium">
+                        {aAssign.shiftName}
+                      </span>
+                      <span className="text-xs">
+                        ({swapFrom} ← {swapTo})
+                      </span>
+                    </div>
+                    <div className="text-xs text-amber-700/80 pt-1">
+                      ملاحظة: بعد انتهاء يوم {swapTo}، سيعود كلا الموظفين
+                      تلقائياً إلى ورديتهما الأصلية.
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="font-semibold text-foreground">{bAssign.empName}</span>
-                    <ArrowLeftRight size={13} className="text-amber-600" />
-                    <span className="text-primary font-medium">{aAssign.shiftName}</span>
-                    <span className="text-xs">({swapFrom} ← {swapTo})</span>
-                  </div>
-                  <div className="text-xs text-amber-700/80 pt-1">ملاحظة: بعد انتهاء يوم {swapTo}، سيعود كلا الموظفين تلقائياً إلى ورديتهما الأصلية.</div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             <Button
               onClick={handleSwapSubmit}
@@ -661,7 +852,9 @@ export default function ScheduleSwap() {
               className="gap-2 w-full sm:w-auto"
             >
               <ArrowLeftRight size={15} />
-              {swapMutation.isPending ? "جاري التبادل..." : "تأكيد عملية التبادل"}
+              {swapMutation.isPending
+                ? "جاري التبادل..."
+                : "تأكيد عملية التبادل"}
             </Button>
           </CardContent>
         </Card>

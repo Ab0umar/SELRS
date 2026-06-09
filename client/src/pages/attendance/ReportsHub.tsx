@@ -10,7 +10,11 @@ const TABS = [
   { key: "monthly", label: "التفصيلي", description: "تقرير شهري وتحليل كامل" },
   { key: "perms", label: "الأذونات", description: "تقرير أذونات الموظفين" },
   { key: "balance", label: "رصيد الإجازات", description: "الأرصدة والاستهلاك" },
-  { key: "logs", label: "السجلات الخام", description: "بيانات الجهاز كما وصلت" },
+  {
+    key: "logs",
+    label: "السجلات الخام",
+    description: "بيانات الجهاز كما وصلت",
+  },
 ];
 
 export default function ReportsHub() {
@@ -20,9 +24,15 @@ export default function ReportsHub() {
   return (
     <div className="space-y-4" dir="rtl">
       <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">مسار التقارير</p>
-        <h2 className="text-xl font-bold text-foreground">{currentTab.label}</h2>
-        <p className="text-sm text-muted-foreground">{currentTab.description}</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          مسار التقارير
+        </p>
+        <h2 className="text-xl font-bold text-foreground">
+          {currentTab.label}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {currentTab.description}
+        </p>
       </div>
 
       <div

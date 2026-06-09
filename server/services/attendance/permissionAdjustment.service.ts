@@ -1,15 +1,19 @@
-import { getDb } from '../../db';
-import { attendanceDaily, attendanceLeaves } from '../../../drizzle/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { getDb } from "../../db";
+import { attendanceDaily, attendanceLeaves } from "../../../drizzle/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 export class PermissionAdjustmentService {
   /**
    * Apply leave adjustments to daily records
    * Updates status to 'leave' for dates covered by approved leaves
    */
-  static async applyLeaveAdjustments(empCd: string, fromDate: Date, toDate: Date): Promise<number> {
+  static async applyLeaveAdjustments(
+    empCd: string,
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<number> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     // Get approved leaves for this employee in the date range
     const leaves = await db
@@ -20,8 +24,8 @@ export class PermissionAdjustmentService {
           eq(attendanceLeaves.empCd, empCd),
           eq(attendanceLeaves.approved, true),
           lte(attendanceLeaves.dateFrom, toDate),
-          gte(attendanceLeaves.dateTo, fromDate)
-        )
+          gte(attendanceLeaves.dateTo, fromDate),
+        ),
       );
 
     let updatedCount = 0;
@@ -39,8 +43,8 @@ export class PermissionAdjustmentService {
           and(
             eq(attendanceDaily.empCd, empCd),
             gte(attendanceDaily.workDate, leaveStart),
-            lte(attendanceDaily.workDate, leaveEnd)
-          )
+            lte(attendanceDaily.workDate, leaveEnd),
+          ),
         );
 
       // Update each daily record to 'leave' status
@@ -48,15 +52,15 @@ export class PermissionAdjustmentService {
         await db
           .update(attendanceDaily)
           .set({
-            status: 'leave',
+            status: "leave",
             lateMinutes: 0,
             earlyLeaveMin: 0,
           })
           .where(
             and(
               eq(attendanceDaily.empCd, empCd),
-              eq(attendanceDaily.workDate, daily.workDate)
-            )
+              eq(attendanceDaily.workDate, daily.workDate),
+            ),
           );
 
         updatedCount++;
@@ -70,7 +74,11 @@ export class PermissionAdjustmentService {
    * Recompute daily records for a date range
    * Applies all adjustments (leaves, permissions, etc.)
    */
-  static async recomputeRange(empCd: string, fromDate: Date, toDate: Date): Promise<number> {
+  static async recomputeRange(
+    empCd: string,
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<number> {
     // First, get all daily records in the range and reset them (if needed)
     // Then apply leave adjustments
     return this.applyLeaveAdjustments(empCd, fromDate, toDate);
@@ -80,9 +88,12 @@ export class PermissionAdjustmentService {
    * Recompute daily for all employees in a date range
    * Used when approving bulk leaves or batch processing
    */
-  static async recomputeAllEmployees(fromDate: Date, toDate: Date): Promise<number> {
+  static async recomputeAllEmployees(
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<number> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     // Get all daily records in range
     const dailyRecords = await db
@@ -91,8 +102,8 @@ export class PermissionAdjustmentService {
       .where(
         and(
           gte(attendanceDaily.workDate, fromDate),
-          lte(attendanceDaily.workDate, toDate)
-        )
+          lte(attendanceDaily.workDate, toDate),
+        ),
       );
 
     // Group by empCd and recompute
@@ -113,10 +124,10 @@ export class PermissionAdjustmentService {
   static async getAdjustmentSummary(
     empCd: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
   ): Promise<any> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const leaves = await db
       .select()
@@ -126,8 +137,8 @@ export class PermissionAdjustmentService {
           eq(attendanceLeaves.empCd, empCd),
           eq(attendanceLeaves.approved, true),
           lte(attendanceLeaves.dateFrom, toDate),
-          gte(attendanceLeaves.dateTo, fromDate)
-        )
+          gte(attendanceLeaves.dateTo, fromDate),
+        ),
       );
 
     const dailyWithLeave = await db
@@ -136,16 +147,16 @@ export class PermissionAdjustmentService {
       .where(
         and(
           eq(attendanceDaily.empCd, empCd),
-          eq(attendanceDaily.status, 'leave'),
+          eq(attendanceDaily.status, "leave"),
           gte(attendanceDaily.workDate, fromDate),
-          lte(attendanceDaily.workDate, toDate)
-        )
+          lte(attendanceDaily.workDate, toDate),
+        ),
       );
 
     return {
       empCd,
-      periodStart: fromDate.toISOString().split('T')[0],
-      periodEnd: toDate.toISOString().split('T')[0],
+      periodStart: fromDate.toISOString().split("T")[0],
+      periodEnd: toDate.toISOString().split("T")[0],
       approvedLeaves: leaves.length,
       totalLeaveDays: leaves.reduce((sum, l) => {
         const diff = l.dateTo.getTime() - l.dateFrom.getTime();
@@ -157,7 +168,7 @@ export class PermissionAdjustmentService {
           acc[l.type] = (acc[l.type] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>
+        {} as Record<string, number>,
       ),
     };
   }

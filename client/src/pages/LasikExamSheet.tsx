@@ -12,7 +12,12 @@ import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
-import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesignerConfig, saveSheetDesignerConfig } from "@/lib/sheetDesigner";
+import {
+  coerceSheetDesignerConfig,
+  DEFAULT_SHEET_DESIGNER_CONFIG,
+  loadSheetDesignerConfig,
+  saveSheetDesignerConfig,
+} from "@/lib/sheetDesigner";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
@@ -27,7 +32,11 @@ export default function LasikExamSheet() {
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
 
   const [operationType, setOperationType] = useState("ليزك");
-  const [operationEyes, setOperationEyes] = useState({ right: true, left: false, both: false });
+  const [operationEyes, setOperationEyes] = useState({
+    right: true,
+    left: false,
+    both: false,
+  });
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -45,8 +54,28 @@ export default function LasikExamSheet() {
       os: { s: "", c: "", axis: "", va: "", iop: "", ucva: "", bcva: "" },
     },
     pentacam: {
-      od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
-      os: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
+      od: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
+      os: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
     },
   });
   const [signatures, setSignatures] = useState({
@@ -59,14 +88,16 @@ export default function LasikExamSheet() {
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
   const [printScale, setPrintScale] = useState(1);
   const [customSheetCss, setCustomSheetCss] = useState("");
-  const [sheetTemplate, setSheetTemplate] = useState(DEFAULT_SHEET_DESIGNER_CONFIG.templates.lasik);
+  const [sheetTemplate, setSheetTemplate] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.templates.lasik,
+  );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
   const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "mobile_sheet_mode_v1" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
 
   useEffect(() => {
@@ -101,52 +132,52 @@ export default function LasikExamSheet() {
   const mobileSheetModeEnabled = Boolean(
     mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
       ? mobileSheetModeRaw.enabled
-      : mobileSheetModeRaw
+      : mobileSheetModeRaw,
   );
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    initialPatientId ?? 0,
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
+    enabled: Boolean(initialPatientId),
+    refetchOnWindowFocus: false,
+  });
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId: initialPatientId ?? 0, sheetType: "lasik" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   useEffect(() => {
     if (!initialPatientId) return;
@@ -168,7 +199,19 @@ export default function LasikExamSheet() {
       },
     });
     return () => socket?.close();
-  }, [initialPatientId, sheetQuery, patientQuery, examinationsQuery, visitsQuery, reportsQuery, prescriptionsQuery, surgeriesQuery, followupsQuery, pentacamQuery, testRequestsQuery]);
+  }, [
+    initialPatientId,
+    sheetQuery,
+    patientQuery,
+    examinationsQuery,
+    visitsQuery,
+    reportsQuery,
+    prescriptionsQuery,
+    surgeriesQuery,
+    followupsQuery,
+    pentacamQuery,
+    testRequestsQuery,
+  ]);
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({
     onSuccess: () => {
       toast.success("تم الحفظ");
@@ -240,12 +283,24 @@ export default function LasikExamSheet() {
       if (parsed.examData) {
         setExamData((prev) => ({
           autorefraction: {
-            od: { ...prev.autorefraction.od, ...(parsed.examData.autorefraction?.od ?? {}) },
-            os: { ...prev.autorefraction.os, ...(parsed.examData.autorefraction?.os ?? {}) },
+            od: {
+              ...prev.autorefraction.od,
+              ...(parsed.examData.autorefraction?.od ?? {}),
+            },
+            os: {
+              ...prev.autorefraction.os,
+              ...(parsed.examData.autorefraction?.os ?? {}),
+            },
           },
           pentacam: {
-            od: { ...prev.pentacam.od, ...(parsed.examData.pentacam?.od ?? {}) },
-            os: { ...prev.pentacam.os, ...(parsed.examData.pentacam?.os ?? {}) },
+            od: {
+              ...prev.pentacam.od,
+              ...(parsed.examData.pentacam?.od ?? {}),
+            },
+            os: {
+              ...prev.pentacam.os,
+              ...(parsed.examData.pentacam?.os ?? {}),
+            },
           },
         }));
       }
@@ -263,7 +318,11 @@ export default function LasikExamSheet() {
         const right = Boolean(parsedEyes.right);
         const left = Boolean(parsedEyes.left);
         const both = Boolean(parsedEyes.both) || (right && left);
-        setOperationEyes({ right: both ? true : right, left: both ? true : left, both });
+        setOperationEyes({
+          right: both ? true : right,
+          left: both ? true : left,
+          both,
+        });
       }
     } catch {
       // ignore malformed data
@@ -314,7 +373,7 @@ export default function LasikExamSheet() {
       reception: role === "reception" ? fullName : prev.reception,
       nurse: role === "nurse" ? fullName : prev.nurse,
       technician: role === "technician" ? fullName : prev.technician,
-      doctor: role === "doctor" ? (prev.doctor || fullName) : prev.doctor,
+      doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
     }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
@@ -331,52 +390,143 @@ export default function LasikExamSheet() {
           return {};
         }
       })();
-      const pickValue = (next: string, prev?: string) => (next && next.trim() ? next : prev);
+      const pickValue = (next: string, prev?: string) =>
+        next && next.trim() ? next : prev;
       const mergedExamData = {
         autorefraction: {
           od: {
             ...(existing.examData?.autorefraction?.od ?? {}),
-            ucva: pickValue(examData.autorefraction.od.ucva, existing.examData?.autorefraction?.od?.ucva),
-            bcva: pickValue(examData.autorefraction.od.bcva, existing.examData?.autorefraction?.od?.bcva),
-            s: pickValue(examData.autorefraction.od.s, existing.examData?.autorefraction?.od?.s),
-            c: pickValue(examData.autorefraction.od.c, existing.examData?.autorefraction?.od?.c),
-            axis: pickValue(examData.autorefraction.od.axis, existing.examData?.autorefraction?.od?.axis),
-            iop: pickValue(examData.autorefraction.od.iop, existing.examData?.autorefraction?.od?.iop),
+            ucva: pickValue(
+              examData.autorefraction.od.ucva,
+              existing.examData?.autorefraction?.od?.ucva,
+            ),
+            bcva: pickValue(
+              examData.autorefraction.od.bcva,
+              existing.examData?.autorefraction?.od?.bcva,
+            ),
+            s: pickValue(
+              examData.autorefraction.od.s,
+              existing.examData?.autorefraction?.od?.s,
+            ),
+            c: pickValue(
+              examData.autorefraction.od.c,
+              existing.examData?.autorefraction?.od?.c,
+            ),
+            axis: pickValue(
+              examData.autorefraction.od.axis,
+              existing.examData?.autorefraction?.od?.axis,
+            ),
+            iop: pickValue(
+              examData.autorefraction.od.iop,
+              existing.examData?.autorefraction?.od?.iop,
+            ),
           },
           os: {
             ...(existing.examData?.autorefraction?.os ?? {}),
-            ucva: pickValue(examData.autorefraction.os.ucva, existing.examData?.autorefraction?.os?.ucva),
-            bcva: pickValue(examData.autorefraction.os.bcva, existing.examData?.autorefraction?.os?.bcva),
-            s: pickValue(examData.autorefraction.os.s, existing.examData?.autorefraction?.os?.s),
-            c: pickValue(examData.autorefraction.os.c, existing.examData?.autorefraction?.os?.c),
-            axis: pickValue(examData.autorefraction.os.axis, existing.examData?.autorefraction?.os?.axis),
-            iop: pickValue(examData.autorefraction.os.iop, existing.examData?.autorefraction?.os?.iop),
+            ucva: pickValue(
+              examData.autorefraction.os.ucva,
+              existing.examData?.autorefraction?.os?.ucva,
+            ),
+            bcva: pickValue(
+              examData.autorefraction.os.bcva,
+              existing.examData?.autorefraction?.os?.bcva,
+            ),
+            s: pickValue(
+              examData.autorefraction.os.s,
+              existing.examData?.autorefraction?.os?.s,
+            ),
+            c: pickValue(
+              examData.autorefraction.os.c,
+              existing.examData?.autorefraction?.os?.c,
+            ),
+            axis: pickValue(
+              examData.autorefraction.os.axis,
+              existing.examData?.autorefraction?.os?.axis,
+            ),
+            iop: pickValue(
+              examData.autorefraction.os.iop,
+              existing.examData?.autorefraction?.os?.iop,
+            ),
           },
         },
         pentacam: {
           od: {
             ...(existing.examData?.pentacam?.od ?? {}),
-            k1: pickValue(examData.pentacam.od.k1, existing.examData?.pentacam?.od?.k1),
-            k2: pickValue(examData.pentacam.od.k2, existing.examData?.pentacam?.od?.k2),
-            ax1: pickValue(examData.pentacam.od.ax1, existing.examData?.pentacam?.od?.ax1),
-            ax2: pickValue(examData.pentacam.od.ax2, existing.examData?.pentacam?.od?.ax2),
-            thinnest: pickValue(examData.pentacam.od.thinnest, existing.examData?.pentacam?.od?.thinnest),
-            apex: pickValue(examData.pentacam.od.apex, existing.examData?.pentacam?.od?.apex),
-            residual: pickValue(examData.pentacam.od.residual, existing.examData?.pentacam?.od?.residual),
-            ttt: pickValue(examData.pentacam.od.ttt, existing.examData?.pentacam?.od?.ttt),
-            ablation: pickValue(examData.pentacam.od.ablation, existing.examData?.pentacam?.od?.ablation),
+            k1: pickValue(
+              examData.pentacam.od.k1,
+              existing.examData?.pentacam?.od?.k1,
+            ),
+            k2: pickValue(
+              examData.pentacam.od.k2,
+              existing.examData?.pentacam?.od?.k2,
+            ),
+            ax1: pickValue(
+              examData.pentacam.od.ax1,
+              existing.examData?.pentacam?.od?.ax1,
+            ),
+            ax2: pickValue(
+              examData.pentacam.od.ax2,
+              existing.examData?.pentacam?.od?.ax2,
+            ),
+            thinnest: pickValue(
+              examData.pentacam.od.thinnest,
+              existing.examData?.pentacam?.od?.thinnest,
+            ),
+            apex: pickValue(
+              examData.pentacam.od.apex,
+              existing.examData?.pentacam?.od?.apex,
+            ),
+            residual: pickValue(
+              examData.pentacam.od.residual,
+              existing.examData?.pentacam?.od?.residual,
+            ),
+            ttt: pickValue(
+              examData.pentacam.od.ttt,
+              existing.examData?.pentacam?.od?.ttt,
+            ),
+            ablation: pickValue(
+              examData.pentacam.od.ablation,
+              existing.examData?.pentacam?.od?.ablation,
+            ),
           },
           os: {
             ...(existing.examData?.pentacam?.os ?? {}),
-            k1: pickValue(examData.pentacam.os.k1, existing.examData?.pentacam?.os?.k1),
-            k2: pickValue(examData.pentacam.os.k2, existing.examData?.pentacam?.os?.k2),
-            ax1: pickValue(examData.pentacam.os.ax1, existing.examData?.pentacam?.os?.ax1),
-            ax2: pickValue(examData.pentacam.os.ax2, existing.examData?.pentacam?.os?.ax2),
-            thinnest: pickValue(examData.pentacam.os.thinnest, existing.examData?.pentacam?.os?.thinnest),
-            apex: pickValue(examData.pentacam.os.apex, existing.examData?.pentacam?.os?.apex),
-            residual: pickValue(examData.pentacam.os.residual, existing.examData?.pentacam?.os?.residual),
-            ttt: pickValue(examData.pentacam.os.ttt, existing.examData?.pentacam?.os?.ttt),
-            ablation: pickValue(examData.pentacam.os.ablation, existing.examData?.pentacam?.os?.ablation),
+            k1: pickValue(
+              examData.pentacam.os.k1,
+              existing.examData?.pentacam?.os?.k1,
+            ),
+            k2: pickValue(
+              examData.pentacam.os.k2,
+              existing.examData?.pentacam?.os?.k2,
+            ),
+            ax1: pickValue(
+              examData.pentacam.os.ax1,
+              existing.examData?.pentacam?.os?.ax1,
+            ),
+            ax2: pickValue(
+              examData.pentacam.os.ax2,
+              existing.examData?.pentacam?.os?.ax2,
+            ),
+            thinnest: pickValue(
+              examData.pentacam.os.thinnest,
+              existing.examData?.pentacam?.os?.thinnest,
+            ),
+            apex: pickValue(
+              examData.pentacam.os.apex,
+              existing.examData?.pentacam?.os?.apex,
+            ),
+            residual: pickValue(
+              examData.pentacam.os.residual,
+              existing.examData?.pentacam?.os?.residual,
+            ),
+            ttt: pickValue(
+              examData.pentacam.os.ttt,
+              existing.examData?.pentacam?.os?.ttt,
+            ),
+            ablation: pickValue(
+              examData.pentacam.os.ablation,
+              existing.examData?.pentacam?.os?.ablation,
+            ),
           },
         },
       };
@@ -408,12 +558,16 @@ export default function LasikExamSheet() {
 
   const handlePrint = () => {
     void printOrExportPdf(
-      `${String(formData.patientName || formData.patientCode || initialPatientId || "lasik-sheet").trim()}.pdf`
+      `${String(formData.patientName || formData.patientCode || initialPatientId || "lasik-sheet").trim()}.pdf`,
     );
   };
 
   return (
-    <div className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`} dir="rtl" style={{ direction: 'rtl', textAlign: 'right' }}>
+    <div
+      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      dir="rtl"
+      style={{ direction: "rtl", textAlign: "right" }}
+    >
       <style>{`
         ${customSheetCss}
         .refraction-table-center th,
@@ -431,29 +585,53 @@ export default function LasikExamSheet() {
         }
       `}</style>
       {/* Header */}
-        <header
-          className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
+      <header
+        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
             <div className="flex items-center gap-3 whitespace-nowrap">
-              <h1 className="text-xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
-              <span className="text-sm text-muted-foreground">{formData.patientName}</span>
+              <h1 className="text-xl font-bold text-foreground">
+                {sheetTemplate.sheetTitle}
+              </h1>
+              <span className="text-sm text-muted-foreground">
+                {formData.patientName}
+              </span>
             </div>
             <div className="flex gap-1 items-center whitespace-nowrap print:hidden sheet-header-actions">
-              <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => goBack()}
+              >
                 رجوع
               </Button>
-              <Button variant="ghost" size="sm" type="button" onClick={() => setLocation("/dashboard")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => setLocation("/dashboard")}
+              >
                 الصفحة الرئيسية
               </Button>
             </div>
             <div className="flex flex-nowrap gap-1 sheet-header-actions">
-              <Button variant="outline" size="sm" onClick={handlePrint} type="button">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                type="button"
+              >
                 <Printer className="h-4 w-4 mr-2" />
                 طباعة
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSaveSheet} type="button">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveSheet}
+                type="button"
+              >
                 حفظ
               </Button>
             </div>
@@ -462,7 +640,10 @@ export default function LasikExamSheet() {
       </header>
 
       {/* Main Content */}
-      <main data-mobile-pdf-root className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}>
+      <main
+        data-mobile-pdf-root
+        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
+      >
         {printMode.printView ? (
           <PrintPreviewBanner
             title="شيت الليزك"
@@ -470,7 +651,9 @@ export default function LasikExamSheet() {
             onPrint={handlePrint}
           />
         ) : null}
-        <div className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+        <div
+          className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        >
           <PatientPicker
             initialPatientId={initialPatientId}
             onSelect={handleSelectPatient}
@@ -479,20 +662,39 @@ export default function LasikExamSheet() {
         {/* Operation Details moved under sheet header */}
         <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 lasik-print-root">
           {/* Header */}
-          <div className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8" style={{ textAlign: 'center' }}>
-            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: 'center' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
+          <div
+            className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8"
+            style={{ textAlign: "center" }}
+          >
+            <h2
+              className="text-lg font-bold"
+              dir="rtl"
+              style={{ textAlign: "right" }}
+            >
+              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
+            </h2>
+            <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
+              {BRAND_NAME_EN} — Lasik & Vision Correction
+            </p>
           </div>
 
           {/* Operation Details */}
-          <div className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center" dir="rtl">
+          <div
+            className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center"
+            dir="rtl"
+          >
             <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">{sheetTemplate.examinationDateLabel}</span>
+              <span className="font-bold">
+                {sheetTemplate.examinationDateLabel}
+              </span>
               <Input
                 type="date"
                 value={formData.examinationDate}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, examinationDate: event.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    examinationDate: event.target.value,
+                  }))
                 }
                 className="text-xs text-right w-[120px] sm:w-[160px] min-w-0"
                 dir="rtl"
@@ -564,82 +766,177 @@ export default function LasikExamSheet() {
           </div>
 
           {/* Patient Info */}
-          <p className="font-bold text-sm mb-1">{sheetTemplate.patientInfoTitle}</p>
-          <div className="sheet-section-card flex flex-col gap-1 mb-2 text-xs" dir="rtl" style={{ whiteSpace: "nowrap" }}>
+          <p className="font-bold text-sm mb-1">
+            {sheetTemplate.patientInfoTitle}
+          </p>
+          <div
+            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
+            dir="rtl"
+            style={{ whiteSpace: "nowrap" }}
+          >
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">الاسم</label>
-                <Input value={formData.patientName} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.patientName}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">تاريخ الميلاد</label>
-                <Input value={formData.dateOfBirth} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.dateOfBirth}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">السن</label>
-                <Input value={formData.age} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.age}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input value={signatures.doctor} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={signatures.doctor}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
 
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">العنوان</label>
-                <Input value={formData.address} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.address}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الموبايل</label>
-                <Input value={formData.phone} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.phone}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">كود العميل</label>
-                <Input value={formData.patientCode} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.patientCode}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الوظيفة</label>
-                <Input value={formData.job} readOnly className="text-xs border-0" style={{ textAlign: "right" }} />
+                <Input
+                  value={formData.job}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
           </div>
 
           {/* Medical History Table */}
           <div className="mb-4 sheet-section-card">
-            <table className="w-full text-xs text-center border lasik-table" dir="rtl">
+            <table
+              className="w-full text-xs text-center border lasik-table"
+              dir="rtl"
+            >
               <tbody>
                 <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">أمراض عامة؟ (ضغط / سكر / غدة)</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5 text-right">هل سمعت عن مرض القرنية المخروطية في أحد أفراد العائلة؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="p-0.5"><Checkbox /></td>
+                  <td className="border-r p-0.5 text-right">
+                    أمراض عامة؟ (ضغط / سكر / غدة)
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5 text-right">
+                    هل سمعت عن مرض القرنية المخروطية في أحد أفراد العائلة؟
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="p-0.5">
+                    <Checkbox />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 text-right">حمل أو رضاعة؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5 text-right">هل تستخدم بديل دموع / زيادة في إفراز الدموع / إحساس بالرمل؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="p-0.5"><Checkbox /></td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5 text-right">
+                    هل تستخدم بديل دموع / زيادة في إفراز الدموع / إحساس بالرمل؟
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="p-0.5">
+                    <Checkbox />
+                  </td>
                 </tr>
                 <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">هل تستخدم مضادات حساسية أو مكملات غذائية/كورتيزون/أدوية ضغط؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5 text-right">هل تزيد هذه الأعراض عند وجود هواء أو تكييف؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="p-0.5"><Checkbox /></td>
+                  <td className="border-r p-0.5 text-right">
+                    هل تستخدم مضادات حساسية أو مكملات غذائية/كورتيزون/أدوية ضغط؟
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5 text-right">
+                    هل تزيد هذه الأعراض عند وجود هواء أو تكييف؟
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="p-0.5">
+                    <Checkbox />
+                  </td>
                 </tr>
                 <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">هل تستخدم علاج لحب الشباب؟ (اسم العلاج)</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="border-r p-0.5 text-right">هل تعالج من ماء زرقاء؟</td>
-                  <td className="border-r p-0.5"><Checkbox /></td>
-                  <td className="p-0.5"><Checkbox /></td>
+                  <td className="border-r p-0.5 text-right">
+                    هل تستخدم علاج لحب الشباب؟ (اسم العلاج)
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="border-r p-0.5 text-right">
+                    هل تعالج من ماء زرقاء؟
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Checkbox />
+                  </td>
+                  <td className="p-0.5">
+                    <Checkbox />
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -647,19 +944,35 @@ export default function LasikExamSheet() {
 
           {/* Refraction Table */}
           <div className="mb-4 border sheet-section-card">
-            <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+            <table
+              className="w-full text-xs text-center lasik-table refraction-table-center"
+              dir="ltr"
+              style={{
+                direction: "ltr",
+                unicodeBidi: "bidi-override",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
-                  <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
+                  <th className="border-r p-0.5 text-center" colSpan={4}>
+                    Dominant eye _____________
+                  </th>
+                  <th className="p-0.5 text-center" colSpan={6}>
+                    Refraction
+                  </th>
                 </tr>
                 <tr className="border-b bg-muted">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>
                   <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>OD</th>
-                  <th className="p-0.5" colSpan={3}>OS</th>
+                  <th className="border-r p-0.5" colSpan={3}>
+                    OD
+                  </th>
+                  <th className="p-0.5" colSpan={3}>
+                    OS
+                  </th>
                 </tr>
                 <tr className="border-b">
                   <th className="border-r p-0.5"></th>
@@ -677,31 +990,255 @@ export default function LasikExamSheet() {
               <tbody>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.od.ucva} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, ucva: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.od.bcva} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, bcva: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.od.iop} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, iop: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.od.s} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, s: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.od.c} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, c: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.od.axis} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, od: { ...prev.autorefraction.od, axis: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.os.s} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, s: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.os.c} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, c: e.target.value } } }))} /></td>
-                  <td className="p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={examData.autorefraction.os.axis} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, axis: e.target.value } } }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.ucva}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              ucva: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.bcva}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              bcva: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.iop}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              iop: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.s}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              s: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.c}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              c: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.od.axis}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            od: {
+                              ...prev.autorefraction.od,
+                              axis: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.s}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              s: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.c}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              c: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.axis}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              axis: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.os.ucva} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, ucva: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.os.bcva} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, bcva: e.target.value } } }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={examData.autorefraction.os.iop} onChange={(e) => setExamData((prev) => ({ ...prev, autorefraction: { ...prev.autorefraction, os: { ...prev.autorefraction.os, iop: e.target.value } } }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.ucva}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              ucva: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.bcva}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              bcva: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={examData.autorefraction.os.iop}
+                      onChange={(e) =>
+                        setExamData((prev) => ({
+                          ...prev,
+                          autorefraction: {
+                            ...prev.autorefraction,
+                            os: {
+                              ...prev.autorefraction.os,
+                              iop: e.target.value,
+                            },
+                          },
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}><Input placeholder="" className="text-xs" /></td>
+                  <td className="p-0.5" colSpan={9}>
+                    <Input placeholder="" className="text-xs" />
+                  </td>
                 </tr>
                 <tr>
                   <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>BUT</td>
-                  <td className="border-r p-0.5" colSpan={3}>Schirmer T</td>
-                  <td className="p-0.5" colSpan={3}>Lid Margin</td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    BUT
+                  </td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    Schirmer T
+                  </td>
+                  <td className="p-0.5" colSpan={3}>
+                    Lid Margin
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -713,7 +1250,15 @@ export default function LasikExamSheet() {
               <div className="bg-muted p-1 text-center font-bold text-xs border-b">
                 RT فحص القرنية
               </div>
-              <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: 'ltr', unicodeBidi: 'bidi-override', textAlign: 'center' }}>
+              <table
+                className="w-full text-xs text-center lasik-table"
+                dir="ltr"
+                style={{
+                  direction: "ltr",
+                  unicodeBidi: "bidi-override",
+                  textAlign: "center",
+                }}
+              >
                 <tbody>
                   <tr className="border-b">
                     <td className="border-r p-0.5 font-bold text-center">K1</td>
@@ -726,12 +1271,20 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, k1: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, k1: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
-                    <td className="border-r p-0.5 font-bold text-center" rowSpan={2}>AX</td>
+                    <td
+                      className="border-r p-0.5 font-bold text-center"
+                      rowSpan={2}
+                    >
+                      AX
+                    </td>
                     <td className="p-0.5">
                       <Input
                         placeholder=""
@@ -741,7 +1294,10 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, ax1: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, ax1: e.target.value },
+                            },
                           }))
                         }
                       />
@@ -758,7 +1314,10 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, k2: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, k2: e.target.value },
+                            },
                           }))
                         }
                       />
@@ -772,14 +1331,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, ax2: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, ax2: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Thinnest Point</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Thinnest Point
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -789,14 +1353,22 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, thinnest: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: {
+                                ...prev.pentacam.od,
+                                thinnest: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Corneal Apex</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Corneal Apex
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -806,14 +1378,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, apex: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, apex: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Residual Stroma</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Residual Stroma
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -823,14 +1400,22 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, residual: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: {
+                                ...prev.pentacam.od,
+                                residual: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Planned TTT</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Planned TTT
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -840,14 +1425,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, ttt: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: { ...prev.pentacam.od, ttt: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">Ablation</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Ablation
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -857,7 +1447,13 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, od: { ...prev.pentacam.od, ablation: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              od: {
+                                ...prev.pentacam.od,
+                                ablation: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
@@ -871,7 +1467,15 @@ export default function LasikExamSheet() {
               <div className="bg-muted p-1 text-center font-bold text-xs border-b">
                 LT فحص القرنية
               </div>
-              <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: 'ltr', unicodeBidi: 'bidi-override', textAlign: 'center' }}>
+              <table
+                className="w-full text-xs text-center lasik-table"
+                dir="ltr"
+                style={{
+                  direction: "ltr",
+                  unicodeBidi: "bidi-override",
+                  textAlign: "center",
+                }}
+              >
                 <tbody>
                   <tr className="border-b">
                     <td className="border-r p-0.5 font-bold text-center">K1</td>
@@ -884,12 +1488,20 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, k1: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, k1: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
-                    <td className="border-r p-0.5 font-bold text-center" rowSpan={2}>AX</td>
+                    <td
+                      className="border-r p-0.5 font-bold text-center"
+                      rowSpan={2}
+                    >
+                      AX
+                    </td>
                     <td className="p-0.5">
                       <Input
                         placeholder=""
@@ -899,7 +1511,10 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, ax1: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, ax1: e.target.value },
+                            },
                           }))
                         }
                       />
@@ -916,7 +1531,10 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, k2: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, k2: e.target.value },
+                            },
                           }))
                         }
                       />
@@ -930,14 +1548,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, ax2: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, ax2: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Thinnest Point</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Thinnest Point
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -947,14 +1570,22 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, thinnest: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: {
+                                ...prev.pentacam.os,
+                                thinnest: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Corneal Apex</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Corneal Apex
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -963,14 +1594,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, apex: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, apex: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Residual Stroma</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Residual Stroma
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -979,14 +1615,22 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, residual: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: {
+                                ...prev.pentacam.os,
+                                residual: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">Planned TTT</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Planned TTT
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -995,14 +1639,19 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, ttt: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: { ...prev.pentacam.os, ttt: e.target.value },
+                            },
                           }))
                         }
                       />
                     </td>
                   </tr>
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">Ablation</td>
+                    <td className="border-r p-0.5 font-bold text-center">
+                      Ablation
+                    </td>
                     <td colSpan={3} className="p-0.5">
                       <Input
                         placeholder=""
@@ -1011,7 +1660,13 @@ export default function LasikExamSheet() {
                         onChange={(e) =>
                           setExamData((prev) => ({
                             ...prev,
-                            pentacam: { ...prev.pentacam, os: { ...prev.pentacam.os, ablation: e.target.value } },
+                            pentacam: {
+                              ...prev.pentacam,
+                              os: {
+                                ...prev.pentacam.os,
+                                ablation: e.target.value,
+                              },
+                            },
                           }))
                         }
                       />
@@ -1024,15 +1679,29 @@ export default function LasikExamSheet() {
 
           {/* Target Refraction Table */}
           <div className="mb-4 border sheet-section-card">
-            <table className="w-full text-xs text-center lasik-table" dir="ltr" style={{ direction: 'ltr', unicodeBidi: 'bidi-override', textAlign: 'center' }}>
+            <table
+              className="w-full text-xs text-center lasik-table"
+              dir="ltr"
+              style={{
+                direction: "ltr",
+                unicodeBidi: "bidi-override",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center">Target refraction</th>
+                  <th className="border-r p-0.5 text-center">
+                    Target refraction
+                  </th>
                   <th className="border-r p-0.5 text-center">OD / OS</th>
                   <th className="border-r p-0.5 text-center">Before Flap</th>
                   <th className="border-r p-0.5 text-center">After Flap</th>
-                  <th className="border-r p-0.5 text-center">After Treatment</th>
-                  <th className="border-r p-0.5 text-center">After Flap Reposition</th>
+                  <th className="border-r p-0.5 text-center">
+                    After Treatment
+                  </th>
+                  <th className="border-r p-0.5 text-center">
+                    After Flap Reposition
+                  </th>
                   <th className="border-r p-0.5 text-center">Ciclo 3 مرات</th>
                   <th className="p-0.5 text-center">Note</th>
                 </tr>
@@ -1076,16 +1745,35 @@ export default function LasikExamSheet() {
                 className="text-xs w-full max-w-none"
                 rows={3}
                 dir="ltr"
-                style={{ maxWidth: "none", width: "100%", marginInlineStart: "0", marginInlineEnd: "0", boxSizing: "border-box", textAlign: "left" }}
+                style={{
+                  maxWidth: "none",
+                  width: "100%",
+                  marginInlineStart: "0",
+                  marginInlineEnd: "0",
+                  boxSizing: "border-box",
+                  textAlign: "left",
+                }}
               />
             </div>
-            <div className="notes-col" style={{ flex: "0 0 32%", paddingInlineStart: "0", marginInlineStart: "0" }}>
+            <div
+              className="notes-col"
+              style={{
+                flex: "0 0 32%",
+                paddingInlineStart: "0",
+                marginInlineStart: "0",
+              }}
+            >
               <Textarea
                 placeholder={sheetTemplate.notesLabel}
                 className="text-xs w-full max-w-none"
                 rows={3}
                 dir="ltr"
-                style={{ maxWidth: "none", width: "100%", boxSizing: "border-box", textAlign: "left" }}
+                style={{
+                  maxWidth: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  textAlign: "left",
+                }}
               />
             </div>
           </div>
@@ -1106,35 +1794,51 @@ export default function LasikExamSheet() {
             <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? <span className="text-center">{signatures.doctor}</span> : null}
+                  {signatures.doctor ? (
+                    <span className="text-center">{signatures.doctor}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">طبيب</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? <span className="text-center">{signatures.technician}</span> : null}
+                  {signatures.technician ? (
+                    <span className="text-center">{signatures.technician}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">فني</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? <span className="text-center">{signatures.nurse}</span> : null}
+                  {signatures.nurse ? (
+                    <span className="text-center">{signatures.nurse}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">تمريض</span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? <span className="text-center">{signatures.reception}</span> : null}
+                  {signatures.reception ? (
+                    <span className="text-center">{signatures.reception}</span>
+                  ) : null}
                 </div>
                 <span className="font-bold">استقبال</span>
               </div>
             </div>
           </div>
         </div>
-        <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <Button type="button" variant="outline" onClick={() => goBack()}>رجوع</Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>طباعة</Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>حفظ</Button>
+        <div
+          className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
+        >
+          <Button type="button" variant="outline" onClick={() => goBack()}>
+            رجوع
+          </Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>
+            طباعة
+          </Button>
+          <Button type="button" variant="default" onClick={handleSaveSheet}>
+            حفظ
+          </Button>
         </div>
       </main>
     </div>

@@ -2,22 +2,24 @@
 
 ## Phase Overview
 
-| Phase | Status | Timeline | Focus |
-|-------|--------|----------|-------|
-| **Phase 1** | ✅ COMPLETE | Done | Access DB sync (Taratus fallback) |
-| **Phase 2** | ✅ COMPLETE | Done | FK Device direct integration (FKOldLogPuller.exe) |
-| **Phase 3** | 🔄 NEXT | Q3 2026 | Real-time push + Performance optimization |
-| **Phase 4** | 📋 PLANNED | Q4 2026 | Advanced features (shifts, leaves, overtime) |
-| **Phase 5** | 💡 FUTURE | 2027 | Mobile app + Analytics + Multi-device |
+| Phase       | Status      | Timeline | Focus                                             |
+| ----------- | ----------- | -------- | ------------------------------------------------- |
+| **Phase 1** | ✅ COMPLETE | Done     | Access DB sync (Taratus fallback)                 |
+| **Phase 2** | ✅ COMPLETE | Done     | FK Device direct integration (FKOldLogPuller.exe) |
+| **Phase 3** | 🔄 NEXT     | Q3 2026  | Real-time push + Performance optimization         |
+| **Phase 4** | 📋 PLANNED  | Q4 2026  | Advanced features (shifts, leaves, overtime)      |
+| **Phase 5** | 💡 FUTURE   | 2027     | Mobile app + Analytics + Multi-device             |
 
 ---
 
 ## Phase 3: Real-Time & Performance (Q3 2026)
 
 ### 3.1 Device Push Listener (Port 7005)
+
 **Goal:** Real-time punch notifications instead of polling
 
 **Implementation:**
+
 ```typescript
 // Already prepared in devicePushListener.ts
 - Listen on port 7007 for device push events
@@ -27,11 +29,13 @@
 ```
 
 **Files Ready:**
+
 - ✅ `devicePushListener.ts` - Generic listener
 - ✅ `test-device-push.ts` - Testing script
 - ✅ `DEVICE_PUSH_PROTOCOL_ANALYSIS.md` - Architecture
 
 **Action Required:**
+
 1. Capture actual punch packets from device (run `listen_device_push.ps1`)
 2. Determine packet binary format
 3. Update parser in `processPunchData()` method
@@ -39,6 +43,7 @@
 5. Add WebSocket relay to dashboard
 
 **Expected Benefits:**
+
 - Real-time attendance updates
 - No polling overhead
 - Instant punch notification
@@ -47,14 +52,17 @@
 ---
 
 ### 3.2 Direct P/Invoke to FK623Attend.dll
+
 **Goal:** Eliminate FKOldLogPuller.exe dependency, improve performance
 
 **Current Stack:**
+
 ```
 Node.js → FKOldLogPuller.exe → FK623Attend.dll → Device
 ```
 
 **Proposed Stack:**
+
 ```
 Node.js → (C++ addon via node-ffi or edge-js) → FK623Attend.dll → Device
 ```
@@ -62,6 +70,7 @@ Node.js → (C++ addon via node-ffi or edge-js) → FK623Attend.dll → Device
 **Implementation Options:**
 
 #### Option A: Node FFI (Fastest to implement)
+
 ```typescript
 // Use node-ffi library for direct DLL calls
 const ffi = require('ffi-napi');
@@ -73,17 +82,20 @@ const FK = ffi.Library('FK623Attend.dll', {
 ```
 
 **Pros:**
+
 - No C++ required
 - Direct DLL access
 - Better performance
 - In-process, no child process
 
 **Cons:**
+
 - 32-bit DLL requires 32-bit Node (or arch-specific addon)
 - Platform-specific (Windows only)
 - Requires native module compilation
 
 #### Option B: C++ Addon (More robust)
+
 ```cpp
 // Write native Node addon wrapping FK DLL
 // Use node-gyp or cmake-js
@@ -91,17 +103,20 @@ const FK = ffi.Library('FK623Attend.dll', {
 ```
 
 **Pros:**
+
 - Can wrap 32-bit DLL on 64-bit Node
 - Better error handling
 - Type-safe wrapper
 - More maintainable long-term
 
 **Cons:**
+
 - Requires C++ expertise
 - Build complexity
 - Maintenance burden
 
 #### Option C: Hybrid (Recommended)
+
 ```typescript
 // Try P/Invoke first (if available/installed)
 // Fall back to FKOldLogPuller.exe (current)
@@ -109,12 +124,14 @@ const FK = ffi.Library('FK623Attend.dll', {
 ```
 
 **Timeline:**
+
 - Month 1: Investigate P/Invoke options
 - Month 2: Prototype with node-ffi
 - Month 3: Evaluate performance gains
 - Decide: Continue exe or migrate to addon
 
 **Expected Benefits:**
+
 - 3-5x faster sync (no child process overhead)
 - Eliminate exe dependency
 - Enable real-time push integration
@@ -125,11 +142,13 @@ const FK = ffi.Library('FK623Attend.dll', {
 ## Phase 4: Advanced Features (Q4 2026)
 
 ### 4.1 Shift Management
+
 **Goal:** Support different work schedules, overtime, early leave
 
 **Schema Ready:** `attendanceShifts`, `attendanceShiftAssignments`
 
 **Implementation:**
+
 ```typescript
 // Daily attendance calculation rules:
 1. Load employee's shift for the day
@@ -143,6 +162,7 @@ const FK = ffi.Library('FK623Attend.dll', {
 ```
 
 **Endpoints:**
+
 - `GET /shifts` - List all shifts
 - `POST /shifts/:id/assign` - Assign to employee
 - `GET /employees/:empCd/schedule` - Employee schedule
@@ -150,11 +170,13 @@ const FK = ffi.Library('FK623Attend.dll', {
 ---
 
 ### 4.2 Leaves & Holidays
+
 **Goal:** Track approved leaves, sick days, holidays
 
 **Schema Ready:** `attendanceLeaves`, `attendanceHolidays`
 
 **Implementation:**
+
 ```typescript
 // Before marking as "absent", check:
 1. Is this a holiday? (attendanceHolidays)
@@ -163,6 +185,7 @@ const FK = ffi.Library('FK623Attend.dll', {
 ```
 
 **Endpoints:**
+
 - `GET /leaves/pending` - Pending leave requests
 - `POST /leaves/request` - Employee requests leave
 - `PUT /leaves/:id/approve` - Manager approves
@@ -170,9 +193,11 @@ const FK = ffi.Library('FK623Attend.dll', {
 ---
 
 ### 4.3 Overtime Tracking
+
 **Goal:** Monitor and report overtime hours
 
 **Calculation:**
+
 ```typescript
 // For each day:
 dailyOvertime = punches after shift end time
@@ -182,6 +207,7 @@ totalOvertimeMonth = SUM(dailyOvertime)
 ```
 
 **Features:**
+
 - Overtime approval workflow
 - Compensation calculation
 - Monthly reports
@@ -190,23 +216,22 @@ totalOvertimeMonth = SUM(dailyOvertime)
 ---
 
 ### 4.4 Late/Absence Reports
+
 **Goal:** Manager visibility into attendance issues
 
 **Reports:**
+
 - Late arrivals (by employee, by day, trend)
 - Absences (unexpected vs approved)
 - Early departures
 - Missing checkout (incomplete shifts)
 
 **Implementation:**
+
 ```typescript
 // Use existing attendanceMonthlyReport table
 // Add computed columns:
-- lateCount
-- lateMinutes
-- absenceCount
-- oversightCount
-- overtimeHours
+-lateCount - lateMinutes - absenceCount - oversightCount - overtimeHours;
 ```
 
 ---
@@ -214,9 +239,11 @@ totalOvertimeMonth = SUM(dailyOvertime)
 ## Phase 5: Ecosystem Expansion (2027)
 
 ### 5.1 Mobile App
+
 **Goal:** Employees can view their own attendance
 
 **Features:**
+
 - View personal attendance history
 - Check in/out via QR code (if device supports)
 - Request leave from mobile
@@ -228,9 +255,11 @@ totalOvertimeMonth = SUM(dailyOvertime)
 ---
 
 ### 5.2 Analytics & Dashboards
+
 **Goal:** Insights into workforce patterns
 
 **Dashboards:**
+
 ```
 Executive Dashboard:
 - Attendance rate (by department, by month)
@@ -256,9 +285,11 @@ HR Dashboard:
 ---
 
 ### 5.3 Multi-Device Support
+
 **Goal:** Support multiple fingerprint devices or alternative identification
 
 **Devices:**
+
 - Multiple ZKTeco devices (different locations)
 - RFID card readers
 - Face recognition terminals
@@ -266,6 +297,7 @@ HR Dashboard:
 - Web browser check-in
 
 **Architecture:**
+
 ```typescript
 // Device abstraction layer:
 interface AttendanceDevice {
@@ -275,24 +307,27 @@ interface AttendanceDevice {
 }
 
 // Implementations:
-- FKDeviceAdapter (current)
-- RFIDAdapter (future)
-- FaceRecognitionAdapter (future)
-- MobileAdapter (future)
+-FKDeviceAdapter(current) -
+  RFIDAdapter(future) -
+  FaceRecognitionAdapter(future) -
+  MobileAdapter(future);
 ```
 
 ---
 
 ### 5.4 Integration with HR Systems
+
 **Goal:** Sync with payroll, leave management, performance
 
 **Integrations:**
+
 - **Payroll:** Automated overtime/leave deductions
 - **HR Module:** Leave approvals tied to attendance
 - **Performance:** Attendance as KPI
 - **Accounting:** Labor cost tracking
 
 **Data Sync:**
+
 ```
 Attendance → HR Leave System (synchronize)
 Attendance → Payroll System (export for processing)
@@ -302,9 +337,11 @@ Attendance → Performance System (KPI update)
 ---
 
 ### 5.5 Advanced Analytics
+
 **Goal:** Predictive insights and optimization
 
 **Features:**
+
 - **Predictive Models:** Who might be absent (historical patterns)
 - **Shift Optimization:** Staff scheduling based on demand
 - **Cost Analysis:** Labor cost per shift, per department
@@ -318,12 +355,14 @@ Attendance → Performance System (KPI update)
 ## Quick Wins (Can Do Anytime)
 
 ### 1. Export/Print Reports
+
 ```typescript
 // Current: attendanceMonthlyReport.ts exists
 // Todo: Add PDF export, Excel export, Print-friendly HTML
 ```
 
 ### 2. Email Notifications
+
 ```typescript
 // Alert managers when:
 - Employee is late (> 15 min)
@@ -333,6 +372,7 @@ Attendance → Performance System (KPI update)
 ```
 
 ### 3. Employee Self-Service Portal
+
 ```typescript
 // Employees can:
 - View their attendance history
@@ -342,6 +382,7 @@ Attendance → Performance System (KPI update)
 ```
 
 ### 4. Attendance API
+
 ```typescript
 // Expose public endpoints for:
 - Third-party system integration
@@ -351,6 +392,7 @@ Attendance → Performance System (KPI update)
 ```
 
 ### 5. Data Validation & Cleanup
+
 ```typescript
 // Automated checks:
 - Detect duplicate punches (within 5 minutes)
@@ -364,6 +406,7 @@ Attendance → Performance System (KPI update)
 ## Technical Debt & Optimizations
 
 ### Current Bottlenecks
+
 1. **FKOldLogPuller.exe** - Child process overhead
    - Solution: Direct P/Invoke (Phase 3.2)
 
@@ -380,30 +423,35 @@ Attendance → Performance System (KPI update)
    - Solution: Multi-device adapter pattern (Phase 5.3)
 
 ### Performance Targets
-| Operation | Current | Target | Method |
-|-----------|---------|--------|--------|
-| Pull records | 5-10s | 2-3s | P/Invoke |
-| Dedup check | 100ms per record | 10ms | Index optimization |
-| Daily compute | 30s | 10s | Batch at night |
-| Push latency | 5 min (polling) | <1s (push) | Port 7005 listener |
+
+| Operation     | Current          | Target     | Method             |
+| ------------- | ---------------- | ---------- | ------------------ |
+| Pull records  | 5-10s            | 2-3s       | P/Invoke           |
+| Dedup check   | 100ms per record | 10ms       | Index optimization |
+| Daily compute | 30s              | 10s        | Batch at night     |
+| Push latency  | 5 min (polling)  | <1s (push) | Port 7005 listener |
 
 ---
 
 ## Risk Mitigation
 
 ### P/Invoke Risk
+
 - **Risk:** DLL dependency, Windows-only, 32-bit compatibility
 - **Mitigation:** Keep FKOldLogPuller.exe as fallback, feature flag for P/Invoke
 
 ### Device Upgrade Risk
+
 - **Risk:** What if device firmware changes?
 - **Mitigation:** Version-agnostic protocol, packet capture testing
 
 ### Data Loss Risk
+
 - **Risk:** What if sync fails mid-way?
 - **Mitigation:** Idempotent operations, transaction safety, sync status tracking
 
 ### Performance Risk
+
 - **Risk:** Slow device on slow network?
 - **Mitigation:** Async operations, background workers, progress indicators
 
@@ -411,28 +459,30 @@ Attendance → Performance System (KPI update)
 
 ## Decision Matrix
 
-| Feature | Priority | Effort | Impact | Timeline |
-|---------|----------|--------|--------|----------|
-| Real-time push (7005) | HIGH | MEDIUM | HIGH | Q3 2026 |
-| Direct P/Invoke | MEDIUM | HIGH | HIGH | Q3-Q4 2026 |
-| Shift management | HIGH | MEDIUM | HIGH | Q4 2026 |
-| Leave/holiday | HIGH | LOW | HIGH | Q4 2026 |
-| Overtime tracking | MEDIUM | LOW | MEDIUM | Q4 2026 |
-| Mobile app | MEDIUM | HIGH | HIGH | 2027 |
-| Analytics | LOW | MEDIUM | MEDIUM | 2027 |
-| Multi-device | LOW | HIGH | MEDIUM | 2027 |
+| Feature               | Priority | Effort | Impact | Timeline   |
+| --------------------- | -------- | ------ | ------ | ---------- |
+| Real-time push (7005) | HIGH     | MEDIUM | HIGH   | Q3 2026    |
+| Direct P/Invoke       | MEDIUM   | HIGH   | HIGH   | Q3-Q4 2026 |
+| Shift management      | HIGH     | MEDIUM | HIGH   | Q4 2026    |
+| Leave/holiday         | HIGH     | LOW    | HIGH   | Q4 2026    |
+| Overtime tracking     | MEDIUM   | LOW    | MEDIUM | Q4 2026    |
+| Mobile app            | MEDIUM   | HIGH   | HIGH   | 2027       |
+| Analytics             | LOW      | MEDIUM | MEDIUM | 2027       |
+| Multi-device          | LOW      | HIGH   | MEDIUM | 2027       |
 
 ---
 
 ## Recommendation
 
 ### Next Quarter (Q3 2026)
+
 1. **Week 1-2:** Capture actual punch packets from device
 2. **Week 3-4:** Implement real-time push listener (port 7005)
 3. **Week 5-6:** Test with actual device push events
 4. **Week 7-8:** Investigate P/Invoke options, prototype
 
 ### Following Quarter (Q4 2026)
+
 1. Finalize P/Invoke implementation or keep exe
 2. Implement shift management
 3. Implement leave/holiday system
@@ -440,6 +490,7 @@ Attendance → Performance System (KPI update)
 5. Create manager dashboards
 
 ### 2027
+
 1. Mobile app prototype
 2. Advanced analytics
 3. Multi-device support
@@ -450,6 +501,7 @@ Attendance → Performance System (KPI update)
 ## Summary
 
 **Current State (Phase 2):**
+
 - ✅ Device communication working
 - ✅ 25,184 historical records imported
 - ✅ MySQL integration complete
@@ -457,16 +509,19 @@ Attendance → Performance System (KPI update)
 - ✅ Basic reporting ready
 
 **Next Big Win (Phase 3):**
+
 - Real-time push listener (simple, high impact)
 - Direct P/Invoke optimization (performance)
 
 **Long-term Vision (Phase 4-5):**
+
 - Complete HR system (shifts, leaves, overtime)
 - Analytics and insights
 - Mobile-first experience
 - Enterprise integrations
 
 **Success Metrics:**
+
 - Real-time latency < 1 second
 - Attendance accuracy > 99.5%
 - System uptime > 99.9%

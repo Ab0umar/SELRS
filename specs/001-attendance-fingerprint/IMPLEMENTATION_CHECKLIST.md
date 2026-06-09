@@ -3,6 +3,7 @@
 ## Database
 
 ### Schema Definition
+
 - [x] Defined `attendance_punches` table (raw imports)
 - [x] Defined `attendance_daily` table (computed daily records)
 - [x] Defined `attendance_monthly_report` table (monthly aggregates)
@@ -15,6 +16,7 @@
 - [x] Added indexes on frequently queried columns (year, month, work_date)
 
 ### Migrations
+
 - [x] Created `00019_add_attendance_monthly_report.sql`
 - [x] Applied migration to MySQL database
 - [x] Verified all 7 tables exist in database
@@ -25,6 +27,7 @@
 ## Backend Services
 
 ### Access DB Reader (`accessDbReader.service.ts`)
+
 - [x] Implemented `readAccessDb()` method
 - [x] Uses `mdb-reader` library for .mdb file reading
 - [x] Maps Access schema to SRV100 table format:
@@ -35,6 +38,7 @@
 - [x] Gracefully handles file not found errors
 
 ### Sync Service (`sync.service.ts`)
+
 - [x] Implemented `syncFromAccess()` method
 - [x] Imports employees from Access.RS_Emp:
   - Inserts into attendance_employees
@@ -52,6 +56,7 @@
 - [x] Idempotent (safe to run multiple times)
 
 ### Rules Engine (`rulesEngine.ts`)
+
 - [x] Implemented `computeDay()` method
 - [x] Loads shift and assignment for employee/date
 - [x] Calculates metrics:
@@ -67,6 +72,7 @@
   - Overnight shifts (is_overnight flag)
 
 ### Daily Materializer (`dailyMaterializer.ts`)
+
 - [x] Implemented `materializeDateRange()` method
 - [x] Loads shifts for date range
 - [x] Loads assignments, leaves, holidays
@@ -78,6 +84,7 @@
 - [x] Transactional updates (all-or-nothing)
 
 ### Monthly Compute Service (`monthlyCompute.service.ts`)
+
 - [x] Implemented `buildMonthly()` method (aggregate from daily)
 - [x] Implemented `saveMonthlyReports()` method:
   - Takes (year, month) parameter
@@ -98,12 +105,14 @@
 ## Backend API (tRPC)
 
 ### Router Registration (`server/routers/index.ts`)
+
 - [x] Imported attendanceRouter
 - [x] Registered as `attendance: attendanceRouter` in appRouter
 
 ### Procedures (`server/routers/attendance.ts`)
 
 **Queries:**
+
 - [x] `employeesList` — Fetch all employees
   - Returns: empCd, fullName, department, active
   - Role: admin/manager only
@@ -123,6 +132,7 @@
   - Role: admin/manager only
 
 **Mutations:**
+
 - [x] `syncNow` — Trigger manual import
   - Calls AccessDbReader.readAccessDb()
   - Calls SyncService.syncFromAccess()
@@ -145,6 +155,7 @@
   - Role: admin/manager only
 
 ### Error Handling
+
 - [x] All procedures protected with role checks
 - [x] Graceful error messages (no internal stack traces)
 - [x] Advisory lock timeout handled (returns "locked" status)
@@ -156,6 +167,7 @@
 ## Frontend Routes & Pages
 
 ### Route Registration (`client/src/App.tsx`)
+
 - [x] Added `/attendance` lazy route
 - [x] Routes configured:
   - `/attendance` → Live (dashboard)
@@ -168,6 +180,7 @@
 ### Pages
 
 **Live (Dashboard)** (`client/src/pages/attendance/Live.tsx`)
+
 - [x] Displays today's summary:
   - Present today (count from daily where date=today, status=present)
   - Absent today (count where status=absent)
@@ -187,6 +200,7 @@
 - [x] Bootstrap Shifts button (admin only)
 
 **Employees List** (`client/src/pages/attendance/EmployeesList.tsx`)
+
 - [x] Fetches all employees using attendance.employeesList.useQuery()
 - [x] Displays table:
   - empCd (code)
@@ -202,6 +216,7 @@
 - [x] Error boundary
 
 **Employee Detail** (`client/src/pages/attendance/EmployeeDetail.tsx`)
+
 - [x] Fetches employee info and attendance history
 - [x] Displays employee card:
   - Code, name, department
@@ -220,6 +235,7 @@
 - [x] Loading & error states
 
 **Daily View** (`client/src/pages/attendance/DailyView.tsx`)
+
 - [x] Date picker
 - [x] Fetches all employees' attendance for selected date
 - [x] Grid display:
@@ -234,6 +250,7 @@
 - [x] Handles no-data state
 
 **Admin Settings** (`client/src/pages/attendance/admin/DeviceSettings.tsx`)
+
 - [x] Bootstrap Shifts button:
   - Calls attendance.bootstrapShifts mutation
   - Shows loading state
@@ -249,6 +266,7 @@
 - [x] Alert component for feedback
 
 ### Components
+
 - [x] Used existing ProtectedRoute component (no new auth components)
 - [x] Used existing React Query hooks pattern
 - [x] Consistent with existing UI styling
@@ -260,6 +278,7 @@
 ## Error Handling & Edge Cases
 
 ### Sync Edge Cases
+
 - [x] Duplicate punches → Handled via INSERT IGNORE
 - [x] Access DB file not found → Returns error status
 - [x] Access DB locked (Taratus open) → Advisory lock timeout, returns "locked"
@@ -268,6 +287,7 @@
 - [x] Missing checkout → Detected and flagged in status
 
 ### Daily Computation Edge Cases
+
 - [x] No shift assigned → Assumed absent
 - [x] Multiple punches in sequence → Collapsed if <30 seconds apart
 - [x] Future-dated punches → Accepted if within assignment range
@@ -278,12 +298,14 @@
 - [x] Partial day (incomplete time record) → Detected and flagged
 
 ### Database Errors
+
 - [x] Advisory lock failures → Returns "locked" status
 - [x] Connection pool issues → Retries with exponential backoff
 - [x] Constraint violations → Logged; INSERT IGNORE prevents duplicates
 - [x] Transaction failures → Rolled back; UI shows error
 
 ### Frontend Errors
+
 - [x] Network failures → Error message shown
 - [x] 401/403 auth errors → User redirected to login
 - [x] Empty data states → "No records found" message
@@ -294,13 +316,15 @@
 ## Quality & Verification
 
 ### Code Quality
+
 - [x] TypeScript compilation passes (pnpm check)
 - [x] No unused imports
-- [x] Consistent naming (camelCase, _prefix for internal)
+- [x] Consistent naming (camelCase, \_prefix for internal)
 - [x] Error handling in all procedures
 - [x] No hardcoded secrets in code
 
 ### Testing
+
 - [x] Manual testing of sync workflow
 - [x] Manual testing of daily materialization
 - [x] Manual testing of monthly report generation
@@ -311,6 +335,7 @@
 - [x] Verified role gating (non-admin cannot access)
 
 ### Database
+
 - [x] Verified all 7 tables exist
 - [x] Verified primary keys and indexes
 - [x] Verified foreign key constraints (if any)
@@ -319,6 +344,7 @@
 - [x] Verified data is queryable and correct
 
 ### Integration
+
 - [x] Router registered in appRouter
 - [x] All procedures accessible via tRPC
 - [x] Frontend routes accessible
@@ -359,7 +385,7 @@
 - [x] Follows Project Principles (smallest correct diff, root-cause fixes)
 - [x] Uses existing patterns (ProtectedRoute, tRPC, React Query)
 - [x] No new dependencies added (uses existing mdb-reader)
-- [x] Database isolation (attendance_ prefix, separate tables)
+- [x] Database isolation (attendance\_ prefix, separate tables)
 - [x] Role-based access control
 - [x] Read-only Access DB access
 - [x] Idempotent sync operation

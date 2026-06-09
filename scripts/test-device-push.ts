@@ -5,7 +5,7 @@
  * Listens on port 7005 for real-time punch notifications from device
  */
 
-import { getDevicePushListener } from '../server/services/attendance/devicePushListener';
+import { getDevicePushListener } from "../server/services/attendance/devicePushListener";
 
 async function main() {
   console.log(`\n🔔 ZKTeco Device Push Listener Test`);
@@ -19,7 +19,7 @@ async function main() {
   const punchLog: any[] = [];
 
   // Listen for punch events
-  listener.on('punch', (punch) => {
+  listener.on("punch", (punch) => {
     punchCount++;
     lastPunch = new Date();
 
@@ -27,25 +27,27 @@ async function main() {
     console.log(`  → Emp: ${punch.empNo}`);
     console.log(`  → Time: ${punch.timestamp.toISOString()}`);
     console.log(`  → Direction: ${punch.direction.toUpperCase()}`);
-    console.log(`  → Raw: ${punch.rawBytes.toString('hex').substring(0, 40)}...\n`);
+    console.log(
+      `  → Raw: ${punch.rawBytes.toString("hex").substring(0, 40)}...\n`,
+    );
 
     punchLog.push({
       time: punch.receivedAt,
       empNo: punch.empNo,
       direction: punch.direction,
-      rawHex: punch.rawBytes.toString('hex'),
+      rawHex: punch.rawBytes.toString("hex"),
     });
   });
 
-  listener.on('client-connected', (info) => {
+  listener.on("client-connected", (info) => {
     console.log(`✓ Device connected from ${info.ip}:${info.port}`);
   });
 
-  listener.on('client-disconnected', (info) => {
+  listener.on("client-disconnected", (info) => {
     console.log(`✗ Device disconnected: ${info.ip}`);
   });
 
-  listener.on('listening', (info) => {
+  listener.on("listening", (info) => {
     console.log(`✓ Listening on port ${info.port}`);
     console.log(`⏳ Waiting for device push notifications...`);
     console.log(`💡 Make a punch on the device to test\n`);
@@ -61,7 +63,9 @@ async function main() {
   // Monitor for 2 minutes
   const monitorInterval = setInterval(() => {
     const status = listener.getStatus();
-    console.log(`[${new Date().toLocaleTimeString()}] Status: ${punchCount} punches, ${status.activeConnections} connected clients`);
+    console.log(
+      `[${new Date().toLocaleTimeString()}] Status: ${punchCount} punches, ${status.activeConnections} connected clients`,
+    );
 
     // Auto-exit if listening but no activity for 60 seconds
     if (punchCount > 0 && Date.now() - lastPunch.getTime() > 60000) {
@@ -94,18 +98,26 @@ async function main() {
       console.log(`\n[NEXT STEPS]`);
       console.log(`1. Verify device is configured to push to this IP:7005`);
       console.log(`2. Make a punch on the device and check if data arrives`);
-      console.log(`3. If still no data, run PowerShell listener for comparison:`);
-      console.log(`   powershell -File "D:\\Taurus V3.0\\listen_device_push.ps1" -Port 7005\n`);
+      console.log(
+        `3. If still no data, run PowerShell listener for comparison:`,
+      );
+      console.log(
+        `   powershell -File "D:\\Taurus V3.0\\listen_device_push.ps1" -Port 7005\n`,
+      );
     } else {
       console.log(`✓ Test successful!`);
       console.log(`\nReceived ${punchCount} punch records:`);
       punchLog.slice(0, 5).forEach((p, i) => {
-        console.log(`  ${i + 1}. Emp: ${p.empNo}, Dir: ${p.direction}, Time: ${p.time.toLocaleTimeString()}`);
+        console.log(
+          `  ${i + 1}. Emp: ${p.empNo}, Dir: ${p.direction}, Time: ${p.time.toLocaleTimeString()}`,
+        );
       });
       if (punchLog.length > 5) {
         console.log(`  ... and ${punchLog.length - 5} more`);
       }
-      console.log(`\nDevice push protocol is working! Ready for integration.\n`);
+      console.log(
+        `\nDevice push protocol is working! Ready for integration.\n`,
+      );
     }
   }
 }

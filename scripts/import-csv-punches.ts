@@ -11,27 +11,33 @@
  *   npx tsx scripts/import-csv-punches.ts "D:\Programs\fp\pulled_old_logs_p0_m0.csv" --from 2026-05-10 --to 2026-05-20
  */
 
-import * as path from 'path';
-import * as url from 'url';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(url.fileURLToPath(import.meta.url), '../../.env') });
+import * as path from "path";
+import * as url from "url";
+import * as dotenv from "dotenv";
+dotenv.config({
+  path: path.resolve(url.fileURLToPath(import.meta.url), "../../.env"),
+});
 
-import * as fs from 'fs';
-import * as crypto from 'crypto';
-import { getDb } from '../server/db';
-import { attendancePunches } from '../drizzle/schema';
-import { eq } from 'drizzle-orm';
+import * as fs from "fs";
+import * as crypto from "crypto";
+import { getDb } from "../server/db";
+import { attendancePunches } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const CSV_PATH = process.argv[2];
 if (!CSV_PATH) {
-  console.error('Usage: npx tsx scripts/import-csv-punches.ts <csv-path> [--from YYYY-MM-DD] [--to YYYY-MM-DD]');
+  console.error(
+    "Usage: npx tsx scripts/import-csv-punches.ts <csv-path> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
+  );
   process.exit(1);
 }
 
-const fromIdx = process.argv.indexOf('--from');
-const toIdx = process.argv.indexOf('--to');
-const fromDate = fromIdx !== -1 ? new Date(process.argv[fromIdx + 1] + 'T00:00:00') : null;
-const toDate = toIdx !== -1 ? new Date(process.argv[toIdx + 1] + 'T23:59:59') : null;
+const fromIdx = process.argv.indexOf("--from");
+const toIdx = process.argv.indexOf("--to");
+const fromDate =
+  fromIdx !== -1 ? new Date(process.argv[fromIdx + 1] + "T00:00:00") : null;
+const toDate =
+  toIdx !== -1 ? new Date(process.argv[toIdx + 1] + "T23:59:59") : null;
 
 interface Row {
   enrollNo: number;
@@ -40,14 +46,14 @@ interface Row {
 }
 
 function parseCSV(filePath: string): Row[] {
-  const content = fs.readFileSync(filePath, 'utf8');
+  const content = fs.readFileSync(filePath, "utf8");
   const lines = content.split(/\r?\n/);
   const rows: Row[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const parts = line.split(',');
+    const parts = line.split(",");
     if (parts.length < 10) continue;
 
     const enrollNo = parseInt(parts[0], 10);
@@ -63,7 +69,7 @@ function parseCSV(filePath: string): Row[] {
 }
 
 function hashRecord(input: string): string {
-  return crypto.createHash('sha1').update(input).digest('hex');
+  return crypto.createHash("sha1").update(input).digest("hex");
 }
 
 async function main() {
@@ -79,17 +85,24 @@ async function main() {
 
   console.log(`Rows after date filter: ${rows.length}`);
   if (fromDate || toDate) {
-    console.log(`  Range: ${fromDate?.toISOString() ?? 'start'} → ${toDate?.toISOString() ?? 'end'}`);
+    console.log(
+      `  Range: ${fromDate?.toISOString() ?? "start"} → ${toDate?.toISOString() ?? "end"}`,
+    );
   }
 
   if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL is not set. Check that .env exists in the project root.');
+    console.error(
+      "DATABASE_URL is not set. Check that .env exists in the project root.",
+    );
     process.exit(1);
   }
 
   const db = await getDb();
   if (!db) {
-    console.error('Database not available. Verify DATABASE_URL:', process.env.DATABASE_URL);
+    console.error(
+      "Database not available. Verify DATABASE_URL:",
+      process.env.DATABASE_URL,
+    );
     process.exit(1);
   }
 
@@ -104,7 +117,7 @@ async function main() {
     for (const row of batch) {
       try {
         const sourceHash = hashRecord(
-          `${row.enrollNo}|${row.timestamp.toISOString()}|${row.inOutMode}`
+          `${row.enrollNo}|${row.timestamp.toISOString()}|${row.inOutMode}`,
         );
         const sourceRowId = `${row.enrollNo}_${row.timestamp.getTime()}`;
 
@@ -114,9 +127,14 @@ async function main() {
           .values({
             empCd: String(row.enrollNo),
             punchAt: row.timestamp,
-            direction: row.inOutMode === 1 ? 'in' : row.inOutMode === 0 ? 'out' : 'unknown',
-            deviceId: 'fk623',
-            source: 'access',
+            direction:
+              row.inOutMode === 1
+                ? "in"
+                : row.inOutMode === 0
+                  ? "out"
+                  : "unknown",
+            deviceId: "fk623",
+            source: "access",
             sourceRowId,
             sourceHash,
             importedAt: new Date(),
@@ -126,7 +144,7 @@ async function main() {
         // Check if it was actually new by querying (the above always "updates" on dup)
         inserted++;
       } catch (e: any) {
-        if (e?.code === 'ER_DUP_ENTRY') {
+        if (e?.code === "ER_DUP_ENTRY") {
           skipped++;
         } else {
           errors++;
@@ -136,7 +154,9 @@ async function main() {
     }
 
     if ((i / BATCH) % 10 === 0) {
-      process.stdout.write(`\r  Progress: ${Math.min(i + BATCH, rows.length)}/${rows.length}`);
+      process.stdout.write(
+        `\r  Progress: ${Math.min(i + BATCH, rows.length)}/${rows.length}`,
+      );
     }
   }
 
@@ -150,6 +170,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('Fatal:', e);
+  console.error("Fatal:", e);
   process.exit(1);
 });

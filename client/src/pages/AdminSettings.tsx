@@ -45,62 +45,78 @@ const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
   mssqlInAppEnabled: true,
   manualPatientInAppEnabled: true,
 };
-const clonePricing = (value: PricingConfig): PricingConfig => JSON.parse(JSON.stringify(value));
+const clonePricing = (value: PricingConfig): PricingConfig =>
+  JSON.parse(JSON.stringify(value));
 const toSafeNumber = (value: unknown) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 };
 
-export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: boolean }) {
+export default function AdminSettings({
+  pricingOnly = false,
+}: {
+  pricingOnly?: boolean;
+}) {
   const PRICING_RULES_PERMISSION = "/admin/settings/pricing-rules";
   const PRICING_RULES_KEY_PERMISSION = "appointments_pricing_v1";
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
   const [preferredUrl, setPreferredUrl] = useState("");
   const [pricingJson, setPricingJson] = useState("");
-  const [pricingForm, setPricingForm] = useState<PricingConfig>(clonePricing(DEFAULT_APPOINTMENTS_PRICING));
+  const [pricingForm, setPricingForm] = useState<PricingConfig>(
+    clonePricing(DEFAULT_APPOINTMENTS_PRICING),
+  );
   const pricingSettingQuery = trpc.medical.getSystemSetting.useQuery(
     { key: PRICING_SETTING_KEY },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const appNotificationSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: APP_NOTIFICATION_SETTINGS_KEY },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const appNotificationFeedQuery = trpc.medical.getSystemSetting.useQuery(
     { key: APP_NOTIFICATION_FEED_KEY },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const mobileSheetModeSettingQuery = trpc.medical.getSystemSetting.useQuery(
     { key: MOBILE_SHEET_MODE_KEY },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
   const updateSettingMutation = trpc.medical.updateSystemSetting.useMutation();
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(isAuthenticated && user?.role !== "admin"),
     refetchOnWindowFocus: false,
   });
-  const appNotificationSettingsValueRaw = (appNotificationSettingsQuery.data as any)?.value;
+  const appNotificationSettingsValueRaw = (
+    appNotificationSettingsQuery.data as any
+  )?.value;
   const appNotificationSettings: AppNotificationSettings =
-    appNotificationSettingsValueRaw && typeof appNotificationSettingsValueRaw === "object"
+    appNotificationSettingsValueRaw &&
+    typeof appNotificationSettingsValueRaw === "object"
       ? {
           mssqlOwnerEnabled:
-            typeof appNotificationSettingsValueRaw.mssqlOwnerEnabled === "boolean"
+            typeof appNotificationSettingsValueRaw.mssqlOwnerEnabled ===
+            "boolean"
               ? appNotificationSettingsValueRaw.mssqlOwnerEnabled
               : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlOwnerEnabled,
           mssqlInAppEnabled:
-            typeof appNotificationSettingsValueRaw.mssqlInAppEnabled === "boolean"
+            typeof appNotificationSettingsValueRaw.mssqlInAppEnabled ===
+            "boolean"
               ? appNotificationSettingsValueRaw.mssqlInAppEnabled
               : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlInAppEnabled,
           manualPatientInAppEnabled:
-            typeof appNotificationSettingsValueRaw.manualPatientInAppEnabled === "boolean"
+            typeof appNotificationSettingsValueRaw.manualPatientInAppEnabled ===
+            "boolean"
               ? appNotificationSettingsValueRaw.manualPatientInAppEnabled
               : DEFAULT_APP_NOTIFICATION_SETTINGS.manualPatientInAppEnabled,
           operationsPushEnabled:
-            typeof appNotificationSettingsValueRaw.operationsPushEnabled === "boolean"
+            typeof appNotificationSettingsValueRaw.operationsPushEnabled ===
+            "boolean"
               ? appNotificationSettingsValueRaw.operationsPushEnabled
               : undefined,
-          operationsPushUserIds: Array.isArray(appNotificationSettingsValueRaw.operationsPushUserIds)
+          operationsPushUserIds: Array.isArray(
+            appNotificationSettingsValueRaw.operationsPushUserIds,
+          )
             ? appNotificationSettingsValueRaw.operationsPushUserIds
                 .map((v: unknown) => Number(v))
                 .filter((v: number) => Number.isInteger(v) && v > 0)
@@ -121,14 +137,18 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
 
   useEffect(() => {
     const serverValue = (pricingSettingQuery.data as any)?.value;
-    const payload = serverValue && typeof serverValue === "object" ? (serverValue as PricingConfig) : DEFAULT_APPOINTMENTS_PRICING;
+    const payload =
+      serverValue && typeof serverValue === "object"
+        ? (serverValue as PricingConfig)
+        : DEFAULT_APPOINTMENTS_PRICING;
     setPricingForm(clonePricing(payload));
     setPricingJson(JSON.stringify(payload, null, 2));
   }, [pricingSettingQuery.data]);
 
   if (!isAuthenticated) return null;
 
-  const isPricingOnlyMode = pricingOnly || location.startsWith("/admin/settings/pricing-rules");
+  const isPricingOnlyMode =
+    pricingOnly || location.startsWith("/admin/settings/pricing-rules");
   const userRole = String(user?.role ?? "").toLowerCase();
   const myPermissions = (permissionsQuery.data ?? []) as string[];
   const canReadPricingRules =
@@ -138,7 +158,11 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     myPermissions.includes(PRICING_RULES_KEY_PERMISSION) ||
     myPermissions.includes("/appointments/accounts");
 
-  if (isPricingOnlyMode && user?.role !== "admin" && permissionsQuery.isLoading) {
+  if (
+    isPricingOnlyMode &&
+    user?.role !== "admin" &&
+    permissionsQuery.isLoading
+  ) {
     return null;
   }
 
@@ -150,11 +174,12 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     toast.success("Settings Saved");
   };
 
-  const mobileSheetModeValueRaw = (mobileSheetModeSettingQuery.data as any)?.value;
+  const mobileSheetModeValueRaw = (mobileSheetModeSettingQuery.data as any)
+    ?.value;
   const mobileSheetModeEnabled = Boolean(
     mobileSheetModeValueRaw && typeof mobileSheetModeValueRaw === "object"
       ? mobileSheetModeValueRaw.enabled
-      : mobileSheetModeValueRaw
+      : mobileSheetModeValueRaw,
   );
 
   const handleToggleMobileSheetMode = async (enabled: boolean) => {
@@ -164,14 +189,21 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
         value: { enabled },
       });
       await mobileSheetModeSettingQuery.refetch();
-      toast.success(enabled ? "Mobile sheet mode enabled" : "Mobile sheet mode disabled");
+      toast.success(
+        enabled ? "Mobile sheet mode enabled" : "Mobile sheet mode disabled",
+      );
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update mobile sheet mode"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to update mobile sheet mode"),
+      );
     }
   };
-  const saveAppNotificationSettings = async (value: AppNotificationSettings) => {
+  const saveAppNotificationSettings = async (
+    value: AppNotificationSettings,
+  ) => {
     const preservedRaw =
-      appNotificationSettingsValueRaw && typeof appNotificationSettingsValueRaw === "object"
+      appNotificationSettingsValueRaw &&
+      typeof appNotificationSettingsValueRaw === "object"
         ? appNotificationSettingsValueRaw
         : {};
     await updateSettingMutation.mutateAsync({
@@ -186,7 +218,7 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
   };
   const handleToggleAppNotificationSetting = async (
     key: keyof AppNotificationSettings,
-    enabled: boolean
+    enabled: boolean,
   ) => {
     try {
       await saveAppNotificationSettings({
@@ -195,7 +227,9 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       });
       toast.success("Notification settings saved");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update notification settings"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to update notification settings"),
+      );
     }
   };
 
@@ -213,7 +247,9 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
       setPricingJson(JSON.stringify(pricingForm, null, 2));
       toast.success("Appointments pricing saved");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to save appointments pricing"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to save appointments pricing"),
+      );
     }
   };
 
@@ -240,7 +276,9 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
     onChange: (value: number) => void;
   }) => (
     <div className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40 last:border-0 group/field">
-      <span className="text-[11px] text-muted-foreground font-medium group-hover/field:text-foreground transition-colors">{label}</span>
+      <span className="text-[11px] text-muted-foreground font-medium group-hover/field:text-foreground transition-colors">
+        {label}
+      </span>
       <Input
         type="number"
         className="h-8 w-24 text-center tabular-nums text-xs font-bold border-muted-foreground/20 focus:border-primary/50 bg-background/50"
@@ -251,23 +289,61 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-0 pb-6 text-right" dir="rtl">
-      <Tabs defaultValue="settings" persistKey="admin-settings" className="w-full">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-0 pb-6 text-right"
+      dir="rtl"
+    >
+      <Tabs
+        defaultValue="settings"
+        persistKey="admin-settings"
+        className="w-full"
+      >
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 pt-1">
-          <TabsList
-            className="flex w-full flex-wrap gap-1 rounded-xl bg-muted/40 p-1 sm:flex-nowrap sm:overflow-x-auto border"
-          >
-            <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm" value="settings">
+          <TabsList className="flex w-full flex-wrap gap-1 rounded-xl bg-muted/40 p-1 sm:flex-nowrap sm:overflow-x-auto border">
+            <TabsTrigger
+              className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              value="settings"
+            >
               الإعدادات العامة
             </TabsTrigger>
             {!isPricingOnlyMode && (
               <>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="status">حالة النظام</TabsTrigger>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="api">أدوات API</TabsTrigger>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="migrations">الهجرات</TabsTrigger>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="pentacam">بنتاكام</TabsTrigger>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="cards">الظهور</TabsTrigger>
-                <TabsTrigger className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold" value="notifications">الإخطارات</TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="status"
+                >
+                  حالة النظام
+                </TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="api"
+                >
+                  أدوات API
+                </TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="migrations"
+                >
+                  الهجرات
+                </TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="pentacam"
+                >
+                  بنتاكام
+                </TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="cards"
+                >
+                  الظهور
+                </TabsTrigger>
+                <TabsTrigger
+                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
+                  value="notifications"
+                >
+                  الإخطارات
+                </TabsTrigger>
               </>
             )}
           </TabsList>
@@ -285,7 +361,9 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">عنوان السيرفر المفضل (Local Storage)</Label>
+                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      عنوان السيرفر المفضل (Local Storage)
+                    </Label>
                     <div className="flex gap-2">
                       <Input
                         value={preferredUrl}
@@ -294,18 +372,28 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                         className="h-9 text-xs font-mono"
                         dir="ltr"
                       />
-                      <Button onClick={handleSave} size="sm" className="bg-primary text-primary-foreground h-9 px-4">
+                      <Button
+                        onClick={handleSave}
+                        size="sm"
+                        className="bg-primary text-primary-foreground h-9 px-4"
+                      >
                         حفظ
                       </Button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground italic px-1">العنوان الحالي النشط: {window.location.origin}</p>
+                    <p className="text-[10px] text-muted-foreground italic px-1">
+                      العنوان الحالي النشط: {window.location.origin}
+                    </p>
                   </div>
 
                   <div className="pt-4 border-t border-dashed space-y-4">
                     <div className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
                       <div className="space-y-0.5">
-                        <div className="text-xs font-bold">وضع الشيت للموبايل</div>
-                        <div className="text-[10px] text-muted-foreground">تحسين تخطيط النماذج الطبية للشاشات الصغيرة.</div>
+                        <div className="text-xs font-bold">
+                          وضع الشيت للموبايل
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          تحسين تخطيط النماذج الطبية للشاشات الصغيرة.
+                        </div>
                       </div>
                       <Switch
                         checked={mobileSheetModeEnabled}
@@ -326,18 +414,40 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { key: "mssqlOwnerEnabled", label: "إخطار المالك (MSSQL Sync)", desc: "إرسال إشعار عند إضافة مرضى عبر المزامنة." },
-                    { key: "mssqlInAppEnabled", label: "إخطار داخل التطبيق (MSSQL)", desc: "إظهار تنبيه داخلي لعمليات المزامنة." },
-                    { key: "manualPatientInAppEnabled", label: "إخطار الإضافة اليدوية", desc: "تنبيه الطاقم عند تسجيل مريض جديد يدوياً." }
+                    {
+                      key: "mssqlOwnerEnabled",
+                      label: "إخطار المالك (MSSQL Sync)",
+                      desc: "إرسال إشعار عند إضافة مرضى عبر المزامنة.",
+                    },
+                    {
+                      key: "mssqlInAppEnabled",
+                      label: "إخطار داخل التطبيق (MSSQL)",
+                      desc: "إظهار تنبيه داخلي لعمليات المزامنة.",
+                    },
+                    {
+                      key: "manualPatientInAppEnabled",
+                      label: "إخطار الإضافة اليدوية",
+                      desc: "تنبيه الطاقم عند تسجيل مريض جديد يدوياً.",
+                    },
                   ].map((s) => (
-                    <div key={s.key} className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                    <div
+                      key={s.key}
+                      className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                    >
                       <div className="space-y-0.5">
                         <div className="text-xs font-bold">{s.label}</div>
-                        <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {s.desc}
+                        </div>
                       </div>
                       <Switch
                         checked={(appNotificationSettings as any)[s.key]}
-                        onCheckedChange={(checked) => void handleToggleAppNotificationSetting(s.key as any, checked)}
+                        onCheckedChange={(checked) =>
+                          void handleToggleAppNotificationSetting(
+                            s.key as any,
+                            checked,
+                          )
+                        }
                       />
                     </div>
                   ))}
@@ -354,10 +464,21 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
                   قواعد تسعير المواعيد
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={handleResetPricing}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-[10px] font-bold"
+                    onClick={handleResetPricing}
+                  >
                     إعادة ضبط
                   </Button>
-                  <Button onClick={handleSavePricingForm} size="sm" className="h-8 text-[10px] font-bold bg-primary text-primary-foreground" disabled={updateSettingMutation.isPending}>
+                  <Button
+                    onClick={handleSavePricingForm}
+                    size="sm"
+                    className="h-8 text-[10px] font-bold bg-primary text-primary-foreground"
+                    disabled={updateSettingMutation.isPending}
+                  >
                     حفظ القواعد
                   </Button>
                 </div>
@@ -367,35 +488,137 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <h4 className="text-[11px] font-black text-card-foreground uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">أسعار الكشوفات (Amount)</h4>
+                    <h4 className="text-[11px] font-black text-card-foreground uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">
+                      أسعار الكشوفات (Amount)
+                    </h4>
                     <div className="space-y-1">
-                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
-                      <PriceField label="د. السعدني" value={pricingForm.amount.prk.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultantSaadany = v; })} />
-                      <PriceField label="استشاري" value={pricingForm.amount.prk.saadanyConsultant} onChange={(v) => setField((d) => { d.amount.prk.saadanyConsultant = v; })} />
-                      <PriceField label="أخصائي" value={pricingForm.amount.prk.saadanySpecialist} onChange={(v) => setField((d) => { d.amount.prk.saadanySpecialist = v; })} />
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">
+                        — PRK —
+                      </div>
+                      <PriceField
+                        label="د. السعدني"
+                        value={pricingForm.amount.prk.saadanyConsultantSaadany}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.amount.prk.saadanyConsultantSaadany = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="استشاري"
+                        value={pricingForm.amount.prk.saadanyConsultant}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.amount.prk.saadanyConsultant = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="أخصائي"
+                        value={pricingForm.amount.prk.saadanySpecialist}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.amount.prk.saadanySpecialist = v;
+                          })
+                        }
+                      />
                     </div>
                     <div className="space-y-1 pt-2">
-                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— LASIK —</div>
-                      <PriceField label="د. السعدني" value={pricingForm.amount.lasik.saadanyConsultantSaadany} onChange={(v) => setField((d) => { d.amount.lasik.saadanyConsultantSaadany = v; })} />
-                      <PriceField label="د. صواف" value={pricingForm.amount.lasik.sawaf} onChange={(v) => setField((d) => { d.amount.lasik.sawaf = v; })} />
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">
+                        — LASIK —
+                      </div>
+                      <PriceField
+                        label="د. السعدني"
+                        value={
+                          pricingForm.amount.lasik.saadanyConsultantSaadany
+                        }
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.amount.lasik.saadanyConsultantSaadany = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="د. صواف"
+                        value={pricingForm.amount.lasik.sawaf}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.amount.lasik.sawaf = v;
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <h4 className="text-[11px] font-black text-success uppercase tracking-widest bg-success/10 px-2 py-1 rounded">حساب المركز (Doctor Account)</h4>
+                    <h4 className="text-[11px] font-black text-success uppercase tracking-widest bg-success/10 px-2 py-1 rounded">
+                      حساب المركز (Doctor Account)
+                    </h4>
                     <div className="space-y-1">
-                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— PRK —</div>
-                      <PriceField label="د. السعدني" value={pricingForm.doctorAccount.prk.saadany} onChange={(v) => setField((d) => { d.doctorAccount.prk.saadany = v; })} />
-                      <PriceField label="استشاري" value={pricingForm.doctorAccount.prk.consultant} onChange={(v) => setField((d) => { d.doctorAccount.prk.consultant = v; })} />
-                      <PriceField label="د. صواف" value={pricingForm.doctorAccount.prk.sawaf} onChange={(v) => setField((d) => { d.doctorAccount.prk.sawaf = v; })} />
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">
+                        — PRK —
+                      </div>
+                      <PriceField
+                        label="د. السعدني"
+                        value={pricingForm.doctorAccount.prk.saadany}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.prk.saadany = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="استشاري"
+                        value={pricingForm.doctorAccount.prk.consultant}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.prk.consultant = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="د. صواف"
+                        value={pricingForm.doctorAccount.prk.sawaf}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.prk.sawaf = v;
+                          })
+                        }
+                      />
                     </div>
                     <div className="space-y-1 pt-2">
-                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">— LASIK —</div>
-                      <PriceField label="د. السعدني" value={pricingForm.doctorAccount.lasik.saadany} onChange={(v) => setField((d) => { d.doctorAccount.lasik.saadany = v; })} />
-                      <PriceField label="د. صواف (Moria)" value={pricingForm.doctorAccount.lasik.sawafMoria} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMoria = v; })} />
-                      <PriceField label="د. صواف (Metal)" value={pricingForm.doctorAccount.lasik.sawafMetal} onChange={(v) => setField((d) => { d.doctorAccount.lasik.sawafMetal = v; })} />
+                      <div className="font-bold text-xs mb-2 text-muted-foreground/80 px-1">
+                        — LASIK —
+                      </div>
+                      <PriceField
+                        label="د. السعدني"
+                        value={pricingForm.doctorAccount.lasik.saadany}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.lasik.saadany = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="د. صواف (Moria)"
+                        value={pricingForm.doctorAccount.lasik.sawafMoria}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.lasik.sawafMoria = v;
+                          })
+                        }
+                      />
+                      <PriceField
+                        label="د. صواف (Metal)"
+                        value={pricingForm.doctorAccount.lasik.sawafMetal}
+                        onChange={(v) =>
+                          setField((d) => {
+                            d.doctorAccount.lasik.sawafMetal = v;
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -406,12 +629,24 @@ export default function AdminSettings({ pricingOnly = false }: { pricingOnly?: b
 
         {!isPricingOnlyMode && (
           <>
-            <TabsContent value="status" className="mt-2"><AdminStatus /></TabsContent>
-            <TabsContent value="api" className="mt-2"><AdminApiTools /></TabsContent>
-            <TabsContent value="migrations" className="mt-2"><AdminMigrations /></TabsContent>
-            <TabsContent value="pentacam" className="mt-2"><AdminPentacamFailed /></TabsContent>
-            <TabsContent value="cards" className="mt-2"><AdminCardVisibility /></TabsContent>
-            <TabsContent value="notifications" className="mt-2"><AdminNotificationSettings /></TabsContent>
+            <TabsContent value="status" className="mt-2">
+              <AdminStatus />
+            </TabsContent>
+            <TabsContent value="api" className="mt-2">
+              <AdminApiTools />
+            </TabsContent>
+            <TabsContent value="migrations" className="mt-2">
+              <AdminMigrations />
+            </TabsContent>
+            <TabsContent value="pentacam" className="mt-2">
+              <AdminPentacamFailed />
+            </TabsContent>
+            <TabsContent value="cards" className="mt-2">
+              <AdminCardVisibility />
+            </TabsContent>
+            <TabsContent value="notifications" className="mt-2">
+              <AdminNotificationSettings />
+            </TabsContent>
           </>
         )}
       </Tabs>

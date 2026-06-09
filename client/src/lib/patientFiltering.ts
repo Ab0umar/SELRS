@@ -27,7 +27,9 @@ export function matchesDoctorFilter(params: {
   const selected = normalizeSearchText(params.selectedDoctor);
   if (!selected) return true;
   const doctorNorm = normalizeSearchText(params.doctorValue);
-  const selectedNameNorm = normalizeSearchText(params.selectedDoctorName ?? params.selectedDoctor);
+  const selectedNameNorm = normalizeSearchText(
+    params.selectedDoctorName ?? params.selectedDoctor,
+  );
   const selectedCodeNorm = normalizeSearchText(params.selectedDoctorCode ?? "");
   return (
     doctorNorm === selectedNameNorm ||
@@ -37,12 +39,21 @@ export function matchesDoctorFilter(params: {
   );
 }
 
-export function matchesServiceCodeOrNameTerm(term: string, serviceCode: string, serviceName: string): boolean {
-  const normalizedTerm = String(term ?? "").trim().toLowerCase();
+export function matchesServiceCodeOrNameTerm(
+  term: string,
+  serviceCode: string,
+  serviceName: string,
+): boolean {
+  const normalizedTerm = String(term ?? "")
+    .trim()
+    .toLowerCase();
   if (!normalizedTerm) return true;
   return (
-    String(serviceCode ?? "").toLowerCase().includes(normalizedTerm) ||
-    String(serviceName ?? "").toLowerCase().includes(normalizedTerm)
+    String(serviceCode ?? "")
+      .toLowerCase()
+      .includes(normalizedTerm) ||
+    String(serviceName ?? "")
+      .toLowerCase()
+      .includes(normalizedTerm)
   );
 }
-

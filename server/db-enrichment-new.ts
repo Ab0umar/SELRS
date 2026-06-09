@@ -7,11 +7,13 @@ export async function enrichPatientsWithCodeMatches(
   db: any,
   patientRows: any[],
   doctors: any,
-  services: any
+  services: any,
 ) {
   if (!patientRows.length) return patientRows;
 
-  const patientIds = patientRows.map((p) => p.id).filter((id) => typeof id === "number");
+  const patientIds = patientRows
+    .map((p) => p.id)
+    .filter((id) => typeof id === "number");
   if (!patientIds.length) return patientRows;
 
   // Get doctors by code

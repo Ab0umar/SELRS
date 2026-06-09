@@ -7,20 +7,21 @@ This document outlines the plan for monitoring the health of the SRV100 applicat
 ### Key Metrics to Monitor
 
 - **API Performance:**
-    - **API Timing Logs:** All tRPC procedure invocations should be logged with their duration.
-    - **Slow Endpoint Threshold:** An alert should be triggered if the execution time for any tRPC procedure exceeds **2 seconds**.
-    - **MSSQL Query Timing:** The duration of SQL queries against the MSSQL database should be logged, especially for reporting endpoints.
+  - **API Timing Logs:** All tRPC procedure invocations should be logged with their duration.
+  - **Slow Endpoint Threshold:** An alert should be triggered if the execution time for any tRPC procedure exceeds **2 seconds**.
+  - **MSSQL Query Timing:** The duration of SQL queries against the MSSQL database should be logged, especially for reporting endpoints.
 
 - **Application Health:**
-    - **Production Health URL:** A dedicated health check endpoint (e.g., `/api/system/health`) should be available. This endpoint should be polled by an external service at regular intervals (e.g., every 1-5 minutes).
-    - **Health Check Response:** The health check should confirm connectivity to the MySQL and MSSQL databases and return a `200 OK` status if healthy.
-    - **Error Rates:** Monitor the rate of HTTP 5xx errors from the server. A sudden spike should trigger an alert.
+  - **Production Health URL:** A dedicated health check endpoint (e.g., `/api/system/health`) should be available. This endpoint should be polled by an external service at regular intervals (e.g., every 1-5 minutes).
+  - **Health Check Response:** The health check should confirm connectivity to the MySQL and MSSQL databases and return a `200 OK` status if healthy.
+  - **Error Rates:** Monitor the rate of HTTP 5xx errors from the server. A sudden spike should trigger an alert.
 
 - **System & Logs:**
-    - **PM2 Logs:** The output logs from the PM2 process manager (`~/.pm2/logs/`) should be regularly reviewed or streamed to a central logging service.
-    - **Frontend Console Errors:** As part of the post-deployment smoke check, the browser's developer console should be checked for any uncaught errors on critical pages.
+  - **PM2 Logs:** The output logs from the PM2 process manager (`~/.pm2/logs/`) should be regularly reviewed or streamed to a central logging service.
+  - **Frontend Console Errors:** As part of the post-deployment smoke check, the browser's developer console should be checked for any uncaught errors on critical pages.
 
 ### Monitoring Tools
+
 - **Logging:** PM2's built-in logging, potentially aggregated by a service like Papertrail, Datadog, or a self-hosted ELK stack.
 - **Uptime Monitoring:** An external service like UptimeRobot, Pingdom, or a similar tool to poll the health check URL.
 - **Performance Monitoring:** Application Performance Monitoring (APM) tools could be used for more detailed tracing, but for now, structured logs with timing information are the baseline.
@@ -28,7 +29,9 @@ This document outlines the plan for monitoring the health of the SRV100 applicat
 ## 2. Incident Response
 
 ### Incident Definition
+
 An "incident" is any event that causes a degradation or outage of service for users. Examples include:
+
 - The application is down or unresponsive (health check fails).
 - A critical feature (e.g., patient search, creating an examination) is broken.
 - Application performance is severely degraded (e.g., most requests take >5-10 seconds).
@@ -63,4 +66,5 @@ An "incident" is any event that causes a degradation or outage of service for us
     - **Action Items:** What steps will we take to prevent this from happening again? (e.g., add a new test case, improve a monitor, update a checklist).
 
 ---
-*This plan should be reviewed and updated after every major incident.*
+
+_This plan should be reviewed and updated after every major incident._

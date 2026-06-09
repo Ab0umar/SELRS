@@ -33,7 +33,7 @@ function isItemActive(pathname: string, activeFor: string[]): boolean {
   return activeFor.some((path) =>
     path === "/salary" || path === "/attendance"
       ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`)
+      : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
 

@@ -3,7 +3,14 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, Eye, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Eye,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import AuthenticatedImage from "@/components/AuthenticatedImage";
 import PentacamThumbnail from "@/components/PentacamThumbnail";
 import { getApiUrl } from "@/const";
@@ -30,7 +37,11 @@ function normalizeUrl(raw: unknown) {
   return getApiUrl(`/${value}`);
 }
 
-export default function PentacamFilesPanel({ patientId, compact = false, active = true }: PentacamFilesPanelProps) {
+export default function PentacamFilesPanel({
+  patientId,
+  compact = false,
+  active = true,
+}: PentacamFilesPanelProps) {
   const targetPatientId = Number(patientId ?? 0);
   const [previewIndex, setPreviewIndex] = useState(0);
   const filesQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
@@ -43,7 +54,10 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
     },
   );
 
-  const files = useMemo(() => (Array.isArray(filesQuery.data) ? filesQuery.data : []), [filesQuery.data]);
+  const files = useMemo(
+    () => (Array.isArray(filesQuery.data) ? filesQuery.data : []),
+    [filesQuery.data],
+  );
   const imageFiles = useMemo(
     () =>
       files
@@ -73,7 +87,9 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
   if (!targetPatientId) {
     return (
       <Card className="border-border/80 bg-background/92 shadow-sm">
-        <CardContent className="pt-6 text-sm text-muted-foreground">Select patient first.</CardContent>
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          Select patient first.
+        </CardContent>
       </Card>
     );
   }
@@ -83,14 +99,26 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
       <CardHeader className="space-y-3 border-b border-border bg-muted/25 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-base text-foreground">الملفات المرتبطة بالبنتاكام</CardTitle>
+            <CardTitle className="text-base text-foreground">
+              الملفات المرتبطة بالبنتاكام
+            </CardTitle>
             <div className="mt-1 text-sm text-muted-foreground">
-              {files.length > 0 ? `${files.length} linked file${files.length === 1 ? "" : "s"}` : "No linked Pentacam files yet"}
+              {files.length > 0
+                ? `${files.length} linked file${files.length === 1 ? "" : "s"}`
+                : "No linked Pentacam files yet"}
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="button" variant="outline" size="sm" onClick={() => filesQuery.refetch()} disabled={filesQuery.isFetching}>
-              <RefreshCw className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => filesQuery.refetch()}
+              disabled={filesQuery.isFetching}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -103,99 +131,123 @@ export default function PentacamFilesPanel({ patientId, compact = false, active 
           </div>
         ) : (
           <div className="space-y-4">
-              <div className="overflow-hidden rounded-[1.5rem] border border-border bg-foreground/95 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
-                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/65">Preview</div>
-                    <div className="mt-1 truncate text-sm font-semibold text-primary-foreground">
-                      {activeImage?.fileName ?? "Pentacam image"}
-                    </div>
+            <div className="overflow-hidden rounded-[1.5rem] border border-border bg-foreground/95 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/65">
+                    Preview
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      aria-label="الصورة السابقة"
-                      onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={previewIndex <= 0}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      aria-label="الصورة التالية"
-                      onClick={() => setPreviewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1))}
-                      disabled={previewIndex >= imageFiles.length - 1}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                  <div className="mt-1 truncate text-sm font-semibold text-primary-foreground">
+                    {activeImage?.fileName ?? "Pentacam image"}
                   </div>
                 </div>
-
-                {activeImage?.url ? (
-                  <AuthenticatedImage
-                    src={activeImage.url}
-                    alt={activeImage.fileName}
-                    className="h-[min(72vh,48rem)] w-full bg-foreground/95 object-contain"
-                    loading="eager"
-                  />
-                ) : (
-                  <div className="flex h-[min(72vh,48rem)] items-center justify-center bg-foreground/95 px-6 text-center text-sm text-muted-foreground">
-                    Select an image to preview it here.
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="الصورة السابقة"
+                    onClick={() =>
+                      setPreviewIndex((prev) => Math.max(0, prev - 1))
+                    }
+                    disabled={previewIndex <= 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="الصورة التالية"
+                    onClick={() =>
+                      setPreviewIndex((prev) =>
+                        Math.min(imageFiles.length - 1, prev + 1),
+                      )
+                    }
+                    disabled={previewIndex >= imageFiles.length - 1}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                {imageFiles.map((row, index) => {
-                  const isActive = previewIndex === index;
-                  return (
-                    <div
-                      key={row.id}
-                      className={`space-y-3 rounded-2xl border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 ${
-                        isActive ? "border-primary/30 ring-1 ring-primary/10" : "border-border"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <Badge variant={row.status === "imported" ? "default" : "secondary"}>{row.status || "unknown"}</Badge>
-                      </div>
+              {activeImage?.url ? (
+                <AuthenticatedImage
+                  src={activeImage.url}
+                  alt={activeImage.fileName}
+                  className="h-[min(72vh,48rem)] w-full bg-foreground/95 object-contain"
+                  loading="eager"
+                />
+              ) : (
+                <div className="flex h-[min(72vh,48rem)] items-center justify-center bg-foreground/95 px-6 text-center text-sm text-muted-foreground">
+                  Select an image to preview it here.
+                </div>
+              )}
+            </div>
 
-                      <button type="button" className="group block w-full text-left" onClick={() => setPreviewIndex(index)}>
-                        <PentacamThumbnail
-                          src={row.url}
-                          alt={row.fileName}
-                          className="h-36 w-full rounded-xl border border-border bg-muted/30 object-cover"
-                          loading={index < (compact ? 6 : 12) ? "eager" : "lazy"}
-                        />
-                        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
-                          <Eye className="h-3.5 w-3.5" />
-                          معاينة
-                        </div>
-                      </button>
-
-                      <div className="text-xs font-medium break-all text-foreground">{row.fileName}</div>
-                      <div className="text-[11px] text-muted-foreground">{formatDate(row.capturedAt || row.importedAt)}</div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" size="sm" variant="outline" asChild>
-                          <a href={row.url} download={row.fileName}>
-                            <Download className="h-4 w-4" />
-                            Download
-                          </a>
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" asChild>
-                          <a href={row.url} target="_blank" rel="noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                            Open in browser
-                          </a>
-                        </Button>
-                      </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+              {imageFiles.map((row, index) => {
+                const isActive = previewIndex === index;
+                return (
+                  <div
+                    key={row.id}
+                    className={`space-y-3 rounded-2xl border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 ${
+                      isActive
+                        ? "border-primary/30 ring-1 ring-primary/10"
+                        : "border-border"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge
+                        variant={
+                          row.status === "imported" ? "default" : "secondary"
+                        }
+                      >
+                        {row.status || "unknown"}
+                      </Badge>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <button
+                      type="button"
+                      className="group block w-full text-left"
+                      onClick={() => setPreviewIndex(index)}
+                    >
+                      <PentacamThumbnail
+                        src={row.url}
+                        alt={row.fileName}
+                        className="h-36 w-full rounded-xl border border-border bg-muted/30 object-cover"
+                        loading={index < (compact ? 6 : 12) ? "eager" : "lazy"}
+                      />
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
+                        <Eye className="h-3.5 w-3.5" />
+                        معاينة
+                      </div>
+                    </button>
+
+                    <div className="text-xs font-medium break-all text-foreground">
+                      {row.fileName}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {formatDate(row.capturedAt || row.importedAt)}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" asChild>
+                        <a href={row.url} download={row.fileName}>
+                          <Download className="h-4 w-4" />
+                          Download
+                        </a>
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" asChild>
+                        <a href={row.url} target="_blank" rel="noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                          Open in browser
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </CardContent>

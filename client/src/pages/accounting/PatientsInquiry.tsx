@@ -12,7 +12,9 @@ export default function PatientsInquiry() {
 
   const handleSearch = () => {
     if (patientCode.trim()) {
-      setLocation(`/accounting/patient/${encodeURIComponent(patientCode.trim())}`);
+      setLocation(
+        `/accounting/patient/${encodeURIComponent(patientCode.trim())}`,
+      );
     }
   };
 
@@ -21,16 +23,20 @@ export default function PatientsInquiry() {
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl tracking-tight">استعلام المرضى</CardTitle>
+            <CardTitle className="text-xl tracking-tight">
+              استعلام المرضى
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex gap-2">
-            <Input 
-              placeholder="أدخل كود المريض..." 
-              value={patientCode} 
+            <Input
+              placeholder="أدخل كود المريض..."
+              value={patientCode}
               onChange={(e) => setPatientCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button onClick={handleSearch} aria-label="بحث عن مريض"><Search className="ml-2" aria-hidden /> بحث</Button>
+            <Button onClick={handleSearch} aria-label="بحث عن مريض">
+              <Search className="ml-2" aria-hidden /> بحث
+            </Button>
           </CardContent>
         </Card>
       </div>

@@ -26,7 +26,7 @@ type OptionalDateRangeInput = SectionInput & {
 };
 
 type DoctorInput = {
-  doctorCode?: string;   // single (legacy, receipts inquiry)
+  doctorCode?: string; // single (legacy, receipts inquiry)
   doctorCodes?: string[]; // multi (service revenue)
 };
 
@@ -36,7 +36,7 @@ type PatientInput = {
 };
 
 type ServiceInput = {
-  serviceCode?: string;   // single (legacy)
+  serviceCode?: string; // single (legacy)
   serviceCodes?: string[]; // multi (service revenue)
 };
 
@@ -46,9 +46,12 @@ type LimitInput = {
 
 export type DashboardSummarySqlInput = SectionInput & { date?: string };
 
-export type DailyRevenueSqlInput = DateRangeInput & DoctorInput & { shiftCode?: string };
+export type DailyRevenueSqlInput = DateRangeInput &
+  DoctorInput & { shiftCode?: string };
 
-export type ServiceRevenueSqlInput = DateRangeInput & DoctorInput & ServiceInput;
+export type ServiceRevenueSqlInput = DateRangeInput &
+  DoctorInput &
+  ServiceInput;
 
 export type ReceiptsInquirySqlInput = OptionalDateRangeInput &
   PatientInput &
@@ -64,7 +67,10 @@ export type ReceiptDetailSqlInput = {
   trNo: string;
 };
 
-export type LasikReceiptsSqlInput = Omit<ReceiptsInquirySqlInput, "sectionCode">;
+export type LasikReceiptsSqlInput = Omit<
+  ReceiptsInquirySqlInput,
+  "sectionCode"
+>;
 
 export type LasikServicesSqlInput = OptionalDateRangeInput &
   PatientInput &
@@ -123,15 +129,21 @@ function doctorWhere(
 ): string[] {
   const raw = Array.isArray(doctorCodesOrCode)
     ? doctorCodesOrCode
-    : doctorCodesOrCode ? [doctorCodesOrCode] : [];
+    : doctorCodesOrCode
+      ? [doctorCodesOrCode]
+      : [];
   const codes = raw.map((c) => c.trim()).filter(Boolean);
   if (!codes.length) return [];
   if (codes.length === 1) {
-    params.doctorCode0 = codes[0];
-    return ["s.SRV_BY1 = @doctorCode0"];
+    params.doctorCode = codes[0];
+    return ["s.SRV_BY1 = @doctorCode"];
   }
-  codes.forEach((c, i) => { params[`doctorCode${i}`] = c; });
-  return [`s.SRV_BY1 IN (${codes.map((_, i) => `@doctorCode${i}`).join(", ")})`];
+  codes.forEach((c, i) => {
+    params[`doctorCode${i}`] = c;
+  });
+  return [
+    `s.SRV_BY1 IN (${codes.map((_, i) => `@doctorCode${i}`).join(", ")})`,
+  ];
 }
 
 /** Normalize MSSQL-bound patient codes as strings (ASCII trim only — preserves leading zeros). */
@@ -186,18 +198,27 @@ function serviceWhere(
 ): string[] {
   const raw = Array.isArray(serviceCodesOrCode)
     ? serviceCodesOrCode
-    : serviceCodesOrCode ? [serviceCodesOrCode] : [];
-  const codes = raw.map((c) => c.trim()).filter((c) => c && c !== '*');
+    : serviceCodesOrCode
+      ? [serviceCodesOrCode]
+      : [];
+  const codes = raw.map((c) => c.trim()).filter((c) => c && c !== "*");
   if (!codes.length) return [];
   if (codes.length === 1) {
     params.serviceCode0 = codes[0];
     return ["s.SRV_CD = @serviceCode0"];
   }
-  codes.forEach((c, i) => { params[`serviceCode${i}`] = c; });
-  return [`s.SRV_CD IN (${codes.map((_, i) => `@serviceCode${i}`).join(", ")})`];
+  codes.forEach((c, i) => {
+    params[`serviceCode${i}`] = c;
+  });
+  return [
+    `s.SRV_CD IN (${codes.map((_, i) => `@serviceCode${i}`).join(", ")})`,
+  ];
 }
 
-function topClause(limit: number | undefined, params: Record<string, unknown>): string {
+function topClause(
+  limit: number | undefined,
+  params: Record<string, unknown>,
+): string {
   if (!limit) {
     return "";
   }
@@ -320,12 +341,14 @@ ORDER BY trDate`.trim();
   return { sql, params: cleanParams(params) };
 }
 
-export function buildServiceRevenueSql(input: ServiceRevenueSqlInput): SqlBuild {
+export function buildServiceRevenueSql(
+  input: ServiceRevenueSqlInput,
+): SqlBuild {
   const params: Record<string, unknown> = {};
   const where = [
     ...dateRangeWhere(input, params),
     ...sectionWhere(input.sectionCode, params),
-    ...doctorWhere(input.doctorCodes, params),
+    ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
     ...serviceWhere(input.serviceCodes, params),
     "ISNULL(CONVERT(varchar(10), s.CNCL), '') = ''",
     "ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''",
@@ -364,10 +387,13 @@ ORDER BY
   return { sql, params: cleanParams(params) };
 }
 
-export function buildReceiptsInquirySql(input: ReceiptsInquirySqlInput): SqlBuild {
+export function buildReceiptsInquirySql(
+  input: ReceiptsInquirySqlInput,
+): SqlBuild {
   const params: Record<string, unknown> = {};
   const patientFiltered =
-    typeof input.patientCode === "string" && input.patientCode.trim().length > 0;
+    typeof input.patientCode === "string" &&
+    input.patientCode.trim().length > 0;
   const where = [
     ...dateRangeWhere(input, params),
     ...sectionWhere(input.sectionCode, params),
@@ -477,7 +503,9 @@ export function buildLasikReceiptsSql(input: LasikReceiptsSqlInput): SqlBuild {
   });
 }
 
-export function buildLasikServicesSql(input: LasikServicesSqlInput = {}): SqlBuild {
+export function buildLasikServicesSql(
+  input: LasikServicesSqlInput = {},
+): SqlBuild {
   const params: Record<string, unknown> = { secCd: LASIK_SECTION_CODE };
   const where = [
     ...dateRangeWhere(input, params),

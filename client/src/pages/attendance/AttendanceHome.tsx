@@ -97,10 +97,13 @@ export default function AttendanceHome() {
     { refetchInterval: 30_000, refetchIntervalInBackground: false },
   );
 
-  const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(undefined, {
-    refetchInterval: 20_000,
-    refetchIntervalInBackground: false,
-  });
+  const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
+    undefined,
+    {
+      refetchInterval: 20_000,
+      refetchIntervalInBackground: false,
+    },
+  );
 
   const syncMutation = (trpc as any).attendance.syncNow.useMutation({
     onSuccess: (res: any) => {
@@ -115,7 +118,9 @@ export default function AttendanceHome() {
     onError: (err: any) => setSyncMsg(`فشلت المزامنة: ${err.message}`),
   });
 
-  const recomputeMutation = (trpc as any).attendance.materializeDaily.useMutation({
+  const recomputeMutation = (
+    trpc as any
+  ).attendance.materializeDaily.useMutation({
     onSuccess: (res: any) => {
       setRecomputeMsg(`تمت إعادة احتساب ${res.rowsWritten ?? 0} يوم بنجاح`);
       dashboardQuery.refetch();
@@ -201,13 +206,24 @@ export default function AttendanceHome() {
 
   const canUseOperationalShortcuts =
     isAdmin ||
-    pathGrantedByRoots(normalizeNavPath("/attendance/settings"), allowedRoots) ||
-    pathGrantedByRoots(normalizeNavPath("/attendance/admin/device"), allowedRoots) ||
-    pathGrantedByRoots(normalizeNavPath("/attendance/admin/sync"), allowedRoots);
+    pathGrantedByRoots(
+      normalizeNavPath("/attendance/settings"),
+      allowedRoots,
+    ) ||
+    pathGrantedByRoots(
+      normalizeNavPath("/attendance/admin/device"),
+      allowedRoots,
+    ) ||
+    pathGrantedByRoots(
+      normalizeNavPath("/attendance/admin/sync"),
+      allowedRoots,
+    );
   const canSeeLiveShortcut =
-    isAdmin || pathGrantedByRoots(normalizeNavPath("/attendance/live"), allowedRoots);
+    isAdmin ||
+    pathGrantedByRoots(normalizeNavPath("/attendance/live"), allowedRoots);
   const canSeeReportsShortcut =
-    isAdmin || pathGrantedByRoots(normalizeNavPath("/attendance/reports"), allowedRoots);
+    isAdmin ||
+    pathGrantedByRoots(normalizeNavPath("/attendance/reports"), allowedRoots);
 
   return (
     <div className="space-y-6">
@@ -271,13 +287,19 @@ export default function AttendanceHome() {
               >
                 <span className="inline-flex items-center gap-2">
                   <RefreshCw className="h-4 w-4" />
-                  {recomputeMutation.isPending ? "جارٍ الاحتساب…" : "إعادة احتساب"}
+                  {recomputeMutation.isPending
+                    ? "جارٍ الاحتساب…"
+                    : "إعادة احتساب"}
                 </span>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
             {canSeeReportsShortcut && (
-              <Button asChild variant="secondary" className="h-11 justify-between">
+              <Button
+                asChild
+                variant="secondary"
+                className="h-11 justify-between"
+              >
                 <Link href="/attendance/reports">
                   <span className="inline-flex items-center gap-2">
                     <Printer className="h-4 w-4" />
@@ -288,7 +310,11 @@ export default function AttendanceHome() {
               </Button>
             )}
             {canSeeLiveShortcut && (
-              <Button asChild variant="secondary" className="h-11 justify-between">
+              <Button
+                asChild
+                variant="secondary"
+                className="h-11 justify-between"
+              >
                 <Link href="/attendance/live">
                   <span className="inline-flex items-center gap-2">
                     <Activity className="h-4 w-4" />
@@ -358,42 +384,44 @@ export default function AttendanceHome() {
           </div>
 
           <div className="divide-y divide-border rounded-xl border border-border bg-card">
-            {visibleWorkLanes.map(({ icon: Icon, label, description, href, links }) => (
-              <div key={href} className="px-4 py-3.5">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={href}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary"
-                    >
-                      {label}
-                      <ArrowLeft className="h-3.5 w-3.5" />
-                    </Link>
-                    <div className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                      {description}
+            {visibleWorkLanes.map(
+              ({ icon: Icon, label, description, href, links }) => (
+                <div key={href} className="px-4 py-3.5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
-                    {links.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {links.map((link) => (
-                          <Button
-                            key={`${href}-${link.href}-${link.label}`}
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <Link href={link.href}>{link.label}</Link>
-                          </Button>
-                        ))}
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={href}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary"
+                      >
+                        {label}
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                      </Link>
+                      <div className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                        {description}
                       </div>
-                    )}
+                      {links.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {links.map((link) => (
+                            <Button
+                              key={`${href}-${link.href}-${link.label}`}
+                              asChild
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              <Link href={link.href}>{link.label}</Link>
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { UNAUTHED_ERR_MSG } from '@shared/const';
+import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -39,7 +39,9 @@ if (__FAST_BUILD__) {
     // Ignore storage failures.
   }
   try {
-    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const nav = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
     window.localStorage.setItem(
       "selrs:last-boot",
       JSON.stringify({
@@ -48,7 +50,7 @@ if (__FAST_BUILD__) {
         path: window.location.pathname,
         navType: nav?.type ?? null,
         persisted: (nav as any)?.persisted ?? null,
-      })
+      }),
     );
   } catch {
     // Ignore storage failures.
@@ -62,7 +64,7 @@ if (__FAST_BUILD__) {
           time: new Date().toISOString(),
           path: window.location.pathname,
           persisted: Boolean((event as PageTransitionEvent).persisted),
-        })
+        }),
       );
     } catch {
       // Ignore.
@@ -70,13 +72,13 @@ if (__FAST_BUILD__) {
   });
 })();
 
-
 const RUNTIME_ISSUE_STORAGE_KEY = "selrs:last-runtime-issue";
 const RELOAD_TRACE_STORAGE_KEY = "selrs:last-reload";
 const NAV_TRACE_STORAGE_KEY = "selrs:last-navigation";
 const RECENT_ERROR_TTL_MS = 10_000;
 const recentApiErrors = new Map<string, number>();
-const safePreview = (value: string) => value.replace(/\s+/g, " ").trim().slice(0, 200);
+const safePreview = (value: string) =>
+  value.replace(/\s+/g, " ").trim().slice(0, 200);
 const browserFetch = globalThis.fetch.bind(globalThis);
 
 const isLikelyJsonPayload = (value: string) => {
@@ -86,7 +88,10 @@ const isLikelyJsonPayload = (value: string) => {
 
 const expectsJsonResponse = (requestUrl: string) => {
   try {
-    const url = new URL(requestUrl, typeof window !== "undefined" ? window.location.origin : undefined);
+    const url = new URL(
+      requestUrl,
+      typeof window !== "undefined" ? window.location.origin : undefined,
+    );
     return (
       url.pathname === "/healthz" ||
       url.pathname.startsWith("/api/trpc") ||
@@ -106,7 +111,9 @@ const expectsJsonResponse = (requestUrl: string) => {
 const sanitizeTrpcUrl = (value: string) => {
   try {
     const base =
-      typeof window === "undefined" ? "http://localhost" : window.location.origin;
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin;
     const parsed = new URL(value, base);
     if (!parsed.pathname.endsWith(".")) {
       return value;
@@ -138,7 +145,14 @@ const headersToObject = (headers: Headers) => {
 const MAX_NATIVE_FETCH_ATTEMPTS = 2;
 const NATIVE_HTTP_TIMEOUT_MS = 600_000; // 10 minutes for long-running operations like patient sync
 
-const attemptNativeFetch = async (requestUrl: string, options: { method: string; headers: Headers; init?: Omit<RequestInit, "headers"> }) => {
+const attemptNativeFetch = async (
+  requestUrl: string,
+  options: {
+    method: string;
+    headers: Headers;
+    init?: Omit<RequestInit, "headers">;
+  },
+) => {
   const { method, headers, init } = options;
   const body =
     typeof init?.body === "string"
@@ -159,26 +173,42 @@ const attemptNativeFetch = async (requestUrl: string, options: { method: string;
   return response;
 };
 
-const nativeAwareFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+const nativeAwareFetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => {
   if (!Capacitor.isNativePlatform()) {
     return browserFetch(input, init);
   }
 
-  const requestUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : String(input);
+  const requestUrl =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : String(input);
   const method = String(init?.method ?? "GET").toUpperCase();
   const headers = new Headers(init?.headers ?? undefined);
 
   const errors: string[] = [];
   for (let attempt = 1; attempt <= MAX_NATIVE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      console.warn(`[native-fetch] ${method} ${requestUrl} attempt ${attempt}/${MAX_NATIVE_FETCH_ATTEMPTS}`);
-      const response = await attemptNativeFetch(requestUrl, { method, headers, init });
+      console.warn(
+        `[native-fetch] ${method} ${requestUrl} attempt ${attempt}/${MAX_NATIVE_FETCH_ATTEMPTS}`,
+      );
+      const response = await attemptNativeFetch(requestUrl, {
+        method,
+        headers,
+        init,
+      });
       const rawStatus = Number(response.status ?? 0);
       const responseText =
-        typeof response.data === "string" ? response.data : JSON.stringify(response.data ?? "");
+        typeof response.data === "string"
+          ? response.data
+          : JSON.stringify(response.data ?? "");
       if (!Number.isFinite(rawStatus) || rawStatus <= 0) {
         throw new Error(
-          `Native HTTP request failed.\nURL: ${requestUrl}\nStatus: ${rawStatus || 0}\nPreview: ${safePreview(responseText)}`
+          `Native HTTP request failed.\nURL: ${requestUrl}\nStatus: ${rawStatus || 0}\nPreview: ${safePreview(responseText)}`,
         );
       }
 
@@ -196,10 +226,13 @@ const nativeAwareFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
         headers: responseHeaders,
       });
     } catch (error: any) {
-      const message = typeof error?.message === "string" ? error.message : String(error);
+      const message =
+        typeof error?.message === "string" ? error.message : String(error);
       errors.push(message);
       if (attempt === MAX_NATIVE_FETCH_ATTEMPTS) {
-        throw new Error(`Native HTTP request failed after ${MAX_NATIVE_FETCH_ATTEMPTS} attempts.\n${errors.join("\n")}`);
+        throw new Error(
+          `Native HTTP request failed after ${MAX_NATIVE_FETCH_ATTEMPTS} attempts.\n${errors.join("\n")}`,
+        );
       }
       await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
     }
@@ -235,7 +268,7 @@ const spaNavigate = (path: string) => {
 
 const reportRuntimeIssue = (
   source: "error" | "unhandledrejection",
-  payload: { message: string; stack?: string }
+  payload: { message: string; stack?: string },
 ) => {
   if (typeof window === "undefined") return;
   const issue = {
@@ -243,25 +276,36 @@ const reportRuntimeIssue = (
     message: payload.message,
     stack: payload.stack ?? "",
     time: new Date().toISOString(),
-    path: window.location.pathname + window.location.search + window.location.hash,
+    path:
+      window.location.pathname + window.location.search + window.location.hash,
   };
   try {
-    window.localStorage.setItem(RUNTIME_ISSUE_STORAGE_KEY, JSON.stringify(issue));
+    window.localStorage.setItem(
+      RUNTIME_ISSUE_STORAGE_KEY,
+      JSON.stringify(issue),
+    );
   } catch {
     // Ignore storage failures.
   }
-  window.dispatchEvent(new CustomEvent("selrs-runtime-issue", { detail: issue }));
+  window.dispatchEvent(
+    new CustomEvent("selrs-runtime-issue", { detail: issue }),
+  );
 };
 
 try {
-  const navEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  const navEntries = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
   const nav = navEntries?.[0];
   if (nav) {
     const payload = {
       type: nav.type,
       redirectCount: nav.redirectCount,
       time: new Date().toISOString(),
-      path: window.location.pathname + window.location.search + window.location.hash,
+      path:
+        window.location.pathname +
+        window.location.search +
+        window.location.hash,
     };
     window.localStorage.setItem(NAV_TRACE_STORAGE_KEY, JSON.stringify(payload));
     console.warn("[SELRS] Navigation trace", payload);
@@ -294,7 +338,10 @@ window.addEventListener("unhandledrejection", (event) => {
   const reason = event.reason;
   if (reason instanceof TRPCClientError) return;
   if (reason instanceof Error) {
-    reportRuntimeIssue("unhandledrejection", { message: reason.message, stack: reason.stack });
+    reportRuntimeIssue("unhandledrejection", {
+      message: reason.message,
+      stack: reason.stack,
+    });
     return;
   }
   reportRuntimeIssue("unhandledrejection", {
@@ -354,7 +401,7 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   spaNavigate(getLoginUrl());
 };
 
-queryClient.getQueryCache().subscribe(event => {
+queryClient.getQueryCache().subscribe((event) => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
@@ -364,7 +411,7 @@ queryClient.getQueryCache().subscribe(event => {
   }
 });
 
-queryClient.getMutationCache().subscribe(event => {
+queryClient.getMutationCache().subscribe((event) => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
@@ -380,11 +427,17 @@ const trpcClient = trpc.createClient({
       url: getApiUrl("/api/trpc"),
       transformer: superjson,
       async fetch(input, init) {
-        const requestUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : String(input);
+        const requestUrl =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : String(input);
         const sanitizedRequestUrl = sanitizeTrpcUrl(requestUrl);
         const token =
           typeof window !== "undefined"
-            ? window.localStorage.getItem("token") ?? window.sessionStorage.getItem("token")
+            ? (window.localStorage.getItem("token") ??
+              window.sessionStorage.getItem("token"))
             : null;
         const patientToken =
           typeof window !== "undefined"
@@ -405,14 +458,21 @@ const trpcClient = trpc.createClient({
           headers.set("x-doctor-token", doctorToken);
         }
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort("timeout"), NATIVE_HTTP_TIMEOUT_MS);
+        const timeoutId = window.setTimeout(
+          () => controller.abort("timeout"),
+          NATIVE_HTTP_TIMEOUT_MS,
+        );
         const callerSignal = init?.signal;
 
         if (callerSignal) {
           if (callerSignal.aborted) {
             controller.abort(callerSignal.reason);
           } else {
-            callerSignal.addEventListener("abort", () => controller.abort(callerSignal.reason), { once: true });
+            callerSignal.addEventListener(
+              "abort",
+              () => controller.abort(callerSignal.reason),
+              { once: true },
+            );
           }
         }
 
@@ -426,47 +486,61 @@ const trpcClient = trpc.createClient({
           });
         } catch (error) {
           if (error instanceof DOMException && error.name === "AbortError") {
-            console.warn(`[trpc] request aborted (timeout) ${sanitizedRequestUrl}`);
-            throw new Error(`Request timeout while contacting the SELRS server.\nURL: ${sanitizedRequestUrl}`);
+            console.warn(
+              `[trpc] request aborted (timeout) ${sanitizedRequestUrl}`,
+            );
+            throw new Error(
+              `Request timeout while contacting the SELRS server.\nURL: ${sanitizedRequestUrl}`,
+            );
           }
           if (typeof navigator !== "undefined" && !navigator.onLine) {
-            console.warn(`[trpc] offline request aborted ${sanitizedRequestUrl}`);
-            throw new Error(`No internet connection.\nURL: ${sanitizedRequestUrl}`);
+            console.warn(
+              `[trpc] offline request aborted ${sanitizedRequestUrl}`,
+            );
+            throw new Error(
+              `No internet connection.\nURL: ${sanitizedRequestUrl}`,
+            );
           }
           throw error;
         } finally {
           window.clearTimeout(timeoutId);
         }
-        const contentType = String(response.headers.get("content-type") ?? "").toLowerCase();
-        const bodyText = await response.clone().text().catch(() => "");
+        const contentType = String(
+          response.headers.get("content-type") ?? "",
+        ).toLowerCase();
+        const bodyText = await response
+          .clone()
+          .text()
+          .catch(() => "");
         const shouldValidateJson =
           response.status < 400 &&
-          (contentType.includes("application/json") || expectsJsonResponse(sanitizedRequestUrl));
+          (contentType.includes("application/json") ||
+            expectsJsonResponse(sanitizedRequestUrl));
 
         if (shouldValidateJson) {
           const trimmedBody = bodyText.trim();
           if (!trimmedBody) {
             throw new Error(
-              `API returned an empty JSON response.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}`
+              `API returned an empty JSON response.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}`,
             );
           }
           if (!isLikelyJsonPayload(trimmedBody)) {
             throw new Error(
-              `API returned invalid JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}\nPreview: ${safePreview(trimmedBody)}`
+              `API returned invalid JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}\nPreview: ${safePreview(trimmedBody)}`,
             );
           }
           try {
             JSON.parse(trimmedBody);
           } catch {
             throw new Error(
-              `API returned invalid JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}\nPreview: ${safePreview(trimmedBody)}`
+              `API returned invalid JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nContent-Type: ${contentType || "unknown"}\nPreview: ${safePreview(trimmedBody)}`,
             );
           }
         }
         if (contentType.includes("text/html")) {
           const preview = safePreview(bodyText);
           throw new Error(
-            `API returned HTML instead of JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nPreview: ${preview}`
+            `API returned HTML instead of JSON.\nURL: ${sanitizedRequestUrl}\nStatus: ${response.status}\nPreview: ${preview}`,
           );
         }
         return response;
@@ -480,7 +554,8 @@ installOfflineQueryCachePersistence();
 
 const isDesktopShell =
   typeof navigator !== "undefined" &&
-  (navigator.userAgent.includes("SELRSDesktop/1") || navigator.userAgent.includes("SELRS/1"));
+  (navigator.userAgent.includes("SELRSDesktop/1") ||
+    navigator.userAgent.includes("SELRS/1"));
 if (!Capacitor.isNativePlatform() && !isDesktopShell) {
   installBeforeUnloadGuard();
 }
@@ -492,5 +567,5 @@ createRoot(document.getElementById("root")!).render(
         <App />
       </Suspense>
     </QueryClientProvider>
-  </trpc.Provider>
+  </trpc.Provider>,
 );

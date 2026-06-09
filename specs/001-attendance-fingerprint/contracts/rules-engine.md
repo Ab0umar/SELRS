@@ -7,8 +7,8 @@
 ```ts
 export interface Shift {
   id: number;
-  startTime: string;        // 'HH:MM'
-  endTime: string;          // 'HH:MM'
+  startTime: string; // 'HH:MM'
+  endTime: string; // 'HH:MM'
   crossesMidnight: boolean;
   graceLateMin: number;
   graceEarlyMin: number;
@@ -18,26 +18,29 @@ export interface Shift {
 export interface ShiftAssignment {
   empCd: string;
   shiftId: number;
-  effectiveFrom: string;    // 'YYYY-MM-DD'
+  effectiveFrom: string; // 'YYYY-MM-DD'
   effectiveTo: string | null;
-  weekdayMask: number;      // 7-bit; bit 0 = Sunday
+  weekdayMask: number; // 7-bit; bit 0 = Sunday
 }
 
 export interface PunchInput {
-  punchAt: Date;            // facility-local
-  direction?: 'in' | 'out' | 'unknown';
-  source: 'access' | 'tcp' | 'manual';
+  punchAt: Date; // facility-local
+  direction?: "in" | "out" | "unknown";
+  source: "access" | "tcp" | "manual";
 }
 
 export interface DayContext {
   empCd: string;
-  workDate: string;         // 'YYYY-MM-DD'
-  punches: PunchInput[];    // already filtered to this work-date's pairing window
+  workDate: string; // 'YYYY-MM-DD'
+  punches: PunchInput[]; // already filtered to this work-date's pairing window
   shift: Shift | null;
-  leave: { type: 'annual'|'sick'|'unpaid'|'other'; approved: boolean } | null;
+  leave: {
+    type: "annual" | "sick" | "unpaid" | "other";
+    approved: boolean;
+  } | null;
   holiday: boolean;
   isScheduledWorkday: boolean;
-  now: Date;                // for inside-now calculation; caller supplies
+  now: Date; // for inside-now calculation; caller supplies
 }
 
 export interface DayResult {
@@ -50,7 +53,13 @@ export interface DayResult {
   lateMinutes: number;
   earlyLeaveMin: number;
   overtimeMinutes: number;
-  status: 'present'|'absent'|'leave'|'holiday'|'partial'|'missing_checkout';
+  status:
+    | "present"
+    | "absent"
+    | "leave"
+    | "holiday"
+    | "partial"
+    | "missing_checkout";
   insideNow: boolean;
 }
 ```
@@ -62,10 +71,12 @@ export interface DayResult {
 **Returns**: `Shift | null`.
 
 **Pre**:
+
 - `assignments` is the full list of assignments (caller does not pre-filter).
 - `date` is `YYYY-MM-DD`.
 
 **Post**:
+
 - Picks the assignment with the latest `effectiveFrom <= date` where (`effectiveTo IS NULL OR effectiveTo >= date`) AND the weekday bit for `date` is set.
 - If no assignment matches, falls back to `defaultShiftId` (if any).
 - Returns `null` if neither matches.
@@ -81,6 +92,7 @@ export interface DayResult {
 **Pre**: `punches` sorted ascending by `punchAt`.
 
 **Post**:
+
 - Empty input → `{ null, null }`.
 - 1 input → `{ firstIn: p[0], lastOut: null }` (missing checkout).
 - 2+ inputs → `{ firstIn: p[0], lastOut: p[last] }`.
@@ -118,18 +130,18 @@ export interface DayResult {
 
 **Edge cases covered** (full mapping back to spec Edge Cases):
 
-| Spec edge case | Function behavior |
-|---|---|
-| Duplicate punches | Sub-30-sec collapse in `pairPunches`; DB UNIQUE prevents duplicates upstream. |
-| Missing checkout | Step 5: `status='missing_checkout'`, `workedMinutes=null` (never negative). |
-| Overnight shifts | Caller passes punches already filtered to `[shift.start on D, shift.end on D+1 + 4h]`; `computeDay` is unaware of midnight crossings. |
-| Access locked / device offline | Engine-level concerns (`syncEngine`), not rules engine. |
-| Unknown employee code | Engine-level concern. |
-| Future-dated punches | Engine-level quarantine; never reach rules engine. |
-| Corrupt source rows | Engine-level quarantine. |
-| Employee code changed | Out of scope for rules engine; HR concern. |
-| Multiple punches close together | Step 3 collapse. |
-| Cross-module isolation | Architecture — rules engine imports nothing outside `server/services/attendance/`. |
+| Spec edge case                  | Function behavior                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Duplicate punches               | Sub-30-sec collapse in `pairPunches`; DB UNIQUE prevents duplicates upstream.                                                         |
+| Missing checkout                | Step 5: `status='missing_checkout'`, `workedMinutes=null` (never negative).                                                           |
+| Overnight shifts                | Caller passes punches already filtered to `[shift.start on D, shift.end on D+1 + 4h]`; `computeDay` is unaware of midnight crossings. |
+| Access locked / device offline  | Engine-level concerns (`syncEngine`), not rules engine.                                                                               |
+| Unknown employee code           | Engine-level concern.                                                                                                                 |
+| Future-dated punches            | Engine-level quarantine; never reach rules engine.                                                                                    |
+| Corrupt source rows             | Engine-level quarantine.                                                                                                              |
+| Employee code changed           | Out of scope for rules engine; HR concern.                                                                                            |
+| Multiple punches close together | Step 3 collapse.                                                                                                                      |
+| Cross-module isolation          | Architecture — rules engine imports nothing outside `server/services/attendance/`.                                                    |
 
 ---
 
@@ -138,6 +150,7 @@ export interface DayResult {
 **Lives in**: `dailyMaterializer.ts` (not pure — touches DB).
 
 **Algorithm**:
+
 1. Load shifts, assignments, leaves, holidays once.
 2. For each employee in scope (or all `active=1` employees):
    - For each calendar `D` in `[from, to]`:

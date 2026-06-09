@@ -87,7 +87,9 @@ function receiptKey(row: Row): string {
   ].join(":");
 }
 
-export function mapDashboardSummaryRow(row: Row | undefined): DashboardSummaryOutput {
+export function mapDashboardSummaryRow(
+  row: Row | undefined,
+): DashboardSummaryOutput {
   return {
     totalReceiptsToday: numberValue(row?.totalReceiptsToday),
     totalRevenueToday: numberValue(row?.totalRevenueToday),
@@ -96,7 +98,10 @@ export function mapDashboardSummaryRow(row: Row | undefined): DashboardSummaryOu
   };
 }
 
-export function mapReceiptHeader(row: Row, patientCodeFallback?: string): ReceiptHeader {
+export function mapReceiptHeader(
+  row: Row,
+  patientCodeFallback?: string,
+): ReceiptHeader {
   return {
     sectionCode: numberValue(row.sectionCode ?? row.secCd),
     trTy: numberValue(row.trTy),
@@ -105,18 +110,26 @@ export function mapReceiptHeader(row: Row, patientCodeFallback?: string): Receip
     patientCode: patientCodeFromRow(row.patientCode, patientCodeFallback),
     patientName: optionalString(row.patientName),
     total: numberValue(row.total ?? row.totalValue ?? row.receiptTotal),
-    discount: numberValue(row.discount ?? row.discountValue ?? row.receiptDiscount),
+    discount: numberValue(
+      row.discount ?? row.discountValue ?? row.receiptDiscount,
+    ),
     paidValue: numberValue(row.paidValue ?? row.receiptPaid),
     enteredBy: optionalString(row.enteredBy),
   };
 }
 
-export function mapServiceRow(row: Row, patientCodeFallback?: string): ServiceRow {
+export function mapServiceRow(
+  row: Row,
+  patientCodeFallback?: string,
+): ServiceRow {
   const doctorCode = optionalString(row.doctorCode ?? row.serviceBy1);
 
   return {
     sectionCode: numberValue(row.sectionCode ?? row.secCd),
-    trTy: row.trTy === undefined || row.trTy === null ? null : numberValue(row.trTy),
+    trTy:
+      row.trTy === undefined || row.trTy === null
+        ? null
+        : numberValue(row.trTy),
     trNo: stringValue(row.trNo),
     patientCode: patientCodeFromRow(row.patientCode, patientCodeFallback),
     patientName: optionalString(row.patientName),
@@ -130,7 +143,9 @@ export function mapServiceRow(row: Row, patientCodeFallback?: string): ServiceRo
     companyValue: numberValue(row.companyValue),
     entryDate: isoDateValue(row.entryDate ?? row.receiptDate ?? row.trDate),
     serviceBy1: doctorCode,
-    currentServiceBy: optionalString(row.currentServiceBy ?? row.currentDoctorCode),
+    currentServiceBy: optionalString(
+      row.currentServiceBy ?? row.currentDoctorCode,
+    ),
     doctorCode,
     doctorName: optionalString(row.doctorName),
   };
@@ -222,7 +237,9 @@ export function mapServiceRevenueRows(rows: Row[]): ServiceRevenueOutput {
       sections.set(sectionCode, section);
     }
 
-    let service = section.services.find((s: ServiceRevenueService) => s.serviceCode === serviceCode);
+    let service = section.services.find(
+      (s: ServiceRevenueService) => s.serviceCode === serviceCode,
+    );
     if (!service) {
       service = {
         serviceCode,
@@ -326,14 +343,26 @@ export function mapPatientLasikSummaryRows(
       ...row,
       patientCode: patientCodeFromRow(row.patientCode, patientCode ?? ""),
     };
-    receiptMap.set(receiptKey(keyedRow), mapReceiptHeader(keyedRow, patientCode));
+    receiptMap.set(
+      receiptKey(keyedRow),
+      mapReceiptHeader(keyedRow, patientCode),
+    );
   }
 
   const receipts = Array.from(receiptMap.values());
-  const totalGross = rows.reduce((sum, row) => sum + numberValue(row.lineGross), 0);
-  const totalDiscount = services.reduce((sum, row) => sum + row.discountValue, 0);
+  const totalGross = rows.reduce(
+    (sum, row) => sum + numberValue(row.lineGross),
+    0,
+  );
+  const totalDiscount = services.reduce(
+    (sum, row) => sum + row.discountValue,
+    0,
+  );
   const totalPaid = services.reduce((sum, row) => sum + row.paidValue, 0);
-  const totalCompanyAmount = services.reduce((sum, row) => sum + row.companyValue, 0);
+  const totalCompanyAmount = services.reduce(
+    (sum, row) => sum + row.companyValue,
+    0,
+  );
   const lastTransactionDate = receipts[0]?.transactionDate ?? null;
 
   return {

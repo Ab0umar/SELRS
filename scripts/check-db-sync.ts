@@ -22,17 +22,19 @@ async function main() {
         id int AUTO_INCREMENT PRIMARY KEY,
         name varchar(255) NOT NULL UNIQUE,
         appliedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )`
+      )`,
     );
 
     const [rows] = await conn.query<any[]>(
-      "SELECT name FROM schema_migrations ORDER BY appliedAt ASC"
+      "SELECT name FROM schema_migrations ORDER BY appliedAt ASC",
     );
     const applied = new Set(rows.map((row) => String(row.name)));
     const repo = new Set(files);
 
     const missingInDb = files.filter((f) => !applied.has(f));
-    const extraInDb = Array.from(applied).filter((f) => !repo.has(f)).sort();
+    const extraInDb = Array.from(applied)
+      .filter((f) => !repo.has(f))
+      .sort();
 
     const result = {
       inRepo: files.length,
@@ -53,4 +55,3 @@ main().catch((error) => {
   console.error("[check-db-sync] Failed:", error);
   process.exit(1);
 });
-

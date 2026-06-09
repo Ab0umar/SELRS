@@ -8,7 +8,11 @@ type PageHeaderProps = {
 };
 
 /** شريط خفيف: رجوع + الرئيسية فقط (بدون الهيدر الأزرق وبدون تسمية Navigation). */
-export default function PageHeader({ backTo, label = "العودة", hideOnPrint = true }: PageHeaderProps) {
+export default function PageHeader({
+  backTo,
+  label = "العودة",
+  hideOnPrint = true,
+}: PageHeaderProps) {
   const [, setLocation] = useLocation();
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {

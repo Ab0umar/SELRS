@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { arEG } from "date-fns/locale";
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, ArrowLeft } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  RefreshCw,
+  ShieldAlert,
+  ArrowLeft,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,9 +39,12 @@ const TYPE_HINTS: Record<(typeof TYPES)[number]["value"], string> = {
 };
 
 const ARABIC_CALENDAR_FORMATTERS = {
-  formatCaption: (date: Date) => date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" }),
-  formatDay: (date: Date) => date.toLocaleDateString("ar-EG", { day: "numeric" }),
-  formatWeekdayName: (date: Date) => date.toLocaleDateString("ar-EG", { weekday: "short" }),
+  formatCaption: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" }),
+  formatDay: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { day: "numeric" }),
+  formatWeekdayName: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { weekday: "short" }),
 };
 
 const MOBILE_SAFE_CALENDAR_CLASS_NAMES = {
@@ -70,13 +79,22 @@ export default function PatientGuestBook() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [errors, setErrors] = useState<{ guestName?: string; guestPhone?: string }>({});
-  const [bookingType, setBookingType] = useState<(typeof TYPES)[number]["value"]>("consultant");
+  const [errors, setErrors] = useState<{
+    guestName?: string;
+    guestPhone?: string;
+  }>({});
+  const [bookingType, setBookingType] =
+    useState<(typeof TYPES)[number]["value"]>("consultant");
   const [selectedDate, setSelectedDate] = useState("");
   const [notes, setNotes] = useState("");
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
-  const { data: schedule, isLoading: loadingDates, error, refetch } = trpc.patientPortal.getAvailableDates.useQuery({
+  const {
+    data: schedule,
+    isLoading: loadingDates,
+    error,
+    refetch,
+  } = trpc.patientPortal.getAvailableDates.useQuery({
     bookingType,
   });
 
@@ -89,10 +107,19 @@ export default function PatientGuestBook() {
   });
 
   const availableDates = useMemo(() => schedule?.dates ?? [], [schedule]);
-  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+  const availableDateSet = useMemo(
+    () => new Set(availableDates),
+    [availableDates],
+  );
   const availableCount = availableDates.length;
-  const selectedLabel = useMemo(() => availableDates.find((d) => d === selectedDate), [availableDates, selectedDate]);
-  const minDate = useMemo(() => (availableDates[0] ? isoToDate(availableDates[0]) : undefined), [availableDates]);
+  const selectedLabel = useMemo(
+    () => availableDates.find((d) => d === selectedDate),
+    [availableDates, selectedDate],
+  );
+  const minDate = useMemo(
+    () => (availableDates[0] ? isoToDate(availableDates[0]) : undefined),
+    [availableDates],
+  );
   const maxDate = useMemo(() => {
     const last = availableDates[availableDates.length - 1];
     return last ? isoToDate(last) : undefined;
@@ -117,7 +144,8 @@ export default function PatientGuestBook() {
     if (!cleanPhone) {
       newErrors.guestPhone = "يرجى كتابة رقم الموبايل للتواصل";
     } else if (!/^01\d{9}$/.test(cleanPhone)) {
-      newErrors.guestPhone = "يرجى إدخال رقم موبايل مصري صحيح من 11 رقماً يبدأ بـ 01";
+      newErrors.guestPhone =
+        "يرجى إدخال رقم موبايل مصري صحيح من 11 رقماً يبدأ بـ 01";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -167,20 +195,25 @@ export default function PatientGuestBook() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground" dir="rtl">
-      
+    <div
+      className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
+      dir="rtl"
+    >
       {/* Sticky top header bar */}
       <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          
           {/* Logo & Portal title */}
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl">
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-primary leading-tight">مركز عيون الشروق</h1>
-              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">بوابة المرضى الإلكترونية</p>
+              <h1 className="text-base font-bold text-primary leading-tight">
+                مركز عيون الشروق
+              </h1>
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">
+                بوابة المرضى الإلكترونية
+              </p>
             </div>
           </div>
 
@@ -200,15 +233,19 @@ export default function PatientGuestBook() {
       {/* Committed Cover Banner */}
       <div className="w-full bg-gradient-to-r from-[#003D82] via-[#0b4e96] to-secondary/80 text-white py-6 px-4 shadow-xs">
         <div className="max-w-xl mx-auto text-center space-y-1">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">طلب حجز موعد كزائر جديد 📅</h2>
-          <p className="text-[11px] text-white/80 max-w-md mx-auto leading-relaxed">لمن لا يملك ملفاً طبياً مسجلاً حالياً بالمركز، يمكنك حجز موعدك بسهولة.</p>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            طلب حجز موعد كزائر جديد 📅
+          </h2>
+          <p className="text-[11px] text-white/80 max-w-md mx-auto leading-relaxed">
+            لمن لا يملك ملفاً طبياً مسجلاً حالياً بالمركز، يمكنك حجز موعدك
+            بسهولة.
+          </p>
         </div>
       </div>
 
       {/* Main layout container */}
       <div className="flex-grow flex flex-col items-center">
         <div className="w-full max-w-xl px-4 py-6 md:py-8 space-y-5 flex flex-col items-stretch">
-          
           {/* Progress Stepper */}
           <div className="space-y-2 bg-white border border-[#dbe7f4] rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
@@ -218,7 +255,9 @@ export default function PatientGuestBook() {
                 {step === 3 && "الخطوة 3 من 4: اليوم والوقت 📅"}
                 {step === 4 && "الخطوة 4 من 4: مراجعة وملاحظات وإرسال 📝"}
               </span>
-              <span className={step === 4 ? "text-emerald-600" : "text-primary"}>
+              <span
+                className={step === 4 ? "text-emerald-600" : "text-primary"}
+              >
                 {step === 1 && "25% مكتمل"}
                 {step === 2 && "50% مكتمل"}
                 {step === 3 && "75% مكتمل"}
@@ -226,10 +265,16 @@ export default function PatientGuestBook() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-[#e2edf7] rounded-full overflow-hidden">
-              <div 
+              <div
                 className={`h-full bg-primary rounded-full transition-all duration-500 ${
-                  step === 1 ? "w-1/4" : step === 2 ? "w-1/2" : step === 3 ? "w-3/4" : "w-full bg-emerald-500"
-                }`} 
+                  step === 1
+                    ? "w-1/4"
+                    : step === 2
+                      ? "w-1/2"
+                      : step === 3
+                        ? "w-3/4"
+                        : "w-full bg-emerald-500"
+                }`}
               />
             </div>
           </div>
@@ -238,56 +283,76 @@ export default function PatientGuestBook() {
             /* Step 1: Personal Details Card */
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">بيانات الزائر</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">يرجى كتابة الاسم ورقم الهاتف بشكل صحيح لتسجيل ملفك.</p>
+                <h3 className="text-sm font-bold text-foreground">
+                  بيانات الزائر
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  يرجى كتابة الاسم ورقم الهاتف بشكل صحيح لتسجيل ملفك.
+                </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">الاسم الكامل للزائر</label>
+                  <label className="text-xs font-bold text-foreground">
+                    الاسم الكامل للزائر
+                  </label>
                   <Input
                     value={guestName}
                     onChange={(e) => {
                       setGuestName(e.target.value);
-                      if (errors.guestName) setErrors((prev) => ({ ...prev, guestName: undefined }));
+                      if (errors.guestName)
+                        setErrors((prev) => ({
+                          ...prev,
+                          guestName: undefined,
+                        }));
                     }}
                     placeholder="الاسم ثلاثي أو رباعي كما بالبطاقة"
                     className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 transition-all ${
                       errors.guestName
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : guestName.trim()
-                        ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
-                        : ""
+                          ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
+                          : ""
                     }`}
                     dir="rtl"
                   />
                   {errors.guestName && (
-                    <p className="text-xs text-destructive font-semibold mt-1">{errors.guestName}</p>
+                    <p className="text-xs text-destructive font-semibold mt-1">
+                      {errors.guestName}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">رقم الموبايل للتواصل</label>
+                  <label className="text-xs font-bold text-foreground">
+                    رقم الموبايل للتواصل
+                  </label>
                   <Input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => {
                       setGuestPhone(e.target.value);
-                      if (errors.guestPhone) setErrors((prev) => ({ ...prev, guestPhone: undefined }));
+                      if (errors.guestPhone)
+                        setErrors((prev) => ({
+                          ...prev,
+                          guestPhone: undefined,
+                        }));
                     }}
                     placeholder="01XXXXXXXXX"
                     className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-left font-medium tracking-wide transition-all ${
                       errors.guestPhone
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : /^01\d{9}$/.test(guestPhone.trim())
-                        ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
-                        : ""
+                          ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
+                          : ""
                     }`}
                     dir="ltr"
                     autoComplete="tel"
                   />
                   {errors.guestPhone && (
-                    <p className="text-xs text-destructive font-semibold mt-1">{errors.guestPhone}</p>
+                    <p className="text-xs text-destructive font-semibold mt-1">
+                      {errors.guestPhone}
+                    </p>
                   )}
                 </div>
               </div>
@@ -305,8 +370,12 @@ export default function PatientGuestBook() {
             /* Step 2: Service Selection Card */
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">الخدمة المطلوبة</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">اختر الفحص المطلوب لتحديد موعدك المناسب.</p>
+                <h3 className="text-sm font-bold text-foreground">
+                  الخدمة المطلوبة
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  اختر الفحص المطلوب لتحديد موعدك المناسب.
+                </p>
               </div>
 
               <div className="grid gap-2.5">
@@ -329,10 +398,20 @@ export default function PatientGuestBook() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-foreground">{item.label}</p>
-                          <p className="text-[10px] text-muted-foreground leading-normal">{TYPE_HINTS[item.value]}</p>
+                          <p className="text-xs font-bold text-foreground">
+                            {item.label}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground leading-normal">
+                            {TYPE_HINTS[item.value]}
+                          </p>
                         </div>
-                        {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground text-[10px]" />}
+                        {active && (
+                          <PortalStatusBadge
+                            status="confirmed"
+                            label="محدد"
+                            className="bg-primary text-primary-foreground text-[10px]"
+                          />
+                        )}
                       </div>
                     </button>
                   );
@@ -361,8 +440,12 @@ export default function PatientGuestBook() {
             /* Step 3: Date Picker Card */
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">اليوم والوقت</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">التواريخ المظللة باللون الفاتح هي المتاحة للحجز.</p>
+                <h3 className="text-sm font-bold text-foreground">
+                  اليوم والوقت
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  التواريخ المظللة باللون الفاتح هي المتاحة للحجز.
+                </p>
               </div>
 
               {loadingDates && <PortalLoadingRows rows={3} />}
@@ -373,7 +456,10 @@ export default function PatientGuestBook() {
                   title="تعذر تحميل المواعيد المتاحة"
                   description={error.message}
                   action={
-                    <Button onClick={() => void refetch()} className="gap-2 cursor-pointer">
+                    <Button
+                      onClick={() => void refetch()}
+                      className="gap-2 cursor-pointer"
+                    >
                       <RefreshCw className="size-4" />
                       إعادة المحاولة
                     </Button>
@@ -400,7 +486,9 @@ export default function PatientGuestBook() {
                       classNames={MOBILE_SAFE_CALENDAR_CLASS_NAMES}
                       month={calendarMonth}
                       defaultMonth={calendarMonth}
-                      selected={selectedDate ? isoToDate(selectedDate) : undefined}
+                      selected={
+                        selectedDate ? isoToDate(selectedDate) : undefined
+                      }
                       onMonthChange={setCalendarMonth}
                       onSelect={(date) => {
                         if (!date) {
@@ -410,14 +498,21 @@ export default function PatientGuestBook() {
                         const next = dateToIso(date);
                         if (availableDateSet.has(next)) setSelectedDate(next);
                       }}
-                      disabled={(date) => !availableDateSet.has(dateToIso(date))}
+                      disabled={(date) =>
+                        !availableDateSet.has(dateToIso(date))
+                      }
                       modifiers={{
-                        monday: (date) => bookingType === "consultant" && date.getDay() === 1,
-                        consultantTanta: (date) => bookingType === "consultant" && isConsultantTantaDay(date),
+                        monday: (date) =>
+                          bookingType === "consultant" && date.getDay() === 1,
+                        consultantTanta: (date) =>
+                          bookingType === "consultant" &&
+                          isConsultantTantaDay(date),
                       }}
                       modifiersClassNames={{
-                        monday: "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
-                        consultantTanta: "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
+                        monday:
+                          "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
+                        consultantTanta:
+                          "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
                       }}
                       fromDate={minDate}
                       toDate={maxDate}
@@ -427,8 +522,12 @@ export default function PatientGuestBook() {
                   <div className="flex items-center justify-center gap-2 text-xs font-semibold">
                     {bookingType === "consultant" && (
                       <>
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">كفرالشيخ</span>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">طنطا</span>
+                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">
+                          كفرالشيخ
+                        </span>
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">
+                          طنطا
+                        </span>
                       </>
                     )}
                   </div>
@@ -458,8 +557,12 @@ export default function PatientGuestBook() {
             /* Step 4: Summary, Notes, and Submission Card */
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">مراجعة وملاحظات وإرسال</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">يرجى التأكد من تفاصيل الحجز وإضافة أي ملاحظات قبل التأكيد.</p>
+                <h3 className="text-sm font-bold text-foreground">
+                  مراجعة وملاحظات وإرسال
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  يرجى التأكد من تفاصيل الحجز وإضافة أي ملاحظات قبل التأكيد.
+                </p>
               </div>
 
               {/* Summary table */}
@@ -467,19 +570,36 @@ export default function PatientGuestBook() {
                 {[
                   { label: "الاسم الكامل", value: guestName },
                   { label: "رقم الموبايل", value: guestPhone },
-                  { label: "نوع الخدمة", value: schedule?.label ?? bookingType },
-                  { label: "اليوم المحدد", value: selectedLabel ? formatArabicDate(selectedLabel) : "غير محدد" },
+                  {
+                    label: "نوع الخدمة",
+                    value: schedule?.label ?? bookingType,
+                  },
+                  {
+                    label: "اليوم المحدد",
+                    value: selectedLabel
+                      ? formatArabicDate(selectedLabel)
+                      : "غير محدد",
+                  },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-[#F4F8FB]/20 px-4 py-2.5">
-                    <span className="text-xs text-muted-foreground font-semibold">{label}</span>
-                    <span className="text-xs font-bold text-foreground truncate max-w-[200px]">{value}</span>
+                  <div
+                    key={label}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-[#F4F8FB]/20 px-4 py-2.5"
+                  >
+                    <span className="text-xs text-muted-foreground font-semibold">
+                      {label}
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                      {value}
+                    </span>
                   </div>
                 ))}
               </div>
 
               {/* Additional Notes Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground">ملاحظات أو شكاوى إضافية (اختياري)</label>
+                <label className="text-xs font-bold text-foreground">
+                  ملاحظات أو شكاوى إضافية (اختياري)
+                </label>
                 <Textarea
                   rows={3}
                   value={notes}
@@ -491,7 +611,10 @@ export default function PatientGuestBook() {
 
               <div className="rounded-xl border border-[#e2edf7] bg-[#F4F8FB]/60 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
                 <p className="font-semibold text-primary">تنبيه هام:</p>
-                <p>بعد إرسال طلب الحجز بنجاح، سيتواصل معك الاستقبال هاتفياً لتأكيد وتحديد توقيت الزيارة بدقة وتسجيل ملفك الطبي الجديد.</p>
+                <p>
+                  بعد إرسال طلب الحجز بنجاح، سيتواصل معك الاستقبال هاتفياً
+                  لتأكيد وتحديد توقيت الزيارة بدقة وتسجيل ملفك الطبي الجديد.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -508,12 +631,13 @@ export default function PatientGuestBook() {
                   onClick={handleSubmit}
                   disabled={createGuestBooking.isPending}
                 >
-                  {createGuestBooking.isPending ? "جاري الإرسال..." : "تأكيد وإرسال طلب الحجز"}
+                  {createGuestBooking.isPending
+                    ? "جاري الإرسال..."
+                    : "تأكيد وإرسال طلب الحجز"}
                 </Button>
               </div>
             </div>
           )}
-          
         </div>
       </div>
     </div>

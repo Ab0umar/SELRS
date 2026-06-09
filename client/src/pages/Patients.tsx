@@ -16,15 +16,18 @@ import { OfflinePageState } from "@/components/OfflinePageState";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-
-
 export default function Patients() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
   const patientDetailPath = (id: number) =>
-    location.startsWith("/patient-hub") ? `/patient-hub/examination/${id}` : `/patients/${id}`;
+    location.startsWith("/patient-hub")
+      ? `/patient-hub/examination/${id}`
+      : `/patients/${id}`;
   const isAdmin = user?.role === "admin";
-  const canEditPatients = user?.role === "admin" || user?.role === "manager" || user?.role === "reception";
+  const canEditPatients =
+    user?.role === "admin" ||
+    user?.role === "manager" ||
+    user?.role === "reception";
 
   const {
     searchTerm,
@@ -72,7 +75,9 @@ export default function Patients() {
     doctorsLoading,
   } = usePatientsList(isAuthenticated);
 
-  const visiblePatientIds = filteredPatients.map((p: any) => Number(p.id)).filter(Boolean);
+  const visiblePatientIds = filteredPatients
+    .map((p: any) => Number(p.id))
+    .filter(Boolean);
   const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
     { patientIds: visiblePatientIds },
     { enabled: visiblePatientIds.length > 0, staleTime: 60_000 },
@@ -109,7 +114,9 @@ export default function Patients() {
   if (!isAuthenticated) return null;
 
   const handleOpenSheet = (serviceType: string, patientId: number) => {
-    const patient = currentPatients.find((entry) => Number(entry.id) === Number(patientId));
+    const patient = currentPatients.find(
+      (entry) => Number(entry.id) === Number(patientId),
+    );
     const url = `/sheets/${serviceType === "surgery" ? "operation" : serviceType === "external" ? "external" : serviceType}/${patientId}`;
     // Simplification for now, should use the logic from original file if more complex
     setLocation(url);
@@ -132,13 +139,15 @@ export default function Patients() {
     setLocation(`/sheets/${serviceType}/${patientId}/followup`);
   };
 
-  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(
+    new Set(),
+  );
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <PatientsHeader 
-        canEditPatients={canEditPatients} 
-        onAddNewPatient={() => setLocation("/examination")} 
+      <PatientsHeader
+        canEditPatients={canEditPatients}
+        onAddNewPatient={() => setLocation("/examination")}
       />
 
       <PullToRefresh
@@ -153,14 +162,41 @@ export default function Patients() {
         className="min-h-screen"
       >
         <main className="max-w-[1280px] mx-auto w-full px-4 py-8">
-          <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4")}>
-            <StatCard title="إجمالي المرضى" value={currentPatients.length} icon={Users} iconColor="bg-primary text-primary-foreground" />
-            <StatCard title="القسم الحالي" value={filteredPatients.length} icon={Stethoscope} iconColor="bg-primary text-primary-foreground" />
-            <StatCard title="المحدد" value={selectedCount} icon={Eye} iconColor="bg-warning/20 text-warning" />
-            <StatCard title="الأطباء" value={availableDoctors.length} icon={CalendarCheck} iconColor="bg-primary/10 text-secondary" />
+          <div
+            className={cn(
+              STAT_CARDS_MOBILE_ROW,
+              "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4",
+            )}
+          >
+            <StatCard
+              title="إجمالي المرضى"
+              value={currentPatients.length}
+              icon={Users}
+              iconColor="bg-primary text-primary-foreground"
+            />
+            <StatCard
+              title="القسم الحالي"
+              value={filteredPatients.length}
+              icon={Stethoscope}
+              iconColor="bg-primary text-primary-foreground"
+            />
+            <StatCard
+              title="المحدد"
+              value={selectedCount}
+              icon={Eye}
+              iconColor="bg-warning/20 text-warning"
+            />
+            <StatCard
+              title="الأطباء"
+              value={availableDoctors.length}
+              icon={CalendarCheck}
+              iconColor="bg-primary/10 text-secondary"
+            />
           </div>
 
-          {(patientsQuery.isError || doctorDirectoryQuery.isError || serviceDirectoryQuery.isError) && (
+          {(patientsQuery.isError ||
+            doctorDirectoryQuery.isError ||
+            serviceDirectoryQuery.isError) && (
             <div className="mb-6">
               <OfflinePageState
                 title="تعذر تحديث بيانات المرضى"
@@ -214,7 +250,9 @@ export default function Patients() {
                 onPrintSheet={handlePrintSheet}
                 onDeletePatient={handleDeletePatient}
                 onEditPatient={(patient) => {}} // This should trigger a modal, not implemented in this thin container yet
-                onOpenDetails={(patientId) => setLocation(patientDetailPath(patientId))}
+                onOpenDetails={(patientId) =>
+                  setLocation(patientDetailPath(patientId))
+                }
                 user={user}
                 canBulkManage={isAdmin}
                 medicalStatuses={medicalStatusQuery.data ?? undefined}

@@ -7,13 +7,17 @@
 If you see this error, you need to install WebView2 Runtime:
 
 ### Solution 1: Auto-Install (Recommended)
+
 Run `SELRS.bat` instead of `SELRS.exe`. The batch file will:
+
 1. Check if WebView2 is installed
 2. Automatically download and install it if missing
 3. Launch SELRS
 
 ### Solution 2: Manual Installation
+
 1. Download WebView2 Runtime from Microsoft:
+
    ```
    https://go.microsoft.com/fwlink/p/?LinkId=2124703
    ```
@@ -25,6 +29,7 @@ Run `SELRS.bat` instead of `SELRS.exe`. The batch file will:
 4. Restart SELRS
 
 ### Solution 3: Use Electron Version (Windows 7)
+
 If you continue having issues, use **SELRS-Electron-Setup.exe** instead. It bundles Chromium and doesn't require WebView2.
 
 ---

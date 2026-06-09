@@ -157,7 +157,9 @@ export default function LasikServices() {
                       {row.serviceName}
                     </div>
                     <div className="mt-4 rounded-xl bg-muted px-3 py-2">
-                      <div className="text-[10px] text-muted-foreground">الإجمالي</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        الإجمالي
+                      </div>
                       <div className="mt-1 font-semibold tabular-nums text-foreground">
                         {formatMoneyAr(row.price)}
                       </div>

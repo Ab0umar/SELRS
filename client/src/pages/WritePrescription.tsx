@@ -7,8 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Save, Pencil, Upload, Pill, CalendarDays, UserRound, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Trash2,
+  Printer,
+  Save,
+  Pencil,
+  Upload,
+  Pill,
+  CalendarDays,
+  UserRound,
+  ClipboardList,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
@@ -53,23 +71,30 @@ export default function WritePrescription({
   const [, prescriptionParams] = useRoute("/prescription/:id");
   const [, prescriptionsParams] = useRoute("/prescriptions/:id");
   const [, hubPrescriptionParams] = useRoute("/patient-hub/prescription/:id");
-  const params = prescriptionParams ?? prescriptionsParams ?? hubPrescriptionParams;
+  const params =
+    prescriptionParams ?? prescriptionsParams ?? hubPrescriptionParams;
   const isAdmin = user?.role === "admin";
-  const canDeletePrescriptions = ["admin", "manager"].includes(user?.role || "");
+  const canDeletePrescriptions = ["admin", "manager"].includes(
+    user?.role || "",
+  );
   const isReadOnly = user?.role === "reception";
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
   const canImportReadyTemplates = isAdmin;
   const printMode = usePrintMode();
   const initialPatientId = params?.id ? Number(params.id) : 0;
 
-  const [patientId, setPatientId] = useState<number | null>(initialPatientId > 0 ? initialPatientId : null);
+  const [patientId, setPatientId] = useState<number | null>(
+    initialPatientId > 0 ? initialPatientId : null,
+  );
   const [patientName, setPatientName] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [patientCode, setPatientCode] = useState("");
   const [prescriptionDate, setPrescriptionDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
-  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
+  const [locationTypeFilter, setLocationTypeFilter] = useState<
+    "all" | "center" | "external"
+  >("all");
 
   useEffect(() => {
     if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
@@ -83,7 +108,9 @@ export default function WritePrescription({
     return date.toISOString().split("T")[0];
   };
 
-  const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItem[]>([]);
+  const [prescriptionItems, setPrescriptionItems] = useState<
+    PrescriptionItem[]
+  >([]);
   const [generalNotes, setGeneralNotes] = useState("");
   const [medicationSearch, setMedicationSearch] = useState("");
   const [medicationsOpen, setMedicationsOpen] = useState(true);
@@ -104,30 +131,39 @@ export default function WritePrescription({
   ];
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "prescription" },
-    { enabled: Boolean(patientId) && !editingForbidden, refetchOnWindowFocus: false }
-  );
-  const { mutate: savePatientPageState } = trpc.medical.savePatientPageState.useMutation();
-  const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
-    { scope: "prescription" },
-    { refetchOnWindowFocus: false }
-  );
-  const upsertTemplateOverrideMutation = trpc.medical.upsertReadyTemplateOverride.useMutation({
-    onSuccess: async () => {
-      await templateOverridesQuery.refetch();
+    {
+      enabled: Boolean(patientId) && !editingForbidden,
+      refetchOnWindowFocus: false,
     },
-  });
-  const importReadyTemplateOverridesMutation = trpc.medical.importReadyTemplateOverrides.useMutation({
-    onSuccess: async () => {
-      await templateOverridesQuery.refetch();
-    },
-  });
+  );
+  const { mutate: savePatientPageState } =
+    trpc.medical.savePatientPageState.useMutation();
+  const templateOverridesQuery =
+    trpc.medical.getReadyTemplateOverrides.useQuery(
+      { scope: "prescription" },
+      { refetchOnWindowFocus: false },
+    );
+  const upsertTemplateOverrideMutation =
+    trpc.medical.upsertReadyTemplateOverride.useMutation({
+      onSuccess: async () => {
+        await templateOverridesQuery.refetch();
+      },
+    });
+  const importReadyTemplateOverridesMutation =
+    trpc.medical.importReadyTemplateOverrides.useMutation({
+      onSuccess: async () => {
+        await templateOverridesQuery.refetch();
+      },
+    });
   const importReadyTemplateOverridesFromFileMutation =
     trpc.medical.importReadyTemplateOverridesFromFile.useMutation({
       onSuccess: async () => {
         await templateOverridesQuery.refetch();
       },
     });
-  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const localDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAppliedDraftRef = useRef<string | null>(null);
   const hydratedPatientStateRef = useRef<number | null>(null);
@@ -136,7 +172,7 @@ export default function WritePrescription({
   const importPollRef = useRef<number | null>(null);
   const [importStatus, setImportStatus] = useState<string>("");
   const [importPath, setImportPath] = useState(
-    "E:\\SELRS.cc\\روشتات\\ready_prescriptions_multisheet_import.xlsx"
+    "E:\\SELRS.cc\\روشتات\\ready_prescriptions_multisheet_import.xlsx",
   );
 
   const readDraft = (keys: string[]) => {
@@ -221,19 +257,20 @@ export default function WritePrescription({
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientId ?? 0,
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
-  );
-
-  const createPrescriptionMutation = trpc.medical.createPrescriptionWithItems.useMutation({
-    onSuccess: () => {
-      toast.success("تم حفظ الروشتة بنجاح");
-    },
-    onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "فشل في حفظ الروشتة."));
-    },
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
+    enabled: Boolean(patientId),
+    refetchOnWindowFocus: false,
   });
+
+  const createPrescriptionMutation =
+    trpc.medical.createPrescriptionWithItems.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ الروشتة بنجاح");
+      },
+      onError: (error: unknown) => {
+        toast.error(getTrpcErrorMessage(error, "فشل في حفظ الروشتة."));
+      },
+    });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -246,7 +283,8 @@ export default function WritePrescription({
     const body = document.body;
     let hadDark = false;
     const handleBeforePrint = () => {
-      hadDark = root.classList.contains("dark") || body.classList.contains("dark");
+      hadDark =
+        root.classList.contains("dark") || body.classList.contains("dark");
       root.classList.remove("dark");
       body.classList.remove("dark");
     };
@@ -289,34 +327,54 @@ export default function WritePrescription({
     if (!data) return;
     if (hydratedPatientStateRef.current === patientId) return;
     if (data.prescriptionDate) setPrescriptionDate(data.prescriptionDate);
-    if (data.generalNotes !== undefined) setGeneralNotes(data.generalNotes ?? "");
-    if (data.medicationSearch !== undefined) setMedicationSearch(data.medicationSearch ?? "");
-    if (Array.isArray(data.prescriptionItems)) setPrescriptionItems(data.prescriptionItems);
+    if (data.generalNotes !== undefined)
+      setGeneralNotes(data.generalNotes ?? "");
+    if (data.medicationSearch !== undefined)
+      setMedicationSearch(data.medicationSearch ?? "");
+    if (Array.isArray(data.prescriptionItems))
+      setPrescriptionItems(data.prescriptionItems);
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, editingForbidden, patientId]);
 
   useEffect(() => {
     if (editingForbidden) return;
-    const patientKey = patientId ? `selrs:patient-draft:prescription:${patientId}` : null;
+    const patientKey = patientId
+      ? `selrs:patient-draft:prescription:${patientId}`
+      : null;
     const tempKey = "selrs:patient-draft:prescription:temp";
     const keysToCheck = patientKey ? [patientKey, tempKey] : [tempKey];
     try {
       const raw = readDraft(keysToCheck);
       if (raw) {
-        const key = keysToCheck.find((k) => raw && readDraft([k]) === raw) ?? keysToCheck[0];
-        const parsed = JSON.parse(raw) as { updatedAt?: string; data?: any } | null;
+        const key =
+          keysToCheck.find((k) => raw && readDraft([k]) === raw) ??
+          keysToCheck[0];
+        const parsed = JSON.parse(raw) as {
+          updatedAt?: string;
+          data?: any;
+        } | null;
         if (!parsed?.data) return;
         const draftUpdatedAt = Date.parse(parsed.updatedAt ?? "");
-        const serverUpdatedAt = Date.parse((patientStateQuery.data as any)?.updatedAt ?? "");
+        const serverUpdatedAt = Date.parse(
+          (patientStateQuery.data as any)?.updatedAt ?? "",
+        );
         if (!Number.isFinite(draftUpdatedAt)) return;
-        if (Number.isFinite(serverUpdatedAt) && draftUpdatedAt <= serverUpdatedAt) return;
+        if (
+          Number.isFinite(serverUpdatedAt) &&
+          draftUpdatedAt <= serverUpdatedAt
+        )
+          return;
         const signature = `${key}:${parsed.updatedAt ?? ""}`;
         if (lastAppliedDraftRef.current === signature) return;
         lastAppliedDraftRef.current = signature;
-        if (parsed.data.prescriptionDate) setPrescriptionDate(parsed.data.prescriptionDate);
-        if (parsed.data.generalNotes !== undefined) setGeneralNotes(parsed.data.generalNotes ?? "");
-        if (parsed.data.medicationSearch !== undefined) setMedicationSearch(parsed.data.medicationSearch ?? "");
-        if (Array.isArray(parsed.data.prescriptionItems)) setPrescriptionItems(parsed.data.prescriptionItems);
+        if (parsed.data.prescriptionDate)
+          setPrescriptionDate(parsed.data.prescriptionDate);
+        if (parsed.data.generalNotes !== undefined)
+          setGeneralNotes(parsed.data.generalNotes ?? "");
+        if (parsed.data.medicationSearch !== undefined)
+          setMedicationSearch(parsed.data.medicationSearch ?? "");
+        if (Array.isArray(parsed.data.prescriptionItems))
+          setPrescriptionItems(parsed.data.prescriptionItems);
         if (patientKey && key === tempKey) {
           writeDraft(patientKey, parsed as any);
           try {
@@ -336,7 +394,8 @@ export default function WritePrescription({
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
-    if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+    if (patientStateTimerRef.current)
+      clearTimeout(patientStateTimerRef.current);
     const payload = {
       prescriptionDate,
       generalNotes,
@@ -347,9 +406,18 @@ export default function WritePrescription({
       savePatientPageState({ patientId, page: "prescription", data: payload });
     }, 800);
     return () => {
-      if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+      if (patientStateTimerRef.current)
+        clearTimeout(patientStateTimerRef.current);
     };
-  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems, savePatientPageState]);
+  }, [
+    patientId,
+    editingForbidden,
+    prescriptionDate,
+    generalNotes,
+    medicationSearch,
+    prescriptionItems,
+    savePatientPageState,
+  ]);
 
   useEffect(() => {
     if (editingForbidden) return;
@@ -373,7 +441,14 @@ export default function WritePrescription({
     return () => {
       if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
     };
-  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
+  }, [
+    patientId,
+    editingForbidden,
+    prescriptionDate,
+    generalNotes,
+    medicationSearch,
+    prescriptionItems,
+  ]);
 
   useEffect(() => {
     if (editingForbidden) return;
@@ -404,7 +479,14 @@ export default function WritePrescription({
       window.removeEventListener("pagehide", persistNow);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [patientId, editingForbidden, prescriptionDate, generalNotes, medicationSearch, prescriptionItems]);
+  }, [
+    patientId,
+    editingForbidden,
+    prescriptionDate,
+    generalNotes,
+    medicationSearch,
+    prescriptionItems,
+  ]);
 
   if (!isAuthenticated) return null;
 
@@ -437,27 +519,31 @@ export default function WritePrescription({
   const [readyTab, setReadyTab] = useState(() => {
     if (typeof window === "undefined") return "أخرى 1";
     try {
-      const stored = localStorage.getItem(`tabs:${READY_TABS_PERSIST_KEY}`) || "";
+      const stored =
+        localStorage.getItem(`tabs:${READY_TABS_PERSIST_KEY}`) || "";
       if (READY_TABS.includes(stored)) return stored;
     } catch {
       // ignore
     }
     return "أخرى 1";
   });
-  const deletePrescriptionMutation = trpc.medical.deletePrescription.useMutation({
-    onSuccess: async () => {
-      toast.success("تم حذف الروشتة");
-      await historyQuery.refetch();
-    },
-    onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "فشل حذف الروشتة."));
-    },
-  });
+  const deletePrescriptionMutation =
+    trpc.medical.deletePrescription.useMutation({
+      onSuccess: async () => {
+        toast.success("تم حذف الروشتة");
+        await historyQuery.refetch();
+      },
+      onError: (error: unknown) => {
+        toast.error(getTrpcErrorMessage(error, "فشل حذف الروشتة."));
+      },
+    });
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [moveReadyTabTarget, setMoveReadyTabTarget] = useState("Tracoma");
 
   const stripTemplateCategory = (value: string) =>
-    String(value ?? "").replace(/^\[(.+?)\]\s*/, "").trim();
+    String(value ?? "")
+      .replace(/^\[(.+?)\]\s*/, "")
+      .trim();
 
   const readTemplateCategory = (value: string) => {
     const match = String(value ?? "").match(/^\[(.+?)\]\s*/);
@@ -487,28 +573,36 @@ export default function WritePrescription({
         id,
         name: templateOverrides[id]?.name?.trim() || id,
         items: templateOverrides[id]?.prescriptionItems ?? [],
-    })),
+      })),
   ];
   const filteredReadyTemplates = readyTemplates.filter(
-    (template) => getTemplateCategory(template.id, template.name) === readyTab
+    (template) => getTemplateCategory(template.id, template.name) === readyTab,
   );
-  const filteredReadyTemplateIds = filteredReadyTemplates.map((template) => template.id);
+  const filteredReadyTemplateIds = filteredReadyTemplates.map(
+    (template) => template.id,
+  );
   const allFilteredReadyTemplatesSelected =
     filteredReadyTemplateIds.length > 0 &&
     filteredReadyTemplateIds.every((id) => selectedTemplateIds.includes(id));
 
-  const handleSelectPatient = (patient: { id: number; fullName: string; age?: number | null }) => {
+  const handleSelectPatient = (patient: {
+    id: number;
+    fullName: string;
+    age?: number | null;
+  }) => {
     setPatientId(patient.id);
     setPatientName(patient.fullName ?? "");
     setPatientAge(patient.age != null ? String(patient.age) : "");
     setLocation(
-      embeddedInPatientHub ? `/patient-hub/prescription/${patient.id}` : `/prescription/${patient.id}`,
+      embeddedInPatientHub
+        ? `/patient-hub/prescription/${patient.id}`
+        : `/prescription/${patient.id}`,
     );
   };
 
   const historyQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
   useEffect(() => {
     if (!editingForbidden) return;
@@ -542,7 +636,11 @@ export default function WritePrescription({
 
   const handleSave = async () => {
     if (editingForbidden) {
-      toast.error(patientHubReadOnly ? patientHubViewOnlyHint : "التعديل متاح للأدمن فقط.");
+      toast.error(
+        patientHubReadOnly
+          ? patientHubViewOnlyHint
+          : "التعديل متاح للأدمن فقط.",
+      );
       return;
     }
     if (!patientId) {
@@ -552,7 +650,7 @@ export default function WritePrescription({
     const itemsToSave = prescriptionItems.filter(
       (item) =>
         (typeof item.medicationId === "number" && item.medicationId > 0) ||
-        Boolean(item.medicationName && item.medicationName.trim())
+        Boolean(item.medicationName && item.medicationName.trim()),
     );
     if (itemsToSave.length === 0) {
       toast.error("يرجى إضافة دواء واحد على الأقل.");
@@ -578,7 +676,9 @@ export default function WritePrescription({
   };
 
   const handlePrint = () => {
-    void printOrExportPdf(`${String(patientName || patientId || "prescription").trim()}.pdf`);
+    void printOrExportPdf(
+      `${String(patientName || patientId || "prescription").trim()}.pdf`,
+    );
   };
 
   const filteredItems = prescriptionItems.filter((item) => {
@@ -603,13 +703,15 @@ export default function WritePrescription({
     return meds.filter((med) =>
       `${med.name} ${med.type} ${med.strength} ${med.manufacturer} ${med.activeIngredient}`
         .toLowerCase()
-        .includes(term)
+        .includes(term),
     );
   }, [medicationsQuery.data, medicationSearch]);
 
   const handleToggleMedication = (med: any) => {
     if (editingForbidden) return;
-    const exists = prescriptionItems.find((item) => item.medicationId === med.id);
+    const exists = prescriptionItems.find(
+      (item) => item.medicationId === med.id,
+    );
     if (exists) {
       handleRemoveItem(exists.id);
       return;
@@ -666,7 +768,11 @@ export default function WritePrescription({
         if (!sheet) return [] as Array<Record<string, unknown>>;
         return XLSX.utils
           .sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
-          .map((row) => ({ ...row, __sheetName: sheetName, __sheetIndex: sheetIndex }));
+          .map((row) => ({
+            ...row,
+            __sheetName: sheetName,
+            __sheetIndex: sheetIndex,
+          }));
       });
 
       const grouped = new Map<
@@ -689,36 +795,63 @@ export default function WritePrescription({
       for (const row of rows) {
         const lookup = buildRowLookup(row);
         const templateIdRaw = String(
-          getRowValue(lookup, "templateId", "template_id", "template id", "كود القالب") ?? ""
+          getRowValue(
+            lookup,
+            "templateId",
+            "template_id",
+            "template id",
+            "كود القالب",
+          ) ?? "",
         );
         const templateNameRaw = String(
-          getRowValue(lookup, "templateName", "template_name", "template name", "اسم القالب") ?? ""
+          getRowValue(
+            lookup,
+            "templateName",
+            "template_name",
+            "template name",
+            "اسم القالب",
+          ) ?? "",
         );
         const templateKeyRaw = String(
-          getRowValue(lookup, "templateKey", "template_key", "template key") ?? ""
+          getRowValue(lookup, "templateKey", "template_key", "template key") ??
+            "",
         );
         const sheetNameRaw = String((row as any).__sheetName ?? "");
         const sheetIndexRaw = Number((row as any).__sheetIndex ?? -1);
         const medicationName = String(
-          getRowValue(lookup, "medicationName", "medication_name", "medication name", "اسم الدواء") ?? ""
+          getRowValue(
+            lookup,
+            "medicationName",
+            "medication_name",
+            "medication name",
+            "اسم الدواء",
+          ) ?? "",
         ).trim();
-        const dosage = String(getRowValue(lookup, "dosage", "الجرعة", "جرعة") ?? "").trim();
-        const frequency = String(getRowValue(lookup, "frequency", "التكرار") ?? "").trim();
-        const duration = String(getRowValue(lookup, "duration", "المدة") ?? "").trim();
-        const instructions = String(getRowValue(lookup, "instructions", "التعليمات") ?? "").trim();
+        const dosage = String(
+          getRowValue(lookup, "dosage", "الجرعة", "جرعة") ?? "",
+        ).trim();
+        const frequency = String(
+          getRowValue(lookup, "frequency", "التكرار") ?? "",
+        ).trim();
+        const duration = String(
+          getRowValue(lookup, "duration", "المدة") ?? "",
+        ).trim();
+        const instructions = String(
+          getRowValue(lookup, "instructions", "التعليمات") ?? "",
+        ).trim();
 
         const normalizedBaseId =
           normalizeTemplateId(templateKeyRaw) ||
           normalizeTemplateId(
             templateIdRaw && sheetIndexRaw >= 0
               ? `${templateIdRaw}__s${sheetIndexRaw}`
-              : ""
+              : "",
           ) ||
           normalizeTemplateId(templateIdRaw) ||
           normalizeTemplateId(
             templateNameRaw && sheetIndexRaw >= 0
               ? `${templateNameRaw}__s${sheetIndexRaw}`
-              : ""
+              : "",
           ) ||
           normalizeTemplateId(templateNameRaw) ||
           normalizeTemplateId(sheetNameRaw) ||
@@ -749,7 +882,9 @@ export default function WritePrescription({
         });
       }
 
-      const templates = Array.from(grouped.values()).filter((t) => t.prescriptionItems.length > 0);
+      const templates = Array.from(grouped.values()).filter(
+        (t) => t.prescriptionItems.length > 0,
+      );
       if (templates.length === 0) {
         toast.error("No valid templates found in file.");
         setImportStatus("فشل: لم يتم العثور على قوالب صالحة");
@@ -774,7 +909,9 @@ export default function WritePrescription({
     }
   };
 
-  const handleImportReadyPrescriptions = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImportReadyPrescriptions = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
     await importFromFile(file);
@@ -809,10 +946,11 @@ export default function WritePrescription({
     }
     try {
       setImportStatus(`جاري الاستيراد من المسار`);
-      const result = await importReadyTemplateOverridesFromFileMutation.mutateAsync({
-        scope: "prescription",
-        filePath: trimmed,
-      });
+      const result =
+        await importReadyTemplateOverridesFromFileMutation.mutateAsync({
+          scope: "prescription",
+          filePath: trimmed,
+        });
       setImportStatus(`تم الاستيراد: ${result.count} قالب`);
     } catch (error) {
       setImportStatus(getTrpcErrorMessage(error, "فشل الاستيراد من المسار."));
@@ -822,7 +960,8 @@ export default function WritePrescription({
   const handleApplyReadyPrescription = (templateId: string) => {
     const template = readyTemplates.find((t) => t.id === templateId);
     if (!template) return;
-    const sourceItems = templateOverrides[templateId]?.prescriptionItems ?? template.items;
+    const sourceItems =
+      templateOverrides[templateId]?.prescriptionItems ?? template.items;
     setPrescriptionItems(
       sourceItems.map((item, idx) => ({
         id: `ready-${templateId}-${idx}-${Date.now()}`,
@@ -832,7 +971,7 @@ export default function WritePrescription({
         frequency: item.frequency ?? "",
         duration: item.duration ?? "",
         instructions: item.instructions ?? "",
-      }))
+      })),
     );
   };
 
@@ -855,14 +994,19 @@ export default function WritePrescription({
       });
       toast.success("Template content saved");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to save template content."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to save template content."),
+      );
     }
   };
 
   const getTemplateDisplayName = (templateId: string, fallbackName: string) =>
     stripTemplateCategory(getTemplateRawName(templateId, fallbackName));
 
-  const handleRenameTemplate = async (templateId: string, fallbackName: string) => {
+  const handleRenameTemplate = async (
+    templateId: string,
+    fallbackName: string,
+  ) => {
     const currentRaw = getTemplateRawName(templateId, fallbackName);
     const currentCategory = readTemplateCategory(currentRaw);
     const currentName = stripTemplateCategory(currentRaw) || fallbackName;
@@ -884,7 +1028,12 @@ export default function WritePrescription({
         await upsertTemplateOverrideMutation.mutateAsync({
           scope: "prescription",
           templateId,
-          name: !clean || clean === fallbackName ? (currentCategory ? nameWithCategory : "") : nameWithCategory,
+          name:
+            !clean || clean === fallbackName
+              ? currentCategory
+                ? nameWithCategory
+                : ""
+              : nameWithCategory,
         });
       }
       toast.success("Template name updated");
@@ -896,7 +1045,7 @@ export default function WritePrescription({
   const handleSetTemplateCategory = async (
     templateId: string,
     fallbackName: string,
-    category: string
+    category: string,
   ) => {
     const raw = getTemplateRawName(templateId, fallbackName);
     const baseName = stripTemplateCategory(raw) || fallbackName || templateId;
@@ -907,13 +1056,15 @@ export default function WritePrescription({
         name: `[${category}] ${baseName}`,
       });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update template category."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to update template category."),
+      );
     }
   };
 
   const handleMoveSelectedTemplates = async () => {
     const idsToMove = selectedTemplateIds.filter((id) =>
-      filteredReadyTemplateIds.includes(id)
+      filteredReadyTemplateIds.includes(id),
     );
     if (idsToMove.length === 0) {
       toast.error("اختر روشتة جاهزة واحدة على الأقل");
@@ -925,7 +1076,8 @@ export default function WritePrescription({
         const template = readyTemplates.find((item) => item.id === templateId);
         if (!template) continue;
         const raw = getTemplateRawName(templateId, template.name);
-        const baseName = stripTemplateCategory(raw) || template.name || templateId;
+        const baseName =
+          stripTemplateCategory(raw) || template.name || templateId;
         await upsertTemplateOverrideMutation.mutateAsync({
           scope: "prescription",
           templateId,
@@ -933,13 +1085,14 @@ export default function WritePrescription({
         });
       }
       await templateOverridesQuery.refetch();
-      setSelectedTemplateIds((prev) => prev.filter((id) => !idsToMove.includes(id)));
+      setSelectedTemplateIds((prev) =>
+        prev.filter((id) => !idsToMove.includes(id)),
+      );
       toast.success(`تم نقل ${idsToMove.length} روشتة`);
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "فشل نقل الروشتات الجاهزة."));
     }
   };
-
 
   const handleDeleteTemplateOverride = async (templateId: string) => {
     try {
@@ -951,18 +1104,27 @@ export default function WritePrescription({
       });
       toast.success("Template override deleted");
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to delete template override."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to delete template override."),
+      );
     }
   };
   return (
     <div
-      className={cn("prescription-root bg-background", hidePageChrome ? "min-h-0" : "min-h-screen")}
+      className={cn(
+        "prescription-root bg-background",
+        hidePageChrome ? "min-h-0" : "min-h-screen",
+      )}
       dir="rtl"
       style={{ direction: "rtl" }}
     >
       {printMode.printView ? null : hidePageChrome ? null : (
         <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6">
-          <PageHeader title="كتابة الروشتة" subtitle="صف الأدوية والتعليمات قبل وبعد العملية" icon={<Pill className="h-5 w-5" />} />
+          <PageHeader
+            title="كتابة الروشتة"
+            subtitle="صف الأدوية والتعليمات قبل وبعد العملية"
+            icon={<Pill className="h-5 w-5" />}
+          />
         </div>
       )}
 
@@ -971,7 +1133,11 @@ export default function WritePrescription({
         className={cn(
           "mx-auto print:p-0",
           hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "max-w-[1280px]",
-          printMode.printView ? "px-3 py-3" : hidePageChrome ? "" : "px-4 pb-8 pt-2 md:px-6",
+          printMode.printView
+            ? "px-3 py-3"
+            : hidePageChrome
+              ? ""
+              : "px-4 pb-8 pt-2 md:px-6",
         )}
       >
         {printMode.printView ? (
@@ -981,42 +1147,61 @@ export default function WritePrescription({
             onPrint={handlePrint}
           />
         ) : null}
-            <div className={editingForbidden ? "space-y-6" : "grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6"}>
-                <div className="space-y-6">
-              <Card className="print:hidden">
-                <CardContent className="space-y-4 pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2 space-y-2">
-                      <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
-                        <SelectTrigger className="h-9 rounded-lg text-sm"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">الكل</SelectItem>
-                          <SelectItem value="center">مركز</SelectItem>
-                          <SelectItem value="external">خارجي</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <PatientPicker
-                        initialPatientId={patientId ?? undefined}
-                        onSelect={handleSelectPatient}
-                        locationType={locationTypeFilter === "all" ? undefined : locationTypeFilter}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Input
-                        type="date"
-                        value={prescriptionDate}
-                        onChange={(e) => setPrescriptionDate(e.target.value)}
-                        disabled={editingForbidden}
-                      />
-                      <span className="text-[10px] text-muted-foreground">{formatDateLabel(prescriptionDate)}</span>
-                    </div>
+        <div
+          className={
+            editingForbidden
+              ? "space-y-6"
+              : "grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6"
+          }
+        >
+          <div className="space-y-6">
+            <Card className="print:hidden">
+              <CardContent className="space-y-4 pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2 space-y-2">
+                    <Select
+                      value={locationTypeFilter}
+                      onValueChange={(v) => setLocationTypeFilter(v as any)}
+                    >
+                      <SelectTrigger className="h-9 rounded-lg text-sm">
+                        <SelectValue placeholder="مكان الخدمة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">الكل</SelectItem>
+                        <SelectItem value="center">مركز</SelectItem>
+                        <SelectItem value="external">خارجي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <PatientPicker
+                      initialPatientId={patientId ?? undefined}
+                      onSelect={handleSelectPatient}
+                      locationType={
+                        locationTypeFilter === "all"
+                          ? undefined
+                          : locationTypeFilter
+                      }
+                    />
                   </div>
-                </CardContent>
-              </Card>
-              {!editingForbidden && (
-                <Card className="print:hidden">
+                  <div className="space-y-1">
+                    <Input
+                      type="date"
+                      value={prescriptionDate}
+                      onChange={(e) => setPrescriptionDate(e.target.value)}
+                      disabled={editingForbidden}
+                    />
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDateLabel(prescriptionDate)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {!editingForbidden && (
+              <Card className="print:hidden">
                 <div className="flex items-center gap-3 px-6 pt-6 flex-nowrap">
-                  <div className="text-sm font-semibold shrink-0">الأدوية المتاحة</div>
+                  <div className="text-sm font-semibold shrink-0">
+                    الأدوية المتاحة
+                  </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Input
                       value={medicationSearch}
@@ -1031,9 +1216,15 @@ export default function WritePrescription({
                       size="icon-sm"
                       onClick={() => setMedicationsOpen((prev) => !prev)}
                       title={medicationsOpen ? "إخفاء الأدوية" : "عرض الأدوية"}
-                      aria-label={medicationsOpen ? "إخفاء الأدوية" : "عرض الأدوية"}
+                      aria-label={
+                        medicationsOpen ? "إخفاء الأدوية" : "عرض الأدوية"
+                      }
                     >
-                      {medicationsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {medicationsOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -1061,9 +1252,15 @@ export default function WritePrescription({
                       إضافة دواء
                     </Button>
                     {availableMedications.map((med) => {
-                      const checked = prescriptionItems.some((item) => item.medicationId === med.id);
+                      const checked = prescriptionItems.some(
+                        (item) => item.medicationId === med.id,
+                      );
                       return (
-                        <label key={med.id} className="flex items-center justify-between gap-2 rounded border p-2" dir="ltr">
+                        <label
+                          key={med.id}
+                          className="flex items-center justify-between gap-2 rounded border p-2"
+                          dir="ltr"
+                        >
                           <span className="text-sm text-left">{med.name}</span>
                           <input
                             type="checkbox"
@@ -1074,14 +1271,16 @@ export default function WritePrescription({
                       );
                     })}
                     {availableMedications.length === 0 && (
-                      <p className="text-center text-muted-foreground">لا توجد أدوية</p>
+                      <p className="text-center text-muted-foreground">
+                        لا توجد أدوية
+                      </p>
                     )}
                   </CardContent>
                 ) : null}
-                </Card>
-              )}
-              </div>
-              <div className="space-y-6">
+              </Card>
+            )}
+          </div>
+          <div className="space-y-6">
             {!editingForbidden && (
               <Card className="print:hidden">
                 <CardHeader>
@@ -1095,9 +1294,16 @@ export default function WritePrescription({
                           type="file"
                           accept=".xlsx,.xls"
                           className="sr-only"
-                          onChange={(e) => void handleImportReadyPrescriptions(e)}
+                          onChange={(e) =>
+                            void handleImportReadyPrescriptions(e)
+                          }
                         />
-                        <Button type="button" variant="outline" size="sm" onClick={startFilePick}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={startFilePick}
+                        >
                           <Upload className="h-4 w-4 ml-1" />
                           Import Excel
                         </Button>
@@ -1108,7 +1314,9 @@ export default function WritePrescription({
                 <CardContent className="space-y-2 pt-0">
                   {canImportReadyTemplates ? (
                     <>
-                      <div className="text-xs text-muted-foreground">استيراد مباشر من مسار السيرفر</div>
+                      <div className="text-xs text-muted-foreground">
+                        استيراد مباشر من مسار السيرفر
+                      </div>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <Input
                           value={importPath}
@@ -1117,19 +1325,35 @@ export default function WritePrescription({
                           className="text-left"
                           dir="ltr"
                         />
-                        <Button type="button" variant="secondary" size="sm" onClick={handleImportFromPath}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleImportFromPath}
+                        >
                           استيراد من المسار
                         </Button>
                       </div>
                       {importStatus ? (
-                        <div className="text-xs text-muted-foreground">{importStatus}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {importStatus}
+                        </div>
                       ) : null}
                     </>
                   ) : null}
-                  <Tabs value={readyTab} onValueChange={setReadyTab} persistKey={READY_TABS_PERSIST_KEY} dir="rtl">
+                  <Tabs
+                    value={readyTab}
+                    onValueChange={setReadyTab}
+                    persistKey={READY_TABS_PERSIST_KEY}
+                    dir="rtl"
+                  >
                     <TabsList className="w-full justify-start gap-2 overflow-x-auto flex-nowrap">
                       {READY_TABS.map((tab) => (
-                        <TabsTrigger key={tab} value={tab} className="text-xs whitespace-nowrap">
+                        <TabsTrigger
+                          key={tab}
+                          value={tab}
+                          className="text-xs whitespace-nowrap"
+                        >
                           {tab}
                         </TabsTrigger>
                       ))}
@@ -1142,18 +1366,25 @@ export default function WritePrescription({
                         onCheckedChange={(checked) => {
                           if (Boolean(checked)) {
                             setSelectedTemplateIds((prev) =>
-                              Array.from(new Set([...prev, ...filteredReadyTemplateIds]))
+                              Array.from(
+                                new Set([...prev, ...filteredReadyTemplateIds]),
+                              ),
                             );
                             return;
                           }
                           setSelectedTemplateIds((prev) =>
-                            prev.filter((id) => !filteredReadyTemplateIds.includes(id))
+                            prev.filter(
+                              (id) => !filteredReadyTemplateIds.includes(id),
+                            ),
                           );
                         }}
                       />
                       تحديد الكل
                     </label>
-                    <Select value={moveReadyTabTarget} onValueChange={setMoveReadyTabTarget}>
+                    <Select
+                      value={moveReadyTabTarget}
+                      onValueChange={setMoveReadyTabTarget}
+                    >
                       <SelectTrigger className="w-[220px]">
                         <SelectValue placeholder="نقل إلى تاب" />
                       </SelectTrigger>
@@ -1184,7 +1415,7 @@ export default function WritePrescription({
                           setSelectedTemplateIds((prev) =>
                             Boolean(checked)
                               ? Array.from(new Set([...prev, template.id]))
-                              : prev.filter((id) => id !== template.id)
+                              : prev.filter((id) => id !== template.id),
                           )
                         }
                       />
@@ -1192,7 +1423,9 @@ export default function WritePrescription({
                         variant="outline"
                         type="button"
                         className="justify-start flex-1 h-8 px-2 text-xs"
-                        onClick={() => handleApplyReadyPrescription(template.id)}
+                        onClick={() =>
+                          handleApplyReadyPrescription(template.id)
+                        }
                       >
                         {getTemplateDisplayName(template.id, template.name)}
                       </Button>
@@ -1210,7 +1443,9 @@ export default function WritePrescription({
                         variant="ghost"
                         size="icon"
                         type="button"
-                        onClick={() => handleRenameTemplate(template.id, template.name)}
+                        onClick={() =>
+                          handleRenameTemplate(template.id, template.name)
+                        }
                         title="Rename"
                         aria-label="Rename template"
                       >
@@ -1220,7 +1455,9 @@ export default function WritePrescription({
                         variant="ghost"
                         size="icon"
                         type="button"
-                        onClick={() => handleDeleteTemplateOverride(template.id)}
+                        onClick={() =>
+                          handleDeleteTemplateOverride(template.id)
+                        }
                         title="Delete override"
                         aria-label="Delete template override"
                       >
@@ -1237,52 +1474,73 @@ export default function WritePrescription({
               </Card>
             )}
 
-              <div className="prescription-print-content space-y-6" data-print-prescription-content>
-
-
-            <div className="hidden print:block">
-              <div className="pt-2 flex items-center justify-between gap-4 text-sm" dir="rtl">
-                <span className="inline-flex items-center gap-1" dir="rtl">
-                  <span className="font-semibold">الاسم:</span>
-                  <span>{patientName}</span>
-                </span>
-                {prescriptionDate ? (
+            <div
+              className="prescription-print-content space-y-6"
+              data-print-prescription-content
+            >
+              <div className="hidden print:block">
+                <div
+                  className="pt-2 flex items-center justify-between gap-4 text-sm"
+                  dir="rtl"
+                >
                   <span className="inline-flex items-center gap-1" dir="rtl">
-                    <span className="font-semibold">التاريخ:</span>
-                    <span dir="ltr">{formatDateLabel(prescriptionDate)}</span>
+                    <span className="font-semibold">الاسم:</span>
+                    <span>{patientName}</span>
                   </span>
-                ) : null}
-                <span className="inline-flex items-center gap-1" dir="rtl">
-                  <span className="font-semibold">الكود:</span>
-                  <span dir="ltr">{patientCode || (patientId != null ? String(patientId) : "")}</span>
-                </span>
+                  {prescriptionDate ? (
+                    <span className="inline-flex items-center gap-1" dir="rtl">
+                      <span className="font-semibold">التاريخ:</span>
+                      <span dir="ltr">{formatDateLabel(prescriptionDate)}</span>
+                    </span>
+                  ) : null}
+                  <span className="inline-flex items-center gap-1" dir="rtl">
+                    <span className="font-semibold">الكود:</span>
+                    <span dir="ltr">
+                      {patientCode ||
+                        (patientId != null ? String(patientId) : "")}
+                    </span>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <Card className="print:[direction:ltr] print:border-0 print:shadow-none">
-              <CardHeader className="hidden print:hidden" />
-              <CardContent className="prescription-print-rx space-y-3 pt-3">
-                <div className="text-base font-semibold">R/</div>
-                {editingForbidden ? (
-                  prescriptionItems.length === 0 ? (
-                    <p className="text-center text-muted-foreground">لا توجد روشتة مسجلة لهذا المريض</p>
-                ) : (
-                  prescriptionItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-3 print:border-0 print:rounded-none">
-                      <div className="font-bold">{item.medicationName}</div>
-                      {item.instructions ? (
-                        <div className="mt-1 text-sm whitespace-pre-line">{item.instructions}</div>
-                      ) : null}
-                    </div>
-                  ))
-                )
-              ) : (
-                  prescriptionItems.length === 0 ? (
-                    <p className="text-center text-muted-foreground">لا توجد أدوية بعد</p>
+              <Card className="print:[direction:ltr] print:border-0 print:shadow-none">
+                <CardHeader className="hidden print:hidden" />
+                <CardContent className="prescription-print-rx space-y-3 pt-3">
+                  <div className="text-base font-semibold">R/</div>
+                  {editingForbidden ? (
+                    prescriptionItems.length === 0 ? (
+                      <p className="text-center text-muted-foreground">
+                        لا توجد روشتة مسجلة لهذا المريض
+                      </p>
+                    ) : (
+                      prescriptionItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="border rounded-lg p-3 print:border-0 print:rounded-none"
+                        >
+                          <div className="font-bold">{item.medicationName}</div>
+                          {item.instructions ? (
+                            <div className="mt-1 text-sm whitespace-pre-line">
+                              {item.instructions}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))
+                    )
+                  ) : prescriptionItems.length === 0 ? (
+                    <p className="text-center text-muted-foreground">
+                      لا توجد أدوية بعد
+                    </p>
                   ) : (
                     filteredItems.map((item) => (
-                      <div key={item.id} className="border rounded-lg p-3 print:border-0 print:rounded-none">
-                        <div className="flex items-start justify-between gap-3" dir="ltr">
+                      <div
+                        key={item.id}
+                        className="border rounded-lg p-3 print:border-0 print:rounded-none"
+                      >
+                        <div
+                          className="flex items-start justify-between gap-3"
+                          dir="ltr"
+                        >
                           <div className="flex-1 space-y-2">
                             <Input
                               value={item.medicationName}
@@ -1291,17 +1549,22 @@ export default function WritePrescription({
                                   prev.map((p) =>
                                     p.id === item.id
                                       ? { ...p, medicationName: e.target.value }
-                                      : p
-                                  )
+                                      : p,
+                                  ),
                                 )
                               }
                               placeholder="Medication name"
                               className="print:hidden text-left"
                               dir="ltr"
                             />
-                            <div className="hidden print:block font-bold text-left">{item.medicationName}</div>
+                            <div className="hidden print:block font-bold text-left">
+                              {item.medicationName}
+                            </div>
                             {item.instructions ? (
-                              <div className="hidden print:block mt-1 text-sm whitespace-pre-line text-right" dir="rtl">
+                              <div
+                                className="hidden print:block mt-1 text-sm whitespace-pre-line text-right"
+                                dir="rtl"
+                              >
                                 {item.instructions}
                               </div>
                             ) : null}
@@ -1312,147 +1575,180 @@ export default function WritePrescription({
                                   prev.map((p) =>
                                     p.id === item.id
                                       ? { ...p, instructions: e.target.value }
-                                      : p
-                                  )
+                                      : p,
+                                  ),
                                 )
                               }
                               placeholder="الجرعة / التكرار / المدة / تعليمات"
                               className="min-h-12 text-center w-full print:hidden"
                             />
                           </div>
-                          <Button size="icon" variant="destructive" onClick={() => handleRemoveItem(item.id)} className="print:hidden" aria-label="حذف">
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="print:hidden"
+                            aria-label="حذف"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                     ))
-                  )
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <section className="hidden print:block prescription-print-backside" dir="rtl">
-          <div className="space-y-6 text-[14px] leading-7">
-            <div>
-              <h3 className="font-bold mb-2">قبل العملية</h3>
-              <ul className="space-y-1 pr-5 list-disc">
-                {preOpInstructions.map((line, idx) => (
-                  <li key={`pre-${idx}`}>{line}</li>
-                ))}
-              </ul>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-            <div>
-              <h3 className="font-bold mb-2">بعد العملية</h3>
-              <ul className="space-y-1 pr-5 list-disc">
-                {postOpInstructions.map((line, idx) => (
-                  <li key={`post-${idx}`}>{line}</li>
-                ))}
-              </ul>
-            </div>
-            <p className="text-center font-semibold pt-4">مع تمنياتنا لكم الشفاء العاجل</p>
-          </div>
-        </section>
-        <div className={`print:hidden mt-4 ${printMode.printView ? "hidden" : ""}`}>
-          {patientId ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>الروشتات السابقة</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {historyQuery.isLoading ? (
-                  <p className="text-center text-muted-foreground">جاري التحميل...</p>
-                ) : (historyQuery.data ?? []).filter((rx: any) => (rx.items ?? []).length > 0).length === 0 ? (
-                  <p className="text-center text-muted-foreground">لا توجد روشتات سابقة</p>
-                ) : (
-                  (historyQuery.data ?? [])
-                    .filter((rx: any) => (rx.items ?? []).length > 0)
-                    .map((rx: any) => (
-                    <div key={rx.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between gap-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">التاريخ</span>
-                          <span>{rx.prescriptionDate ? formatDateLabel(rx.prescriptionDate) : ""}</span>
-                        </div>
-                        {canDeletePrescriptions && !editingForbidden ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            onClick={async () => {
-                              if (!window.confirm("هل أنت متأكد من حذف الروشتة؟")) return;
-                              await deletePrescriptionMutation.mutateAsync({ prescriptionId: Number(rx.id) });
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 ml-1" />
-                            حذف
-                          </Button>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 space-y-2">
-                        {(rx.items ?? []).length === 0 ? (
-                          <p className="text-sm text-muted-foreground">لا توجد أدوية</p>
-                        ) : (
-                          (rx.items ?? []).map((item: any) => (
-                            <div key={item.id} className="text-sm">
-                              <span className="font-semibold">{item.medicationName || `#${item.medicationId ?? ""}`}</span>
-                              {formatItemDetails({
-                                id: String(item.id ?? ""),
-                                medicationId: item.medicationId ?? 0,
-                                medicationName: item.medicationName ?? "",
-                                dosage: item.dosage ?? "",
-                                frequency: item.frequency ?? "",
-                                duration: item.duration ?? "",
-                                instructions: item.instructions ?? "",
-                              }) ? (
-                                <div className="text-xs text-muted-foreground">
-                                  {formatItemDetails({
-                                    id: String(item.id ?? ""),
-                                    medicationId: item.medicationId ?? 0,
-                                    medicationName: item.medicationName ?? "",
-                                    dosage: item.dosage ?? "",
-                                    frequency: item.frequency ?? "",
-                                    duration: item.duration ?? "",
-                                    instructions: item.instructions ?? "",
-                                  })}
-                                </div>
+            <section
+              className="hidden print:block prescription-print-backside"
+              dir="rtl"
+            >
+              <div className="space-y-6 text-[14px] leading-7">
+                <div>
+                  <h3 className="font-bold mb-2">قبل العملية</h3>
+                  <ul className="space-y-1 pr-5 list-disc">
+                    {preOpInstructions.map((line, idx) => (
+                      <li key={`pre-${idx}`}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-bold mb-2">بعد العملية</h3>
+                  <ul className="space-y-1 pr-5 list-disc">
+                    {postOpInstructions.map((line, idx) => (
+                      <li key={`post-${idx}`}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-center font-semibold pt-4">
+                  مع تمنياتنا لكم الشفاء العاجل
+                </p>
+              </div>
+            </section>
+            <div
+              className={`print:hidden mt-4 ${printMode.printView ? "hidden" : ""}`}
+            >
+              {patientId ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الروشتات السابقة</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {historyQuery.isLoading ? (
+                      <p className="text-center text-muted-foreground">
+                        جاري التحميل...
+                      </p>
+                    ) : (historyQuery.data ?? []).filter(
+                        (rx: any) => (rx.items ?? []).length > 0,
+                      ).length === 0 ? (
+                      <p className="text-center text-muted-foreground">
+                        لا توجد روشتات سابقة
+                      </p>
+                    ) : (
+                      (historyQuery.data ?? [])
+                        .filter((rx: any) => (rx.items ?? []).length > 0)
+                        .map((rx: any) => (
+                          <div key={rx.id} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between gap-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">التاريخ</span>
+                                <span>
+                                  {rx.prescriptionDate
+                                    ? formatDateLabel(rx.prescriptionDate)
+                                    : ""}
+                                </span>
+                              </div>
+                              {canDeletePrescriptions && !editingForbidden ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={async () => {
+                                    if (
+                                      !window.confirm(
+                                        "هل أنت متأكد من حذف الروشتة؟",
+                                      )
+                                    )
+                                      return;
+                                    await deletePrescriptionMutation.mutateAsync(
+                                      { prescriptionId: Number(rx.id) },
+                                    );
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 ml-1" />
+                                  حذف
+                                </Button>
                               ) : null}
                             </div>
-                          ))
-                        )}
-                      </div>
-                      {rx.notes ? (
-                        <div className="mt-2 text-xs text-muted-foreground">{rx.notes}</div>
-                      ) : null}
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <p className="text-center text-muted-foreground">اختر مريضاً لعرض الروشتات السابقة</p>
-          )}
-        </div>
-        <div className={`print:hidden flex justify-end gap-2 mt-4 ${printMode.printView ? "hidden" : ""}`}>
-          {!editingForbidden && (
-            <Button
-              variant="outline"
-              onClick={handleSave}
-              type="button"
+                            <div className="mt-2 space-y-2">
+                              {(rx.items ?? []).length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  لا توجد أدوية
+                                </p>
+                              ) : (
+                                (rx.items ?? []).map((item: any) => (
+                                  <div key={item.id} className="text-sm">
+                                    <span className="font-semibold">
+                                      {item.medicationName ||
+                                        `#${item.medicationId ?? ""}`}
+                                    </span>
+                                    {formatItemDetails({
+                                      id: String(item.id ?? ""),
+                                      medicationId: item.medicationId ?? 0,
+                                      medicationName: item.medicationName ?? "",
+                                      dosage: item.dosage ?? "",
+                                      frequency: item.frequency ?? "",
+                                      duration: item.duration ?? "",
+                                      instructions: item.instructions ?? "",
+                                    }) ? (
+                                      <div className="text-xs text-muted-foreground">
+                                        {formatItemDetails({
+                                          id: String(item.id ?? ""),
+                                          medicationId: item.medicationId ?? 0,
+                                          medicationName:
+                                            item.medicationName ?? "",
+                                          dosage: item.dosage ?? "",
+                                          frequency: item.frequency ?? "",
+                                          duration: item.duration ?? "",
+                                          instructions: item.instructions ?? "",
+                                        })}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            {rx.notes ? (
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                {rx.notes}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  اختر مريضاً لعرض الروشتات السابقة
+                </p>
+              )}
+            </div>
+            <div
+              className={`print:hidden flex justify-end gap-2 mt-4 ${printMode.printView ? "hidden" : ""}`}
             >
-              <Save className="h-4 w-4 ml-2" />
-              حفظ
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handlePrint}
-            type="button"
-          >
-            <Printer className="h-4 w-4 ml-2" />
-            طباعة
-          </Button>
-        </div>
-              </div>
+              {!editingForbidden && (
+                <Button variant="outline" onClick={handleSave} type="button">
+                  <Save className="h-4 w-4 ml-2" />
+                  حفظ
+                </Button>
+              )}
+              <Button variant="outline" onClick={handlePrint} type="button">
+                <Printer className="h-4 w-4 ml-2" />
+                طباعة
+              </Button>
+            </div>
+          </div>
         </div>
       </main>
       <style>{`
@@ -1534,5 +1830,3 @@ export default function WritePrescription({
     </div>
   );
 }
-
-

@@ -48,7 +48,7 @@
   /* Al Shrouk Eye Center - Primary Colors: Navy Blue & Gold */
   --primary: oklch(0.35 0.15 260); /* Navy Blue */
   --primary-foreground: oklch(0.98 0.001 60); /* Off-white */
-  --sidebar-primary: oklch(0.40 0.14 260); /* Lighter Navy */
+  --sidebar-primary: oklch(0.4 0.14 260); /* Lighter Navy */
   --sidebar-primary-foreground: oklch(0.98 0.001 60);
   --accent: oklch(0.65 0.18 70); /* Gold/Amber */
   --accent-foreground: oklch(0.15 0.01 260); /* Dark text on gold */
@@ -56,7 +56,7 @@
   --chart-2: oklch(0.45 0.14 260); /* Light Navy */
   --chart-3: oklch(0.65 0.18 70); /* Gold */
   --chart-4: oklch(0.55 0.16 265); /* Medium Navy */
-  --chart-5: oklch(0.30 0.16 260); /* Dark Navy */
+  --chart-5: oklch(0.3 0.16 260); /* Dark Navy */
   --radius: 0.65rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
@@ -85,11 +85,11 @@
 
 .dark {
   /* Al Shrouk Eye Center - Dark Mode */
-  --primary: oklch(0.40 0.14 260); /* Light Navy for dark mode */
+  --primary: oklch(0.4 0.14 260); /* Light Navy for dark mode */
   --primary-foreground: oklch(0.98 0.001 60);
   --sidebar-primary: oklch(0.35 0.15 260); /* Darker Navy */
   --sidebar-primary-foreground: oklch(0.98 0.001 60);
-  --accent: oklch(0.70 0.17 70); /* Brighter Gold in dark mode */
+  --accent: oklch(0.7 0.17 70); /* Brighter Gold in dark mode */
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.85 0.005 65);
   --card: oklch(0.21 0.006 285.885);
@@ -101,7 +101,7 @@
   --muted: oklch(0.274 0.006 286.033);
   --muted-foreground: oklch(0.705 0.015 286.067);
   --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
+  --accent-foreground: oklch(0.92 0.005 65);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
@@ -115,7 +115,7 @@
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.85 0.005 65);
   --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
@@ -249,7 +249,6 @@
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
   }
-
 }
 
 @layer components {
@@ -274,7 +273,6 @@
     padding-right: 1rem;
   }
 
-
   .page-layout header.bg-primary {
     width: 100%;
   }
@@ -284,7 +282,6 @@
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
   }
-
 
   .flex {
     min-height: 0;
@@ -343,12 +340,11 @@
     size: A4;
     margin: 10mm;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
   }
-  
 
   main {
     max-width: 210mm;
@@ -362,11 +358,11 @@
   .notes-col {
     padding-inline-start: 0 !important;
   }
-  
+
   .print\:hidden {
     display: none !important;
   }
-  
+
   .print\:p-0 {
     padding: 0 !important;
   }
@@ -379,7 +375,6 @@
     background: transparent !important;
   }
 }
-
 
 /* Tighten field widths across all pages (including print) */
 .page-layout input[data-slot="input"] {
@@ -460,11 +455,17 @@ select {
   justify-items: start;
 }
 
-.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(2) > input[data-slot="input"] {
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(2)
+  > input[data-slot="input"] {
   margin-inline-start: 0 !important;
   margin-inline-end: auto !important;
 }
-.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(3) > input[data-slot="input"] {
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(3)
+  > input[data-slot="input"] {
   margin-inline-start: 0 !important;
   margin-inline-end: auto !important;
 }
@@ -1013,7 +1014,6 @@ select {
   max-width: 220px;
 }
 
-
 .examination-plain-grid-wrapper {
   display: flex;
   justify-content: center;
@@ -1030,8 +1030,6 @@ select {
   justify-self: center;
   text-align: center;
 }
-
-
 
 /* Hard remove outer frame around custom examination grids */
 .examination-plain-grid-wrapper,

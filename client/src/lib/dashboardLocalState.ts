@@ -25,20 +25,29 @@ function safeParseJson<T>(value: string | null, fallback: T): T {
 
 export function getPanelState(key: string, fallback: boolean) {
   if (!isBrowser) return fallback;
-  const state = safeParseJson<PanelStateMap>(window.localStorage.getItem(PANEL_STATE_KEY), {});
+  const state = safeParseJson<PanelStateMap>(
+    window.localStorage.getItem(PANEL_STATE_KEY),
+    {},
+  );
   return typeof state[key] === "boolean" ? state[key] : fallback;
 }
 
 export function setPanelState(key: string, value: boolean) {
   if (!isBrowser) return;
-  const state = safeParseJson<PanelStateMap>(window.localStorage.getItem(PANEL_STATE_KEY), {});
+  const state = safeParseJson<PanelStateMap>(
+    window.localStorage.getItem(PANEL_STATE_KEY),
+    {},
+  );
   state[key] = value;
   window.localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(state));
 }
 
 export function pushRecentPatient(entry: Omit<RecentPatientEntry, "openedAt">) {
   if (!isBrowser || !entry.id) return;
-  const list = safeParseJson<RecentPatientEntry[]>(window.localStorage.getItem(RECENT_PATIENTS_KEY), []);
+  const list = safeParseJson<RecentPatientEntry[]>(
+    window.localStorage.getItem(RECENT_PATIENTS_KEY),
+    [],
+  );
   const next = [
     { ...entry, openedAt: Date.now() },
     ...list.filter((item) => item.id !== entry.id),
@@ -48,18 +57,27 @@ export function pushRecentPatient(entry: Omit<RecentPatientEntry, "openedAt">) {
 
 export function getRecentPatients() {
   if (!isBrowser) return [] as RecentPatientEntry[];
-  return safeParseJson<RecentPatientEntry[]>(window.localStorage.getItem(RECENT_PATIENTS_KEY), []);
+  return safeParseJson<RecentPatientEntry[]>(
+    window.localStorage.getItem(RECENT_PATIENTS_KEY),
+    [],
+  );
 }
 
 export function trackCardUsage(path: string) {
   if (!isBrowser || !path) return;
-  const usage = safeParseJson<CardUsageMap>(window.localStorage.getItem(CARD_USAGE_KEY), {});
+  const usage = safeParseJson<CardUsageMap>(
+    window.localStorage.getItem(CARD_USAGE_KEY),
+    {},
+  );
   usage[path] = (usage[path] ?? 0) + 1;
   window.localStorage.setItem(CARD_USAGE_KEY, JSON.stringify(usage));
 }
 
 export function getCardUsage(path: string) {
   if (!isBrowser || !path) return 0;
-  const usage = safeParseJson<CardUsageMap>(window.localStorage.getItem(CARD_USAGE_KEY), {});
+  const usage = safeParseJson<CardUsageMap>(
+    window.localStorage.getItem(CARD_USAGE_KEY),
+    {},
+  );
   return usage[path] ?? 0;
 }

@@ -2,7 +2,12 @@ import { useAuth, persistSessionUser } from "@/hooks/useAuth";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -11,7 +16,11 @@ import { useLocation } from "wouter";
 import type { User } from "@shared/types";
 import { AppTopNav } from "./AppTopNav";
 import { AppBottomNav } from "./AppBottomNav";
-import { normalizeNavPath, pathGrantedByRoots, permissionsToAllowedRoots } from "@/lib/nav-permission-utils";
+import {
+  normalizeNavPath,
+  pathGrantedByRoots,
+  permissionsToAllowedRoots,
+} from "@/lib/nav-permission-utils";
 
 type AppShellProps = {
   children: ReactNode;
@@ -24,7 +33,8 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const [location, setLocation] = useLocation();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
-  const isAdminPatientsRoute = location === "/admin/patients" || location === "/admin-patients";
+  const isAdminPatientsRoute =
+    location === "/admin/patients" || location === "/admin-patients";
   const isDashboardLikeRoute =
     location === "/dashboard" ||
     location === "/today-patients" ||
@@ -36,7 +46,10 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   });
 
   const allowedRoots = useMemo(
-    () => permissionsToAllowedRoots((permissionsQuery.data ?? []) as string[]) as unknown,
+    () =>
+      permissionsToAllowedRoots(
+        (permissionsQuery.data ?? []) as string[],
+      ) as unknown,
     [permissionsQuery.data],
   );
 
@@ -52,7 +65,10 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
   });
 
   const utils = trpc.useUtils();
-  const mustForcePasswordChange = Boolean((user as (User & { mustChangePassword?: boolean }) | null)?.mustChangePassword);
+  const mustForcePasswordChange = Boolean(
+    (user as (User & { mustChangePassword?: boolean }) | null)
+      ?.mustChangePassword,
+  );
 
   const changeUsernameMutation = trpc.auth.changeUsername.useMutation({
     onSuccess: async () => {
@@ -71,7 +87,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
     onSuccess: async () => {
       toast.success("تم تغيير كلمة المرور بنجاح");
       setIsPasswordDialogOpen(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       await utils.auth.me.invalidate();
     },
   });
@@ -112,7 +132,10 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       return;
     }
     try {
-      await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+      await changePasswordMutation.mutateAsync({
+        currentPassword,
+        newPassword,
+      });
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "فشل تغيير كلمة المرور"));
     }
@@ -128,10 +151,15 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       toast.error("Username Must Be At Least 3 Characters");
       return false;
     }
-    if (nextUsername === String((user as User | null)?.username ?? "").trim()) return true;
+    if (nextUsername === String((user as User | null)?.username ?? "").trim())
+      return true;
     try {
       await changeUsernameMutation.mutateAsync({ username: nextUsername });
-      const nextUser = { ...(user as User & { mustChangePassword?: boolean }), username: nextUsername, mustChangePassword: mustForcePasswordChange };
+      const nextUser = {
+        ...(user as User & { mustChangePassword?: boolean }),
+        username: nextUsername,
+        mustChangePassword: mustForcePasswordChange,
+      };
       utils.auth.me.setData(undefined, nextUser as any);
       persistSessionUser(nextUser);
       return true;
@@ -147,7 +175,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       const currentEmail = String((user as User | null)?.email ?? "").trim();
       if (nextEmail === currentEmail) return true;
       await updateProfileMutation.mutateAsync({ email: nextEmail });
-      const nextUser = { ...(user as User & { mustChangePassword?: boolean }), email: nextEmail, mustChangePassword: mustForcePasswordChange };
+      const nextUser = {
+        ...(user as User & { mustChangePassword?: boolean }),
+        email: nextEmail,
+        mustChangePassword: mustForcePasswordChange,
+      };
       utils.auth.me.setData(undefined, nextUser as any);
       persistSessionUser(nextUser);
       return true;
@@ -185,7 +217,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       <main
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-3 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4`}
       >
-        <div className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}>
+        <div
+          className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}
+        >
           {children}
         </div>
       </main>
@@ -194,7 +228,9 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
         <AppBottomNav
           location={location}
           onNavigate={setLocation}
-          onOpenMore={() => window.dispatchEvent(new Event("selrs:open-command-palette"))}
+          onOpenMore={() =>
+            window.dispatchEvent(new Event("selrs:open-command-palette"))
+          }
           moreOpen={false}
           isAdmin={isAdmin}
           userRole={userRole}
@@ -225,7 +261,12 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="emailEditable">البريد الإلكتروني</Label>
-              <Input id="emailEditable" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
+              <Input
+                id="emailEditable"
+                type="email"
+                value={accountEmail}
+                onChange={(e) => setAccountEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="usernameEditable">اسم المستخدم</Label>
@@ -234,7 +275,8 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 value={accountUsername}
                 onChange={(e) => setAccountUsername(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !changeUsernameMutation.isPending) void handleUpdateUsername();
+                  if (e.key === "Enter" && !changeUsernameMutation.isPending)
+                    void handleUpdateUsername();
                 }}
               />
             </div>
@@ -242,7 +284,10 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
               <Button
                 variant="outline"
                 onClick={() => setIsAccountDialogOpen(false)}
-                disabled={changeUsernameMutation.isPending || updateProfileMutation.isPending}
+                disabled={
+                  changeUsernameMutation.isPending ||
+                  updateProfileMutation.isPending
+                }
               >
                 إلغاء
               </Button>
@@ -254,9 +299,15 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                   if (!usernameOk) return;
                   setIsAccountDialogOpen(false);
                 }}
-                disabled={changeUsernameMutation.isPending || updateProfileMutation.isPending}
+                disabled={
+                  changeUsernameMutation.isPending ||
+                  updateProfileMutation.isPending
+                }
               >
-                {changeUsernameMutation.isPending || updateProfileMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+                {changeUsernameMutation.isPending ||
+                updateProfileMutation.isPending
+                  ? "جاري الحفظ..."
+                  : "حفظ"}
               </Button>
             </div>
           </div>
@@ -269,7 +320,11 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           if (mustForcePasswordChange && !open) return;
           setIsPasswordDialogOpen(open);
           if (!open) {
-            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+            setPasswordForm({
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            });
           }
         }}
       >
@@ -297,7 +352,12 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 id="currentPassword"
                 type="password"
                 value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    currentPassword: e.target.value,
+                  }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -306,7 +366,12 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 id="newPassword"
                 type="password"
                 value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    newPassword: e.target.value,
+                  }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -315,19 +380,32 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
                 id="confirmPassword"
                 type="password"
                 value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                }
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !changePasswordMutation.isPending) void handleChangePassword();
+                  if (e.key === "Enter" && !changePasswordMutation.isPending)
+                    void handleChangePassword();
                 }}
               />
             </div>
             <div className="flex justify-end gap-2">
               {!mustForcePasswordChange ? (
-                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)} disabled={changePasswordMutation.isPending}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPasswordDialogOpen(false)}
+                  disabled={changePasswordMutation.isPending}
+                >
                   إلغاء
                 </Button>
               ) : null}
-              <Button onClick={() => void handleChangePassword()} disabled={changePasswordMutation.isPending}>
+              <Button
+                onClick={() => void handleChangePassword()}
+                disabled={changePasswordMutation.isPending}
+              >
                 {changePasswordMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
               </Button>
             </div>

@@ -2,7 +2,9 @@ import { syncPatientsFromMssql } from "../integrations/mssqlPatients";
 import * as db from "../db";
 
 function asBool(value: unknown, fallback = false): boolean {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return fallback;
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
@@ -25,12 +27,17 @@ function toNumber(value: unknown, fallback: number, min: number, max: number) {
 
 async function getRuntimeConfig(): Promise<SyncRuntimeConfig> {
   const envEnabled = asBool(process.env.MSSQL_SYNC_AUTO, true);
-  const envIntervalMs = toNumber(process.env.MSSQL_SYNC_INTERVAL_MS, 30_000, 5_000, 3_600_000);
+  const envIntervalMs = toNumber(
+    process.env.MSSQL_SYNC_INTERVAL_MS,
+    30_000,
+    5_000,
+    3_600_000,
+  );
   const envIntervalMinutes = toNumber(
     process.env.MSSQL_SYNC_INTERVAL_MINUTES,
     0,
     0,
-    60
+    60,
   );
   const envLimit = toNumber(process.env.MSSQL_SYNC_LIMIT, 5000, 1, 20_000);
   const envIncremental = asBool(process.env.MSSQL_SYNC_INCREMENTAL_AUTO, true);
@@ -39,9 +46,21 @@ async function getRuntimeConfig(): Promise<SyncRuntimeConfig> {
     const row = await db.getSystemSetting("mssql_sync_runtime_v1");
     const raw = row?.value ? JSON.parse(String(row.value)) : {};
     // Hard env override: when explicitly disabled in env, ignore DB runtime toggle.
-    const enabled = envEnabled ? (typeof raw?.enabled === "boolean" ? raw.enabled : envEnabled) : false;
-    const fallbackIntervalMs = envIntervalMinutes > 0 ? Math.min(3_600_000, Math.max(5_000, envIntervalMinutes * 60_000)) : envIntervalMs;
-    const intervalMs = toNumber(raw?.intervalMs, fallbackIntervalMs, 5_000, 3_600_000);
+    const enabled = envEnabled
+      ? typeof raw?.enabled === "boolean"
+        ? raw.enabled
+        : envEnabled
+      : false;
+    const fallbackIntervalMs =
+      envIntervalMinutes > 0
+        ? Math.min(3_600_000, Math.max(5_000, envIntervalMinutes * 60_000))
+        : envIntervalMs;
+    const intervalMs = toNumber(
+      raw?.intervalMs,
+      fallbackIntervalMs,
+      5_000,
+      3_600_000,
+    );
     const limit = toNumber(raw?.limit, envLimit, 1, 20_000);
     const incremental =
       typeof raw?.incremental === "boolean" ? raw.incremental : envIncremental;
@@ -49,7 +68,10 @@ async function getRuntimeConfig(): Promise<SyncRuntimeConfig> {
   } catch {
     return {
       enabled: envEnabled,
-      intervalMs: envIntervalMinutes > 0 ? Math.min(3_600_000, Math.max(5_000, envIntervalMinutes * 60_000)) : envIntervalMs,
+      intervalMs:
+        envIntervalMinutes > 0
+          ? Math.min(3_600_000, Math.max(5_000, envIntervalMinutes * 60_000))
+          : envIntervalMs,
       limit: envLimit,
       incremental: envIncremental,
     };
@@ -61,10 +83,14 @@ export function startMssqlSyncScheduler() {
   started = true;
   let running = false;
   const writeRuntimeStatus = async (patch: Record<string, unknown>) => {
-    const row = await db.getSystemSetting(MSSQL_SYNC_RUNTIME_STATUS_KEY).catch(() => null);
+    const row = await db
+      .getSystemSetting(MSSQL_SYNC_RUNTIME_STATUS_KEY)
+      .catch(() => null);
     let current: Record<string, unknown> = {};
     try {
-      current = row?.value ? (JSON.parse(String(row.value)) as Record<string, unknown>) : {};
+      current = row?.value
+        ? (JSON.parse(String(row.value)) as Record<string, unknown>)
+        : {};
     } catch {
       current = {};
     }
@@ -94,16 +120,20 @@ export function startMssqlSyncScheduler() {
         running: false,
         lastRunFinishedAt: finishedAt,
         lastError: null,
-        lastChangeCount: Number(result.inserted ?? 0) + Number(result.updated ?? 0),
+        lastChangeCount:
+          Number(result.inserted ?? 0) + Number(result.updated ?? 0),
       }).catch(() => undefined);
       console.log(
-        `[mssql-sync] ok mode=${result.incremental ? "incremental" : "full"} fetched=${result.fetched} inserted=${result.inserted} updated=${result.updated} skipped=${result.skipped} interval=${cfg.intervalMs}`
+        `[mssql-sync] ok mode=${result.incremental ? "incremental" : "full"} fetched=${result.fetched} inserted=${result.inserted} updated=${result.updated} skipped=${result.skipped} interval=${cfg.intervalMs}`,
       );
       const realErrors = result.errors.filter(
-        (e) => !/SRV_CD column not found|PAPAT_SRV source not available/i.test(e)
+        (e) =>
+          !/SRV_CD column not found|PAPAT_SRV source not available/i.test(e),
       );
       if (realErrors.length > 0) {
-        console.warn(`[mssql-sync] row errors: ${realErrors.slice(0, 5).join(" | ")}`);
+        console.warn(
+          `[mssql-sync] row errors: ${realErrors.slice(0, 5).join(" | ")}`,
+        );
       }
     } catch (error: any) {
       await writeRuntimeStatus({
@@ -111,7 +141,9 @@ export function startMssqlSyncScheduler() {
         lastRunFinishedAt: new Date().toISOString(),
         lastError: String(error?.message ?? error ?? "unknown"),
       }).catch(() => undefined);
-      console.error(`[mssql-sync] failed: ${String(error?.message ?? error ?? "unknown")}`);
+      console.error(
+        `[mssql-sync] failed: ${String(error?.message ?? error ?? "unknown")}`,
+      );
     } finally {
       running = false;
     }

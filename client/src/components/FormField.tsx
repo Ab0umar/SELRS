@@ -23,7 +23,14 @@ export function FormField({
         {label}
         {required && <span className="text-destructive ml-1">*</span>}
       </label>
-      <div className={cn("rounded-2xl transition-colors", error ? "ring-1 ring-destructive/30" : "")}>{children}</div>
+      <div
+        className={cn(
+          "rounded-2xl transition-colors",
+          error ? "ring-1 ring-destructive/30" : "",
+        )}
+      >
+        {children}
+      </div>
       {error && (
         <div className="flex items-center gap-1 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />

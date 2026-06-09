@@ -22,7 +22,10 @@ import {
   marketingLogs,
 } from "../../../drizzle/schema";
 import { generateMarketingContent } from "./contentGenerator.service";
-import { generateMarketingImage, MarketingImageConfigError } from "./imageGenerator.service";
+import {
+  generateMarketingImage,
+  MarketingImageConfigError,
+} from "./imageGenerator.service";
 import { publishPostToFacebook } from "./facebookPublisher.service";
 import { pickTopic, type PostDay } from "./topicRotation";
 import { ENV } from "../../_core/env";
@@ -42,7 +45,7 @@ async function log(
   postId: number | null,
   action: string,
   status: "success" | "error" | "info",
-  message: string
+  message: string,
 ) {
   try {
     const db = await getDb();
@@ -55,7 +58,10 @@ async function setSchedulerStatus(status: "idle" | "running" | "error") {
   try {
     const db = await getDb();
     if (!db) return;
-    const [row] = await db.select({ id: marketingSettings.id }).from(marketingSettings).limit(1);
+    const [row] = await db
+      .select({ id: marketingSettings.id })
+      .from(marketingSettings)
+      .limit(1);
     if (!row) return;
     await db
       .update(marketingSettings)
@@ -81,9 +87,11 @@ export function getNextScheduledTime(settings: {
     { jsDay: 4, day: "thursday" as PostDay },
   ];
   const enabled = candidates.filter(({ day }) =>
-    day === "saturday" ? settings.saturdayEnabled
-    : day === "tuesday" ? settings.tuesdayEnabled
-    : settings.thursdayEnabled
+    day === "saturday"
+      ? settings.saturdayEnabled
+      : day === "tuesday"
+        ? settings.tuesdayEnabled
+        : settings.thursdayEnabled,
   );
 
   if (enabled.length === 0) return null;
@@ -113,7 +121,9 @@ export interface SchedulerRunResult {
   error?: string;
 }
 
-export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult> {
+export async function runScheduledPost(
+  day: PostDay,
+): Promise<SchedulerRunResult> {
   const db = await getDb();
   if (!db) return { ok: false, error: "Database not available" };
 
@@ -123,9 +133,11 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
 
   // Day enabled?
   const dayEnabled =
-    day === "saturday" ? settings.saturdayEnabled
-    : day === "tuesday" ? settings.tuesdayEnabled
-    : settings.thursdayEnabled;
+    day === "saturday"
+      ? settings.saturdayEnabled
+      : day === "tuesday"
+        ? settings.tuesdayEnabled
+        : settings.thursdayEnabled;
 
   if (!dayEnabled) {
     return { ok: true, skipped: `Day "${day}" is disabled in settings` };
@@ -138,7 +150,12 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
   const todayPosts = await db
     .select({ id: marketingPosts.id, status: marketingPosts.status })
     .from(marketingPosts)
-    .where(and(eq(marketingPosts.postDay, day), gte(marketingPosts.createdAt, todayStart)));
+    .where(
+      and(
+        eq(marketingPosts.postDay, day),
+        gte(marketingPosts.createdAt, todayStart),
+      ),
+    );
 
   const existing = todayPosts.filter((p) => p.status !== "failed");
   if (existing.length > 0) {
@@ -149,7 +166,12 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
   }
 
   await setSchedulerStatus("running");
-  await log(null, "scheduler_run", "info", `Starting scheduled post for ${day}`);
+  await log(
+    null,
+    "scheduler_run",
+    "info",
+    `Starting scheduled post for ${day}`,
+  );
 
   let postId = 0;
 
@@ -169,7 +191,13 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
     const clinicName = settings.clinicName ?? "مركزك لطب العيون";
     let generated;
     try {
-      generated = await generateMarketingContent(topic, day, brandRow ?? null, clinicName, usedCount);
+      generated = await generateMarketingContent(
+        topic,
+        day,
+        brandRow ?? null,
+        clinicName,
+        usedCount,
+      );
     } catch (err) {
       await log(null, "scheduler_generate_content", "error", String(err));
       await setSchedulerStatus("error");
@@ -191,21 +219,36 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
       createdBy: null, // system-generated
     });
     postId = (result as { insertId?: number }).insertId ?? 0;
-    await log(postId, "scheduler_create_post", "success", `Draft created — topic: ${topic}`);
+    await log(
+      postId,
+      "scheduler_create_post",
+      "success",
+      `Draft created — topic: ${topic}`,
+    );
 
     // Generate image (best-effort — don't fail post if image fails)
     let imageUrl: string | null = null;
     if (generated.imagePrompt) {
       try {
         imageUrl = await generateMarketingImage(generated.imagePrompt, postId);
-        await db.update(marketingPosts).set({ imageUrl }).where(eq(marketingPosts.id, postId));
-        await log(postId, "scheduler_generate_image", "success", `Image saved: ${imageUrl}`);
+        await db
+          .update(marketingPosts)
+          .set({ imageUrl })
+          .where(eq(marketingPosts.id, postId));
+        await log(
+          postId,
+          "scheduler_generate_image",
+          "success",
+          `Image saved: ${imageUrl}`,
+        );
       } catch (err) {
         await log(
           postId,
           "scheduler_generate_image",
           "error",
-          err instanceof MarketingImageConfigError ? "No image API configured" : String(err)
+          err instanceof MarketingImageConfigError
+            ? "No image API configured"
+            : String(err),
         );
       }
     }
@@ -213,7 +256,12 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
     // Publish to Facebook (or keep as draft)
     let published = false;
 
-    if (settings.autoPublish && settings.fbConnected && settings.fbPageId && settings.fbAccessToken) {
+    if (
+      settings.autoPublish &&
+      settings.fbConnected &&
+      settings.fbPageId &&
+      settings.fbAccessToken
+    ) {
       try {
         const message = [
           generated.content,
@@ -229,7 +277,7 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
           settings.fbAccessToken,
           message,
           imageUrl,
-          appOrigin
+          appOrigin,
         );
 
         await db
@@ -237,20 +285,35 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
           .set({ status: "published", publishedAt: new Date() })
           .where(eq(marketingPosts.id, postId));
 
-        await log(postId, "scheduler_publish", "success", `Published — FB post id: ${fbPostId}`);
+        await log(
+          postId,
+          "scheduler_publish",
+          "success",
+          `Published — FB post id: ${fbPostId}`,
+        );
         published = true;
       } catch (err) {
         await db
           .update(marketingPosts)
           .set({ status: "failed" })
           .where(eq(marketingPosts.id, postId));
-        await log(postId, "scheduler_publish", "error", `Facebook publish failed: ${String(err)}`);
+        await log(
+          postId,
+          "scheduler_publish",
+          "error",
+          `Facebook publish failed: ${String(err)}`,
+        );
       }
     } else {
       const reason = !settings.autoPublish
         ? "auto-publish disabled"
         : "Facebook not connected";
-      await log(postId, "scheduler_skip_publish", "info", `Saved as draft — ${reason}`);
+      await log(
+        postId,
+        "scheduler_skip_publish",
+        "info",
+        `Saved as draft — ${reason}`,
+      );
     }
 
     await setSchedulerStatus("idle");
@@ -258,7 +321,7 @@ export async function runScheduledPost(day: PostDay): Promise<SchedulerRunResult
       postId,
       "scheduler_run",
       "success",
-      `Run complete for ${day}${published ? " — published to Facebook" : " — saved as draft"}`
+      `Run complete for ${day}${published ? " — published to Facebook" : " — saved as draft"}`,
     );
 
     return { ok: true, postId, published };
@@ -305,5 +368,7 @@ export function initMarketingScheduler(): void {
     }
   });
 
-  console.log("[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings");
+  console.log(
+    "[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings",
+  );
 }

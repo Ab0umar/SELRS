@@ -1,11 +1,13 @@
 # RTL Table Formatting Guide
 
 ## Overview
+
 All tables in Attendance and Salary modules need to be updated to use proper RTL (Right-to-Left) layout with consistent column ordering.
 
 ## Key Changes Required
 
 ### 1. Add RTL Direction to Tables
+
 ```tsx
 // Container
 <div className="overflow-x-auto" dir="rtl">
@@ -17,27 +19,32 @@ All tables in Attendance and Salary modules need to be updated to use proper RTL
 ```
 
 ### 2. Column Ordering Standard
+
 All tables should follow this left-to-right display order (which appears right-to-left in RTL):
 
 **For Employee/Staff Tables:**
+
 ```
 الكود | الاسم | القسم | النوع | الحالة | الإجراءات
 (Code) (Name) (Dept) (Type) (Status) (Actions)
 ```
 
 **For Salary/Payroll Tables:**
+
 ```
 الكود | الاسم | الراتب | البدلات | الخصومات | الإجمالي | الإجراءات
 (Code) (Name) (Salary) (Allowances) (Deductions) (Total) (Actions)
 ```
 
 **For Attendance/Reports Tables:**
+
 ```
 التاريخ | الموظف | الحضور | الغياب | التأخير | الملاحظات | الإجراءات
 (Date) (Employee) (Present) (Absent) (Late) (Notes) (Actions)
 ```
 
 ### 3. Header Column Widths
+
 ```tsx
 <th className="px-4 py-3 text-center font-semibold text-foreground w-16">
   الكود
@@ -51,12 +58,14 @@ All tables should follow this left-to-right display order (which appears right-t
 ```
 
 ### 4. Text Alignment
+
 - **Code/ID columns:** `text-center` with `w-16` or `w-20`
 - **Name columns:** `text-right` with `min-w-max` (takes only needed width)
 - **Status/Action columns:** `text-center` with fixed width
 - **Amount columns:** `text-center` with `w-20`
 
 ### 5. Body Row Structure
+
 Ensure body rows follow the exact same column order as headers:
 
 ```tsx
@@ -65,32 +74,25 @@ Ensure body rows follow the exact same column order as headers:
   <td className="px-4 py-3 text-center font-mono text-xs font-semibold">
     {emp.empCd}
   </td>
-  
+
   {/* Name Column */}
-  <td className="px-4 py-3 text-right min-w-max">
-    {emp.fullName}
-  </td>
-  
+  <td className="px-4 py-3 text-right min-w-max">{emp.fullName}</td>
+
   {/* Department Column */}
-  <td className="px-4 py-3 text-center">
-    {emp.department}
-  </td>
-  
+  <td className="px-4 py-3 text-center">{emp.department}</td>
+
   {/* Status Column */}
-  <td className="px-4 py-3 text-center">
-    {emp.active ? "نشط" : "غير نشط"}
-  </td>
-  
+  <td className="px-4 py-3 text-center">{emp.active ? "نشط" : "غير نشط"}</td>
+
   {/* Actions Column */}
-  <td className="px-4 py-3 text-center">
-    {/* Edit/Delete buttons */}
-  </td>
+  <td className="px-4 py-3 text-center">{/* Edit/Delete buttons */}</td>
 </tr>
 ```
 
 ## Files to Update
 
 ### Attendance Module
+
 - [ ] AttendanceHome.tsx
 - [ ] DailyView.tsx
 - [ ] LeaveBalanceReport.tsx
@@ -103,6 +105,7 @@ Ensure body rows follow the exact same column order as headers:
 - [ ] Permissions.tsx
 
 ### Salary Module
+
 - [ ] SalaryBasics.tsx
 - [ ] CurrentSalaryData.tsx
 - [ ] CommissionPools.tsx
@@ -123,6 +126,7 @@ Ensure body rows follow the exact same column order as headers:
 ## Example: Before and After
 
 ### Before
+
 ```tsx
 <table className="w-full text-sm">
   <thead>
@@ -149,6 +153,7 @@ Ensure body rows follow the exact same column order as headers:
 ```
 
 ### After
+
 ```tsx
 <div className="overflow-x-auto" dir="rtl">
   <table className="w-full text-sm" dir="rtl">
@@ -179,21 +184,13 @@ Ensure body rows follow the exact same column order as headers:
         <td className="px-4 py-3 text-center font-mono text-xs font-semibold">
           {emp.code}
         </td>
-        <td className="px-4 py-3 text-right min-w-max">
-          {emp.name}
-        </td>
-        <td className="px-4 py-3 text-center">
-          {emp.dept}
-        </td>
-        <td className="px-4 py-3 text-center">
-          {emp.type}
-        </td>
+        <td className="px-4 py-3 text-right min-w-max">{emp.name}</td>
+        <td className="px-4 py-3 text-center">{emp.dept}</td>
+        <td className="px-4 py-3 text-center">{emp.type}</td>
         <td className="px-4 py-3 text-center">
           {emp.active ? "نشط" : "غير نشط"}
         </td>
-        <td className="px-4 py-3 text-center">
-          {/* Actions */}
-        </td>
+        <td className="px-4 py-3 text-center">{/* Actions */}</td>
       </tr>
     </tbody>
   </table>

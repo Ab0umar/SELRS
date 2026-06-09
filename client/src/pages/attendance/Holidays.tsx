@@ -45,7 +45,10 @@ export default function Holidays() {
     onError: (e) => toast.error("خطأ: " + e.message),
   });
   const deleteMut = trpc.attendance.deleteHoliday.useMutation({
-    onSuccess: () => { holidaysQuery.refetch(); toast.success("تم الحذف"); },
+    onSuccess: () => {
+      holidaysQuery.refetch();
+      toast.success("تم الحذف");
+    },
     onError: (e) => toast.error("خطأ: " + e.message),
   });
 
@@ -76,13 +79,27 @@ export default function Holidays() {
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-sm font-medium mb-1">السنة</label>
-              <input type="number" min={2020} max={2099} value={year} onChange={(e) => setYear(parseInt(e.target.value))} className="w-28 px-3 py-2 border rounded-md" />
+              <input
+                type="number"
+                min={2020}
+                max={2099}
+                value={year}
+                onChange={(e) => setYear(parseInt(e.target.value))}
+                className="w-28 px-3 py-2 border rounded-md"
+              />
             </div>
-            <Button onClick={() => holidaysQuery.refetch()} variant="outline">تحديث</Button>
+            <Button onClick={() => holidaysQuery.refetch()} variant="outline">
+              تحديث
+            </Button>
             <Button onClick={() => setShowForm(true)} className="gap-2">
               <Plus size={16} /> إضافة عطلة
             </Button>
-            <Button onClick={seedEgyptHolidays} variant="secondary" disabled={seeding} className="mr-auto">
+            <Button
+              onClick={seedEgyptHolidays}
+              variant="secondary"
+              disabled={seeding}
+              className="mr-auto"
+            >
               {seeding ? "جاري الإضافة..." : "إضافة إجازات مصر 2026"}
             </Button>
           </div>
@@ -92,27 +109,54 @@ export default function Holidays() {
       {/* Add form */}
       {showForm && (
         <Card className="mb-4">
-          <CardHeader><CardTitle>إضافة عطلة رسمية</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>إضافة عطلة رسمية</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">التاريخ</label>
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2 border rounded-md" />
+                <label className="block text-sm font-medium mb-1">
+                  التاريخ
+                </label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">الاسم</label>
-                <input type="text" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className="w-full px-3 py-2 border rounded-md" placeholder="مثل: عيد الفطر" />
+                <input
+                  type="text"
+                  value={form.label}
+                  onChange={(e) => setForm({ ...form, label: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md"
+                  placeholder="مثل: عيد الفطر"
+                />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="paid" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} />
-                <label htmlFor="paid" className="text-sm font-medium">مدفوعة</label>
+                <input
+                  type="checkbox"
+                  id="paid"
+                  checked={form.paid}
+                  onChange={(e) => setForm({ ...form, paid: e.target.checked })}
+                />
+                <label htmlFor="paid" className="text-sm font-medium">
+                  مدفوعة
+                </label>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button onClick={() => addMut.mutate(form)} disabled={!form.date || !form.label || addMut.isPending}>
+              <Button
+                onClick={() => addMut.mutate(form)}
+                disabled={!form.date || !form.label || addMut.isPending}
+              >
                 {addMut.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
-              <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}>
+                إلغاء
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -128,9 +172,15 @@ export default function Holidays() {
         </CardHeader>
         <CardContent>
           {holidaysQuery.isLoading ? (
-            <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
           ) : !holidays.length ? (
-            <div className="text-center py-8 text-gray-500">لا توجد إجازات لهذا العام</div>
+            <div className="text-center py-8 text-gray-500">
+              لا توجد إجازات لهذا العام
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
@@ -146,28 +196,61 @@ export default function Holidays() {
                   {holidays.map((h: any) => {
                     const isEditing = editingDate === h.date;
                     return (
-                      <tr key={h.date} className={`border-b ${isEditing ? 'bg-primary/10' : 'hover:bg-gray-50'}`}>
+                      <tr
+                        key={h.date}
+                        className={`border-b ${isEditing ? "bg-primary/10" : "hover:bg-gray-50"}`}
+                      >
                         <td className="py-2 px-4 font-mono">{h.date}</td>
                         {isEditing ? (
                           <>
                             <td className="py-2 px-2">
-                              <input value={editRow.label} onChange={(e) => setEditRow({ ...editRow, label: e.target.value })}
-                                className="w-full px-2 py-1 border rounded text-sm" />
+                              <input
+                                value={editRow.label}
+                                onChange={(e) =>
+                                  setEditRow({
+                                    ...editRow,
+                                    label: e.target.value,
+                                  })
+                                }
+                                className="w-full px-2 py-1 border rounded text-sm"
+                              />
                             </td>
                             <td className="py-2 px-2">
-                              <select value={editRow.paid ? '1' : '0'} onChange={(e) => setEditRow({ ...editRow, paid: e.target.value === '1' })}
-                                className="px-2 py-1 border rounded text-sm">
+                              <select
+                                value={editRow.paid ? "1" : "0"}
+                                onChange={(e) =>
+                                  setEditRow({
+                                    ...editRow,
+                                    paid: e.target.value === "1",
+                                  })
+                                }
+                                className="px-2 py-1 border rounded text-sm"
+                              >
                                 <option value="1">نعم</option>
                                 <option value="0">لا</option>
                               </select>
                             </td>
                             <td className="py-2 px-2">
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="sm" disabled={addMut.isPending}
-                                  onClick={() => addMut.mutate({ date: h.date, label: editRow.label, paid: editRow.paid })}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={addMut.isPending}
+                                  onClick={() =>
+                                    addMut.mutate({
+                                      date: h.date,
+                                      label: editRow.label,
+                                      paid: editRow.paid,
+                                    })
+                                  }
+                                >
                                   <Check size={15} className="text-success" />
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => setEditingDate(null)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingDate(null)}
+                                >
                                   <X size={15} className="text-gray-500" />
                                 </Button>
                               </div>
@@ -176,14 +259,40 @@ export default function Holidays() {
                         ) : (
                           <>
                             <td className="py-2 px-4 font-medium">{h.label}</td>
-                            <td className="py-2 px-4">{h.paid ? <span className="text-success">نعم</span> : <span className="text-gray-400">لا</span>}</td>
+                            <td className="py-2 px-4">
+                              {h.paid ? (
+                                <span className="text-success">نعم</span>
+                              ) : (
+                                <span className="text-gray-400">لا</span>
+                              )}
+                            </td>
                             <td className="py-2 px-4">
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="sm" onClick={() => { setEditingDate(h.date); setEditRow({ label: h.label, paid: h.paid }); }}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingDate(h.date);
+                                    setEditRow({
+                                      label: h.label,
+                                      paid: h.paid,
+                                    });
+                                  }}
+                                >
                                   <Pencil size={15} className="text-primary" />
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ date: h.date })} disabled={deleteMut.isPending}>
-                                  <Trash2 size={15} className="text-destructive" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    deleteMut.mutate({ date: h.date })
+                                  }
+                                  disabled={deleteMut.isPending}
+                                >
+                                  <Trash2
+                                    size={15}
+                                    className="text-destructive"
+                                  />
                                 </Button>
                               </div>
                             </td>

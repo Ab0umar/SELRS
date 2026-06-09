@@ -7,7 +7,7 @@ describe("Auth Service", () => {
     it("should hash password correctly", async () => {
       const password = "test123";
       const hash = await authService.hashPassword(password);
-      
+
       expect(hash).not.toBe(password);
       expect(hash.length).toBeGreaterThan(0);
     });
@@ -15,7 +15,7 @@ describe("Auth Service", () => {
     it("should compare password correctly", async () => {
       const password = "test123";
       const hash = await authService.hashPassword(password);
-      
+
       const isValid = await authService.comparePassword(password, hash);
       expect(isValid).toBe(true);
     });
@@ -23,7 +23,7 @@ describe("Auth Service", () => {
     it("should reject wrong password", async () => {
       const password = "test123";
       const hash = await authService.hashPassword(password);
-      
+
       const isValid = await authService.comparePassword("wrongpassword", hash);
       expect(isValid).toBe(false);
     });

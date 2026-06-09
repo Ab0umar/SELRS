@@ -164,7 +164,10 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="loan-tx-date" className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="loan-tx-date"
+              className="text-xs font-medium text-muted-foreground"
+            >
               التاريخ
             </label>
             <Input
@@ -177,7 +180,12 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="loan-name" className="text-xs font-medium text-muted-foreground">الاسم</label>
+            <label
+              htmlFor="loan-name"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              الاسم
+            </label>
             <Input
               id="loan-name"
               value={name}
@@ -190,7 +198,10 @@ export default function AccLoanDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="loan-amount" className="text-xs font-medium text-primary">
+              <label
+                htmlFor="loan-amount"
+                className="text-xs font-medium text-primary"
+              >
                 المبلغ
               </label>
               <Input
@@ -205,7 +216,10 @@ export default function AccLoanDrawer({
               />
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="loan-repayment" className="text-xs font-medium text-success">
+              <label
+                htmlFor="loan-repayment"
+                className="text-xs font-medium text-success"
+              >
                 السداد
               </label>
               <Input
@@ -222,7 +236,10 @@ export default function AccLoanDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="loan-notes" className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="loan-notes"
+              className="text-xs font-medium text-muted-foreground"
+            >
               ملاحظات
             </label>
             <textarea

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { arEG } from "date-fns/locale";
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, ArrowLeft } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  RefreshCw,
+  ShieldAlert,
+  ArrowLeft,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,9 +36,12 @@ const TYPE_HELP: Record<(typeof TYPES)[number]["value"], string> = {
 };
 
 const ARABIC_CALENDAR_FORMATTERS = {
-  formatCaption: (date: Date) => date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" }),
-  formatDay: (date: Date) => date.toLocaleDateString("ar-EG", { day: "numeric" }),
-  formatWeekdayName: (date: Date) => date.toLocaleDateString("ar-EG", { weekday: "short" }),
+  formatCaption: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" }),
+  formatDay: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { day: "numeric" }),
+  formatWeekdayName: (date: Date) =>
+    date.toLocaleDateString("ar-EG", { weekday: "short" }),
 };
 
 const MOBILE_SAFE_CALENDAR_CLASS_NAMES = {
@@ -64,12 +73,18 @@ function dateToIso(value: Date) {
 
 export default function PatientBook() {
   const [, navigate] = useLocation();
-  const [bookingType, setBookingType] = useState<(typeof TYPES)[number]["value"]>("consultant");
+  const [bookingType, setBookingType] =
+    useState<(typeof TYPES)[number]["value"]>("consultant");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
-  const { data: schedule, isLoading: loadingDates, error, refetch } = trpc.patientPortal.getAvailableDates.useQuery({
+  const {
+    data: schedule,
+    isLoading: loadingDates,
+    error,
+    refetch,
+  } = trpc.patientPortal.getAvailableDates.useQuery({
     bookingType,
   });
 
@@ -82,10 +97,19 @@ export default function PatientBook() {
   });
 
   const availableDates = useMemo(() => schedule?.dates ?? [], [schedule]);
-  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+  const availableDateSet = useMemo(
+    () => new Set(availableDates),
+    [availableDates],
+  );
   const availableCount = availableDates.length;
-  const selectedLabel = useMemo(() => availableDates.find((d) => d === selectedDate), [availableDates, selectedDate]);
-  const minDate = useMemo(() => (availableDates[0] ? isoToDate(availableDates[0]) : undefined), [availableDates]);
+  const selectedLabel = useMemo(
+    () => availableDates.find((d) => d === selectedDate),
+    [availableDates, selectedDate],
+  );
+  const minDate = useMemo(
+    () => (availableDates[0] ? isoToDate(availableDates[0]) : undefined),
+    [availableDates],
+  );
   const maxDate = useMemo(() => {
     const last = availableDates[availableDates.length - 1];
     return last ? isoToDate(last) : undefined;
@@ -106,7 +130,11 @@ export default function PatientBook() {
       toast.error("اختر تاريخ الحجز");
       return;
     }
-    createBooking.mutate({ bookingType, requestedDate: selectedDate, notes: notes.trim() || undefined });
+    createBooking.mutate({
+      bookingType,
+      requestedDate: selectedDate,
+      notes: notes.trim() || undefined,
+    });
   };
 
   const handleBack = () => {
@@ -116,12 +144,13 @@ export default function PatientBook() {
   return (
     <PatientLayout>
       <div className="space-y-6">
-        
         {/* Title bar */}
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-primary">حجز موعد جديد 📅</h2>
-            <p className="text-xs text-muted-foreground">اختر الخدمة واليوم المفضل لطلب الحجز بالمركز.</p>
+            <p className="text-xs text-muted-foreground">
+              اختر الخدمة واليوم المفضل لطلب الحجز بالمركز.
+            </p>
           </div>
           <Button
             variant="outline"
@@ -135,14 +164,14 @@ export default function PatientBook() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          
           {/* Form Content Column */}
           <div className="space-y-4">
-            
             {/* 1. Booking Type */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">1. نوع الحجز والخدمة</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  1. نوع الحجز والخدمة
+                </h3>
               </div>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {TYPES.map((item) => {
@@ -164,10 +193,20 @@ export default function PatientBook() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-foreground">{item.label}</p>
-                          <p className="text-[10px] text-muted-foreground leading-normal">{TYPE_HELP[item.value]}</p>
+                          <p className="text-xs font-bold text-foreground">
+                            {item.label}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground leading-normal">
+                            {TYPE_HELP[item.value]}
+                          </p>
                         </div>
-                        {active && <PortalStatusBadge status="confirmed" label="محدد" className="bg-primary text-primary-foreground text-[10px]" />}
+                        {active && (
+                          <PortalStatusBadge
+                            status="confirmed"
+                            label="محدد"
+                            className="bg-primary text-primary-foreground text-[10px]"
+                          />
+                        )}
                       </div>
                     </button>
                   );
@@ -178,7 +217,9 @@ export default function PatientBook() {
             {/* 2. Available Calendar Dates */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">2. تاريخ الحجز المفضل</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  2. تاريخ الحجز المفضل
+                </h3>
               </div>
 
               {loadingDates && <PortalLoadingRows rows={3} />}
@@ -189,7 +230,10 @@ export default function PatientBook() {
                   title="تعذر تحميل المواعيد المتاحة"
                   description={error.message}
                   action={
-                    <Button onClick={() => void refetch()} className="gap-2 cursor-pointer">
+                    <Button
+                      onClick={() => void refetch()}
+                      className="gap-2 cursor-pointer"
+                    >
                       <RefreshCw className="size-4" />
                       إعادة المحاولة
                     </Button>
@@ -216,7 +260,9 @@ export default function PatientBook() {
                       classNames={MOBILE_SAFE_CALENDAR_CLASS_NAMES}
                       month={calendarMonth}
                       defaultMonth={calendarMonth}
-                      selected={selectedDate ? isoToDate(selectedDate) : undefined}
+                      selected={
+                        selectedDate ? isoToDate(selectedDate) : undefined
+                      }
                       onMonthChange={setCalendarMonth}
                       onSelect={(date) => {
                         if (!date) {
@@ -226,14 +272,21 @@ export default function PatientBook() {
                         const next = dateToIso(date);
                         if (availableDateSet.has(next)) setSelectedDate(next);
                       }}
-                      disabled={(date) => !availableDateSet.has(dateToIso(date))}
+                      disabled={(date) =>
+                        !availableDateSet.has(dateToIso(date))
+                      }
                       modifiers={{
-                        monday: (date) => bookingType === "consultant" && date.getDay() === 1,
-                        consultantTanta: (date) => bookingType === "consultant" && isConsultantTantaDay(date),
+                        monday: (date) =>
+                          bookingType === "consultant" && date.getDay() === 1,
+                        consultantTanta: (date) =>
+                          bookingType === "consultant" &&
+                          isConsultantTantaDay(date),
                       }}
                       modifiersClassNames={{
-                        monday: "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
-                        consultantTanta: "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
+                        monday:
+                          "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
+                        consultantTanta:
+                          "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
                       }}
                       fromDate={minDate}
                       toDate={maxDate}
@@ -243,8 +296,12 @@ export default function PatientBook() {
                   <div className="flex items-center justify-center gap-2.5 text-xs font-semibold">
                     {bookingType === "consultant" && (
                       <>
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">كفرالشيخ</span>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">طنطا</span>
+                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">
+                          كفرالشيخ
+                        </span>
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">
+                          طنطا
+                        </span>
                       </>
                     )}
                   </div>
@@ -255,7 +312,9 @@ export default function PatientBook() {
             {/* 3. Notes */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">3. ملاحظات وتوجيهات إضافية</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  3. ملاحظات وتوجيهات إضافية
+                </h3>
               </div>
               <Textarea
                 rows={4}
@@ -265,29 +324,43 @@ export default function PatientBook() {
                 className="resize-none rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10"
               />
             </div>
-
           </div>
 
           {/* Booking Summary Sidebar Column */}
           <div className="space-y-4">
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-              
               <div className="border-b border-[#f0f5fa] pb-2">
-                <h3 className="text-sm font-bold text-foreground">ملخص الحجز</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  ملخص الحجز
+                </h3>
               </div>
 
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
-                  <span className="text-xs text-muted-foreground font-semibold">نوع الحجز</span>
-                  <span className="text-xs font-bold text-foreground">{schedule?.label ?? bookingType}</span>
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    نوع الحجز
+                  </span>
+                  <span className="text-xs font-bold text-foreground">
+                    {schedule?.label ?? bookingType}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
-                  <span className="text-xs text-muted-foreground font-semibold">تاريخ اليوم المختار</span>
-                  <span className="text-xs font-bold text-primary">{selectedLabel ? formatArabicDate(selectedLabel) : "لم يتم الاختيار بعد"}</span>
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    تاريخ اليوم المختار
+                  </span>
+                  <span className="text-xs font-bold text-primary">
+                    {selectedLabel
+                      ? formatArabicDate(selectedLabel)
+                      : "لم يتم الاختيار بعد"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
-                  <span className="text-xs text-muted-foreground font-semibold">الخيارات المتاحة</span>
-                  <span className="text-xs font-bold text-foreground">{availableCount} أيام متاحة</span>
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    الخيارات المتاحة
+                  </span>
+                  <span className="text-xs font-bold text-foreground">
+                    {availableCount} أيام متاحة
+                  </span>
                 </div>
               </div>
 
@@ -297,7 +370,9 @@ export default function PatientBook() {
                     <ClipboardList className="size-4 shrink-0 text-primary" />
                     <span>ملاحظتك المرفقة:</span>
                   </div>
-                  <p className="text-xs leading-5 text-muted-foreground">{notes.trim()}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {notes.trim()}
+                  </p>
                 </div>
               )}
 
@@ -306,12 +381,12 @@ export default function PatientBook() {
                 onClick={handleSubmit}
                 disabled={!selectedDate || createBooking.isPending}
               >
-                {createBooking.isPending ? "جاري إرسال الحجز..." : "تأكيد وإرسال طلب الحجز"}
+                {createBooking.isPending
+                  ? "جاري إرسال الحجز..."
+                  : "تأكيد وإرسال طلب الحجز"}
               </Button>
-
             </div>
           </div>
-
         </div>
       </div>
     </PatientLayout>

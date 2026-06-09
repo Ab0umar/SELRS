@@ -2,11 +2,25 @@ import React, { memo, useEffect, useState, useRef, Fragment } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, FileText, Printer, Edit, Trash2 } from "lucide-react";
-import { normalizeServiceCode, normalizeSheetType } from "@/lib/patientsHelpers";
+import {
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Printer,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import {
+  normalizeServiceCode,
+  normalizeSheetType,
+} from "@/lib/patientsHelpers";
 import { PatientTransactions } from "./PatientTransactions";
 import { PatientRowActions } from "./PatientRowActions";
-import { PatientMedicalStatusStrip, PatientMedicalStatusDots, type PatientMedicalStatus } from "./PatientMedicalStatusBadges";
+import {
+  PatientMedicalStatusStrip,
+  PatientMedicalStatusDots,
+  type PatientMedicalStatus,
+} from "./PatientMedicalStatusBadges";
 
 interface PatientsTableProps {
   patients: any[];
@@ -51,7 +65,9 @@ export const PatientsTable = memo(function PatientsTable({
   const desktopTableRef = useRef<HTMLDivElement | null>(null);
   const [tableScrollTop, setTableScrollTop] = useState(0);
   const [tableViewportHeight, setTableViewportHeight] = useState(640);
-  const [expandedPatientIds, setExpandedPatientIds] = useState<Set<number>>(new Set());
+  const [expandedPatientIds, setExpandedPatientIds] = useState<Set<number>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -83,7 +99,10 @@ export const PatientsTable = memo(function PatientsTable({
     };
   }, [isMobile, patients.length]);
 
-  const canEditPatients = user?.role === "admin" || user?.role === "manager" || user?.role === "reception";
+  const canEditPatients =
+    user?.role === "admin" ||
+    user?.role === "manager" ||
+    user?.role === "reception";
   const isExpanded = (patientId: number) => expandedPatientIds.has(patientId);
   const toggleExpanded = (patientId: number) => {
     setExpandedPatientIds((prev) => {
@@ -96,7 +115,7 @@ export const PatientsTable = memo(function PatientsTable({
   const getPatientRowKey = (patient: any) =>
     String(
       (patient as any).__rowKey ??
-        `${patient.id}-${normalizeServiceCode((patient as any).__serviceCodeSingle || (patient as any).serviceCode || "base")}`
+        `${patient.id}-${normalizeServiceCode((patient as any).__serviceCodeSingle || (patient as any).serviceCode || "base")}`,
     );
 
   if (patients.length === 0) {
@@ -116,7 +135,12 @@ export const PatientsTable = memo(function PatientsTable({
     if (key === "pentacam_c") return "Pentacam C";
     if (key === "pentacam_ex") return "Pentacam Ex";
     if (key === "pentacam_ex_c") return "Pentacam Ex.C";
-    if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_external") return "بنتاكام";
+    if (
+      key === "pentacam" ||
+      key === "pentacam_center" ||
+      key === "pentacam_external"
+    )
+      return "بنتاكام";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
     if (key === "surgery") return "عمليات";
@@ -124,13 +148,16 @@ export const PatientsTable = memo(function PatientsTable({
   };
 
   const getSheetTypeLabel = (value: string) => {
-    const raw = String(value ?? "").trim().toLowerCase();
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
     if (raw === "surgery_external") return "عمليات خارجي";
     const key = normalizeSheetType(value);
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
     if (key === "pentacam_center" || key === "pentacam_c") return "Pentacam C";
-    if (key === "pentacam_external" || key === "pentacam_ex") return "Pentacam Ex";
+    if (key === "pentacam_external" || key === "pentacam_ex")
+      return "Pentacam Ex";
     if (key === "pentacam_ex_c") return "Pentacam Ex.C";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
@@ -139,17 +166,25 @@ export const PatientsTable = memo(function PatientsTable({
   };
 
   const getServiceDisplay = (patient: any) => {
-    const singleName = String((patient as any)?.__serviceNameSingle ?? "").trim();
+    const singleName = String(
+      (patient as any)?.__serviceNameSingle ?? "",
+    ).trim();
     if (singleName) return singleName;
-    const defaultName = String((patient as any)?.__defaultServiceName ?? "").trim();
+    const defaultName = String(
+      (patient as any)?.__defaultServiceName ?? "",
+    ).trim();
     if (defaultName) return defaultName;
-    const singleCode = normalizeServiceCode((patient as any)?.__serviceCodeSingle);
+    const singleCode = normalizeServiceCode(
+      (patient as any)?.__serviceCodeSingle,
+    );
     if (singleCode) {
       const mapped = String(serviceCodeToLabel.get(singleCode) ?? "").trim();
       if (mapped) return mapped;
     }
     const codes = [
-      ...((Array.isArray(patient?.serviceCodes) ? patient.serviceCodes : []) as unknown[]),
+      ...((Array.isArray(patient?.serviceCodes)
+        ? patient.serviceCodes
+        : []) as unknown[]),
       patient?.serviceCode,
     ]
       .map((v) => normalizeServiceCode(v))
@@ -159,8 +194,8 @@ export const PatientsTable = memo(function PatientsTable({
         new Set(
           codes
             .map((code) => String(serviceCodeToLabel.get(code) ?? "").trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       if (names.length > 0) return names.join(" / ");
     }
@@ -168,23 +203,35 @@ export const PatientsTable = memo(function PatientsTable({
   };
 
   const getRowSheetType = (patient: any) => {
-    const singleCode = normalizeServiceCode((patient as any)?.__serviceCodeSingle);
+    const singleCode = normalizeServiceCode(
+      (patient as any)?.__serviceCodeSingle,
+    );
     if (singleCode) {
-      const mapped = normalizeSheetType((patient as any)?.serviceSheetTypeByCode?.[singleCode]);
+      const mapped = normalizeSheetType(
+        (patient as any)?.serviceSheetTypeByCode?.[singleCode],
+      );
       if (mapped) return mapped;
       const defaultType = normalizeSheetType(serviceCodeToType.get(singleCode));
       if (defaultType) return defaultType;
     }
-    const singleType = normalizeSheetType((patient as any)?.__serviceTypeSingle);
+    const singleType = normalizeSheetType(
+      (patient as any)?.__serviceTypeSingle,
+    );
     if (singleType) return singleType;
     const fallback = normalizeSheetType(patient?.serviceType ?? serviceType);
     return fallback || serviceType;
   };
 
-  const getRowSheetSource = (patient: any): "manual" | "default" | "fallback" => {
-    const singleCode = normalizeServiceCode((patient as any)?.__serviceCodeSingle);
+  const getRowSheetSource = (
+    patient: any,
+  ): "manual" | "default" | "fallback" => {
+    const singleCode = normalizeServiceCode(
+      (patient as any)?.__serviceCodeSingle,
+    );
     if (singleCode) {
-      const manual = normalizeSheetType((patient as any)?.serviceSheetTypeByCode?.[singleCode]);
+      const manual = normalizeSheetType(
+        (patient as any)?.serviceSheetTypeByCode?.[singleCode],
+      );
       if (manual) return "manual";
       const byDefault = normalizeSheetType(serviceCodeToType.get(singleCode));
       if (byDefault) return "default";
@@ -210,11 +257,23 @@ export const PatientsTable = memo(function PatientsTable({
         bottomSpacer: 0,
       };
     }
-    const visibleCount = Math.max(1, Math.ceil(tableViewportHeight / desktopRowHeight));
-    const start = Math.max(0, Math.floor(tableScrollTop / desktopRowHeight) - overscanRows);
-    const end = Math.min(patients.length, start + visibleCount + overscanRows * 2);
+    const visibleCount = Math.max(
+      1,
+      Math.ceil(tableViewportHeight / desktopRowHeight),
+    );
+    const start = Math.max(
+      0,
+      Math.floor(tableScrollTop / desktopRowHeight) - overscanRows,
+    );
+    const end = Math.min(
+      patients.length,
+      start + visibleCount + overscanRows * 2,
+    );
     const topSpacer = start * desktopRowHeight;
-    const bottomSpacer = Math.max(0, (patients.length - end) * desktopRowHeight);
+    const bottomSpacer = Math.max(
+      0,
+      (patients.length - end) * desktopRowHeight,
+    );
     return { start, end, topSpacer, bottomSpacer };
   })();
 
@@ -251,9 +310,16 @@ export const PatientsTable = memo(function PatientsTable({
               role="button"
               aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
               onClick={() => onOpenDetails(patient.id)}
-              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenDetails(patient.id); } }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenDetails(patient.id);
+                }
+              }}
             >
-              <PatientMedicalStatusStrip status={medicalStatuses?.[patient.id]} />
+              <PatientMedicalStatusStrip
+                status={medicalStatuses?.[patient.id]}
+              />
               <CardContent className="space-y-3 p-3">
                 <div className="flex items-center justify-between gap-2">
                   {canBulkManage ? (
@@ -263,41 +329,61 @@ export const PatientsTable = memo(function PatientsTable({
                     >
                       <Checkbox
                         checked={selectedRowKeys.has(getPatientRowKey(patient))}
-                        onCheckedChange={(checked) => onToggleSelect(getPatientRowKey(patient), Boolean(checked))}
+                        onCheckedChange={(checked) =>
+                          onToggleSelect(
+                            getPatientRowKey(patient),
+                            Boolean(checked),
+                          )
+                        }
                       />
-                      <span className="text-xs text-muted-foreground">تحديد</span>
+                      <span className="text-xs text-muted-foreground">
+                        تحديد
+                      </span>
                     </label>
                   ) : (
                     <span />
                   )}
-                  <span
-                    className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground"
-                  >
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
                     {serviceLabel}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-end gap-2" dir="rtl">
-                  <div className="text-sm font-bold break-words text-foreground">{patient.fullName}</div>
+                  <div className="text-sm font-bold break-words text-foreground">
+                    {patient.fullName}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-11 w-11 rounded-lg border-border bg-background p-0 sm:h-9 sm:w-9"
-                    aria-label={isExpanded(Number(patient.id)) ? "طي معاملات المريض" : "عرض معاملات المريض"}
+                    aria-label={
+                      isExpanded(Number(patient.id))
+                        ? "طي معاملات المريض"
+                        : "عرض معاملات المريض"
+                    }
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleExpanded(Number(patient.id));
                     }}
                   >
-                    {isExpanded(Number(patient.id)) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {isExpanded(Number(patient.id)) ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/40 p-3 text-xs">
                   <div className="text-muted-foreground">الكود</div>
-                  <div dir="ltr" className="text-right text-foreground">{displayCode || "-"}</div>
+                  <div dir="ltr" className="text-right text-foreground">
+                    {displayCode || "-"}
+                  </div>
                   <div className="text-muted-foreground">الدكتور</div>
-                  <div className="text-right text-foreground">{String((patient as any).treatingDoctor ?? "").trim() || "-"}</div>
+                  <div className="text-right text-foreground">
+                    {String((patient as any).treatingDoctor ?? "").trim() ||
+                      "-"}
+                  </div>
                   <div className="text-muted-foreground">نوع الشيت</div>
                   <div className="text-right text-foreground">
                     <span>{getSheetTypeLabel(getRowSheetType(patient))}</span>
@@ -306,7 +392,11 @@ export const PatientsTable = memo(function PatientsTable({
                     </span>
                   </div>
                   <div className="text-muted-foreground">تاريخ فتح الملف</div>
-                  <div dir="ltr" className="text-right text-foreground">{patient.lastVisit ? formatDisplayDate(patient.lastVisit) : ""}</div>
+                  <div dir="ltr" className="text-right text-foreground">
+                    {patient.lastVisit
+                      ? formatDisplayDate(patient.lastVisit)
+                      : ""}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
@@ -369,7 +459,10 @@ export const PatientsTable = memo(function PatientsTable({
                 </div>
                 {isExpanded(Number(patient.id)) ? (
                   <div className="rounded-xl border border-border bg-muted/40 p-2">
-                    <PatientTransactions patientId={Number(patient.id)} serviceCodeToLabel={serviceCodeToLabel} />
+                    <PatientTransactions
+                      patientId={Number(patient.id)}
+                      serviceCodeToLabel={serviceCodeToLabel}
+                    />
                   </div>
                 ) : null}
               </CardContent>
@@ -388,7 +481,10 @@ export const PatientsTable = memo(function PatientsTable({
           className="w-full overflow-auto patients-table-wrap"
           style={{ maxHeight: "70vh" }}
         >
-          <table className="patients-table min-w-[840px] w-max table-auto text-center text-xs md:text-sm" dir="rtl">
+          <table
+            className="patients-table min-w-[840px] w-max table-auto text-center text-xs md:text-sm"
+            dir="rtl"
+          >
             <colgroup>
               {canBulkManage ? <col className="w-[44px]" /> : null}
               <col className="w-[72px]" />
@@ -401,22 +497,50 @@ export const PatientsTable = memo(function PatientsTable({
             </colgroup>
             <thead className="sticky top-0 z-10 bg-muted/95 shadow-[0_1px_0_rgba(148,163,184,0.25)] backdrop-blur">
               <tr className="border-b border-border">
-                {canBulkManage ? <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تحديد</th> : null}
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الكود</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الاسم</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تاريخ الميلاد</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الدكتور</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الخدمة</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">نوع الشيت</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">تاريخ فتح الملف</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">البيانات</th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">الإجراءات</th>
+                {canBulkManage ? (
+                  <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                    تحديد
+                  </th>
+                ) : null}
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  الكود
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  الاسم
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  تاريخ الميلاد
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  الدكتور
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  الخدمة
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  نوع الشيت
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  تاريخ فتح الملف
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  البيانات
+                </th>
+                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
+                  الإجراءات
+                </th>
               </tr>
             </thead>
             <tbody>
               {shouldVirtualizeDesktop && visibleDesktopRange.topSpacer > 0 ? (
                 <tr aria-hidden="true">
-                  <td colSpan={desktopColSpan} style={{ height: `${visibleDesktopRange.topSpacer}px`, padding: 0 }} />
+                  <td
+                    colSpan={desktopColSpan}
+                    style={{
+                      height: `${visibleDesktopRange.topSpacer}px`,
+                      padding: 0,
+                    }}
+                  />
                 </tr>
               ) : null}
               {desktopPatients.map((patient) => (
@@ -427,21 +551,37 @@ export const PatientsTable = memo(function PatientsTable({
                     role="button"
                     aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
                     onClick={() => onOpenDetails(patient.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenDetails(patient.id); } }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onOpenDetails(patient.id);
+                      }
+                    }}
                   >
                     {canBulkManage ? (
-                      <td className="py-0 px-0.5 text-center" dir="ltr" onClick={(event) => event.stopPropagation()}>
+                      <td
+                        className="py-0 px-0.5 text-center"
+                        dir="ltr"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Checkbox
-                          checked={selectedRowKeys.has(getPatientRowKey(patient))}
-                          onCheckedChange={(checked) => onToggleSelect(getPatientRowKey(patient), Boolean(checked))}
+                          checked={selectedRowKeys.has(
+                            getPatientRowKey(patient),
+                          )}
+                          onCheckedChange={(checked) =>
+                            onToggleSelect(
+                              getPatientRowKey(patient),
+                              Boolean(checked),
+                            )
+                          }
                         />
                       </td>
                     ) : null}
                     <td className="py-0 px-0.5 text-center" dir="ltr">
                       {patient.patientCode
-                        ? (/^\d+$/.test(String(patient.patientCode))
+                        ? /^\d+$/.test(String(patient.patientCode))
                           ? String(patient.patientCode).padStart(4, "0")
-                          : patient.patientCode)
+                          : patient.patientCode
                         : ""}
                     </td>
                     <td className="py-0 px-0.5 text-center break-words">
@@ -452,27 +592,47 @@ export const PatientsTable = memo(function PatientsTable({
                             size="sm"
                             variant="outline"
                             className="h-9 w-9 rounded-lg border-border bg-background p-0"
-                            aria-label={isExpanded(Number(patient.id)) ? "طي معاملات المريض" : "عرض معاملات المريض"}
+                            aria-label={
+                              isExpanded(Number(patient.id))
+                                ? "طي معاملات المريض"
+                                : "عرض معاملات المريض"
+                            }
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleExpanded(Number(patient.id));
                             }}
                           >
-                            {isExpanded(Number(patient.id)) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            {isExpanded(Number(patient.id)) ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
                         {isExpanded(Number(patient.id)) ? (
                           <div className="w-full rounded border border-border bg-muted/60 p-2 text-right">
-                            <PatientTransactions patientId={Number(patient.id)} serviceCodeToLabel={serviceCodeToLabel} />
+                            <PatientTransactions
+                              patientId={Number(patient.id)}
+                              serviceCodeToLabel={serviceCodeToLabel}
+                            />
                           </div>
                         ) : null}
                       </div>
                     </td>
                     <td className="py-0 px-0.5 text-center" dir="ltr">
-                      {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString("ar-EG", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "/") : "-"}
+                      {patient.dateOfBirth
+                        ? new Date(patient.dateOfBirth)
+                            .toLocaleDateString("ar-EG", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                            })
+                            .replace(/\//g, "/")
+                        : "-"}
                     </td>
                     <td className="py-0 px-0.5 text-center break-words">
-                      {String((patient as any).treatingDoctor ?? "").trim() || "-"}
+                      {String((patient as any).treatingDoctor ?? "").trim() ||
+                        "-"}
                     </td>
                     <td className="py-0 px-0.5 text-center">-</td>
                     <td className="py-0 px-0.5 text-center">
@@ -482,10 +642,14 @@ export const PatientsTable = memo(function PatientsTable({
                       </span>
                     </td>
                     <td className="py-0 px-0.5 text-center" dir="ltr">
-                      {patient.lastVisit ? formatDisplayDate(patient.lastVisit) : ""}
+                      {patient.lastVisit
+                        ? formatDisplayDate(patient.lastVisit)
+                        : ""}
                     </td>
                     <td className="py-0 px-1 text-center">
-                      <PatientMedicalStatusDots status={medicalStatuses?.[patient.id]} />
+                      <PatientMedicalStatusDots
+                        status={medicalStatuses?.[patient.id]}
+                      />
                     </td>
                     <td className="py-0 px-0.5">
                       <PatientRowActions
@@ -501,14 +665,21 @@ export const PatientsTable = memo(function PatientsTable({
                     </td>
                   </tr>
                 </Fragment>
-                ))}
-                {shouldVirtualizeDesktop && visibleDesktopRange.bottomSpacer > 0 ? (
-                  <tr aria-hidden="true">
-                    <td colSpan={desktopColSpan} style={{ height: `${visibleDesktopRange.bottomSpacer}px`, padding: 0 }} />
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+              ))}
+              {shouldVirtualizeDesktop &&
+              visibleDesktopRange.bottomSpacer > 0 ? (
+                <tr aria-hidden="true">
+                  <td
+                    colSpan={desktopColSpan}
+                    style={{
+                      height: `${visibleDesktopRange.bottomSpacer}px`,
+                      padding: 0,
+                    }}
+                  />
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

@@ -74,7 +74,7 @@ class CacheService {
 
   // Pattern-based invalidation
   invalidatePattern(pattern: string | RegExp): number {
-    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
     let invalidated = 0;
 
     for (const key of this.cache.keys()) {
@@ -91,22 +91,25 @@ class CacheService {
 export const attendanceCache = new CacheService();
 
 // Periodically clean up expired entries (every 5 minutes)
-setInterval(() => {
-  const pruned = attendanceCache.prune();
-  if (pruned > 0) {
-    console.log(`[Cache] Pruned ${pruned} expired entries`);
-  }
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    const pruned = attendanceCache.prune();
+    if (pruned > 0) {
+      console.log(`[Cache] Pruned ${pruned} expired entries`);
+    }
+  },
+  5 * 60 * 1000,
+);
 
 // Cache key builders
 export const cacheKeys = {
-  dashboardSummary: () => 'attendance:dashboard:summary',
-  employeeList: () => 'attendance:employees:list',
+  dashboardSummary: () => "attendance:dashboard:summary",
+  employeeList: () => "attendance:employees:list",
   shiftById: (shiftId: number) => `attendance:shift:${shiftId}`,
   dailyByDate: (date: string) => `attendance:daily:${date}`,
   dailyByEmployee: (empCd: string, fromDate: string, toDate: string) =>
     `attendance:daily:${empCd}:${fromDate}:${toDate}`,
   monthlyReport: (year: number, month: number) =>
     `attendance:monthly:${year}-${month}`,
-  deviceStatus: () => 'attendance:device:status',
+  deviceStatus: () => "attendance:device:status",
 };

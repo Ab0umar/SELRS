@@ -155,8 +155,12 @@ describe("Validation Utils", () => {
 
   describe("validateNumberField", () => {
     it("should validate required number field", () => {
-      expect(validateNumberField("", "الحقل", undefined, undefined, true)).not.toBeNull();
-      expect(validateNumberField("10", "الحقل", undefined, undefined, true)).toBeNull();
+      expect(
+        validateNumberField("", "الحقل", undefined, undefined, true),
+      ).not.toBeNull();
+      expect(
+        validateNumberField("10", "الحقل", undefined, undefined, true),
+      ).toBeNull();
     });
 
     it("should validate minimum value", () => {

@@ -9,11 +9,13 @@ This document provides step-by-step instructions to implement the redesigned Sal
 ## Phase 1: Preparation
 
 ### Step 1.1: Review the Redesign
+
 - Read `REDESIGN_GUIDE.md` to understand the new structure
 - Review `SalaryLayout.redesigned.tsx` and `AttendanceLayout.redesigned.tsx`
 - Understand the new navigation hierarchy
 
 ### Step 1.2: Backup Original Files
+
 ```bash
 # Navigate to project root
 cd /path/to/SRV100_Acc
@@ -26,6 +28,7 @@ cp client/src/pages/attendance/AttendanceLayout.tsx client/src/pages/attendance/
 ```
 
 ### Step 1.3: Create Feature Branch (Optional but Recommended)
+
 ```bash
 git checkout -b feature/redesign-salary-attendance
 ```
@@ -35,12 +38,14 @@ git checkout -b feature/redesign-salary-attendance
 ## Phase 2: Implementation
 
 ### Step 2.1: Replace Salary Layout
+
 ```bash
 # Copy the redesigned file over the original
 cp client/src/pages/salary/SalaryLayout.redesigned.tsx client/src/pages/salary/SalaryLayout.tsx
 ```
 
 **What changed:**
+
 - Navigation moved from horizontal pills to vertical sidebar
 - Added section grouping (Preparation, Variables, Payroll, Shifts, Settings)
 - Each navigation item now includes description text
@@ -48,12 +53,14 @@ cp client/src/pages/salary/SalaryLayout.redesigned.tsx client/src/pages/salary/S
 - Two-column layout (sidebar + content)
 
 ### Step 2.2: Replace Attendance Layout
+
 ```bash
 # Copy the redesigned file over the original
 cp client/src/pages/attendance/AttendanceLayout.tsx client/src/pages/attendance/AttendanceLayout.redesigned.tsx
 ```
 
 **What changed:**
+
 - Navigation moved from horizontal pills to vertical sidebar
 - Added section grouping (Monitoring, Employees, Reports, Settings)
 - Each navigation item now includes description text
@@ -61,6 +68,7 @@ cp client/src/pages/attendance/AttendanceLayout.tsx client/src/pages/attendance/
 - Two-column layout (sidebar + content)
 
 ### Step 2.3: Verify TypeScript Compilation
+
 ```bash
 # Run TypeScript type checking
 pnpm check
@@ -69,6 +77,7 @@ pnpm check
 ```
 
 If you see errors:
+
 1. Check that all imports are correct
 2. Verify that `trpc` is properly imported
 3. Ensure all component props are typed correctly
@@ -78,6 +87,7 @@ If you see errors:
 ## Phase 3: Testing
 
 ### Step 3.1: Start Development Server
+
 ```bash
 # Start the development server
 pnpm dev
@@ -87,6 +97,7 @@ pnpm dev
 ```
 
 ### Step 3.2: Test Salary Module Navigation
+
 1. Navigate to `/salary`
 2. Verify sidebar appears on the left (desktop) or top (mobile)
 3. Click each navigation item:
@@ -102,6 +113,7 @@ pnpm dev
 5. Check that active state highlights correctly
 
 ### Step 3.3: Test Attendance Module Navigation
+
 1. Navigate to `/attendance`
 2. Verify sidebar appears on the left (desktop) or top (mobile)
 3. Click each navigation item:
@@ -117,6 +129,7 @@ pnpm dev
 ### Step 3.4: Test Responsive Design
 
 #### Desktop (1024px+)
+
 ```bash
 # Open browser DevTools (F12)
 # Set viewport to 1920x1080
@@ -128,6 +141,7 @@ pnpm dev
 ```
 
 #### Tablet (768px - 1023px)
+
 ```bash
 # Set viewport to 768x1024
 # Verify:
@@ -138,6 +152,7 @@ pnpm dev
 ```
 
 #### Mobile (<768px)
+
 ```bash
 # Set viewport to 375x667
 # Verify:
@@ -149,12 +164,14 @@ pnpm dev
 ```
 
 ### Step 3.5: Test RTL Layout
+
 1. Verify `dir="rtl"` is set on the root div
 2. Check that text is right-aligned
 3. Verify sidebar is on the right side (in RTL context)
 4. Check that icons are positioned correctly
 
 ### Step 3.6: Test Metrics Updates
+
 1. Open browser DevTools (F12)
 2. Go to Network tab
 3. Navigate to Salary module
@@ -163,6 +180,7 @@ pnpm dev
 6. Wait 60 seconds and verify metrics update
 
 ### Step 3.7: Test Console for Errors
+
 1. Open browser DevTools (F12)
 2. Go to Console tab
 3. Navigate through all pages
@@ -174,6 +192,7 @@ pnpm dev
 ## Phase 4: Verification
 
 ### Step 4.1: Run Tests
+
 ```bash
 # Run TypeScript check
 pnpm check
@@ -185,6 +204,7 @@ pnpm test
 ```
 
 ### Step 4.2: Build for Production
+
 ```bash
 # Build the project
 pnpm build
@@ -193,6 +213,7 @@ pnpm build
 ```
 
 ### Step 4.3: Check Git Diff
+
 ```bash
 # View changes
 git diff --stat
@@ -203,6 +224,7 @@ git diff --stat
 ```
 
 ### Step 4.4: Verify No Breaking Changes
+
 ```bash
 # Check that only layout files changed
 git diff client/src/pages/salary/SalaryLayout.tsx
@@ -219,6 +241,7 @@ git diff client/src/pages/attendance/AttendanceLayout.tsx
 If you encounter issues, rollback is simple:
 
 ### Step 5.1: Restore from Backup
+
 ```bash
 # Restore Salary Layout
 cp client/src/pages/salary/SalaryLayout.backup.tsx client/src/pages/salary/SalaryLayout.tsx
@@ -231,6 +254,7 @@ pnpm dev
 ```
 
 ### Step 5.2: Or Revert Git Changes
+
 ```bash
 # If using git
 git checkout client/src/pages/salary/SalaryLayout.tsx
@@ -245,6 +269,7 @@ pnpm dev
 ## Common Issues & Solutions
 
 ### Issue 1: TypeScript Errors
+
 **Error:** `Cannot find module 'lucide-react'`
 **Solution:** Ensure lucide-react is installed: `pnpm install lucide-react`
 
@@ -252,29 +277,37 @@ pnpm dev
 **Solution:** Verify `trpc` is imported correctly: `import { trpc } from "@/lib/trpc"`
 
 ### Issue 2: Navigation Not Working
+
 **Error:** Links don't navigate
-**Solution:** 
+**Solution:**
+
 1. Check that routes are defined in `client/src/App.tsx`
 2. Verify page components exist at the expected paths
 3. Check browser console for errors
 
 ### Issue 3: Metrics Not Showing
+
 **Error:** Metrics show "—" (dashes)
 **Solution:**
+
 1. Check that tRPC queries are working (Network tab in DevTools)
 2. Verify backend is running (`pnpm dev`)
 3. Check that `salary.monthSummary` and `attendance.dashboardSummary` queries exist
 
 ### Issue 4: Layout Issues on Mobile
+
 **Error:** Sidebar overlaps content or doesn't stack properly
 **Solution:**
+
 1. Check that Tailwind CSS responsive classes are applied correctly
 2. Verify `lg:flex-row` and `lg:w-64` classes are present
 3. Test with actual mobile device or DevTools
 
 ### Issue 5: RTL Layout Issues
+
 **Error:** Text is left-aligned or icons are on wrong side
 **Solution:**
+
 1. Verify `dir="rtl"` is set on root div
 2. Check that Tailwind CSS is configured for RTL
 3. Verify all text is Arabic (not mixed with English)
@@ -284,14 +317,17 @@ pnpm dev
 ## Performance Considerations
 
 ### Metrics Refresh Rate
+
 - Salary: `refetchInterval: 60_000` (60 seconds)
 - Attendance: `refetchInterval: 30_000` (30 seconds for dashboard, 20 seconds for device)
 
 If metrics are updating too frequently:
+
 - Increase `refetchInterval` value
 - Change `refetchIntervalInBackground: false` to `true` to refresh even when tab is not focused
 
 ### Sidebar Performance
+
 - Navigation structure is static (no dynamic queries)
 - Sidebar renders quickly
 - No performance impact from redesign
@@ -301,6 +337,7 @@ If metrics are updating too frequently:
 ## Deployment
 
 ### Step 1: Commit Changes
+
 ```bash
 git add client/src/pages/salary/SalaryLayout.tsx
 git add client/src/pages/attendance/AttendanceLayout.tsx
@@ -308,16 +345,19 @@ git commit -m "redesign: simplify salary and attendance module navigation"
 ```
 
 ### Step 2: Push to Repository
+
 ```bash
 git push origin feature/redesign-salary-attendance
 ```
 
 ### Step 3: Create Pull Request
+
 - Title: "Redesign: Simplify Salary and Attendance Module Navigation"
 - Description: Include link to `REDESIGN_GUIDE.md`
 - Screenshots: Add before/after screenshots
 
 ### Step 4: Merge and Deploy
+
 ```bash
 # After PR approval
 git checkout main
@@ -356,6 +396,7 @@ After implementation, verify:
 If you encounter any issues:
 
 1. **Check the logs:**
+
    ```bash
    pnpm dev 2>&1 | tee dev.log
    ```

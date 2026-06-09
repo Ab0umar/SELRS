@@ -7,6 +7,7 @@
 ## Core Principles
 
 ### I. Strict Module Separation (NON-NEGOTIABLE)
+
 The Medical module and the Accounting module MUST remain strictly separated at every
 layer: routes, tRPC routers, database access, permissions, and UI surfaces. Code,
 types, or queries from one module MUST NOT import from the other. Cross-module data
@@ -14,6 +15,7 @@ linkage is allowed ONLY through the existing `PAT_CD` patient code key, and only
 read-time inside reporting boundaries — never via shared mutation paths.
 
 ### II. Service-Based Accounting Only
+
 The Accounting module is service-based. Service revenue, service counts, and any
 revenue/expense report MUST be derived from service rows in the MSSQL accounting
 database. They MUST NOT be derived from patient identity, doctor identity, or any
@@ -21,28 +23,33 @@ medical-side computation. Doctor or patient identifiers may appear as descriptiv
 columns in a report, but never as the basis of a revenue calculation.
 
 ### III. Read-Only Accounting APIs
+
 All Accounting tRPC procedures MUST be `protectedProcedure` queries (read-only). Any
 mutation against MSSQL accounting is FORBIDDEN unless an explicit, documented
 constitutional amendment authorizes it for a named scope.
 
 ### IV. Use Existing Databases As-Is
+
 Schema redesigns, destructive migrations, renamed columns, or replacement of
 encoding/decoding helpers are FORBIDDEN. New tables MAY be added only when no
 existing table answers the need AND the addition does not alter legacy semantics.
 The MySQL medical schema and the MSSQL accounting schema are fixed contracts.
 
 ### V. Legacy Output Parity
+
 Every Accounting report MUST be validated against the corresponding output of the
 legacy accounting system before completion. Acceptance requires a documented
 row-level or total-level comparison on a representative date range.
 
 ### VI. Spec-Driven, Minimal-Diff Execution
+
 No implementation begins before `/specify`, `/plan`, and `/tasks` are produced and
 reviewed. Each task MUST carry: Owner Model, Backup Model, Tool, Role, Input,
 Output, Prompt, Acceptance Criteria. Implementations MUST produce the smallest
 correct diff; out-of-scope refactors are FORBIDDEN.
 
 ### VII. Do Not Break Medical
+
 Any change MUST preserve the current behavior of the Medical module: routes,
 permissions, patient/doctor flows, MSSQL patient sync, audit logging. Tasks
 touching shared infrastructure MUST run `pnpm check` minimum.
@@ -64,8 +71,8 @@ touching shared infrastructure MUST run `pnpm check` minimum.
 
 - Claude plans and reviews. Cursor/Codex implement. GPT-5 assists with SQL/report
   logic. Cheap models do bulk extraction. Gemini handles UI variants.
-- Every task prompt MUST include: *"Follow the project Constitution and Project
-  Principles strictly."*
+- Every task prompt MUST include: _"Follow the project Constitution and Project
+  Principles strictly."_
 - Verification: `pnpm check` (auth/routing/permissions/types), `pnpm test` (covered
   logic), `pnpm build` (shipped behavior), `pnpm smoke` (workflows). Reports MUST
   include legacy-output comparison.

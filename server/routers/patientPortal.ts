@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure, protectedProcedure, adminProcedure, patientPortalProcedure } from "../_core/procedures";
-import { getDb, getGlassesRecordsByPatient, getPrescriptionsWithItemsByPatient } from "../db";
+import {
+  router,
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  patientPortalProcedure,
+} from "../_core/procedures";
+import {
+  getDb,
+  getGlassesRecordsByPatient,
+  getPrescriptionsWithItemsByPatient,
+} from "../db";
 import {
   patientPortalSessions,
   patientPortalBookings,
@@ -53,7 +63,9 @@ function getAvailableDatesForMask(
       const m = String(cursor.getMonth() + 1).padStart(2, "0");
       const d = String(cursor.getDate()).padStart(2, "0");
       const dateStr = `${y}-${m}-${d}`;
-      const inClosure = closures.some((c) => dateStr >= c.startDate && dateStr <= c.endDate);
+      const inClosure = closures.some(
+        (c) => dateStr >= c.startDate && dateStr <= c.endDate,
+      );
       if (!inClosure) dates.push(dateStr);
     }
     cursor.setDate(cursor.getDate() + 1);
@@ -65,18 +77,28 @@ export const patientPortalRouter = router({
   // ── Public ────────────────────────────────────────────────────────────────
 
   login: publicProcedure
-    .input(z.object({
-      phone: z.string().min(8).max(20),
-      patientCode: z.string().min(1).max(30),
-    }))
+    .input(
+      z.object({
+        phone: z.string().min(8).max(20),
+        patientCode: z.string().min(1).max(30),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       const phone = normalizePhone(input.phone);
 
       const [patient] = await db
-        .select({ id: patients.id, fullName: patients.fullName, patientCode: patients.patientCode })
+        .select({
+          id: patients.id,
+          fullName: patients.fullName,
+          patientCode: patients.patientCode,
+        })
         .from(patients)
         .where(eq(patients.phone, phone))
         .limit(1);
@@ -88,8 +110,10 @@ export const patientPortalRouter = router({
         });
       }
 
-      const storedCode = String(patient.patientCode ?? "").trim().toLowerCase();
-      const inputCode  = input.patientCode.trim().toLowerCase();
+      const storedCode = String(patient.patientCode ?? "")
+        .trim()
+        .toLowerCase();
+      const inputCode = input.patientCode.trim().toLowerCase();
       if (!storedCode || storedCode !== inputCode) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -105,16 +129,25 @@ export const patientPortalRouter = router({
       );
 
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-      await db.insert(patientPortalSessions).values({ patientId: patient.id, token, expiresAt });
+      await db
+        .insert(patientPortalSessions)
+        .values({ patientId: patient.id, token, expiresAt });
 
-      return { token, patient: { name: patient.fullName, patientCode: patient.patientCode } };
+      return {
+        token,
+        patient: { name: patient.fullName, patientCode: patient.patientCode },
+      };
     }),
 
   // ── Patient-authenticated ─────────────────────────────────────────────────
 
   getMyProfile: patientPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
     const [patient] = await db
       .select({
@@ -136,24 +169,42 @@ export const patientPortalRouter = router({
       .where(eq(patients.id, ctx.patientSession.patientId))
       .limit(1);
 
-    if (!patient) throw new TRPCError({ code: "NOT_FOUND", message: "لم يتم العثور على الملف" });
+    if (!patient)
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "لم يتم العثور على الملف",
+      });
     return patient;
   }),
 
   getMyScans: patientPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
-    const rows = await db.execute(
+    const rows = (await db.execute(
       sql`SELECT id, file_name, mime_type, created_at
           FROM blackice_uploads
           WHERE patient_id = ${ctx.patientSession.patientId}
           ORDER BY id DESC
           LIMIT 100`,
-    ) as any;
+    )) as any;
 
-    const list: Array<{ id: number; fileName: string; mimeType: string; createdAt: string; viewUrl: string }> = [];
-    const raw: any[] = Array.isArray(rows) ? (Array.isArray(rows[0]) ? rows[0] : rows) : [];
+    const list: Array<{
+      id: number;
+      fileName: string;
+      mimeType: string;
+      createdAt: string;
+      viewUrl: string;
+    }> = [];
+    const raw: any[] = Array.isArray(rows)
+      ? Array.isArray(rows[0])
+        ? rows[0]
+        : rows
+      : [];
     for (const row of raw) {
       list.push({
         id: Number(row.id),
@@ -171,19 +222,31 @@ export const patientPortalRouter = router({
   }),
 
   getMyPrescriptions: patientPortalProcedure.query(async ({ ctx }) => {
-    return await getPrescriptionsWithItemsByPatient(ctx.patientSession.patientId);
+    return await getPrescriptionsWithItemsByPatient(
+      ctx.patientSession.patientId,
+    );
   }),
 
   getAvailableDates: publicProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
         fromDate: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       const [config] = await db
         .select()
@@ -194,25 +257,41 @@ export const patientPortalRouter = router({
       const mask = config?.weekdayMask ?? 127;
       const isActive = config?.isActive ?? true;
 
-      if (!isActive) return { dates: [], label: BOOKING_TYPE_LABELS[input.bookingType] };
+      if (!isActive)
+        return { dates: [], label: BOOKING_TYPE_LABELS[input.bookingType] };
 
       const from = input.fromDate ? new Date(input.fromDate) : new Date();
 
       // Fetch active closures that overlap the potential date range (next ~6 months)
       const rangeEnd = new Date(from);
       rangeEnd.setMonth(rangeEnd.getMonth() + 6);
-      const fromStr = from.toISOString().slice(0, 10);
-      const toStr = rangeEnd.toISOString().slice(0, 10);
       const closureRows = await db
-        .select({ startDate: bookingClosures.startDate, endDate: bookingClosures.endDate, bookingType: bookingClosures.bookingType })
+        .select({
+          startDate: bookingClosures.startDate,
+          endDate: bookingClosures.endDate,
+          bookingType: bookingClosures.bookingType,
+        })
         .from(bookingClosures)
-        .where(and(lte(bookingClosures.startDate, toStr), gte(bookingClosures.endDate, fromStr)));
+        .where(
+          and(
+            lte(bookingClosures.startDate, rangeEnd),
+            gte(bookingClosures.endDate, from),
+          ),
+        );
       // Only closures that apply to this booking type (null = all types)
       const closures = closureRows
-        .filter((r) => r.bookingType == null || r.bookingType === input.bookingType)
+        .filter(
+          (r) => r.bookingType == null || r.bookingType === input.bookingType,
+        )
         .map((r) => ({
-          startDate: typeof r.startDate === "string" ? r.startDate : (r.startDate as Date).toISOString().slice(0, 10),
-          endDate: typeof r.endDate === "string" ? r.endDate : (r.endDate as Date).toISOString().slice(0, 10),
+          startDate:
+            typeof r.startDate === "string"
+              ? r.startDate
+              : (r.startDate as Date).toISOString().slice(0, 10),
+          endDate:
+            typeof r.endDate === "string"
+              ? r.endDate
+              : (r.endDate as Date).toISOString().slice(0, 10),
         }));
 
       const dates = getAvailableDatesForMask(mask, from, 14, closures);
@@ -222,14 +301,24 @@ export const patientPortalRouter = router({
   createBooking: patientPortalProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       await db.insert(patientPortalBookings).values({
         patientId: ctx.patientSession.patientId,
@@ -239,7 +328,8 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-      const typeLabel = BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      const typeLabel =
+        BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
       sendFcmPushToRegisteredDevices({
         notificationId: `booking-new-${Date.now()}`,
         title: "طلب حجز جديد",
@@ -258,14 +348,24 @@ export const patientPortalRouter = router({
       z.object({
         guestName: z.string().min(2).max(100),
         guestPhone: z.string().min(8).max(20),
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       await db.insert(patientPortalBookings).values({
         guestName: input.guestName,
@@ -276,7 +376,8 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-      const typeLabel = BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      const typeLabel =
+        BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
       sendFcmPushToRegisteredDevices({
         notificationId: `booking-guest-${Date.now()}`,
         title: "طلب حجز جديد (زائر)",
@@ -292,7 +393,11 @@ export const patientPortalRouter = router({
 
   getMyBookings: patientPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
     const rows = await db
       .select()
@@ -301,20 +406,29 @@ export const patientPortalRouter = router({
       .orderBy(desc(patientPortalBookings.createdAt))
       .limit(50);
 
-    return rows.map((r) => ({ ...r, typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType }));
+    return rows.map((r) => ({
+      ...r,
+      typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType,
+    }));
   }),
 
   getNotifications: patientPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
     const rows = await db
       .select()
       .from(patientPortalBookings)
-      .where(and(
-        eq(patientPortalBookings.patientId, ctx.patientSession.patientId),
-        ne(patientPortalBookings.status, "pending"),
-      ))
+      .where(
+        and(
+          eq(patientPortalBookings.patientId, ctx.patientSession.patientId),
+          ne(patientPortalBookings.status, "pending"),
+        ),
+      )
       .orderBy(desc(patientPortalBookings.createdAt))
       .limit(20);
 
@@ -336,17 +450,27 @@ export const patientPortalRouter = router({
     .input(
       z.object({
         date: z.string().optional(),
-        status: z.enum(["pending", "confirmed", "cancelled", "completed"]).optional(),
+        status: z
+          .enum(["pending", "confirmed", "cancelled", "completed"])
+          .optional(),
         limit: z.number().int().min(1).max(200).default(100),
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       const conditions: ReturnType<typeof eq>[] = [];
-      if (input.date) conditions.push(eq(patientPortalBookings.requestedDate, new Date(input.date)));
-      if (input.status) conditions.push(eq(patientPortalBookings.status, input.status));
+      if (input.date)
+        conditions.push(
+          eq(patientPortalBookings.requestedDate, new Date(input.date)),
+        );
+      if (input.status)
+        conditions.push(eq(patientPortalBookings.status, input.status));
 
       const rows = await db
         .select({
@@ -363,7 +487,8 @@ export const patientPortalRouter = router({
 
       return rows.map((r) => ({
         ...r.booking,
-        typeLabel: BOOKING_TYPE_LABELS[r.booking.bookingType] ?? r.booking.bookingType,
+        typeLabel:
+          BOOKING_TYPE_LABELS[r.booking.bookingType] ?? r.booking.bookingType,
         patientName: r.patientName ?? r.booking.guestName ?? null,
         patientCode: r.patientCode ?? null,
         patientPhone: r.patientPhone ?? r.booking.guestPhone ?? null,
@@ -375,23 +500,40 @@ export const patientPortalRouter = router({
     .input(
       z.object({
         patientId: z.number().int(),
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        confirmedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-        status: z.enum(["pending", "confirmed", "cancelled", "completed"]).default("confirmed"),
+        confirmedDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        status: z
+          .enum(["pending", "confirmed", "cancelled", "completed"])
+          .default("confirmed"),
         notes: z.string().max(500).optional(),
         staffNotes: z.string().max(1000).optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       await db.insert(patientPortalBookings).values({
         patientId: input.patientId,
         bookingType: input.bookingType,
         requestedDate: new Date(input.requestedDate),
-        confirmedDate: input.confirmedDate ? new Date(input.confirmedDate) : undefined,
+        confirmedDate: input.confirmedDate
+          ? new Date(input.confirmedDate)
+          : undefined,
         status: input.status,
         notes: input.notes ?? undefined,
         staffNotes: input.staffNotes ?? undefined,
@@ -404,8 +546,14 @@ export const patientPortalRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-      await db.delete(patientPortalBookings).where(eq(patientPortalBookings.id, input.id));
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      await db
+        .delete(patientPortalBookings)
+        .where(eq(patientPortalBookings.id, input.id));
       return { ok: true };
     }),
 
@@ -413,7 +561,11 @@ export const patientPortalRouter = router({
     .input(z.object({ subscription: z.string().min(10) }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
       await db
         .update(patientPortalSessions)
         .set({ pushSubscription: input.subscription })
@@ -432,33 +584,48 @@ export const patientPortalRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       await db
         .update(patientPortalBookings)
         .set({
           status: input.status,
           staffNotes: input.staffNotes ?? undefined,
-          confirmedDate: input.confirmedDate ? new Date(input.confirmedDate) : undefined,
+          confirmedDate: input.confirmedDate
+            ? new Date(input.confirmedDate)
+            : undefined,
         })
         .where(eq(patientPortalBookings.id, input.id));
 
       // Notify patient if status changed to confirmed or cancelled
       if (input.status === "confirmed" || input.status === "cancelled") {
         const [booking] = await db
-          .select({ patientId: patientPortalBookings.patientId, bookingType: patientPortalBookings.bookingType })
+          .select({
+            patientId: patientPortalBookings.patientId,
+            bookingType: patientPortalBookings.bookingType,
+          })
           .from(patientPortalBookings)
           .where(eq(patientPortalBookings.id, input.id))
           .limit(1);
 
         if (booking?.patientId) {
           const sessions = await db
-            .select({ pushSubscription: patientPortalSessions.pushSubscription })
+            .select({
+              pushSubscription: patientPortalSessions.pushSubscription,
+            })
             .from(patientPortalSessions)
             .where(eq(patientPortalSessions.patientId, booking.patientId));
 
-          const statusLabel = input.status === "confirmed" ? "تم تأكيد موعدك" : "تم رفض طلب الحجز";
-          const typeLabel = BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType;
+          const statusLabel =
+            input.status === "confirmed"
+              ? "تم تأكيد موعدك"
+              : "تم رفض طلب الحجز";
+          const typeLabel =
+            BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType;
 
           for (const session of sessions) {
             if (session.pushSubscription) {
@@ -468,14 +635,21 @@ export const patientPortalRouter = router({
                 body: typeLabel,
                 kind: input.status === "confirmed" ? "success" : "warning",
                 path: "/my/bookings",
-              }).then((result) => {
-                if (result === "expired") {
-                  db.update(patientPortalSessions)
-                    .set({ pushSubscription: null })
-                    .where(eq(patientPortalSessions.pushSubscription, session.pushSubscription!))
-                    .catch(() => {});
-                }
-              }).catch(() => {});
+              })
+                .then((result) => {
+                  if (result === "expired") {
+                    db.update(patientPortalSessions)
+                      .set({ pushSubscription: null })
+                      .where(
+                        eq(
+                          patientPortalSessions.pushSubscription,
+                          session.pushSubscription!,
+                        ),
+                      )
+                      .catch(() => {});
+                  }
+                })
+                .catch(() => {});
             }
           }
         }
@@ -486,10 +660,20 @@ export const patientPortalRouter = router({
 
   getSchedule: protectedProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
     const rows = await db.select().from(bookingScheduleConfig);
-    const types = ["consultant", "specialist", "lasik", "external", "followup"] as const;
+    const types = [
+      "consultant",
+      "specialist",
+      "lasik",
+      "external",
+      "followup",
+    ] as const;
     return types.map((t) => {
       const found = rows.find((r) => r.bookingType === t);
       return {
@@ -506,23 +690,39 @@ export const patientPortalRouter = router({
 
   listClosures: protectedProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
     return db.select().from(bookingClosures).orderBy(bookingClosures.startDate);
   }),
 
   addClosure: protectedProcedure
-    .input(z.object({
-      label: z.string().min(1).max(255),
-      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]).nullable().optional(),
-    }))
+    .input(
+      z.object({
+        label: z.string().min(1).max(255),
+        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        bookingType: z
+          .enum(["consultant", "specialist", "lasik", "external", "followup"])
+          .nullable()
+          .optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       if (input.endDate < input.startDate) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+        });
       }
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
       await db.insert(bookingClosures).values({
         label: input.label,
         startDate: input.startDate,
@@ -536,7 +736,11 @@ export const patientPortalRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
       await db.delete(bookingClosures).where(eq(bookingClosures.id, input.id));
       return { ok: true };
     }),
@@ -544,14 +748,24 @@ export const patientPortalRouter = router({
   updateSchedule: protectedProcedure
     .input(
       z.object({
-        bookingType: z.enum(["consultant", "specialist", "lasik", "external", "followup"]),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
         weekdayMask: z.number().int().min(0).max(127),
         isActive: z.boolean(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       const [existing] = await db
         .select({ id: bookingScheduleConfig.id })

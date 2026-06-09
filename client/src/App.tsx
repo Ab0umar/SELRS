@@ -1,4 +1,12 @@
-import { Suspense, lazy, memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Capacitor } from "@capacitor/core";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,7 +20,12 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { applyMobileQaState, getMobileQaEnabled, markOverflowInSheets, startMobileQaWatcher } from "@/lib/mobileQa";
+import {
+  applyMobileQaState,
+  getMobileQaEnabled,
+  markOverflowInSheets,
+  startMobileQaWatcher,
+} from "@/lib/mobileQa";
 import { toast } from "sonner";
 import { useTextZoom } from "@/hooks/useTextZoom";
 import { initFirebase, logEvent } from "@/lib/firebase";
@@ -32,9 +45,12 @@ import {
   subscribeAppResume,
   subscribeNetworkStatus,
 } from "./lib/appRuntime";
-import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "./lib/nativePrint";
+import {
+  canUseNativeAndroidPrint,
+  requestNativeAndroidPrint,
+} from "./lib/nativePrint";
 import { ensureNativeNotificationPermission } from "./lib/nativeNotifications";
-import { useAuth } from "./hooks/useAuth"
+import { useAuth } from "./hooks/useAuth";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Home = lazy(() => import("./pages/Home"));
@@ -46,23 +62,39 @@ const ExaminationForm = lazy(() => import("./pages/ExaminationForm"));
 const Operations = lazy(() => import("./pages/Operations"));
 const MedicalReports = lazy(() => import("./pages/MedicalReports"));
 const ConsultantSheet = lazy(() => import("./pages/ConsultantSheet"));
-const ConsultantFollowupPage = lazy(() => import("./pages/ConsultantFollowupPage"));
+const ConsultantFollowupPage = lazy(
+  () => import("./pages/ConsultantFollowupPage"),
+);
 const SpecialistSheet = lazy(() => import("./pages/SpecialistSheet"));
 const LasikExamSheet = lazy(() => import("./pages/LasikExamSheet"));
 const LasikFollowupPage = lazy(() => import("./pages/LasikFollowupPage"));
 const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 const AdminPentacamLinking = lazy(() => import("./pages/AdminPentacamLinking"));
-const PentacamResultsDashboard = lazy(() => import("./pages/PentacamResultsDashboard"));
+const PentacamResultsDashboard = lazy(
+  () => import("./pages/PentacamResultsDashboard"),
+);
 const RefractionsDashboard = lazy(() => import("./pages/RefractionsDashboard"));
 const AutorefsDashboard = lazy(() => import("./pages/AutorefsDashboard"));
-const PrescriptionsDashboard = lazy(() => import("./pages/PrescriptionsDashboard"));
-const ExternalOperationSheet = lazy(() => import("./pages/ExternalOperationSheet"));
+const PrescriptionsDashboard = lazy(
+  () => import("./pages/PrescriptionsDashboard"),
+);
+const ExternalOperationSheet = lazy(
+  () => import("./pages/ExternalOperationSheet"),
+);
 const RefractionPage = lazy(() => import("./pages/RefractionPage"));
 const PatientSummary = lazy(() => import("./pages/PatientSummary"));
-const MedicationsTestsManagement = lazy(() => import("./pages/MedicationsTestsManagement"));
-const MedicationsCatalogPage = lazy(() => import("./pages/MedicationsCatalogPage"));
-const MedicationsManagement = lazy(() => import("./pages/MedicationsManagement"));
-const ExaminationsCatalogPage = lazy(() => import("./pages/ExaminationsCatalogPage"));
+const MedicationsTestsManagement = lazy(
+  () => import("./pages/MedicationsTestsManagement"),
+);
+const MedicationsCatalogPage = lazy(
+  () => import("./pages/MedicationsCatalogPage"),
+);
+const MedicationsManagement = lazy(
+  () => import("./pages/MedicationsManagement"),
+);
+const ExaminationsCatalogPage = lazy(
+  () => import("./pages/ExaminationsCatalogPage"),
+);
 const TxHubPage = lazy(() => import("./pages/TxHubPage"));
 const WritePrescription = lazy(() => import("./pages/WritePrescription"));
 const PrescriptionsList = lazy(() => import("./pages/PrescriptionsList"));
@@ -72,7 +104,9 @@ const AdminMigrations = lazy(() => import("./pages/AdminMigrations"));
 const AdminApiTools = lazy(() => import("./pages/AdminApiTools"));
 const AdminStatus = lazy(() => import("./pages/AdminStatus"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
-const AdminNotificationSettings = lazy(() => import("./pages/AdminNotificationSettings"));
+const AdminNotificationSettings = lazy(
+  () => import("./pages/AdminNotificationSettings"),
+);
 const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 const AdminSheets = lazy(() => import("./pages/AdminSheets"));
 const AdminSheetDesigner = lazy(() => import("./pages/AdminSheetDesigner"));
@@ -110,22 +144,40 @@ const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
 const StockroomShell = lazy(() => import("./pages/StockroomShell"));
 // Marketing module
 import MarketingLayout from "./pages/marketing/MarketingLayout";
-const MarketingDashboard = lazy(() => import("./pages/marketing/MarketingDashboard"));
+const MarketingDashboard = lazy(
+  () => import("./pages/marketing/MarketingDashboard"),
+);
 const PostHistory = lazy(() => import("./pages/marketing/PostHistory"));
 const DraftPosts = lazy(() => import("./pages/marketing/DraftPosts"));
-const MarketingSettings = lazy(() => import("./pages/marketing/MarketingSettings"));
+const MarketingSettings = lazy(
+  () => import("./pages/marketing/MarketingSettings"),
+);
 const BrandLibrary = lazy(() => import("./pages/marketing/BrandLibrary"));
 // Attendance module
 import AttendanceLayout from "./pages/attendance/AttendanceLayout";
 const AttendanceHome = lazy(() => import("./pages/attendance/AttendanceHome"));
 const AttendanceLive = lazy(() => import("./pages/attendance/LiveBoard"));
-const AttendanceMyProfile = lazy(() => import("./pages/attendance/MyAttendanceProfile"));
-const AttendanceEmployeeDetail = lazy(() => import("./pages/attendance/EmployeeDetail"));
-const AttendanceEmployeesHub = lazy(() => import("./pages/attendance/EmployeesHub"));
-const AttendanceReportsHub = lazy(() => import("./pages/attendance/ReportsHub"));
-const AttendanceSettingsHub = lazy(() => import("./pages/attendance/SettingsHub"));
-const AttendanceDeviceSettings = lazy(() => import("./pages/attendance/admin/DeviceSettings"));
-const AttendanceSyncStatus = lazy(() => import("./pages/attendance/admin/SyncStatus"));
+const AttendanceMyProfile = lazy(
+  () => import("./pages/attendance/MyAttendanceProfile"),
+);
+const AttendanceEmployeeDetail = lazy(
+  () => import("./pages/attendance/EmployeeDetail"),
+);
+const AttendanceEmployeesHub = lazy(
+  () => import("./pages/attendance/EmployeesHub"),
+);
+const AttendanceReportsHub = lazy(
+  () => import("./pages/attendance/ReportsHub"),
+);
+const AttendanceSettingsHub = lazy(
+  () => import("./pages/attendance/SettingsHub"),
+);
+const AttendanceDeviceSettings = lazy(
+  () => import("./pages/attendance/admin/DeviceSettings"),
+);
+const AttendanceSyncStatus = lazy(
+  () => import("./pages/attendance/admin/SyncStatus"),
+);
 // Salary module
 import SalaryLayout from "./pages/salary/SalaryLayout";
 const SalaryBasics = lazy(() => import("./pages/salary/SalaryBasics"));
@@ -137,40 +189,76 @@ const ShiftStaff = lazy(() => import("./pages/salary/ShiftStaff"));
 const ShiftSchedule = lazy(() => import("./pages/salary/ShiftSchedule"));
 const ShiftPayroll = lazy(() => import("./pages/salary/ShiftPayroll"));
 const AbsentReport = lazy(() => import("./pages/salary/AbsentReport"));
-const CurrentSalaryData = lazy(() => import("./pages/salary/CurrentSalaryData"));
+const CurrentSalaryData = lazy(
+  () => import("./pages/salary/CurrentSalaryData"),
+);
 // External Doctors module
 const ExternalDoctors = lazy(() => import("./pages/ExternalDoctors"));
-const ExternalDoctorReferrals = lazy(() => import("./pages/ExternalDoctorReferrals"));
+const ExternalDoctorReferrals = lazy(
+  () => import("./pages/ExternalDoctorReferrals"),
+);
 // Doctor portal
 const DoctorLogin = lazy(() => import("./pages/doctor-portal/DoctorLogin"));
-const DoctorDashboard = lazy(() => import("./pages/doctor-portal/DoctorDashboard"));
-const DoctorPatientImages = lazy(() => import("./pages/doctor-portal/DoctorPatientImages"));
+const DoctorDashboard = lazy(
+  () => import("./pages/doctor-portal/DoctorDashboard"),
+);
+const DoctorPatientImages = lazy(
+  () => import("./pages/doctor-portal/DoctorPatientImages"),
+);
 import DoctorPortalRoute from "./components/DoctorPortalRoute";
 // Patient portal
 const PatientLogin = lazy(() => import("./pages/patient-portal/PatientLogin"));
-const PatientGuestBook = lazy(() => import("./pages/patient-portal/PatientGuestBook"));
+const PatientGuestBook = lazy(
+  () => import("./pages/patient-portal/PatientGuestBook"),
+);
 const PatientFile = lazy(() => import("./pages/patient-portal/PatientFile"));
-const PatientRefraction = lazy(() => import("./pages/patient-portal/PatientRefraction"));
-const PatientPrescription = lazy(() => import("./pages/patient-portal/PatientPrescription"));
+const PatientRefraction = lazy(
+  () => import("./pages/patient-portal/PatientRefraction"),
+);
+const PatientPrescription = lazy(
+  () => import("./pages/patient-portal/PatientPrescription"),
+);
 const PatientScans = lazy(() => import("./pages/patient-portal/PatientScans"));
 const PatientBook = lazy(() => import("./pages/patient-portal/PatientBook"));
-const PatientBookings = lazy(() => import("./pages/patient-portal/PatientBookings"));
+const PatientBookings = lazy(
+  () => import("./pages/patient-portal/PatientBookings"),
+);
 import PatientPortalRoute from "./components/PatientPortalRoute";
 const AccountingHome = lazy(() => import("./pages/accounting/AccountingHome"));
-const AccountingPrototypes = lazy(() => import("./pages/accounting/AccountingPrototypes"));
-const AccountingCashbook = lazy(() => import("./pages/accounting/AccountingCashbook"));
-const AccountingLedger  = lazy(() => import("./pages/accounting/AccountingLedger"));
-const AccountingAdvances = lazy(() => import("./pages/accounting/AccountingAdvances"));
-const AccountingLoans = lazy(() => import("./pages/accounting/AccountingLoans"));
-const AccountingHomeFund = lazy(() => import("./pages/accounting/AccountingHomeFund"));
-const AccountingInstapay = lazy(() => import("./pages/accounting/AccountingInstapay"));
-const AccountingDrSaadany = lazy(() => import("./pages/accounting/AccountingDrSaadany"));
+const AccountingPrototypes = lazy(
+  () => import("./pages/accounting/AccountingPrototypes"),
+);
+const AccountingCashbook = lazy(
+  () => import("./pages/accounting/AccountingCashbook"),
+);
+const AccountingLedger = lazy(
+  () => import("./pages/accounting/AccountingLedger"),
+);
+const AccountingAdvances = lazy(
+  () => import("./pages/accounting/AccountingAdvances"),
+);
+const AccountingLoans = lazy(
+  () => import("./pages/accounting/AccountingLoans"),
+);
+const AccountingHomeFund = lazy(
+  () => import("./pages/accounting/AccountingHomeFund"),
+);
+const AccountingInstapay = lazy(
+  () => import("./pages/accounting/AccountingInstapay"),
+);
+const AccountingDrSaadany = lazy(
+  () => import("./pages/accounting/AccountingDrSaadany"),
+);
 const DailyRevenue = lazy(() => import("./pages/accounting/DailyRevenue"));
 const LasikRevenue = lazy(() => import("./pages/accounting/LasikRevenue"));
-const ReceiptsInquiry = lazy(() => import("./pages/accounting/ReceiptsInquiry"));
+const ReceiptsInquiry = lazy(
+  () => import("./pages/accounting/ReceiptsInquiry"),
+);
 const ReceiptDetail = lazy(() => import("./pages/accounting/ReceiptDetail"));
 const LasikServices = lazy(() => import("./pages/accounting/LasikServices"));
-const AccountingPatientsInquiry = lazy(() => import("./pages/accounting/AccountingPatientsInquiry"));
+const AccountingPatientsInquiry = lazy(
+  () => import("./pages/accounting/AccountingPatientsInquiry"),
+);
 const PatientAccount = lazy(() => import("./pages/accounting/PatientAccount"));
 const DoctorAccount = lazy(() => import("./pages/accounting/DoctorAccount"));
 const PrintPreview = lazy(() => import("./pages/accounting/PrintPreview"));
@@ -179,7 +267,8 @@ const HEALTH_POLL_MS = 60_000;
 const NATIVE_HEALTH_POLL_MS = 5 * 60_000;
 const NATIVE_HEALTH_FAILURE_THRESHOLD = 3;
 const DESKTOP_SHELL_HEALTH_POLL_MS = 15 * 60_000;
-const RECENT_KEY = (userId?: string | number | null) => `selrs:recent:${userId ?? "anon"}`;
+const RECENT_KEY = (userId?: string | number | null) =>
+  `selrs:recent:${userId ?? "anon"}`;
 const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
   { pathPrefix: "/dashboard", label: "لوحة التحكم" },
   { pathPrefix: "/patients", label: "المرضى" },
@@ -213,7 +302,11 @@ async function fetchHealthSnapshot(signal?: AbortSignal): Promise<BuildInfo> {
       if (signal.aborted) {
         controller.abort(signal.reason);
       } else {
-        signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
+        signal.addEventListener(
+          "abort",
+          () => controller.abort(signal.reason),
+          { once: true },
+        );
       }
     }
 
@@ -276,7 +369,9 @@ async function copyToClipboard(value: string) {
 function LegacySurgerySheetRedirect() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    const match = window.location.pathname.match(/^\/sheets\/surgery\/([^/?#]+)/i);
+    const match = window.location.pathname.match(
+      /^\/sheets\/surgery\/([^/?#]+)/i,
+    );
     const id = match?.[1];
     if (id) {
       setLocation(`/sheets/external/${id}`);
@@ -315,137 +410,869 @@ const Router = memo(function Router() {
     <Switch>
       {/* Doctor Portal — external doctor access */}
       <Route path={"/doctor-portal/login"} component={DoctorLogin} />
-      <Route path={"/doctor-portal/patient/:patientCode"} component={() => <DoctorPortalRoute><DoctorPatientImages /></DoctorPortalRoute>} />
-      <Route path={"/doctor-portal/dashboard"} component={() => <DoctorPortalRoute><DoctorDashboard /></DoctorPortalRoute>} />
-      <Route path={"/doctor-portal"} component={() => <DoctorPortalRoute><DoctorDashboard /></DoctorPortalRoute>} />
+      <Route
+        path={"/doctor-portal/patient/:patientCode"}
+        component={() => (
+          <DoctorPortalRoute>
+            <DoctorPatientImages />
+          </DoctorPortalRoute>
+        )}
+      />
+      <Route
+        path={"/doctor-portal/dashboard"}
+        component={() => (
+          <DoctorPortalRoute>
+            <DoctorDashboard />
+          </DoctorPortalRoute>
+        )}
+      />
+      <Route
+        path={"/doctor-portal"}
+        component={() => (
+          <DoctorPortalRoute>
+            <DoctorDashboard />
+          </DoctorPortalRoute>
+        )}
+      />
 
       {/* Patient Portal — no staff auth required */}
       <Route path={"/my/login"} component={PatientLogin} />
       <Route path={"/my/book-guest"} component={PatientGuestBook} />
-      <Route path={"/my/file"} component={() => <PatientPortalRoute><PatientFile /></PatientPortalRoute>} />
-      <Route path={"/my/refraction"} component={() => <PatientPortalRoute><PatientRefraction /></PatientPortalRoute>} />
-      <Route path={"/my/prescription"} component={() => <PatientPortalRoute><PatientPrescription /></PatientPortalRoute>} />
-      <Route path={"/my/scans"} component={() => <PatientPortalRoute><PatientScans /></PatientPortalRoute>} />
-      <Route path={"/my/book"} component={() => <PatientPortalRoute><PatientBook /></PatientPortalRoute>} />
-      <Route path={"/my/bookings"} component={() => <PatientPortalRoute><PatientBookings /></PatientPortalRoute>} />
-      <Route path={"/my"} component={() => <PatientPortalRoute><PatientFile /></PatientPortalRoute>} />
+      <Route
+        path={"/my/file"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientFile />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my/refraction"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientRefraction />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my/prescription"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientPrescription />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my/scans"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientScans />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my/book"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientBook />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my/bookings"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientBookings />
+          </PatientPortalRoute>
+        )}
+      />
+      <Route
+        path={"/my"}
+        component={() => (
+          <PatientPortalRoute>
+            <PatientFile />
+          </PatientPortalRoute>
+        )}
+      />
 
       <Route path={"/login"} component={Home} />
-      <Route path={"/force-password-change"} component={() => <ProtectedRoute><ForcePasswordChange /></ProtectedRoute>} />
-      <Route path={"/profile"} component={() => <ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route
+        path={"/force-password-change"}
+        component={() => (
+          <ProtectedRoute>
+            <ForcePasswordChange />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/profile"}
+        component={() => (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        )}
+      />
       <Route path={"/"} component={Home} />
 
       <Route path={"/dashboard"} component={DashboardRouteGate} />
 
       {/* Attendance Module Routes — 5 top-level pages */}
-      <Route path={"/attendance"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceHome /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/live"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceLive /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/my"} component={() => <ProtectedRoute><AttendanceMyProfile /></ProtectedRoute>} />
-      <Route path={"/attendance/employees/:empCd"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeeDetail /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/employees"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceEmployeesHub /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/reports"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceReportsHub /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/settings"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSettingsHub /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/device"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceDeviceSettings /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/admin/sync"} component={() => <ProtectedRoute><AttendanceLayout><AttendanceSyncStatus /></AttendanceLayout></ProtectedRoute>} />
-      <Route path={"/attendance/shift-schedule"} component={() => <ProtectedRoute><AttendanceLayout><ShiftSchedule /></AttendanceLayout></ProtectedRoute>} />
+      <Route
+        path={"/attendance"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceHome />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/live"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceLive />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/my"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceMyProfile />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/employees/:empCd"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceEmployeeDetail />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/employees"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceEmployeesHub />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/reports"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceReportsHub />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/settings"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceSettingsHub />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/admin/device"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceDeviceSettings />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/admin/sync"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceSyncStatus />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/attendance/shift-schedule"}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <ShiftSchedule />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Salary Module Routes */}
-      <Route path={"/salary"} component={() => <ProtectedRoute><SalaryLayout><SalaryBasics /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/penalties"} component={() => <ProtectedRoute><SalaryLayout><SalaryPenalties /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/pools"} component={() => <ProtectedRoute><SalaryLayout><CommissionPools /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/payroll"} component={() => <ProtectedRoute><SalaryLayout><PayrollReport /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/settings"} component={() => <ProtectedRoute><SalaryLayout><SalarySettings /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/shift-staff"} component={() => <ProtectedRoute><SalaryLayout><ShiftStaff /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/shift-payroll"} component={() => <ProtectedRoute><SalaryLayout><ShiftPayroll /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/absent-report"} component={() => <ProtectedRoute><SalaryLayout><AbsentReport /></SalaryLayout></ProtectedRoute>} />
-      <Route path={"/salary/current-data"} component={() => <ProtectedRoute><SalaryLayout><CurrentSalaryData /></SalaryLayout></ProtectedRoute>} />
+      <Route
+        path={"/salary"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <SalaryBasics />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/penalties"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <SalaryPenalties />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/pools"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <CommissionPools />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/payroll"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <PayrollReport />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/settings"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <SalarySettings />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/shift-staff"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <ShiftStaff />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/shift-payroll"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <ShiftPayroll />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/absent-report"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <AbsentReport />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/salary/current-data"}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <CurrentSalaryData />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Accounting Module Routes */}
-      <Route path={"/accounting"} component={() => <ProtectedRoute><AccountingHome /></ProtectedRoute>} />
-      <Route path={"/accounting/prototypes"} component={() => <ProtectedRoute><AccountingPrototypes /></ProtectedRoute>} />
-      <Route path={"/accounting/daily-revenue"} component={() => <ProtectedRoute><DailyRevenue /></ProtectedRoute>} />
-      <Route path={"/accounting/service-revenue"} component={() => <ProtectedRoute><LasikRevenue /></ProtectedRoute>} />
-      <Route path={"/accounting/receipts/:secCd/:trTy/:trNo"} component={() => <ProtectedRoute><ReceiptDetail /></ProtectedRoute>} />
-      <Route path={"/accounting/receipts"} component={() => <ProtectedRoute><ReceiptsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/services"} component={() => <ProtectedRoute><LasikServices /></ProtectedRoute>} />
-      <Route path={"/accounting/patients-inquiry"} component={() => <ProtectedRoute><AccountingPatientsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/patients"} component={() => <ProtectedRoute><AccountingPatientsInquiry /></ProtectedRoute>} />
-      <Route path={"/accounting/patient/:patientCode"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/patient"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/patient-account"} component={() => <ProtectedRoute><PatientAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor-account"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/doctor/:doctorCode"} component={() => <ProtectedRoute><DoctorAccount /></ProtectedRoute>} />
-      <Route path={"/accounting/cashbook"} component={() => <ProtectedRoute><AccountingCashbook /></ProtectedRoute>} />
-      <Route path={"/accounting/ledger"}   component={() => <ProtectedRoute><AccountingLedger  /></ProtectedRoute>} />
-      <Route path={"/accounting/advances"} component={() => <ProtectedRoute><AccountingAdvances /></ProtectedRoute>} />
-      <Route path={"/accounting/loans"} component={() => <ProtectedRoute><AccountingLoans /></ProtectedRoute>} />
-      <Route path={"/accounting/home-fund"} component={() => <ProtectedRoute><AccountingHomeFund /></ProtectedRoute>} />
-      <Route path={"/accounting/instapay"} component={() => <ProtectedRoute><AccountingInstapay /></ProtectedRoute>} />
-      <Route path={"/accounting/dr-saadany"} component={() => <ProtectedRoute><AccountingDrSaadany /></ProtectedRoute>} />
-      <Route path={"/accounting/print"} component={() => <ProtectedRoute><PrintPreview /></ProtectedRoute>} />
+      <Route
+        path={"/accounting"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingHome />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/prototypes"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingPrototypes />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/daily-revenue"}
+        component={() => (
+          <ProtectedRoute>
+            <DailyRevenue />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/service-revenue"}
+        component={() => (
+          <ProtectedRoute>
+            <LasikRevenue />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/receipts/:secCd/:trTy/:trNo"}
+        component={() => (
+          <ProtectedRoute>
+            <ReceiptDetail />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/receipts"}
+        component={() => (
+          <ProtectedRoute>
+            <ReceiptsInquiry />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/services"}
+        component={() => (
+          <ProtectedRoute>
+            <LasikServices />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/patients-inquiry"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingPatientsInquiry />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/patients"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingPatientsInquiry />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/patient/:patientCode"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/patient"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/patient-account"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/doctor"}
+        component={() => (
+          <ProtectedRoute>
+            <DoctorAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/doctor-account"}
+        component={() => (
+          <ProtectedRoute>
+            <DoctorAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/doctor/:doctorCode"}
+        component={() => (
+          <ProtectedRoute>
+            <DoctorAccount />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/cashbook"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingCashbook />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/ledger"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingLedger />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/advances"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingAdvances />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/loans"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingLoans />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/home-fund"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingHomeFund />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/instapay"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingInstapay />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/dr-saadany"}
+        component={() => (
+          <ProtectedRoute>
+            <AccountingDrSaadany />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/accounting/print"}
+        component={() => (
+          <ProtectedRoute>
+            <PrintPreview />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Marketing Module Routes */}
-      <Route path={"/marketing"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><MarketingDashboard /></MarketingLayout></ProtectedRoute>} />
-      <Route path={"/marketing/history"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><PostHistory /></MarketingLayout></ProtectedRoute>} />
-      <Route path={"/marketing/drafts"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><DraftPosts /></MarketingLayout></ProtectedRoute>} />
-      <Route path={"/marketing/brand"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><BrandLibrary /></MarketingLayout></ProtectedRoute>} />
-      <Route path={"/marketing/settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><MarketingLayout><MarketingSettings /></MarketingLayout></ProtectedRoute>} />
+      <Route
+        path={"/marketing"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MarketingLayout>
+              <MarketingDashboard />
+            </MarketingLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/marketing/history"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MarketingLayout>
+              <PostHistory />
+            </MarketingLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/marketing/drafts"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MarketingLayout>
+              <DraftPosts />
+            </MarketingLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/marketing/brand"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MarketingLayout>
+              <BrandLibrary />
+            </MarketingLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/marketing/settings"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MarketingLayout>
+              <MarketingSettings />
+            </MarketingLayout>
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Patient hub: pattern must be `/patient-hub/*?` not `/patient-hub*` — regexparam only treats `*` as a wildcard at the start of a path segment. */}
-      <Route path={"/patient-hub/*?"} component={() => <ProtectedRoute><PatientHubShell /></ProtectedRoute>} />
+      <Route
+        path={"/patient-hub/*?"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientHubShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Clinics hub */}
-      <Route path={"/clinics-hub"} component={() => <ProtectedRoute><ClinicsHubShell /></ProtectedRoute>} />
-      <Route path={"/clinics-hub/*"} component={() => <ProtectedRoute><ClinicsHubShell /></ProtectedRoute>} />
+      <Route
+        path={"/clinics-hub"}
+        component={() => (
+          <ProtectedRoute>
+            <ClinicsHubShell />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/clinics-hub/*"}
+        component={() => (
+          <ProtectedRoute>
+            <ClinicsHubShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Patients hub */}
-      <Route path={"/patients-hub"} component={() => <ProtectedRoute><PatientsHubShell /></ProtectedRoute>} />
-      <Route path={"/patients-hub/*"} component={() => <ProtectedRoute><PatientsHubShell /></ProtectedRoute>} />
+      <Route
+        path={"/patients-hub"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientsHubShell />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patients-hub/*"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientsHubShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Services hub */}
-      <Route path={"/services-hub"} component={() => <ProtectedRoute><ServicesHubShell /></ProtectedRoute>} />
-      <Route path={"/services-hub/*"} component={() => <ProtectedRoute><ServicesHubShell /></ProtectedRoute>} />
+      <Route
+        path={"/services-hub"}
+        component={() => (
+          <ProtectedRoute>
+            <ServicesHubShell />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/services-hub/*"}
+        component={() => (
+          <ProtectedRoute>
+            <ServicesHubShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Workflow routes */}
-      <Route path={"/examination/:id"} component={() => <ProtectedRoute><ExaminationForm /></ProtectedRoute>} />
-      <Route path={"/examination"} component={() => <ProtectedRoute><ExaminationForm /></ProtectedRoute>} />
-      <Route path={"/quick-entry"} component={() => <ProtectedRoute><QuickPatientEntry /></ProtectedRoute>} />
-      <Route path={"/quick-entry/:id"} component={() => <ProtectedRoute><QuickPatientEntry /></ProtectedRoute>} />
-      <Route path={"/new-cases"} component={() => <ProtectedRoute><NewCases /></ProtectedRoute>} />
-      <Route path={"/new-cases/:id"} component={() => <ProtectedRoute><NewCases /></ProtectedRoute>} />
-      <Route path={"/followup/:id"} component={() => <ProtectedRoute><FollowupForm /></ProtectedRoute>} />
-      <Route path={"/followups"} component={() => <ProtectedRoute><Followups /></ProtectedRoute>} />
-      <Route path={"/visits/:id"} component={() => <ProtectedRoute><Visits /></ProtectedRoute>} />
-      <Route path={"/visits"} component={() => <ProtectedRoute><Visits /></ProtectedRoute>} />
-      <Route path={"/today"} component={() => <ProtectedRoute><TodayPatients /></ProtectedRoute>} />
-      <Route path={"/operations"} component={() => <ProtectedRoute><Operations /></ProtectedRoute>} />
-      <Route path={"/workflow-hub"} component={() => <ProtectedRoute><WorkflowHub /></ProtectedRoute>} />
+      <Route
+        path={"/examination/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <ExaminationForm />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/examination"}
+        component={() => (
+          <ProtectedRoute>
+            <ExaminationForm />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/quick-entry"}
+        component={() => (
+          <ProtectedRoute>
+            <QuickPatientEntry />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/quick-entry/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <QuickPatientEntry />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/new-cases"}
+        component={() => (
+          <ProtectedRoute>
+            <NewCases />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/new-cases/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <NewCases />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/followup/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <FollowupForm />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/followups"}
+        component={() => (
+          <ProtectedRoute>
+            <Followups />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/visits/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <Visits />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/visits"}
+        component={() => (
+          <ProtectedRoute>
+            <Visits />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/today"}
+        component={() => (
+          <ProtectedRoute>
+            <TodayPatients />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/operations"}
+        component={() => (
+          <ProtectedRoute>
+            <Operations />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/workflow-hub"}
+        component={() => (
+          <ProtectedRoute>
+            <WorkflowHub />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Stockroom routes */}
-      <Route path={"/stockroom"} component={() => <ProtectedRoute><StockroomShell /></ProtectedRoute>} />
-      <Route path={"/stockroom/*"} component={() => <ProtectedRoute><StockroomShell /></ProtectedRoute>} />
+      <Route
+        path={"/stockroom"}
+        component={() => (
+          <ProtectedRoute>
+            <StockroomShell />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/stockroom/*"}
+        component={() => (
+          <ProtectedRoute>
+            <StockroomShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Patient views */}
-      <Route path={"/patients"} component={() => <ProtectedRoute><Patients /></ProtectedRoute>} />
-      <Route path={"/patients/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
-      <Route path={"/medicalfile/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
-      <Route path={"/medicalfile"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
-      <Route path={"/patient-file/:id"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
-      <Route path={"/patient-file"} component={() => <ProtectedRoute><PatientDetails /></ProtectedRoute>} />
-      <Route path={"/medical-reports/:id"} component={() => <ProtectedRoute><MedicalReports /></ProtectedRoute>} />
-      <Route path={"/medical-reports"} component={() => <ProtectedRoute><MedicalReports /></ProtectedRoute>} />
-      <Route path={"/patient-summary/:id"} component={() => <ProtectedRoute><PatientSummary /></ProtectedRoute>} />
-      <Route path={"/patient-summary"} component={() => <ProtectedRoute><PatientSummary /></ProtectedRoute>} />
-      <Route path={"/doctor/patient/:id"} component={() => <ProtectedRoute><DoctorPatientView /></ProtectedRoute>} />
+      <Route
+        path={"/patients"}
+        component={() => (
+          <ProtectedRoute>
+            <Patients />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patients/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientDetails />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medicalfile/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientDetails />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medicalfile"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientDetails />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patient-file/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientDetails />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patient-file"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientDetails />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medical-reports/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicalReports />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medical-reports"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicalReports />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patient-summary/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientSummary />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/patient-summary"}
+        component={() => (
+          <ProtectedRoute>
+            <PatientSummary />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/doctor/patient/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <DoctorPatientView />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Sheets and tools */}
-      <Route path={"/sheets/consultant/:id"} component={() => <ProtectedRoute><ConsultantSheet /></ProtectedRoute>} />
-      <Route path={"/sheets/consultant/:id/followup"} component={() => <ProtectedRoute><ConsultantFollowupPage /></ProtectedRoute>} />
-      <Route path={"/sheets/specialist/:id"} component={() => <ProtectedRoute><SpecialistSheet /></ProtectedRoute>} />
-      <Route path={"/sheets/external/:id"} component={() => <ProtectedRoute><ExternalOperationSheet /></ProtectedRoute>} />
-      <Route path={"/sheets/lasik/:id"} component={() => <ProtectedRoute><LasikExamSheet /></ProtectedRoute>} />
-      <Route path={"/sheets/lasik/:id/followup"} component={() => <ProtectedRoute><LasikFollowupPage /></ProtectedRoute>} />
+      <Route
+        path={"/sheets/consultant/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <ConsultantSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/consultant/:id/followup"}
+        component={() => (
+          <ProtectedRoute>
+            <ConsultantFollowupPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/specialist/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <SpecialistSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/external/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <ExternalOperationSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/lasik/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <LasikExamSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/lasik/:id/followup"}
+        component={() => (
+          <ProtectedRoute>
+            <LasikFollowupPage />
+          </ProtectedRoute>
+        )}
+      />
       <Route
         path={"/sheets/pentacam/dashboard"}
         component={() => (
@@ -502,79 +1329,492 @@ const Router = memo(function Router() {
           </ProtectedRoute>
         )}
       />
-      <Route path={"/sheets/pentacam/:id"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
-      <Route path={"/sheets/pentacam"} component={() => <ProtectedRoute><PentacamSheet /></ProtectedRoute>} />
-      <Route path={"/admin/pentacam/:id"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamLinking /></ProtectedRoute>} />
-      <Route path={"/admin/pentacam"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamLinking /></ProtectedRoute>} />
-      <Route path={"/sheets/operation/:id"} component={() => <ProtectedRoute><ExternalOperationSheet /></ProtectedRoute>} />
-      <Route path={"/refraction/:id"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />
-      <Route path={"/refraction"} component={() => <ProtectedRoute><RefractionPage /></ProtectedRoute>} />
-      <Route path={"/medications"} component={() => <ProtectedRoute><MedicationsCatalogPage /></ProtectedRoute>} />
-      <Route path={"/medications/registry"} component={() => <ProtectedRoute><MedicationsManagement /></ProtectedRoute>} />
-      <Route path={"/examinations/catalog"} component={() => <ProtectedRoute><ExaminationsCatalogPage /></ProtectedRoute>} />
-      <Route path={"/txhub"} component={() => <ProtectedRoute><TxHubPage /></ProtectedRoute>} />
-      <Route path={"/prescription/:id"} component={() => <ProtectedRoute><WritePrescription /></ProtectedRoute>} />
-      <Route path={"/prescription"} component={() => <ProtectedRoute><WritePrescription /></ProtectedRoute>} />
-      <Route path={"/prescriptions/:id"} component={() => <ProtectedRoute><PrescriptionsWriterDeepLinkRedirect /></ProtectedRoute>} />
-      <Route path={"/prescriptions"} component={() => <ProtectedRoute><PrescriptionsList /></ProtectedRoute>} />
-      <Route path={"/medications-tests"} component={() => <ProtectedRoute><MedicationsTestsManagement /></ProtectedRoute>} />
-      <Route path={"/tests"} component={() => <ProtectedRoute><MedicationsTestsManagement /></ProtectedRoute>} />
-      <Route path={"/tests-management"} component={() => <ProtectedRoute requiredRoles={["admin"]}><TestsManagement /></ProtectedRoute>} />
-      <Route path={"/pentacam"} component={() => <Redirect href="/sheets/pentacam" />} />
-      <Route path={"/request-tests/:id"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
-      <Route path={"/request-tests"} component={() => <ProtectedRoute><RequestTests /></ProtectedRoute>} />
-      <Route path={"/sheet-copies"} component={() => <ProtectedRoute><AdminSheetCopies /></ProtectedRoute>} />
+      <Route
+        path={"/sheets/pentacam/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PentacamSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/pentacam"}
+        component={() => (
+          <ProtectedRoute>
+            <PentacamSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/pentacam/:id"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPentacamLinking />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/pentacam"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPentacamLinking />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheets/operation/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <ExternalOperationSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/refraction/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <RefractionPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/refraction"}
+        component={() => (
+          <ProtectedRoute>
+            <RefractionPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medications"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicationsCatalogPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medications/registry"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicationsManagement />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/examinations/catalog"}
+        component={() => (
+          <ProtectedRoute>
+            <ExaminationsCatalogPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/txhub"}
+        component={() => (
+          <ProtectedRoute>
+            <TxHubPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/prescription/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <WritePrescription />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/prescription"}
+        component={() => (
+          <ProtectedRoute>
+            <WritePrescription />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/prescriptions/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <PrescriptionsWriterDeepLinkRedirect />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/prescriptions"}
+        component={() => (
+          <ProtectedRoute>
+            <PrescriptionsList />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medications-tests"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicationsTestsManagement />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/tests"}
+        component={() => (
+          <ProtectedRoute>
+            <MedicationsTestsManagement />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/tests-management"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <TestsManagement />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/pentacam"}
+        component={() => <Redirect href="/sheets/pentacam" />}
+      />
+      <Route
+        path={"/request-tests/:id"}
+        component={() => (
+          <ProtectedRoute>
+            <RequestTests />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/request-tests"}
+        component={() => (
+          <ProtectedRoute>
+            <RequestTests />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheet-copies"}
+        component={() => (
+          <ProtectedRoute>
+            <AdminSheetCopies />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* External Doctors admin */}
-      <Route path={"/external-doctors/referrals"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ExternalDoctorReferrals /></ProtectedRoute>} />
-      <Route path={"/external-doctors"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ExternalDoctors /></ProtectedRoute>} />
+      <Route
+        path={"/external-doctors/referrals"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ExternalDoctorReferrals />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/external-doctors"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ExternalDoctors />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Admin routes */}
       {/* Admin Hub - handles all /admin-hub routes internally */}
-      <Route path={"/admin-hub"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminHubShell /></ProtectedRoute>} />
-      <Route path={"/admin-hub/*"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminHubShell /></ProtectedRoute>} />
+      <Route
+        path={"/admin-hub"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminHubShell />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin-hub/*"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminHubShell />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* selrs.cc top-level aliases (معادلات للصفحات الإدارية) */}
-      <Route path={"/users"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
-      <Route path={"/doctors"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminDoctors /></ProtectedRoute>} />
-      <Route path={"/permissions"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPermissions /></ProtectedRoute>} />
-      <Route path={"/services"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminServices /></ProtectedRoute>} />
-      <Route path={"/medical-sheets"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheets /></ProtectedRoute>} />
-      <Route path={"/sheet-designer"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetDesigner /></ProtectedRoute>} />
-      <Route path={"/system-status"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminStatus /></ProtectedRoute>} />
-      <Route path={"/migrations"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminMigrations /></ProtectedRoute>} />
-      <Route path={"/api-tools"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminApiTools /></ProtectedRoute>} />
-      <Route path={"/admin-patients"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPatients /></ProtectedRoute>} />
+      <Route
+        path={"/users"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminUsers />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/doctors"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminDoctors />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/permissions"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPermissions />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/services"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminServices />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/medical-sheets"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSheets />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/sheet-designer"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSheetDesigner />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/system-status"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminStatus />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/migrations"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminMigrations />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/api-tools"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminApiTools />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin-patients"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPatients />
+          </ProtectedRoute>
+        )}
+      />
 
       {/* Legacy admin routes */}
-      <Route path={"/admin/users"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
-      <Route path={"/admin/migrations"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminMigrations /></ProtectedRoute>} />
-      <Route path={"/admin/api-tools"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminApiTools /></ProtectedRoute>} />
-      <Route path={"/admin/status"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminStatus /></ProtectedRoute>} />
-      <Route path={"/admin/card-visibility"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminCardVisibility /></ProtectedRoute>} />
-      <Route path={"/admin/settings/pricing-rules"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSettings pricingOnly /></ProtectedRoute>} />
-      <Route path={"/admin/settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSettings /></ProtectedRoute>} />
-      <Route path={"/admin/notification-settings"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminNotificationSettings /></ProtectedRoute>} />
-      <Route path={"/admin/permissions"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPermissions /></ProtectedRoute>} />
-      <Route path={"/admin/patients"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPatients /></ProtectedRoute>} />
-      <Route path={"/admin/forms"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminFormsHub /></ProtectedRoute>} />
-      <Route path={"/admin/sheets"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheets /></ProtectedRoute>} />
-      <Route path={"/admin/sheet-designer"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetDesigner /></ProtectedRoute>} />
-      <Route path={"/admin/sheet-copies"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminSheetCopies /></ProtectedRoute>} />
-      <Route path={"/admin/doctors"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminDoctors /></ProtectedRoute>} />
-      <Route path={"/admin/pentacam-failed"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminPentacamFailed /></ProtectedRoute>} />
-      <Route path={"/admin/services"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminServices /></ProtectedRoute>} />
-      <Route path={"/admin/tests"} component={() => <ProtectedRoute requiredRoles={["admin"]}><TestsManagement /></ProtectedRoute>} />
-      <Route path={"/admin/data-source-audit"} component={() => <ProtectedRoute requiredRoles={["admin"]}><AdminDataSourceAudit /></ProtectedRoute>} />
+      <Route
+        path={"/admin/users"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminUsers />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/migrations"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminMigrations />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/api-tools"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminApiTools />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/status"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminStatus />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/card-visibility"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminCardVisibility />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/settings/pricing-rules"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSettings pricingOnly />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/settings"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSettings />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/notification-settings"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminNotificationSettings />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/permissions"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPermissions />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/patients"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPatients />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/forms"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminFormsHub />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/sheets"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSheets />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/sheet-designer"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSheetDesigner />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/sheet-copies"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSheetCopies />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/doctors"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminDoctors />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/pentacam-failed"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPentacamFailed />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/services"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminServices />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/tests"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <TestsManagement />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/admin/data-source-audit"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminDataSourceAudit />
+          </ProtectedRoute>
+        )}
+      />
 
-      <Route path={"/showcase"} component={() => <ProtectedRoute requiredRoles={["admin"]}><ComponentShowcase /></ProtectedRoute>} />
-      <Route path={"/styleguide"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Styleguide /></ProtectedRoute>} />
+      <Route
+        path={"/showcase"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ComponentShowcase />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/styleguide"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <Styleguide />
+          </ProtectedRoute>
+        )}
+      />
       <Route
         path={"/components-gallery"}
-        component={() => <ProtectedRoute requiredRoles={["admin"]}><ComponentsGallery /></ProtectedRoute>}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ComponentsGallery />
+          </ProtectedRoute>
+        )}
       />
-      <Route path={"/prototypes"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Prototypes /></ProtectedRoute>} />
-      <Route path={"/documentation"} component={() => <ProtectedRoute requiredRoles={["admin"]}><Documentation /></ProtectedRoute>} />
+      <Route
+        path={"/prototypes"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <Prototypes />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/documentation"}
+        component={() => (
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <Documentation />
+          </ProtectedRoute>
+        )}
+      />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -590,24 +1830,39 @@ function App() {
   const isNativeShell = Capacitor.isNativePlatform();
   const isDesktopShell =
     typeof navigator !== "undefined" &&
-    (navigator.userAgent.includes("SELRSDesktop/1") || navigator.userAgent.includes("SELRS/1"));
+    (navigator.userAgent.includes("SELRSDesktop/1") ||
+      navigator.userAgent.includes("SELRS/1"));
   const [qaEnabled, setQaEnabled] = useState(false);
   const [overflowCount, setOverflowCount] = useState(0);
-  const [booting, setBooting] = useState(() => !loadCachedBuildInfo() && getInitialOnlineState());
+  const [booting, setBooting] = useState(
+    () => !loadCachedBuildInfo() && getInitialOnlineState(),
+  );
   const [isOnline, setIsOnline] = useState(() => getInitialOnlineState());
   const [serverReachable, setServerReachable] = useState<boolean | null>(null);
-  const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(() => loadCachedBuildInfo());
-  const [nativeAppInfo, setNativeAppInfo] = useState<NativeAppInfo | null>(() => loadCachedNativeAppInfo());
-  const [updateAvailable, setUpdateAvailable] = useState<BuildInfo | null>(null);
+  const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(() =>
+    loadCachedBuildInfo(),
+  );
+  const [nativeAppInfo, setNativeAppInfo] = useState<NativeAppInfo | null>(() =>
+    loadCachedNativeAppInfo(),
+  );
+  const [updateAvailable, setUpdateAvailable] = useState<BuildInfo | null>(
+    null,
+  );
   const [apiIssue, setApiIssue] = useState<ApiIssue | null>(null);
   const [runtimeIssue, setRuntimeIssue] = useState<RuntimeIssue | null>(null);
-  const [offlineCacheSummary, setOfflineCacheSummary] = useState(() => getOfflineCacheSummary());
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
+  const [offlineCacheSummary, setOfflineCacheSummary] = useState(() =>
+    getOfflineCacheSummary(),
+  );
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "portrait",
+  );
   const initialBuildRef = useRef<BuildInfo | null>(null);
   const announcedOfflineRef = useRef(false);
   const nativeHealthFailureCountRef = useRef(0);
   const previousOnlineRef = useRef(getInitialOnlineState());
-  const [locationPath, setLocationPath] = useState(() => window.location.pathname + window.location.search);
+  const [locationPath, setLocationPath] = useState(
+    () => window.location.pathname + window.location.search,
+  );
 
   useEffect(() => {
     setLocationPath(window.location.pathname + window.location.search);
@@ -619,13 +1874,23 @@ function App() {
     if (!tracked) return;
     const key = RECENT_KEY(user?.id);
     const raw = localStorage.getItem(key);
-    let list: Array<{ path: string; label: string; count: number; updatedAt: number }> = raw ? JSON.parse(raw) : [];
+    let list: Array<{
+      path: string;
+      label: string;
+      count: number;
+      updatedAt: number;
+    }> = raw ? JSON.parse(raw) : [];
     const existing = list.find((r) => r.path === tracked.pathPrefix);
     if (existing) {
       existing.count += 1;
       existing.updatedAt = Date.now();
     } else {
-      list.push({ path: tracked.pathPrefix, label: tracked.label, count: 1, updatedAt: Date.now() });
+      list.push({
+        path: tracked.pathPrefix,
+        label: tracked.label,
+        count: 1,
+        updatedAt: Date.now(),
+      });
     }
     list = list
       .sort((a, b) => b.count - a.count || b.updatedAt - a.updatedAt)
@@ -757,13 +2022,21 @@ function App() {
       } catch (error) {
         if (isNativePlatform) {
           nativeHealthFailureCountRef.current += 1;
-          if (nativeHealthFailureCountRef.current >= NATIVE_HEALTH_FAILURE_THRESHOLD) {
+          if (
+            nativeHealthFailureCountRef.current >=
+            NATIVE_HEALTH_FAILURE_THRESHOLD
+          ) {
             setServerReachable(false);
           }
         } else {
           setServerReachable(false);
         }
-        if (!silent && (!isNativePlatform || nativeHealthFailureCountRef.current >= NATIVE_HEALTH_FAILURE_THRESHOLD)) {
+        if (
+          !silent &&
+          (!isNativePlatform ||
+            nativeHealthFailureCountRef.current >=
+              NATIVE_HEALTH_FAILURE_THRESHOLD)
+        ) {
           console.warn("[SELRS] Health check failed", error);
         }
       } finally {
@@ -801,9 +2074,15 @@ function App() {
     void runHealthCheck(false);
     const interval = window.setInterval(
       () => void runHealthCheck(true),
-      isNativePlatform ? NATIVE_HEALTH_POLL_MS : isDesktopShell ? DESKTOP_SHELL_HEALTH_POLL_MS : HEALTH_POLL_MS
+      isNativePlatform
+        ? NATIVE_HEALTH_POLL_MS
+        : isDesktopShell
+          ? DESKTOP_SHELL_HEALTH_POLL_MS
+          : HEALTH_POLL_MS,
     );
-    const stopNetworkSubscription = subscribeNetworkStatus((status) => syncNetwork(status));
+    const stopNetworkSubscription = subscribeNetworkStatus((status) =>
+      syncNetwork(status),
+    );
     const stopResumeSubscription = isNativePlatform
       ? subscribeAppResume(() => {
           void refreshNativeAppInfo().then((info) => {
@@ -896,7 +2175,8 @@ function App() {
             if (result.started) return;
           })
           .catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : "Native print failed";
+            const message =
+              error instanceof Error ? error.message : "Native print failed";
             toast.error(message);
             try {
               originalPrint();
@@ -907,11 +2187,11 @@ function App() {
         return;
       }
 
-        try {
-          originalPrint();
-        } catch {
-          toast.error("Unable to open print dialog");
-        }
+      try {
+        originalPrint();
+      } catch {
+        toast.error("Unable to open print dialog");
+      }
     };
 
     return () => {
@@ -977,7 +2257,7 @@ function App() {
         });
       retryShell();
     },
-    [retryShell]
+    [retryShell],
   );
 
   const reloadApp = () => {
@@ -996,11 +2276,14 @@ function App() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail as { reason?: string } | undefined;
+      const detail = (event as CustomEvent).detail as
+        | { reason?: string }
+        | undefined;
       softRefresh(detail?.reason);
     };
     window.addEventListener("selrs-soft-reload", handler as EventListener);
-    return () => window.removeEventListener("selrs-soft-reload", handler as EventListener);
+    return () =>
+      window.removeEventListener("selrs-soft-reload", handler as EventListener);
   }, [softRefresh]);
 
   const dismissRuntimeIssue = () => {
@@ -1038,9 +2321,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <GlobalCommandPalette />
           {isNativeShell ? (
@@ -1050,9 +2331,7 @@ function App() {
           )}
           <Toaster />
           <div className="page-layout" dir="rtl">
-            <Suspense
-              fallback={<AppShellSkeleton />}
-            >
+            <Suspense fallback={<AppShellSkeleton />}>
               <Router />
             </Suspense>
           </div>

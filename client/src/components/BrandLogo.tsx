@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BRAND_LOGO_FALLBACK_URL, BRAND_LOGO_PNG_FALLBACK_URL, BRAND_LOGO_URL } from "@/lib/brand";
+import {
+  BRAND_LOGO_FALLBACK_URL,
+  BRAND_LOGO_PNG_FALLBACK_URL,
+  BRAND_LOGO_URL,
+} from "@/lib/brand";
 
-const SRC_CHAIN = [BRAND_LOGO_URL, BRAND_LOGO_PNG_FALLBACK_URL, BRAND_LOGO_FALLBACK_URL] as const;
+const SRC_CHAIN = [
+  BRAND_LOGO_URL,
+  BRAND_LOGO_PNG_FALLBACK_URL,
+  BRAND_LOGO_FALLBACK_URL,
+] as const;
 
 type BrandLogoProps = {
   className?: string;
@@ -14,7 +22,11 @@ type BrandLogoProps = {
 /**
  * شعار المركز: `center-logo.png` → `logo.png` → `brand-fallback.svg`، ثم أيقونة إن فشل الكل.
  */
-export function BrandLogo({ className, imgClassName, fallbackClassName }: BrandLogoProps) {
+export function BrandLogo({
+  className,
+  imgClassName,
+  fallbackClassName,
+}: BrandLogoProps) {
   const [idx, setIdx] = useState(0);
 
   if (idx >= SRC_CHAIN.length) {
@@ -33,7 +45,12 @@ export function BrandLogo({ className, imgClassName, fallbackClassName }: BrandL
   }
 
   return (
-    <div className={cn("relative flex items-center justify-center overflow-hidden", className)}>
+    <div
+      className={cn(
+        "relative flex items-center justify-center overflow-hidden",
+        className,
+      )}
+    >
       <img
         src={SRC_CHAIN[idx]}
         alt=""

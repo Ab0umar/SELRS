@@ -5,8 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2, FlaskConical, ClipboardList, Sparkles } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  FlaskConical,
+  ClipboardList,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -133,7 +146,9 @@ export default function TestsManagement() {
               <FlaskConical className="h-3.5 w-3.5" />
               كتالوج الفحوصات
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">إدارة الفحوصات</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              إدارة الفحوصات
+            </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
               إدارة شاملة لفحوصات المختبر والأشعة والفحوصات البصرية.
             </p>
@@ -144,10 +159,14 @@ export default function TestsManagement() {
                 <ClipboardList className="h-3.5 w-3.5" />
                 إجمالي الفحوصات
               </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">{tests.length}</div>
+              <div className="mt-2 text-sm font-semibold text-foreground">
+                {tests.length}
+              </div>
             </div>
             <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
-              <div className="text-xs font-medium text-muted-foreground">الوضع</div>
+              <div className="text-xs font-medium text-muted-foreground">
+                الوضع
+              </div>
               <div className="mt-2 text-sm font-semibold text-foreground">
                 {editingId ? "تعديل فحص" : "إضافة جديدة"}
               </div>
@@ -168,7 +187,9 @@ export default function TestsManagement() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="border-border/80 shadow-sm lg:col-span-1">
           <CardHeader>
-            <CardTitle>{editingId ? "تعديل الفحص" : "إضافة فحص جديد"}</CardTitle>
+            <CardTitle>
+              {editingId ? "تعديل الفحص" : "إضافة فحص جديد"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
@@ -178,7 +199,9 @@ export default function TestsManagement() {
             />
             <Select
               value={newTest.type}
-              onValueChange={(value) => setNewTest({ ...newTest, type: value as TestType })}
+              onValueChange={(value) =>
+                setNewTest({ ...newTest, type: value as TestType })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="اختر النوع" />
@@ -191,24 +214,32 @@ export default function TestsManagement() {
             </Select>
             <Input
               value={newTest.category}
-              onChange={(e) => setNewTest({ ...newTest, category: e.target.value })}
+              onChange={(e) =>
+                setNewTest({ ...newTest, category: e.target.value })
+              }
               placeholder="الفئة"
             />
             <div className="grid grid-cols-2 gap-3">
               <Input
                 value={newTest.normalRange}
-                onChange={(e) => setNewTest({ ...newTest, normalRange: e.target.value })}
+                onChange={(e) =>
+                  setNewTest({ ...newTest, normalRange: e.target.value })
+                }
                 placeholder="المدى الطبيعي"
               />
               <Input
                 value={newTest.unit}
-                onChange={(e) => setNewTest({ ...newTest, unit: e.target.value })}
+                onChange={(e) =>
+                  setNewTest({ ...newTest, unit: e.target.value })
+                }
                 placeholder="الوحدة"
               />
             </div>
             <Textarea
               value={newTest.description}
-              onChange={(e) => setNewTest({ ...newTest, description: e.target.value })}
+              onChange={(e) =>
+                setNewTest({ ...newTest, description: e.target.value })
+              }
               placeholder="وصف الفحص"
               className="min-h-24"
             />
@@ -226,7 +257,10 @@ export default function TestsManagement() {
           <CardContent>
             <div className="space-y-3">
               {tests.map((test) => (
-                <div key={test.id} className="border rounded-lg p-4 flex items-center justify-between">
+                <div
+                  key={test.id}
+                  className="border rounded-lg p-4 flex items-center justify-between"
+                >
                   <div>
                     <div className="font-bold">{test.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -234,26 +268,43 @@ export default function TestsManagement() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="icon" variant="outline" aria-label={`تعديل الفحص ${test.name}`} onClick={() => handleEditTest(test)}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      aria-label={`تعديل الفحص ${test.name}`}
+                      onClick={() => handleEditTest(test)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {delConfirm === test.id ? (
                       <div className="flex items-center gap-1">
-                        <button type="button" aria-label="تأكيد الحذف"
+                        <button
+                          type="button"
+                          aria-label="تأكيد الحذف"
                           className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                          onClick={() => { void handleDeleteTest(test.id); setDelConfirm(null); }}>
+                          onClick={() => {
+                            void handleDeleteTest(test.id);
+                            setDelConfirm(null);
+                          }}
+                        >
                           تأكيد
                         </button>
-                        <button type="button" aria-label="إلغاء الحذف"
+                        <button
+                          type="button"
+                          aria-label="إلغاء الحذف"
                           className="rounded bg-muted text-muted-foreground hover:bg-border"
-                          onClick={() => setDelConfirm(null)}>
+                          onClick={() => setDelConfirm(null)}
+                        >
                           ✕
                         </button>
                       </div>
                     ) : (
-                      <button type="button" aria-label="حذف الفحص"
+                      <button
+                        type="button"
+                        aria-label="حذف الفحص"
                         className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                        onClick={() => setDelConfirm(test.id)}>
+                        onClick={() => setDelConfirm(test.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -261,7 +312,9 @@ export default function TestsManagement() {
                 </div>
               ))}
               {tests.length === 0 && (
-                <p className="text-center text-muted-foreground">لا توجد فحوصات بعد</p>
+                <p className="text-center text-muted-foreground">
+                  لا توجد فحوصات بعد
+                </p>
               )}
             </div>
           </CardContent>

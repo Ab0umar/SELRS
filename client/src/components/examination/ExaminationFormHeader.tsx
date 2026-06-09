@@ -7,14 +7,21 @@ interface ExaminationFormHeaderProps {
   form: UseExaminationFormResult;
 }
 
-export default function ExaminationFormHeader({ form }: ExaminationFormHeaderProps) {
+export default function ExaminationFormHeader({
+  form,
+}: ExaminationFormHeaderProps) {
   const { visitDate, setVisitDate, isFollowup, setIsFollowup } = form;
 
   return (
     <div className="mb-6 rounded-lg border border-border/80 bg-background p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <Label htmlFor="visit-date-top" className="font-bold whitespace-nowrap">تاريخ الزيارة</Label>
+          <Label
+            htmlFor="visit-date-top"
+            className="font-bold whitespace-nowrap"
+          >
+            تاريخ الزيارة
+          </Label>
           <Input
             name="visit-date-top"
             id="visit-date-top"

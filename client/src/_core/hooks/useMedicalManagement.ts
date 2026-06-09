@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export interface PrescriptionData {
   visitId: number;
@@ -38,29 +38,34 @@ export const usePrescription = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createPrescriptionMutation = trpc.medical.createPrescription.useMutation({
-    onSuccess: () => {
-      toast.success('تم حفظ الروشة بنجاح');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ الروشة');
-    },
-  });
+  const createPrescriptionMutation =
+    trpc.medical.createPrescription.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ الروشة بنجاح");
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "فشل في حفظ الروشة");
+      },
+    });
 
-  const savePrescription = useCallback(async (data: PrescriptionData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createPrescriptionMutation.mutateAsync(data as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createPrescriptionMutation]);
+  const savePrescription = useCallback(
+    async (data: PrescriptionData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createPrescriptionMutation.mutateAsync(data as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createPrescriptionMutation],
+  );
 
   return {
     loading: loading || createPrescriptionMutation.isPending,
@@ -78,10 +83,11 @@ export const useMedications = () => {
     setLoading(true);
     setError(null);
     try {
-      toast.success('تم إضافة الدواء بنجاح');
+      toast.success("تم إضافة الدواء بنجاح");
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في إضافة الدواء';
+      const message =
+        err instanceof Error ? err.message : "خطأ في إضافة الدواء";
       setError(message);
       return false;
     } finally {
@@ -106,10 +112,10 @@ export const useTests = () => {
     setLoading(true);
     setError(null);
     try {
-      toast.success('تم إضافة الفحص بنجاح');
+      toast.success("تم إضافة الفحص بنجاح");
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في إضافة الفحص';
+      const message = err instanceof Error ? err.message : "خطأ في إضافة الفحص";
       setError(message);
       return false;
     } finally {
@@ -133,10 +139,10 @@ export const useTestRequests = () => {
     setLoading(true);
     setError(null);
     try {
-      toast.success('تم طلب الفحص بنجاح');
+      toast.success("تم طلب الفحص بنجاح");
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في طلب الفحص';
+      const message = err instanceof Error ? err.message : "خطأ في طلب الفحص";
       setError(message);
       return false;
     } finally {
@@ -159,10 +165,10 @@ export const useRequestTests = () => {
     setLoading(true);
     setError(null);
     try {
-      toast.success('تم حفظ طلب الفحوصات بنجاح');
+      toast.success("تم حفظ طلب الفحوصات بنجاح");
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ الطلب';
+      const message = err instanceof Error ? err.message : "خطأ في حفظ الطلب";
       setError(message);
       return false;
     } finally {

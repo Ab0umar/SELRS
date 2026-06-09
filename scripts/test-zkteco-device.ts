@@ -7,11 +7,11 @@
  * Example: npx tsx scripts/test-zkteco-device.ts 192.168.0.10 5005
  */
 
-import { ZKTecoDevice } from '../server/services/attendance/zktecoDevice';
+import { ZKTecoDevice } from "../server/services/attendance/zktecoDevice";
 
 async function main() {
-  const ip = process.argv[2] || '192.168.0.10';
-  const port = parseInt(process.argv[3] || '5005', 10);
+  const ip = process.argv[2] || "192.168.0.10";
+  const port = parseInt(process.argv[3] || "5005", 10);
 
   console.log(`\n🔍 Testing ZKTeco Device Connection`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -59,12 +59,16 @@ async function main() {
     const lastDay = new Date();
     lastDay.setDate(lastDay.getDate() - 1);
     const punches = await device.getPunchRecords(lastDay);
-    console.log(`✓ Retrieved ${punches.length} punch records from last 24 hours\n`);
+    console.log(
+      `✓ Retrieved ${punches.length} punch records from last 24 hours\n`,
+    );
 
     if (punches.length > 0) {
       console.log(`Sample records:`);
       punches.slice(0, 3).forEach((p, i) => {
-        console.log(`  ${i + 1}. Emp: ${p.empNo}, Time: ${p.punchDateTime.toISOString()}, Dir: ${p.direction}`);
+        console.log(
+          `  ${i + 1}. Emp: ${p.empNo}, Time: ${p.punchDateTime.toISOString()}, Dir: ${p.direction}`,
+        );
       });
       if (punches.length > 3) {
         console.log(`  ... and ${punches.length - 3} more`);
@@ -78,9 +82,10 @@ async function main() {
 
     device.disconnect();
     process.exit(0);
-
   } catch (error) {
-    console.log(`\n❌ Error: ${error instanceof Error ? error.message : String(error)}\n`);
+    console.log(
+      `\n❌ Error: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
     device.disconnect();
     process.exit(1);
   }

@@ -28,7 +28,9 @@ function rowActive(row: ReferenceRow): boolean {
   return row.isActive !== false;
 }
 
-export function parseReferenceRange(raw: unknown): { min: number; max: number } | null {
+export function parseReferenceRange(
+  raw: unknown,
+): { min: number; max: number } | null {
   const nums = String(raw ?? "")
     .replace(/[<>]/g, " ")
     .replace(/[–—]/g, "-")
@@ -48,7 +50,10 @@ export function parseMeasurementValue(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function findMedicalReference(rows: ReferenceRow[], aliases: string[]): MedicalReference | null {
+export function findMedicalReference(
+  rows: ReferenceRow[],
+  aliases: string[],
+): MedicalReference | null {
   const wanted = aliases.map(normalizeReferenceKey).filter(Boolean);
   if (!wanted.length) return null;
 
@@ -57,7 +62,8 @@ export function findMedicalReference(rows: ReferenceRow[], aliases: string[]): M
     const nameKey = normalizeReferenceKey(row.name);
     const categoryKey = normalizeReferenceKey(row.category);
     const haystack = `${nameKey} ${categoryKey}`;
-    if (!wanted.some((alias) => nameKey === alias || haystack.includes(alias))) continue;
+    if (!wanted.some((alias) => nameKey === alias || haystack.includes(alias)))
+      continue;
 
     const range = parseReferenceRange(row.normalRange);
     if (!range) continue;
@@ -72,7 +78,10 @@ export function findMedicalReference(rows: ReferenceRow[], aliases: string[]): M
   return null;
 }
 
-export function evaluateMedicalReference(value: unknown, reference: MedicalReference | null): MedicalReferenceState {
+export function evaluateMedicalReference(
+  value: unknown,
+  reference: MedicalReference | null,
+): MedicalReferenceState {
   const n = parseMeasurementValue(value);
   if (n == null || !reference) return "unknown";
   if (n < reference.min) return "low";

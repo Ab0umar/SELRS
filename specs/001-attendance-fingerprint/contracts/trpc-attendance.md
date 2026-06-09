@@ -6,9 +6,9 @@
 
 ```ts
 // All three build on top of the existing protectedProcedure.
-attendanceViewerProcedure  // requires perm: 'attendance.view'
-attendanceManagerProcedure // requires perm: 'attendance.manage'  (admin & manager roles)
-attendanceAdminProcedure   // requires perm: 'attendance.admin'   (admin only)
+attendanceViewerProcedure; // requires perm: 'attendance.view'
+attendanceManagerProcedure; // requires perm: 'attendance.manage'  (admin & manager roles)
+attendanceAdminProcedure; // requires perm: 'attendance.admin'   (admin only)
 ```
 
 Permission keys are registered in the existing path-based permission mapping. Admin bypass and branch restrictions follow current semantics.
@@ -22,6 +22,7 @@ Permission keys are registered in the existing path-based permission mapping. Ad
 **Role**: `viewer`
 **Input**: `{}`
 **Output**:
+
 ```ts
 {
   presentToday: number;
@@ -30,15 +31,16 @@ Permission keys are registered in the existing path-based permission mapping. Ad
   insideNow: number;
   missingCheckoutYesterday: number;
   lastSync: {
-    status: 'never' | 'ok' | 'partial' | 'failed' | 'locked' | 'running';
-    finishedAt: string | null;     // ISO local
+    status: "never" | "ok" | "partial" | "failed" | "locked" | "running";
+    finishedAt: string | null; // ISO local
     rowsInserted: number;
-    highWaterMark: string | null;  // ISO local
+    highWaterMark: string | null; // ISO local
     error: string | null;
-  };
-  asOf: string;                    // ISO local
+  }
+  asOf: string; // ISO local
 }
 ```
+
 **Source**: `attendance_daily` (for the five counts) + latest row from `attendance_sync_runs`.
 **Idempotency**: Pure read.
 
@@ -74,6 +76,7 @@ where `SyncRunRow` mirrors `attendance_sync_runs` columns (with sanitized `error
 
 **Role**: `viewer`
 **Input**:
+
 ```ts
 {
   empCd?: string;
@@ -84,6 +87,7 @@ where `SyncRunRow` mirrors `attendance_sync_runs` columns (with sanitized `error
   pageSize?: number; // default 100, max 500
 }
 ```
+
 **Output**: `{ rows: PunchRow[]; total: number }`
 **Notes**: Date filter is on `punch_at`. Backed by `idx_emp_time` or `idx_punch_at`.
 
@@ -222,24 +226,52 @@ Standard upsert/delete on `attendance_holidays`.
 ## Common types (frontend-shared via `shared/attendance/types.ts`)
 
 ```ts
-type EmployeeRow = { empCd: string; fullName: string; department: string|null;
-                     defaultShiftId: number|null; active: boolean };
+type EmployeeRow = {
+  empCd: string;
+  fullName: string;
+  department: string | null;
+  defaultShiftId: number | null;
+  active: boolean;
+};
 
-type PunchRow = { id: number; empCd: string; punchAt: string;
-                  direction: 'in'|'out'|'unknown'; source: 'access'|'tcp'|'manual';
-                  sourceRowId: string|null; note: string|null; importedAt: string };
+type PunchRow = {
+  id: number;
+  empCd: string;
+  punchAt: string;
+  direction: "in" | "out" | "unknown";
+  source: "access" | "tcp" | "manual";
+  sourceRowId: string | null;
+  note: string | null;
+  importedAt: string;
+};
 
-type DailyRow = { empCd: string; fullName: string; workDate: string;
-                  shiftId: number|null; firstIn: string|null; lastOut: string|null;
-                  workedMinutes: number|null; lateMinutes: number;
-                  earlyLeaveMin: number; overtimeMinutes: number;
-                  status: 'present'|'absent'|'leave'|'holiday'|'partial'|'missing_checkout';
-                  insideNow: boolean; computedAt: string };
+type DailyRow = {
+  empCd: string;
+  fullName: string;
+  workDate: string;
+  shiftId: number | null;
+  firstIn: string | null;
+  lastOut: string | null;
+  workedMinutes: number | null;
+  lateMinutes: number;
+  earlyLeaveMin: number;
+  overtimeMinutes: number;
+  status:
+    | "present"
+    | "absent"
+    | "leave"
+    | "holiday"
+    | "partial"
+    | "missing_checkout";
+  insideNow: boolean;
+  computedAt: string;
+};
 ```
 
 ## Error contract
 
 All procedures use tRPC's `TRPCError`:
+
 - `UNAUTHORIZED` — no session.
 - `FORBIDDEN` — session lacks required permission key.
 - `BAD_REQUEST` — Zod validation failure.

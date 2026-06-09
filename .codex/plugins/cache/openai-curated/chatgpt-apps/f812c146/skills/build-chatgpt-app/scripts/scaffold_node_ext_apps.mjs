@@ -1,21 +1,39 @@
 #!/usr/bin/env node
 
-import { mkdirSync, writeFileSync, existsSync, readdirSync, lstatSync } from "node:fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  lstatSync,
+} from "node:fs";
 import path from "node:path";
 
 function toSlug(value) {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
   return normalized || "example-chatgpt-app";
 }
 
 function toToolName(value) {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
   return normalized || "show_example";
 }
 
 function toTitle(value) {
   const parts = value.split(/[-_]+/).filter(Boolean);
-  return parts.map((part) => part[0].toUpperCase() + part.slice(1)).join(" ") || "Example";
+  return (
+    parts.map((part) => part[0].toUpperCase() + part.slice(1)).join(" ") ||
+    "Example"
+  );
 }
 
 function fillTemplate(template, mapping) {
@@ -34,11 +52,13 @@ function writeFile(filePath, content) {
 function ensureTargetDir(targetPath, force) {
   if (existsSync(targetPath)) {
     if (!lstatSync(targetPath).isDirectory()) {
-      throw new Error(`Output path exists and is not a directory: ${targetPath}`);
+      throw new Error(
+        `Output path exists and is not a directory: ${targetPath}`,
+      );
     }
     if (readdirSync(targetPath).length > 0 && !force) {
       throw new Error(
-        `Refusing to write into non-empty directory: ${targetPath}\nRe-run with --force to overwrite generated files.`
+        `Refusing to write into non-empty directory: ${targetPath}\nRe-run with --force to overwrite generated files.`,
       );
     }
   }
@@ -484,19 +504,19 @@ createServer(async (req, res) => {
 
 function buildWidgetHtml(appSlug, appTitle, toolName) {
   return fillTemplate(WIDGET_TEMPLATE, {
-    "__APP_SLUG__": appSlug,
-    "__APP_TITLE__": appTitle,
-    "__TOOL_NAME__": toolName,
+    __APP_SLUG__: appSlug,
+    __APP_TITLE__: appTitle,
+    __TOOL_NAME__: toolName,
   });
 }
 
 function buildServerTs(appSlug, appTitle, toolName, widgetUri, port) {
   return fillTemplate(SERVER_TEMPLATE, {
-    "__APP_SLUG__": appSlug,
-    "__APP_TITLE__": appTitle,
-    "__TOOL_NAME__": toolName,
-    "__WIDGET_URI__": widgetUri,
-    "__PORT__": String(port),
+    __APP_SLUG__: appSlug,
+    __APP_TITLE__: appTitle,
+    __TOOL_NAME__: toolName,
+    __WIDGET_URI__: widgetUri,
+    __PORT__: String(port),
   });
 }
 
@@ -584,8 +604,14 @@ function main() {
   const files = new Map([
     [path.join(outputDir, "package.json"), buildPackageJson(appSlug)],
     [path.join(outputDir, "tsconfig.json"), buildTsconfig()],
-    [path.join(outputDir, "public", "widget.html"), buildWidgetHtml(appSlug, appTitle, toolName)],
-    [path.join(outputDir, "src", "server.ts"), buildServerTs(appSlug, appTitle, toolName, widgetUri, args.port)],
+    [
+      path.join(outputDir, "public", "widget.html"),
+      buildWidgetHtml(appSlug, appTitle, toolName),
+    ],
+    [
+      path.join(outputDir, "src", "server.ts"),
+      buildServerTs(appSlug, appTitle, toolName, widgetUri, args.port),
+    ],
   ]);
 
   for (const [filePath, content] of files) {

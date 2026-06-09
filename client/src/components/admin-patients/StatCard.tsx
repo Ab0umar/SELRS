@@ -8,7 +8,9 @@ export function StatCard({ label, value, isTotal = false }: StatCardProps) {
   return (
     <div
       className={`rounded-lg border px-2 py-3 sm:px-3 sm:py-3 ${
-        isTotal ? "border-secondary bg-secondary/8" : "border-border bg-muted/15"
+        isTotal
+          ? "border-secondary bg-secondary/8"
+          : "border-border bg-muted/15"
       }`}
     >
       <p

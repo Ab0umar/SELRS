@@ -24,7 +24,7 @@ export type TrpcContext = {
 };
 
 export async function createContext(
-  opts: CreateExpressContextOptions
+  opts: CreateExpressContextOptions,
 ): Promise<TrpcContext> {
   let user: User | null = null;
 
@@ -40,8 +40,15 @@ export async function createContext(
     if (raw) {
       const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const payload = jwt.verify(raw, secret) as any;
-      if (payload?.type === "patient" && typeof payload?.patientId === "number") {
-        patientSession = { patientId: payload.patientId, phone: String(payload.phone ?? ""), token: raw };
+      if (
+        payload?.type === "patient" &&
+        typeof payload?.patientId === "number"
+      ) {
+        patientSession = {
+          patientId: payload.patientId,
+          phone: String(payload.phone ?? ""),
+          token: raw,
+        };
       }
     }
   } catch {
@@ -54,8 +61,14 @@ export async function createContext(
     if (raw) {
       const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const payload = jwt.verify(raw, secret) as any;
-      if (payload?.type === "externalDoctor" && typeof payload?.doctorId === "number") {
-        doctorSession = { doctorId: payload.doctorId, username: String(payload.username ?? "") };
+      if (
+        payload?.type === "externalDoctor" &&
+        typeof payload?.doctorId === "number"
+      ) {
+        doctorSession = {
+          doctorId: payload.doctorId,
+          username: String(payload.username ?? ""),
+        };
       }
     }
   } catch {

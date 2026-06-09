@@ -33,7 +33,10 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
-  const mustChangePassword = Boolean((user as (User & { mustChangePassword?: boolean }) | null)?.mustChangePassword);
+  const mustChangePassword = Boolean(
+    (user as (User & { mustChangePassword?: boolean }) | null)
+      ?.mustChangePassword,
+  );
   const forcePasswordRoute = "/force-password-change";
   const [location, setLocation] = useLocation();
   const navStackRef = useRef<string[]>([]);
@@ -61,7 +64,12 @@ export default function ProtectedRoute({
     if (cleanPath === "/attendance/my") return true;
     if (cleanPath === "/attendance/shift-schedule") return true;
     if (userRole === "reception" && cleanPath === "/examination") return true;
-    if ((cleanPath === "/admin/settings/pricing-rules" || cleanPath === "/admin-hub/settings/pricing-rules") && userRole === "accountant") return true;
+    if (
+      (cleanPath === "/admin/settings/pricing-rules" ||
+        cleanPath === "/admin-hub/settings/pricing-rules") &&
+      userRole === "accountant"
+    )
+      return true;
     /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
     if (
       cleanPath === "/examinations/catalog" ||
@@ -69,27 +77,56 @@ export default function ProtectedRoute({
       cleanPath === "/txhub" ||
       cleanPath.startsWith("/txhub/")
     ) {
-      const matchTests = allowedPaths.some((p) => p === "/tests" || (p !== "/" && p.startsWith("/tests")));
-      const matchMeds = allowedPaths.some((p) => p === "/medications" || (p !== "/" && p.startsWith("/medications")));
-      const matchExamCatalog = allowedPaths.includes("/examinations/catalog") || allowedPaths.some((p) => p.startsWith("/examinations/catalog:"));
-      const matchTx = allowedPaths.includes("/txhub") || allowedPaths.some((p) => p.startsWith("/txhub"));
-      const allowExamPath = cleanPath === "/examinations/catalog" || cleanPath.startsWith("/examinations/catalog/");
-      const allowTxPath = cleanPath === "/txhub" || cleanPath.startsWith("/txhub/");
-      if (allowExamPath && (matchTests || matchMeds || matchExamCatalog)) return true;
+      const matchTests = allowedPaths.some(
+        (p) => p === "/tests" || (p !== "/" && p.startsWith("/tests")),
+      );
+      const matchMeds = allowedPaths.some(
+        (p) =>
+          p === "/medications" || (p !== "/" && p.startsWith("/medications")),
+      );
+      const matchExamCatalog =
+        allowedPaths.includes("/examinations/catalog") ||
+        allowedPaths.some((p) => p.startsWith("/examinations/catalog:"));
+      const matchTx =
+        allowedPaths.includes("/txhub") ||
+        allowedPaths.some((p) => p.startsWith("/txhub"));
+      const allowExamPath =
+        cleanPath === "/examinations/catalog" ||
+        cleanPath.startsWith("/examinations/catalog/");
+      const allowTxPath =
+        cleanPath === "/txhub" || cleanPath.startsWith("/txhub/");
+      if (allowExamPath && (matchTests || matchMeds || matchExamCatalog))
+        return true;
       if (allowTxPath && (matchTests || matchMeds || matchTx)) return true;
     }
-    if (cleanPath === "/patient-file" || cleanPath.startsWith("/patient-file/")) {
-      if (allowedPaths.includes("/patients") || allowedPaths.includes("/patients/:id")) return true;
+    if (
+      cleanPath === "/patient-file" ||
+      cleanPath.startsWith("/patient-file/")
+    ) {
+      if (
+        allowedPaths.includes("/patients") ||
+        allowedPaths.includes("/patients/:id")
+      )
+        return true;
     }
     /** مركز المريض: نفس مستوى الوصول لقائمة المرضى / ملف المريض */
     if (cleanPath === "/patient-hub" || cleanPath.startsWith("/patient-hub/")) {
-      if (allowedPaths.includes("/patients") || allowedPaths.includes("/patients/:id")) return true;
+      if (
+        allowedPaths.includes("/patients") ||
+        allowedPaths.includes("/patients/:id")
+      )
+        return true;
     }
     /** قائمة الروشتات: تُعامل مثل صلاحية الكتابة `/prescription` إن لم تُذكر صريحةً. */
-    if (cleanPath === "/prescriptions" || cleanPath.startsWith("/prescriptions/")) {
+    if (
+      cleanPath === "/prescriptions" ||
+      cleanPath.startsWith("/prescriptions/")
+    ) {
       if (
         allowedPaths.includes("/prescriptions") ||
-        allowedPaths.some((p) => p === "/prescription" || p.startsWith("/prescription/"))
+        allowedPaths.some(
+          (p) => p === "/prescription" || p.startsWith("/prescription/"),
+        )
       ) {
         return true;
       }
@@ -103,7 +140,8 @@ export default function ProtectedRoute({
     return allowedPaths.some((permission) => {
       if (!permission) return false;
       if (permission === cleanPath) return true;
-      if (permission !== "/" && cleanPath.startsWith(`${permission}/`)) return true;
+      if (permission !== "/" && cleanPath.startsWith(`${permission}/`))
+        return true;
       if (permission.includes("/:")) {
         const base = permission.split("/:")[0];
         return cleanPath === base || cleanPath.startsWith(`${base}/`);
@@ -149,15 +187,23 @@ export default function ProtectedRoute({
       return;
     }
 
-    if (userRole === "accountant" && (cleanPath === "/" || cleanPath === "/dashboard")) {
+    if (
+      userRole === "accountant" &&
+      (cleanPath === "/" || cleanPath === "/dashboard")
+    ) {
       setLocation("/accounting");
       return;
     }
 
     const roleMismatch =
       requiredRoles &&
-      !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
-    if (roleMismatch && !(userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed)) {
+      !requiredRoles
+        .map((role) => String(role).toLowerCase())
+        .includes(userRole);
+    if (
+      roleMismatch &&
+      !(userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed)
+    ) {
       setLocation("/");
       return;
     }
@@ -176,7 +222,18 @@ export default function ProtectedRoute({
       setLocation("/");
       return;
     }
-  }, [user, userRole, loading, requiredRoles, requiredBranches, setLocation, permissionsQuery.isSuccess, isPathAllowed, mustChangePassword, cleanPath]);
+  }, [
+    user,
+    userRole,
+    loading,
+    requiredRoles,
+    requiredBranches,
+    setLocation,
+    permissionsQuery.isSuccess,
+    isPathAllowed,
+    mustChangePassword,
+    cleanPath,
+  ]);
 
   if (loading || (userRole !== "admin" && permissionsQuery.isLoading)) {
     return <AppShellSkeleton />;
@@ -193,15 +250,24 @@ export default function ProtectedRoute({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-base font-semibold text-foreground">Unable to verify page permissions</p>
+          <p className="text-base font-semibold text-foreground">
+            Unable to verify page permissions
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
             The app could not reach the server to confirm access for this page.
           </p>
           <div className="mt-4 flex justify-center gap-2">
-            <Button type="button" variant="outline" onClick={() => void permissionsQuery.refetch()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void permissionsQuery.refetch()}
+            >
               Retry
             </Button>
-            <Button type="button" onClick={() => requestAppReload("permissions-error")}>
+            <Button
+              type="button"
+              onClick={() => requestAppReload("permissions-error")}
+            >
               Reload
             </Button>
           </div>
@@ -213,7 +279,8 @@ export default function ProtectedRoute({
   const roleMismatch =
     requiredRoles &&
     !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
-  const roleOverrideByPermission = userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed;
+  const roleOverrideByPermission =
+    userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed;
 
   if (roleMismatch && !roleOverrideByPermission) {
     return (
@@ -222,7 +289,9 @@ export default function ProtectedRoute({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-destructive font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
+          <p className="text-destructive font-semibold mb-4">
+            ليس لديك صلاحية للوصول لهذه الصفحة
+          </p>
           <button
             onClick={() => setLocation("/")}
             className="text-primary hover:underline"
@@ -245,7 +314,9 @@ export default function ProtectedRoute({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-destructive font-semibold mb-4">هذه الصفحة غير متاحة لفرعك</p>
+          <p className="text-destructive font-semibold mb-4">
+            هذه الصفحة غير متاحة لفرعك
+          </p>
           <button
             onClick={() => setLocation("/")}
             className="text-primary hover:underline"
@@ -264,7 +335,9 @@ export default function ProtectedRoute({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <p className="text-destructive font-semibold mb-4">ليس لديك صلاحية للوصول لهذه الصفحة</p>
+          <p className="text-destructive font-semibold mb-4">
+            ليس لديك صلاحية للوصول لهذه الصفحة
+          </p>
           <button
             onClick={() => setLocation("/")}
             className="text-primary hover:underline"
@@ -278,5 +351,3 @@ export default function ProtectedRoute({
 
   return <AppShell>{children}</AppShell>;
 }
-
-

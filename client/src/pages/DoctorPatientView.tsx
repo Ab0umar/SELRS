@@ -15,29 +15,32 @@ export default function DoctorPatientView() {
   const rawId = legacyDoctorParams?.id;
   const patientId = rawId ? Number(rawId) : 0;
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientId ?? 0,
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
+    enabled: Boolean(patientId),
+    refetchOnWindowFocus: false,
+  });
 
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
-  const prescriptionsQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
-    { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
-  );
+  const prescriptionsQuery =
+    trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
+      { patientId: patientId ?? 0 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
 
   const patient = patientQuery.data as any;
   const examinations = useMemo(() => {
-    return Array.isArray(examinationsQuery.data) ? (examinationsQuery.data as any[]) : [];
+    return Array.isArray(examinationsQuery.data)
+      ? (examinationsQuery.data as any[])
+      : [];
   }, [examinationsQuery.data]);
 
   const reports = useMemo(() => {
@@ -45,7 +48,9 @@ export default function DoctorPatientView() {
   }, [reportsQuery.data]);
 
   const prescriptions = useMemo(() => {
-    return Array.isArray(prescriptionsQuery.data) ? (prescriptionsQuery.data as any[]) : [];
+    return Array.isArray(prescriptionsQuery.data)
+      ? (prescriptionsQuery.data as any[])
+      : [];
   }, [prescriptionsQuery.data]);
 
   const latestExam = examinations[0];
@@ -88,130 +93,170 @@ export default function DoctorPatientView() {
           <div className="space-y-6">
             {/* Latest Examination */}
             <Card className="border-border/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Latest Examination</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {latestExam ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">UCVA OD:</span>
-                      <div className="font-semibold text-foreground">{latestExam.ucvaOD || "—"}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">UCVA OS:</span>
-                      <div className="font-semibold text-foreground">{latestExam.ucvaOS || "—"}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">BCVA OD:</span>
-                      <div className="font-semibold text-foreground">{latestExam.bcvaOD || "—"}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">BCVA OS:</span>
-                      <div className="font-semibold text-foreground">{latestExam.bcvaOS || "—"}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">IOP OD:</span>
-                      <div className="font-semibold text-foreground">{latestExam.iopOD || "—"}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">IOP OS:</span>
-                      <div className="font-semibold text-foreground">{latestExam.iopOS || "—"}</div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No examinations recorded</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Latest Report */}
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Latest Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {latestReport ? (
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm text-muted-foreground">Diagnosis:</span>
-                    <p className="mt-1 text-foreground">{latestReport.diagnosis || "—"}</p>
-                  </div>
-                  {latestReport.treatment && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Treatment:</span>
-                      <p className="mt-1 text-foreground">{latestReport.treatment}</p>
-                    </div>
-                  )}
-                  {latestReport.recommendations && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Recommendations:</span>
-                      <p className="mt-1 text-foreground">{latestReport.recommendations}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No reports available</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Latest Prescription */}
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Latest Prescription</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {latestPrescription ? (
-                <div className="space-y-2">
-                  {(() => {
-                    const rxItems = Array.isArray(latestPrescription.prescriptionItems)
-                      ? latestPrescription.prescriptionItems
-                      : Array.isArray(latestPrescription.items)
-                        ? latestPrescription.items
-                        : [];
-                    return rxItems.length > 0 ? (
-                      <div className="space-y-2">
-                        {rxItems.map((item: any, index: number) => (
-                          <div key={index} className="rounded-lg border border-border bg-muted p-3">
-                            <div className="font-semibold text-foreground">{item.medicationName}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                              Dosage: {item.dosage || "—"} | Frequency: {item.frequency || "—"}
-                            </div>
-                          </div>
-                        ))}
+              <CardHeader>
+                <CardTitle className="text-lg">Latest Examination</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {latestExam ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">UCVA OD:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.ucvaOD || "—"}
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No medication items</p>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No prescriptions recorded</p>
-              )}
-            </CardContent>
-          </Card>
+                      <div>
+                        <span className="text-muted-foreground">UCVA OS:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.ucvaOS || "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">BCVA OD:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.bcvaOD || "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">BCVA OS:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.bcvaOS || "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">IOP OD:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.iopOD || "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">IOP OS:</span>
+                        <div className="font-semibold text-foreground">
+                          {latestExam.iopOS || "—"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No examinations recorded
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              onClick={() => setLocation(`/patients/${patientId}`)}
-              className="flex-1"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              ملف كامل للمريض
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocation(`/followup/${patientId}`)}
-            >
-              متابعة
-            </Button>
-          </div>
+            {/* Latest Report */}
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Latest Report</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {latestReport ? (
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Diagnosis:
+                      </span>
+                      <p className="mt-1 text-foreground">
+                        {latestReport.diagnosis || "—"}
+                      </p>
+                    </div>
+                    {latestReport.treatment && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">
+                          Treatment:
+                        </span>
+                        <p className="mt-1 text-foreground">
+                          {latestReport.treatment}
+                        </p>
+                      </div>
+                    )}
+                    {latestReport.recommendations && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">
+                          Recommendations:
+                        </span>
+                        <p className="mt-1 text-foreground">
+                          {latestReport.recommendations}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No reports available
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Latest Prescription */}
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Latest Prescription</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {latestPrescription ? (
+                  <div className="space-y-2">
+                    {(() => {
+                      const rxItems = Array.isArray(
+                        latestPrescription.prescriptionItems,
+                      )
+                        ? latestPrescription.prescriptionItems
+                        : Array.isArray(latestPrescription.items)
+                          ? latestPrescription.items
+                          : [];
+                      return rxItems.length > 0 ? (
+                        <div className="space-y-2">
+                          {rxItems.map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="rounded-lg border border-border bg-muted p-3"
+                            >
+                              <div className="font-semibold text-foreground">
+                                {item.medicationName}
+                              </div>
+                              <div className="mt-1 text-sm text-muted-foreground">
+                                Dosage: {item.dosage || "—"} | Frequency:{" "}
+                                {item.frequency || "—"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No medication items
+                        </p>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No prescriptions recorded
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                onClick={() => setLocation(`/patients/${patientId}`)}
+                className="flex-1"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                ملف كامل للمريض
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setLocation(`/followup/${patientId}`)}
+              >
+                متابعة
+              </Button>
+            </div>
           </div>
         )}
       </main>

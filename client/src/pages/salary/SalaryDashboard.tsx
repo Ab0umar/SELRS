@@ -21,7 +21,7 @@ export default function SalaryDashboard() {
   const now = new Date();
   const summaryQ = (trpc as any).salary.monthSummary.useQuery(
     { year: now.getFullYear(), month: now.getMonth() + 1 },
-    { refetchInterval: 60_000, refetchIntervalInBackground: false }
+    { refetchInterval: 60_000, refetchIntervalInBackground: false },
   );
 
   const summary = summaryQ.data as any;
@@ -160,7 +160,7 @@ export default function SalaryDashboard() {
                 {isLoading ? (
                   <Skeleton className="h-6 w-12" />
                 ) : (
-                  summary?.staffCount ?? 0
+                  (summary?.staffCount ?? 0)
                 )}
               </span>
             </div>
@@ -197,7 +197,9 @@ export default function SalaryDashboard() {
               const Icon = activity.icon;
               return (
                 <div key={index} className="flex items-start gap-3">
-                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${activity.color}`} />
+                  <Icon
+                    className={`h-4 w-4 mt-0.5 shrink-0 ${activity.color}`}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {activity.title}
@@ -217,7 +219,8 @@ export default function SalaryDashboard() {
       <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
         <h3 className="font-medium text-foreground">هل تحتاج إلى مساعدة؟</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          يمكنك الاطلاع على دليل الاستخدام أو التواصل مع فريق الدعم للحصول على مساعدة.
+          يمكنك الاطلاع على دليل الاستخدام أو التواصل مع فريق الدعم للحصول على
+          مساعدة.
         </p>
         <div className="mt-4 flex gap-2">
           <Button variant="outline" size="sm">

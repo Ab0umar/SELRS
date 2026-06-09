@@ -43,21 +43,18 @@ export const patientRouter = router({
       z.object({
         patientId: z.number(),
         updates: z.record(z.string(), z.any()),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const updated = await db.updatePatient(
-          input.patientId,
-          input.updates
-        );
+        const updated = await db.updatePatient(input.patientId, input.updates);
 
         await db.logAuditEvent(
           ctx.user.id,
           "UPDATE_PATIENT",
           "patient",
           input.patientId,
-          { fields: Object.keys(input.updates) }
+          { fields: Object.keys(input.updates) },
         );
 
         return updated;
@@ -85,21 +82,31 @@ export const patientRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const payload: Omit<InsertVisitScheduleRequest, "id" | "createdAt" | "updatedAt"> = {
+        const payload: Omit<
+          InsertVisitScheduleRequest,
+          "id" | "createdAt" | "updatedAt"
+        > = {
           fullName: input.fullName.trim(),
           age: input.age ?? null,
           // Drizzle mysql `date` accepts YYYY-MM-DD string at runtime
-          visitDate: input.visitDate as unknown as InsertVisitScheduleRequest["visitDate"],
+          visitDate:
+            input.visitDate as unknown as InsertVisitScheduleRequest["visitDate"],
           phone: input.phone?.trim() || null,
           service: input.service.trim(),
           createdByUserId: ctx.user.id,
         };
         const { id } = await db.insertVisitScheduleRequest(payload);
 
-        await db.logAuditEvent(ctx.user.id, "CREATE_VISIT_SCHEDULE_REQUEST", "visit_schedule_requests", id, {
-          visitDate: input.visitDate,
-          service: input.service,
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "CREATE_VISIT_SCHEDULE_REQUEST",
+          "visit_schedule_requests",
+          id,
+          {
+            visitDate: input.visitDate,
+            service: input.service,
+          },
+        );
 
         return { id };
       } catch (error) {
@@ -128,7 +135,10 @@ export const patientRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role,
+      );
       const role = String(ctx.user.role ?? "").toLowerCase();
       const canRemoveBooking =
         permissions.includes("/today") ||
@@ -143,15 +153,24 @@ export const patientRouter = router({
 
       const request = await db.getVisitScheduleRequestById(input.requestId);
       if (!request) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Booking request not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Booking request not found",
+        });
       }
 
       await db.deleteVisitScheduleRequest(input.requestId);
-      await db.logAuditEvent(ctx.user.id, "REMOVE_VISIT_SCHEDULE_REQUEST", "visit_schedule_requests", input.requestId, {
-        fullName: request.fullName,
-        visitDate: request.visitDate,
-        service: request.service,
-      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REMOVE_VISIT_SCHEDULE_REQUEST",
+        "visit_schedule_requests",
+        input.requestId,
+        {
+          fullName: request.fullName,
+          visitDate: request.visitDate,
+          service: request.service,
+        },
+      );
 
       return { success: true };
     }),

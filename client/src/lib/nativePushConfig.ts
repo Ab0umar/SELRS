@@ -13,7 +13,10 @@ import { Capacitor } from "@capacitor/core";
  */
 export function shouldRegisterNativePush(): boolean {
   if (!Capacitor.isNativePlatform()) return false;
-  const raw = import.meta.env.VITE_DISABLE_NATIVE_FCM as string | boolean | undefined;
+  const raw = import.meta.env.VITE_DISABLE_NATIVE_FCM as
+    | string
+    | boolean
+    | undefined;
   const s =
     typeof raw === "boolean"
       ? raw
@@ -32,7 +35,10 @@ export function shouldRegisterNativePush(): boolean {
     return false;
   }
 
-  const rawEnable = import.meta.env.VITE_ENABLE_ANDROID_FCM as string | boolean | undefined;
+  const rawEnable = import.meta.env.VITE_ENABLE_ANDROID_FCM as
+    | string
+    | boolean
+    | undefined;
   const enable =
     typeof rawEnable === "boolean"
       ? rawEnable
@@ -43,7 +49,9 @@ export function shouldRegisterNativePush(): boolean {
           .toLowerCase();
 
   if (enable === "0" || enable === "false" || enable === "no") {
-    console.warn("[PushConfig] Push registration disabled by VITE_ENABLE_ANDROID_FCM=0/false");
+    console.warn(
+      "[PushConfig] Push registration disabled by VITE_ENABLE_ANDROID_FCM=0/false",
+    );
     return false;
   }
 

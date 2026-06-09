@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -44,7 +50,7 @@ export default function ForcePasswordChange() {
 
   useEffect(() => {
     if (!user) return;
-    if (!(user as (User & { mustChangePassword?: boolean })).mustChangePassword) {
+    if (!(user as User & { mustChangePassword?: boolean }).mustChangePassword) {
       setLocation("/dashboard");
     }
   }, [setLocation, user]);
@@ -106,7 +112,10 @@ export default function ForcePasswordChange() {
         <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-[color-mix(in_srgb,var(--selrs-orange)_18%,transparent)] blur-3xl" />
       </div>
       <Card className="selrs-glass-card relative w-full max-w-xl overflow-hidden border-white/80 bg-background/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary" aria-hidden />
+        <div
+          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary"
+          aria-hidden
+        />
         <CardHeader className="relative">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-warning/50 bg-warning/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-warning/90">
             <ShieldAlert className="h-3.5 w-3.5" />
@@ -121,7 +130,11 @@ export default function ForcePasswordChange() {
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="fullNameReadonly">الاسم الكامل</Label>
-              <Input id="fullNameReadonly" value={String((user as User | null)?.name ?? "")} readOnly />
+              <Input
+                id="fullNameReadonly"
+                value={String((user as User | null)?.name ?? "")}
+                readOnly
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="usernameEditable">اسم المستخدم</Label>
@@ -144,7 +157,9 @@ export default function ForcePasswordChange() {
 
           <div className="space-y-3 border-t pt-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPasswordRequired">كلمة المرور الحالية</Label>
+              <Label htmlFor="currentPasswordRequired">
+                كلمة المرور الحالية
+              </Label>
               <Input
                 id="currentPasswordRequired"
                 type="password"
@@ -162,7 +177,9 @@ export default function ForcePasswordChange() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPasswordRequired">تأكيد كلمة المرور الجديدة</Label>
+              <Label htmlFor="confirmPasswordRequired">
+                تأكيد كلمة المرور الجديدة
+              </Label>
               <Input
                 id="confirmPasswordRequired"
                 type="password"
@@ -181,7 +198,9 @@ export default function ForcePasswordChange() {
               onClick={submitPassword}
               disabled={changePasswordMutation.isPending}
             >
-              {changePasswordMutation.isPending ? "جاري الحفظ..." : (
+              {changePasswordMutation.isPending ? (
+                "جاري الحفظ..."
+              ) : (
                 <span className="inline-flex items-center gap-2">
                   <KeyRound className="h-4 w-4" />
                   تحديث كلمة المرور

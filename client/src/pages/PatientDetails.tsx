@@ -38,13 +38,17 @@ const ALL_SECTIONS: Section[] = [
   { key: "followup", label: "المتابعة", icon: CalendarDays },
 ];
 
-function getShortDiagnosis(latestReport: unknown, latestReportContent: unknown): string | null {
+function getShortDiagnosis(
+  latestReport: unknown,
+  latestReportContent: unknown,
+): string | null {
   if (!latestReport) return null;
   const report = latestReport as Record<string, unknown>;
   const raw =
     typeof latestReportContent === "string"
       ? latestReportContent
-      : (String(report.clinicalOpinion ?? "").trim() || String(report.diagnosis ?? "").trim());
+      : String(report.clinicalOpinion ?? "").trim() ||
+        String(report.diagnosis ?? "").trim();
   const text = raw.split("\n")[0].trim();
   if (!text) return null;
   return text.length > 22 ? `${text.slice(0, 22)}…` : text;
@@ -60,7 +64,12 @@ export default function PatientDetails() {
   const rawPatientId = patientsParams?.id ?? patientFileParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
 
-  const pd = usePatientDetails({ patientId, user, isAuthenticated, setLocation });
+  const pd = usePatientDetails({
+    patientId,
+    user,
+    isAuthenticated,
+    setLocation,
+  });
 
   if (!isAuthenticated) return null;
 
@@ -79,14 +88,27 @@ export default function PatientDetails() {
     );
   }
 
-  const handleSelectPatient = (p: { id: number; fullName: string; patientCode?: string | null }) => {
+  const handleSelectPatient = (p: {
+    id: number;
+    fullName: string;
+    patientCode?: string | null;
+  }) => {
     if (!p.id) return;
     const qs = typeof window !== "undefined" ? window.location.search : "";
-    setLocation(inPatientHub ? `/patient-hub/examination/${p.id}${qs}` : `/patient-file/${p.id}`);
+    setLocation(
+      inPatientHub
+        ? `/patient-hub/examination/${p.id}${qs}`
+        : `/patient-file/${p.id}`,
+    );
   };
 
-  const sections = ALL_SECTIONS.filter((s) => s.key !== "pentacam" || pd.canViewPentacam);
-  const diagnosisLabel = getShortDiagnosis(pd.latestReport, pd.latestReportContent);
+  const sections = ALL_SECTIONS.filter(
+    (s) => s.key !== "pentacam" || pd.canViewPentacam,
+  );
+  const diagnosisLabel = getShortDiagnosis(
+    pd.latestReport,
+    pd.latestReportContent,
+  );
   const age = String(pd.overviewStats.age ?? "").trim();
 
   const qs = typeof window !== "undefined" ? window.location.search : "";
@@ -98,7 +120,6 @@ export default function PatientDetails() {
 
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
-
       {/* Two-column layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Desktop sidebar — in RTL renders on the right */}
@@ -223,7 +244,11 @@ export default function PatientDetails() {
                 />
               )}
               {pd.activeTab === "tests" && (
-                <TestsTab testRequestsData={pd.testRequestsQuery?.data as any[] | undefined} />
+                <TestsTab
+                  testRequestsData={
+                    pd.testRequestsQuery?.data as any[] | undefined
+                  }
+                />
               )}
               {pd.activeTab === "followup" && (
                 <FollowupTab

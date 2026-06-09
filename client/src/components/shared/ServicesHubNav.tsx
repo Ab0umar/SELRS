@@ -1,9 +1,20 @@
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, FlaskConical, LayoutGrid, Network, Pill } from "lucide-react";
+import {
+  ArrowLeft,
+  FlaskConical,
+  LayoutGrid,
+  Network,
+  Pill,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
-type ServicesHubSurface = "hub" | "medications" | "registry" | "catalog" | "txhub";
+type ServicesHubSurface =
+  | "hub"
+  | "medications"
+  | "registry"
+  | "catalog"
+  | "txhub";
 
 type HubNavItem = {
   id: ServicesHubSurface;
@@ -98,19 +109,28 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
                   : "border-border/80 bg-card hover:bg-muted/35",
               )}
             >
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", item.accent)}>
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                  item.accent,
+                )}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1 text-right">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="truncate text-sm font-bold text-foreground">{item.title}</h3>
+                  <h3 className="truncate text-sm font-bold text-foreground">
+                    {item.title}
+                  </h3>
                   {isActive ? (
                     <span className="rounded-full bg-primary text-primary-foreground">
                       الحالي
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{item.description}</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {item.description}
+                </p>
               </div>
             </Link>
           );

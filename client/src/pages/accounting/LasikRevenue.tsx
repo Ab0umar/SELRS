@@ -48,7 +48,10 @@ type ServiceRevenueQuery = {
 };
 
 type CatalogQuery = {
-  data?: { services: { code: string; name: string; price: number }[]; doctors: { code: string; name: string }[] };
+  data?: {
+    services: { code: string; name: string; price: number }[];
+    doctors: { code: string; name: string }[];
+  };
   isLoading: boolean;
 };
 
@@ -61,7 +64,10 @@ type AccountingTrpc = typeof trpc & {
       ) => ServiceRevenueQuery;
     };
     serviceEntryCatalog: {
-      useQuery: (input: undefined, options?: { refetchOnWindowFocus?: boolean }) => CatalogQuery;
+      useQuery: (
+        input: undefined,
+        options?: { refetchOnWindowFocus?: boolean },
+      ) => CatalogQuery;
     };
   };
 };
@@ -100,8 +106,18 @@ function readFilters(search: string): ServiceRevenueInput {
     : DEFAULT_SECTION_CODE;
   const drRaw = params.get("doctorCodes");
   const svcRaw = params.get("serviceCodes");
-  const doctorCodes = drRaw ? drRaw.split(",").map((c) => c.trim()).filter(Boolean) : undefined;
-  const serviceCodes = svcRaw ? svcRaw.split(",").map((c) => c.trim()).filter(Boolean) : undefined;
+  const doctorCodes = drRaw
+    ? drRaw
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean)
+    : undefined;
+  const serviceCodes = svcRaw
+    ? svcRaw
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean)
+    : undefined;
 
   return {
     fromDate: params.get("fromDate") || defaults.fromDate,
@@ -215,16 +231,21 @@ export default function LasikRevenue() {
   const doctorRef = useRef<HTMLDivElement>(null);
   const serviceRef = useRef<HTMLDivElement>(null);
 
-  const catalogQuery = accountingTrpc.accounting.serviceEntryCatalog.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
+  const catalogQuery = accountingTrpc.accounting.serviceEntryCatalog.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
   const allDoctors = catalogQuery.data?.doctors ?? [];
   const allServices = catalogQuery.data?.services ?? [];
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (doctorRef.current && !doctorRef.current.contains(e.target as Node)) setDoctorOpen(false);
-      if (serviceRef.current && !serviceRef.current.contains(e.target as Node)) setServiceOpen(false);
+      if (doctorRef.current && !doctorRef.current.contains(e.target as Node))
+        setDoctorOpen(false);
+      if (serviceRef.current && !serviceRef.current.contains(e.target as Node))
+        setServiceOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -418,45 +439,77 @@ export default function LasikRevenue() {
                   className="flex w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
                 >
                   <span className="flex flex-wrap gap-1 min-w-0">
-                    {(draft.doctorCodes ?? []).length === 0
-                      ? <span className="text-muted-foreground">الكل</span>
-                      : (draft.doctorCodes ?? []).map((code) => {
-                          const dr = allDoctors.find((d) => d.code === code);
-                          return (
-                            <span key={code} className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs">
-                              {dr ? `${code} - ${dr.name}` : code}
-                              <button
-                                type="button"
-                                onMouseDown={(e) => { e.stopPropagation(); setDraft((p) => ({ ...p, doctorCodes: (p.doctorCodes ?? []).filter((c) => c !== code) || undefined })); }}
-                                className="text-muted-foreground hover:text-destructive"
-                              ><X className="h-3 w-3" /></button>
-                            </span>
-                          );
-                        })}
+                    {(draft.doctorCodes ?? []).length === 0 ? (
+                      <span className="text-muted-foreground">الكل</span>
+                    ) : (
+                      (draft.doctorCodes ?? []).map((code) => {
+                        const dr = allDoctors.find((d) => d.code === code);
+                        return (
+                          <span
+                            key={code}
+                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs"
+                          >
+                            {dr ? `${code} - ${dr.name}` : code}
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setDraft((p) => ({
+                                  ...p,
+                                  doctorCodes:
+                                    (p.doctorCodes ?? []).filter(
+                                      (c) => c !== code,
+                                    ) || undefined,
+                                }));
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })
+                    )}
                   </span>
                   <DropdownIcon className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
                 </button>
                 {doctorOpen && (
                   <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
-                    {catalogQuery.isLoading
-                      ? <div className="px-3 py-2 text-xs text-muted-foreground">جاري التحميل...</div>
-                      : allDoctors.map((dr) => {
-                          const selected = (draft.doctorCodes ?? []).includes(dr.code);
-                          return (
-                            <label key={dr.code} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none">
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => setDraft((p) => {
+                    {catalogQuery.isLoading ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        جاري التحميل...
+                      </div>
+                    ) : (
+                      allDoctors.map((dr) => {
+                        const selected = (draft.doctorCodes ?? []).includes(
+                          dr.code,
+                        );
+                        return (
+                          <label
+                            key={dr.code}
+                            className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() =>
+                                setDraft((p) => {
                                   const cur = p.doctorCodes ?? [];
-                                  return { ...p, doctorCodes: selected ? cur.filter((c) => c !== dr.code) : [...cur, dr.code] };
-                                })}
-                                className="accent-primary"
-                              />
-                              {dr.code} — {dr.name}
-                            </label>
-                          );
-                        })}
+                                  return {
+                                    ...p,
+                                    doctorCodes: selected
+                                      ? cur.filter((c) => c !== dr.code)
+                                      : [...cur, dr.code],
+                                  };
+                                })
+                              }
+                              className="accent-primary"
+                            />
+                            {dr.code} — {dr.name}
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
                 )}
               </div>
@@ -472,45 +525,77 @@ export default function LasikRevenue() {
                   className="flex w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
                 >
                   <span className="flex flex-wrap gap-1 min-w-0">
-                    {(draft.serviceCodes ?? []).length === 0
-                      ? <span className="text-muted-foreground">الكل</span>
-                      : (draft.serviceCodes ?? []).map((code) => {
-                          const svc = allServices.find((s) => s.code === code);
-                          return (
-                            <span key={code} className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs">
-                              {svc ? `${code} - ${svc.name}` : code}
-                              <button
-                                type="button"
-                                onMouseDown={(e) => { e.stopPropagation(); setDraft((p) => ({ ...p, serviceCodes: (p.serviceCodes ?? []).filter((c) => c !== code) || undefined })); }}
-                                className="text-muted-foreground hover:text-destructive"
-                              ><X className="h-3 w-3" /></button>
-                            </span>
-                          );
-                        })}
+                    {(draft.serviceCodes ?? []).length === 0 ? (
+                      <span className="text-muted-foreground">الكل</span>
+                    ) : (
+                      (draft.serviceCodes ?? []).map((code) => {
+                        const svc = allServices.find((s) => s.code === code);
+                        return (
+                          <span
+                            key={code}
+                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs"
+                          >
+                            {svc ? `${code} - ${svc.name}` : code}
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setDraft((p) => ({
+                                  ...p,
+                                  serviceCodes:
+                                    (p.serviceCodes ?? []).filter(
+                                      (c) => c !== code,
+                                    ) || undefined,
+                                }));
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })
+                    )}
                   </span>
                   <DropdownIcon className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
                 </button>
                 {serviceOpen && (
                   <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
-                    {catalogQuery.isLoading
-                      ? <div className="px-3 py-2 text-xs text-muted-foreground">جاري التحميل...</div>
-                      : allServices.map((svc) => {
-                          const selected = (draft.serviceCodes ?? []).includes(svc.code);
-                          return (
-                            <label key={svc.code} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none">
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => setDraft((p) => {
+                    {catalogQuery.isLoading ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        جاري التحميل...
+                      </div>
+                    ) : (
+                      allServices.map((svc) => {
+                        const selected = (draft.serviceCodes ?? []).includes(
+                          svc.code,
+                        );
+                        return (
+                          <label
+                            key={svc.code}
+                            className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted select-none"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() =>
+                                setDraft((p) => {
                                   const cur = p.serviceCodes ?? [];
-                                  return { ...p, serviceCodes: selected ? cur.filter((c) => c !== svc.code) : [...cur, svc.code] };
-                                })}
-                                className="accent-primary"
-                              />
-                              {svc.code} — {svc.name}
-                            </label>
-                          );
-                        })}
+                                  return {
+                                    ...p,
+                                    serviceCodes: selected
+                                      ? cur.filter((c) => c !== svc.code)
+                                      : [...cur, svc.code],
+                                  };
+                                })
+                              }
+                              className="accent-primary"
+                            />
+                            {svc.code} — {svc.name}
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
                 )}
               </div>
@@ -539,17 +624,41 @@ export default function LasikRevenue() {
                 className="gap-1.5 border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
                 onClick={() => {
                   const now = new Date();
-                  const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                  const lastOfLastMonth  = new Date(now.getFullYear(), now.getMonth(), 0);
+                  const firstOfLastMonth = new Date(
+                    now.getFullYear(),
+                    now.getMonth() - 1,
+                    1,
+                  );
+                  const lastOfLastMonth = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    0,
+                  );
                   const preset: ServiceRevenueInput = {
                     fromDate: toDateInputValue(firstOfLastMonth),
-                    toDate:   toDateInputValue(lastOfLastMonth),
+                    toDate: toDateInputValue(lastOfLastMonth),
                     sectionCode: 15,
                     serviceCodes: [
-                      "1501","1502","1523","1522","1524",
-                      "1560","1561","1562","1570","1571","1572",
-                      "1586","1589","1590","1600","1601",
-                      "1613","1614","1615","1616",
+                      "1501",
+                      "1502",
+                      "1523",
+                      "1522",
+                      "1524",
+                      "1560",
+                      "1561",
+                      "1562",
+                      "1570",
+                      "1571",
+                      "1572",
+                      "1586",
+                      "1589",
+                      "1590",
+                      "1600",
+                      "1601",
+                      "1613",
+                      "1614",
+                      "1615",
+                      "1616",
                     ],
                   };
                   setDraft(preset);
@@ -1202,15 +1311,22 @@ export default function LasikRevenue() {
                 <thead>
                   <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
                     <th className="px-4 py-3">الخدمة</th>
-                    <th className="px-4 py-3 text-center tabular-nums">العدد الإجمالي</th>
-                    <th className="px-4 py-3 text-center tabular-nums">بدون خصم</th>
+                    <th className="px-4 py-3 text-center tabular-nums">
+                      العدد الإجمالي
+                    </th>
+                    <th className="px-4 py-3 text-center tabular-nums">
+                      بدون خصم
+                    </th>
                     <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
                     // Flatten all details across all sections grouped by serviceCode
-                    const byService = new Map<string, { name: string | null; details: ServiceRevenueDetail[] }>();
+                    const byService = new Map<
+                      string,
+                      { name: string | null; details: ServiceRevenueDetail[] }
+                    >();
                     for (const section of sections) {
                       for (const svc of section.services) {
                         const existing = byService.get(svc.serviceCode);
@@ -1225,54 +1341,73 @@ export default function LasikRevenue() {
                       }
                     }
 
-                    return Array.from(byService.entries()).map(([code, { name, details }]) => {
-                      const totalQty = details.reduce((s, d) => s + d.quantity, 0);
-                      const noDiscountQty = details
-                        .filter((d) => !d.discount || d.discount === 0)
-                        .reduce((s, d) => s + d.quantity, 0);
+                    return Array.from(byService.entries()).map(
+                      ([code, { name, details }]) => {
+                        const totalQty = details.reduce(
+                          (s, d) => s + d.quantity,
+                          0,
+                        );
+                        const noDiscountQty = details
+                          .filter((d) => !d.discount || d.discount === 0)
+                          .reduce((s, d) => s + d.quantity, 0);
 
-                      // Group discounted rows by discount amount
-                      const discountGroups = new Map<number, number>();
-                      for (const d of details) {
-                        if (d.discount && d.discount > 0) {
-                          discountGroups.set(d.discount, (discountGroups.get(d.discount) ?? 0) + d.quantity);
+                        // Group discounted rows by discount amount
+                        const discountGroups = new Map<number, number>();
+                        for (const d of details) {
+                          if (d.discount && d.discount > 0) {
+                            discountGroups.set(
+                              d.discount,
+                              (discountGroups.get(d.discount) ?? 0) +
+                                d.quantity,
+                            );
+                          }
                         }
-                      }
-                      const discountedQty = totalQty - noDiscountQty;
+                        const discountedQty = totalQty - noDiscountQty;
 
-                      return (
-                        <tr key={code} className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors">
-                          <td className="px-4 py-2.5 font-medium">
-                            {toArabicDigits(code)}
-                            {name ? <span className="mr-1 text-xs text-muted-foreground">— {name}</span> : null}
-                          </td>
-                          <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
-                            {formatCountAr(totalQty)}
-                          </td>
-                          <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
-                            {formatCountAr(noDiscountQty)}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            {discountedQty === 0 ? (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {Array.from(discountGroups.entries())
-                                  .sort((a, b) => a[0] - b[0])
-                                  .map(([discAmt, qty]) => (
-                                    <span
-                                      key={discAmt}
-                                      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
-                                    >
-                                      {formatCountAr(qty)} × {formatMoneyAr(discAmt)}
-                                    </span>
-                                  ))}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    });
+                        return (
+                          <tr
+                            key={code}
+                            className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
+                          >
+                            <td className="px-4 py-2.5 font-medium">
+                              {toArabicDigits(code)}
+                              {name ? (
+                                <span className="mr-1 text-xs text-muted-foreground">
+                                  — {name}
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                              {formatCountAr(totalQty)}
+                            </td>
+                            <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
+                              {formatCountAr(noDiscountQty)}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              {discountedQty === 0 ? (
+                                <span className="text-muted-foreground text-xs">
+                                  —
+                                </span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {Array.from(discountGroups.entries())
+                                    .sort((a, b) => a[0] - b[0])
+                                    .map(([discAmt, qty]) => (
+                                      <span
+                                        key={discAmt}
+                                        className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                                      >
+                                        {formatCountAr(qty)} ×{" "}
+                                        {formatMoneyAr(discAmt)}
+                                      </span>
+                                    ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      },
+                    );
                   })()}
                 </tbody>
                 <tfoot>
@@ -1297,7 +1432,8 @@ export default function LasikRevenue() {
                           .flatMap((svc) => svc.details ?? [])
                           .filter((d) => d.discount && d.discount > 0)
                           .reduce((sum, d) => sum + d.quantity, 0),
-                      )} بخصم
+                      )}{" "}
+                      بخصم
                     </td>
                   </tr>
                 </tfoot>
@@ -1307,128 +1443,170 @@ export default function LasikRevenue() {
         ) : null}
 
         {/* ── Pentacam price-bucket summary ──────────────────────────────── */}
-        {!serviceRevenueQuery.isLoading && sections.length > 0 ? (() => {
-          const PRICE_BUCKETS = [250, 350, 400, 450];
+        {!serviceRevenueQuery.isLoading && sections.length > 0
+          ? (() => {
+              const PRICE_BUCKETS = [250, 350, 400, 450];
 
-          function nearestBucket(price: number): number {
-            return PRICE_BUCKETS.reduce((a, b) =>
-              Math.abs(b - price) < Math.abs(a - price) ? b : a,
-            );
-          }
-
-          const CODE_TO_BUCKET: Record<string, number> = {
-            "1502": 450,
-            "1572": 350, "1590": 350, "1600": 350, "1601": 350, "1616": 350,
-            "1614": 250, "1615": 250,
-          };
-          const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
-          const pentacamDetails: Array<ServiceRevenueDetail & { bucket: number }> = [];
-          for (const section of sections) {
-            for (const svc of section.services) {
-              if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
-              for (const d of svc.details ?? []) {
-                pentacamDetails.push({ ...d, bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0 });
+              function nearestBucket(price: number): number {
+                return PRICE_BUCKETS.reduce((a, b) =>
+                  Math.abs(b - price) < Math.abs(a - price) ? b : a,
+                );
               }
-            }
-          }
 
-          if (pentacamDetails.length === 0) return null;
+              const CODE_TO_BUCKET: Record<string, number> = {
+                "1502": 450,
+                "1572": 350,
+                "1590": 350,
+                "1600": 350,
+                "1601": 350,
+                "1616": 350,
+                "1614": 250,
+                "1615": 250,
+              };
+              const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
+              const pentacamDetails: Array<
+                ServiceRevenueDetail & { bucket: number }
+              > = [];
+              for (const section of sections) {
+                for (const svc of section.services) {
+                  if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
+                  for (const d of svc.details ?? []) {
+                    pentacamDetails.push({
+                      ...d,
+                      bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0,
+                    });
+                  }
+                }
+              }
 
-          // ÷2 helper — each record = 2 eyes → 1 person
-          const half = (n: number) => Math.round(n / 2);
+              if (pentacamDetails.length === 0) return null;
 
-          // Group by bucket
-          const byBucket = new Map<number, typeof pentacamDetails>();
-          for (const d of pentacamDetails) {
-            if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []);
-            byBucket.get(d.bucket)!.push(d);
-          }
+              // ÷2 helper — each record = 2 eyes → 1 person
+              const half = (n: number) => Math.round(n / 2);
 
-          const totalAll = half(pentacamDetails.reduce((s, d) => s + d.quantity, 0));
-          const noDiscAll = half(pentacamDetails
-            .filter((d) => !d.discount || d.discount === 0)
-            .reduce((s, d) => s + d.quantity, 0));
-          const discAll = totalAll - noDiscAll;
+              // Group by bucket
+              const byBucket = new Map<number, typeof pentacamDetails>();
+              for (const d of pentacamDetails) {
+                if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []);
+                byBucket.get(d.bucket)!.push(d);
+              }
 
-          return (
-            <Card className={`${styles.noPrint} border-border shadow-sm`}>
-              <CardHeader>
-                <CardTitle className="text-base">ملخص بنتاكام — حسب السعر <span className="text-xs font-normal text-muted-foreground">(العدد للشخص ÷ ٢)</span></CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
-                <table className="w-full text-sm" dir="rtl">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
-                      <th className="px-4 py-3">السعر</th>
-                      <th className="px-4 py-3 text-center">العدد الإجمالي</th>
-                      <th className="px-4 py-3 text-center">بدون خصم</th>
-                      <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PRICE_BUCKETS.map((bucket) => {
-                      const rows = byBucket.get(bucket) ?? [];
-                      if (rows.length === 0) return null;
+              const totalAll = half(
+                pentacamDetails.reduce((s, d) => s + d.quantity, 0),
+              );
+              const noDiscAll = half(
+                pentacamDetails
+                  .filter((d) => !d.discount || d.discount === 0)
+                  .reduce((s, d) => s + d.quantity, 0),
+              );
+              const discAll = totalAll - noDiscAll;
 
-                      const totalQty = half(rows.reduce((s, d) => s + d.quantity, 0));
-                      const noDiscQty = half(rows
-                        .filter((d) => !d.discount || d.discount === 0)
-                        .reduce((s, d) => s + d.quantity, 0));
+              return (
+                <Card className={`${styles.noPrint} border-border shadow-sm`}>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      ملخص بنتاكام — حسب السعر{" "}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        (العدد للشخص ÷ ٢)
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="overflow-x-auto p-0">
+                    <table className="w-full text-sm" dir="rtl">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
+                          <th className="px-4 py-3">السعر</th>
+                          <th className="px-4 py-3 text-center">
+                            العدد الإجمالي
+                          </th>
+                          <th className="px-4 py-3 text-center">بدون خصم</th>
+                          <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRICE_BUCKETS.map((bucket) => {
+                          const rows = byBucket.get(bucket) ?? [];
+                          if (rows.length === 0) return null;
 
-                      const discGroups = new Map<number, number>();
-                      for (const d of rows) {
-                        if (d.discount && d.discount > 0) {
-                          discGroups.set(d.discount, (discGroups.get(d.discount) ?? 0) + d.quantity);
-                        }
-                      }
-                      const discQty = totalQty - noDiscQty;
+                          const totalQty = half(
+                            rows.reduce((s, d) => s + d.quantity, 0),
+                          );
+                          const noDiscQty = half(
+                            rows
+                              .filter((d) => !d.discount || d.discount === 0)
+                              .reduce((s, d) => s + d.quantity, 0),
+                          );
 
-                      return (
-                        <tr key={bucket} className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors">
-                          <td className="px-4 py-2.5 font-semibold tabular-nums">
-                            {formatMoneyAr(bucket)}
+                          const discGroups = new Map<number, number>();
+                          for (const d of rows) {
+                            if (d.discount && d.discount > 0) {
+                              discGroups.set(
+                                d.discount,
+                                (discGroups.get(d.discount) ?? 0) + d.quantity,
+                              );
+                            }
+                          }
+                          const discQty = totalQty - noDiscQty;
+
+                          return (
+                            <tr
+                              key={bucket}
+                              className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
+                            >
+                              <td className="px-4 py-2.5 font-semibold tabular-nums">
+                                {formatMoneyAr(bucket)}
+                              </td>
+                              <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                                {formatCountAr(totalQty)}
+                              </td>
+                              <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
+                                {formatCountAr(noDiscQty)}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                {discQty === 0 ? (
+                                  <span className="text-muted-foreground text-xs">
+                                    —
+                                  </span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {Array.from(discGroups.entries())
+                                      .sort((a, b) => a[0] - b[0])
+                                      .map(([discAmt, qty]) => (
+                                        <span
+                                          key={discAmt}
+                                          className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                                        >
+                                          {formatCountAr(half(qty))} ×{" "}
+                                          {formatMoneyAr(discAmt)}
+                                        </span>
+                                      ))}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-border bg-muted/60 font-semibold">
+                          <td className="px-4 py-2.5">الإجمالي</td>
+                          <td className="px-4 py-2.5 text-center tabular-nums">
+                            {formatCountAr(totalAll)}
                           </td>
-                          <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
-                            {formatCountAr(totalQty)}
+                          <td className="px-4 py-2.5 text-center tabular-nums text-success">
+                            {formatCountAr(noDiscAll)}
                           </td>
-                          <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
-                            {formatCountAr(noDiscQty)}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            {discQty === 0 ? (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {Array.from(discGroups.entries())
-                                  .sort((a, b) => a[0] - b[0])
-                                  .map(([discAmt, qty]) => (
-                                    <span
-                                      key={discAmt}
-                                      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
-                                    >
-                                      {formatCountAr(half(qty))} × {formatMoneyAr(discAmt)}
-                                    </span>
-                                  ))}
-                              </div>
-                            )}
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                            {formatCountAr(discAll)} بخصم
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/60 font-semibold">
-                      <td className="px-4 py-2.5">الإجمالي</td>
-                      <td className="px-4 py-2.5 text-center tabular-nums">{formatCountAr(totalAll)}</td>
-                      <td className="px-4 py-2.5 text-center tabular-nums text-success">{formatCountAr(noDiscAll)}</td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{formatCountAr(discAll)} بخصم</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </CardContent>
-            </Card>
-          );
-        })() : null}
+                      </tfoot>
+                    </table>
+                  </CardContent>
+                </Card>
+              );
+            })()
+          : null}
       </div>
     </AccountingShell>
   );

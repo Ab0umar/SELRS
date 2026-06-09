@@ -23,7 +23,13 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 
-const SERVICE_KEYS = ["consultant", "specialist", "lasik", "surgery", "external"] as const;
+const SERVICE_KEYS = [
+  "consultant",
+  "specialist",
+  "lasik",
+  "surgery",
+  "external",
+] as const;
 
 export function ScheduleVisitDialog({
   open,
@@ -37,16 +43,22 @@ export function ScheduleVisitDialog({
 }) {
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState<string>("");
-  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [visitDate, setVisitDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [phone, setPhone] = useState("");
   const [service, setService] = useState<string>("consultant");
   const [moveToCheckedIn, setMoveToCheckedIn] = useState(false);
-  const [cancelPreviousAppointment, setCancelPreviousAppointment] = useState(false);
+  const [cancelPreviousAppointment, setCancelPreviousAppointment] =
+    useState(false);
 
-  const patientQuery = trpc.patient.getPatient.useQuery(prefilledPatientId ?? 0, {
-    enabled: open && Boolean(prefilledPatientId && prefilledPatientId > 0),
-    refetchOnWindowFocus: false,
-  });
+  const patientQuery = trpc.patient.getPatient.useQuery(
+    prefilledPatientId ?? 0,
+    {
+      enabled: open && Boolean(prefilledPatientId && prefilledPatientId > 0),
+      refetchOnWindowFocus: false,
+    },
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +97,10 @@ export function ScheduleVisitDialog({
     const ageNum = age.trim() === "" ? null : parseInt(age, 10);
     if (
       age.trim() !== "" &&
-      (ageNum === null || !Number.isFinite(ageNum) || ageNum < 0 || ageNum > 130)
+      (ageNum === null ||
+        !Number.isFinite(ageNum) ||
+        ageNum < 0 ||
+        ageNum > 130)
     ) {
       toast.error("السن غير صالح");
       return;
@@ -101,15 +116,22 @@ export function ScheduleVisitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-3xl border-none shadow-2xl p-0" dir="rtl">
+      <DialogContent
+        className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-3xl border-none shadow-2xl p-0"
+        dir="rtl"
+      >
         <DialogHeader className="p-4 border-b bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <span className="text-primary font-bold">📅</span>
             </div>
             <div className="text-right">
-              <DialogTitle className="text-lg font-bold">تحديد موعد / كشف</DialogTitle>
-              <DialogDescription className="text-[11px]">أدخل بيانات المريض والخدمة المطلوبة لإدراجها في جدول المواعيد</DialogDescription>
+              <DialogTitle className="text-lg font-bold">
+                تحديد موعد / كشف
+              </DialogTitle>
+              <DialogDescription className="text-[11px]">
+                أدخل بيانات المريض والخدمة المطلوبة لإدراجها في جدول المواعيد
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -120,27 +142,33 @@ export function ScheduleVisitDialog({
             <div className="space-y-4">
               <div className="space-y-3">
                 <div>
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الاسم بالكامل</Label>
-                  <Input 
-                    value={fullName} 
-                    onChange={(e) => setFullName(e.target.value)} 
-                    className="h-9 text-sm font-medium" 
-                    placeholder="اسم المريض الرباعي..." 
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    الاسم بالكامل
+                  </Label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="h-9 text-sm font-medium"
+                    placeholder="اسم المريض الرباعي..."
                   />
                 </div>
                 <div>
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">رقم الموبايل</Label>
-                  <Input 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
-                    className="h-9 text-sm font-medium tracking-wider" 
-                    placeholder="01xxxxxxxxx" 
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    رقم الموبايل
+                  </Label>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-9 text-sm font-medium tracking-wider"
+                    placeholder="01xxxxxxxxx"
                     dir="ltr"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">السن</Label>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      السن
+                    </Label>
                     <Input
                       type="number"
                       min={0}
@@ -151,11 +179,13 @@ export function ScheduleVisitDialog({
                     />
                   </div>
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">الكود</Label>
-                    <Input 
-                      value={patientQuery.data?.code || "—"} 
-                      readOnly 
-                      className="h-9 text-sm bg-muted/50 text-center font-mono" 
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      الكود
+                    </Label>
+                    <Input
+                      value={patientQuery.data?.code || "—"}
+                      readOnly
+                      className="h-9 text-sm bg-muted/50 text-center font-mono"
                     />
                   </div>
                 </div>
@@ -165,7 +195,9 @@ export function ScheduleVisitDialog({
             {/* Left Column: Visit Details */}
             <div className="bg-primary/[0.03] p-4 rounded-xl border border-primary/10 space-y-4">
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">الخدمة المطلوبة</Label>
+                <Label className="font-bold text-[11px] text-primary">
+                  الخدمة المطلوبة
+                </Label>
                 <Select value={service} onValueChange={setService}>
                   <SelectTrigger className="h-9 bg-background border-primary/20 text-sm">
                     <SelectValue placeholder="اختر الخدمة" />
@@ -181,7 +213,9 @@ export function ScheduleVisitDialog({
               </div>
 
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">تاريخ الزيارة</Label>
+                <Label className="font-bold text-[11px] text-primary">
+                  تاريخ الزيارة
+                </Label>
                 <Input
                   type="date"
                   value={visitDate}
@@ -195,10 +229,15 @@ export function ScheduleVisitDialog({
                   <Checkbox
                     id="move-to-checkin"
                     checked={moveToCheckedIn}
-                    onCheckedChange={(checked) => setMoveToCheckedIn(Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      setMoveToCheckedIn(Boolean(checked))
+                    }
                     className="h-4 w-4"
                   />
-                  <Label htmlFor="move-to-checkin" className="text-[11px] font-medium cursor-pointer text-primary">
+                  <Label
+                    htmlFor="move-to-checkin"
+                    className="text-[11px] font-medium cursor-pointer text-primary"
+                  >
                     نقل إلى التسجيل
                   </Label>
                 </div>
@@ -206,10 +245,15 @@ export function ScheduleVisitDialog({
                   <Checkbox
                     id="cancel-previous"
                     checked={cancelPreviousAppointment}
-                    onCheckedChange={(checked) => setCancelPreviousAppointment(Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      setCancelPreviousAppointment(Boolean(checked))
+                    }
                     className="h-4 w-4"
                   />
-                  <Label htmlFor="cancel-previous" className="text-[11px] font-medium cursor-pointer text-primary">
+                  <Label
+                    htmlFor="cancel-previous"
+                    className="text-[11px] font-medium cursor-pointer text-primary"
+                  >
                     إلغاء الموعد السابق
                   </Label>
                 </div>
@@ -225,10 +269,20 @@ export function ScheduleVisitDialog({
         </div>
 
         <DialogFooter className="p-4 bg-muted/10 border-t gap-2 sm:justify-start">
-          <Button type="button" variant="ghost" className="h-9 text-sm" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-9 text-sm"
+            onClick={() => onOpenChange(false)}
+          >
             إلغاء
           </Button>
-          <Button type="button" className="h-9 text-sm px-8 font-bold" onClick={submit} disabled={createMutation.isPending}>
+          <Button
+            type="button"
+            className="h-9 text-sm px-8 font-bold"
+            onClick={submit}
+            disabled={createMutation.isPending}
+          >
             {createMutation.isPending ? "جاري الحفظ…" : "تأكيد الحجز"}
           </Button>
         </DialogFooter>

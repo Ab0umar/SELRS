@@ -4,12 +4,12 @@
 
 ## Available DLLs
 
-| DLL | Purpose | Used By |
-|-----|---------|---------|
-| **FK623Attend.dll** | Main attendance/fingerprint library | FKOldLogPuller.exe |
-| **FKViaDev.dll** | Device communication layer | FK623Attend.dll |
-| **HSUNFK.dll** | Manufacturer library (HS Electronics) | All FK modules |
-| **FKModelDic.ini** | Device model configuration | FK system |
+| DLL                 | Purpose                               | Used By            |
+| ------------------- | ------------------------------------- | ------------------ |
+| **FK623Attend.dll** | Main attendance/fingerprint library   | FKOldLogPuller.exe |
+| **FKViaDev.dll**    | Device communication layer            | FK623Attend.dll    |
+| **HSUNFK.dll**      | Manufacturer library (HS Electronics) | All FK modules     |
+| **FKModelDic.ini**  | Device model configuration            | FK system          |
 
 ## API Functions Available
 
@@ -26,14 +26,16 @@ FK_GetLastError(handle)
 
 // Data Retrieval
 FK_LoadGeneralLogData(handle, readMark)
-FK_GetGeneralLogData_1(handle, ref enrollNo, ref verifyMode, ref inOutMode, 
+FK_GetGeneralLogData_1(handle, ref enrollNo, ref verifyMode, ref inOutMode,
                        ref year, ref month, ref day, ref hour, ref minute, ref second)
 ```
 
 ## Implementation Strategies
 
 ### Strategy A: FKOldLogPuller.exe (Current ✓ Working)
+
 **Pros:**
+
 - ✓ Already working (25,184 records retrieved)
 - ✓ No P/Invoke complexity
 - ✓ Proven by existing tool
@@ -41,6 +43,7 @@ FK_GetGeneralLogData_1(handle, ref enrollNo, ref verifyMode, ref inOutMode,
 - ✓ Error handling built-in
 
 **Cons:**
+
 - Child process overhead
 - CSV parsing required
 - Network latency
@@ -48,13 +51,16 @@ FK_GetGeneralLogData_1(handle, ref enrollNo, ref verifyMode, ref inOutMode,
 **Status:** PRODUCTION READY
 
 ### Strategy B: Direct P/Invoke to FK623Attend.dll (Future Optimization)
+
 **Pros:**
+
 - Faster (no child process)
 - Direct memory access
 - Full control of protocol
 - Real-time capable
 
 **Cons:**
+
 - Requires 32-bit wrapper or mixed-mode .NET
 - Node.js lacks native P/Invoke
 - Would need C++ addon or edge-js bridge
@@ -63,7 +69,9 @@ FK_GetGeneralLogData_1(handle, ref enrollNo, ref verifyMode, ref inOutMode,
 **Status:** NOT RECOMMENDED for Node.js (yet)
 
 ### Strategy C: Hybrid (Best of Both)
+
 **Approach:**
+
 - Primary: Use FKOldLogPuller.exe (proven)
 - Fallback: Direct DLL if .exe unavailable
 - Future: C++ addon for performance
@@ -92,6 +100,7 @@ Based on FKOldLogPuller.cs defaults:
 ## Data Format
 
 **Punch Record Structure:**
+
 ```
 enrollNo: uint32       (Employee number/ID)
 verifyMode: uint32     (0=password, 1=fingerprint, 2=card, etc.)
@@ -116,6 +125,7 @@ ReturnType: int (0=success, <0=error)
 **Status:** ✓ CONNECTED
 
 ### Log Retrieval
+
 ```
 Records Retrieved: 25,184
 Date Range: 2021-07-01 to present
@@ -128,19 +138,25 @@ Sample: Emp 8, 18, 23, ... with IN/OUT timestamps
 ## Recommendations
 
 ### For Production Use Now
+
 **Use:** `FKOldLogPuller.exe` wrapper (fkAttendLogPuller.ts)
+
 - Reliable, proven, production-tested
 - No additional dependencies
 - Compatible with both 32-bit and 64-bit systems
 
 ### For Future Enhancement
+
 **Plan:** C++ native addon if performance becomes critical
+
 - Would enable real-time push capability
 - Direct device protocol control
 - But only if needed (current solution is sufficient)
 
 ### For System Integration
+
 **Keep DLLs registered:**
+
 ```
 HKLM\Software\Classes\CLSID\... (COM registration)
 C:\Windows\SysWOW64\FK*.dll (in place)
@@ -169,14 +185,14 @@ npx tsx scripts/test-fk-puller.ts
 
 ## Summary
 
-| Aspect | Status |
-|--------|--------|
-| DLL Location | ✓ Found (SysWOW64) |
-| EXE Wrapper | ✓ Working (25K records) |
-| Device Connection | ✓ Confirmed |
-| Data Retrieval | ✓ Proven |
-| Node.js Integration | ✓ Complete |
-| Performance | ✓ Acceptable |
-| P/Invoke Alternative | 🔄 Feasible (future) |
+| Aspect               | Status                  |
+| -------------------- | ----------------------- |
+| DLL Location         | ✓ Found (SysWOW64)      |
+| EXE Wrapper          | ✓ Working (25K records) |
+| Device Connection    | ✓ Confirmed             |
+| Data Retrieval       | ✓ Proven                |
+| Node.js Integration  | ✓ Complete              |
+| Performance          | ✓ Acceptable            |
+| P/Invoke Alternative | 🔄 Feasible (future)    |
 
 **Current Recommendation:** Continue with FKOldLogPuller.exe approach. It's simple, reliable, and production-ready. Direct P/Invoke can be added later if needed.

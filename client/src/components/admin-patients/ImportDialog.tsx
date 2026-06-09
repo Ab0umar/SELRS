@@ -1,8 +1,21 @@
 import { useRef, type ReactNode } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type ImportPreviewRow } from "@/hooks/admin-patients/adminPatientsShared";
 
 type ImportDialogProps = {
@@ -39,10 +52,21 @@ export function ImportDialog({
 
   return (
     <Dialog open={importPreviewOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger ?? <Button variant="outline" type="button">{triggerLabel}</Button>}</DialogTrigger>
-      <DialogContent className="max-h-[calc(100vh-60px)] max-w-4xl overflow-y-auto" dir="rtl">
+      <DialogTrigger asChild>
+        {trigger ?? (
+          <Button variant="outline" type="button">
+            {triggerLabel}
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent
+        className="max-h-[calc(100vh-60px)] max-w-4xl overflow-y-auto"
+        dir="rtl"
+      >
         <DialogHeader>
-          <DialogTitle className="text-right">Staged Import Preview</DialogTitle>
+          <DialogTitle className="text-right">
+            Staged Import Preview
+          </DialogTitle>
           <DialogDescription className="text-right">
             {importSummary
               ? `Total: ${importSummary.total}, Valid: ${importSummary.valid}, Invalid: ${importSummary.invalid}`
@@ -62,7 +86,12 @@ export function ImportDialog({
               event.currentTarget.value = "";
             }}
           />
-          <Select value={importDateFormat} onValueChange={(value) => onDateFormatChange(value as "" | "DMY" | "MDY")}>
+          <Select
+            value={importDateFormat}
+            onValueChange={(value) =>
+              onDateFormatChange(value as "" | "DMY" | "MDY")
+            }
+          >
             <SelectTrigger className="w-[210px]">
               <SelectValue placeholder="Excel Date Format" />
             </SelectTrigger>
@@ -71,7 +100,12 @@ export function ImportDialog({
               <SelectItem value="MDY">MM/DD/YYYY</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="button" variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Upload className="h-4 w-4" />
             Upload Excel
           </Button>
@@ -92,19 +126,27 @@ export function ImportDialog({
             </thead>
             <tbody>
               {importPreviewRows.map((row) => (
-                <tr key={`${row.rowNumber}-${row.patientCode}-${row.fullName}`} className="border-t align-top">
+                <tr
+                  key={`${row.rowNumber}-${row.patientCode}-${row.fullName}`}
+                  className="border-t align-top"
+                >
                   <td className="p-2">{row.rowNumber}</td>
                   <td className="p-2">{row.patientCode}</td>
                   <td className="p-2">{row.fullName}</td>
                   <td className="p-2">{row.serviceType}</td>
                   <td className="p-2">{row.locationType}</td>
                   <td className="p-2">{row.status}</td>
-                  <td className="p-2 text-xs text-destructive">{(row.errors ?? []).join(" | ")}</td>
+                  <td className="p-2 text-xs text-destructive">
+                    {(row.errors ?? []).join(" | ")}
+                  </td>
                 </tr>
               ))}
               {importPreviewRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-sm text-muted-foreground">
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-sm text-muted-foreground"
+                  >
                     No staged rows yet.
                   </td>
                 </tr>
@@ -117,7 +159,11 @@ export function ImportDialog({
           <Button type="button" variant="outline" onClick={onDownloadErrors}>
             Download Error CSV
           </Button>
-          <Button type="button" onClick={onApply} disabled={applyImportPending || importPreviewRows.length === 0}>
+          <Button
+            type="button"
+            onClick={onApply}
+            disabled={applyImportPending || importPreviewRows.length === 0}
+          >
             {applyImportPending ? "Applying..." : "Apply Valid Rows"}
           </Button>
         </div>

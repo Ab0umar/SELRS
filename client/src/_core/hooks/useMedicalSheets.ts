@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export interface ConsultantSheetData {
   patientId: number;
@@ -58,29 +58,34 @@ export const useConsultantSheet = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createDoctorReportMutation = trpc.medical.createDoctorReport.useMutation({
-    onSuccess: () => {
-      toast.success('تم حفظ التقرير بنجاح');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ التقرير');
-    },
-  });
+  const createDoctorReportMutation =
+    trpc.medical.createDoctorReport.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ التقرير بنجاح");
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "فشل في حفظ التقرير");
+      },
+    });
 
-  const saveSheet = useCallback(async (data: ConsultantSheetData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createDoctorReportMutation.mutateAsync(data as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createDoctorReportMutation]);
+  const saveSheet = useCallback(
+    async (data: ConsultantSheetData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createDoctorReportMutation.mutateAsync(data as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createDoctorReportMutation],
+  );
 
   return {
     loading: loading || createDoctorReportMutation.isPending,
@@ -93,35 +98,40 @@ export const useSpecialistSheet = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createDoctorReportMutation = trpc.medical.createDoctorReport.useMutation({
-    onSuccess: () => {
-      toast.success('تم حفظ التقرير بنجاح');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ التقرير');
-    },
-  });
+  const createDoctorReportMutation =
+    trpc.medical.createDoctorReport.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ التقرير بنجاح");
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "فشل في حفظ التقرير");
+      },
+    });
 
-  const saveSheet = useCallback(async (data: SpecialistSheetData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createDoctorReportMutation.mutateAsync({
-        visitId: data.visitId,
-        patientId: data.patientId,
-        diagnosis: data.specialistOpinion,
-        clinicalOpinion: data.findings,
-        recommendedTreatment: data.recommendations,
-      } as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createDoctorReportMutation]);
+  const saveSheet = useCallback(
+    async (data: SpecialistSheetData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createDoctorReportMutation.mutateAsync({
+          visitId: data.visitId,
+          patientId: data.patientId,
+          diagnosis: data.specialistOpinion,
+          clinicalOpinion: data.findings,
+          recommendedTreatment: data.recommendations,
+        } as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createDoctorReportMutation],
+  );
 
   return {
     loading: loading || createDoctorReportMutation.isPending,
@@ -136,32 +146,36 @@ export const useLasikExamSheet = () => {
 
   const createPentacamMutation = trpc.medical.createPentacamResult.useMutation({
     onSuccess: () => {
-      toast.success('تم حفظ نتائج الفحص بنجاح');
+      toast.success("تم حفظ نتائج الفحص بنجاح");
     },
     onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ النتائج');
+      toast.error(error.message || "فشل في حفظ النتائج");
     },
   });
 
-  const saveSheet = useCallback(async (data: LasikExamSheetData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createPentacamMutation.mutateAsync({
-        visitId: data.visitId,
-        patientId: data.patientId,
-        ...data.pentacamResults,
-        techniciansNotes: data.recommendations,
-      } as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createPentacamMutation]);
+  const saveSheet = useCallback(
+    async (data: LasikExamSheetData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createPentacamMutation.mutateAsync({
+          visitId: data.visitId,
+          patientId: data.patientId,
+          ...data.pentacamResults,
+          techniciansNotes: data.recommendations,
+        } as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createPentacamMutation],
+  );
 
   return {
     loading: loading || createPentacamMutation.isPending,
@@ -176,27 +190,31 @@ export const useOperationSheet = () => {
 
   const createSurgeryMutation = trpc.medical.createSurgery.useMutation({
     onSuccess: () => {
-      toast.success('تم حفظ بيانات العملية بنجاح');
+      toast.success("تم حفظ بيانات العملية بنجاح");
     },
     onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ البيانات');
+      toast.error(error.message || "فشل في حفظ البيانات");
     },
   });
 
-  const saveSheet = useCallback(async (data: OperationSheetData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createSurgeryMutation.mutateAsync(data as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createSurgeryMutation]);
+  const saveSheet = useCallback(
+    async (data: OperationSheetData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createSurgeryMutation.mutateAsync(data as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createSurgeryMutation],
+  );
 
   return {
     loading: loading || createSurgeryMutation.isPending,
@@ -211,32 +229,36 @@ export const useExternalOperationSheet = () => {
 
   const createSurgeryMutation = trpc.medical.createSurgery.useMutation({
     onSuccess: () => {
-      toast.success('تم حفظ بيانات العملية الخارجية بنجاح');
+      toast.success("تم حفظ بيانات العملية الخارجية بنجاح");
     },
     onError: (error: any) => {
-      toast.error(error.message || 'فشل في حفظ البيانات');
+      toast.error(error.message || "فشل في حفظ البيانات");
     },
   });
 
-  const saveSheet = useCallback(async (data: ExternalOperationSheetData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await createSurgeryMutation.mutateAsync({
-        patientId: data.patientId,
-        surgeryType: data.surgeryType,
-        surgeryDate: data.surgeryDate,
-        surgeryNotes: `${data.externalFacility} - ${data.externalDoctorName} - ${data.results}`,
-      } as any);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطأ في حفظ البيانات';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [createSurgeryMutation]);
+  const saveSheet = useCallback(
+    async (data: ExternalOperationSheetData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await createSurgeryMutation.mutateAsync({
+          patientId: data.patientId,
+          surgeryType: data.surgeryType,
+          surgeryDate: data.surgeryDate,
+          surgeryNotes: `${data.externalFacility} - ${data.externalDoctorName} - ${data.results}`,
+        } as any);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "خطأ في حفظ البيانات";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createSurgeryMutation],
+  );
 
   return {
     loading: loading || createSurgeryMutation.isPending,

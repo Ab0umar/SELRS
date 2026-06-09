@@ -27,9 +27,15 @@ export type OperationsBookingQuickDialogProps = {
   initialDoctorName?: string;
 };
 
-export function defaultOperationsBookingDraft(initialDate?: string, initialDoctorName?: string): OperationsBookingDraft {
+export function defaultOperationsBookingDraft(
+  initialDate?: string,
+  initialDoctorName?: string,
+): OperationsBookingDraft {
   const now = new Date();
-  const doctorName = String(initialDoctorName ?? "").trim() || TAB_CONFIG[0]?.doctor || "طبيب غير محدد";
+  const doctorName =
+    String(initialDoctorName ?? "").trim() ||
+    TAB_CONFIG[0]?.doctor ||
+    "طبيب غير محدد";
   return {
     bookingDate: initialDate || getLocalDateIso(),
     bookingTime: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
@@ -47,7 +53,9 @@ export function OperationsBookingQuickDialog({
   initialDate,
   initialDoctorName,
 }: OperationsBookingQuickDialogProps) {
-  const [draft, setDraft] = useState<OperationsBookingDraft>(() => defaultOperationsBookingDraft(initialDate, initialDoctorName));
+  const [draft, setDraft] = useState<OperationsBookingDraft>(() =>
+    defaultOperationsBookingDraft(initialDate, initialDoctorName),
+  );
   const utils = trpc.useUtils();
   const createBooking = trpc.medical.createOperationBooking.useMutation({
     onSuccess: async () => {
@@ -58,7 +66,8 @@ export function OperationsBookingQuickDialog({
   });
 
   useEffect(() => {
-    if (open) setDraft(defaultOperationsBookingDraft(initialDate, initialDoctorName));
+    if (open)
+      setDraft(defaultOperationsBookingDraft(initialDate, initialDoctorName));
   }, [initialDate, initialDoctorName, open]);
 
   const handleChange = (field: string, value: string | number) => {
@@ -66,7 +75,10 @@ export function OperationsBookingQuickDialog({
   };
 
   const handleSubmit = () => {
-    const fallbackDoctor = String(initialDoctorName ?? "").trim() || TAB_CONFIG[0]?.doctor || "طبيب غير محدد";
+    const fallbackDoctor =
+      String(initialDoctorName ?? "").trim() ||
+      TAB_CONFIG[0]?.doctor ||
+      "طبيب غير محدد";
     const doctorName = String(draft.doctorName ?? "").trim() || fallbackDoctor;
     createBooking.mutate({
       bookingDate: draft.bookingDate,
@@ -80,7 +92,10 @@ export function OperationsBookingQuickDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(92dvh,calc(100vh-24px))] w-[96vw] overflow-x-hidden overflow-y-auto sm:max-w-5xl" dir="rtl">
+      <DialogContent
+        className="max-h-[min(92dvh,calc(100vh-24px))] w-[96vw] overflow-x-hidden overflow-y-auto sm:max-w-5xl"
+        dir="rtl"
+      >
         <DialogHeader className="text-right">
           <DialogTitle className="text-right">حجز عملية</DialogTitle>
         </DialogHeader>

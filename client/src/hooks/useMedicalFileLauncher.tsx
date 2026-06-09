@@ -1,5 +1,10 @@
 import { lazy, Suspense, useCallback, useState, type ReactNode } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import PatientPicker from "@/components/PatientPicker";
 
 const MedicalFilePanel = lazy(() => import("@/components/MedicalFilePanel"));
@@ -38,7 +43,9 @@ export function useMedicalFileLauncher() {
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent dir="rtl" className="sm:max-w-lg">
           <DialogHeader className="text-right">
-            <DialogTitle className="text-right">الملف الطبي — اختر المريض</DialogTitle>
+            <DialogTitle className="text-right">
+              الملف الطبي — اختر المريض
+            </DialogTitle>
           </DialogHeader>
           <PatientPicker
             onSelect={(p) => {
@@ -51,7 +58,10 @@ export function useMedicalFileLauncher() {
       </Dialog>
       {patientId != null && patientId > 0 ? (
         <Suspense fallback={null}>
-          <MedicalFilePanel patientId={patientId} onClose={closeMedicalFilePanel} />
+          <MedicalFilePanel
+            patientId={patientId}
+            onClose={closeMedicalFilePanel}
+          />
         </Suspense>
       ) : null}
     </>

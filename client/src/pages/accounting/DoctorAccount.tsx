@@ -100,8 +100,7 @@ export default function DoctorAccount() {
   }, [detailDoctor]);
 
   const enabled =
-    queryInput != null &&
-    (queryInput.doctorCodes?.length ?? 0) > 0;
+    queryInput != null && (queryInput.doctorCodes?.length ?? 0) > 0;
 
   const revenueQuery = accountingTrpc.accounting.serviceRevenue.useQuery(
     queryInput ?? {

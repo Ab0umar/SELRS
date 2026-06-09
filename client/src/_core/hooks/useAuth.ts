@@ -1,5 +1,10 @@
 import { getLoginUrl } from "@/const";
-import { NATIVE_USER_SNAPSHOT_KEY, hydrateDurableValue, removeDurableValue, saveDurableValue } from "@/lib/nativeStorage";
+import {
+  NATIVE_USER_SNAPSHOT_KEY,
+  hydrateDurableValue,
+  removeDurableValue,
+  saveDurableValue,
+} from "@/lib/nativeStorage";
 import { clearAllPatientCaches } from "@/lib/patientCacheCleanup";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
@@ -16,19 +21,29 @@ const readStoredUserSnapshot = () => {
   if (typeof window === "undefined") return null;
   try {
     const raw =
-      window.localStorage.getItem("user") ?? window.sessionStorage.getItem("user");
+      window.localStorage.getItem("user") ??
+      window.sessionStorage.getItem("user");
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const persistSessionUser = (user: unknown, options?: { nativePersistent?: boolean }) => {
+export const persistSessionUser = (
+  user: unknown,
+  options?: { nativePersistent?: boolean },
+) => {
   if (typeof window === "undefined") return;
   const usePersistentStorage =
-    options?.nativePersistent ?? (Capacitor.isNativePlatform() || window.localStorage.getItem("remember_me") !== "0");
-  const preferredStorage = usePersistentStorage ? window.localStorage : window.sessionStorage;
-  const secondaryStorage = usePersistentStorage ? window.sessionStorage : window.localStorage;
+    options?.nativePersistent ??
+    (Capacitor.isNativePlatform() ||
+      window.localStorage.getItem("remember_me") !== "0");
+  const preferredStorage = usePersistentStorage
+    ? window.localStorage
+    : window.sessionStorage;
+  const secondaryStorage = usePersistentStorage
+    ? window.sessionStorage
+    : window.localStorage;
 
   if (!user) {
     preferredStorage.removeItem("user");
@@ -77,31 +92,34 @@ export function useAuth(options?: UseAuthOptions) {
     },
   });
 
-  const logout = useCallback(async (options?: { redirectToLogin?: boolean }) => {
-    const redirectToLogin = options?.redirectToLogin ?? true;
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
+  const logout = useCallback(
+    async (options?: { redirectToLogin?: boolean }) => {
+      const redirectToLogin = options?.redirectToLogin ?? true;
+      try {
+        await logoutMutation.mutateAsync();
+      } catch (error: unknown) {
+        if (
+          error instanceof TRPCClientError &&
+          error.data?.code === "UNAUTHORIZED"
+        ) {
+          return;
+        }
+        throw error;
+      } finally {
+        clearAllPatientCaches();
+        await clearStoredSession();
+        setStoredUser(null);
+        utils.auth.me.setData(undefined, null);
+        await utils.auth.me.invalidate();
+        if (redirectToLogin && typeof window !== "undefined") {
+          // Force a full page reload to clear all cache and session state
+          // This prevents redirect loops where Home.tsx thinks user is still authenticated
+          window.location.href = getLoginUrl();
+        }
       }
-      throw error;
-    } finally {
-      clearAllPatientCaches();
-      await clearStoredSession();
-      setStoredUser(null);
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
-      if (redirectToLogin && typeof window !== "undefined") {
-        // Force a full page reload to clear all cache and session state
-        // This prevents redirect loops where Home.tsx thinks user is still authenticated
-        window.location.href = getLoginUrl();
-      }
-    }
-  }, [clearStoredSession, logoutMutation, setLocation, utils]);
+    },
+    [clearStoredSession, logoutMutation, setLocation, utils],
+  );
 
   const state = useMemo(
     () => ({
@@ -117,7 +135,7 @@ export function useAuth(options?: UseAuthOptions) {
       logoutMutation.error,
       logoutMutation.isPending,
       storedUser,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -145,7 +163,11 @@ export function useAuth(options?: UseAuthOptions) {
 
   useEffect(() => {
     if (!(meQuery.error instanceof TRPCClientError)) return;
-    if (meQuery.error.data?.code !== "UNAUTHORIZED" && meQuery.error.data?.httpStatus !== 401) return;
+    if (
+      meQuery.error.data?.code !== "UNAUTHORIZED" &&
+      meQuery.error.data?.httpStatus !== 401
+    )
+      return;
     void clearStoredSession();
     setStoredUser(null);
   }, [clearStoredSession, meQuery.error]);

@@ -10,7 +10,10 @@ export type DoctorAuthState = {
   fullName: string | null;
   username: string | null;
   isLoggedIn: boolean;
-  login: (token: string, doctor: { id: number; fullName: string; username: string }) => void;
+  login: (
+    token: string,
+    doctor: { id: number; fullName: string; username: string },
+  ) => void;
   logout: () => void;
 };
 
@@ -18,7 +21,9 @@ function decodeJwtPayload(token: string): any | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
     if (payload.exp && payload.exp * 1000 < Date.now()) return null;
     return payload;
   } catch {
@@ -28,17 +33,29 @@ function decodeJwtPayload(token: string): any | null {
 
 export function useDoctorAuth(): DoctorAuthState {
   const [token, setToken] = useState<string | null>(() => {
-    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
   });
-  const [doctorMeta, setDoctorMeta] = useState<{ id: number; fullName: string; username: string } | null>(() => {
+  const [doctorMeta, setDoctorMeta] = useState<{
+    id: number;
+    fullName: string;
+    username: string;
+  } | null>(() => {
     try {
       const raw = localStorage.getItem(META_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   });
 
   const payload = token ? decodeJwtPayload(token) : null;
-  const isLoggedIn = Boolean(payload?.type === "externalDoctor" && payload?.doctorId);
+  const isLoggedIn = Boolean(
+    payload?.type === "externalDoctor" && payload?.doctorId,
+  );
 
   const syncFromStorage = useCallback(() => {
     try {
@@ -73,13 +90,19 @@ export function useDoctorAuth(): DoctorAuthState {
     }
   }, [token, isLoggedIn]);
 
-  const login = useCallback((newToken: string, doctor: { id: number; fullName: string; username: string }) => {
-    localStorage.setItem(STORAGE_KEY, newToken);
-    localStorage.setItem(META_KEY, JSON.stringify(doctor));
-    setToken(newToken);
-    setDoctorMeta(doctor);
-    window.dispatchEvent(new Event(AUTH_EVENT));
-  }, []);
+  const login = useCallback(
+    (
+      newToken: string,
+      doctor: { id: number; fullName: string; username: string },
+    ) => {
+      localStorage.setItem(STORAGE_KEY, newToken);
+      localStorage.setItem(META_KEY, JSON.stringify(doctor));
+      setToken(newToken);
+      setDoctorMeta(doctor);
+      window.dispatchEvent(new Event(AUTH_EVENT));
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);

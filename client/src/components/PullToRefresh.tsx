@@ -24,7 +24,11 @@ export function PullToRefresh({
   const startYRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
     const mediaQuery = window.matchMedia("(pointer: coarse)");
     const apply = () => setIsCoarsePointer(mediaQuery.matches);
     apply();
@@ -51,14 +55,15 @@ export function PullToRefresh({
   const handleTouchStart = React.useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
       if (!enabled || !isCoarsePointer || isRefreshing) return;
-      if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) return;
+      if ((window.scrollY || document.documentElement.scrollTop || 0) > 0)
+        return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("[data-no-pull-refresh='true']")) return;
       const touch = event.changedTouches[0];
       if (!touch) return;
       startYRef.current = touch.clientY;
     },
-    [enabled, isCoarsePointer, isRefreshing]
+    [enabled, isCoarsePointer, isRefreshing],
   );
 
   const handleTouchMove = React.useCallback(
@@ -83,7 +88,7 @@ export function PullToRefresh({
       }
       setPullDistance(nextDistance);
     },
-    [enabled, isCoarsePointer, isRefreshing, resetPull]
+    [enabled, isCoarsePointer, isRefreshing, resetPull],
   );
 
   const handleTouchEnd = React.useCallback(async () => {
@@ -95,7 +100,14 @@ export function PullToRefresh({
     resetPull();
     if (!shouldRefresh) return;
     await refresh();
-  }, [enabled, isCoarsePointer, isRefreshing, pullDistance, refresh, resetPull]);
+  }, [
+    enabled,
+    isCoarsePointer,
+    isRefreshing,
+    pullDistance,
+    refresh,
+    resetPull,
+  ]);
 
   return (
     <div
@@ -110,9 +122,11 @@ export function PullToRefresh({
       <div
         className={cn(
           "pointer-events-none sticky top-0 z-20 flex h-0 items-end justify-center overflow-visible transition-all duration-200",
-          pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
+          pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0",
         )}
-        style={{ transform: `translateY(${Math.min(MAX_PULL, isRefreshing ? REFRESH_THRESHOLD : pullDistance)}px)` }}
+        style={{
+          transform: `translateY(${Math.min(MAX_PULL, isRefreshing ? REFRESH_THRESHOLD : pullDistance)}px)`,
+        }}
       >
         <div className="rounded-full border border-primary/20 bg-background/95 px-4 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur">
           <span className="inline-flex items-center gap-2">

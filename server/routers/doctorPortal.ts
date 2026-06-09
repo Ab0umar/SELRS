@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure, doctorPortalProcedure } from "../_core/procedures";
-import { getDb, getGlassesRecordsByPatient, getPrescriptionsWithItemsByPatient } from "../db";
+import {
+  router,
+  publicProcedure,
+  doctorPortalProcedure,
+} from "../_core/procedures";
+import {
+  getDb,
+  getGlassesRecordsByPatient,
+  getPrescriptionsWithItemsByPatient,
+} from "../db";
 import {
   externalDoctors,
   externalDoctorReferrals,
@@ -15,11 +23,17 @@ import { ENV } from "../_core/env";
 
 const DOCTOR_SESSION_TTL_S = 30 * 24 * 60 * 60; // 30 days
 
-async function logAccess(doctorId: number, patientCode: string, action: string) {
+async function logAccess(
+  doctorId: number,
+  patientCode: string,
+  action: string,
+) {
   try {
     const db = await getDb();
     if (!db) return;
-    await db.insert(externalDoctorAccessLogs).values({ externalDoctorId: doctorId, patientCode, action } as any);
+    await db
+      .insert(externalDoctorAccessLogs)
+      .values({ externalDoctorId: doctorId, patientCode, action } as any);
   } catch {
     // non-critical
   }
@@ -27,13 +41,19 @@ async function logAccess(doctorId: number, patientCode: string, action: string) 
 
 export const doctorPortalRouter = router({
   login: publicProcedure
-    .input(z.object({
-      username: z.string().min(1).max(100),
-      password: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        username: z.string().min(1).max(100),
+        password: z.string().min(1),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       const [doctor] = await db
         .select()
@@ -42,17 +62,27 @@ export const doctorPortalRouter = router({
         .limit(1);
 
       if (!doctor || !doctor.isActive) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid credentials",
+        });
       }
 
       const valid = await bcryptjs.compare(input.password, doctor.passwordHash);
       if (!valid) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid credentials",
+        });
       }
 
       const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const token = jwt.sign(
-        { type: "externalDoctor", doctorId: doctor.id, username: doctor.username },
+        {
+          type: "externalDoctor",
+          doctorId: doctor.id,
+          username: doctor.username,
+        },
         secret,
         { expiresIn: DOCTOR_SESSION_TTL_S },
       );
@@ -61,13 +91,21 @@ export const doctorPortalRouter = router({
 
       return {
         token,
-        doctor: { id: doctor.id, fullName: doctor.fullName, username: doctor.username },
+        doctor: {
+          id: doctor.id,
+          fullName: doctor.fullName,
+          username: doctor.username,
+        },
       };
     }),
 
   getMyPatients: doctorPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
 
     // Load this doctor's account to get their doctorCode mapping
     const [doctor] = await db
@@ -86,7 +124,10 @@ export const doctorPortalRouter = router({
       .from(externalDoctorReferrals)
       .where(
         and(
-          eq(externalDoctorReferrals.externalDoctorId, ctx.doctorSession.doctorId),
+          eq(
+            externalDoctorReferrals.externalDoctorId,
+            ctx.doctorSession.doctorId,
+          ),
           eq(externalDoctorReferrals.isActive, true),
         ),
       )
@@ -95,7 +136,13 @@ export const doctorPortalRouter = router({
     const referralCodes = new Set(referrals.map((r) => r.patientCode));
 
     // Auto-mapped patients by doctorCode — only those with pentacam images
-    let autoPatients: { patientCode: string; fullName: string | null; age: number | null; gender: "male" | "female" | null; lastVisit: Date | null }[] = [];
+    let autoPatients: {
+      patientCode: string;
+      fullName: string | null;
+      age: number | null;
+      gender: "male" | "female" | null;
+      lastVisit: Date | null;
+    }[] = [];
     if (doctor?.doctorCode) {
       autoPatients = await db
         .select({
@@ -185,7 +232,11 @@ export const doctorPortalRouter = router({
     .input(z.object({ patientCode: z.string().min(1).max(50) }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       // Security: verify this patient is assigned to the logged-in doctor
       // via manual referral OR auto doctor-code mapping
@@ -194,7 +245,10 @@ export const doctorPortalRouter = router({
         .from(externalDoctorReferrals)
         .where(
           and(
-            eq(externalDoctorReferrals.externalDoctorId, ctx.doctorSession.doctorId),
+            eq(
+              externalDoctorReferrals.externalDoctorId,
+              ctx.doctorSession.doctorId,
+            ),
             eq(externalDoctorReferrals.patientCode, input.patientCode),
             eq(externalDoctorReferrals.isActive, true),
           ),
@@ -223,7 +277,10 @@ export const doctorPortalRouter = router({
           : [];
 
         if (!matched) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Patient not assigned to you" });
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Patient not assigned to you",
+          });
         }
       }
 
@@ -249,21 +306,32 @@ export const doctorPortalRouter = router({
         .limit(1);
 
       if (!patient) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
       }
 
       // Fetch images
-      const rows = await db.execute(
+      const rows = (await db.execute(
         sql`SELECT id, file_name, mime_type, created_at
             FROM blackice_uploads
             WHERE patient_id = ${patient.id}
             ORDER BY id DESC
             LIMIT 200`,
-      ) as any;
+      )) as any;
 
-      await logAccess(ctx.doctorSession.doctorId, input.patientCode, "view_images");
+      await logAccess(
+        ctx.doctorSession.doctorId,
+        input.patientCode,
+        "view_images",
+      );
 
-      const raw: any[] = Array.isArray(rows) ? (Array.isArray(rows[0]) ? rows[0] : rows) : [];
+      const raw: any[] = Array.isArray(rows)
+        ? Array.isArray(rows[0])
+          ? rows[0]
+          : rows
+        : [];
       const images = raw.map((row: any) => ({
         id: Number(row.id),
         fileName: String(row.file_name ?? ""),
@@ -274,7 +342,9 @@ export const doctorPortalRouter = router({
 
       // Fetch refractions and prescriptions
       const refractions = await getGlassesRecordsByPatient(patient.id);
-      const prescriptions = await getPrescriptionsWithItemsByPatient(patient.id);
+      const prescriptions = await getPrescriptionsWithItemsByPatient(
+        patient.id,
+      );
 
       return {
         patientCode: input.patientCode,

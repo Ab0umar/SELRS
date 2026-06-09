@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/procedures";
 import * as db from "../db";
@@ -14,13 +13,15 @@ export const stockroomRouter = router({
 
   // Define a new item type
   createItem: protectedProcedure
-    .input(z.object({
-      itemCode: z.string().optional(),
-      name: z.string(),
-      category: z.string().optional(),
-      supplier: z.string().optional(),
-      expiryDate: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        itemCode: z.string().optional(),
+        name: z.string(),
+        category: z.string().optional(),
+        supplier: z.string().optional(),
+        expiryDate: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       // Check if code already exists
       if (input.itemCode) {
@@ -43,20 +44,24 @@ export const stockroomRouter = router({
 
   // Add stock (Receive)
   receiveStock: protectedProcedure
-    .input(z.object({
-      itemId: z.number().optional(), // Existing item
-      // Or new item details
-      isNewItem: z.boolean().default(false),
-      newItem: z.object({
-        name: z.string(),
-        itemCode: z.string().optional(),
-        supplier: z.string().optional(),
-        category: z.string().optional(),
-      }).optional(),
-      quantity: z.number(),
-      unitPrice: z.number().optional(),
-      totalValue: z.number().optional(),
-    }))
+    .input(
+      z.object({
+        itemId: z.number().optional(), // Existing item
+        // Or new item details
+        isNewItem: z.boolean().default(false),
+        newItem: z
+          .object({
+            name: z.string(),
+            itemCode: z.string().optional(),
+            supplier: z.string().optional(),
+            category: z.string().optional(),
+          })
+          .optional(),
+        quantity: z.number(),
+        unitPrice: z.number().optional(),
+        totalValue: z.number().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       let resolvedItemId = input.itemId;
 
@@ -74,7 +79,10 @@ export const stockroomRouter = router({
       }
 
       if (!resolvedItemId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Item ID is required" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Item ID is required",
+        });
       }
 
       // 2. Log transaction and update quantity
@@ -90,19 +98,22 @@ export const stockroomRouter = router({
 
   // Dispense stock
   dispenseStock: protectedProcedure
-    .input(z.object({
-      itemId: z.number(),
-      quantity: z.number(),
-      employeeName: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        itemId: z.number(),
+        quantity: z.number(),
+        employeeName: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const item = await db.getStockItemById(input.itemId);
-      if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "الصنف غير موجود" });
-      
+      if (!item)
+        throw new TRPCError({ code: "NOT_FOUND", message: "الصنف غير موجود" });
+
       if (item.quantity < input.quantity) {
-        throw new TRPCError({ 
-          code: "BAD_REQUEST", 
-          message: `الكمية المتاحة (${item.quantity}) أقل من الكمية المطلوبة` 
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `الكمية المتاحة (${item.quantity}) أقل من الكمية المطلوبة`,
         });
       }
 
