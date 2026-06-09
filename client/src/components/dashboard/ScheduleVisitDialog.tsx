@@ -48,6 +48,7 @@ export function ScheduleVisitDialog({
   );
   const [phone, setPhone] = useState("");
   const [service, setService] = useState<string>("consultant");
+  const [patientType, setPatientType] = useState<"existing" | "new" | "guest">("existing");
   const [moveToCheckedIn, setMoveToCheckedIn] = useState(false);
   const [cancelPreviousAppointment, setCancelPreviousAppointment] =
     useState(false);
@@ -68,6 +69,7 @@ export function ScheduleVisitDialog({
       setPhone("");
       setVisitDate(new Date().toISOString().split("T")[0]);
       setService("consultant");
+      setPatientType("existing");
       return;
     }
     const p = patientQuery.data;
@@ -111,6 +113,7 @@ export function ScheduleVisitDialog({
       visitDate,
       phone: phone.trim() || null,
       service,
+      patientType,
     });
   };
 
@@ -137,9 +140,39 @@ export function ScheduleVisitDialog({
         </DialogHeader>
 
         <div className="p-4 bg-background">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             {/* Right Column: Patient Basic Info */}
             <div className="space-y-4">
+              {/* Patient Type */}
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-[11px] block text-muted-foreground">
+                  نوع الزيارة
+                </Label>
+                <div className="flex gap-2 flex-wrap">
+                  {(
+                    [
+                      { value: "existing", label: "مريض مسجل" },
+                      { value: "new", label: "حالة جديدة" },
+                      { value: "guest", label: "ضيف / زائر" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setPatientType(opt.value)}
+                      className={[
+                        "h-8 px-3.5 rounded-lg text-xs font-bold border transition-all cursor-pointer",
+                        patientType === opt.value
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/40",
+                      ].join(" ")}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <div>
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">

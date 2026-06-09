@@ -2382,140 +2382,205 @@ Sample: {
 [2m١:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:19:34.055Z"}
 [2m١:١٩:٣٤ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:19:34.055Z"}
 [mssql-sync] ok mode=full fetched=2258 inserted=0 updated=2290 skipped=2252 interval=5000
-m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٤٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٦:٥٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:١٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٢٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٤ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٧ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٣٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
-[2m٧:٣٧:٤٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٢٠:٣٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+١:٢٠:٣٩ م [tsx] change in ./postcss.config.mjs Restarting...
+c١:٢٠:٣٩ م [tsx] change in ./shared\pentacam.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2292 skipped=2251 interval=5000
+[2m١:٢٣:١٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":6}
+[2m١:٢٣:١٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T10:23:13.507Z","path":"/admin-hub/api-tools"}
+[2m١:٢٣:١٣ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:23:07.397Z"}
+[2m١:٢٣:١٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:23:19.887Z"}
+[2m١:٢٣:١٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/admin-hub/api-tools","time":"2026-06-09T10:23:19.887Z"}
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2288 skipped=2255 interval=5000
+[2m١:٢٦:٠٩ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m١:٢٦:٥٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":1}
+[2m١:٢٦:٥٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"navigate","redirectCount":0,"time":"2026-06-09T10:26:56.405Z","path":"/"}
+[2m١:٢٦:٥٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/today","time":"2026-06-09T10:13:41.711Z"}
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m١:٢٧:٣٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/","time":"2026-06-09T10:27:32.859Z"}
+[2m١:٢٧:٣٢ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/","time":"2026-06-09T10:27:32.860Z"}
+[2m١:٢٧:٣٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":2}
+[2m١:٢٧:٣٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"navigate","redirectCount":0,"time":"2026-06-09T10:27:35.554Z","path":"/login"}
+[2m١:٢٧:٣٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/","time":"2026-06-09T10:27:32.860Z"}
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2292 skipped=2251 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2291 skipped=2252 interval=5000
+[2m١:٣٢:٥٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/Home.tsx[22m
+[2m١:٣٢:٥٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T10:32:56.865Z"}
+[2m١:٣٢:٥٦ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T10:32:56.865Z"}
+[2m١:٣٢:٥٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":3}
+[2m١:٣٢:٥٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T10:32:59.314Z","path":"/login"}
+[2m١:٣٢:٥٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T10:32:56.865Z"}
+[2m١:٣٣:٥٣ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css, /src/pages/Home.tsx[22m
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2291 skipped=2252 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2297 skipped=2246 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2294 skipped=2249 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2292 skipped=2251 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2286 skipped=2257 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2289 skipped=2254 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2297 skipped=2246 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2290 skipped=2253 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2288 skipped=2255 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2288 skipped=2255 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2288 skipped=2255 interval=5000
+[2m٢:٠٣:٢٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T11:03:29.807Z"}
+[2m٢:٠٣:٢٩ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T11:03:29.808Z"}
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2290 skipped=2253 interval=5000
+[2m٢:٠٥:٠٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+٢:٠٥:٠٦ م [tsx] change in ./server\routers\medical.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٢:٠٥:٥٩ م [tsx] change in ./server\routers\medical.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٢:٠٦:١٩ م [tsx] change in ./server\routers\medical.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2290 skipped=2253 interval=5000
+٢:١١:١١ م [tsx] unlink in ./server\routers\medical.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2287 skipped=2256 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2290 skipped=2253 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2296 skipped=2247 interval=5000
+[mssql-sync] ok mode=full fetched=2259 inserted=0 updated=2290 skipped=2253 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2288 skipped=2257 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2289 skipped=2256 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2287 skipped=2258 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2290 skipped=2255 interval=5000
+٢:٣٣:١٢ م [tsx] change in ./server\integrations\mssqlPatients.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[mssql-sync] ok mode=full fetched=2262 inserted=0 updated=2294 skipped=2253 interval=5000
+[mssql-sync] ok mode=full fetched=2261 inserted=0 updated=2292 skipped=2252 interval=5000
+[mssql-sync] ok mode=full fetched=2261 inserted=0 updated=2287 skipped=2257 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2285 skipped=2258 interval=5000
+[mssql-sync] ok mode=full fetched=2260 inserted=0 updated=2293 skipped=2251 interval=5000
+[mssql-sync] ok mode=full fetched=2261 inserted=0 updated=2287 skipped=2258 interval=5000
+[mssql-sync] ok mode=full fetched=2262 inserted=0 updated=2289 skipped=2258 interval=5000
+[mssql-sync] ok mode=full fetched=2263 inserted=0 updated=2293 skipped=2256 interval=5000
+[mssql-sync] ok mode=full fetched=2263 inserted=0 updated=2298 skipped=2252 interval=5000
+[mssql-sync] ok mode=full fetched=2264 inserted=0 updated=2293 skipped=2259 interval=5000
+[mssql-sync] ok mode=full fetched=2267 inserted=0 updated=2294 skipped=2264 interval=5000
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2298 skipped=2266 interval=5000
+٣:٠٩:٠٤ م [tsx] change in ./drizzle\schema.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+٣:٠٩:١٨ م [tsx] change in ./server\routers\patient.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[2m٣:١١:٠٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":1}
+[2m٣:١١:٠٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"navigate","redirectCount":0,"time":"2026-06-09T12:11:08.203Z","path":"/my/book-guest"}
+[2m٣:١١:٠٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/login","time":"2026-06-09T11:03:29.808Z"}
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2295 skipped=2268 interval=5000
+٣:١٢:٢١ م [tsx] change in ./server\routers\medical.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+[clinic] Server running on http://0.0.0.0:4000/
+[DeviceSettings] Loaded from database: { ip: '192.168.0.10', port: 5005 }
+[PunchReception] Started listening to device events
+[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings
+[blackice-import] Disabled
+[blackice-ocr] Disabled
+[2m٣:١٢:٤١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":2}
+[2m٣:١٢:٤١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"reload","redirectCount":0,"time":"2026-06-09T12:12:41.138Z","path":"/my/book-guest"}
+[2m٣:١٢:٤١ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/my/book-guest","time":"2026-06-09T12:12:33.850Z"}
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2299 skipped=2264 interval=5000
+[2m٣:١٥:٣٥ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٥:٤٦ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:١٩:٠٠ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[mssql-sync] ok mode=full fetched=2270 inserted=0 updated=2296 skipped=2267 interval=5000
+[2m٣:١٩:٠٨ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
+[2m٣:٢٠:١٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/my/book-guest","time":"2026-06-09T12:20:15.124Z"}
+[2m٣:٢٠:١٥ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Reload trace {"reason":"beforeunload","source":"reload","path":"/my/book-guest","time":"2026-06-09T12:20:15.125Z"}
+[2m٣:٢٠:١٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] boot {"count":3}
+[2m٣:٢٠:١٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Navigation trace {"type":"navigate","redirectCount":0,"time":"2026-06-09T12:20:17.586Z","path":"/"}
+[2m٣:٢٠:١٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[SELRS] Last reload trace {"reason":"beforeunload","source":"reload","path":"/my/book-guest","time":"2026-06-09T12:20:15.125Z"}
+[api] POST /api/auth/login -> 200 in 237ms
+[getAllAppointments] Total: 14, With patient info: 1, Without patient info: 13
+Sample: {
+  "id": 16,
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2026-04-10T02:03:43.000Z",
+  "appointmentType": "surgery",
+  "branch": "surgery",
+  "status": "scheduled",
+  "notes": null,
+  "createdAt": "2026-04-10T02:03:43.000Z",
+  "updatedAt": "2026-04-10T02:03:43.000Z",
+  "patientName": "شادي محمد السيد",
+  "patientCode": "0001",
+  "patientPhone": null
+}
+[2m٣:٢٠:٢٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٣:٢٠:٢٧ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[2m٣:٢٠:٢٨ م[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+tyles/web.css[22m
 [2m٧:٣٧:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 [2m٧:٣٧:٤١ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 [2m٧:٣٧:٤٢ م[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
@@ -3327,4 +3392,23 @@ m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/web.css[22m
 c٧:٠٥:٢٣ ص [tsx] change in ./server\storage.ts Restarting...
 c٧:٠٥:٢٤ ص [tsx] change in ./shared\accounting\contracts.ts Restarting...
 c٧:٠٥:٢٤ ص [tsx] change in ./shared\pentacam.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+١:٢٠:٣٨ م [tsx] change in ./drizzle\schema.ts Rerunning...
+c١:٢٠:٣٩ م [tsx] change in ./shared\pentacam.ts Restarting...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٢:٠٥:٠٦ م [tsx] change in ./server\routers\medical.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٢:٠٥:٥٩ م [tsx] change in ./server\routers\medical.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٢:٠٦:١٩ م [tsx] change in ./server\routers\medical.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٢:١١:١١ م [tsx] unlink in ./server\routers\medical.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٢:٣٣:١٢ م [tsx] change in ./server\integrations\mssqlPatients.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٠٩:٠٤ م [tsx] change in ./drizzle\schema.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:٠٩:١٨ م [tsx] change in ./server\routers\patient.ts Rerunning...
+c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
+٣:١٢:٢١ م [tsx] change in ./server\routers\medical.ts Rerunning...
 c[ADMS] ZKTeco ADMS push endpoint registered at /iclock/cdata
